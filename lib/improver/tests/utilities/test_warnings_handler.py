@@ -67,6 +67,7 @@ class Test__init__(IrisTest):
         """Test defaults set correctly when ignored_messages set."""
         messages = ["Testing", "Testing2"]
         plugin = ManageWarnings(ignored_messages=messages)
+        warning_types = plugin.warning_types
         self.assertEqual(plugin.messages, messages)
         self.assertTrue(any(item == UserWarning
                             for item in warning_types))
