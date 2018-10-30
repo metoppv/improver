@@ -42,6 +42,7 @@ from improver.wind_calculations import wind_downscaling
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.utilities.cube_extraction import apply_extraction
+from improver.utilities.runner import apply_plugin
 
 
 def main():
@@ -122,15 +123,14 @@ def main():
         wind_speed_iterator = wind_speed.slices_over('realization')
     except CoordinateNotFoundError:
         wind_speed_iterator = [wind_speed]
-    wind_speed_list = iris.cube.CubeList()
-    for wind_speed_slice in wind_speed_iterator:
-        result = (
-            wind_downscaling.RoughnessCorrection(
-                silhouette_roughness_filepath, sigma, target_orog,
-                standard_orog, float(args.model_resolution),
-                z0_cube=veg_roughness_cube,
-                height_levels_cube=height_levels).process(wind_speed_slice))
-        wind_speed_list.append(result)
+
+    downscaler = wind_downscaling.RoughnessCorrection(            
+            silhouette_roughness_filepath, sigma, target_orog,
+            standard_orog, float(args.model_resolution),
+            z0_cube=veg_roughness_cube,
+            height_levels_cube=height_levels).process
+
+    wind_speed_list = apply_plugin(downscaler, wind_speed_iterator)
 
     # Temporary fix for chunking problems when merging cubes
     max_npoints = max([np.prod(cube.data.shape) for cube in wind_speed_list])
