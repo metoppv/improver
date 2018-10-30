@@ -100,7 +100,8 @@ class Test_check_range(Test_WetBulbTemperature):
         WetBulbTemperature.check_range(self.temperature,
                                        270., 360.)
         warning_msg = "Wet bulb temperatures are"
-        assert issubclass(warning_list[0].category, UserWarning)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
         self.assertTrue(any(warning_msg in str(item)
                             for item in warning_list))
 
@@ -126,7 +127,8 @@ class Test_lookup_svp(Test_WetBulbTemperature):
         expected = [9.664590e-03, 9.664590e-03, 2.501530e+04]
         result = WetBulbTemperature().lookup_svp(self.temperature)
         warning_msg = "Wet bulb temperatures are"
-        assert issubclass(warning_list[0].category, UserWarning)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
         self.assertTrue(any(warning_msg in str(item)
                             for item in warning_list))
         self.assertArrayAlmostEqual(result.data, expected)

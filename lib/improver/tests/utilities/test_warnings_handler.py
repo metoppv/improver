@@ -68,9 +68,8 @@ class Test__init__(IrisTest):
         messages = ["Testing", "Testing2"]
         plugin = ManageWarnings(ignored_messages=messages)
         self.assertEqual(plugin.messages, messages)
-        self.assertEqual(len(plugin.warning_types), 2)
-        self.assertEqual(plugin.warning_types[0], UserWarning)
-        self.assertEqual(plugin.warning_types[1], UserWarning)
+        self.assertTrue(any(item == UserWarning
+                            for item in warning_types))
 
     def test_ignored_messages_and_warning_types(self):
         """Test OK when ignored_messages and warning_types set."""
@@ -79,9 +78,10 @@ class Test__init__(IrisTest):
         plugin = ManageWarnings(ignored_messages=messages,
                                 warning_types=warning_types)
         self.assertEqual(plugin.messages, messages)
-        self.assertEqual(len(plugin.warning_types), 2)
-        self.assertEqual(plugin.warning_types[0], UserWarning)
-        self.assertEqual(plugin.warning_types[1], PendingDeprecationWarning)
+        self.assertTrue(any(item == UserWarning
+                            for item in warning_types))
+        self.assertTrue(any(item == PendingDeprecationWarning
+                            for item in warning_types))
 
     def test_mismatch_warning_types(self):
         """Test Raises error when warning_types does not match."""

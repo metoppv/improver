@@ -518,7 +518,8 @@ class Test_extract_ad_at_time(Test_common_functions):
 
         plugin(self.additional_data, time_dt, time_extract)
         warning_msg = "Forecast time"
-        assert issubclass(warning_list[0].category, UserWarning)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
         self.assertTrue(any(warning_msg in str(item)
                             for item in warning_list))
 
