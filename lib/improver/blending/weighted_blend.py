@@ -31,6 +31,7 @@
 """Module containing classes for doing weighted blending by collapsing a
    whole dimension."""
 import warnings
+from cf_units import Unit
 
 import numpy as np
 import iris
@@ -76,12 +77,16 @@ def unify_forecast_reference_time(cubes, cycletime):
     result_cubes = iris.cube.CubeList([])
     for cube in cubes:
         frt_units = cube.coord('forecast_reference_time').units
-        frt_points = [frt_units.date2num(cycletime)]
         frt_type = cube.coord('forecast_reference_time').dtype
+        new_frt_units = Unit('seconds since 1970-01-01 00:00:00')
+        frt_points = np.round(
+            [new_frt_units.date2num(cycletime)]).astype(frt_type)
         frt_coord = build_coordinate(
             frt_points, standard_name="forecast_reference_time", bounds=None,
             template_coord=cube.coord('forecast_reference_time'),
-            data_type=frt_type)
+            units=new_frt_units)
+        frt_coord.convert_units(frt_units)
+        frt_coord.points = frt_coord.points.astype(frt_type)
         cube.remove_coord("forecast_reference_time")
         cube.add_aux_coord(frt_coord, data_dims=None)
 
