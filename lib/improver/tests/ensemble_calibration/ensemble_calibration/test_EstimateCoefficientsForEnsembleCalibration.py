@@ -833,7 +833,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
         warning_msg = ("Insufficient input data present to estimate "
-                            "coefficients using NGR.")
+                       "coefficients using NGR.")
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         self.assertTrue(any(warning_msg in str(item)
@@ -860,7 +860,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
         warning_msg = ("Insufficient input data present to estimate "
-                            "coefficients using NGR.")
+                       "coefficients using NGR.")
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         self.assertTrue(any(warning_msg in str(item)
@@ -886,7 +886,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
         warning_msg = ("Insufficient input data present to estimate "
-                            "coefficients using NGR.")
+                       "coefficients using NGR.")
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         self.assertTrue(any(warning_msg in str(item)
