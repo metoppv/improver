@@ -124,7 +124,7 @@ def main():
     except CoordinateNotFoundError:
         wind_speed_iterator = [wind_speed]
 
-    downscaler = wind_downscaling.RoughnessCorrection(            
+    downscaler = wind_downscaling.RoughnessCorrection(
             silhouette_roughness_filepath, sigma, target_orog,
             standard_orog, float(args.model_resolution),
             z0_cube=veg_roughness_cube,

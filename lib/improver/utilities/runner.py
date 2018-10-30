@@ -34,32 +34,33 @@ import dask.distributed
 import iris
 from functools import partial
 
-def apply_plugin(plugin, cubes, keyword=False, args=False, kwargs=False):
-    """
-    A delayed runner for plugin classes
 
-    plugin: The plugin instance to run
-    cubes: The slices to iterate over
-
-    keyword: An optional key for the iterating arg
-    args: Any additional arguments to be passed to the process method
-    kwargs: Any additional kwargs
+def apply_plugin(plugin, cubes):
     """
+    A delayed runner for plugin classes/process methods.
+    Parallelises the processing of a plugin over an iterator of cubes.
+
+
+    Args:
+        plugin (object):
+            Plugin class, or process method to be executed.
+        cubes (iterator):
+            Cubes to be operated on by the plugin.
+
+    Returns:
+        results (iris.cube.CubeList):
+            The results from the cubes acted on by the plugin.
+    """
+
+    # Allow the class to be called as well as the process method
     if not callable(plugin):
         if hasattr(plugin, 'process'):
             plugin = plugin.process
-    if args:
-        plugin = partial(plugin, args)
 
+    # Initialise a distributed client (Not using processes to avoid pickling)
     client = dask.distributed.Client(processes=False)
 
-    if keyword:
-        def runner(arg):
-            kwarg = {keyword : arg}
-            return plugin(**kwarg)
-        futures = client.map(runner, cubes)
-    else:
-        futures = client.map(plugin, cubes)
+    futures = client.map(plugin, cubes)
     results = client.gather(futures, asynchronous=False)
-    return iris.cube.CubeList(results)
 
+    return iris.cube.CubeList(results)
