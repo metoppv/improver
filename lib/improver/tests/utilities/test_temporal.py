@@ -35,6 +35,7 @@ from datetime import time
 from datetime import timedelta
 import unittest
 import numpy as np
+from numpy.testing import assert_almost_equal
 
 import iris
 from iris.exceptions import CoordinateNotFoundError
@@ -104,7 +105,7 @@ class Test_cycletime_to_number(IrisTest):
         dt = 1511308800.0
         result = cycletime_to_number(
             cycletime, time_unit="seconds since 1970-01-01 00:00:00")
-        self.assertAlmostEqual(result, dt)
+        assert_almost_equal(result, dt, decimal=6)
 
     def test_alternative_calendar_defined(self):
         """Test when an alternative calendar is defined."""

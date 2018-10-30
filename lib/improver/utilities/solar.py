@@ -278,6 +278,7 @@ class DayNightMask(object):
         for i, dtval in enumerate(dtvalues):
             mask_cube = daynight_mask[i]
             day_of_year = (dtval - dt.datetime(dtval.year, 1, 1)).days
+            dtval = dtval + dt.timedelta(seconds=dtval.second)
             utc_hour = (dtval.hour * 60.0 + dtval.minute) / 60.0
             trg_crs = lat_lon_determine(mask_cube)
             # Grids that are not Lat Lon
@@ -290,5 +291,4 @@ class DayNightMask(object):
                 mask_cube = self._daynight_lat_lon_cube(mask_cube,
                                                         day_of_year, utc_hour)
             daynight_mask.data[i, ::] = mask_cube.data
-
         return daynight_mask
