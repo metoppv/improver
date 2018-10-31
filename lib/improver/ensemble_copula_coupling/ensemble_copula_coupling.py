@@ -248,16 +248,15 @@ class ResamplePercentiles(object):
     def process(self, forecast_at_percentiles, no_of_percentiles=None,
                 sampling="quantile"):
         """
-        1. Concatenates cubes with a percentile coordinate.
-        2. Creates a list of percentiles.
-        3. Accesses the lower and upper bound pair of the forecast values,
+        1. Creates a list of percentiles.
+        2. Accesses the lower and upper bound pair of the forecast values,
            in order to specify lower and upper bounds for the percentiles.
-        4. Interpolate the percentile coordinate into an alternative
+        3. Interpolate the percentile coordinate into an alternative
            set of percentiles using linear interpolation.
 
         Args:
-            forecast_at_percentiles (Iris CubeList or Iris Cube):
-                Cube or CubeList expected to contain a percentile coordinate.
+            forecast_at_percentiles (Iris Cube):
+                Cube expected to contain a percentile coordinate.
             no_of_percentiles (Integer or None):
                 Number of percentiles
                 If None, the number of percentiles within the input
@@ -280,8 +279,6 @@ class ResamplePercentiles(object):
                 The percentile coordinate is always the zeroth dimension.
 
         """
-        forecast_at_percentiles = concatenate_cubes(forecast_at_percentiles)
-
         percentile_coord = (
             find_percentile_coordinate(forecast_at_percentiles).name())
 
@@ -1028,38 +1025,28 @@ class EnsembleReordering(object):
             percentile_coord = (
                 find_percentile_coordinate(post_processed_forecast).name())
 
-        print("post_processed_forecast = ", post_processed_forecast)
-        print("raw_forecast = ", raw_forecast)
         post_processed_forecast_percentiles = concatenate_cubes(
             post_processed_forecast,
             coords_to_slice_over=[percentile_coord, "time"])
-        print("post_processed_forecast_percentiles1 = ", post_processed_forecast_percentiles)
         post_processed_forecast_percentiles = (
             enforce_coordinate_ordering(
                 post_processed_forecast_percentiles, percentile_coord))
-        print("post_processed_forecast_percentiles2 = ", post_processed_forecast_percentiles)
         raw_forecast_realizations = concatenate_cubes(raw_forecast)
-        print("raw_forecast_realizations1 = ", raw_forecast_realizations)
         raw_forecast_realizations = enforce_coordinate_ordering(
             raw_forecast_realizations, "realization")
-        print("raw_forecast_realizations2 = ", raw_forecast_realizations)
         raw_forecast_realizations = (
             self._recycle_raw_ensemble_realizations(
                 post_processed_forecast_percentiles, raw_forecast_realizations,
                 percentile_coord))
-        print("raw_forecast_realizations3 = ", raw_forecast_realizations)
         post_processed_forecast_realizations = self.rank_ecc(
             post_processed_forecast_percentiles, raw_forecast_realizations,
             random_ordering=random_ordering,
             random_seed=random_seed)
-        print("post_processed_forecast_percentiles1 = ", post_processed_forecast_percentiles)
         post_processed_forecast_realizations = (
             RebadgePercentilesAsRealizations.process(
                 post_processed_forecast_realizations))
-        print("post_processed_forecast_percentiles2 = ", post_processed_forecast_percentiles)
 
         post_processed_forecast_realizations = (
             enforce_coordinate_ordering(
                 post_processed_forecast_realizations, "realization"))
-        print("post_processed_forecast_percentiles3 = ", post_processed_forecast_percentiles)
         return post_processed_forecast_realizations
