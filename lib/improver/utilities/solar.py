@@ -258,7 +258,16 @@ class DayNightMask(object):
 
     def process(self, cube):
         """
-        Calculate the daynight mask for the provided cube
+        Calculate the daynight mask for the provided cube. Note that only the
+        hours and minutes of the dtval variable are used. To ensure consistent
+        behaviour with changes of second or subsecond precision, the second
+        component is added to the time object. This means that when the hours
+        and minutes are used, we have correctly rounded to the nearest minute,
+        e.g.::
+
+           dt(2017, 1, 1, 11, 59, 59) -- +59 --> dt(2017, 1, 1, 12, 0, 58)
+           dt(2017, 1, 1, 12, 0, 1)   -- +1  --> dt(2017, 1, 1, 12, 0, 2)
+           dt(2017, 1, 1, 12, 0, 30)  -- +30 --> dt(2017, 1, 1, 12, 1, 0)
 
         Args:
             cube (iris.cube.Cube):
