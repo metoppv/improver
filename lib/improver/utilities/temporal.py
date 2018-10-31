@@ -131,6 +131,10 @@ def forecast_period_coord(
             it will be an AuxCoord. Units are result_units.
 
     """
+    if cube.coords("forecast_period"):
+        fp_type = cube.coord("forecast_period").dtype
+    else:
+        fp_type = np.int32
     if cube.coords("forecast_period") and not force_lead_time_calculation:
         result_coord = cube.coord("forecast_period").copy()
         try:
@@ -197,9 +201,9 @@ def forecast_period_coord(
                "the forecast_period.".format(cube))
         raise CoordinateNotFoundError(msg)
 
-    result_coord.points = result_coord.points.astype(np.float32)
+    result_coord.points = result_coord.points.astype(fp_type)
     if result_coord.bounds is not None:
-        result_coord.bounds = result_coord.bounds.astype(np.float32)
+        result_coord.bounds = result_coord.bounds.astype(fp_type)
 
     return result_coord
 

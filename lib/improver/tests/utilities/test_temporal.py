@@ -47,7 +47,7 @@ from improver.utilities.temporal import (
     iris_time_to_datetime, dt_to_utc_hours, datetime_constraint,
     extract_cube_at_time, set_utc_offset, get_forecast_times)
 from improver.tests.blending.weights.helper_functions import (
-    set_up_temperature_cube, add_model_id_and_model_configuration)
+    set_up_temperature_cube)
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
 from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
@@ -144,7 +144,7 @@ class Test_forecast_period_coord(IrisTest):
         expected_points = fp_coord.points
         expected_units = str(fp_coord.units)
         result = forecast_period_coord(cube)
-        self.assertArrayAlmostEqual(result.points, expected_points)
+        self.assertArrayEqual(result.points, expected_points)
         self.assertEqual(str(result.units), expected_units)
 
     def test_check_coordinate_force_lead_time_calculation(self):
@@ -158,7 +158,7 @@ class Test_forecast_period_coord(IrisTest):
         expected_units = str(fp_coord.units)
         result = forecast_period_coord(
             cube, force_lead_time_calculation=True)
-        self.assertArrayAlmostEqual(result.points, expected_points)
+        self.assertArrayEqual(result.points, expected_points)
         self.assertEqual(result.units, expected_units)
 
     def test_check_coordinate_in_hours_force_lead_time_calculation(self):
@@ -172,7 +172,7 @@ class Test_forecast_period_coord(IrisTest):
         result = forecast_period_coord(
             cube, force_lead_time_calculation=True,
             result_units=fp_coord.units)
-        self.assertArrayAlmostEqual(result.points, expected_points)
+        self.assertArrayEqual(result.points, expected_points)
         self.assertEqual(result.units, expected_units)
 
     def test_check_coordinate_without_forecast_period(self):
