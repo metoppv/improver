@@ -151,8 +151,6 @@ def rationalise_blend_time_coords(
                     "cube - cannot replace a dimension coordinate")
 
             frt_coord = cubelist[0].coord("forecast_reference_time").copy()
-            # Preserve the data type to avoid converting ints to floats.
-            frt_type = frt_coord.dtype
             for cube in cubelist:
                 next_coord = cube.coord("forecast_reference_time").copy()
                 next_coord.convert_units(frt_coord.units)
