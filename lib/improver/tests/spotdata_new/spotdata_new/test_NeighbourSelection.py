@@ -132,7 +132,8 @@ class Test__repr__(IrisTest):
         msg = ("<NeighbourSelection: land_constraint: False, minimum_dz: False"
                ", search_radius: 10000.0, site_coordinate_system: <class "
                "'cartopy.crs.PlateCarree'>, site_x_coordinate:longitude, "
-               "site_y_coordinate: latitude>")
+               "site_y_coordinate: latitude, grid_metadata_identifier: mosg, "
+               "node_limit: 36>")
         self.assertEqual(result, msg)
 
     def test_non_default(self):
@@ -141,12 +142,15 @@ class Test__repr__(IrisTest):
                                     search_radius=1000,
                                     site_coordinate_system=ccrs.Mercator(),
                                     site_x_coordinate='x_axis',
-                                    site_y_coordinate='y_axis')
+                                    site_y_coordinate='y_axis',
+                                    grid_metadata_identifier='mymodel',
+                                    node_limit=100)
         result = str(plugin)
         msg = ("<NeighbourSelection: land_constraint: True, minimum_dz: True,"
                " search_radius: 1000, site_coordinate_system: <class "
                "'cartopy.crs.Mercator'>, site_x_coordinate:x_axis, "
-               "site_y_coordinate: y_axis>")
+               "site_y_coordinate: y_axis, grid_metadata_identifier: mymodel,"
+               " node_limit: 100>")
         self.assertEqual(result, msg)
 
 
