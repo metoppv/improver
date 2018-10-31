@@ -32,7 +32,6 @@
 
 import dask.distributed
 import iris
-from functools import partial
 
 
 def apply_plugin(plugin, cubes):
