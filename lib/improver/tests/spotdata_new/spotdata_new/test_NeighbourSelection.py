@@ -303,7 +303,8 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
 
         msg = "1 spot sites fall outside the grid"
         self.assertTrue(any([msg in str(warning) for warning in warning_list]))
-        assert issubclass(warning_list[0].category, UserWarning)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
 
 
 class Test_get_nearest_indices(Test_NeighbourSelection):
@@ -538,7 +539,8 @@ class Test_select_minimum_dz(Test_NeighbourSelection):
 
         msg = "Limit on number of nearest neighbours"
         self.assertTrue(any([msg in str(warning) for warning in warning_list]))
-        assert issubclass(warning_list[0].category, UserWarning)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
 
 
 class Test_process(Test_NeighbourSelection):

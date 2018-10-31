@@ -517,9 +517,11 @@ class Test_extract_ad_at_time(Test_common_functions):
             time_dt.year, time_dt.month, time_dt.day, time_dt.hour))
 
         plugin(self.additional_data, time_dt, time_extract)
-        assert len(warning_list) == 1
-        assert issubclass(warning_list[0].category, UserWarning)
-        assert "Forecast time" in str(warning_list[0])
+        warning_msg = "Forecast time"
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
 
 
 class Test_construct_neighbour_hash(Test_common_functions):

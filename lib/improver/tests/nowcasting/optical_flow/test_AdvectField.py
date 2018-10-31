@@ -343,9 +343,11 @@ class Test_process(IrisTest):
         expected_data = np.full((4, 3), np.nan, dtype=np.float32)
         expected_data[2, 1:] = np.array([2., 3.])
         result = self.plugin.process(cube, self.timestep)
-        self.assertTrue(len(warning_list) == 1)
-        self.assertTrue(warning_list[0].category == UserWarning)
-        self.assertIn("contains unmasked NaNs", str(warning_list[0]))
+        warning_msg = "contains unmasked NaNs"
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
         self.assertArrayAlmostEqual(result.data[~result.data.mask],
                                     expected_data[~result.data.mask])
 

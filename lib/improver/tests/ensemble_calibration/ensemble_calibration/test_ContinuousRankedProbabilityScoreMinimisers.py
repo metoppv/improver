@@ -462,11 +462,11 @@ class Test_crps_minimiser_wrapper(IrisTest):
         result = plugin.crps_minimiser_wrapper(
             initial_guess, forecast_predictor, truth, forecast_variance,
             predictor_of_mean_flag, distribution)
-        self.assertTrue(len(warning_list) == 1)
+        warning_msg = "Minimisation did not result in convergence after"
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
-        self.assertTrue("Minimisation did not result in convergence after"
-                        in str(warning_list[0]))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
 
     @ManageWarnings(
         record=True,
@@ -496,13 +496,14 @@ class Test_crps_minimiser_wrapper(IrisTest):
         result = plugin.crps_minimiser_wrapper(
             initial_guess, forecast_predictor, truth, forecast_variance,
             predictor_of_mean_flag, distribution)
-        self.assertTrue(len(warning_list) == 2)
+        warning_msg_min = "Minimisation did not result in convergence after"
+        warning_msg_iter = "The final iteration resulted in a percentage "
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
-        self.assertTrue("Minimisation did not result in convergence after"
-                        in str(warning_list[0]))
-        self.assertTrue("The final iteration resulted in a percentage "
-                        "change" in str(warning_list[1]))
+        self.assertTrue(any(warning_msg_min in str(item)
+                            for item in warning_list))
+        self.assertTrue(any(warning_msg_iter in str(item)
+                            for item in warning_list))
 
     """Test minimising the CRPS for a truncated_normal distribution."""
     @ManageWarnings(
@@ -705,11 +706,11 @@ class Test_crps_minimiser_wrapper(IrisTest):
         result = plugin.crps_minimiser_wrapper(
             initial_guess, forecast_predictor, truth, forecast_variance,
             predictor_of_mean_flag, distribution)
-        self.assertTrue(len(warning_list) == 1)
+        warning_msg = "Minimisation did not result in convergence after"
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
-        self.assertTrue("Minimisation did not result in convergence after"
-                        in str(warning_list[0]))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
 
     @ManageWarnings(
         record=True,
@@ -741,13 +742,14 @@ class Test_crps_minimiser_wrapper(IrisTest):
         result = plugin.crps_minimiser_wrapper(
             initial_guess, forecast_predictor, truth, forecast_variance,
             predictor_of_mean_flag, distribution)
-        self.assertTrue(len(warning_list) == 2)
+        warning_msg_min = "Minimisation did not result in convergence after"
+        warning_msg_iter = "The final iteration resulted in a percentage "
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
-        self.assertTrue("Minimisation did not result in convergence after"
-                        in str(warning_list[0]))
-        self.assertTrue("The final iteration resulted in a percentage "
-                        "change" in str(warning_list[1]))
+        self.assertTrue(any(warning_msg_min in str(item)
+                            for item in warning_list))
+        self.assertTrue(any(warning_msg_iter in str(item)
+                            for item in warning_list))
 
 
 if __name__ == '__main__':
