@@ -115,16 +115,12 @@ class Test_rationalise_blend_time_coords(IrisTest):
         rationalise_blend_time_coords(self.cubelist, "model")
         self.assertEqual(self.cubelist, reference_cubelist)
 
-    def test_create_fp(self):
-        """Test function creates forecast_period coord if blending over
+    def test_remove_fp(self):
+        """Test function removes forecast_period coord if blending over
         forecast_reference_time"""
-        reference_coord = self.cube.coord("forecast_period")
-        reference_coord.convert_units("seconds")
-        for cube in self.cubelist:
-            cube.remove_coord("forecast_period")
         rationalise_blend_time_coords(self.cubelist, "forecast_reference_time")
         merged_cube = merge_cubes(self.cubelist)
-        self.assertEqual(merged_cube.coord("forecast_period"), reference_coord)
+        self.assertTrue("forecast_period" not in merged_cube.coords())
 
     def test_unify_frt(self):
         """Test function equalises forecast reference times if weighting a
