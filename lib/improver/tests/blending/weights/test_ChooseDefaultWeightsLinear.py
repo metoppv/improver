@@ -39,8 +39,30 @@ import numpy as np
 
 from improver.blending.weights import ChooseDefaultWeightsLinear \
     as LinearWeights
-from improver.tests.blending.weights.test_WeightsUtilities import (
-    set_up_cube, add_realizations)
+from improver.tests.blending.weights.helper_functions import (
+    set_up_zero_cube, set_up_cube_with_scalar_coord, add_realizations)
+
+
+class Test__init__(IrisTest):
+    """Test the __init__ method."""
+
+    def test_default_y0val_and_ynval(self):
+        """Test default values of y0val and ynval are set correctly."""
+        plugin = LinearWeights()
+        self.assertEqual(plugin.y0val, 20.0)
+        self.assertEqual(plugin.ynval, 2.0)
+
+    def test_fails_y0val_not_float(self):
+        """Test it fails if y0val not set to float """
+        msg = ('y0val must be a float >= 0.0')
+        with self.assertRaisesRegex(ValueError, msg):
+            LinearWeights(y0val=2)
+
+    def test_fails_y0val_lessthan_zero(self):
+        """Test it raises a Value Error if y0val less than zero. """
+        msg = ('y0val must be a float >= 0.0')
+        with self.assertRaisesRegex(ValueError, msg):
+            LinearWeights(y0val=-10.0)
 
 
 class Test_linear_weights(IrisTest):
@@ -50,14 +72,6 @@ class Test_linear_weights(IrisTest):
         """Test that the function returns an array of weights. """
         result = LinearWeights().linear_weights(3)
         self.assertIsInstance(result, np.ndarray)
-
-    def test_fails_y0val_set_wrong(self):
-        """Test it fails if y0val not set properly """
-        msg = ('y0val must be a float >= 0.0')
-        with self.assertRaisesRegex(ValueError, msg):
-            LinearWeights(y0val=-0.1).linear_weights(3)
-        with self.assertRaisesRegex(ValueError, msg):
-            LinearWeights(y0val=2).linear_weights(3)
 
     def test_fails_ynval_and_slope_set(self):
         """Test it fails if y0val not set properly """
@@ -117,7 +131,7 @@ class Test_process(IrisTest):
     """Test the Default Linear Weights plugin. """
 
     def setUp(self):
-        self.cube = set_up_cube()
+        self.cube = set_up_zero_cube()
         self.coord_name = "time"
         self.coord_vals = ','.join(
             [str(x) for x in self.cube.coord("time").points])
@@ -152,13 +166,6 @@ class Test_process(IrisTest):
         with self.assertRaisesRegex(TypeError, msg):
             plugin.process(notacube, self.coord_name)
 
-    def test_fails_y0val_lessthan_zero(self):
-        """Test it raises a Value Error if y0val less than zero. """
-        plugin = LinearWeights(y0val=-10.0)
-        msg = ('y0val must be a float >= 0.0')
-        with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(self.cube, self.coord_name, self.coord_vals)
-
     def test_fails_ynval_and_slope_set(self):
         """Test it raises a Value Error if slope and ynval set. """
         plugin = LinearWeights(y0val=10.0, slope=-5.0, ynval=5.0)
@@ -178,9 +185,10 @@ class Test_process(IrisTest):
 
     def test_works_scalar_coord(self):
         """Test it works if scalar coordinate. """
-        coord = self.cube.coord("scalar_coord")
+        cube = set_up_cube_with_scalar_coord()
+        coord = cube.coord("scalar_coord")
         plugin = LinearWeights()
-        result = plugin.process(self.cube, coord)
+        result = plugin.process(cube, coord)
         self.assertArrayAlmostEqual(result, np.array([1.0]))
 
     def test_works_defaults_used(self):

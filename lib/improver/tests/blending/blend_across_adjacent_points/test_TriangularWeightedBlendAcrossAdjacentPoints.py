@@ -45,43 +45,11 @@ import numpy as np
 
 from improver.blending.blend_across_adjacent_points import \
     TriangularWeightedBlendAcrossAdjacentPoints
+from improver.tests.blending.weights.helper_functions import (
+    cubes_for_triangular_weighted_blend_tests)
 from improver.utilities.warnings_handler import ManageWarnings
 from improver.utilities.cube_metadata import add_coord
 from improver.utilities.cube_manipulation import concatenate_cubes
-
-
-def set_up_cube():
-    """A helper function to set up input cubes for unit tests.
-       The cube has latitude, longitude and time dimensions"""
-    data = np.zeros((2, 2, 2))
-
-    orig_cube = Cube(data, units='m',
-                     standard_name='lwe_thickness_of_precipitation_amount')
-    orig_cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 2),
-                                     'latitude', units='degrees'), 1)
-    orig_cube.add_dim_coord(DimCoord(np.linspace(120, 180, 2), 'longitude',
-                                     units='degrees'), 2)
-    time_origin = 'hours since 1970-01-01 00:00:00'
-    calendar = 'gregorian'
-    tunit = Unit(time_origin, calendar)
-    orig_cube.add_dim_coord(DimCoord([402192.5, 402193.5],
-                                     'time', units=tunit), 0)
-    orig_cube.add_aux_coord(DimCoord([0, 1],
-                                     'forecast_period', units='hours'), 0)
-    return orig_cube
-
-
-def cubes_for_tests():
-    """Set up cubes for unit tests."""
-    cube = set_up_cube()
-    data = np.zeros((2, 2, 2))
-    data[0][:][:] = 1.0
-    data[1][:][:] = 2.0
-    cube.data = data
-    forecast_period = 0
-    constr = iris.Constraint(forecast_period=forecast_period)
-    central_cube = cube.extract(constr)
-    return cube, central_cube, forecast_period
 
 
 class Test__repr__(IrisTest):
@@ -131,7 +99,8 @@ class Test__find_central_point(IrisTest):
 
     def setUp(self):
         """Set up a test cube."""
-        self.cube, self.central_cube, self.forecast_period = cubes_for_tests()
+        self.cube, self.central_cube, self.forecast_period = (
+            cubes_for_triangular_weighted_blend_tests())
         self.width = 1.0
 
     def test_central_point_available(self):
@@ -163,7 +132,8 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up a test cube."""
-        self.cube, self.central_cube, self.forecast_period = cubes_for_tests()
+        self.cube, self.central_cube, self.forecast_period = (
+            cubes_for_triangular_weighted_blend_tests())
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -292,20 +262,9 @@ class Test_process(IrisTest):
         fill_value = 1 + 1/3.0
         data = np.full((2, 2), fill_value)
 
-        expected_cube = (Cube(data, units='m',
-                         standard_name='lwe_thickness_of_precipitation_amount')
-                         )
-        expected_cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 2),
-                                    'latitude', units='degrees'), 0)
-        expected_cube.add_dim_coord(DimCoord(np.linspace(120, 180, 2),
-                                    'longitude', units='degrees'), 1)
+        # Take a slice of the time coordinate.
+        expected_cube = self.cube[0].copy(data)
 
-        time_origin = 'hours since 1970-01-01 00:00:00'
-        calendar = 'gregorian'
-        tunit = Unit(time_origin, calendar)
-        expected_cube.add_aux_coord(DimCoord([402192.5], 'time', units=tunit))
-        expected_cube.add_aux_coord(DimCoord([0], 'forecast_period',
-                                             units='hours'))
         # Add threshold axis to expected output cube.
         changes = {'points': [0.5], 'units': '1'}
         expected_cube = add_coord(expected_cube, 'threshold', changes)
@@ -320,7 +279,7 @@ class Test_process(IrisTest):
         result = plugin.process(cube_with_thresh)
 
         # Test that the result cube retains threshold co-ordinates
-        # from origonal cube.
+        # from original cube.
         self.assertEqual(expected_cube.coord('threshold'),
                          result.coord('threshold'))
         self.assertArrayEqual(expected_cube.data, result.data)
@@ -333,17 +292,21 @@ class Test_process(IrisTest):
            thresholds."""
         width = 2.0
 
+        thresh_cube = self.cube.copy()
+        thresh_cube.remove_coord("forecast_reference_time")
+
         changes = {'points': [0.25], 'units': '1'}
-        cube_with_thresh1 = add_coord(self.cube.copy(), 'threshold', changes)
+        cube_with_thresh1 = add_coord(thresh_cube.copy(), 'threshold', changes)
 
         changes = {'points': [0.5], 'units': '1'}
-        cube_with_thresh2 = add_coord(self.cube.copy(), 'threshold', changes)
+        cube_with_thresh2 = add_coord(thresh_cube.copy(), 'threshold', changes)
 
         changes = {'points': [0.75], 'units': '1'}
-        cube_with_thresh3 = add_coord(self.cube.copy(), 'threshold', changes)
+        cube_with_thresh3 = add_coord(thresh_cube.copy(), 'threshold', changes)
 
         cubelist = iris.cube.CubeList([cube_with_thresh1, cube_with_thresh2,
                                        cube_with_thresh3])
+
         thresh_cubes = concatenate_cubes(cubelist,
                                          coords_to_slice_over='threshold')
 
@@ -353,7 +316,7 @@ class Test_process(IrisTest):
         result = plugin.process(thresh_cubes)
 
         # Test that the result cube retains threshold co-ordinates
-        # from origonal cube.
+        # from original cube.
         self.assertEqual(thresh_cubes.coord('threshold'),
                          result.coord('threshold'))
 

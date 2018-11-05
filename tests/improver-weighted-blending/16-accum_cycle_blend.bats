@@ -31,15 +31,13 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending nonlinear --coord_exp_val input output" {
+@test "weighted-blending linear with-time-bounds" {
   improver_check_skip_acceptance
-  KGO="weighted_blending/coord_exp_val/kgo.nc"
+  KGO="weighted_blending/accum_cycle_blend/kgo.nc"
 
-  # Run weighted blending with expected coordinate values.
-  run improver weighted-blending 'nonlinear' \
-      --coord_exp_val "415635.0, 415636.0, 415637.0, 415638.0" \
-      'time' 'weighted_mean' \
-      "$IMPROVER_ACC_TEST_DIR/weighted_blending/coord_exp_val/multiple_probabilities_rain_*H.nc" \
+  # Run weighted blending with linear weights and check it passes.
+  run improver weighted-blending 'forecast_reference_time' 'weighted_mean' \
+      $IMPROVER_ACC_TEST_DIR/weighted_blending/accum_cycle_blend/ukv_prob_accum_PT?H.nc \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

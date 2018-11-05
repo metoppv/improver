@@ -31,14 +31,15 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending linear coordinate input output" {
+@test "weighted-blending percentile blending" {
   improver_check_skip_acceptance
-  KGO="weighted_blending/cycletime/kgo_remove_bounds.nc"
+  KGO="weighted_blending/percentiles/kgo.nc"
 
-  # Run weighted blending with linear weights and check it passes.
-  run improver weighted-blending 'linear' 'forecast_reference_time' 'weighted_mean' --cycletime '20171129T0900Z'\
-      "$IMPROVER_ACC_TEST_DIR/weighted_blending/cycletime/input.nc" \
-      "$TEST_DIR/output.nc" --coords_for_bounds_removal "forecast_period" "time"
+  # Run weighted blending with non linear weights and sub-options and check it passes.
+  run improver weighted-blending --wts_calc_method 'nonlinear' \
+      'forecast_reference_time' 'weighted_mean' --cval 1.0 \
+      "$IMPROVER_ACC_TEST_DIR/weighted_blending/percentiles/input.nc" \
+      "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

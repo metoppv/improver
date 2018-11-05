@@ -37,7 +37,7 @@ import iris
 from copy import copy, deepcopy
 from iris.tests import IrisTest
 from iris.cube import Cube
-from iris.coords import DimCoord
+from iris.coords import DimCoord, AuxCoord
 from cf_units import Unit
 
 from improver.utilities.cube_metadata import (
@@ -53,6 +53,7 @@ from improver.utilities.cube_metadata import (
 from improver.utilities.warnings_handler import ManageWarnings
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import set_up_temperature_cube
+from improver.utilities.temporal import forecast_period_coord
 
 
 def create_cube_with_threshold(data=None,
@@ -84,6 +85,10 @@ def create_cube_with_threshold(data=None,
     cube.add_dim_coord(DimCoord(threshold_values,
                                 long_name='threshold',
                                 units=units), 0)
+    cube.add_aux_coord(AuxCoord([402190.],
+                                standard_name='forecast_reference_time',
+                                units=tunit), None)
+    cube.add_aux_coord(forecast_period_coord(cube), 1)
     cube.attributes['relative_to_threshold'] = 'above'
     return cube
 

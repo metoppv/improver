@@ -142,7 +142,7 @@ class Test_forecast_period_coord(IrisTest):
         expected_points = fp_coord.points
         expected_units = str(fp_coord.units)
         result = forecast_period_coord(cube)
-        self.assertArrayAlmostEqual(result.points, expected_points)
+        self.assertArrayEqual(result.points, expected_points)
         self.assertEqual(str(result.units), expected_units)
 
     def test_check_coordinate_force_lead_time_calculation(self):
@@ -156,7 +156,21 @@ class Test_forecast_period_coord(IrisTest):
         expected_units = str(fp_coord.units)
         result = forecast_period_coord(
             cube, force_lead_time_calculation=True)
-        self.assertArrayAlmostEqual(result.points, expected_points)
+        self.assertArrayEqual(result.points, expected_points)
+        self.assertEqual(result.units, expected_units)
+
+    def test_check_coordinate_in_hours_force_lead_time_calculation(self):
+        """Test that the data within the coord is as expected with the
+        expected units, when the input cube has a forecast_period coordinate.
+        """
+        cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
+        fp_coord = cube.coord("forecast_period").copy()
+        expected_points = fp_coord.points
+        expected_units = str(fp_coord.units)
+        result = forecast_period_coord(
+            cube, force_lead_time_calculation=True,
+            result_units=fp_coord.units)
+        self.assertArrayEqual(result.points, expected_points)
         self.assertEqual(result.units, expected_units)
 
     def test_check_coordinate_without_forecast_period(self):
@@ -178,6 +192,19 @@ class Test_forecast_period_coord(IrisTest):
         other than the usual units of hours since 1970-01-01 00:00:00.
         """
         cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
+        fp_coord = cube.coord("forecast_period").copy()
+        fp_coord.convert_units("seconds")
+        expected_result = fp_coord
+        cube.coord("time").convert_units("seconds since 1970-01-01 00:00:00")
+        result = forecast_period_coord(cube, force_lead_time_calculation=True)
+        self.assertEqual(result, expected_result)
+
+    def test_check_time_unit_has_bounds(self):
+        """Test that the forecast_period coord has bounds if time has bounds.
+        """
+        cube = add_forecast_reference_time_and_forecast_period(set_up_cube())
+        cube.coord('time').bounds = [[402295., 402296.]]
+        cube.coord('forecast_period').bounds = [[4., 5.]]
         fp_coord = cube.coord("forecast_period").copy()
         fp_coord.convert_units("seconds")
         expected_result = fp_coord

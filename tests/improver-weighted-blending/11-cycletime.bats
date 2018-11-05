@@ -31,14 +31,13 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending linear coordinate input output" {
+@test "weighted-blending cycletime" {
   improver_check_skip_acceptance
-  KGO="weighted_blending/realizations/kgo.nc"
+  KGO="weighted_blending/cycletime/kgo.nc"
 
-  # Run weighted blending with linear weights and check it passes, creating
-  # a source_realization attribute.
-  run improver weighted-blending 'linear' 'realization' 'weighted_mean' \
-      "$IMPROVER_ACC_TEST_DIR/weighted_blending/realizations/input.nc" \
+  # Run weighted blending with linear weights and check it passes.
+  run improver weighted-blending 'forecast_reference_time' 'weighted_mean' --cycletime '20171129T0900Z'\
+      "$IMPROVER_ACC_TEST_DIR/weighted_blending/cycletime/input.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

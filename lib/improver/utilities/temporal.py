@@ -100,18 +100,14 @@ def cycletime_to_number(
 
 
 def forecast_period_coord(
-        cube,
-        force_lead_time_calculation=False):
+        cube, force_lead_time_calculation=False, result_units="seconds"):
     """
     Return or calculate the lead time coordinate (forecast_period)
     within a cube, either by reading the forecast_period coordinate,
-    or by calculating the difference between the time and the
-    forecast_reference_time. If the forecast_period coordinate is
-    present, the points are assumed to represent the desired lead times
-    with the bounds not being considered. The units of the
-    forecast_period, time and forecast_reference_time coordinates are
-    converted, if required. The final coordinate will have units of
-    seconds.
+    or by calculating the difference between the time (points and bounds) and
+    the forecast_reference_time. The units of the forecast_period, time and
+    forecast_reference_time coordinates are converted, if required. The final
+    coordinate will have units of seconds.
 
     Args:
         cube (Iris.cube.Cube):
@@ -123,6 +119,8 @@ def forecast_period_coord(
             forecast_reference_time and the time coordinate, even if
             the forecast_period coordinate exists.
             Default is False.
+        result_units (str or cf_units.Unit):
+            Desired units for the resulting forecast period coordinate.
 
     Returns:
         coord (iris.coords.AuxCoord or DimCoord):
@@ -130,11 +128,13 @@ def forecast_period_coord(
             'forecast_period'. A DimCoord is returned if the
             forecast_period coord is already present in the cube as a
             DimCoord and this coord does not need changing, otherwise
-            it will be an AuxCoord. Units are seconds.
+            it will be an AuxCoord. Units are result_units.
 
     """
-    result_units = "seconds"
-    # Try to return forecast period coordinate in hours.
+    if cube.coords("forecast_period"):
+        fp_type = cube.coord("forecast_period").dtype
+    else:
+        fp_type = np.int32
     if cube.coords("forecast_period") and not force_lead_time_calculation:
         result_coord = cube.coord("forecast_period").copy()
         try:
@@ -163,6 +163,17 @@ def forecast_period_coord(
         # Convert the timedeltas to a total in seconds.
         required_lead_times = np.array(
             [x.total_seconds() for x in required_lead_times]).astype(fr_type)
+        if t_coord.bounds is not None:
+            time_bounds = np.array(
+                [c.bound for c in t_coord.cells()])
+            required_lead_bounds = (
+                time_bounds - forecast_reference_time_points)
+            # Convert the timedeltas to a total in seconds.
+            required_lead_bounds = np.array(
+                [[b.total_seconds() for b in x]
+                 for x in required_lead_bounds]).astype(fr_type)
+        else:
+            required_lead_bounds = None
         coord_type = iris.coords.AuxCoord
         if cube.coords("forecast_period"):
             if isinstance(
@@ -171,6 +182,7 @@ def forecast_period_coord(
         result_coord = coord_type(
             required_lead_times,
             standard_name='forecast_period',
+            bounds=required_lead_bounds,
             units="seconds")
         result_coord.convert_units(result_units)
         if np.any(result_coord.points < 0):
@@ -189,9 +201,9 @@ def forecast_period_coord(
                "the forecast_period.".format(cube))
         raise CoordinateNotFoundError(msg)
 
-    result_coord.points = result_coord.points.astype(np.float32)
+    result_coord.points = result_coord.points.astype(fp_type)
     if result_coord.bounds is not None:
-        result_coord.bounds = result_coord.bounds.astype(np.float32)
+        result_coord.bounds = result_coord.bounds.astype(fp_type)
 
     return result_coord
 

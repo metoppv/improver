@@ -31,13 +31,16 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending linear coordinate input output" {
+@test "weighted-blending model blending" {
   improver_check_skip_acceptance
-  KGO="weighted_blending/basic_lin/kgo.nc"
+  KGO="weighted_blending/model/kgo.nc"
 
-  # Run weighted blending with linear weights and check it passes.
-  run improver weighted-blending 'linear' 'forecast_reference_time' 'weighted_mean' \
-      "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
+  # Run weighted blending with linear weights for two input files and check it
+  # passes.
+  run improver weighted-blending 'model_configuration' 'weighted_mean' \
+      --ynval 1 --y0val 1 \
+      "$IMPROVER_ACC_TEST_DIR/weighted_blending/model/ukv_input.nc" \
+      "$IMPROVER_ACC_TEST_DIR/weighted_blending/model/enuk_input.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

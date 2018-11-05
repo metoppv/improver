@@ -41,56 +41,8 @@ import iris
 import numpy as np
 
 from improver.blending.weights import WeightsUtilities
-
-
-def set_up_cube():
-    """Create a cube for testing
-        Returns:
-            cube : iris.cube.Cube
-                   dummy cube for testing
-    """
-    data = np.zeros((2, 2, 2))
-    data[0][:][:] = 0.0
-    data[1][:][:] = 1.0
-    cube = Cube(data, standard_name="precipitation_amount",
-                units="kg m^-2 s^-1")
-    cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 2), 'latitude',
-                                units='degrees'), 1)
-    cube.add_dim_coord(DimCoord(np.linspace(120, 180, 2), 'longitude',
-                                units='degrees'), 2)
-    time_origin = "hours since 1970-01-01 00:00:00"
-    calendar = "gregorian"
-    tunit = Unit(time_origin, calendar)
-    time_coord = DimCoord([402192.5, 402193.5],
-                          "time", units=tunit)
-    cube.add_dim_coord(time_coord, 0)
-    dummy_scalar_coord = iris.coords.AuxCoord(1,
-                                              long_name='scalar_coord',
-                                              units='no_unit')
-    cube.add_aux_coord(dummy_scalar_coord)
-    return cube
-
-
-def add_realizations(cube, num):
-    """Create num realizations of input cube.
-        Args:
-            cube : iris.cube.Cube
-                   input cube.
-            num : integer
-                   Number of realizations.
-        Returns:
-            cubeout : iris.cube.Cube
-                      copy of cube with num realizations added.
-    """
-    cubelist = iris.cube.CubeList()
-    for i in range(0, num):
-        newcube = cube.copy()
-        new_ensemble_coord = iris.coords.AuxCoord(i,
-                                                  standard_name='realization')
-        newcube.add_aux_coord(new_ensemble_coord)
-        cubelist.append(newcube)
-    cubeout = cubelist.merge_cube()
-    return cubeout
+from improver.tests.blending.weights.helper_functions import (
+    set_up_precipitation_cube)
 
 
 class Test__repr__(IrisTest):
@@ -251,7 +203,7 @@ class Test_process_coord(IrisTest):
 
     def setUp(self):
         """Setup for testing process coord"""
-        self.cube = set_up_cube()
+        self.cube = set_up_precipitation_cube()
         self.cube_coord = self.cube.coord("time")
         self.coordinate = self.cube_coord.name()
         self.exp_coord_vals = ','.join(
@@ -295,7 +247,7 @@ class Test_process_coord(IrisTest):
     def test_fails_if_can_not_convert_units(self):
         """Test fails if it can not convert units """
         units = 'mm'
-        exp_coord_vals = '402191.5, 402192.5, 402193.5'
+        exp_coord_vals = '412226, 412227, 412228'
         msg = ('Failed to convert coord units ')
         with self.assertRaisesRegex(ValueError, msg):
             WeightsUtilities.process_coord(
@@ -307,7 +259,7 @@ class Test_process_coord(IrisTest):
         expected_num = 3
         expected_array = np.ones(expected_num)
         expected_array[0] = 0.0
-        exp_coord_vals = '402191.5, 402192.5, 402193.5'
+        exp_coord_vals = '412226, 412227, 412228'
         (result_num_of_weights,
          result_missing) = WeightsUtilities.process_coord(
              self.cube, self.coordinate, exp_coord_vals)

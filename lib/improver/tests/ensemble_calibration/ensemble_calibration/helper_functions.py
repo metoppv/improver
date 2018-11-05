@@ -32,7 +32,9 @@
 Functions for use within unit tests for `ensemble_calibration` plugins.
 
 """
+import datetime
 
+import cf_units
 from cf_units import Unit
 import iris
 from iris.coords import AuxCoord, DimCoord
@@ -61,7 +63,7 @@ def set_up_probability_above_threshold_cube(
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
-    cube.add_dim_coord(DimCoord(np.linspace(402192.5, 402292.5, timesteps,
+    cube.add_dim_coord(DimCoord(np.linspace(412227.0, 412327.0, timesteps,
                                             dtype=np.float32),
                                 "time", units=tunit), 1)
     cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, y_dimension_length,
@@ -111,7 +113,7 @@ def set_up_probability_above_threshold_spot_cube(
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
-    cube.add_dim_coord(DimCoord(np.array([402192.5], dtype=np.float32),
+    cube.add_dim_coord(DimCoord(np.array([412227], dtype=np.float64),
                                 "time", units=tunit), 1)
     cube.add_dim_coord(
         DimCoord(np.arange(9, dtype=np.float32), long_name='locnum',
@@ -147,19 +149,26 @@ def set_up_probability_above_threshold_spot_temperature_cube():
             data, "air_temperature", "degreesC"))
 
 
-def set_up_cube(data, phenomenon_standard_name, phenomenon_units,
+def set_up_cube(data, name, units,
                 realizations=np.array([0, 1, 2], dtype=np.float32),
                 timesteps=1, y_dimension_length=3, x_dimension_length=3):
     """Create a cube containing multiple realizations."""
-    cube = Cube(data, standard_name=phenomenon_standard_name,
-                units=phenomenon_units)
+    try:
+        cube = Cube(data, standard_name=name, units=units)
+    except ValueError:
+        cube = Cube(data, long_name=name, units=units)
+
     cube.add_dim_coord(DimCoord(realizations, 'realization',
                                 units='1'), 0)
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
-    cube.add_dim_coord(DimCoord(np.linspace(402192.5, 402292.5, timesteps,
-                                            dtype=np.float32),
+    dt1 = datetime.datetime(2017, 1, 10, 3, 0)
+    dt2 = datetime.datetime(2017, 1, 10, 4, 0)
+    num1 = cf_units.date2num(dt1, time_origin, calendar)
+    num2 = cf_units.date2num(dt2, time_origin, calendar)
+    cube.add_dim_coord(DimCoord(np.linspace(num1, num2, timesteps,
+                                            dtype=np.float64),
                                 "time", units=tunit), 1)
     cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, y_dimension_length,
                                             dtype=np.float32),
@@ -189,7 +198,7 @@ def set_up_spot_cube(data, phenomenon_standard_name, phenomenon_units):
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
-    cube.add_dim_coord(DimCoord(np.array(402192.5, dtype=np.float32),
+    cube.add_dim_coord(DimCoord(np.array(412227, dtype=np.float64),
                                 "time", units=tunit), 1)
     cube.add_dim_coord(DimCoord(np.arange(9, dtype=np.float32),
                                 long_name='locnum',

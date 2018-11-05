@@ -31,13 +31,12 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending linear coordinate weighted_maximum input output" {
+@test "weighted-blending linear options" {
   improver_check_skip_acceptance
-  KGO="weighted_blending/basic_weighted_max/kgo.nc"
+  KGO="weighted_blending/options_lin/kgo.nc"
 
-  # Run weighted blending with linear weights and weighted_maximum method
-  # and check it passes.
-  run improver weighted-blending 'linear' 'forecast_reference_time' 'weighted_maximum' \
+  # Run weighted blending with linear weights and suboptions: y0val and ynval. Check it passes.
+  run improver weighted-blending 'forecast_reference_time' 'weighted_mean' --y0val 4.0 --ynval 0.0 \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]

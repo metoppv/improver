@@ -31,30 +31,22 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending --linear --ynval --cval" {
-  # Run blending with linear weights calculation but nonlinear args: check it fails.
-  run improver weighted-blending 'linear' 'time' 'weighted_mean' --ynval 1 --cval 0.5\
-      "NO_INPUT_FILE" \
-      "NO_OUTPUT_FILE"
-  [[ "${status}" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-weighted-blending [-h] [--profile]
-                                  [--profile_file PROFILE_FILE]
-                                  [--coord_exp_val COORD_EXPECTED_VALUES]
-                                  [--coordinate_unit UNIT_STRING]
-                                  [--calendar CALENDAR]
-                                  [--slope LINEAR_SLOPE | --ynval LINEAR_END_POINT]
-                                  [--y0val LINEAR_STARTING_POINT]
-                                  [--cval NON_LINEAR_FACTOR]
-                                  [--coord_adj COORD_ADJUSTMENT_FUNCTION]
-                                  [--wts_redistrib_method METHOD_TO_REDISTRIBUTE_WEIGHTS]
-                                  [--cycletime CYCLETIME]
-                                  [--coords_for_bounds_removal COORDS_FOR_BOUNDS_REMOVAL [COORDS_FOR_BOUNDS_REMOVAL ...]]
-                                  WEIGHTS_CALCULATION_METHOD
-                                  COORDINATE_TO_AVERAGE_OVER
-                                  WEIGHTED_BLEND_MODE INPUT_FILES
-                                  [INPUT_FILES ...] OUTPUT_FILE
-improver-weighted-blending: error: Method: linear does not accept arguments: cval
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+@test "weighted-blending dict percentiles" {
+  improver_check_skip_acceptance
+  KGO="weighted_blending/percentile_weights_from_dict/kgo.nc"
+
+  # Run weighted blending with linear weights for two percentile input files
+  run improver weighted-blending --wts_calc_method 'dict' \
+      --wts_dict "$IMPROVER_ACC_TEST_DIR/weighted_blending/weights_from_dict/input_dict.json" \
+      --weighting_coord 'forecast_period' 'model_configuration' 'weighted_mean' \
+      "$IMPROVER_ACC_TEST_DIR/weighted_blending/percentile_weights_from_dict/ukv_input.nc" \
+      "$IMPROVER_ACC_TEST_DIR/weighted_blending/percentile_weights_from_dict/enuk_input.nc" \
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 0 ]]
+
+  improver_check_recreate_kgo "output.nc" $KGO
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

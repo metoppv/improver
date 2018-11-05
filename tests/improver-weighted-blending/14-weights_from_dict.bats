@@ -31,13 +31,17 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending --nonlinear input output cval" {
+@test "weighted-blending dict" {
   improver_check_skip_acceptance
-  KGO="weighted_blending/options_nonlin/kgo.nc"
+  KGO="weighted_blending/weights_from_dict/kgo.nc"
 
-  # Run weighted blending with non linear weights and sub-options and check it passes.
-  run improver weighted-blending 'nonlinear' 'forecast_reference_time' 'weighted_mean' --cval 1.0 \
-      "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
+  # Run weighted blending with linear weights for two input files and check it
+  # passes.
+  run improver weighted-blending --wts_calc_method 'dict' \
+      --wts_dict "$IMPROVER_ACC_TEST_DIR/weighted_blending/weights_from_dict/input_dict.json" \
+      --weighting_coord 'forecast_period' 'model_configuration' 'weighted_mean' \
+      "$IMPROVER_ACC_TEST_DIR/weighted_blending/model/ukv_input.nc" \
+      "$IMPROVER_ACC_TEST_DIR/weighted_blending/model/enuk_input.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

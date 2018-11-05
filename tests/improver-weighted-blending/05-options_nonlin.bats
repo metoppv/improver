@@ -31,14 +31,14 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending linear coordinate input input output" {
+@test "weighted-blending nonlinear cval" {
   improver_check_skip_acceptance
-  KGO="weighted_blending/model/kgo.nc"
+  KGO="weighted_blending/options_nonlin/kgo.nc"
 
-  # Run weighted blending with linear weights for two input files and check it passes.
-  run improver weighted-blending 'linear' 'model' 'weighted_mean' --slope 0 --y0val 1 \
-      "$IMPROVER_ACC_TEST_DIR/weighted_blending/model/ukv_input.nc" \
-      "$IMPROVER_ACC_TEST_DIR/weighted_blending/model/enuk_input.nc" \
+  # Run weighted blending with non linear weights and sub-options and check it passes.
+  run improver weighted-blending --wts_calc_method 'nonlinear' \
+      'forecast_reference_time' 'weighted_mean' --cval 1.0 \
+      "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

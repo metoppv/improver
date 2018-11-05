@@ -38,6 +38,7 @@ import numpy as np
 import iris
 from iris.coords import AuxCoord, DimCoord
 from iris.exceptions import CoordinateNotFoundError
+from improver.constants import MODEL_ID_DICT
 from improver.utilities.cube_checker import check_cube_coordinates
 
 
@@ -229,6 +230,9 @@ def merge_cubes(cubes):
 
     cubelist = equalise_cubes(cubes)
 
+    for cube in cubelist:
+        iris.util.squeeze(cube)
+
     result = cubelist.merge_cube()
     return result
 
@@ -261,6 +265,7 @@ def equalise_cubes(cubes_in, merging=True):
     if merging:
         cubelist = _equalise_cube_coords(cubes)
         cubelist = _equalise_cell_methods(cubelist)
+        demote_float64_precision(cubelist)
     else:
         cubelist = cubes
     return cubelist
@@ -280,33 +285,34 @@ def _equalise_cube_attributes(cubes):
         Warning: If it does not know what to do with an unmatching
                  attribute. Default is to delete it.
     """
+    # Unmatched warnings matching one of the silent_attributes are deleted
+    # without raising a warning message
+    silent_attributes = ['history', 'title', 'mosg__grid_version']
     unmatching_attributes = compare_attributes(cubes)
     if len(unmatching_attributes) > 0:
         for i, cube in enumerate(cubes):
-            # Remove history.
-            if "history" in unmatching_attributes[i]:
-                cube.attributes.pop("history")
-                unmatching_attributes[i].pop("history")
-            # Normalise grid_id to ukx_standard_1
-            if "grid_id" in unmatching_attributes[i]:
-                if cube.attributes['grid_id'] in ['enukx_standard_v1',
-                                                  'ukvx_standard_v1',
-                                                  'ukx_standard_v1']:
-                    cube.attributes['grid_id'] = 'ukx_standard_v1'
-                unmatching_attributes[i].pop("grid_id")
-            # Add model_id if titles do not match.
-            if "title" in unmatching_attributes[i]:
-                model_title = cube.attributes.pop('title')
-                new_model_id_coord = build_coordinate([1000*i],
+            # Remove ignored attributes.
+            for attr in silent_attributes:
+                if attr in unmatching_attributes[i]:
+                    cube.attributes.pop(attr)
+                    unmatching_attributes[i].pop(attr)
+            # Add associated model_id if model_configurations do not match.
+            if "mosg__model_configuration" in unmatching_attributes[i]:
+                model_title = cube.attributes.pop('mosg__model_configuration')
+                for key, val in MODEL_ID_DICT.items():
+                    if val == model_title:
+                        break
+                new_model_id_coord = build_coordinate([key],
                                                       long_name='model_id',
                                                       data_type=np.int)
-                new_model_coord = build_coordinate([model_title],
-                                                   long_name='model',
-                                                   coord_type=AuxCoord,
-                                                   data_type=np.str)
+                new_model_coord = (
+                    build_coordinate([model_title],
+                                     long_name='model_configuration',
+                                     coord_type=AuxCoord,
+                                     data_type=np.str))
                 cube.add_aux_coord(new_model_id_coord)
                 cube.add_aux_coord(new_model_coord)
-                unmatching_attributes[i].pop("title")
+                unmatching_attributes[i].pop("mosg__model_configuration")
             # Remove any other mismatching attributes but raise warning.
             if len(unmatching_attributes[i]) != 0:
                 for key in unmatching_attributes[i]:
@@ -343,6 +349,11 @@ def _equalise_cube_coords(cubes):
     # If len = 0 then cubes is a cube,
     # otherwise there will be a dict (possible empty) for
     # each cube in cubes.
+    if len(unmatching_coords) != 0:
+        # Fix any issues with mismatches in coord bounds
+        _equalise_coord_bounds(cubes)
+        # Are we ok now?
+        unmatching_coords = compare_coords(cubes)
     if len(unmatching_coords) == 0:
         cubelist = cubes
     else:
@@ -415,6 +426,51 @@ def _equalise_cube_coords(cubes):
     return cubelist
 
 
+def _equalise_coord_bounds(cubes):
+    """
+    Function to equalise coord bounds that do not match.
+    This is achieved by removing any unmatching bounds so long as the
+    comparison cube has bounds of None.
+    If a coordinate is not present in all cubes, this is ignored.
+
+    Args:
+        cubes (iris.cube.CubeList):
+            List of cubes to check the cell methods and revise.
+            These are modified in place.
+
+    Raises:
+        ValueError:
+            If two cubes with different valid bounds are found.
+    """
+    # Check each cube against all remaining cubes
+    def warn(cube):
+        """Raise warning about  mismatched bounds"""
+        warnings.warn('Removing mismatched bounds from cube {}'.format(
+            cube.name))
+    for i, this_cube in enumerate(cubes):
+        for later_cube in cubes[i+1:]:
+            for coord in this_cube.coords():
+                try:
+                    match_coord = later_cube.coord(coord)
+                except CoordinateNotFoundError:
+                    continue
+                if coord.bounds is None and match_coord.bounds is None:
+                    continue
+                elif coord.bounds is None:
+                    match_coord.bounds = None
+                    warn(later_cube)
+                elif match_coord.bounds is None:
+                    coord.bounds = None
+                    warn(this_cube)
+                elif np.allclose(np.array(coord.bounds),
+                                 np.array(match_coord.bounds)):
+                    continue
+                else:
+                    msg = ('Cubes with mismatching bounds are not '
+                           'compatible')
+                    raise ValueError(msg)
+
+
 def _equalise_cell_methods(cubes):
     """
     Function to equalise cell methods that do not match.
@@ -429,6 +485,7 @@ def _equalise_cell_methods(cubes):
             they do not match.
     Warns:
         Warning: If only a single cube.
+
     """
     if len(cubes) == 1:
         msg = ('Only a single cube so no differences will be found '
@@ -676,11 +733,12 @@ def sort_coord_in_cube(cube, coord, order="ascending"):
 
     """
     coord_to_sort = cube.coord(coord)
-    if coord_to_sort.circular:
-        msg = ("The {} coordinate is circular. If the values in the "
-               "coordinate span a boundary then the sorting may "
-               "return an undesirable result.".format(coord_to_sort.name()))
-        warnings.warn(msg)
+    if isinstance(coord_to_sort, DimCoord):
+        if coord_to_sort.circular:
+            msg = ("The {} coordinate is circular. If the values in the "
+                   "coordinate span a boundary then the sorting may return "
+                   "an undesirable result.".format(coord_to_sort.name()))
+            warnings.warn(msg)
     dim, = cube.coord_dims(coord_to_sort)
     index = [slice(None)] * cube.ndim
     index[dim] = np.argsort(coord_to_sort.points)
@@ -853,6 +911,30 @@ def enforce_float32_precision(input_cubes):
         if isinstance(cube, iris.cube.Cube):  # Skip if not cube.
             if cube.dtype != np.float32:
                 cube.data = cube.data.astype(np.float32)
+
+
+def demote_float64_precision(input_cubes):
+    """Take input cube of any precision and convert any float64 data to
+    float32.
+
+    Args:
+        input_cubes (cubelist or cube):
+            List containing one or more iris cubes to test and adjust if
+            necessary.
+            Note: The code will modify the cubes in-place.
+
+    """
+    # If single cube - place within cubelist.
+    if isinstance(input_cubes, iris.cube.Cube):
+        input_cubes = iris.cube.CubeList([input_cubes])
+
+    # Cycle through the cubes
+    for cube in input_cubes:
+        assert isinstance(cube, iris.cube.Cube), 'Object is not a cube'
+
+        # Modify data if it is float64
+        if cube.dtype == np.float64:
+            cube.data = cube.data.astype(np.float32)
 
 
 def clip_cube_data(cube, minimum_value, maximum_value):

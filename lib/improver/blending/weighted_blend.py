@@ -31,16 +31,135 @@
 """Module containing classes for doing weighted blending by collapsing a
    whole dimension."""
 import warnings
+from cf_units import Unit
 
 import numpy as np
 import iris
 from iris.analysis import Aggregator
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.utilities.cube_manipulation import add_renamed_cell_method
+from improver.utilities.cube_manipulation import (
+    add_renamed_cell_method, sort_coord_in_cube)
 from improver.utilities.cube_checker import find_percentile_coordinate
+from improver.utilities.cube_manipulation import build_coordinate
 from improver.utilities.temporal import (
-    cycletime_to_number, forecast_period_coord)
+    cycletime_to_datetime, cycletime_to_number, iris_time_to_datetime,
+    forecast_period_coord)
+
+
+def unify_forecast_reference_time(cubes, cycletime):
+    """Function to unify the forecast_reference_time across the input cubes
+    provided. The cycletime specified is used as the forecast_reference_time.
+    This function is intended for use in grid blending, where the models
+    being blended may not have been run at the same cycle time, but should
+    be given the same forecast period weightings.
+
+    Args:
+        cubes (iris.cube.CubeList or iris.cube.Cube):
+            Cubes that will have their forecast_reference_time unified.
+            If a single cube is provided the forecast_reference_time will be
+            updated. Any bounds on the forecast_reference_time coord will be
+            discarded.
+        cycletime (datetime.datetime):
+            Datetime for the cycletime that will be used to replace the
+            forecast_reference_time on the individual cubes.
+
+    Returns:
+        result_cubes (iris.cube.CubeList):
+            Cubes that have had their forecast_reference_time unified.
+
+    Raises:
+        ValueError: if forecast_reference_time is a dimension coordinate
+    """
+    if isinstance(cubes, iris.cube.Cube):
+        cubes = iris.cube.CubeList([cubes])
+
+    result_cubes = iris.cube.CubeList([])
+    for cube in cubes:
+        frt_units = cube.coord('forecast_reference_time').units
+        frt_type = cube.coord('forecast_reference_time').dtype
+        new_frt_units = Unit('seconds since 1970-01-01 00:00:00')
+        frt_points = np.round(
+            [new_frt_units.date2num(cycletime)]).astype(frt_type)
+        frt_coord = build_coordinate(
+            frt_points, standard_name="forecast_reference_time", bounds=None,
+            template_coord=cube.coord('forecast_reference_time'),
+            units=new_frt_units)
+        frt_coord.convert_units(frt_units)
+        frt_coord.points = frt_coord.points.astype(frt_type)
+        cube.remove_coord("forecast_reference_time")
+        cube.add_aux_coord(frt_coord, data_dims=None)
+
+        # If a forecast period coordinate already exists on a cube, replace
+        # this coordinate, otherwise create a new coordinate.
+        fp_units = "seconds"
+        if cube.coords("forecast_period"):
+            fp_units = cube.coord("forecast_period").units
+            cube.remove_coord("forecast_period")
+        fp_coord = forecast_period_coord(
+            cube, force_lead_time_calculation=True, result_units=fp_units)
+        cube.add_aux_coord(fp_coord, data_dims=cube.coord_dims("time"))
+        result_cubes.append(cube)
+    return result_cubes
+
+
+def rationalise_blend_time_coords(
+        cubelist, blend_coord, cycletime=None, weighting_coord=None):
+    """
+    Updates time coordinates on unmerged input cubes before blending depending
+    on the coordinate over which the blend will be performed.  Modifies cubes
+    in place.
+
+    If blend_coord is forecast_reference_time, ensures the cube does not have
+    a forecast_period dimension.  If weighting_coord is forecast_period,
+    equalises forecast_reference_time on each cube before blending.
+
+    Args:
+        cubelist (iris.cube.CubeList):
+            List of cubes containing data to be blended
+        blend_coord (str):
+            Name of coordinate over which the blend will be performed
+
+    Kwargs:
+        cycletime (str or None):
+            The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z
+        weighting_coord (str or None):
+            The coordinate across which weights will be scaled in a
+            multi-model blend.
+
+    Raises:
+        ValueError: if forecast_reference_time (to be unified) is a
+            dimension coordinate
+    """
+    if "forecast_reference_time" in blend_coord:
+        for cube in cubelist:
+            coord_names = [x.name() for x in cube.coords()]
+            if "forecast_period" in coord_names:
+                cube.remove_coord("forecast_period")
+
+    # if blending models using weights by forecast period, set forecast
+    # reference times to current cycle time
+    if ("model" in blend_coord and weighting_coord is not None
+            and "forecast_period" in weighting_coord):
+        if cycletime is None:
+            # get cycle time as latest forecast reference time
+            if any([cube.coord_dims("forecast_reference_time")
+                    for cube in cubelist]):
+                raise ValueError(
+                    "Expecting scalar forecast_reference_time for each input "
+                    "cube - cannot replace a dimension coordinate")
+
+            frt_coord = cubelist[0].coord("forecast_reference_time").copy()
+            for cube in cubelist:
+                next_coord = cube.coord("forecast_reference_time").copy()
+                next_coord.convert_units(frt_coord.units)
+                if next_coord.points[0] > frt_coord.points[0]:
+                    frt_coord = next_coord
+            cycletime, = frt_coord.units.num2date(
+                frt_coord.points)
+        else:
+            cycletime = cycletime_to_datetime(cycletime)
+        cubelist = unify_forecast_reference_time(cubelist, cycletime)
 
 
 def conform_metadata(
@@ -92,6 +211,7 @@ def conform_metadata(
             Cube containing the adjusted metadata.
 
     """
+    # unify time coordinates for cycle and grid (model) blends
     if coord in ["forecast_reference_time", "model"]:
         if cube.coords("forecast_reference_time"):
             if cycletime is None:
@@ -106,8 +226,8 @@ def conform_metadata(
                     cycletime, time_unit=cycletime_units,
                     calendar=cycletime_calendar)
                 # Preserve the data type to avoid converting ints to floats.
-                fr_type = cube.coord("forecast_reference_time").dtype
-                new_cycletime = np.round(new_cycletime).astype(fr_type)
+                frt_type = cube.coord("forecast_reference_time").dtype
+                new_cycletime = np.round(new_cycletime).astype(frt_type)
             cube.coord("forecast_reference_time").points = new_cycletime
             cube.coord("forecast_reference_time").bounds = None
 
@@ -125,17 +245,31 @@ def conform_metadata(
             ndim = cube.coord_dims("time")
             cube.add_aux_coord(forecast_period, data_dims=ndim)
 
+    # update blended cube attributes
+    if "title" not in cube.attributes.keys():
+        cube.attributes["title"] = "IMPROVER Model Forecast"
+
+    if ("model" in coord) and any(
+            "mosg__" in key for key in cube_orig.attributes.keys()):
+        cube.attributes["mosg__model_configuration"] = "blend"
+
+    # inherit grid attributes
+    for key in cube_orig.attributes.keys():
+        if "mosg__grid" in key:
+            cube.attributes[key] = cube_orig.attributes[key]
+
+    # remove appropriate scalar coordinates
     for coord in ["model_id", "model_realization", "realization"]:
         if cube.coords(coord) and cube.coord(coord).shape == (1,):
             cube.remove_coord(coord)
 
-    if coords_for_bounds_removal is None:
-        coords_for_bounds_removal = []
+    # remove bounds from specified scalar coordinates
+    if coords_for_bounds_removal is not None:
+        for coord in cube.coords():
+            if coord.name() in coords_for_bounds_removal:
+                if coord.shape == (1,) and coord.has_bounds():
+                    coord.bounds = None
 
-    for coord in cube.coords():
-        if coord.name() in coords_for_bounds_removal:
-            if coord.shape == (1,) and coord.has_bounds():
-                coord.bounds = None
     return cube
 
 
@@ -380,7 +514,8 @@ class WeightedBlendAcrossWholeDimension(object):
 
         Args:
             coord (string):
-                The name of a coordinate dimension in the cube.
+                The name of the coordinate dimension over which the cube will
+                be blended.
             weighting_mode (string):
                 One of 'weighted_maximum' or 'weighted_mean':
                  - Weighted mean: a normal weighted average over the coordinate
@@ -429,31 +564,33 @@ class WeightedBlendAcrossWholeDimension(object):
 
         Args:
             cube (iris.cube.Cube):
-                   Cube to blend across the coord.
+                Cube to blend across the coord.
             weights (Optional list or np.array of weights):
-                     or None (equivalent to equal weights).
+                1D, ordered by blending coordinate value.  If None, cube is
+                blended with equal weights across the blending dimension.
 
         Returns:
             result (iris.cube.Cube):
-                     containing the weighted blend across the chosen coord.
+                containing the weighted blend across the chosen coord.
 
         Raises:
             TypeError : If the first argument not a cube.
             ValueError : If coordinate to be collapsed not found in cube.
+            ValueError : If coordinate to be collapsed is not a dimension.
             ValueError : If there is a percentile coord and it is not a
-                           dimension coord in the cube.
+                dimension coord in the cube.
             ValueError : If there is a percentile dimension with only one
-                            point, we need at least two points in order to do
-                            the blending.
+                point, we need at least two points in order to do
+                the blending.
             ValueError : If there are more than one percentile coords
-                           in the cube.
+                in the cube.
             ValueError : If there is a percentile dimension on the cube and the
-                         mode for blending is 'weighted_maximum'
+                mode for blending is 'weighted_maximum'
             ValueError : If the weights shape do not match the dimension
-                           of the coord we are blending over.
+                of the coord we are blending over.
         Warns:
             Warning : If trying to blend across a scalar coordinate with only
-                        one value. Returns the original cube in this case.
+                one value. Returns the original cube in this case.
 
         """
         if not isinstance(cube, iris.cube.Cube):
@@ -465,6 +602,15 @@ class WeightedBlendAcrossWholeDimension(object):
         if not cube.coords(self.coord):
             msg = ('Coordinate to be collapsed not found in cube.')
             raise CoordinateNotFoundError(msg)
+
+        coord_dim = cube.coord_dims(self.coord)
+        if not coord_dim:
+            raise ValueError('Blending coordinate {} has no associated '
+                             'dimension'.format(self.coord))
+
+        # Ensure input cube is ascending along blending coordinate, so that
+        # weights match cube slices
+        cube = sort_coord_in_cube(cube, self.coord, order="ascending")
 
         # Check that the points within the time coordinate are equal
         # if the coordinate being blended is forecast_reference_time.
@@ -515,121 +661,114 @@ class WeightedBlendAcrossWholeDimension(object):
                            str(cube.coord(self.coord).points.shape)))
                 raise ValueError(msg)
 
-        # If coord to blend over is a scalar_coord warn
-        # and return original cube.
-        coord_dim = cube.coord_dims(self.coord)
-        if not coord_dim:
-            msg = ('Trying to blend across a scalar coordinate with only one'
-                   ' value. Returning original cube')
-            warnings.warn(msg)
-            result = cube
+        # create slices over threshold coordinate
+        try:
+            cube.coord('threshold')
+        except iris.exceptions.CoordinateNotFoundError:
+            slices_over_threshold = [cube]
         else:
-            try:
-                cube.coord('threshold')
-            except iris.exceptions.CoordinateNotFoundError:
-                slices_over_threshold = [cube]
+            if self.coord != 'threshold':
+                slices_over_threshold = cube.slices_over('threshold')
             else:
-                if self.coord != 'threshold':
-                    slices_over_threshold = cube.slices_over('threshold')
-                else:
-                    slices_over_threshold = [cube]
+                slices_over_threshold = [cube]
 
-            cubelist = iris.cube.CubeList([])
-            for cube_thres in slices_over_threshold:
-                # Blend the cube across the coordinate
-                # Use percentile Aggregator if required
-                if perc_coord and self.mode == "weighted_mean":
-                    percentiles = np.array(
-                        perc_coord.points, dtype=np.float32)
-                    perc_dim, = cube_thres.coord_dims(perc_coord.name())
+        cubelist = iris.cube.CubeList([])
+        for cube_thres in slices_over_threshold:
+            # Blend the cube across the coordinate
+            # Use percentile Aggregator if required
+            if perc_coord and self.mode == "weighted_mean":
+                percentiles = np.array(
+                    perc_coord.points, dtype=np.float32)
+                perc_dim, = cube_thres.coord_dims(perc_coord.name())
 
-                    # The iris.analysis.Aggregator moves the coordinate being
-                    # collapsed to index=-1 in initialisation, before the
-                    # aggregation method is called. This reduces by 1 the index
-                    # of all coordinates with an initial index higher than the
-                    # collapsing coordinate. As we need to know the index of
-                    # the percentile coordinate at a later step, if it will be
-                    # changed by this process, we adjust our record (perc_dim)
-                    # here.
-                    if cube_thres.coord_dims(self.coord)[0] < perc_dim:
-                        perc_dim -= 1
+                # The iris.analysis.Aggregator moves the coordinate being
+                # collapsed to index=-1 in initialisation, before the
+                # aggregation method is called. This reduces by 1 the index
+                # of all coordinates with an initial index higher than the
+                # collapsing coordinate. As we need to know the index of
+                # the percentile coordinate at a later step, if it will be
+                # changed by this process, we adjust our record (perc_dim)
+                # here.
+                if cube_thres.coord_dims(self.coord)[0] < perc_dim:
+                    perc_dim -= 1
 
-                    # Set equal weights if none are provided
-                    if weights is None:
-                        num = len(cube_thres.coord(self.coord).points)
-                        weights = (np.ones(num, dtype=np.float32) /
-                                   np.float32(num))
-                    # Set up aggregator
-                    PERCENTILE_BLEND = (Aggregator(
-                        'mean',  # Use CF-compliant cell method.
-                        PercentileBlendingAggregator.aggregate))
-                    cube_new = cube_thres.collapsed(self.coord,
-                                                    PERCENTILE_BLEND,
-                                                    arr_percent=percentiles,
-                                                    arr_weights=weights,
-                                                    perc_dim=perc_dim)
-                    # Ensure collapsed coordinates do not promote themselves
-                    # to float64.
-                    for coord in cube_new.coords():
-                        if coord.points.dtype == np.float64:
-                            coord.points = coord.points.astype(np.float32)
+                # Set equal weights if none are provided
+                if weights is None:
+                    num = len(cube_thres.coord(self.coord).points)
+                    weights = (np.ones(num, dtype=np.float32) /
+                               np.float32(num))
+                # Set up aggregator
+                PERCENTILE_BLEND = (Aggregator(
+                    'mean',  # Use CF-compliant cell method.
+                    PercentileBlendingAggregator.aggregate))
+                cube_new = cube_thres.collapsed(self.coord,
+                                                PERCENTILE_BLEND,
+                                                arr_percent=percentiles,
+                                                arr_weights=weights,
+                                                perc_dim=perc_dim)
+                # Ensure collapsed coordinates do not promote themselves
+                # to float64.
+                for coord in cube_new.coords():
+                    if coord.points.dtype == np.float64:
+                        coord.points = coord.points.astype(np.float32)
 
-                # Else do a simple weighted average
-                elif self.mode == "weighted_mean":
-                    # Equal weights are used as default.
-                    weights_array = None
-                    # Else broadcast the weights to be used by the aggregator.
-                    coord_dim_thres = cube_thres.coord_dims(self.coord)
-                    if weights is not None:
-                        weights_array = (
-                            iris.util.broadcast_to_shape(
-                                np.array(weights, dtype=np.float32),
-                                cube_thres.shape,
-                                coord_dim_thres)
-                        )
-                    orig_cell_methods = cube_thres.cell_methods
-                    # Calculate the weighted average.
-                    cube_new = cube_thres.collapsed(self.coord,
-                                                    iris.analysis.MEAN,
-                                                    weights=weights_array)
-                    # Update the name of the cell_method created by Iris to
-                    # 'weighted_mean' to be consistent.
-                    new_cell_methods = cube_new.cell_methods
-                    extra_cm = (set(new_cell_methods) -
-                                set(orig_cell_methods)).pop()
-                    add_renamed_cell_method(cube_new,
-                                            extra_cm,
-                                            'mean')
+            # Else do a simple weighted average
+            elif self.mode == "weighted_mean":
+                # Equal weights are used as default.
+                weights_array = None
+                # Else broadcast the weights to be used by the aggregator.
+                coord_dim_thres = cube_thres.coord_dims(self.coord)
+                if weights is not None:
+                    weights_array = (
+                        iris.util.broadcast_to_shape(
+                            np.array(weights, dtype=np.float32),
+                            cube_thres.shape,
+                            coord_dim_thres)
+                    )
+                orig_cell_methods = cube_thres.cell_methods
+                # Calculate the weighted average.
+                cube_new = cube_thres.collapsed(self.coord,
+                                                iris.analysis.MEAN,
+                                                weights=weights_array)
+                # Update the name of the cell_method created by Iris to
+                # 'weighted_mean' to be consistent.
+                new_cell_methods = cube_new.cell_methods
+                extra_cm = (set(new_cell_methods) -
+                            set(orig_cell_methods)).pop()
+                add_renamed_cell_method(cube_new,
+                                        extra_cm,
+                                        'mean')
 
-                # Else use the maximum probability aggregator.
-                elif self.mode == "weighted_maximum":
-                    # Set equal weights if none are provided
-                    if weights is None:
-                        num = len(cube_thres.coord(self.coord).points)
-                        weights = (np.ones(num, np.float32) /
-                                   np.float32(num))
-                    # Set up aggregator
-                    MAX_PROBABILITY = (Aggregator(
-                        'maximum',  # Use CF-compliant cell method.
-                        MaxProbabilityAggregator.aggregate))
+            # Else use the maximum probability aggregator.
+            elif self.mode == "weighted_maximum":
+                # Set equal weights if none are provided
+                if weights is None:
+                    num = len(cube_thres.coord(self.coord).points)
+                    weights = (np.ones(num, np.float32) /
+                               np.float32(num))
+                # Set up aggregator
+                MAX_PROBABILITY = (Aggregator(
+                    'maximum',  # Use CF-compliant cell method.
+                    MaxProbabilityAggregator.aggregate))
 
-                    cube_new = cube_thres.collapsed(self.coord,
-                                                    MAX_PROBABILITY,
-                                                    arr_weights=weights)
-                cube_new = conform_metadata(
-                    cube_new, cube_thres, coord=self.coord,
-                    cycletime=self.cycletime,
-                    coords_for_bounds_removal=self.coords_for_bounds_removal)
-                cubelist.append(cube_new)
-            result = cubelist.merge_cube()
+                cube_new = cube_thres.collapsed(self.coord,
+                                                MAX_PROBABILITY,
+                                                arr_weights=weights)
+            cube_new = conform_metadata(
+                cube_new, cube_thres, coord=self.coord,
+                cycletime=self.cycletime,
+                coords_for_bounds_removal=self.coords_for_bounds_removal)
+            cubelist.append(cube_new)
+        result = cubelist.merge_cube()
 
-            # Add a source realizations attribute if collapsing realizations.
-            if self.coord == "realization":
-                result.attributes['source_realizations'] = (
-                    cube.coord(self.coord).points)
+        # Add a source realizations attribute if collapsing realizations.
+        if self.coord == "realization":
+            result.attributes['source_realizations'] = (
+                cube.coord(self.coord).points)
 
-            if isinstance(cubelist[0].data, np.ma.core.MaskedArray):
-                result.data = np.ma.array(result.data)
+        if isinstance(cubelist[0].data, np.ma.core.MaskedArray):
+            result.data = np.ma.array(result.data)
+
         # If set adjust values of collapsed coordinates.
         if self.coord_adjust is not None:
             for crd in result.coords():
