@@ -110,7 +110,7 @@ def rationalise_blend_time_coords(
     on the coordinate over which the blend will be performed.  Modifies cubes
     in place.
 
-    If blend_coord is forecast_reference_time, ensures the cube has
+    If blend_coord is forecast_reference_time, ensures the cube does not have
     a forecast_period dimension.  If weighting_coord is forecast_period,
     equalises forecast_reference_time on each cube before blending.
 
@@ -134,9 +134,8 @@ def rationalise_blend_time_coords(
     if "forecast_reference_time" in blend_coord:
         for cube in cubelist:
             coord_names = [x.name() for x in cube.coords()]
-            if "forecast_period" not in coord_names:
-                forecast_period = forecast_period_coord(cube)
-                cube.add_aux_coord(forecast_period, data_dims=None)
+            if "forecast_period" in coord_names:
+                cube.remove_coord("forecast_period")
 
     # if blending models using weights by forecast period, set forecast
     # reference times to current cycle time

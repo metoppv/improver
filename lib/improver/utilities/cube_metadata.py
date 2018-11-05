@@ -37,8 +37,7 @@ import numpy as np
 
 import iris
 
-from improver.utilities.cube_manipulation import (compare_coords,
-                                                  build_coordinate)
+from improver.utilities.cube_manipulation import compare_coords
 
 
 # Define correct v1.2.0 meta-data for v1.1.0 data.
