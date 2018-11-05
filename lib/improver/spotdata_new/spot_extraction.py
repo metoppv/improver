@@ -141,6 +141,9 @@ class SpotExtraction():
             diagnostic_cube (iris.cube.Cube):
                 The cube is needed to provide the name and units of the
                 diagnostic that is being processed.
+            spot_values (np.array):
+                An array containing the diagnostic values extracted for the
+                required spot sites.
         Returns:
             neighbour_cube (iris.cube.Cube):
                 A spot data cube containing the extracted diagnostic data.
@@ -158,6 +161,9 @@ class SpotExtraction():
         """
         Create a spot data cube containing diagnostic data extracted at the
         coordinates provided by the neighbour cube.
+
+        .. See the documentation for more details about the inputs and output.
+        .. include:: extended_documentation/spot_extraction_examples.rst
 
         Args:
             neighbour_cube (iris.cube.Cube):

@@ -254,6 +254,36 @@ class Test_process(Test_SpotExtraction):
         self.assertArrayEqual(result.coord('longitude').points,
                               self.longitudes)
 
+    def test_cube_with_leading_dimensions(self):
+        """Test that a cube with a leading dimension such as realization or
+        probability results in a spotdata cube with the same leading
+        dimension."""
+        realization0 = iris.coords.DimCoord(
+            [0], standard_name='realization', units=1)
+        realization1 = iris.coords.DimCoord(
+            [1], standard_name='realization', units=1)
+
+        cube0 = self.diagnostic_cube_xy.copy()
+        cube1 = self.diagnostic_cube_xy.copy()
+        cube0.add_aux_coord(realization0)
+        cube1.add_aux_coord(realization1)
+        cubes = iris.cube.CubeList([cube0, cube1])
+        cube = cubes.merge_cube()
+
+        plugin = SpotExtraction(grid_metadata_identifier=None)
+        expected = [[0, 0, 12, 12], [0, 0, 12, 12]]
+        expected_coord = iris.coords.DimCoord(
+            [0, 1], standard_name='realization', units=1)
+        result = plugin.process(self.neighbour_cube, cube)
+        self.assertArrayEqual(result.data, expected)
+        self.assertEqual(result.name(), cube.name())
+        self.assertEqual(result.units, cube.units)
+        self.assertDictEqual(result.attributes, cube.attributes)
+        self.assertArrayEqual(result.coord('latitude').points, self.latitudes)
+        self.assertArrayEqual(result.coord('longitude').points,
+                              self.longitudes)
+        self.assertEqual(result.coord('realization'), expected_coord)
+
 
 if __name__ == '__main__':
     unittest.main()
