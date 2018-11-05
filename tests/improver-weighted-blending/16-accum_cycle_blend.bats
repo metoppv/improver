@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending linear default" {
+@test "weighted-blending linear with-time-bounds" {
   improver_check_skip_acceptance
   KGO="weighted_blending/accum_cycle_blend/kgo.nc"
 
