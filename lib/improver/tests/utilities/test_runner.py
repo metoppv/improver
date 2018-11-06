@@ -28,39 +28,56 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-""" Utilities to run plugins """
+"""Unit tests for running plugins."""
 
-import dask.distributed
-import iris
-from functools import partial
-
-
-def apply_plugin(plugin, cubes):
-    """
-    A delayed runner for plugin classes/process methods.
-    Parallelises the processing of a plugin over an iterator of cubes.
+import unittest
+import numpy as np
+from iris.cube import Cube, CubeList
+from iris.coords import DimCoord
+from improver.utilities.runner import apply_plugin
 
 
-    Args:
-        plugin (object):
-            Plugin class, or process method to be executed.
-        cubes (iterator):
-            Cubes to be operated on by the plugin.
+def mock_plugin():
+    """ Set up a an mock plugin. """
 
-    Returns:
-        results (iris.cube.CubeList):
-            The results from the cubes acted on by the plugin.
-    """
+    class Plugin(object):
+        def process(self, args):
+            return args
 
-    # Allow the class to be called as well as the process method
-    if not callable(plugin):
-        if hasattr(plugin, 'process'):
-            plugin = plugin.process
+    return Plugin()
 
-    # Initialise a distributed client (Not using processes to avoid pickling)
-    client = dask.distributed.Client(processes=False, diagnostics_port=None)
 
-    futures = client.map(plugin, cubes)
-    results = client.gather(futures, asynchronous=False)
-    client.close()
-    return iris.cube.CubeList(results)
+def sample_cubelist():
+    """Set up dummy cube for test"""
+    data = np.array([[1., 5., 10.],
+                     [3., 4., 7.],
+                     [0., 2., 1.]])
+    cube = Cube(data, "precipitation_amount", units="kg m^-2 s^-1")
+    cube.add_dim_coord(DimCoord(np.linspace(0.0, 4.0, 3),
+                                'projection_y_coordinate',
+                                units='m'), 0)
+    cube.add_dim_coord(DimCoord(np.linspace(0.0, 4.0, 3),
+                                'projection_x_coordinate',
+                                units='m'), 1)
+    return CubeList([cube])
+
+
+class Test_runner_runs(unittest.TestCase):
+    """ Test function to execute the plugin. """
+
+    def setUp(self):
+        self.cubelist = sample_cubelist()
+        self.plugin = mock_plugin()
+
+    def test_runner(self):
+        """ Test handing the runner a mock Plugin.method and cube """
+        result = apply_plugin(self.plugin.process, self.cubelist)
+        self.assertTrue(result == self.cubelist)
+
+    def test_runner_omitting_method(self):
+        """ Test handing the runner a mock Plugin instance and cube """
+        result = apply_plugin(self.plugin, self.cubelist)
+        self.assertTrue(result == self.cubelist)
+
+if __name__ == '__main__':
+    unittest.main()
