@@ -64,6 +64,11 @@ def main():
     parser.add_argument("--northward_advection_filepath", type=str, help="Path"
                         " to input file containing Northward advection "
                         "velocities.")
+    parser.add_argument("--orographic_enhancement_filepaths", nargs="+",
+                        type=str, default=None,  help="List or wildcarded "
+                        "file specification to the input orographic "
+                        "enhancement files. Orographic enhancement files are "
+                        "compulsory for precipitation fields.")
     parser.add_argument("--json_file", metavar="JSON_FILE", default=None,
                         help="Filename for the json file containing "
                         "required changes to the metadata. Information "
@@ -105,6 +110,11 @@ def main():
         # cast to float as datetime.timedelta cannot accept np.int
         timestep = datetime.timedelta(seconds=60.*lead_time)
         forecast_cube = advection_plugin.process(input_cube, timestep)
+
+        if args.orographic_enhancement_filepaths:
+            # Add orographic enhancement.
+            cube_list = apply_orographic_enhancement(
+                forecast_cube, oe_cube_list, "add")
 
         # save to a suitably-named output file
         if args.output_filepaths:

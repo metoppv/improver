@@ -46,6 +46,8 @@ from iris import Constraint
 from iris.time import PartialDateTime
 from iris.exceptions import CoordinateNotFoundError
 
+from improver.utilities.cube_manipulation import merge_cubes
+
 
 def cycletime_to_datetime(cycletime, cycletime_format="%Y%m%dT%H%MZ"):
     """Convert a cycletime of the format YYYYMMDDTHHMMZ into a datetime object.
@@ -532,3 +534,16 @@ class TemporalInterpolation(object):
             interpolated_cubes.append(single_time)
 
         return interpolated_cubes
+
+
+def extract_nearest_time_point(cube, time_point):
+    """Find the nearest time point to the time point provided."""
+    if isinstance(cube, iris.cube.CubeList):
+        cube = merge_cubes(cube)
+    print("time_point = ", time_point)
+    time_point_index = cube.coord("time").nearest_neighbour_index(time_point)
+    print("time_point_index = ", time_point_index)
+    dt = iris_time_to_datetime(cube.coord("time").copy()[time_point_index])
+    constr = iris.Constraint(time=dt)
+    cube = cube.extract(constr)
+    return cube

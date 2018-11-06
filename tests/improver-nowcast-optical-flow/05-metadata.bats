@@ -40,6 +40,10 @@
   COMP2="201804100445_radar_rainrate_composite_UK_regridded.nc"
   COMP3="201804100500_radar_rainrate_composite_UK_regridded.nc"
 
+  OE1=""
+  OE2=""
+  OE3=""
+
   JSONFILE="$IMPROVER_ACC_TEST_DIR/optical-flow/metadata/precip.json"
 
   # Run processing and check it passes
@@ -47,6 +51,10 @@
     "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$COMP1" \
     "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$COMP2" \
     "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$COMP3" \
+    --orographic_enhancement_filepaths
+    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$OE1" \
+    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$OE2" \
+    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$OE3" \
     --output_dir "$TEST_DIR" --json_file "$JSONFILE"
   [[ "$status" -eq 0 ]]
 

@@ -40,9 +40,10 @@ import json
 
 from improver.argparser import ArgParser
 from improver.nowcasting.optical_flow import AdvectField, OpticalFlow
+from improver.nowcasting.nowcasting import apply_orographic_enhancement
 from improver.utilities.cube_manipulation import merge_cubes, strip_var_names
 from improver.utilities.filename import generate_file_name
-from improver.utilities.load import load_cube
+from improver.utilities.load import load_cubelist
 from improver.utilities.save import save_netcdf
 
 
@@ -68,6 +69,11 @@ def main():
                         default=None,  help="Optional list of full paths to "
                         "output nowcast files. Overrides OUTPUT_DIR. Ignored "
                         "unless '--extrapolate' is set.")
+    parser.add_argument("--orographic_enhancement_filepaths", nargs="+",
+                        type=str, default=None,  help="List or wildcarded "
+                        "file specification to the input orographic "
+                        "enhancement files. Orographic enhancement files are "
+                        "compulsory for precipitation fields.")
     parser.add_argument("--json_file", metavar="JSON_FILE", default=None,
                         help="Filename for the json file containing "
                         "required changes to the metadata. Information "
@@ -99,9 +105,23 @@ def main():
     args = parser.parse_args()
 
     # read input data
-    cube_list = []
-    for fname in args.input_filepaths:
-        cube_list.append(load_cube(fname))
+    #cube_list = []
+    #for fname in args.input_filepaths:
+        #cube_list.append(load_cube(fname))
+    cube_list = load_cubelist(args.input_filepaths)
+
+    if args.orographic_enhancement_filepaths:
+        # Subtract orographic enhancement
+        oe_cube_list = load_cubelist(args.orographic_enhancement_filepaths)
+        cube_list = apply_orographic_enhancement(
+            cube_list, oe_cube_list, "subtract")
+    else:
+        cube_names = [cube.name() for cube in cube_list]
+        if any("precipitation_rate" in cube_names):
+            msg = ("For precipitation fields, orographic enhancement "
+                   "filepaths must be supplied. The names of the cubes "
+                   "supplied were: {}".format(cube_names))
+            raise ValueError(msg)
 
     # order input files by validity time
     cube_list.sort(key=lambda x: x.coord("time").points[0])
@@ -164,6 +184,11 @@ def main():
             # within the advection plugin.
             cube_list = strip_var_names(cube_list)
             forecast_cube = advection_plugin.process(cube_list[-1], timestep)
+
+            if args.orographic_enhancement_filepaths:
+                # Re-add orographic enhancement.
+                cube_list = apply_orographic_enhancement(
+                    forecast_cube, oe_cube_list, "add")
 
             # save to a suitably-named output file
             if args.nowcast_filepaths:
