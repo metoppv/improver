@@ -37,8 +37,8 @@
 
   # Run the temperature lapse rate calculation and check the result.
   run improver temp-lapse-rate \
-      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/enukx_temperature.nc" \
-      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/highres_orog.nc" \
+      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/ukvx_temperature.nc" \
+      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/ukvx_orog.nc" \
       "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/ukvx_landmask.nc" \
       --max_height_diff=35 \
       --nbhood_radius=7 \
