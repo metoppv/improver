@@ -31,14 +31,14 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "temp-lapse-rate input orography land-sea-mask output" {
+@test "temp-lapse-rate input-temp input-orography land-sea-mask output" {
   improver_check_skip_acceptance
   KGO="temp-lapse-rate/basic/kgo.nc"
 
   # Run the temperature lapse rate calculation and check the result.
   run improver temp-lapse-rate \
-      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/ukvx_temperature.nc" \
-      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/ukvx_orog.nc" \
+      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/temperature_at_screen_level.nc" \
+      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/ukvx_orography.nc" \
       "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/ukvx_landmask.nc" \
       --max_height_diff=35 \
       --nbhood_radius=7 \
