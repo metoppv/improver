@@ -496,14 +496,13 @@ class WeightedBlendAcrossWholeDimension(object):
         Args:
             cube (iris.cube.Cube):
                 Cube to blend across the coord.
-            weights (Optional list or np.array of weights):
-                1D, ordered by blending coordinate value.  If None, cube is
+        Keyword Args:
+            weights (iris.cube.Cube):
+                Cube of blending weights. If None, the diagnostic cube is
                 blended with equal weights across the blending dimension.
-
         Returns:
             result (iris.cube.Cube):
                 containing the weighted blend across the chosen coord.
-
         Raises:
             TypeError : If the first argument not a cube.
             ValueError : If coordinate to be collapsed not found in cube.
@@ -582,15 +581,16 @@ class WeightedBlendAcrossWholeDimension(object):
 
         # check weights array matches coordinate shape if not None
         if weights is not None:
-            if np.array(weights).shape != cube.coord(self.coord).points.shape:
-                msg = ('The weights array must match the shape '
+            if weights.shape != cube.coord(self.coord).points.shape:
+                msg = ('The weights cube must match the shape '
                        'of the coordinate in the input cube; '
-                       'weight shape is '
-                       '{0:s}'.format(str(np.array(weights).shape)) +
-                       ', cube shape is '
+                       'weight cube shape is '
+                       '{0:s}'.format(str(weights.shape)) +
+                       ', diagnostic cube shape is '
                        '{0:s}'.format(
                            str(cube.coord(self.coord).points.shape)))
                 raise ValueError(msg)
+            weights = weights.data
 
         # create slices over threshold coordinate
         try:

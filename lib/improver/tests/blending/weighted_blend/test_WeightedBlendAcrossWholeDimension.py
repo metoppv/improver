@@ -206,12 +206,12 @@ class Test_process(IrisTest):
             plugin.process(new_cube)
 
     def test_fails_weights_shape(self):
-        """Test it raises a Value Error if weights shape does not match
+        """Test it raises a Value Error if weights cube shape does not match
            coord shape."""
         coord = "time"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
-        weights = [0.1, 0.2, 0.7]
-        msg = ('The weights array must match the shape ' +
+        weights = Cube([0.1, 0.2, 0.7], long_name='weights')
+        msg = ('The weights cube must match the shape ' +
                'of the coordinate in the input cube')
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(self.cube, weights)
@@ -243,7 +243,7 @@ class Test_process(IrisTest):
         """
         coord = "dummy_scalar_coord"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
-        weights = np.array([1.0])
+        weights = ([1.0])
         msg = 'has no associated dimension'
         with self.assertRaisesRegex(ValueError, msg):
             _ = plugin.process(self.cube_with_scalar, weights)
@@ -261,24 +261,13 @@ class Test_process(IrisTest):
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_weights_equal_list(self):
-        """Test it work with weights set to list [0.2, 0.8]."""
+    def test_weights_equal_cube(self):
+        """Test it work with weights set to [0.2, 0.8] in a cube."""
         coord = "time"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
-        weights = [0.2, 0.8]
+        weights = Cube([0.2, 0.8], long_name='weights')
         result = plugin.process(self.cube, weights)
         expected_result_array = np.ones((2, 2))*1.8
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_weights_equal_array(self):
-        """Test it works with weights set to array (0.8, 0.2)."""
-        coord = "time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
-        weights = np.array([0.8, 0.2])
-        result = plugin.process(self.cube, weights)
-        expected_result_array = np.ones((2, 2))*1.2
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     @ManageWarnings(
@@ -287,7 +276,7 @@ class Test_process(IrisTest):
         """Test weighted_mean works with a threshold dimension."""
         coord = "time"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
-        weights = np.array([0.8, 0.2])
+        weights = Cube([0.8, 0.2], long_name='weights')
         result = plugin.process(self.cube_threshold, weights)
         expected_result_array = np.ones((2, 2, 2))*0.56
         self.assertArrayAlmostEqual(result.data, expected_result_array)
@@ -298,7 +287,7 @@ class Test_process(IrisTest):
         """Test splicing works when the blending is over threshold."""
         coord = "threshold"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
-        weights = np.array([0.8, 0.2])
+        weights = Cube([0.8, 0.2], long_name='weights')
         self.cube_threshold.data[0, :, :, :] = 0.5
         self.cube_threshold.data[1, :, :, :] = 0.8
         result = plugin.process(self.cube_threshold, weights)
@@ -320,12 +309,12 @@ class Test_process(IrisTest):
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_percentiles_non_equal_weights_list(self):
+    def test_percentiles_non_equal_weights_cube(self):
         """Test it works for percentiles with weights [0.8, 0.2]
-           given as a list."""
+           given as a cube."""
         coord = "time"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
-        weights = [0.8, 0.2]
+        weights = Cube([0.8, 0.2], long_name='weights')
         perc_cube = percentile_cube()
         result = plugin.process(perc_cube, weights)
         expected_result_array = np.reshape(BLENDED_PERCENTILE_DATA2,
@@ -367,12 +356,12 @@ class Test_process(IrisTest):
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_weighted_max_non_equal_weights_list(self):
+    def test_weighted_max_non_equal_weights_cube(self):
         """Test it works for weighted_max with weights [0.2, 0.8]
-           given as a list."""
+           given as a cube."""
         coord = "time"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_maximum')
-        weights = [0.2, 0.8]
+        weights = Cube([0.2, 0.8], long_name='weights')
         result = plugin.process(self.cube, weights)
         expected_result_array = np.ones((2, 2))*1.6
         self.assertArrayAlmostEqual(result.data, expected_result_array)
@@ -383,21 +372,9 @@ class Test_process(IrisTest):
         """Test weighted_max works with a threshold dimension."""
         coord = "time"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_maximum')
-        weights = np.array([0.8, 0.2])
+        weights = Cube([0.8, 0.2], long_name='weights')
         result = plugin.process(self.cube_threshold, weights)
         expected_result_array = np.ones((2, 2, 2))*0.4
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_weighted_max_non_equal_weights_array(self):
-        """Test it works for weighted_max with weights [0.2, 0.8]
-           given as a array."""
-        coord = "time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_maximum')
-        weights = np.array([0.2, 0.8])
-        result = plugin.process(self.cube, weights)
-        expected_result_array = np.ones((2, 2))*1.6
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     @ManageWarnings(

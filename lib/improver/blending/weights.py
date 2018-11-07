@@ -254,44 +254,31 @@ class WeightsUtilities(object):
         return (exp_coord_len, exp_forecast_found)
 
     @staticmethod
-    def build_weights_cube(weights, blending_coord, weighting_coord=None):
+    def build_weights_cube(cube, weights, blending_coord):
         """Build a cube containing weights for use in blending.
 
             Args:
+                cube (iris.cube.Cube):
+                    The cube that is being blended over blending_coord.
                 weights (numpy.array):
-                    array of weights
+                    Array of weights
                 blending_coord (string):
                     Name of the coordinate over which the weights will be used
                     to blend data, e.g. across model name when grid blending.
-
-            Keyword Args:
-                weighting_coord (list):
-                    A list of values expected on the coordinate to be blended,
-                    e.g. the model names, or
-
-                axis (int):
-                    The axis that we want to normalise along for a multiple
-                    dimensional array. Defaults to None, meaning the whole
-                    array is used for the normalisation.
             Returns:
-                normalised_weights (numpy.array):
-                    array of weights where sum = 1.0
-            Raises:
-                ValueError: any negative weights are found in input.
-                ValueError: sum of weights in the input is 0.
+                weights_cube (iris.cube.Cube):
+                    A cube containing the array of weights.
         """
-        if np.any(weights.min(axis=axis) < 0.0):
-            msg = ('Weights must be positive. The weights have at least one '
-                   'value < 0.0: {}'.format(weights))
-            raise ValueError(msg)
+        weights_cube = next(cube.slices(blending_coord))
+        defunct_coords = [crd.name() for crd in cube.coords(dim_coords=True)
+                          if not crd.name() == blending_coord]
+        for crd in defunct_coords:
+            weights_cube.remove_coord(crd)
+        weights_cube.data = weights
+        weights_cube.rename('weights')
+        weights_cube.units = 1
 
-        sumval = np.sum(weights, axis=axis, keepdims=True)
-        if np.any(sumval == 0):
-            msg = 'Sum of weights must be > 0.0'
-            raise ValueError(msg)
-
-        normalised_weights = weights / sumval
-        return normalised_weights
+        return weights_cube
 
 
 class ChooseWeightsLinear(object):
@@ -816,6 +803,7 @@ class ChooseDefaultWeightsLinear(object):
     """ Calculate Default Weights using Linear Function. """
 
     def __init__(self, y0val=None, slope=0.0, ynval=None):
+        # TODO Change kwargs here to args?
         """Set up for calculating default weights using linear function
 
             Keyword Args:
@@ -933,7 +921,9 @@ class ChooseDefaultWeightsLinear(object):
         weights = WeightsUtilities.redistribute_weights(
             weights_in, exp_coord_found, weights_distrib_method)
 
-        return weights
+        weights_cube = WeightsUtilities.build_weights_cube(cube, weights,
+                                                           coord_name)
+        return weights_cube
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -1029,7 +1019,9 @@ class ChooseDefaultWeightsNonLinear(object):
         weights = WeightsUtilities.redistribute_weights(
             weights_in, exp_coord_found, weights_distrib_method)
 
-        return weights
+        weights_cube = WeightsUtilities.build_weights_cube(cube, weights,
+                                                           coord_name)
+        return weights_cube
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -1146,6 +1138,9 @@ class ChooseDefaultWeightsTriangular(object):
 
         weights = self.triangular_weights(
             coord_vals, midpoint, width_in_coord_units)
+
+        weights_cube = WeightsUtilities.build_weights_cube(cube, weights,
+                                                           coord_name)
         return weights
 
     def __repr__(self):
