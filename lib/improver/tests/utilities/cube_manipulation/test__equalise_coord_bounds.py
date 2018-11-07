@@ -41,6 +41,8 @@ from improver.utilities.cube_manipulation import _equalise_coord_bounds
 
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import set_up_temperature_cube
+from improver.tests.ensemble_calibration.ensemble_calibration.\
+    helper_functions import add_forecast_reference_time_and_forecast_period
 
 from improver.utilities.warnings_handler import ManageWarnings
 
@@ -74,7 +76,7 @@ class Test__equalise_coord_bounds(IrisTest):
         self.assertIsInstance(result, iris.cube.CubeList)
 
     def test_with_bounds(self):
-        """Test that the inputs are unchanged when bounds match."""
+        """Test that the inputs are unchanged when bounds match for time."""
         cubeA = self.cube.copy()
         cubeB = self.cube.copy()
         bounds = [0., 1.]
@@ -86,7 +88,8 @@ class Test__equalise_coord_bounds(IrisTest):
         self.assertArrayAlmostEqual(result[1].coord('time').bounds, [bounds])
 
     def test_with_bounds_threecubes(self):
-        """Test that the inputs are unchanged when bounds match."""
+        """Test that the inputs are unchanged when bounds match for time
+        when using three cubes."""
         cubeA = self.cube.copy()
         cubeB = self.cube.copy()
         cubeC = self.cube.copy()
@@ -99,33 +102,40 @@ class Test__equalise_coord_bounds(IrisTest):
         for cube in result:
             self.assertArrayAlmostEqual(cube.coord('time').bounds, [bounds])
 
-    @ManageWarnings(record=True)
-    def test_remove_bounds(self, warning_list=None):
-        """Test that the first input cube has bounds removed and warning is
-        raised."""
+    def test_with_no_bounds(self):
+        """ Test that the bounds are not changed when there are no
+        bounds."""
+        cubeA = self.cube.copy()
+        add_forecast_reference_time_and_forecast_period(cubeA)
+        cubeB = self.cube.copy()
+        add_forecast_reference_time_and_forecast_period(cubeB)
+        result = iris.cube.CubeList([cubeA, cubeB])
+        _equalise_coord_bounds(result)
+        self.assertTrue(result[0].coord('time').bounds is None)
+        self.assertTrue(result[1].coord('time').bounds is None)
+
+    def test_one_bounds(self):
+        """Test that if there is only 1 set of bounds on the cubes
+        a warning is raised."""
         cube_with_bounds = self.cube.copy()
         cube_with_bounds.coord('time').bounds = [0., 1.]
         result = iris.cube.CubeList([cube_with_bounds, self.cube])
-        _equalise_coord_bounds(result)
-        warning_msg = ("Removing mismatched bounds from cube")
-        self.assertTrue(any(warning_msg in str(item)
-                            for item in warning_list))
-        for cube in result:
-            self.assertIsNone(cube.coord('time').bounds)
+        msg = "Cubes with mismatching bounds are not compatible"
+        with self.assertRaisesRegex(ValueError, msg):
+            _equalise_coord_bounds(result)
 
-    @ManageWarnings(record=True)
-    def test_remove_bounds_threecubes(self, warning_list=None):
-        """Test that the second of three input cube has bounds removed and
-        warning is raised."""
+    def test_one_bounds_threecubes(self):
+        """Test that when one of the input cubes has no bounds a warning is
+        raised."""
         cube_with_bounds = self.cube.copy()
         cube_with_bounds.coord('time').bounds = [0., 1.]
-        result = iris.cube.CubeList([self.cube, cube_with_bounds, self.cube])
-        _equalise_coord_bounds(result)
-        warning_msg = ("Removing mismatched bounds from cube")
-        self.assertTrue(any(warning_msg in str(item)
-                            for item in warning_list))
+        cube_no_bounds = self.cube.copy()
+        result = iris.cube.CubeList([cube_with_bounds, cube_no_bounds,
+                                     cube_with_bounds])
+        msg = "Cubes with mismatching bounds are not compatible"
         for cube in result:
-            self.assertIsNone(cube.coord('time').bounds)
+            with self.assertRaisesRegex(ValueError, msg):
+                _equalise_coord_bounds(result)
 
     def test_mismatched_bounds(self):
         """Test for error when input cubes has mismatched bounds."""
@@ -134,6 +144,61 @@ class Test__equalise_coord_bounds(IrisTest):
         cube_diff_bounds = self.cube.copy()
         cube_diff_bounds.coord('time').bounds = [3., 4.]
         result = iris.cube.CubeList([cube_with_bounds, cube_diff_bounds])
+        msg = "Cubes with mismatching bounds are not compatible"
+        with self.assertRaisesRegex(ValueError, msg):
+            _equalise_coord_bounds(result)
+
+    def test_with_forecast_period_bounds(self):
+        """ Test that inputs are unchanged when the forecast_period bounds
+        match. """
+        cubeA = self.cube.copy()
+        add_forecast_reference_time_and_forecast_period(cubeA)
+        cubeB = self.cube.copy()
+        add_forecast_reference_time_and_forecast_period(cubeB)
+        bounds = [0., 1.]
+        cubeA.coord('forecast_period').bounds = bounds
+        cubeB.coord('forecast_period').bounds = bounds
+        result = iris.cube.CubeList([cubeA, cubeB])
+        _equalise_coord_bounds(result)
+        self.assertArrayAlmostEqual(result[0].coord('forecast_period').bounds,
+                                    [bounds])
+        self.assertArrayAlmostEqual(result[1].coord('forecast_period').bounds,
+                                    [bounds])
+
+    def test_with_no_forecast_period_bounds(self):
+        """ Test that inputs are unchanged when there are no forecast_period
+        bounds."""
+        cubeA = self.cube.copy()
+        add_forecast_reference_time_and_forecast_period(cubeA)
+        cubeB = self.cube.copy()
+        add_forecast_reference_time_and_forecast_period(cubeB)
+        result = iris.cube.CubeList([cubeA, cubeB])
+        _equalise_coord_bounds(result)
+        self.assertTrue(result[0].coord('forecast_period').bounds is None)
+        self.assertTrue(result[1].coord('forecast_period').bounds is None)
+
+    def test_mismatched_forecast_period_bounds(self):
+        """Test for error when input cubes have mismatched bounds."""
+        cube_with_bounds = self.cube.copy()
+        add_forecast_reference_time_and_forecast_period(cube_with_bounds)
+        cube_with_bounds.coord('forecast_period').bounds = [0., 1.]
+        cube_diff_bounds = self.cube.copy()
+        add_forecast_reference_time_and_forecast_period(cube_diff_bounds)
+        cube_diff_bounds.coord('forecast_period').bounds = [3., 4.]
+        result = iris.cube.CubeList([cube_with_bounds, cube_diff_bounds])
+        msg = "Cubes with mismatching bounds are not compatible"
+        with self.assertRaisesRegex(ValueError, msg):
+            _equalise_coord_bounds(result)
+
+    def test_one_forecast_period_bound(self):
+        """Test for error when input cubes have bounds on one cube and
+        none on the other."""
+        cube_with_bounds = self.cube.copy()
+        add_forecast_reference_time_and_forecast_period(cube_with_bounds)
+        cube_with_bounds.coord('forecast_period').bounds = [0., 1.]
+        cube_no_bounds = self.cube.copy()
+        add_forecast_reference_time_and_forecast_period(cube_no_bounds)
+        result = iris.cube.CubeList([cube_with_bounds, cube_no_bounds])
         msg = "Cubes with mismatching bounds are not compatible"
         with self.assertRaisesRegex(ValueError, msg):
             _equalise_coord_bounds(result)
