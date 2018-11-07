@@ -253,6 +253,46 @@ class WeightsUtilities(object):
             exp_forecast_found = np.ones(exp_coord_len)
         return (exp_coord_len, exp_forecast_found)
 
+    @staticmethod
+    def build_weights_cube(weights, blending_coord, weighting_coord=None):
+        """Build a cube containing weights for use in blending.
+
+            Args:
+                weights (numpy.array):
+                    array of weights
+                blending_coord (string):
+                    Name of the coordinate over which the weights will be used
+                    to blend data, e.g. across model name when grid blending.
+
+            Keyword Args:
+                weighting_coord (list):
+                    A list of values expected on the coordinate to be blended,
+                    e.g. the model names, or
+
+                axis (int):
+                    The axis that we want to normalise along for a multiple
+                    dimensional array. Defaults to None, meaning the whole
+                    array is used for the normalisation.
+            Returns:
+                normalised_weights (numpy.array):
+                    array of weights where sum = 1.0
+            Raises:
+                ValueError: any negative weights are found in input.
+                ValueError: sum of weights in the input is 0.
+        """
+        if np.any(weights.min(axis=axis) < 0.0):
+            msg = ('Weights must be positive. The weights have at least one '
+                   'value < 0.0: {}'.format(weights))
+            raise ValueError(msg)
+
+        sumval = np.sum(weights, axis=axis, keepdims=True)
+        if np.any(sumval == 0):
+            msg = 'Sum of weights must be > 0.0'
+            raise ValueError(msg)
+
+        normalised_weights = weights / sumval
+        return normalised_weights
+
 
 class ChooseWeightsLinear(object):
     """Plugin to interpolate weights linearly to the required points, where
