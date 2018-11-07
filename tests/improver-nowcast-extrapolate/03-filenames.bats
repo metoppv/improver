@@ -39,7 +39,8 @@
 
   UCOMP="$IMPROVER_ACC_TEST_DIR/optical-flow/basic/ucomp_kgo.nc"
   VCOMP="$IMPROVER_ACC_TEST_DIR/optical-flow/basic/vcomp_kgo.nc"
-  INFILE="201804100500_radar_rainrate_composite_UK_regridded.nc"
+  INFILE="201807301100_radar_rainrate_composite_UK_regridded.nc"
+  OE1="20180730T1100Z-PT0004H00M-orographic_enhancement.nc"
 
   # Run processing and check it passes
   run improver nowcast-extrapolate \
@@ -50,7 +51,9 @@
     "$TEST_DIR/outfile2.nc" \
     --max_lead_time 30 \
     --eastward_advection "$UCOMP" \
-    --northward_advection "$VCOMP"
+    --northward_advection "$VCOMP" \
+    --orographic_enhancement_filepaths \
+    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$OE1"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "outfile0.nc" $KGO0

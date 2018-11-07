@@ -35,6 +35,7 @@ import re
 from datetime import datetime
 from datetime import time as dt_time
 from datetime import timedelta
+from datetime import timezone
 from time import mktime
 import warnings
 
@@ -45,8 +46,6 @@ import iris
 from iris import Constraint
 from iris.time import PartialDateTime
 from iris.exceptions import CoordinateNotFoundError
-
-from improver.utilities.cube_manipulation import merge_cubes
 
 
 def cycletime_to_datetime(cycletime, cycletime_format="%Y%m%dT%H%MZ"):
@@ -227,20 +226,35 @@ def iris_time_to_datetime(time_coord):
     return [datetime.utcfromtimestamp(value) for value in time_coord.points]
 
 
-def dt_to_utc_hours(dt_in):
+def datetime_to_iris_time(dt_in, time_units="hours"):
     """
-    Convert python datetime.datetime into hours since 1970-01-01 00Z.
+    Convert python datetime.datetime into hours, minutes or seconds
+    since 1970-01-01 00Z.
 
     Args:
         dt_in (datetime.datetime object):
             Time to be converted.
+        time_interval (str):
+            Name of time interval. Currently only "hours", "minutes" or
+            "seconds" are supported.
     Returns:
         float:
             hours since epoch
 
     """
-    utc_seconds = mktime(dt_in.utctimetuple())
-    return utc_seconds/3600.
+    if all(time_unit not in time_units for time_unit in
+           ["hours", "minutes", "seconds"]):
+        msg = ("The time_interval must be 'hours', 'minutes' or 'seconds'. "
+               "The time interval was {}".format(time_units))
+        raise ValueError(msg)
+    result = dt_in.replace(tzinfo=timezone.utc).timestamp()
+    if "hours" in time_units:
+        result /= 3600.
+    elif "minutes" in time_units:
+        result /= 60
+    elif "seconds" in time_units:
+        pass
+    return result
 
 
 def datetime_constraint(time_in, time_max=None):
@@ -536,14 +550,49 @@ class TemporalInterpolation(object):
         return interpolated_cubes
 
 
-def extract_nearest_time_point(cube, time_point):
-    """Find the nearest time point to the time point provided."""
-    if isinstance(cube, iris.cube.CubeList):
-        cube = merge_cubes(cube)
-    print("time_point = ", time_point)
-    time_point_index = cube.coord("time").nearest_neighbour_index(time_point)
-    print("time_point_index = ", time_point_index)
-    dt = iris_time_to_datetime(cube.coord("time").copy()[time_point_index])
-    constr = iris.Constraint(time=dt)
+def extract_nearest_time_point(
+        cube, dt, time_name="time", allowed_dt_difference=None):
+    """Find the nearest time point to the time point provided.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube or CubeList that will be extracted from using the supplied
+            time_point
+        dt (datetime.datetime):
+            Datetime representation of a time that will be used within the
+            extraction from the cube supplied.
+        time_name (str):
+            Name of the "time" coordinate that will be extracted. For example,
+            this could be "time" or "forecast_reference_time".
+        allowed_dt_difference (float or None):
+            Defines a limit to the maximum difference between the datetime
+            provided and the time points available within the cube. If
+            this limit is exceeded, then an error is raised.
+            This must be defined in seconds.
+
+    Returns:
+        cube (iris.cube.Cube):
+            Cube following extraction to return the cube that is nearest
+            to the time point supplied.
+
+    Raises:
+        ValueError: The requested datetime is not available within the
+            allowed difference.
+
+    """
+    time_point = datetime_to_iris_time(
+        dt, time_units=cube.coord(time_name).units.origin)
+    time_point_index = (
+        cube.coord(time_name).nearest_neighbour_index(time_point))
+    nearest_dt, = (
+        iris_time_to_datetime(cube.coord(time_name).copy()[time_point_index]))
+    if allowed_dt_difference:
+        if abs((dt - nearest_dt).total_seconds()) > allowed_dt_difference:
+            msg = ("The datetime {} is not available within the input cube "
+                   "within the allowed difference {}. "
+                   "The nearest datetime available was {}".format(
+                       dt, allowed_dt_difference, nearest_dt))
+            raise ValueError(msg)
+    constr = iris.Constraint(coord_values={time_name: nearest_dt})
     cube = cube.extract(constr)
     return cube

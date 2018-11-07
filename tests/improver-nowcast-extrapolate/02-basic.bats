@@ -39,19 +39,22 @@
 
   UCOMP="$IMPROVER_ACC_TEST_DIR/optical-flow/basic/ucomp_kgo.nc"
   VCOMP="$IMPROVER_ACC_TEST_DIR/optical-flow/basic/vcomp_kgo.nc"
-  INFILE="201804100500_radar_rainrate_composite_UK_regridded.nc"
+  INFILE="201807301100_radar_rainrate_composite_UK_regridded.nc"
+  OE1="20180730T1100Z-PT0004H00M-orographic_enhancement.nc"
 
   # Run processing and check it passes
   run improver nowcast-extrapolate \
     "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$INFILE" \
     --output_dir "$TEST_DIR" --max_lead_time 30 \
     --eastward_advection "$UCOMP" \
-    --northward_advection "$VCOMP"
+    --northward_advection "$VCOMP" \
+    --orographic_enhancement_filepaths \
+    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$OE1"
   [[ "$status" -eq 0 ]]
 
-  T0="20180410T0500Z-PT0000H00M-rainfall_rate_composite.nc"
-  T1="20180410T0515Z-PT0000H15M-rainfall_rate_composite.nc"
-  T2="20180410T0530Z-PT0000H30M-rainfall_rate_composite.nc"
+  T0="20180730T1100Z-PT0000H00M-lwe_precipitation_rate.nc"
+  T1="20180730T1115Z-PT0000H15M-lwe_precipitation_rate.nc"
+  T2="20180730T1130Z-PT0000H30M-lwe_precipitation_rate.nc"
 
   improver_check_recreate_kgo "$T0" $KGO0
   improver_check_recreate_kgo "$T1" $KGO1

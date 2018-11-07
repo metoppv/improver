@@ -35,7 +35,8 @@ import iris
 from iris.exceptions import ConstraintMismatchError
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.cube_checker import check_cube_coordinates
-from improver.utilities.temporal import iris_time_to_datetime
+from improver.utilities.temporal import (
+    extract_nearest_time_point, iris_time_to_datetime)
 from improver.utilities.rescale import apply_double_scaling, rescale
 
 
@@ -261,23 +262,14 @@ class NowcastLightning(object):
                 cube_slice.coord('time').copy())[0]
             lightning_rate_slice = lightning_rate_cube.extract(
                 iris.Constraint(time=this_time))
-            first_guess_time = iris_time_to_datetime(
-                first_guess_lightning_cube.coord('time').copy())[
-                    first_guess_lightning_cube.coord(
-                        'time'
-                        ).nearest_neighbour_index(this_point)]
-            first_guess_slice = first_guess_lightning_cube.extract(
-                iris.Constraint(time=first_guess_time))
             err_string = "No matching {} cube for {}"
             if not isinstance(lightning_rate_slice,
                               iris.cube.Cube):
                 raise ConstraintMismatchError(
                     err_string.format("lightning", this_time))
-            # Fail if the closest available "first guess" forecast is more
-            # than 2 hours away from the required validity time.
-            if abs((first_guess_time - this_time).total_seconds()) > 7201.:
-                raise ConstraintMismatchError(
-                    err_string.format("first-guess", this_time))
+            first_guess_slice = extract_nearest_time_point(
+                first_guess_lightning_cube, this_time,
+                allowed_dt_difference=7201)
             first_guess_slice = cube_slice.copy(data=first_guess_slice.data)
             first_guess_slice.coord('forecast_period').convert_units('minutes')
             fcmins = first_guess_slice.coord('forecast_period').points[0]

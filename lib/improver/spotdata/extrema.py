@@ -39,7 +39,7 @@ from iris.cube import Cube, CubeList
 from iris.coords import DimCoord
 from improver.utilities.temporal import (iris_time_to_datetime,
                                          datetime_constraint,
-                                         dt_to_utc_hours)
+                                         datetime_to_iris_time)
 
 
 class ExtractExtrema(object):
@@ -112,10 +112,10 @@ class ExtractExtrema(object):
             cube_over_period = local_tz_cube.extract(extrema_constraint)
             if cube_over_period is not None:
                 # Ensure time dimension of resulting cube reflects period.
-                mid_time = dt_to_utc_hours(period_start +
-                                           (period_end - period_start)/2)
-                bounds = [dt_to_utc_hours(period_start),
-                          dt_to_utc_hours(period_end)]
+                mid_time = datetime_to_iris_time(period_start +
+                                                 (period_end - period_start)/2)
+                bounds = [datetime_to_iris_time(period_start),
+                          datetime_to_iris_time(period_end)]
 
                 extremas = [['max', iris.analysis.MAX],
                             ['min', iris.analysis.MIN]]

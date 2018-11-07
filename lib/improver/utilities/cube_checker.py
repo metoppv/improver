@@ -140,8 +140,9 @@ def check_cube_coordinates(cube, new_cube, exception_coordinates=None):
         exception_coordinates = []
 
     # Promote available and relevant scalar coordinates
+    cube_dim_names = [coord.name() for coord in cube.dim_coords]
     for coord in new_cube.aux_coords[::-1]:
-        if coord in cube.dim_coords:
+        if coord.name() in cube_dim_names:
             new_cube = iris.util.new_axis(new_cube, coord)
 
     # Ensure dimension order matches; if lengths are unequal a coordinate
@@ -152,7 +153,6 @@ def check_cube_coordinates(cube, new_cube, exception_coordinates=None):
     correct_order = []
     new_cube_only_dims = []
     new_cube_dim_names = [coord.name() for coord in new_cube.dim_coords]
-    cube_dim_names = [coord.name() for coord in cube.dim_coords]
     for coord_name in new_cube_dim_names:
         if coord_name in cube_dim_names:
             correct_order.append(cube_dimension_order[coord_name])

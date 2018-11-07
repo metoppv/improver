@@ -44,8 +44,9 @@ from iris.time import PartialDateTime
 
 from improver.utilities.temporal import (
     cycletime_to_datetime, cycletime_to_number, forecast_period_coord,
-    iris_time_to_datetime, dt_to_utc_hours, datetime_constraint,
-    extract_cube_at_time, set_utc_offset, get_forecast_times)
+    iris_time_to_datetime, datetime_to_iris_time, datetime_constraint,
+    extract_cube_at_time, set_utc_offset, get_forecast_times,
+    extract_nearest_time_point)
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
 from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
@@ -250,15 +251,41 @@ class Test_iris_time_to_datetime(Test_common_functions):
         self.assertEqual(result[0], datetime.datetime(2017, 2, 17, 6, 0))
 
 
-class Test_dt_to_utc_hours(IrisTest):
-    """ Test dt_to_utc_hours """
-    def test_basic(self):
-        """Test dt_to_utc_hours returns float with expected value """
-        dt_in = datetime.datetime(2017, 2, 17, 6, 0)
-        result = dt_to_utc_hours(dt_in)
+class Test_datetime_to_iris_time(IrisTest):
+
+    def setUp(self):
+        self.dt_in = datetime.datetime(2017, 2, 17, 6, 0)
+
+    """ Test datetime_to_iris_time """
+    def test_hours(self):
+        """Test datetime_to_iris_time returns float with expected value
+        in hours"""
+        result = datetime_to_iris_time(self.dt_in)
         expected = 413142.0
         self.assertIsInstance(result, float)
         self.assertEqual(result, expected)
+
+    def test_seconds(self):
+        """Test datetime_to_iris_time returns float with expected value
+        in seconds"""
+        result = datetime_to_iris_time(self.dt_in, time_units="seconds")
+        expected = 1487311200.0
+        self.assertIsInstance(result, float)
+        self.assertEqual(result, expected)
+
+    def test_seconds_from_origin(self):
+        """Test datetime_to_iris_time returns float with expected value
+        in seconds when an origin is supplied."""
+        result = datetime_to_iris_time(
+            self.dt_in, time_units="seconds since 1970-01-01 00:00:00")
+        expected = 1487311200.0
+        self.assertIsInstance(result, float)
+        self.assertEqual(result, expected)
+
+    def test_exception_raised(self):
+        msg = "The time_interval must be 'hours', 'minutes' or 'seconds'"
+        with self.assertRaisesRegex(ValueError, msg):
+            datetime_to_iris_time(self.dt_in, time_units="days")
 
 
 class Test_datetime_constraint(Test_common_functions):
@@ -443,6 +470,44 @@ class Test_get_forecast_times(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             get_forecast_times(144, forecast_date=forecast_date,
                                forecast_time=6)
+
+
+class Test_extract_nearest_time_point(IrisTest):
+
+    """Test the extract_nearest_time_point function."""
+
+    def setUp(self):
+        """Set up a cube for the tests."""
+        cube = set_up_cube(num_time_points=2)
+        self.cube = add_forecast_reference_time_and_forecast_period(
+            cube, time_point=[402295.0, 402296.0], fp_point=[4.0, 5.0])
+
+    def test_time_coord(self):
+        """Test that the nearest time point within the time coordinate is
+        extracted."""
+        expected = self.cube[:, 0, :, :]
+        time_point = datetime.datetime(2015, 11, 23, 6, 0)
+        result = extract_nearest_time_point(self.cube, time_point)
+        self.assertEqual(result, expected)
+
+    def test_forecast_reference_time_coord(self):
+        """Test that the nearest time point within the forecast_reference_time
+        coordinate is extracted."""
+        expected = self.cube
+        time_point = datetime.datetime(2015, 11, 23, 6, 0)
+        result = extract_nearest_time_point(
+            self.cube, time_point, time_name="forecast_reference_time")
+        self.assertEqual(result, expected)
+
+    def test_exception_raised(self):
+        """Test that an exception raised, if the time point is outside of
+        the allowed difference specified in seconds."""
+        expected = self.cube[:, 0, :, :]
+        time_point = datetime.datetime(2017, 11, 23, 6, 0)
+        msg = "is not available within the input cube"
+        with self.assertRaisesRegex(ValueError, msg):
+            extract_nearest_time_point(self.cube, time_point,
+                                       allowed_dt_difference=3600)
 
 
 if __name__ == '__main__':

@@ -32,6 +32,7 @@
 """Module with utilities required for nowcasting."""
 
 import datetime
+import numpy as np
 
 from cf_units import Unit
 import iris
@@ -39,7 +40,9 @@ from iris.time import PartialDateTime
 
 from improver.cube_combiner import CubeCombiner
 from improver.utilities.cube_checker import check_cube_coordinates
-from improver.utilities.temporal import iris_time_to_datetime, extract_nearest_time_point
+from improver.utilities.cube_manipulation import merge_cubes
+from improver.utilities.temporal import (
+    extract_nearest_time_point, iris_time_to_datetime)
 
 
 class ApplyOrographicEnhancement(object):
@@ -73,22 +76,6 @@ class ApplyOrographicEnhancement(object):
         result = ('<ApplyOrographicEnhancement: operation: {}>')
         return result.format(self.operation)
 
-    def extract_using_datetime(cube, dt, dt_increment=datetime.timedelta(hours=1)):
-        #dt_half_hour = dt.replace(minute=30, second=0)
-
-        if dt >= dt_half_hour:
-            lower_dt = dt_half_hour
-            upper_dt = dt_half_hour + dt_increment
-        else:
-            lower_dt = dt_half_hour - dt_increment
-            upper_dt = dt_half_hour
-
-        constr = (
-            iris.Constraint(time=lambda cell: lower_dt <= cell < upper_dt))
-        cube = cube.extract(constr)
-        return cube
-
-
     @staticmethod
     def _extract_orographic_enhancement_cube(precip_cube, oe_cubes):
         """Extract the orographic enhancement cube with the required time
@@ -106,22 +93,9 @@ class ApplyOrographicEnhancement(object):
                 required time.
 
         """
-        time_point = iris_time_to_datetime(precip_cube.coord("time"))
+        time_point, = iris_time_to_datetime(precip_cube.coord("time"))
         oe_cube = extract_nearest_time_point(oe_cubes, time_point)
-
-        print(oe_cube)
-        print(oe_cube[0].coord("time"))
-        if not oe_cube:
-            msg = ("There is no orographic enhancement available for "
-                   "a time of {}".format(
-                       iris_time_to_datetime(precip_cube.coord("time"))))
-            raise ValueError(msg)
-        if len(oe_cube)>1:
-            msg = ("There are multiple orographic enhancements available for "
-                   "a time of {}. Only one should be available.".format(
-                       iris_time_to_datetime(precip_cube.coord("time"))))
-            raise ValueError(msg)
-        return oe_cube[0]
+        return oe_cube
 
     def _apply_cube_combiner(self, precip_cube, oe_cube):
         """Combine the precipitation rate cube and the orographic enhancement
@@ -148,7 +122,7 @@ class ApplyOrographicEnhancement(object):
         return cube
 
     @staticmethod
-    def apply_minimum_precip_rate(cube):
+    def apply_minimum_precip_rate(cube, tolerance=-1e-9):
         """Ensure that negative precipitation rates are capped at +1/32 mm/hr.
 
         Args:
@@ -162,7 +136,12 @@ class ApplyOrographicEnhancement(object):
 
         """
         original_units = Unit("mm/hr")
-        cube.data[cube.data<0] = original_units.convert(1/32., cube.units)
+        # Ignore invalid warnings generated if e.g. a NaN is encountered
+        # within the less than (<) comparison.
+        with np.errstate(invalid='ignore'):
+            cube.data[cube.data < tolerance] = (
+                original_units.convert(1/32., cube.units))
+            cube.data[cube.data < 0] = 0.
         return cube
 
     def process(self, precip_cubes, orographic_enhancement_cubes):
@@ -185,14 +164,16 @@ class ApplyOrographicEnhancement(object):
         if isinstance(precip_cubes, iris.cube.Cube):
             precip_cubes = iris.cube.CubeList([precip_cubes])
 
-        if isinstance(orographic_enhancement_cubes, iris.cube.Cube):
-            orographic_enhancement_cubes = (
-                iris.cube.CubeList([orographic_enhancement_cubes]))
+        if isinstance(orographic_enhancement_cubes, iris.cube.CubeList):
+            orographic_enhancement_cube = (
+                merge_cubes(orographic_enhancement_cubes))
+        else:
+            orographic_enhancement_cube = orographic_enhancement_cubes
 
         updated_cubes = iris.cube.CubeList([])
         for precip_cube in precip_cubes:
             oe_cube = self._extract_orographic_enhancement_cube(
-                precip_cube, orographic_enhancement_cubes)
+                precip_cube, orographic_enhancement_cube)
             cube = self._apply_cube_combiner(precip_cube, oe_cube)
             cube = self.apply_minimum_precip_rate(cube)
             updated_cubes.append(cube)

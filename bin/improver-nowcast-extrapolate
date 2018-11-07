@@ -38,8 +38,9 @@ import json
 
 from improver.argparser import ArgParser
 from improver.nowcasting.optical_flow import AdvectField
+from improver.nowcasting.nowcasting import ApplyOrographicEnhancement
 from improver.utilities.filename import generate_file_name
-from improver.utilities.load import load_cube
+from improver.utilities.load import load_cube, load_cubelist
 from improver.utilities.save import save_netcdf
 
 
@@ -88,6 +89,16 @@ def main():
     ucube = load_cube(args.eastward_advection_filepath)
     vcube = load_cube(args.northward_advection_filepath)
 
+    if args.orographic_enhancement_filepaths:
+        # Subtract orographic enhancement
+        oe_cube_list = load_cubelist(args.orographic_enhancement_filepaths)
+    else:
+        if "precipitation_rate" in input_cube.name():
+            msg = ("For precipitation fields, orographic enhancement "
+                   "filepaths must be supplied. The names of the cubes "
+                   "supplied were: {}".format(input_cube.name()))
+            raise ValueError(msg)
+
     metadata_dict = None
     if args.json_file:
         # Load JSON file for metadata amendments.
@@ -113,8 +124,8 @@ def main():
 
         if args.orographic_enhancement_filepaths:
             # Add orographic enhancement.
-            cube_list = apply_orographic_enhancement(
-                forecast_cube, oe_cube_list, "add")
+            forecast_cube, = ApplyOrographicEnhancement("add").process(
+                  forecast_cube, oe_cube_list)
 
         # save to a suitably-named output file
         if args.output_filepaths:
