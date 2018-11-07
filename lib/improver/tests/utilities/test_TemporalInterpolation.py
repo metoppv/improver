@@ -182,10 +182,9 @@ class Test_process(IrisTest):
         result, = TemporalInterpolation(interval_in_minutes=180).process(
             self.cube_time_0, self.cube_time_1)
 
-        self.assertArrayAlmostEqual(expected_data, result.data)
-        self.assertArrayAlmostEqual(result.coord('time').points, expected_time)
-        self.assertAlmostEqual(result.coord('forecast_period').points[0],
-                               expected_fp)
+        self.assertArrayEqual(expected_data, result.data)
+        self.assertEqual(result.coord('time').points, expected_time)
+        self.assertEqual(result.coord('forecast_period').points, expected_fp)
 
     def test_valid_multiple_interpolations(self):
         """Test interpolating to every hour between the two input cubes.
@@ -224,8 +223,7 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(expected_data, result.data)
         self.assertArrayAlmostEqual(
             result.coord('time').points, expected_time, decimal=5)
-        self.assertAlmostEqual(result.coord('forecast_period').points[0],
-                               expected_fp)
+        self.assertEqual(result.coord('forecast_period').points, expected_fp)
 
     def test_input_cube_without_time_coordinate(self):
         """Test that an exception is raised if a cube is provided without a
