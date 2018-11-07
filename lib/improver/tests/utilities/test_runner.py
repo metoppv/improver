@@ -38,11 +38,13 @@ from improver.utilities.runner import apply_plugin
 
 
 def mock_plugin():
-    """ Set up a an mock plugin. """
-
+    """ Set up a mock plugin. """
     class Plugin(object):
-        def process(self, args):
-            return args
+        """Mock plugin class"""
+        @staticmethod
+        def process(cube):
+            """Dummy process method which does nothing"""
+            return cube
 
     return Plugin()
 
@@ -59,7 +61,7 @@ def sample_cubelist():
     cube.add_dim_coord(DimCoord(np.linspace(0.0, 4.0, 3),
                                 'projection_x_coordinate',
                                 units='m'), 1)
-    return CubeList([cube])
+    return CubeList([cube, cube])
 
 
 class Test_runner_runs(unittest.TestCase):
@@ -70,14 +72,15 @@ class Test_runner_runs(unittest.TestCase):
         self.plugin = mock_plugin()
 
     def test_runner(self):
-        """ Test handing the runner a mock Plugin.method and cube """
+        """ Test handing the runner a mock Plugin.method and a CubeList. """
         result = apply_plugin(self.plugin.process, self.cubelist)
         self.assertTrue(result == self.cubelist)
 
     def test_runner_omitting_method(self):
-        """ Test handing the runner a mock Plugin instance and cube """
+        """ Test handing the runner a mock Plugin instance and a CubeList. """
         result = apply_plugin(self.plugin, self.cubelist)
         self.assertTrue(result == self.cubelist)
+
 
 if __name__ == '__main__':
     unittest.main()
