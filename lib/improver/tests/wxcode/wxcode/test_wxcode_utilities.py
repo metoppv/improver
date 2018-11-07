@@ -58,7 +58,7 @@ from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_cube
 
 
-def datetime_to_numdateval(year=2018, month=9, day=12, hour=5, minutes=44):
+def datetime_to_numdateval(year=2018, month=9, day=12, hour=5, minutes=43):
     """
     Convert date and time to a numdateval for use in a cube
 
@@ -72,7 +72,7 @@ def datetime_to_numdateval(year=2018, month=9, day=12, hour=5, minutes=44):
         hour (int):
            require year, default is 5
         minutes (int):
-           require year, default is 44
+           require year, default is 43
 
     Default values should be roughly sunrise in Exeter.
 
@@ -404,6 +404,42 @@ class Test_update_daynight(IrisTest):
             [27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27],
             [28, 28, 28, 28, 28, 28, 28, 28, 29, 29, 29, 29, 29, 29, 29, 29]])
         result = update_daynight(cube)
+
+        self.assertArrayEqual(result.data, expected_result)
+        self.assertEqual(result.data.shape, (16, 16))
+
+    def test_wxcode_time_different_seconds(self):
+        """ Test code works if time coordinate has a difference in the number
+        of seconds, which should round to the same time in hours and minutes.
+        This was raised by changes to cftime which altered its precision."""
+        time_origin = "hours since 1970-01-01 00:00:00"
+        calendar = "gregorian"
+        dateval = datetime.datetime(2018, 9, 12, 5, 42, 59)
+        numdateval = date2num(dateval, time_origin, calendar)
+        time_points = [numdateval]
+
+        cube = set_up_wxcube(time_points=time_points)
+        cube.data = self.cube_data
+        cube = iris.util.squeeze(cube)
+        expected_result = np.array([
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+            [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3],
+            [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+            [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
+            [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
+            [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8],
+            [9, 9, 9, 9, 9, 9, 9, 9, 9, 10, 10, 10, 10, 10, 10, 10],
+            [13, 13, 13, 13, 13, 13, 13, 13, 13, 14, 14, 14, 14, 14, 14, 14],
+            [15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+            [16, 16, 16, 16, 16, 16, 16, 16, 16, 17, 17, 17, 17, 17, 17, 17],
+            [18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18],
+            [19, 19, 19, 19, 19, 19, 19, 19, 19, 20, 20, 20, 20, 20, 20, 20],
+            [22, 22, 22, 22, 22, 22, 22, 22, 22, 23, 23, 23, 23, 23, 23, 23],
+            [25, 25, 25, 25, 25, 25, 25, 25, 25, 26, 26, 26, 26, 26, 26, 26],
+            [27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27],
+            [28, 28, 28, 28, 28, 28, 28, 28, 29, 29, 29, 29, 29, 29, 29, 29]])
+        result = update_daynight(cube)
+
         self.assertArrayEqual(result.data, expected_result)
         self.assertEqual(result.data.shape, (16, 16))
 

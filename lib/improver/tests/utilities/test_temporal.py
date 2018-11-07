@@ -99,12 +99,15 @@ class Test_cycletime_to_number(IrisTest):
         self.assertAlmostEqual(result, dt)
 
     def test_alternative_units_defined(self):
-        """Test when alternative units are defined."""
+        """Test when alternative units are defined. The result is cast as
+        an integer as seconds should be of this type and compared as such.
+        There are small precision errors in the 7th decimal place of the
+        returned float."""
         cycletime = "20171122T0000Z"
-        dt = 1511308800.0
+        dt = 1511308800
         result = cycletime_to_number(
             cycletime, time_unit="seconds since 1970-01-01 00:00:00")
-        self.assertAlmostEqual(result, dt)
+        self.assertEqual(int(np.round(result)), dt)
 
     def test_alternative_calendar_defined(self):
         """Test when an alternative calendar is defined."""
