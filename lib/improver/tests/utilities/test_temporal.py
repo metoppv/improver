@@ -107,7 +107,7 @@ class Test_cycletime_to_number(IrisTest):
         dt = 1511308800
         result = cycletime_to_number(
             cycletime, time_unit="seconds since 1970-01-01 00:00:00")
-        self.assertEqual(int(result), dt)
+        self.assertEqual(int(np.round(result)), dt)
 
     def test_alternative_calendar_defined(self):
         """Test when an alternative calendar is defined."""
