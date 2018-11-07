@@ -109,7 +109,9 @@ class SpotExtraction():
     def extract_diagnostic_data(coordinate_cube, diagnostic_cube):
         """
         Extracts diagnostic data from the desired grid points in the diagnostic
-        cube.
+        cube. The neighbour finding routine that produces the coordinate cube
+        works in x-y order. As such, the diagnostic cube is changed to match
+        before the indices are used to extract data.
 
         Args:
             coordinate_cube (iris.cube.Cube):
