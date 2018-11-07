@@ -601,7 +601,7 @@ class Test_find_latest_cycletime(IrisTest):
         input_cubelist = iris.cube.CubeList([self.input_cube, input_cube2])
         msg = "Expecting scalar forecast_reference_time for each input cube"
         with self.assertRaisesRegex(ValueError, msg):
-            cycletime = find_latest_cycletime(input_cubelist)
+            find_latest_cycletime(input_cubelist)
 
 
 if __name__ == '__main__':
