@@ -31,19 +31,19 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "temp-lapse-rate temp orography land-mask output --max_height_diff --mbhood_radius --max_lapse_rate --min_lapse_rate" {
+@test "temp-lapse-rate temp orography land-mask output --max_height_diff --nbhood_radius --max_lapse_rate --min_lapse_rate" {
   improver_check_skip_acceptance
   KGO="temp-lapse-rate/options/kgo.nc"
 
   # Run the temperature lapse rate calculation and check the result.
   run improver temp-lapse-rate \
-      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/temperature_at_screen_level.nc" \
-      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/ukvx_orography.nc" \
-      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/ukvx_landmask.nc" \
-      --max_height_diff=70 \
+      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/realizations/enukx_temperature.nc" \
+      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/realizations/enukx_orography.nc" \
+      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/realizations/enukx_landmask.nc" \
+      --max_height_diff=10 \
       --nbhood_radius=3 \
-      --max_lapse_rate=-0.0394 \
-      --min_lapse_rate=-0.0058 \
+      --max_lapse_rate=0.06 \
+      --min_lapse_rate=-0.01 \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

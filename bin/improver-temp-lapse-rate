@@ -68,7 +68,7 @@ def main():
                              'The neighbourhood will be a square array with '
                              'side length 2*nbhood_radius + 1.')
     parser.add_argument('--max_lapse_rate',
-                        metavar='MAX_LAPSE_RATE', type=float, default=3 * DALR,
+                        metavar='MAX_LAPSE_RATE', type=float, default=-3*DALR,
                         help='Maximum lapse rate allowed.')
     parser.add_argument('--min_lapse_rate',
                         metavar='MIN_LAPSE_RATE', type=float, default=DALR,
