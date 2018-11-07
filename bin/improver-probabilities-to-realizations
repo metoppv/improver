@@ -45,11 +45,14 @@ def main():
         (['--no-of-realizations'],
          {'metavar': 'NUMBER_OF_REALIZATIONS', 'default': None, 'type': int,
           'help': (
-            'Optional definition of the number of ensemble realizations to be '
-            'generated. These are generated through an intermediate '
-            'percentile representation. These percentiles will be distributed '
-            'regularly with the aim of dividing into blocks of equal '
-            'probability.')
+            "Optional definition of the number of ensemble realizations to be "
+            "generated. These are generated through an intermediate "
+            "percentile representation. These percentiles will be distributed "
+            "regularly with the aim of dividing into blocks of equal "
+            "probability. If the reordering option is specified and the "
+            "number of realizations is not given then the number of "
+            "realizations is taken from the number of realizations in the "
+            "raw forecast NetCDF file.")
           })]
 
     cli_definition = {'central_arguments': ('input_file', 'output_file'),
@@ -57,14 +60,54 @@ def main():
                       'description': ('Convert a dataset containing '
                                       'probabilities into one containing '
                                       'ensemble realizations.')}
+    parser = ArgParser(**cli_definition)
+    # add mutually exculsive options rebadge and reorder.
+    # If reordering add option for raw ensemble - raise error if raw ens missing.
+    group = parser.add_mutually_exclusive_group(required=True)
 
-    args = ArgParser(**cli_definition).parse_args()
+    group.add_argument('--reordering', default=False, action='store_true',
+                       help='The option used to create ensemble realizations '
+                       'from percentiles by reordering the input '
+                       'percentiles based on the order of the '
+                       'raw ensemble forecast.')
+    group.add_argument('--rebadging', default=False, action='store_true',
+                       help='The option used to create ensemble realizations '
+                       'from percentiles by rebadging the input '
+                       'percentiles.')
 
+    # If reordering, we need a raw ensemble forecast.
+    reordering = parser.add_argument_group(
+        'Reordering options', 'Options for reordering the input percentiles '
+        'using the raw ensemble forecast as required to create ensemble '
+        'realizations.')
+    reordering.add_argument('--raw_forecast_filepath',
+                            metavar='RAW_FORECAST_FILE',
+                            help='A path to an raw forecast NetCDF file to be '
+                            'processed. This option is compulsory, if the '
+                            'reordering option is selected.')
+    args = parser.parse_args()
+
+    # Process the data
     cube = load_cube(args.input_filepath)
 
-    cube = GeneratePercentilesFromProbabilities().process(
-            cube, no_of_percentiles=args.no_of_realizations)
-    cube = RebadgePercentilesAsRealizations().process(cube)
+    if args.reordering:
+        raw_forecast = load_cube(args.raw_forecast_filepath)
+        # If no_of_realizations is not given, take the number from the raw
+        # ensemble cube.
+        if args.no_of_realizations is None:
+            no_of_realizations = len(raw_forecast.coord("realization").points)
+        else:
+            no_of_realizations = args.no_of_realizations
+        cube = GeneratePercentilesFromProbabilities().process(
+            cube, no_of_percentiles=no_of_realizations)
+        cube = EnsembleReordering().process(
+            result_cube, raw_forecast, random_ordering=args.random_ordering,
+            random_seed=args.random_seed)
+
+    elif args.rebadging:
+        cube = GeneratePercentilesFromProbabilities().process(
+                cube, no_of_percentiles=args.no_of_realizations)
+        cube = RebadgePercentilesAsRealizations().process(cube)
 
     save_netcdf(cube, args.output_filepath)
 

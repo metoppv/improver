@@ -36,7 +36,10 @@
 usage: improver-probabilities-to-realizations [-h] [--profile]
                                               [--profile_file PROFILE_FILE]
                                               [--no-of-realizations NUMBER_OF_REALIZATIONS]
+                                              (--reordering | --rebadging)
+                                              [--raw_forecast_filepath RAW_FORECAST_FILE]
                                               INPUT_FILE OUTPUT_FILE
+improver-probabilities-to-realizations: error: the following arguments are required: INPUT_FILE, OUTPUT_FILE
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

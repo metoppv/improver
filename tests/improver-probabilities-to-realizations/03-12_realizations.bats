@@ -36,6 +36,7 @@
   KGO="probabilities-to-realizations/12_realizations/kgo.nc"
 
   run improver probabilities-to-realizations --no-of-realizations=12 \
+      --rebadging \
       "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/basic/input.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
