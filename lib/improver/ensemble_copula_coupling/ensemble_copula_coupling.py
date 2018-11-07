@@ -248,16 +248,15 @@ class ResamplePercentiles(object):
     def process(self, forecast_at_percentiles, no_of_percentiles=None,
                 sampling="quantile"):
         """
-        1. Concatenates cubes with a percentile coordinate.
-        2. Creates a list of percentiles.
-        3. Accesses the lower and upper bound pair of the forecast values,
+        1. Creates a list of percentiles.
+        2. Accesses the lower and upper bound pair of the forecast values,
            in order to specify lower and upper bounds for the percentiles.
-        4. Interpolate the percentile coordinate into an alternative
+        3. Interpolate the percentile coordinate into an alternative
            set of percentiles using linear interpolation.
 
         Args:
-            forecast_at_percentiles (Iris CubeList or Iris Cube):
-                Cube or CubeList expected to contain a percentile coordinate.
+            forecast_at_percentiles (Iris Cube):
+                Cube expected to contain a percentile coordinate.
             no_of_percentiles (Integer or None):
                 Number of percentiles
                 If None, the number of percentiles within the input
@@ -280,8 +279,6 @@ class ResamplePercentiles(object):
                 The percentile coordinate is always the zeroth dimension.
 
         """
-        forecast_at_percentiles = concatenate_cubes(forecast_at_percentiles)
-
         percentile_coord = (
             find_percentile_coordinate(forecast_at_percentiles).name())
 
