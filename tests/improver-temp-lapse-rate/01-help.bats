@@ -66,9 +66,9 @@ optional arguments:
                         neighbourhood will be a square array with side length
                         2*nbhood_radius + 1.
   --max_lapse_rate MAX_LAPSE_RATE
-                        Maximum lapse rate allowed.
+                        Maximum lapse rate allowed. Default is -3*DALR.
   --min_lapse_rate MIN_LAPSE_RATE
-                        Minimum lapse rate allowed.
+                        Minimum lapse rate allowed. Default is the DALR.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

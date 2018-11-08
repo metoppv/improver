@@ -69,10 +69,12 @@ def main():
                              'side length 2*nbhood_radius + 1.')
     parser.add_argument('--max_lapse_rate',
                         metavar='MAX_LAPSE_RATE', type=float, default=-3*DALR,
-                        help='Maximum lapse rate allowed.')
+                        help='Maximum lapse rate allowed. '
+                             'Default is -3*DALR.')
     parser.add_argument('--min_lapse_rate',
                         metavar='MIN_LAPSE_RATE', type=float, default=DALR,
-                        help='Minimum lapse rate allowed.')
+                        help='Minimum lapse rate allowed. '
+                             'Default is the DALR.')
 
     args = parser.parse_args()
     temperature_cube = load_cube(args.temperature_filepath)
