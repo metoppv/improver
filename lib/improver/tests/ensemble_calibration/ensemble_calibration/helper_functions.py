@@ -151,12 +151,13 @@ def set_up_probability_above_threshold_spot_temperature_cube():
 
 def set_up_cube(data, name, units,
                 realizations=np.array([0, 1, 2], dtype=np.float32),
-                timesteps=1, y_dimension_length=3, x_dimension_length=3,):
+                timesteps=1, y_dimension_length=3, x_dimension_length=3):
     """Create a cube containing multiple realizations."""
     try:
         cube = Cube(data, standard_name=name, units=units)
     except ValueError:
         cube = Cube(data, long_name=name, units=units)
+
     cube.add_dim_coord(DimCoord(realizations, 'realization',
                                 units='1'), 0)
     time_origin = "hours since 1970-01-01 00:00:00"
