@@ -258,7 +258,16 @@ class DayNightMask(object):
 
     def process(self, cube):
         """
-        Calculate the daynight mask for the provided cube
+        Calculate the daynight mask for the provided cube. Note that only the
+        hours and minutes of the dtval variable are used. To ensure consistent
+        behaviour with changes of second or subsecond precision, the second
+        component is added to the time object. This means that when the hours
+        and minutes are used, we have correctly rounded to the nearest minute,
+        e.g.::
+
+           dt(2017, 1, 1, 11, 59, 59) -- +59 --> dt(2017, 1, 1, 12, 0, 58)
+           dt(2017, 1, 1, 12, 0, 1)   -- +1  --> dt(2017, 1, 1, 12, 0, 2)
+           dt(2017, 1, 1, 12, 0, 30)  -- +30 --> dt(2017, 1, 1, 12, 1, 0)
 
         Args:
             cube (iris.cube.Cube):
@@ -278,6 +287,7 @@ class DayNightMask(object):
         for i, dtval in enumerate(dtvalues):
             mask_cube = daynight_mask[i]
             day_of_year = (dtval - dt.datetime(dtval.year, 1, 1)).days
+            dtval = dtval + dt.timedelta(seconds=dtval.second)
             utc_hour = (dtval.hour * 60.0 + dtval.minute) / 60.0
             trg_crs = lat_lon_determine(mask_cube)
             # Grids that are not Lat Lon
@@ -290,5 +300,4 @@ class DayNightMask(object):
                 mask_cube = self._daynight_lat_lon_cube(mask_cube,
                                                         day_of_year, utc_hour)
             daynight_mask.data[i, ::] = mask_cube.data
-
         return daynight_mask

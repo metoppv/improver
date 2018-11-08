@@ -54,11 +54,11 @@ class Test_rationalise_blend_time_coords(IrisTest):
         y_coord = DimCoord([40., 45., 50.], 'latitude', 'degrees')
         x_coord = DimCoord([-5., 0., 5.], 'longitude', 'degrees')
 
-        time_origin = "hours since 1970-01-01 00:00:00"
+        time_origin = "seconds since 1970-01-01 00:00:00"
         calendar = "gregorian"
         tunit = Unit(time_origin, calendar)
         dt = datetime(2017, 1, 10, 3, 0)
-        dt_num = date2num(dt, time_origin, calendar)
+        dt_num = np.round(date2num(dt, time_origin, calendar)).astype(np.int64)
         time_coord = AuxCoord(dt_num, "time", units=tunit)
 
         # create a simple data cube with suitable dimension coordinates from
@@ -71,8 +71,8 @@ class Test_rationalise_blend_time_coords(IrisTest):
         # make a cube with a forecast reference time and period labelled as
         # coming from the UKV
         ukv_frt_coord = AuxCoord(
-            dt_num-4, "forecast_reference_time", units=tunit)
-        ukv_fp_coord = AuxCoord(4, "forecast_period", units="hours")
+            dt_num - (4 * 3600), "forecast_reference_time", units=tunit)
+        ukv_fp_coord = AuxCoord((4 * 3600), "forecast_period", units="seconds")
 
         self.ukv_cube = base_cube.copy()
         self.ukv_cube.add_aux_coord(ukv_frt_coord)
@@ -82,8 +82,9 @@ class Test_rationalise_blend_time_coords(IrisTest):
         # make a cube labelled as coming from MOGREPS-UK, with a different
         # forecast reference time from the UKV cube
         enuk_frt_coord = AuxCoord(
-            dt_num-3, "forecast_reference_time", units=tunit)
-        enuk_fp_coord = AuxCoord(3, "forecast_period", units="hours")
+            dt_num - (3 * 3600), "forecast_reference_time", units=tunit)
+        enuk_fp_coord = AuxCoord((3 * 3600), "forecast_period",
+                                 units="seconds")
 
         self.enuk_cube = base_cube.copy()
         self.enuk_cube.add_aux_coord(enuk_frt_coord)
@@ -126,7 +127,7 @@ class Test_rationalise_blend_time_coords(IrisTest):
         """Test function equalises forecast reference times if weighting a
         model blend by forecast_period"""
         expected_frt, = self.enuk_cube.coord("forecast_reference_time").points
-        expected_fp = 3.
+        expected_fp = 3 * 3600
         rationalise_blend_time_coords(
             self.cubelist, "model", weighting_coord="forecast_period")
         merged_cube = merge_cubes(self.cubelist)
@@ -140,9 +141,9 @@ class Test_rationalise_blend_time_coords(IrisTest):
 
     def test_cycletime(self):
         """Test function sets different cycle time if passed in as argument"""
-        expected_frt, = (
-            self.enuk_cube.coord("forecast_reference_time").points - 3.)
-        expected_fp = 6.
+        expected_frt, = (self.enuk_cube.coord("forecast_reference_time").points
+                         - (3 * 3600))
+        expected_fp = 6 * 3600
         rationalise_blend_time_coords(
             self.cubelist, "model", weighting_coord="forecast_period",
             cycletime='20170109T2100Z')
