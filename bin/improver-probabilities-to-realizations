@@ -99,6 +99,16 @@ def main():
 
     args = parser.parse_args()
 
+    # CLI argument checking:
+    # Can only do one of reordering or rebadging: if options are passed which
+    # correspond to the opposite method, raise an exception.
+    # Note: Shouldn't need to check that both/none are set, since they are
+    # defined as mandatory, but mutually exclusive, options.
+    if args.rebadging:
+        if (args.raw_forecast_filepath is not None) or (args.random_seed is not None):
+            parser.wrong_args_error(
+                'raw_forecast_filepath, random_seed', 'rebadging')
+
     # Process the data
     cube = load_cube(args.input_filepath)
 
@@ -123,11 +133,9 @@ def main():
             no_of_realizations = args.no_of_realizations
         cube = GeneratePercentilesFromProbabilities().process(
             cube, no_of_percentiles=no_of_realizations)
-        print("\ninput_to_reordering:\n{}\n".format(cube))
         cube = EnsembleReordering().process(
             cube, raw_forecast, random_ordering=False,
             random_seed=args.random_seed)
-        print("\noutput_from_reordering:\n{}\n".format(cube))
     elif args.rebadging:
         cube = GeneratePercentilesFromProbabilities().process(
                 cube, no_of_percentiles=args.no_of_realizations)

@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "percentiles-to-realizations --sampling_method 'quantile' --reordering input output --realization_numbers $(seq 100 1 111) " {
+@test "percentiles-to-realizations --sampling_method 'quantile' --rebadging input output --random_ordering " {
   improver_check_skip_acceptance
   KGO="ecc/percentiles_rebadging_extra_option/kgo.nc"
 

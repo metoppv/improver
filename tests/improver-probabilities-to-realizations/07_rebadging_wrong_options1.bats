@@ -31,28 +31,23 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "percentiles-to-realizations --sampling_method 'quantile' --rebadging input output --raw_forecast_file input " {
+@test "probabilities-to-realizations --rebadging input output --random_seed" {
   improver_check_skip_acceptance
-  KGO="ecc/percentiles_rebadging_extra_option/kgo.nc"
+  KGO="probabilities-to-realizations/basic/kgo.nc"
 
-  # Test that the right error is raised when the wrong options are passed in.
-  run improver percentiles-to-realizations "$IMPROVER_ACC_TEST_DIR/ecc/percentiles_rebadging/multiple_percentiles_wind_cube.nc" \
-      "$TEST_DIR/output.nc" --sampling_method 'quantile' \
-      --rebadging --raw_forecast_filepath "a_file.nc"
-
+  run improver probabilities-to-realizations --rebadging --random_seed 0 \
+      "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/basic/input.nc" \
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 2 ]]
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-percentiles-to-realizations [-h] [--profile]
-                                            [--profile_file PROFILE_FILE]
-                                            [--no_of_percentiles NUMBER_OF_PERCENTILES]
-                                            [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
-                                            (--reordering | --rebadging)
-                                            [--raw_forecast_filepath RAW_FORECAST_FILE]
-                                            [--random_ordering]
-                                            [--random_seed RANDOM_SEED]
-                                            [--realization_numbers REALIZATION_NUMBERS [REALIZATION_NUMBERS ...]]
-                                            INPUT_FILE OUTPUT_FILE
-improver-percentiles-to-realizations: error: Method: rebadging does not accept arguments: raw_forecast_filepath, random_ordering
+usage: improver-probabilities-to-realizations [-h] [--profile]
+                                              [--profile_file PROFILE_FILE]
+                                              [--no-of-realizations NUMBER_OF_REALIZATIONS]
+                                              (--reordering | --rebadging)
+                                              [--raw_forecast_filepath RAW_FORECAST_FILE]
+                                              [--random_seed RANDOM_SEED]
+                                              INPUT_FILE OUTPUT_FILE
+improver-probabilities-to-realizations: error: Method: rebadging does not accept arguments: raw_forecast_filepath, random_seed
 __TEXT__
-  [[ "$output" =~ "$expected" ]]
 }
