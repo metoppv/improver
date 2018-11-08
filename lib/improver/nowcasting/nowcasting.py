@@ -123,11 +123,12 @@ class ApplyOrographicEnhancement(object):
 
         # Set orographic enhancement to be zero for points with a
         # precipitation rate of < 1/32 mm/hr.
-        original_units = precip_cube.units
-        threshold_in_cube_units = original_units.convert(1/32., cube.units)
+        original_units = Unit("mm/hr")
+        threshold_in_cube_units = (
+            original_units.convert(1/32., precip_cube.units))
         oe_cube.data[precip_cube.data < threshold_in_cube_units] = 0.
 
-        ## Use CubeCombiner to combine the cubes.
+        # Use CubeCombiner to combine the cubes.
         temp_cubelist = iris.cube.CubeList([precip_cube, oe_cube])
         cube = CubeCombiner(self.operation).process(
             temp_cubelist, precip_cube.name())
@@ -195,4 +196,3 @@ class ApplyOrographicEnhancement(object):
             cube = self.apply_minimum_precip_rate(cube)
             updated_cubes.append(cube)
         return updated_cubes
-
