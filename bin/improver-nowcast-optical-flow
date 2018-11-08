@@ -113,8 +113,8 @@ def main():
         cube_list = ApplyOrographicEnhancement("subtract").process(
             cube_list, oe_cube_list)
     else:
-        cube_names = [cube.name() for cube in cube_list]
-        if any("precipitation_rate" in cube_names):
+        if any("precipitation_rate" in cube.name() for cube in cube_list):
+            cube_names = [cube.name() for cube in cube_list]
             msg = ("For precipitation fields, orographic enhancement "
                    "filepaths must be supplied. The names of the cubes "
                    "supplied were: {}".format(cube_names))
