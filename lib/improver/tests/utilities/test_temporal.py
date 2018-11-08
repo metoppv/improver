@@ -44,10 +44,10 @@ from iris.time import PartialDateTime
 
 from improver.utilities.temporal import (
     cycletime_to_datetime, cycletime_to_number, forecast_period_coord,
-    iris_time_to_datetime, dt_to_utc_hours, datetime_constraint,
+    iris_time_to_datetime, datetime_constraint,
     extract_cube_at_time, set_utc_offset, get_forecast_times,
     unify_forecast_reference_time, find_latest_cycletime,
-    extract_nearest_time_point)
+    extract_nearest_time_point, datetime_to_iris_time)
 from improver.tests.blending.weights.helper_functions import (
     set_up_temperature_cube, add_model_id_and_model_configuration)
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
@@ -256,10 +256,12 @@ class Test_iris_time_to_datetime(Test_common_functions):
 
 class Test_datetime_to_iris_time(IrisTest):
 
+    """Test the datetime_to_iris_time function."""
+
     def setUp(self):
+        """Define datetime for use in tests."""
         self.dt_in = datetime.datetime(2017, 2, 17, 6, 0)
 
-    """ Test datetime_to_iris_time """
     def test_hours(self):
         """Test datetime_to_iris_time returns float with expected value
         in hours"""
@@ -286,7 +288,9 @@ class Test_datetime_to_iris_time(IrisTest):
         self.assertEqual(result, expected)
 
     def test_exception_raised(self):
-        msg = "The time_interval must be 'hours', 'minutes' or 'seconds'"
+        """Test an exception is raised if the if the time unit does not
+        contain hours, minutes or seconds."""
+        msg = "The time unit must contain 'hours', 'minutes' or 'seconds'"
         with self.assertRaisesRegex(ValueError, msg):
             datetime_to_iris_time(self.dt_in, time_units="days")
 
@@ -505,7 +509,6 @@ class Test_extract_nearest_time_point(IrisTest):
     def test_exception_raised(self):
         """Test that an exception raised, if the time point is outside of
         the allowed difference specified in seconds."""
-        expected = self.cube[:, 0, :, :]
         time_point = datetime.datetime(2017, 11, 23, 6, 0)
         msg = "is not available within the input cube"
         with self.assertRaisesRegex(ValueError, msg):

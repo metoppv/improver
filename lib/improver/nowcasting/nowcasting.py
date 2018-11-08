@@ -31,12 +31,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module with utilities required for nowcasting."""
 
-import datetime
 import numpy as np
 
 from cf_units import Unit
 import iris
-from iris.time import PartialDateTime
 
 from improver.cube_combiner import CubeCombiner
 from improver.utilities.cube_checker import check_cube_coordinates

@@ -238,18 +238,20 @@ def datetime_to_iris_time(dt_in, time_units="hours"):
     Args:
         dt_in (datetime.datetime object):
             Time to be converted.
-        time_interval (str):
-            Name of time interval. Currently only "hours", "minutes" or
-            "seconds" are supported.
+        time_units (str):
+            Name of time unit. Currently only "hours", "minutes" or
+            "seconds" are supported. Alternatively, an origin time can be
+            supported, for example "seconds since 1970-01-01 00:00:00".
+
     Returns:
         float:
-            hours since epoch
+            time since epoch in the units defined by the time_units.
 
     """
     if all(time_unit not in time_units for time_unit in
            ["hours", "minutes", "seconds"]):
-        msg = ("The time_interval must be 'hours', 'minutes' or 'seconds'. "
-               "The time interval was {}".format(time_units))
+        msg = ("The time unit must contain 'hours', 'minutes' or 'seconds'. "
+               "The time unit was {}".format(time_units))
         raise ValueError(msg)
     result = dt_in.replace(tzinfo=timezone.utc).timestamp()
     if "hours" in time_units:

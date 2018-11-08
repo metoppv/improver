@@ -97,10 +97,13 @@ class Test__init__(IrisTest):
         self.oe_cubes = set_up_orographic_enhancement_cube()
 
     def test_basic(self):
+        """Test that the plugin can be initialised as required."""
         plugin = ApplyOrographicEnhancement("add")
         self.assertEqual(plugin.operation, "add")
 
     def test_exception(self):
+        """Test that an exception is raised if the operation requested is
+        not a valid choice."""
         msg = "Operation 'multiply' not supported for"
         with self.assertRaisesRegex(ValueError, msg):
             ApplyOrographicEnhancement("multiply")
@@ -131,9 +134,6 @@ class Test__extract_orographic_enhancement_cube(IrisTest):
     def test_basic(self):
         """Test extracting a time coordinate from the orographic enhancement
         cube."""
-        expected0 = np.array([[[[0., 1., 2.],
-                                [1., 2., 3.],
-                                [3., 3., 4.]]]])
         plugin = ApplyOrographicEnhancement("add")
         result = plugin._extract_orographic_enhancement_cube(
             self.precip_cubes[0], self.first_slice)
@@ -144,10 +144,7 @@ class Test__extract_orographic_enhancement_cube(IrisTest):
 
     def test_alternative_time_quarter_past(self):
         """Test extracting a time coordinate from the orographic enhancement
-        cube."""
-        expected0 = np.array([[[[0., 1., 2.],
-                                [1., 2., 3.],
-                                [3., 3., 4.]]]])
+        cube at quarter past an hour."""
         plugin = ApplyOrographicEnhancement("add")
         self.precip_cubes[0].coord("time").points = 412227.25
         result = plugin._extract_orographic_enhancement_cube(
@@ -159,10 +156,7 @@ class Test__extract_orographic_enhancement_cube(IrisTest):
 
     def test_alternative_time_half_past(self):
         """Test extracting a time coordinate from the orographic enhancement
-        cube."""
-        expected0 = np.array([[[[0., 1., 2.],
-                                [1., 2., 3.],
-                                [3., 3., 4.]]]])
+        cube at half past an hour."""
         plugin = ApplyOrographicEnhancement("add")
         self.precip_cubes[0].coord("time").points = 412227.51
         result = plugin._extract_orographic_enhancement_cube(
@@ -174,10 +168,7 @@ class Test__extract_orographic_enhancement_cube(IrisTest):
 
     def test_alternative_time_quarter_to(self):
         """Test extracting a time coordinate from the orographic enhancement
-        cube."""
-        expected0 = np.array([[[[0., 1., 2.],
-                                [1., 2., 3.],
-                                [3., 3., 4.]]]])
+        cube at quarter to an hour."""
         plugin = ApplyOrographicEnhancement("add")
         self.precip_cubes[0].coord("time").points = 412227.75
         result = plugin._extract_orographic_enhancement_cube(
