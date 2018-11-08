@@ -44,63 +44,8 @@ from improver.utilities.cube_checker import find_percentile_coordinate
 from improver.utilities.cube_manipulation import build_coordinate
 from improver.utilities.temporal import (
     cycletime_to_datetime, cycletime_to_number, iris_time_to_datetime,
-    forecast_period_coord)
-
-
-def unify_forecast_reference_time(cubes, cycletime):
-    """Function to unify the forecast_reference_time across the input cubes
-    provided. The cycletime specified is used as the forecast_reference_time.
-    This function is intended for use in grid blending, where the models
-    being blended may not have been run at the same cycle time, but should
-    be given the same forecast period weightings.
-
-    Args:
-        cubes (iris.cube.CubeList or iris.cube.Cube):
-            Cubes that will have their forecast_reference_time unified.
-            If a single cube is provided the forecast_reference_time will be
-            updated. Any bounds on the forecast_reference_time coord will be
-            discarded.
-        cycletime (datetime.datetime):
-            Datetime for the cycletime that will be used to replace the
-            forecast_reference_time on the individual cubes.
-
-    Returns:
-        result_cubes (iris.cube.CubeList):
-            Cubes that have had their forecast_reference_time unified.
-
-    Raises:
-        ValueError: if forecast_reference_time is a dimension coordinate
-    """
-    if isinstance(cubes, iris.cube.Cube):
-        cubes = iris.cube.CubeList([cubes])
-
-    result_cubes = iris.cube.CubeList([])
-    for cube in cubes:
-        frt_units = cube.coord('forecast_reference_time').units
-        frt_type = cube.coord('forecast_reference_time').dtype
-        new_frt_units = Unit('seconds since 1970-01-01 00:00:00')
-        frt_points = np.round(
-            [new_frt_units.date2num(cycletime)]).astype(frt_type)
-        frt_coord = build_coordinate(
-            frt_points, standard_name="forecast_reference_time", bounds=None,
-            template_coord=cube.coord('forecast_reference_time'),
-            units=new_frt_units)
-        frt_coord.convert_units(frt_units)
-        frt_coord.points = frt_coord.points.astype(frt_type)
-        cube.remove_coord("forecast_reference_time")
-        cube.add_aux_coord(frt_coord, data_dims=None)
-
-        # If a forecast period coordinate already exists on a cube, replace
-        # this coordinate, otherwise create a new coordinate.
-        fp_units = "seconds"
-        if cube.coords("forecast_period"):
-            fp_units = cube.coord("forecast_period").units
-            cube.remove_coord("forecast_period")
-        fp_coord = forecast_period_coord(
-            cube, force_lead_time_calculation=True, result_units=fp_units)
-        cube.add_aux_coord(fp_coord, data_dims=cube.coord_dims("time"))
-        result_cubes.append(cube)
-    return result_cubes
+    forecast_period_coord, unify_forecast_reference_time,
+    find_latest_cycletime)
 
 
 def rationalise_blend_time_coords(
@@ -142,21 +87,7 @@ def rationalise_blend_time_coords(
     if ("model" in blend_coord and weighting_coord is not None
             and "forecast_period" in weighting_coord):
         if cycletime is None:
-            # get cycle time as latest forecast reference time
-            if any([cube.coord_dims("forecast_reference_time")
-                    for cube in cubelist]):
-                raise ValueError(
-                    "Expecting scalar forecast_reference_time for each input "
-                    "cube - cannot replace a dimension coordinate")
-
-            frt_coord = cubelist[0].coord("forecast_reference_time").copy()
-            for cube in cubelist:
-                next_coord = cube.coord("forecast_reference_time").copy()
-                next_coord.convert_units(frt_coord.units)
-                if next_coord.points[0] > frt_coord.points[0]:
-                    frt_coord = next_coord
-            cycletime, = frt_coord.units.num2date(
-                frt_coord.points)
+            cycletime = find_latest_cycletime(cubelist)
         else:
             cycletime = cycletime_to_datetime(cycletime)
         cubelist = unify_forecast_reference_time(cubelist, cycletime)
