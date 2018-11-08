@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "probabilities-to-realizations input output" {
+@test "probabilities-to-realizations --rebadging input output" {
   improver_check_skip_acceptance
   KGO="probabilities-to-realizations/basic/kgo.nc"
 

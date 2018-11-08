@@ -38,6 +38,7 @@ usage: improver-probabilities-to-realizations [-h] [--profile]
                                               [--no-of-realizations NUMBER_OF_REALIZATIONS]
                                               (--reordering | --rebadging)
                                               [--raw_forecast_filepath RAW_FORECAST_FILE]
+                                              [--random_seed RANDOM_SEED]
                                               INPUT_FILE OUTPUT_FILE
 
 Convert a dataset containing probabilities into one containing ensemble
@@ -76,6 +77,14 @@ Reordering options:
                         A path to an raw forecast NetCDF file to be processed.
                         This option is compulsory, if the reordering option is
                         selected.
+  --random_seed RANDOM_SEED
+                        Option to specify a value for the random seed for
+                        testing purposes, otherwise, the default random seed
+                        behaviour is utilised. The random seed is used in the
+                        generation of the random numbers used for splitting
+                        tied values within the raw ensemble, so that the
+                        values from the input percentiles can be ordered to
+                        match the raw ensemble.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

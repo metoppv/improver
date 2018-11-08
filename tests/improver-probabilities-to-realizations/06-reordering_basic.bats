@@ -31,13 +31,14 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "probabilities-to-realizations --no-of-realizations=12 --rebadging input output" {
+@test "probabilities-to-realizations --reordering raw_ens input output" {
   improver_check_skip_acceptance
-  KGO="probabilities-to-realizations/12_realizations/kgo.nc"
+  KGO="probabilities-to-realizations/basic_reordering/kgo.nc"
 
-  run improver probabilities-to-realizations --no-of-realizations=12 \
-      --rebadging \
-      "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/basic/input.nc" \
+  run improver probabilities-to-realizations --reordering --random_seed 0 \
+      --no-of-realizations 12 --raw_forecast_filepath \
+      "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/basic_reordering/raw_ens.nc" \
+      "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/basic_reordering/input.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

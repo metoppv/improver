@@ -31,19 +31,16 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "probabilities-to-realizations --no-of-realizations=12 --rebadging input output" {
+@test "probabilities-to-realizations --reordering input output" {
   improver_check_skip_acceptance
-  KGO="probabilities-to-realizations/12_realizations/kgo.nc"
+  KGO="probabilities-to-realizations/basic/kgo.nc"
 
-  run improver probabilities-to-realizations --no-of-realizations=12 \
-      --rebadging \
+  run improver probabilities-to-realizations --reordering \
       "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/basic/input.nc" \
       "$TEST_DIR/output.nc"
-  [[ "$status" -eq 0 ]]
-
-  improver_check_recreate_kgo "output.nc" $KGO
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
+  [[ "$status" -eq 1 ]]
+  read -d '' expected <<'__TEXT__' || true
+ValueError: You must supply a raw forecast filepath if using the reording option.
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
 }

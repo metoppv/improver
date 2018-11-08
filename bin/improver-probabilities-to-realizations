@@ -31,9 +31,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to convert from probabilities to ensemble realization data."""
 
+from iris.exceptions import CoordinateNotFoundError
 from improver.argparser import ArgParser
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-    GeneratePercentilesFromProbabilities, RebadgePercentilesAsRealizations)
+    GeneratePercentilesFromProbabilities, RebadgePercentilesAsRealizations,
+    EnsembleReordering)
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
@@ -62,7 +64,8 @@ def main():
                                       'ensemble realizations.')}
     parser = ArgParser(**cli_definition)
     # add mutually exculsive options rebadge and reorder.
-    # If reordering add option for raw ensemble - raise error if raw ens missing.
+    # If reordering add option for raw ensemble - raise error if
+    # raw ens missing.
     group = parser.add_mutually_exclusive_group(required=True)
 
     group.add_argument('--reordering', default=False, action='store_true',
@@ -85,25 +88,46 @@ def main():
                             help='A path to an raw forecast NetCDF file to be '
                             'processed. This option is compulsory, if the '
                             'reordering option is selected.')
+    reordering.add_argument(
+        '--random_seed', default=None,
+        help='Option to specify a value for the random seed for testing '
+             'purposes, otherwise, the default random seed behaviour is '
+             'utilised. The random seed is used in the generation of the '
+             'random numbers used for splitting tied values '
+             'within the raw ensemble, so that the values from the input '
+             'percentiles can be ordered to match the raw ensemble.')
+
     args = parser.parse_args()
 
     # Process the data
     cube = load_cube(args.input_filepath)
 
     if args.reordering:
-        raw_forecast = load_cube(args.raw_forecast_filepath)
+        if args.raw_forecast_filepath is None:
+            message = ("You must supply a raw forecast filepath if using the "
+                       "reording option.")
+            raise ValueError(message)
+        else:
+            raw_forecast = load_cube(args.raw_forecast_filepath)
         # If no_of_realizations is not given, take the number from the raw
         # ensemble cube.
         if args.no_of_realizations is None:
-            no_of_realizations = len(raw_forecast.coord("realization").points)
+            try:
+                no_of_realizations = len(
+                    raw_forecast.coord("realization").points)
+            except CoordinateNotFoundError:
+                message = ("The netCDF file from the raw_forecast_filepath "
+                           "must have a realization coordinate.")
+                raise ValueError(message)
         else:
             no_of_realizations = args.no_of_realizations
         cube = GeneratePercentilesFromProbabilities().process(
             cube, no_of_percentiles=no_of_realizations)
+        print("\ninput_to_reordering:\n{}\n".format(cube))
         cube = EnsembleReordering().process(
-            result_cube, raw_forecast, random_ordering=args.random_ordering,
+            cube, raw_forecast, random_ordering=False,
             random_seed=args.random_seed)
-
+        print("\noutput_from_reordering:\n{}\n".format(cube))
     elif args.rebadging:
         cube = GeneratePercentilesFromProbabilities().process(
                 cube, no_of_percentiles=args.no_of_realizations)

@@ -38,6 +38,7 @@ usage: improver-probabilities-to-realizations [-h] [--profile]
                                               [--no-of-realizations NUMBER_OF_REALIZATIONS]
                                               (--reordering | --rebadging)
                                               [--raw_forecast_filepath RAW_FORECAST_FILE]
+                                              [--random_seed RANDOM_SEED]
                                               INPUT_FILE OUTPUT_FILE
 improver-probabilities-to-realizations: error: the following arguments are required: INPUT_FILE, OUTPUT_FILE
 __TEXT__
