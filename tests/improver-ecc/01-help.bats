@@ -42,11 +42,12 @@ usage: improver-ecc [-h] [--profile] [--profile_file PROFILE_FILE]
                     [--realization_numbers REALIZATION_NUMBERS [REALIZATION_NUMBERS ...]]
                     INPUT_FILE OUTPUT_FILE
 
-Apply Ensemble Copula Coupling to a file whose data can be loaded as a single
-iris.cube.Cube.
+Convert a dataset containing probabilities into one containing ensemble
+realizations using Ensemble Copula Coupling.
 
 positional arguments:
-  INPUT_FILE            A path to an input NetCDF file to be processed.
+  INPUT_FILE            A path to an input NetCDF file to be processed. Must
+                        contain a percentile dimension.
   OUTPUT_FILE           The output path for the processed NetCDF.
 
 optional arguments:

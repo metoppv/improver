@@ -44,15 +44,17 @@ from improver.utilities.save import save_netcdf
 def main():
     """
     Load in the arguments and apply the requested variant of Ensemble
-    Copula Coupling.
+    Copula Coupling for converting percentile data to realizations.
     """
     parser = ArgParser(
-        description='Apply Ensemble Copula Coupling to a file whose '
-                    'data can be loaded as a single iris.cube.Cube.')
+        description='Convert a dataset containing '
+                    'probabilities into one containing '
+                    'ensemble realizations using Ensemble Copula Coupling.')
 
     # General options:
     parser.add_argument('input_filepath', metavar='INPUT_FILE',
-                        help='A path to an input NetCDF file to be processed.')
+                        help='A path to an input NetCDF file to be processed.'
+                             ' Must contain a percentile dimension.')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
     parser.add_argument('--no_of_percentiles', default=None, type=int,
@@ -136,8 +138,6 @@ def main():
     # Safe to now actually do the work...
     cube = load_cube(args.input_filepath)
 
-    # TODO: For now, assume only doing percentiles -> percentiles.
-    # TODO: Support for probabilities is not yet provided.
     result_cube = ResamplePercentiles().process(
         cube, no_of_percentiles=args.no_of_percentiles,
         sampling=args.sampling_method)
