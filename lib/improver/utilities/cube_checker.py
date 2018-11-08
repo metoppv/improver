@@ -229,11 +229,11 @@ def find_percentile_coordinate(cube):
     Args:
         cube (iris.cube.Cube):
             Cube contain one or more percentiles.
-
     Returns:
         perc_coord(iris.coords.Coord) :
             Percentile coordinate.
-
+    Raises:
+        ValueError : If there is more than one percentile coords in the cube.
     """
     if not isinstance(cube, iris.cube.Cube):
         msg = ('Expecting data to be an instance of '

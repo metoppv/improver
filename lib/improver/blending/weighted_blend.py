@@ -495,6 +495,13 @@ class WeightedBlendAcrossWholeDimension(object):
             None or perc_coord (iris.coords.DimCoord):
             None if no percentile dimension coordinate is found. If
             such a coordinate is found it is returned.
+        Raises:
+            ValueError : If there is a percentile coord and it is not a
+                dimension coord in the cube.
+            ValueError : If there is a percentile dimension with only one
+                point, we need at least two points in order to do the blending.
+            ValueError : If there is a percentile dimension on the cube and the
+                mode for blending is 'weighted_maximum'
         """
         try:
             perc_coord = find_percentile_coordinate(cube)
@@ -605,7 +612,7 @@ class WeightedBlendAcrossWholeDimension(object):
                 weights.data, cube_shape, xy_dims)
         else:
             # 1D array of weights across the blending coordinate.
-            coord_dim_thres = cube.coord_dims(self.coord)
+            coord_dim_thres = non_perc_slice.coord_dims(self.coord)
             weights_array = iris.util.broadcast_to_shape(
                 np.array(weights.data, dtype=np.float32),
                 cube_shape, coord_dim_thres)
@@ -627,6 +634,21 @@ class WeightedBlendAcrossWholeDimension(object):
 
 
     def percentile_weighted_mean(self, cube, weights, perc_coord):
+        """
+        Blend percentile data using the weights provided.
+
+        Args:
+            cube (iris.cube.Cube):
+                The cube which is being blended over self.coord.
+            weights (iris.cube.Cube):
+                Cube of blending weights.
+            perc_coord (iris.coords.DimCoord):
+                The percentile coordinate for this cube.
+        Returns:
+            new_cube (iris.cube.Cube):
+                The cube with percentile values blended over self.coord,
+                with suitable weightings applied.
+        """
         percentiles = np.array(
             perc_coord.points, dtype=np.float32)
         perc_dim, = cube.coord_dims(perc_coord.name())
@@ -666,26 +688,52 @@ class WeightedBlendAcrossWholeDimension(object):
         return cube_new
 
     def weighted_mean(self, cube, weights):
+        """
+        Blend data using a weighted mean using the weights provided.
 
+        Args:
+            cube (iris.cube.Cube):
+                The cube which is being blended over self.coord.
+            weights (iris.cube.Cube):
+                Cube of blending weights.
+        Returns:
+            new_cube (iris.cube.Cube):
+                The cube with values blended over self.coord, with suitable
+                weightings applied.
+        """
         weights_array = self.shape_weights(cube, weights)
 
         orig_cell_methods = cube.cell_methods
+
         # Calculate the weighted average.
         cube_new = cube.collapsed(self.coord,
-                                        iris.analysis.MEAN,
-                                        weights=weights_array)
+                                  iris.analysis.MEAN,
+                                  weights=weights_array)
+
         # Update the name of the cell_method created by Iris to
         # 'weighted_mean' to be consistent.
         new_cell_methods = cube_new.cell_methods
         extra_cm = (set(new_cell_methods) -
                     set(orig_cell_methods)).pop()
-        add_renamed_cell_method(cube_new,
-                                extra_cm,
-                                'mean')
+        add_renamed_cell_method(cube_new, extra_cm, 'mean')
         return cube_new
 
-
     def weighted_maximum(self, cube, weights):
+        """
+        Blend data using a weighted maximum using the weights provided.
+        This entails scaling the data by the weights before then taking
+        a maximum across the blending coordinate self.coord.
+
+        Args:
+            cube (iris.cube.Cube):
+                The cube which is being blended over self.coord.
+            weights (iris.cube.Cube):
+                Cube of blending weights.
+        Returns:
+            new_cube (iris.cube.Cube):
+                The cube with values blended over self.coord, with suitable
+                weightings applied.
+        """
 
         weights_array = self.shape_weights(cube, weights,
                                            custom_aggregator=True)
@@ -694,8 +742,7 @@ class WeightedBlendAcrossWholeDimension(object):
             'maximum',  # Use CF-compliant cell method.
             MaxProbabilityAggregator.aggregate))
 
-        cube_new = cube.collapsed(self.coord,
-                                  MAX_PROBABILITY,
+        cube_new = cube.collapsed(self.coord, MAX_PROBABILITY,
                                   arr_weights=weights_array)
         return cube_new
 
@@ -721,21 +768,9 @@ class WeightedBlendAcrossWholeDimension(object):
             TypeError : If the first argument not a cube.
             ValueError : If coordinate to be collapsed not found in cube.
             ValueError : If coordinate to be collapsed is not a dimension.
-            ValueError : If there is a percentile coord and it is not a
-                dimension coord in the cube.
-            ValueError : If there is a percentile dimension with only one
-                point, we need at least two points in order to do
-                the blending.
-            ValueError : If there are more than one percentile coords
-                in the cube.
-            ValueError : If there is a percentile dimension on the cube and the
-                mode for blending is 'weighted_maximum'
-            ValueError : If the weights shape do not match the dimension
-                of the coord we are blending over.
         Warns:
             Warning : If trying to blend across a scalar coordinate with only
                 one value. Returns the original cube in this case.
-
         """
         if not isinstance(cube, iris.cube.Cube):
             msg = ('The first argument must be an instance of '
