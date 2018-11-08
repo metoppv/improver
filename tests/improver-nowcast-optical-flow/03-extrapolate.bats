@@ -37,11 +37,11 @@
   KGO1="optical-flow/extrapolate/kgo1.nc"
   KGO2="optical-flow/extrapolate/kgo2.nc"
 
-  COMP1="201807301030_radar_rainrate_composite_UK_regridded.nc"
-  COMP2="201807301045_radar_rainrate_composite_UK_regridded.nc"
-  COMP3="201807301100_radar_rainrate_composite_UK_regridded.nc"
+  COMP1="201811031530_radar_rainrate_composite_UK_regridded.nc"
+  COMP2="201811031545_radar_rainrate_composite_UK_regridded.nc"
+  COMP3="201811031600_radar_rainrate_composite_UK_regridded.nc"
 
-  OE1="20180730T1100Z-PT0004H00M-orographic_enhancement.nc"
+  OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
 
   # Run processing and check it passes
   run improver nowcast-optical-flow \
@@ -53,9 +53,9 @@
     --output_dir "$TEST_DIR" --extrapolate --max_lead_time 30
   [[ "$status" -eq 0 ]]
 
-  T0="20180730T1100Z-PT0000H00M-lwe_precipitation_rate.nc"
-  T1="20180730T1115Z-PT0000H15M-lwe_precipitation_rate.nc"
-  T2="20180730T1130Z-PT0000H30M-lwe_precipitation_rate.nc"
+  T0="20181103T1600Z-PT0000H00M-lwe_precipitation_rate.nc"
+  T1="20181103T1615Z-PT0000H15M-lwe_precipitation_rate.nc"
+  T2="20181103T1630Z-PT0000H30M-lwe_precipitation_rate.nc"
 
   improver_check_recreate_kgo "$T0" $KGO0
   improver_check_recreate_kgo "$T1" $KGO1

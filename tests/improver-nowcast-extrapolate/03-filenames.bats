@@ -39,8 +39,8 @@
 
   UCOMP="$IMPROVER_ACC_TEST_DIR/optical-flow/basic/ucomp_kgo.nc"
   VCOMP="$IMPROVER_ACC_TEST_DIR/optical-flow/basic/vcomp_kgo.nc"
-  INFILE="201807301100_radar_rainrate_composite_UK_regridded.nc"
-  OE1="20180730T1100Z-PT0004H00M-orographic_enhancement.nc"
+  INFILE="201811031600_radar_rainrate_composite_UK_regridded.nc"
+  OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
 
   # Run processing and check it passes
   run improver nowcast-extrapolate \

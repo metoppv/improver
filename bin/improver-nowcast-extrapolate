@@ -90,7 +90,6 @@ def main():
     vcube = load_cube(args.northward_advection_filepath)
 
     if args.orographic_enhancement_filepaths:
-        # Subtract orographic enhancement
         oe_cube_list = load_cubelist(args.orographic_enhancement_filepaths)
     else:
         if "precipitation_rate" in input_cube.name():

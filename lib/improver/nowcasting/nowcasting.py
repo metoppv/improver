@@ -116,6 +116,18 @@ class ApplyOrographicEnhancement(object):
         # Ensure the orographic enhancement cube matches the
         # dimensions of the precip_cube.
         oe_cube = check_cube_coordinates(precip_cube, oe_cube)
+
+        # Ensure that orographic enhancement is in the units of the
+        # precipitation rate cube.
+        oe_cube.convert_units(precip_cube.units)
+
+        # Set orographic enhancement to be zero for points with a
+        # precipitation rate of < 1/32 mm/hr.
+        original_units = precip_cube.units
+        threshold_in_cube_units = original_units.convert(1/32., cube.units)
+        oe_cube.data[precip_cube.data < threshold_in_cube_units] = 0.
+
+        ## Use CubeCombiner to combine the cubes.
         temp_cubelist = iris.cube.CubeList([precip_cube, oe_cube])
         cube = CubeCombiner(self.operation).process(
             temp_cubelist, precip_cube.name())
@@ -128,6 +140,9 @@ class ApplyOrographicEnhancement(object):
         Args:
             cube (iris.cube.Cube):
                 Cube containing a precipitation rate field.
+            tolerance (float):
+                Value to indicate the tolerance in m/s for floating point
+                values below 0.
 
         Returns:
             cube (iris.cube.Cube):
@@ -139,8 +154,10 @@ class ApplyOrographicEnhancement(object):
         # Ignore invalid warnings generated if e.g. a NaN is encountered
         # within the less than (<) comparison.
         with np.errstate(invalid='ignore'):
+            # Set any values lower than the tolerance to be 1/32 mm/hr.
             cube.data[cube.data < tolerance] = (
                 original_units.convert(1/32., cube.units))
+            # Set any values between zero and the tolerance to be zero.
             cube.data[cube.data < 0] = 0.
         return cube
 
@@ -152,7 +169,7 @@ class ApplyOrographicEnhancement(object):
         Args:
             precip_cubes (iris.cube.Cube or iris.cube.CubeList):
                 Cube or CubeList containing the input precipitation fields.
-            orographic_enhancement_cubes (iris.cube.Cube or
+            orographic_enhancemlent_cubes (iris.cube.Cube or
                                           iris.cube.CubeList):
                 Cube or CubeList containing the orographic enhancement fields.
 
@@ -173,8 +190,9 @@ class ApplyOrographicEnhancement(object):
         updated_cubes = iris.cube.CubeList([])
         for precip_cube in precip_cubes:
             oe_cube = self._extract_orographic_enhancement_cube(
-                precip_cube, orographic_enhancement_cube)
+                precip_cube, orographic_enhancement_cube.copy())
             cube = self._apply_cube_combiner(precip_cube, oe_cube)
             cube = self.apply_minimum_precip_rate(cube)
             updated_cubes.append(cube)
         return updated_cubes
+

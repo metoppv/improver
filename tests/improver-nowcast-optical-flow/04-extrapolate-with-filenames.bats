@@ -37,11 +37,11 @@
   KGO1="optical-flow/extrapolate/kgo1.nc"
   KGO2="optical-flow/extrapolate/kgo2.nc"
 
-  COMP1="201807301030_radar_rainrate_composite_UK_regridded.nc"
-  COMP2="201807301045_radar_rainrate_composite_UK_regridded.nc"
-  COMP3="201807301100_radar_rainrate_composite_UK_regridded.nc"
+  COMP1="201811031530_radar_rainrate_composite_UK_regridded.nc"
+  COMP2="201811031545_radar_rainrate_composite_UK_regridded.nc"
+  COMP3="201811031600_radar_rainrate_composite_UK_regridded.nc"
 
-  OE1="20180730T1100Z-PT0004H00M-orographic_enhancement.nc"
+  OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
 
   # Run processing and check it passes
   run improver nowcast-optical-flow \

@@ -39,9 +39,9 @@
 
   UCOMP="$IMPROVER_ACC_TEST_DIR/optical-flow/basic/ucomp_kgo.nc"
   VCOMP="$IMPROVER_ACC_TEST_DIR/optical-flow/basic/vcomp_kgo.nc"
-  INFILE="201807301100_radar_rainrate_composite_UK_regridded.nc"
+  INFILE="201811031600_radar_rainrate_composite_UK_regridded.nc"
   JSONFILE="$IMPROVER_ACC_TEST_DIR/optical-flow/metadata/precip.json"
-  OE1="20180730T1100Z-PT0004H00M-orographic_enhancement.nc"
+  OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
 
   # Run processing and check it passes
   run improver nowcast-extrapolate \
@@ -53,9 +53,9 @@
     "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$OE1"
   [[ "$status" -eq 0 ]]
 
-  T0="20180730T1100Z-PT0000H00M-lwe_precipitation_rate.nc"
-  T1="20180730T1115Z-PT0000H15M-lwe_precipitation_rate.nc"
-  T2="20180730T1130Z-PT0000H30M-lwe_precipitation_rate.nc"
+  T0="20181103T1600Z-PT0000H00M-lwe_precipitation_rate.nc"
+  T1="20181103T1615Z-PT0000H15M-lwe_precipitation_rate.nc"
+  T2="20181103T1630Z-PT0000H30M-lwe_precipitation_rate.nc"
 
   improver_check_recreate_kgo "$T0" $KGO0
   improver_check_recreate_kgo "$T1" $KGO1
