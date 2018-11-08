@@ -128,10 +128,10 @@ def main():
     # Note: Shouldn't need to check that both/none are set, since they are
     # defined as mandatory, but mutually exclusive, options.
     if args.reordering:
-        if np.any([args.realization_numbers]):
+        if args.realization_numbers is not None:
             parser.wrong_args_error('realization_numbers', 'reordering')
     if args.rebadging:
-        if np.any([args.raw_forecast_filepath, args.random_ordering]):
+        if (args.raw_forecast_filepath is not None) or (args.random_ordering is not False):
             parser.wrong_args_error(
                 'raw_forecast_filepath, random_ordering', 'rebadging')
 
