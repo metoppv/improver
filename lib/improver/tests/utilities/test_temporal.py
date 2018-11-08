@@ -33,6 +33,7 @@
 import datetime
 from datetime import time
 from datetime import timedelta
+from cf_units import Unit
 import unittest
 import numpy as np
 
@@ -102,12 +103,15 @@ class Test_cycletime_to_number(IrisTest):
         self.assertAlmostEqual(result, dt)
 
     def test_alternative_units_defined(self):
-        """Test when alternative units are defined."""
+        """Test when alternative units are defined. The result is cast as
+        an integer as seconds should be of this type and compared as such.
+        There are small precision errors in the 7th decimal place of the
+        returned float."""
         cycletime = "20171122T0000Z"
-        dt = 1511308800.0
+        dt = 1511308800
         result = cycletime_to_number(
             cycletime, time_unit="seconds since 1970-01-01 00:00:00")
-        self.assertAlmostEqual(result, dt)
+        self.assertEqual(int(np.round(result)), dt)
 
     def test_alternative_calendar_defined(self):
         """Test when an alternative calendar is defined."""
@@ -448,6 +452,33 @@ class Test_get_forecast_times(IrisTest):
                                forecast_time=6)
 
 
+# temporary utility - to be removed
+def convert_time_to_seconds(cube):
+    """
+    The ensemble calibration helper function sets times in hours, seconds are
+    more appropriate. If the helper functions are updated to produce seconds,
+    this conversion function can be removed. In the meantime, this converts
+    time dimensions into seconds.
+
+    Args:
+        cube (iris.cube.Cube):
+            The cube on which the time coordinates should be converted into
+            integer seconds. Modifies in situ.
+    """
+    time_origin = "seconds since 1970-01-01 00:00:00"
+    calendar = "gregorian"
+    tunit = Unit(time_origin, calendar)
+    cube.coord('forecast_reference_time').convert_units(tunit)
+    cube.coord('time').convert_units(tunit)
+    cube.coord('forecast_period').convert_units('seconds')
+
+    cube.coord('forecast_reference_time').points = \
+        cube.coord('forecast_reference_time').points.astype(np.int64)
+    cube.coord('time').points = cube.coord('time').points.astype(np.int64)
+    cube.coord('forecast_period').points = \
+        cube.coord('forecast_period').points.astype(np.int64)
+
+
 class Test_unify_forecast_reference_time(IrisTest):
 
     """Test the unify_forecast_reference_time function."""
@@ -460,6 +491,7 @@ class Test_unify_forecast_reference_time(IrisTest):
         self.cube_uk_det = add_forecast_reference_time_and_forecast_period(
             cube_uk_det, time_point=[412233.0, 412235.0, 412237.0],
             fp_point=[6., 8., 10.])
+        convert_time_to_seconds(self.cube_uk_det)
 
     def test_cubelist_input(self):
         """Test when supplying a cubelist as input containing cubes
@@ -472,20 +504,22 @@ class Test_unify_forecast_reference_time(IrisTest):
         cube_uk_ens = add_forecast_reference_time_and_forecast_period(
             cube_uk_ens, time_point=[412231.0, 412233.0, 412235.0],
             fp_point=[5., 7., 9.])
+        convert_time_to_seconds(cube_uk_ens)
+
         cubes = iris.cube.CubeList([self.cube_uk_det, cube_uk_ens])
 
         cycletime = datetime.datetime(2017, 1, 10, 6, 0)
 
         expected_uk_det = self.cube_uk_det.copy()
         frt_units = expected_uk_det.coord('forecast_reference_time').units
-        frt_points = [frt_units.date2num(cycletime)]
+        frt_points = [np.round(frt_units.date2num(cycletime)).astype(np.int64)]
         expected_uk_det.coord("forecast_reference_time").points = frt_points
         expected_uk_det.coord("forecast_period").points = (
-            np.array([3., 5., 7.]))
+            np.array([3, 5, 7]) * 3600)
         expected_uk_ens = cube_uk_ens.copy()
         expected_uk_ens.coord("forecast_reference_time").points = frt_points
         expected_uk_ens.coord("forecast_period").points = (
-            np.array([1., 3., 5.]))
+            np.array([1, 3, 5]) * 3600)
         expected = iris.cube.CubeList([expected_uk_det, expected_uk_ens])
 
         result = unify_forecast_reference_time(cubes, cycletime)
@@ -501,10 +535,10 @@ class Test_unify_forecast_reference_time(IrisTest):
 
         expected_uk_det = self.cube_uk_det.copy()
         frt_units = expected_uk_det.coord('forecast_reference_time').units
-        frt_points = [frt_units.date2num(cycletime)]
+        frt_points = [np.round(frt_units.date2num(cycletime)).astype(np.int64)]
         expected_uk_det.coord("forecast_reference_time").points = frt_points
         expected_uk_det.coord("forecast_period").points = (
-            np.array([3., 5., 7.]))
+            np.array([3, 5, 7]) * 3600)
 
         result = unify_forecast_reference_time(self.cube_uk_det, cycletime)
 
@@ -520,10 +554,10 @@ class Test_unify_forecast_reference_time(IrisTest):
 
         expected_uk_det = self.cube_uk_det.copy()
         frt_units = expected_uk_det.coord('forecast_reference_time').units
-        frt_points = [frt_units.date2num(cycletime)]
+        frt_points = [np.round(frt_units.date2num(cycletime)).astype(np.int64)]
         expected_uk_det.coord("forecast_reference_time").points = frt_points
         expected_uk_det.coord("forecast_period").points = (
-            np.array([3., 5., 7.]))
+            np.array([3, 5, 7]) * 3600)
         expected_uk_det.coord("forecast_period").convert_units("seconds")
 
         cube_uk_det = self.cube_uk_det.copy()
