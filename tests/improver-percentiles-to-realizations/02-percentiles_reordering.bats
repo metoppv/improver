@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "ecc --sampling_method 'quantile' --no_of_percentiles 12 --reordering --raw_forecast_filepath raw_forecast --random_seed 0 input output" {
+@test "percentiles-to-realizations --sampling_method 'quantile' --no_of_percentiles 12 --reordering --raw_forecast_filepath raw_forecast --random_seed 0 input output" {
   improver_check_skip_acceptance
   KGO="ecc/percentiles_reordering/kgo.nc"
 

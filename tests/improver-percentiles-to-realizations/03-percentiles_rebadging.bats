@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "ecc --sampling_method 'quantile' --no_of_percentiles 12 --rebadging input output" {
+@test "percentiles-to-realizations --sampling_method 'quantile' --no_of_percentiles 12 --rebadging input output" {
   improver_check_skip_acceptance
   KGO="ecc/percentiles_rebadging/kgo.nc"
 

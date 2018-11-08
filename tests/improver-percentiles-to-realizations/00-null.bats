@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "ecc no arguments" {
+@test "percentiles-to-realizations no arguments" {
   run improver percentiles-to-realizations
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
