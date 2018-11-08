@@ -119,7 +119,7 @@ def calculate_blending_weights(cube, blend_coord, method, wts_dict=None,
         # sort weights cube by blending coordinate and extract
         # data array as input to blending plugin
         weights = sort_coord_in_cube(
-            weights_cube, blend_coord, order="ascending").data
+            weights_cube, blend_coord, order="ascending")
 
     elif method == "linear":
         weights = ChooseDefaultWeightsLinear(

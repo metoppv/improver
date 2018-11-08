@@ -1141,7 +1141,7 @@ class ChooseDefaultWeightsTriangular(object):
 
         weights_cube = WeightsUtilities.build_weights_cube(cube, weights,
                                                            coord_name)
-        return weights
+        return weights_cube
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
