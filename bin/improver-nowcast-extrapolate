@@ -91,6 +91,8 @@ def main():
 
     if args.orographic_enhancement_filepaths:
         oe_cube_list = load_cubelist(args.orographic_enhancement_filepaths)
+        input_cube, = ApplyOrographicEnhancement("subtract").process(
+            input_cube, oe_cube_list)
     else:
         if "precipitation_rate" in input_cube.name():
             msg = ("For precipitation fields, orographic enhancement "
