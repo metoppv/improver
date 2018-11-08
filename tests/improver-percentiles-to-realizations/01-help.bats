@@ -30,17 +30,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 @test "ecc -h" {
-  run improver ecc -h
+  run improver percentiles-to-realizations -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-ecc [-h] [--profile] [--profile_file PROFILE_FILE]
-                    [--no_of_percentiles NUMBER_OF_PERCENTILES]
-                    [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
-                    (--reordering | --rebadging)
-                    [--raw_forecast_filepath RAW_FORECAST_FILE]
-                    [--random_ordering] [--random_seed RANDOM_SEED]
-                    [--realization_numbers REALIZATION_NUMBERS [REALIZATION_NUMBERS ...]]
-                    INPUT_FILE OUTPUT_FILE
+usage: improver-percentiles-to-realizations [-h] [--profile]
+                                            [--profile_file PROFILE_FILE]
+                                            [--no_of_percentiles NUMBER_OF_PERCENTILES]
+                                            [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
+                                            (--reordering | --rebadging)
+                                            [--raw_forecast_filepath RAW_FORECAST_FILE]
+                                            [--random_ordering]
+                                            [--random_seed RANDOM_SEED]
+                                            [--realization_numbers REALIZATION_NUMBERS [REALIZATION_NUMBERS ...]]
+                                            INPUT_FILE OUTPUT_FILE
 
 Convert a dataset containing probabilities into one containing ensemble
 realizations using Ensemble Copula Coupling.

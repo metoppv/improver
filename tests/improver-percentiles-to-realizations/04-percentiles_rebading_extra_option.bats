@@ -31,17 +31,17 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "ecc --sampling_method 'quantile' --no_of_percentiles 12 --rebadging input output" {
+@test "ecc --sampling_method 'quantile' --no_of_percentiles 12 --rebadging input output --realization_numbers $(seq 100 1 111) " {
   improver_check_skip_acceptance
-  KGO="ecc/percentiles_rebadging/kgo.nc"
+  KGO="ecc/percentiles_rebadging_extra_option/kgo.nc"
 
   # Run Ensemble Copula Coupling to convert one set of percentiles to another
   # set of percentiles, and then rebadge the percentiles to be ensemble
   # realizations.
-  run improver ecc  --sampling_method 'quantile' --no_of_percentiles 12 \
-      --rebadging \
-      "$IMPROVER_ACC_TEST_DIR/ecc/percentiles_rebadging/multiple_percentiles_wind_cube.nc" \
-      "$TEST_DIR/output.nc"
+  run improver percentiles-to-realizations "$IMPROVER_ACC_TEST_DIR/ecc/percentiles_rebadging/multiple_percentiles_wind_cube.nc" \
+      "$TEST_DIR/output.nc" --sampling_method 'quantile' --no_of_percentiles 12 \
+      --rebadging --realization_numbers $(seq 100 1 111)
+
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
