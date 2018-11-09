@@ -40,7 +40,6 @@ usage: improver-probabilities-to-realizations [-h] [--profile]
                                               [--raw_forecast_filepath RAW_FORECAST_FILE]
                                               [--random_seed RANDOM_SEED]
                                               INPUT_FILE OUTPUT_FILE
-improver-probabilities-to-realizations: error: the following arguments are required: INPUT_FILE, OUTPUT_FILE
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

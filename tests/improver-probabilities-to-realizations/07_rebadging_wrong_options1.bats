@@ -33,12 +33,10 @@
 
 @test "probabilities-to-realizations --rebadging input output --random_seed" {
   improver_check_skip_acceptance
-  KGO="probabilities-to-realizations/basic/kgo.nc"
 
   run improver probabilities-to-realizations --rebadging --random_seed 0 \
       "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/basic/input.nc" \
       "$TEST_DIR/output.nc"
-  [[ "$status" -eq 2 ]]
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
 usage: improver-probabilities-to-realizations [-h] [--profile]

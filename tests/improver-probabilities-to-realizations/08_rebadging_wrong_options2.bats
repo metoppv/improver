@@ -33,7 +33,6 @@
 
 @test "probabilities-to-realizations --rebadging input output --raw_forecast_filepath input" {
   improver_check_skip_acceptance
-  KGO="probabilities-to-realizations/basic/kgo.nc"
 
   run improver probabilities-to-realizations --rebadging --random_seed 0 \
       "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/basic/input.nc" \
