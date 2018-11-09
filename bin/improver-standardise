@@ -142,9 +142,14 @@ def main():
             raise ValueError(msg)
 
     if args.input_landmask_filepath and not args.target_grid_filepath:
-            msg = ("Cannot specify input_landmask_filepath without "
-                   "target_grid_filepath")
-            raise ValueError(msg)
+        msg = ("Cannot specify input_landmask_filepath without "
+               "target_grid_filepath")
+        raise ValueError(msg)
+
+    if args.input_landmask_filepath and not args.nearest:
+        msg = ("Land-mask-aware regridding is only configured for use "
+               "with nearest-neighbour regridding. Add --nearest flag.")
+        raise ValueError(msg)
 
     # Re-grid with options:
     # if a target grid file has been specified, then regrid optionally
