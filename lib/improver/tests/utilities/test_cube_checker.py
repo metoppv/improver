@@ -41,6 +41,7 @@ from iris.exceptions import CoordinateNotFoundError
 from improver.utilities.cube_checker import (
     check_cube_not_float64, check_for_x_and_y_axes,
     check_cube_coordinates, find_dimension_coordinate_mismatch,
+    spatial_coords_match,
     find_percentile_coordinate)
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube)
@@ -331,6 +332,61 @@ class Test_find_dimension_coordinate_mismatch(IrisTest):
         result = find_dimension_coordinate_mismatch(first_cube, second_cube)
         self.assertIsInstance(result, list)
         self.assertListEqual(result, ["time", "realization"])
+
+
+class Test_spatial_coords_match(IrisTest):
+    """Test for function testing cube spatial coords."""
+    def setUp(self):
+        """Create two unmatching cubes for spatial comparison."""
+        self.cube_a = set_up_cube(num_grid_points=16)
+        self.cube_b = set_up_cube(num_grid_points=10)
+
+    def test_basic(self):
+        """Test bool return when given one cube twice."""
+        result = spatial_coords_match(self.cube_a, self.cube_a)
+        self.assertTrue(result)
+
+    def test_copy(self):
+        """Test when given one cube copied."""
+        result = spatial_coords_match(self.cube_a, self.cube_a.copy())
+        self.assertTrue(result)
+
+    def test_other_coord_diffs(self):
+        """Test when given cubes that differ in non-spatial coords."""
+        cube_c = self.cube_a.copy()
+        r_coord = cube_c.coord('realization')
+        r_coord.points = [r*2 for r in r_coord.points]
+        result = spatial_coords_match(self.cube_a, cube_c)
+        self.assertTrue(result)
+
+    def test_other_coord_bigger_diffs(self):
+        """Test when given cubes that differ in shape on non-spatial coords."""
+        cube_c = set_up_cube(num_grid_points=16, num_realization_points=4)
+        r_coord = cube_c.coord('realization')
+        r_coord.points = [r*2 for r in r_coord.points]
+        result = spatial_coords_match(self.cube_a, cube_c)
+        self.assertTrue(result)
+
+    def test_unmatching(self):
+        """Test when given two spatially different cubes of same resolution."""
+        result = spatial_coords_match(self.cube_a, self.cube_b)
+        self.assertFalse(result)
+
+    def test_unmatching_x(self):
+        """Test when given two spatially different cubes of same length."""
+        cube_c = self.cube_a.copy()
+        x_coord = cube_c.coord(axis='x')
+        x_coord.points = [x*2. for x in x_coord.points]
+        result = spatial_coords_match(self.cube_a, cube_c)
+        self.assertFalse(result)
+
+    def test_unmatching_y(self):
+        """Test when given two spatially different cubes of same length."""
+        cube_c = self.cube_a.copy()
+        y_coord = cube_c.coord(axis='y')
+        y_coord.points = [y*1.01 for y in y_coord.points]
+        result = spatial_coords_match(self.cube_a, cube_c)
+        self.assertFalse(result)
 
 
 class Test_find_percentile_coordinate(IrisTest):
