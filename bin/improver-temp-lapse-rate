@@ -34,7 +34,7 @@ orogrophy datasets."""
 
 from improver.argparser import ArgParser
 from improver.lapse_rate import LapseRate
-from improver.constants import DALR
+from improver.constants import DALR, U_DALR
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
@@ -68,21 +68,44 @@ def main():
                              'The neighbourhood will be a square array with '
                              'side length 2*nbhood_radius + 1.')
     parser.add_argument('--max_lapse_rate',
-                        metavar='MAX_LAPSE_RATE', type=float, default=-3*DALR,
+                        metavar='MAX_LAPSE_RATE', type=float, default=None,
                         help='Maximum lapse rate allowed. '
                              'Default is -3*DALR.')
     parser.add_argument('--min_lapse_rate',
-                        metavar='MIN_LAPSE_RATE', type=float, default=DALR,
+                        metavar='MIN_LAPSE_RATE', type=float, default=None,
                         help='Minimum lapse rate allowed. '
                              'Default is the DALR.')
 
     args = parser.parse_args()
+
+    if args.min_lapse_rate is None:
+        args.min_lapse_rate = DALR
+    if args.max_lapse_rate is None:
+        args.max_lapse_rate = -3 * DALR
+
+    if args.min_lapse_rate > args.max_lapse_rate:
+        msg = 'Minimum lapse rate specified is greater than the maximum.'
+        raise ValueError(msg)
+
+    if args.max_height_diff < 0:
+        msg = 'Maximum height difference specified is less than zero.'
+        raise ValueError(msg)
+
+    if args.nbhood_radius < 0:
+        msg = 'Neighbourhood radius specified is less than zero.'
+        raise ValueError(msg)
+
     temperature_cube = load_cube(args.temperature_filepath)
     orography_cube = load_cube(args.orography_filepath)
     land_sea_mask_cube = load_cube(args.land_sea_mask_filepath)
 
+    print('min lapse rate:')
+    print(type(args.min_lapse_rate))
+    print(args.min_lapse_rate)
+
     result = LapseRate(
-        max_height_diff=args.max_height_diff, nbhood_radius=args.nbhood_radius,
+        max_height_diff=args.max_height_diff,
+        nbhood_radius=args.nbhood_radius,
         max_lapse_rate=args.max_lapse_rate,
         min_lapse_rate=args.min_lapse_rate).process(temperature_cube,
                                                     orography_cube,
