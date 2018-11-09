@@ -116,7 +116,7 @@ class Test__equalise_coord_bounds(IrisTest):
 
     def test_one_bounds(self):
         """Test that if there is only 1 set of bounds on the cubes
-        a warning is raised."""
+        an error is raised."""
         cube_with_bounds = self.cube.copy()
         cube_with_bounds.coord('time').bounds = [0., 1.]
         result = iris.cube.CubeList([cube_with_bounds, self.cube])
@@ -125,7 +125,7 @@ class Test__equalise_coord_bounds(IrisTest):
             _equalise_coord_bounds(result)
 
     def test_one_bounds_threecubes(self):
-        """Test that when one of the input cubes has no bounds a warning is
+        """Test that when one of the input cubes has no bounds an error is
         raised."""
         cube_with_bounds = self.cube.copy()
         cube_with_bounds.coord('time').bounds = [0., 1.]
@@ -160,9 +160,9 @@ class Test__equalise_coord_bounds(IrisTest):
         cubeB.coord('forecast_period').bounds = bounds
         result = iris.cube.CubeList([cubeA, cubeB])
         _equalise_coord_bounds(result)
-        self.assertArrayAlmostEqual(result[0].coord('forecast_period').bounds,
+        self.assertArrayEqual(result[0].coord('forecast_period').bounds,
                                     [bounds])
-        self.assertArrayAlmostEqual(result[1].coord('forecast_period').bounds,
+        self.assertArrayEqual(result[1].coord('forecast_period').bounds,
                                     [bounds])
 
     def test_with_no_forecast_period_bounds(self):
