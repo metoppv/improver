@@ -443,7 +443,6 @@ def _equalise_coord_bounds(cubes):
             If two cubes with different valid bounds are found.
     """
     # Check each cube against all remaining cubes
-    """Raise warning about mismatched bounds"""
     for i, this_cube in enumerate(cubes):
         for later_cube in cubes[i+1:]:
             for coord in this_cube.coords():
