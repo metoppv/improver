@@ -680,11 +680,12 @@ class GeneratePercentilesFromMeanAndVariance(object):
         """
         (calibrated_forecast_predictor, calibrated_forecast_variance) = (
             calibrated_forecast_predictor_and_variance)
-
-        calibrated_forecast_predictor = concatenate_cubes(
-            calibrated_forecast_predictor)
-        calibrated_forecast_variance = concatenate_cubes(
-            calibrated_forecast_variance)
+        if isinstance(calibrated_forecast_predictor, iris.cube.CubeList):
+            calibrated_forecast_predictor = (
+                calibrated_forecast_predictor.merge_cube())
+        if isinstance(calibrated_forecast_variance, iris.cube.CubeList):
+            calibrated_forecast_variance = (
+                calibrated_forecast_variance.merge_cube())
 
         percentiles = choose_set_of_percentiles(no_of_percentiles)
         calibrated_forecast_percentiles = (

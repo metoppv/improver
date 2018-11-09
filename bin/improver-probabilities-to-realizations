@@ -105,7 +105,8 @@ def main():
     # Note: Shouldn't need to check that both/none are set, since they are
     # defined as mandatory, but mutually exclusive, options.
     if args.rebadging:
-        if (args.raw_forecast_filepath is not None) or (args.random_seed is not None):
+        if ((args.raw_forecast_filepath is not None)
+                or (args.random_seed is not None)):
             parser.wrong_args_error(
                 'raw_forecast_filepath, random_seed', 'rebadging')
 
