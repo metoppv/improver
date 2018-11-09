@@ -41,8 +41,6 @@
   COMP2="201811031545_radar_rainrate_composite_UK_regridded.nc"
   COMP3="201811031600_radar_rainrate_composite_UK_regridded.nc"
 
-  OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
-
   # Run processing and check it passes
   run improver nowcast-optical-flow \
     "$IMPROVER_ACC_TEST_DIR/optical-flow/no_orographic_enhancement/$COMP1" \
