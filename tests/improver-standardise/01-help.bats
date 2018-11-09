@@ -35,10 +35,11 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver-standardise [-h] [--profile] [--profile_file PROFILE_FILE]
                             [--output_filepath OUTPUT_FILE]
-                            [--target_grid_filepath TARGET_GRID]
-                            [--fix_float64] [--nearest]
+                            [--target_grid_filepath TARGET_GRID] [--nearest]
                             [--extrapolation_mode EXTRAPOLATION_MODE]
-                            [--json_file JSON_FILE]
+                            [--input_landmask_filepath INPUT_LANDMASK_FILE]
+                            [--landmask_vicinity LANDMASK_VICINITY]
+                            [--fix_float64] [--json_file JSON_FILE]
                             SOURCE_DATA
 
 Standardise a source data cube. Three main options are available; checking and
@@ -62,12 +63,19 @@ optional arguments:
                         The output path for the processed NetCDF. If only a
                         source file is specified and no output file, then the
                         source will be checkedfor float64 data.
-  --target_grid_filepath TARGET_GRID
-                        If specified then regridding of the source against the
-                        target grid is enabled.
   --fix_float64         Check and fix cube for float64 data. Without this
                         option an exception will be raised if float64 data is
                         found but no fix applied.
+  --json_file JSON_FILE
+                        Filename for the json file containing required changes
+                        that will be applied to the metadata. Defaults to
+                        None.
+
+Regridding options:
+  --target_grid_filepath TARGET_GRID
+                        If specified then regridding of the source against the
+                        target grid is enabled. If also using landmask-aware
+                        regridding, then this must be land_binary_mask data.
   --nearest             If True, regridding will be performed using
                         iris.analysis.Nearest() instead of Linear(). Use for
                         less continuous fields, e.g. precipitation.
@@ -84,10 +92,13 @@ optional arguments:
                         a MaskedArray the extrapolation points will be masked.
                         Otherwise they will be set to NaN. Defaults to
                         nanmask.
-  --json_file JSON_FILE
-                        Filename for the json file containing required changes
-                        that will be applied to the metadata. Defaults to
-                        None.
+  --input_landmask_filepath INPUT_LANDMASK_FILE
+                        A path to a NetCDF file describing the
+                        land_binary_mask on the source-grid if coastline-aware
+                        regridding is required.
+  --landmask_vicinity LANDMASK_VICINITY
+                        Radius of vicinity to search for a coastline, in
+                        metres. Default value; 25000 m
 __HELP__
   [[ "$output" == "$expected" ]]
 }

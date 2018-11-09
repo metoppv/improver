@@ -40,6 +40,7 @@ from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.utilities.cube_checker import check_cube_not_float64
 from improver.utilities.cube_metadata import amend_metadata
+from improver.utilities.spatial import RegridLandSea
 
 
 def main():
@@ -70,38 +71,54 @@ def main():
                              "output file, then the source will be checked"
                              "for float64 data.")
 
-    parser.add_argument("--target_grid_filepath", metavar="TARGET_GRID",
-                        help='If specified then regridding of the source '
-                             'against the target grid is enabled.')
+    regrid_group = parser.add_argument_group("Regridding options")
+    regrid_group.add_argument(
+        "--target_grid_filepath", metavar="TARGET_GRID",
+        help=('If specified then regridding of the source '
+              'against the target grid is enabled. If also using landmask-aware'
+              ' regridding, then this must be land_binary_mask data.'))
+
+    regrid_group.add_argument(
+        "--nearest", action='store_true', default=False,
+        help='If True, regridding will be performed using '
+             'iris.analysis.Nearest() instead of Linear(). '
+             'Use for less continuous fields, '
+             'e.g. precipitation.')
+
+    regrid_group.add_argument(
+        "--extrapolation_mode", default='nanmask',
+        help='Mode to use for extrapolating data into regions '
+             'beyond the limits of the source_data domain. '
+             'Modes are: '
+             'extrapolate - The extrapolation points will '
+             'take their value from the nearest source point. '
+             'nan - The extrapolation points will be be '
+             'set to NaN. '
+             'error - A ValueError exception will be raised, '
+             'notifying an attempt to extrapolate. '
+             'mask  - The extrapolation points will always be '
+             'masked, even if the source data is not a '
+             'MaskedArray. '
+             'nanmask - If the source data is a MaskedArray '
+             'the extrapolation points will be masked. '
+             'Otherwise they will be set to NaN. '
+             'Defaults to nanmask.')
+
+    regrid_group.add_argument(
+        "--input_landmask_filepath", metavar="INPUT_LANDMASK_FILE",
+        help=("A path to a NetCDF file describing the land_binary_mask on "
+              "the source-grid if coastline-aware regridding is required."))
+
+    regrid_group.add_argument(
+        "--landmask_vicinity", metavar="LANDMASK_VICINITY",
+        default=25000., type=float,
+        help=("Radius of vicinity to search for a coastline, in metres. "
+              "Default value; 25000 m"))
 
     parser.add_argument("--fix_float64", action='store_true', default=False,
                         help="Check and fix cube for float64 data. Without "
                              "this option an exception will be raised if "
                              "float64 data is found but no fix applied.")
-
-    parser.add_argument("--nearest", action='store_true', default=False,
-                        help='If True, regridding will be performed using '
-                             'iris.analysis.Nearest() instead of Linear(). '
-                             'Use for less continuous fields, '
-                             'e.g. precipitation.')
-
-    parser.add_argument("--extrapolation_mode", default='nanmask',
-                        help='Mode to use for extrapolating data into regions '
-                             'beyond the limits of the source_data domain. '
-                             'Modes are: '
-                             'extrapolate - The extrapolation points will '
-                             'take their value from the nearest source point. '
-                             'nan - The extrapolation points will be be '
-                             'set to NaN. '
-                             'error - A ValueError exception will be raised, '
-                             'notifying an attempt to extrapolate. '
-                             'mask  - The extrapolation points will always be '
-                             'masked, even if the source data is not a '
-                             'MaskedArray. '
-                             'nanmask - If the source data is a MaskedArray '
-                             'the extrapolation points will be masked. '
-                             'Otherwise they will be set to NaN. '
-                             'Defaults to nanmask.')
 
     parser.add_argument("--json_file", metavar="JSON_FILE", default=None,
                         help='Filename for the json file containing required '
@@ -124,6 +141,11 @@ def main():
                    "filepath but none has been provided")
             raise ValueError(msg)
 
+    if args.input_landmask_filepath and not args.target_grid_filepath:
+            msg = ("Cannot specify input_landmask_filepath without "
+                   "target_grid_filepath")
+            raise ValueError(msg)
+
     # Re-grid with options:
     # if a target grid file has been specified, then regrid optionally
     # applying float64 data check, metadata change, Iris nearest and
@@ -141,6 +163,20 @@ def main():
                 extrapolation_mode=args.extrapolation_mode)
 
         output_data = output_data.regrid(target_grid, regridder)
+
+        if args.input_landmask_filepath:
+            source_landsea = load_cube(args.input_landmask_filepath)
+            if "land_binary_mask" not in source_landsea.name():
+                msg = ("Expected land_binary_mask in input_landmask_filepath "
+                       "but found {}".format(source_landsea))
+                warnings.warn(msg)
+            if "land_binary_mask" not in target_grid.name():
+                msg = ("Expected land_binary_mask in target_grid_filepath "
+                       "but found {}".format(target_grid))
+                warnings.warn(msg)
+            output_data = RegridLandSea(
+                vicinity_radius=args.landmask_vicinity).process(
+                output_data, source_landsea, target_grid)
 
         target_grid_attributes = (
             {k: v for (k, v) in target_grid.attributes.items()
