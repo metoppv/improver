@@ -38,7 +38,6 @@
       "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/basic/input.nc" \
       "$TEST_DIR/output.nc" --raw_forecast_filepath "raw_file.nc"
   [[ "$status" -eq 2 ]]
-  [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
 usage: improver-probabilities-to-realizations [-h] [--profile]
                                               [--profile_file PROFILE_FILE]
