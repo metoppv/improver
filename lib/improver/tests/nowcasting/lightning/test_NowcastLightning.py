@@ -248,18 +248,6 @@ class Test__modify_first_guess(IrisTest):
                                             self.precip_cube,
                                             None)
 
-    def test_missing_first_guess(self):
-        """Test that the method raises an error if the first-guess cube doesn't
-        match the meta-data cube time coordinate."""
-        self.fg_cube.coord('time').points = [1.0]
-        msg = ("No matching first-guess cube for")
-        with self.assertRaisesRegex(ConstraintMismatchError, msg):
-            self.plugin._modify_first_guess(self.cube,
-                                            self.fg_cube,
-                                            self.ltng_cube,
-                                            self.precip_cube,
-                                            None)
-
     def test_cube_has_no_time_coord(self):
         """Test that the method raises an error if the meta-data cube has no
         time coordinate."""

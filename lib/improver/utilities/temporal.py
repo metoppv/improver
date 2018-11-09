@@ -35,6 +35,7 @@ import re
 from datetime import datetime
 from datetime import time as dt_time
 from datetime import timedelta
+from datetime import timezone
 from time import mktime
 import warnings
 
@@ -133,7 +134,6 @@ def forecast_period_coord(
             forecast_period coord is already present in the cube as a
             DimCoord and this coord does not need changing, otherwise
             it will be an AuxCoord. Units are result_units.
-
     """
     if cube.coords("forecast_period"):
         fp_type = cube.coord("forecast_period").dtype
@@ -223,26 +223,42 @@ def iris_time_to_datetime(time_coord):
     Returns:
         list of datetime.datetime objects
             The time element(s) recast as a python datetime object.
-
     """
     time_coord.convert_units('seconds since 1970-01-01 00:00:00')
     return [datetime.utcfromtimestamp(value) for value in time_coord.points]
 
 
-def dt_to_utc_hours(dt_in):
+def datetime_to_iris_time(dt_in, time_units="hours"):
     """
-    Convert python datetime.datetime into hours since 1970-01-01 00Z.
+    Convert python datetime.datetime into hours, minutes or seconds
+    since 1970-01-01 00Z.
 
     Args:
         dt_in (datetime.datetime object):
             Time to be converted.
+
+        time_units (str):
+            Name of time unit. Currently only "hours", "minutes" or
+            "seconds" are supported. Alternatively, an origin time can be
+            supported, for example "seconds since 1970-01-01 00:00:00".
+
     Returns:
         float:
-            hours since epoch
-
+            time since epoch in the units defined by the time_units.
     """
-    utc_seconds = mktime(dt_in.utctimetuple())
-    return utc_seconds/3600.
+    if all(time_unit not in time_units for time_unit in
+           ["hours", "minutes", "seconds"]):
+        msg = ("The time unit must contain 'hours', 'minutes' or 'seconds'. "
+               "The time unit was {}".format(time_units))
+        raise ValueError(msg)
+    result = dt_in.replace(tzinfo=timezone.utc).timestamp()
+    if "hours" in time_units:
+        result /= 3600.
+    elif "minutes" in time_units:
+        result /= 60
+    elif "seconds" in time_units:
+        pass
+    return result
 
 
 def datetime_constraint(time_in, time_max=None):
@@ -260,7 +276,6 @@ def datetime_constraint(time_in, time_max=None):
         time_extract (iris.Constraint):
             An iris constraint to be used in extracting data at the given time
             from a cube.
-
     """
     time_start = PartialDateTime(
         time_in.year, time_in.month, time_in.day, time_in.hour)
@@ -282,10 +297,8 @@ def extract_cube_at_time(cubes, time, time_extract):
     Args:
         cubes (iris.cube.CubeList):
             CubeList of a given diagnostic over several times.
-
         time (datetime.datetime object):
             Time at which forecast data is needed.
-
         time_extract (iris.Constraint):
             Iris constraint for the desired time.
 
@@ -295,7 +308,6 @@ def extract_cube_at_time(cubes, time, time_extract):
 
     Raises:
         ValueError if the desired time is not available within the cubelist.
-
     """
     try:
         cube_in, = cubes.extract(time_extract)
@@ -320,7 +332,6 @@ def set_utc_offset(longitudes):
     Returns:
         utc_offsets (List):
             List of utc_offsets calculated using longitude.
-
     """
     return np.floor((np.array(longitudes) + 7.5)/15.)
 
@@ -337,11 +348,9 @@ def get_forecast_times(forecast_length, forecast_date=None,
         forecast_length (int):
             An integer giving the desired length of the forecast output in
             hours (e.g. 48 for a two day forecast period).
-
         forecast_date (string (YYYYMMDD)):
             A string of format YYYYMMDD defining the start date for which
             forecasts are required. If unset it defaults to today in UTC.
-
         forecast_time (int):
             An integer giving the hour on the forecast_date at which to start
             the forecast output; 24hr clock such that 17 = 17Z for example. If
@@ -354,7 +363,6 @@ def get_forecast_times(forecast_length, forecast_date=None,
 
     Raises:
         ValueError : raised if the input date is not in the expected format.
-
     """
     date_format = re.compile('[0-9]{8}')
 
@@ -452,6 +460,7 @@ def find_latest_cycletime(cubelist):
         cubelist (iris.cube.CubeList):
             A list of cubes each containing single time step from different
             forecast cycles.
+
     Returns:
         cycletime (datetime object):
             A datetime object corresponding to the latest forecast reference
@@ -493,10 +502,8 @@ class TemporalInterpolation(object):
                 Specifies the interval in minutes at which to interpolate
                 between the two input cubes. A number of minutes which does not
                 divide up the interval equally will raise an exception::
-
                     e.g. cube_t0 valid at 03Z, cube_t1 valid at 06Z,
                     interval_in_minutes = 60 --> interpolate to 04Z and 05Z.
-
             times (list or tuple of datetime.datetime objects):
                 A list of datetime objects specifying the times to which to
                 interpolate.
@@ -533,9 +540,9 @@ class TemporalInterpolation(object):
                 A list containing a tuple that specifies the coordinate and a
                 list of points along that coordinate to which to interpolate,
                 as required by the iris interpolation method:
-
                     e.g. [('time', [<datetime object 0>,
                                     <datetime object 1>])]
+
         Raises:
             ValueError: If list of times provided falls outside the range
                         specified by the initial and final times.
@@ -576,7 +583,6 @@ class TemporalInterpolation(object):
             cube_t0 (iris.cube.Cube):
                 A diagnostic cube valid at the beginning of the period within
                 which interpolation is to be permitted.
-
             cube_t1 (iris.cube.Cube):
                 A diagnostic cube valid at the end of the period within which
                 interpolation is to be permitted.
@@ -624,3 +630,50 @@ class TemporalInterpolation(object):
             interpolated_cubes.append(single_time)
 
         return interpolated_cubes
+
+
+def extract_nearest_time_point(
+        cube, dt, time_name="time", allowed_dt_difference=None):
+    """Find the nearest time point to the time point provided.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube or CubeList that will be extracted from using the supplied
+            time_point
+        dt (datetime.datetime):
+            Datetime representation of a time that will be used within the
+            extraction from the cube supplied.
+        time_name (str):
+            Name of the "time" coordinate that will be extracted. For example,
+            this could be "time" or "forecast_reference_time".
+        allowed_dt_difference (float or None):
+            Defines a limit to the maximum difference between the datetime
+            provided and the time points available within the cube. If
+            this limit is exceeded, then an error is raised.
+            This must be defined in seconds.
+
+    Returns:
+        cube (iris.cube.Cube):
+            Cube following extraction to return the cube that is nearest
+            to the time point supplied.
+
+    Raises:
+        ValueError: The requested datetime is not available within the
+            allowed difference.
+    """
+    time_point = datetime_to_iris_time(
+        dt, time_units=cube.coord(time_name).units.origin)
+    time_point_index = (
+        cube.coord(time_name).nearest_neighbour_index(time_point))
+    nearest_dt, = (
+        iris_time_to_datetime(cube.coord(time_name).copy()[time_point_index]))
+    if allowed_dt_difference:
+        if abs((dt - nearest_dt).total_seconds()) > allowed_dt_difference:
+            msg = ("The datetime {} is not available within the input cube "
+                   "within the allowed difference {}. "
+                   "The nearest datetime available was {}".format(
+                       dt, allowed_dt_difference, nearest_dt))
+            raise ValueError(msg)
+    constr = iris.Constraint(coord_values={time_name: nearest_dt})
+    cube = cube.extract(constr)
+    return cube
