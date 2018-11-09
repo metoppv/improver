@@ -36,7 +36,6 @@ from datetime import datetime
 from datetime import time as dt_time
 from datetime import timedelta
 from datetime import timezone
-from time import mktime
 import warnings
 
 import numpy as np
@@ -240,11 +239,13 @@ def datetime_to_iris_time(dt_in, time_units="hours"):
         time_units (str):
             Name of time unit. Currently only "hours", "minutes" or
             "seconds" are supported. Alternatively, an origin time can be
-            supported, for example "seconds since 1970-01-01 00:00:00".
+            supported, for example "seconds since 1970-01-01 00:00:00",
+            however, "since 1970-01-01 00:00:00" will be ignored.
 
     Returns:
-        float:
-            time since epoch in the units defined by the time_units.
+        result (float):
+            Time since epoch in the units defined by the time_units
+            with default floating point precision.
     """
     if all(time_unit not in time_units for time_unit in
            ["hours", "minutes", "seconds"]):
@@ -644,8 +645,8 @@ def extract_nearest_time_point(
             Datetime representation of a time that will be used within the
             extraction from the cube supplied.
         time_name (str):
-            Name of the "time" coordinate that will be extracted. For example,
-            this could be "time" or "forecast_reference_time".
+            Name of the "time" coordinate that will be extracted. This must be
+            "time" or "forecast_reference_time".
         allowed_dt_difference (float or None):
             Defines a limit to the maximum difference between the datetime
             provided and the time points available within the cube. If
@@ -661,6 +662,12 @@ def extract_nearest_time_point(
         ValueError: The requested datetime is not available within the
             allowed difference.
     """
+    if time_name not in ["time", "forecast_reference_time"]:
+        msg = ("{} is not a valid time_name. "
+               "The time_name must be either "
+               "'time' or 'forecast_reference_time'.")
+        raise ValueError(msg)
+
     time_point = datetime_to_iris_time(
         dt, time_units=cube.coord(time_name).units.origin)
     time_point_index = (
