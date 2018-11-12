@@ -42,18 +42,29 @@ import numpy as np
 from improver.blending.weighted_blend import PercentileBlendingAggregator
 
 PERCENTILE_DATA = np.array([
-    15.3077946, 14.65380361, 15.91478244, 15.10887522,
-    12.30817311, 14.61048935, 17.80547685, 15.16351283,
-    17.65229058, 18.16963972, 19.96189077, 19.87125985,
-    18.14138889, 16.66496889, 19.12200888, 18.97425367,
-    18.88194635, 18.63268387, 21.23771814, 21.22492499,
-    18.64451978, 18.08331902, 20.0182035, 19.95292475,
-    21.4430201, 19.89146966, 22.11073569, 22.84817844,
-    19.50214911, 19.63833851, 21.1260302, 21.19184589,
-    22.64466784, 21.18604047, 22.55922723, 24.00842263,
-    21.11200487, 20.99792316, 22.07955526, 21.71937432,
-    23.12910858, 22.94415916, 25.11682828, 25.76481447,
-    23.82016292, 22.11742526, 26.30864878, 23.81492893])
+        17.458706 , 13.732982 , 15.138694 , 13.966815 , 16.187801 ,
+        15.125104 , 12.560181 , 14.662473 , 13.505879 , 14.229357 ,
+        16.645939 , 16.348572 , 17.298779 , 17.408989 , 14.526242 ,
+        17.002329 , 17.33035  , 16.923946 , 16.454231 , 16.48794  ,
+        15.292369 , 14.879623 , 16.818222 , 16.288244 , 14.501231 ,
+        15.792644 , 14.74469  , 13.747394 , 16.2813   , 15.025502 ,
+        16.620153 , 15.497392 , 14.028551 , 16.490143 , 12.824328 ,
+        16.97861  , 17.247797 , 15.923066 , 16.534174 , 14.043188 ,
+        15.108195 , 15.579895 , 16.051695 , 16.475237 , 13.344669 ,
+        15.433237 , 13.313879 , 15.678431 , 17.403114 , 13.770423 ,
+        17.443968 , 17.0385   , 15.021733 , 16.863739 , 15.647017 ,
+        16.435345 , 12.968588 , 13.497512 , 14.2414055, 14.173083 ,
+        14.522574 , 14.454596 , 13.354028 , 13.807901 , 13.009074 ,
+        12.984587 , 15.867088 , 12.503394 , 14.164387 , 16.018044 ,
+        17.481287 , 12.66411  ], dtype=np.float32)
+
+WEIGHTS = np.array([
+        [[0.8, 0.8],
+         [0.8, 0.8]],
+        [[0.5, 0.5],
+         [0.5, 0.5]],
+        [[0.2, 0.2],
+         [0.2, 0.2]]], dtype=np.float32)
 
 BLENDED_PERCENTILE_DATA1 = np.array([
     12.308173106352402, 14.610489348891615,
@@ -70,18 +81,32 @@ BLENDED_PERCENTILE_DATA1 = np.array([
     26.30864878110861, 25.76481446912205])
 
 BLENDED_PERCENTILE_DATA2 = np.array([
-    12.30817311, 14.61048935,
-    15.91478244, 15.10887522,
-    17.676775957972925, 17.593947064474417,
-    19.51651034470578, 19.378940557706372,
-    18.819297828987274, 18.594620794715546,
-    20.965096170815123, 20.95201851550872,
-    20.890749057567294, 19.843891344879836,
-    21.927325497880343, 22.32506953618696,
-    22.491628272758373, 21.143852884603188,
-    22.546838489123576, 23.730102965015696,
-    23.82016292, 22.94415916,
-    26.30864878, 25.76481447])
+        [[12.968588, 12.984587],
+         [12.560181, 12.503394]],
+        [[12.990671, 12.984587],
+         [14.356173, 12.503394]],
+        [[14.164387, 13.835985],
+         [14.607758, 12.66411 ]],
+        [[14.855347, 14.404217],
+         [14.736798, 13.913844]],
+        [[16.250134, 15.728171],
+         [16.480879, 15.219085]],
+        [[17.458706, 17.408989],
+         [17.481287, 17.0385  ]]], dtype=np.float32)
+
+BLENDED_PERCENTILE_DATA2_EQUAL_WEIGHTS = (
+    np.array([[[12.968588, 12.984587],
+               [12.560181, 12.503394]],
+              [[12.968588, 12.984587],
+               [14.439088, 12.503394]],
+              [[13.425274, 13.764813],
+               [15.138694, 12.535538]],
+              [[14.096469, 14.454596],
+               [16.454231, 12.631967]],
+              [[16.187801, 16.018042],
+               [17.027607, 15.497392]],
+              [[17.458706, 17.408989],
+               [17.481287, 17.0385  ]]], dtype=np.float32))
 
 PERCENTILE_VALUES = np.array(
     [[12.70237152, 14.83664335, 16.23242317, 17.42014139, 18.42036664,
@@ -97,21 +122,27 @@ PERCENTILE_VALUES = np.array(
 
 def percentile_cube():
     """Create a percentile cube for testing."""
-    data = np.reshape(PERCENTILE_DATA, (6, 2, 2, 2))
+    data = np.reshape(PERCENTILE_DATA, (6, 3, 2, 2))
     cube = Cube(data, standard_name="air_temperature",
                 units="C")
     cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 2), 'latitude',
                                 units='degrees'), 2)
     cube.add_dim_coord(DimCoord(np.linspace(120, 180, 2), 'longitude',
                                 units='degrees'), 3)
-    time_origin = "hours since 1970-01-01 00:00:00"
+    time_origin = "seconds since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
-    cube.add_dim_coord(DimCoord([402192.5, 402193.5],
-                                "time", units=tunit), 1)
+    times = np.array([1447891200, 1447894800, 1447898400])
+    cube.add_dim_coord(DimCoord(times, "time", units=tunit), 1)
     cube.add_dim_coord(DimCoord([0, 20, 40, 60, 80, 100],
                                 long_name="percentile_over_realization"), 0)
     return cube
+
+
+def generate_matching_weights_array(weights, shape):
+    """Create an array of weights that matches the shape of the cube."""
+    weights_array = np.broadcast_to(weights, shape)
+    return weights_array.astype(np.float32)
 
 
 class Test__repr__(IrisTest):
@@ -129,43 +160,48 @@ class Test_aggregate(IrisTest):
     """Test the aggregate method"""
     def test_blend_percentile_aggregate(self):
         """Test blend_percentile_aggregate function works"""
-        weights = np.array([0.8, 0.2])
-        percentiles = np.array([0, 20, 40, 60, 80, 100])
+        weights = np.array([0.6, 0.3, 0.1])
+        weights = generate_matching_weights_array(weights, (4, 6, 3))
+        weights = np.moveaxis(weights, (0, 1, 2), (2, 1, 0))
+
+        percentiles = np.array([0, 20, 40, 60, 80, 100]).astype(np.float32)
         result = PercentileBlendingAggregator.aggregate(
-            np.reshape(PERCENTILE_DATA, (6, 2, 2, 2)), 1,
+            np.reshape(PERCENTILE_DATA, (6, 3, 2, 2)), 1,
             percentiles,
             weights, 0)
-        expected_result_array = np.reshape(BLENDED_PERCENTILE_DATA2,
-                                           (6, 2, 2))
-        self.assertArrayAlmostEqual(result, expected_result_array)
+        self.assertArrayAlmostEqual(result, BLENDED_PERCENTILE_DATA2,)
 
     def test_blend_percentile_aggregate_reorder1(self):
         """Test blend_percentile_aggregate works with out of order dims 1"""
-        weights = np.array([0.8, 0.2])
+        weights = np.array([0.6, 0.3, 0.1])
+        weights = generate_matching_weights_array(weights, (4, 6, 3))
+        weights = np.moveaxis(weights, (0, 1, 2), (2, 1, 0))
+
         percentiles = np.array([0, 20, 40, 60, 80, 100])
-        perc_data = np.reshape(PERCENTILE_DATA, (6, 2, 2, 2))
+        perc_data = np.reshape(PERCENTILE_DATA, (6, 3, 2, 2))
         perc_data = np.moveaxis(perc_data, [0, 1], [3, 1])
         result = PercentileBlendingAggregator.aggregate(
             perc_data, 1,
             percentiles,
             weights, 3)
-        expected_result_array = np.reshape(BLENDED_PERCENTILE_DATA2,
-                                           (6, 2, 2))
+        expected_result_array = BLENDED_PERCENTILE_DATA2
         expected_result_array = np.moveaxis(expected_result_array, 0, 2)
         self.assertArrayAlmostEqual(result, expected_result_array)
 
     def test_blend_percentile_aggregate_reorder2(self):
         """Test blend_percentile_aggregate works with out of order dims 2"""
-        weights = np.array([0.8, 0.2])
+        weights = np.array([0.6, 0.3, 0.1])
+        weights = generate_matching_weights_array(weights, (4, 6, 3))
+        weights = np.moveaxis(weights, (0, 1, 2), (2, 1, 0))
+
         percentiles = np.array([0, 20, 40, 60, 80, 100])
-        perc_data = np.reshape(PERCENTILE_DATA, (6, 2, 2, 2))
+        perc_data = np.reshape(PERCENTILE_DATA, (6, 3, 2, 2))
         perc_data = np.moveaxis(perc_data, [0, 1], [1, 2])
         result = PercentileBlendingAggregator.aggregate(
             perc_data, 2,
             percentiles,
             weights, 1)
-        expected_result_array = np.reshape(BLENDED_PERCENTILE_DATA2,
-                                           (6, 2, 2))
+        expected_result_array = BLENDED_PERCENTILE_DATA2
         expected_result_array = np.moveaxis(expected_result_array, 0, 1)
         self.assertArrayAlmostEqual(result, expected_result_array)
 
@@ -173,6 +209,8 @@ class Test_aggregate(IrisTest):
         """ Test that for a simple case with only one point in the resulting
             array the function behaves as expected"""
         weights = np.array([0.8, 0.2])
+        weights = generate_matching_weights_array(weights, (1, 3, 2))
+
         percentiles = np.array([0, 50, 100])
         perc_data = np.array([[1.0, 2.0], [5.0, 5.0], [10.0, 9.0]])
         result = PercentileBlendingAggregator.aggregate(
@@ -186,6 +224,8 @@ class Test_aggregate(IrisTest):
         """ Test that for a simple case with only one point and an extra
             internal dimension behaves as expected"""
         weights = np.array([0.5, 0.5])
+        weights = generate_matching_weights_array(weights, (1, 3, 2))
+
         percentiles = np.array([0, 50, 100])
         perc_data = np.array([[[1.0], [2.0]],
                               [[5.0], [6.0]],
@@ -201,6 +241,8 @@ class Test_aggregate(IrisTest):
         """ Test that for a simple case with only one point and 4D input data
             it behaves as expected"""
         weights = np.array([0.5, 0.5])
+        weights = generate_matching_weights_array(weights, (1, 3, 2))
+
         percentiles = np.array([0, 50, 100])
         perc_data = np.array([1.0, 3.0, 2.0,
                               4.0, 5.0, 6.0])
