@@ -99,10 +99,6 @@ def main():
     orography_cube = load_cube(args.orography_filepath)
     land_sea_mask_cube = load_cube(args.land_sea_mask_filepath)
 
-    print('min lapse rate:')
-    print(type(args.min_lapse_rate))
-    print(args.min_lapse_rate)
-
     result = LapseRate(
         max_height_diff=args.max_height_diff,
         nbhood_radius=args.nbhood_radius,
