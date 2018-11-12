@@ -150,6 +150,10 @@ class LapseRate(object):
             msg = "Neighbourhood radius is less than zero"
             raise ValueError(msg)
 
+        if self.max_height_diff < 0:
+            msg = "Maximum height difference is less than zero"
+            raise ValueError(msg)
+
         # nbhood_size=3 corresponds to a 3x3 array centred on the
         # central point.
         self.nbhood_size = int((2*nbhood_radius) + 1)

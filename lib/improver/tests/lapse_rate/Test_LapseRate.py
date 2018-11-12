@@ -310,6 +310,16 @@ class Test_process(IrisTest):
                                                 self.orography,
                                                 self.land_sea_mask)
 
+    def test_fails_if_max_height_diff_less_than_zero(self):
+        """Test code raises a Value Error if input neighbourhood radius
+        is less than zero"""
+        msg = "Maximum height difference is less than zero"
+
+        with self.assertRaisesRegexp(ValueError, msg):
+            LapseRate(max_height_diff=-1).process(self.temperature,
+                                                  self.orography,
+                                                  self.land_sea_mask)
+
     def test_lapse_rate_limits(self):
         """Test that the function limits the lapse rate to +DALR and -3*DALR.
            Where DALR = Dry Adiabatic Lapse Rate.
