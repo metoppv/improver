@@ -34,15 +34,15 @@ orogrophy datasets."""
 
 from improver.argparser import ArgParser
 from improver.lapse_rate import LapseRate
-from improver.constants import DALR, U_DALR
+from improver.constants import DALR
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
 
 def main():
     parser = ArgParser(
-        description='Calculate temperature lapse rates over a given '
-                    'orography grid. ')
+        description='Calculate temperature lapse rates in units of K m-1 '
+                    'over a given orography grid. ')
     parser.add_argument('temperature_filepath',
                         metavar='INPUT_TEMPERATURE_FILE',
                         help='A path to an input NetCDF temperature file to'
@@ -68,20 +68,15 @@ def main():
                              'The neighbourhood will be a square array with '
                              'side length 2*nbhood_radius + 1.')
     parser.add_argument('--max_lapse_rate',
-                        metavar='MAX_LAPSE_RATE', type=float, default=None,
-                        help='Maximum lapse rate allowed. '
-                             'Default is -3*DALR.')
+                        metavar='MAX_LAPSE_RATE', type=float, default=-3*DALR,
+                        help='Maximum lapse rate allowed which must be '
+                             'provided in units of K m-1. Default is -3*DALR')
     parser.add_argument('--min_lapse_rate',
-                        metavar='MIN_LAPSE_RATE', type=float, default=None,
-                        help='Minimum lapse rate allowed. '
-                             'Default is the DALR.')
+                        metavar='MIN_LAPSE_RATE', type=float, default=DALR,
+                        help='Minimum lapse rate allowed which must be '
+                             'provided in units of K m-1. Default is the DALR')
 
     args = parser.parse_args()
-
-    if args.min_lapse_rate is None:
-        args.min_lapse_rate = DALR
-    if args.max_lapse_rate is None:
-        args.max_lapse_rate = -3 * DALR
 
     if args.min_lapse_rate > args.max_lapse_rate:
         msg = 'Minimum lapse rate specified is greater than the maximum.'
