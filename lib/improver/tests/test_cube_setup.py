@@ -187,8 +187,7 @@ def set_up_percentile_cube(data, percentiles, name='air_temperature',
                            units='K',
                            percentile_dim_name='percentile_over_realization',
                            spatial_grid='latlon', time=None, frt=None,
-                           percentiles=None, include_scalar_coords=None,
-                           attributes=None):
+                           include_scalar_coords=None, attributes=None):
     """
     Set up a cube containing percentiles of a variable with:
     - x/y spatial dimensions (equal area or lat / lon)
@@ -289,18 +288,132 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
 
 
 def set_up_cube_list(data, name='air_temperature', units='K',
-                     spatial_grid='latlon', time_points=None, frt_points=None,
+                     spatial_grid='latlon', new_axis='forecast_reference_time',
+                     new_coord_points=None, new_coord_units=None,
+                     time=None, frt_points=None,
                      realizations=None, percentiles=None, thresholds=None,
-                     include_scalar_coords=None, attributes=None):
+                     include_scalar_coords=None, attributes=None, merge=True):
     """
-    Set up list of variable, percentile or probability cubes with a differing
-    scalar coordinate value(s).  Option to merge into a single concatenated
-    cube.  If adding forecast_reference_time coordinate, should calculate and
-    add a forecast_period AuxCoord to match.
-    """
+    Set up list of variable, percentile or probability cubes with an additional
+    leading coordinate.  Default setup is for forecast reference time.  Option
+    to merge into a single output cube.
+
+    Note: this function does not permit the addition of a dim coord with
+    associated aux coords.  If this is required (eg 2 models with different
+    forecast reference times), the user should set up the cube of forecast
+    reference times and then use cube.add_aux_coord.
+
+    Method:
+        1. If one of "realizations", "percentiles" or "thresholds" are set,
+           chooses the appropriate single cube setup method.  If all are None,
+           sets up a variable cube.
+        2. Loops over 2D or 3D slices of data and creates suitable cubes
+        3. Creates CubeList and merges if required
+
+    Args:
+        data (np.ndarray):
+            3D or 4D array of data to put into the cube
+
+    Kwargs:
+        name (str):
+            Variable name (standard / long)
+        units (str):
+            Variable or threshold units
+        spatial_grid (str):
+            What type of x/y coordinate values to use.  Default is "latlon",
+            otherwise uses "projection_[x|y]_coordinate".
+        new_axis (str):
+            Name of leading coordinate dimension to add (after percentile /
+            realization / threshold)
+        new_coord_points (list):
+            List of coordinate points along new axis.  Ignored if new_axis is
+            forecast_reference_time.
+        new_coord_units (str):
+            Coordinate units.  Ignored if new_axis is forecast_reference_time.
+        time (datetime.datetime):
+            Single validity time
+        frt_points (datetime.datetime):
+            Single forecast reference time or list of times
+        realizations (list):
+            List of forecast realizations or None
+        percentiles (list):
+            List of percentiles or None
+        thresholds (list):
+            List of thresholds or None
+        include_scalar_coords (list):
+            List of iris.coords.DimCoord or AuxCoord instances of length 1.
+        attributes (dict):
+            Optional cube attributes.
+        merge (bool):
+            Option to return a single merged cube.
+
+    Returns:
+        iris.cube.Cube or iris.cube.CubeList
+    """    
+    # TODO check not more than one of "percentiles", "realizations" or
+    # "thresholds" is set
+
+    if new_axis != "forecast_reference_time":
+        if new_coord_points is None or new_coord_units is None:
+            raise ValueError('New coordinate points and units are required')
+
+    # generate cube list
+    cube_list = []
+    if percentiles is not None:
+        if new_axis == "forecast_reference_time":
+            for frt, data_slice in zip(frt_points, data):
+                cube = set_up_percentile_cube(
+                    data_slice, percentiles, name=name, units=units,
+                    spatial_grid=spatial_grid, time=time, frt=frt,
+                    include_scalar_coords=include_scalar_coords,
+                    attributes=attributes)
+                cube_list.append(cube)
+        else:
+            for point, data_slice in zip(new_coord_points, data):
+                new_scalar_coord = DimCoord(
+                    point, new_axis, units=new_coord_units)
+                scalar_coords = include_scalar_coords
+                scalar_coords.append(new_scalar_coord)
+                cube = set_up_percentile_cube(
+                    data_slice, percentiles, name=name, units=units,
+                    spatial_grid=spatial_grid, time=time, frt=frt_points,
+                    include_scalar_coords=scalar_coords,
+                    attributes=attributes)
+                cube_list.append(cube)
+
+    elif thresholds is not None:
+        # TODO
+        pass
 
 
+    else:
+        # set up a list of variable cubes, with or without realizations
+        if new_axis == "forecast_reference_time":
+            for frt, data_slice in zip(frt_points, data):
+                cube = set_up_variable_cube(
+                    data_slice, name=name, units=units, 
+                    spatial_grid=spatial_grid, time=time, frt=frt,
+                    realizations=realizations, attributes=attributes,
+                    include_scalar_coords=include_scalar_coords)
+                cube_list.append(cube)
+        else:
+            for point, data_slice in zip(new_coord_points, data):
+                new_scalar_coord = DimCoord(
+                    point, new_axis, units=new_coord_units)
+                scalar_coords = include_scalar_coords
+                scalar_coords.append(new_scalar_coord)
+                cube = set_up_variable_cube(
+                    data_slice, name=name, units=units, 
+                    spatial_grid=spatial_grid, time=time, frt=frt_points,
+                    realizations=realizations, attributes=attributes,
+                    include_scalar_coords=scalar_coords)
+                cube_list.append(cube)
+                
+    # merge outputs if required
+    output = iris.cube.CubeList(cube_list)
+    if merge:
+        output = output.merge_cube()
 
-
+    return output
 
 
