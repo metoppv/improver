@@ -236,6 +236,28 @@ class Test_process(IrisTest):
                                                self.temperature,
                                                self.land_sea_mask)
 
+    def test_correct_lapse_rate_units(self):
+        """Test that the plugin returns the correct unit type"""
+        result = LapseRate().process(self.temperature,
+                                     self.orography,
+                                     self.land_sea_mask)
+        units = result.units
+
+        self.assertEqual(units, 'K m-1')
+
+    def test_correct_lapse_rate_units_with_arguments(self):
+        """Test that the plugin returns the correct unit type when non-default
+        arguments specified"""
+        result = LapseRate(max_height_diff=15,
+                           nbhood_radius=3,
+                           max_lapse_rate=0.06,
+                           min_lapse_rate=-0.01).process(self.temperature,
+                                                         self.orography,
+                                                         self.land_sea_mask)
+        units = result.units
+
+        self.assertEqual(units, 'K m-1')
+
     def test_return_single_precision(self):
         """Test that the function returns cube of float32."""
         result = LapseRate(nbhood_radius=1).process(self.temperature,
@@ -266,9 +288,31 @@ class Test_process(IrisTest):
                                                     self.land_sea_mask)
         self.assertArrayAlmostEqual(result.data, expected_out, decimal=4)
 
+    def test_fails_if_max_less_min_lapse_rate(self):
+        """Test code raises a Value Error if input maximum lapse rate is
+        less than input minimum lapse rate"""
+        msg = "Maximum lapse rate is less than minimum lapse rate"
+
+        with self.assertRaisesRegexp(ValueError, msg):
+            LapseRate(
+                max_lapse_rate=-1,
+                min_lapse_rate=1).process(self.temperature,
+                                          self.orography,
+                                          self.land_sea_mask)
+
+    def test_fails_if_nbhood_radius_less_than_zero(self):
+        """Test code raises a Value Error if input neighbourhood radius
+        is less than zero"""
+        msg = "Neighbourhood radius is less than zero"
+
+        with self.assertRaisesRegexp(ValueError, msg):
+            LapseRate(nbhood_radius=-1).process(self.temperature,
+                                                self.orography,
+                                                self.land_sea_mask)
+
     def test_lapse_rate_limits(self):
         """Test that the function limits the lapse rate to +DALR and -3*DALR.
-           Where DALR = Dry Adibatic Lapse Rate.
+           Where DALR = Dry Adiabatic Lapse Rate.
         """
         reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
 
@@ -288,6 +332,85 @@ class Test_process(IrisTest):
         result = LapseRate(nbhood_radius=1).process(self.temperature,
                                                     self.orography,
                                                     self.land_sea_mask)
+        self.assertArrayAlmostEqual(result.data, expected_out)
+
+    def test_specified_max_lapse_rate(self):
+        """Test that the function correctly applies a specified, non default
+        maximum lapse rate."""
+        reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
+
+        expected_out = np.array([[0.0392, 0.0392, 0.0, DALR, DALR],
+                                 [0.0392, 0.0392, 0.0, DALR, DALR],
+                                 [0.0392, 0.0392, 0.0, DALR, DALR],
+                                 [0.0392, 0.0392, 0.0, DALR, DALR],
+                                 [0.0392, 0.0392, 0.0, DALR, DALR]])
+
+        # West data points should be -4*DALR and East should be DALR.
+        self.temperature.data[:, :, 0] = 2
+        self.temperature.data[:, :, 1] = 1
+        self.temperature.data[:, :, 3] = -1
+        self.temperature.data[:, :, 4] = -2
+        self.orography.data[:, :] = 10
+
+        result = LapseRate(nbhood_radius=1,
+                           max_lapse_rate=-4 * DALR).process(
+            self.temperature,
+            self.orography,
+            self.land_sea_mask)
+
+        self.assertArrayAlmostEqual(result.data, expected_out)
+
+    def test_specified_min_lapse_rate(self):
+        """Test that the function correctly applies a specified, non default
+        minimum lapse rate."""
+        reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
+
+        expected_out = np.array([[0.0294, 0.0294, 0.0, -0.0196, -0.0196],
+                                 [0.0294, 0.0294, 0.0, -0.0196, -0.0196],
+                                 [0.0294, 0.0294, 0.0, -0.0196, -0.0196],
+                                 [0.0294, 0.0294, 0.0, -0.0196, -0.0196],
+                                 [0.0294, 0.0294, 0.0, -0.0196, -0.0196]])
+
+        # West data points should be -3*DALR and East should be 2*DALR.
+        self.temperature.data[:, :, 0] = 2
+        self.temperature.data[:, :, 1] = 1
+        self.temperature.data[:, :, 3] = -1
+        self.temperature.data[:, :, 4] = -2
+        self.orography.data[:, :] = 10
+
+        result = LapseRate(nbhood_radius=1,
+                           min_lapse_rate=2 * DALR).process(
+            self.temperature,
+            self.orography,
+            self.land_sea_mask)
+
+        self.assertArrayAlmostEqual(result.data, expected_out)
+
+    def test_specified_max_and_min_lapse_rate(self):
+        """Test that the function correctly applies a specified, non default
+        maximum and minimum lapse rate."""
+        reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
+
+        expected_out = np.array([[0.0392, 0.0392, 0.0, -0.0196, -0.0196],
+                                 [0.0392, 0.0392, 0.0, -0.0196, -0.0196],
+                                 [0.0392, 0.0392, 0.0, -0.0196, -0.0196],
+                                 [0.0392, 0.0392, 0.0, -0.0196, -0.0196],
+                                 [0.0392, 0.0392, 0.0, -0.0196, -0.0196]])
+
+        # West data points should be -3*DALR and East should be 2*DALR.
+        self.temperature.data[:, :, 0] = 2
+        self.temperature.data[:, :, 1] = 1
+        self.temperature.data[:, :, 3] = -1
+        self.temperature.data[:, :, 4] = -2
+        self.orography.data[:, :] = 10
+
+        result = LapseRate(nbhood_radius=1,
+                           max_lapse_rate=-4 * DALR,
+                           min_lapse_rate=2 * DALR).process(
+            self.temperature,
+            self.orography,
+            self.land_sea_mask)
+
         self.assertArrayAlmostEqual(result.data, expected_out)
 
     def test_handles_nan_value(self):
@@ -343,9 +466,8 @@ class Test_process(IrisTest):
 
     def test_mask_max_height_diff(self):
         """Test that the function removes neighbours where their height
-           difference from the centre point is greater than the default
-           max_height_diff = 35metres.
-        """
+        difference from the centre point is greater than the default
+        max_height_diff = 35metres."""
         reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
 
         expected_out = np.array([[DALR, DALR, DALR, -0.00642857, -0.005],
@@ -365,6 +487,34 @@ class Test_process(IrisTest):
         self.orography.data[2, 4] = 60
 
         result = LapseRate(nbhood_radius=1).process(self.temperature,
+                                                    self.orography,
+                                                    self.land_sea_mask)
+        self.assertArrayAlmostEqual(result.data, expected_out)
+
+    def test_mask_max_height_diff_arg(self):
+        """ Test that the function removes or leaves neighbours where their
+        height difference from the centre point is greater than a
+        specified, non-default max_height_diff."""
+        reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
+
+        expected_out = np.array([[DALR, DALR, DALR, -0.00642857, -0.005],
+                                 [DALR, DALR, DALR, -0.00454128, -0.003],
+                                 [DALR, DALR, DALR, -0.00454128, -0.003],
+                                 [DALR, DALR, DALR, -0.00454128, -0.003],
+                                 [DALR, DALR, DALR, -0.00642857, -0.005]])
+
+        self.temperature.data[:, :, 0:2] = 0.4
+        self.temperature.data[:, :, 2] = 0.3
+        self.temperature.data[:, :, 3] = 0.2
+        self.temperature.data[:, :, 4] = 0.1
+
+        self.orography.data[:, 2] = 10
+        self.orography.data[:, 3] = 20
+        self.orography.data[:, 4] = 40
+        self.orography.data[2, 4] = 60
+
+        result = LapseRate(max_height_diff=50,
+                           nbhood_radius=1).process(self.temperature,
                                                     self.orography,
                                                     self.land_sea_mask)
         self.assertArrayAlmostEqual(result.data, expected_out)

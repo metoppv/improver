@@ -142,6 +142,14 @@ class LapseRate(object):
         self.max_lapse_rate = max_lapse_rate
         self.min_lapse_rate = min_lapse_rate
 
+        if self.max_lapse_rate < self.min_lapse_rate:
+            msg = "Maximum lapse rate is less than minimum lapse rate"
+            raise ValueError(msg)
+
+        if self.nbhood_radius < 0:
+            msg = "Neighbourhood radius is less than zero"
+            raise ValueError(msg)
+
         # nbhood_size=3 corresponds to a 3x3 array centred on the
         # central point.
         self.nbhood_size = int((2*nbhood_radius) + 1)
@@ -373,5 +381,6 @@ class LapseRate(object):
         lapse_rate_cube = lapse_rate_cube_list.merge_cube()
         lapse_rate_cube.rename('temperature_lapse_rate')
         lapse_rate_cube.long_name = "lapse_rate"
+        lapse_rate_cube.units = 'K m-1'
 
         return lapse_rate_cube
