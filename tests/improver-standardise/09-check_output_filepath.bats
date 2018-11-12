@@ -32,6 +32,7 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "standardise check output filepath specified" {
+  improver_check_skip_acceptance
   run improver standardise \
        "$IMPROVER_ACC_TEST_DIR/standardise/float64/float64_data.nc" --fix_float64
   [[ "$status" -eq 1 ]]
