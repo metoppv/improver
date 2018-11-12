@@ -53,7 +53,7 @@ class Test__init__(IrisTest):
     def test_basic(self):
         """Test that instantiating the class results in an object with
         expected variables."""
-        expected_members = {'cube': None,
+        expected_members = {'nearest_cube': None,
                             'input_land': None,
                             'output_land': None,
                             'output_cube': None}
@@ -121,8 +121,9 @@ class Test_correct_where_input_true(IrisTest):
                         zero_point_indices=((0, 0, 1, 1),)))
         self.plugin.input_land = cube.copy()
         self.plugin.output_land = cube.copy()
-        self.plugin.output_cube = cube.copy()
-        self.plugin.output_cube.data[0, 1] = 0.5
+        self.plugin.nearest_cube = cube.copy()
+        self.plugin.nearest_cube.data[0, 1] = 0.5
+        self.plugin.output_cube = self.plugin.nearest_cube.copy()
         self.move_sea_point = squeeze(
             set_up_cube(num_grid_points=3,
                         zero_point_indices=((0, 0, 0, 1),)))
@@ -167,6 +168,21 @@ class Test_correct_where_input_true(IrisTest):
         self.plugin.correct_where_input_true(1)
         self.assertArrayEqual(output_cube.data, self.plugin.output_cube.data)
 
+    def test_work_01_eq_10(self):
+        """Test result is independent of order of sea/land handling."""
+        self.plugin.input_land = self.move_sea_point.copy()
+        reset_cube = self.plugin.output_cube.copy()
+        self.plugin.correct_where_input_true(0)
+        self.plugin.correct_where_input_true(1)
+        attempt_01 = self.plugin.output_cube.data.copy()
+
+        self.plugin.output_cube = reset_cube
+        self.plugin.correct_where_input_true(1)
+        self.plugin.correct_where_input_true(0)
+        attempt_10 = self.plugin.output_cube.data.copy()
+
+        self.assertArrayEqual(attempt_01, attempt_10)
+
     def test_not_in_vicinity(self):
         """Test for no change if the matching point is too far away."""
         # We need larger arrays for this.
@@ -178,8 +194,9 @@ class Test_correct_where_input_true(IrisTest):
             set_up_cube(num_grid_points=5,
                         zero_point_indices=((0, 0, 1, 1),)))
         self.plugin.output_land = cube.copy()
-        self.plugin.output_cube = cube.copy()
-        self.plugin.output_cube.data[4, 4] = 0.5
+        self.plugin.nearest_cube = cube.copy()
+        self.plugin.nearest_cube.data[4, 4] = 0.5
+        self.plugin.output_cube = self.plugin.nearest_cube.copy()
         self.plugin.input_land = squeeze(
             set_up_cube(num_grid_points=5,
                         zero_point_indices=((0, 0, 4, 4),)))
@@ -266,6 +283,8 @@ class Test_process(IrisTest):
         expected[0, 0] = 0.5
         # Output sea-point populated with data from input sea-point:
         expected[1, 1] = 0.5
+        # Output land-point populated with data from input land-point:
+        expected[0, 1] = 1.
         # Output land-point populated with data from input sea-point due to
         # vicinity-constraint:
         expected[4, 4] = 1.
@@ -287,6 +306,8 @@ class Test_process(IrisTest):
         expected[0, 0] = 0.5
         # Output sea-point populated with data from input sea-point:
         expected[1, 1] = 0.5
+        # Output land-point populated with data from input land-point:
+        expected[0, 1] = 1.
         # Output land-point populated with data from input sea-point due to
         # vicinity-constraint:
         expected[4, 4] = 1.

@@ -572,7 +572,7 @@ class RegridLandSea():
                 Distance in metres to search for a sea or land point.
         """
         self.input_land = None
-        self.cube = None
+        self.nearest_cube = None
         self.output_land = None
         self.output_cube = None
         self.regridder = iris.analysis.Nearest(
@@ -591,7 +591,7 @@ class RegridLandSea():
         Replace points in the output_cube where output_land matches the
         selector_val and the input_land does not match, but has matching
         points in the vicinity, with the nearest matching point in the
-        vicinity.
+        vicinity in the original nearest_cube.
 
         Updates self.output_cube.data
 
@@ -615,7 +615,7 @@ class RegridLandSea():
             # points are filled with the most appropriate value.
             (y_points, x_points) = np.mgrid[0:ynum, 0:xnum]
             selector_data = griddata(use_points,
-                                     self.output_cube.data[use_points],
+                                     self.nearest_cube.data[use_points],
                                      (y_points, x_points), method="nearest")
 
             # Identify nearby points on regridded input_land that match the
@@ -658,14 +658,14 @@ class RegridLandSea():
         if not spatial_coords_match(cube, output_land):
             raise ValueError('X and Y coordinates do not match for cubes {}'
                              'and {}'.format(repr(cube), repr(output_land)))
-        self.cube = cube
         self.output_land = output_land
 
         # Regrid input_land to output_land grid.
         self.input_land = input_land.regrid(self.output_land, self.regridder)
 
         # Regrid cube to output grid
-        self.output_cube = cube.regrid(self.output_land, self.regridder)
+        self.nearest_cube = cube.regrid(self.output_land, self.regridder)
+        self.output_cube = self.nearest_cube.copy()
 
         # Update sea points that were incorrectly sourced from land points
         self.correct_where_input_true(0)
