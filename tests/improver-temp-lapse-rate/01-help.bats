@@ -41,7 +41,8 @@ usage: improver-temp-lapse-rate [-h] [--profile] [--profile_file PROFILE_FILE]
                                 INPUT_TEMPERATURE_FILE INPUT_OROGRAPHY_FILE
                                 LAND_SEA_MASK_FILE OUTPUT_FILE
 
-Calculate temperature lapse rates over a given orography grid.
+Calculate temperature lapse rates in units of K m-1 over a given orography
+grid.
 
 positional arguments:
   INPUT_TEMPERATURE_FILE
@@ -66,9 +67,11 @@ optional arguments:
                         neighbourhood will be a square array with side length
                         2*nbhood_radius + 1.
   --max_lapse_rate MAX_LAPSE_RATE
-                        Maximum lapse rate allowed. Default is -3*DALR.
+                        Maximum lapse rate allowed which must be provided in
+                        units of K m-1. Default is -3*DALR
   --min_lapse_rate MIN_LAPSE_RATE
-                        Minimum lapse rate allowed. Default is the DALR.
+                        Minimum lapse rate allowed which must be provided in
+                        units of K m-1. Default is the DALR
 __HELP__
   [[ "$output" == "$expected" ]]
 }
