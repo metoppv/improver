@@ -34,6 +34,7 @@ meta-data and demoting float64 data to float32"""
 
 import iris
 import json
+import warnings
 
 from improver.argparser import ArgParser
 from improver.utilities.load import load_cube
@@ -173,11 +174,11 @@ def main():
             source_landsea = load_cube(args.input_landmask_filepath)
             if "land_binary_mask" not in source_landsea.name():
                 msg = ("Expected land_binary_mask in input_landmask_filepath "
-                       "but found {}".format(source_landsea))
+                       "but found {}".format(repr(source_landsea)))
                 warnings.warn(msg)
             if "land_binary_mask" not in target_grid.name():
                 msg = ("Expected land_binary_mask in target_grid_filepath "
-                       "but found {}".format(target_grid))
+                       "but found {}".format(repr(target_grid)))
                 warnings.warn(msg)
             output_data = RegridLandSea(
                 vicinity_radius=args.landmask_vicinity).process(

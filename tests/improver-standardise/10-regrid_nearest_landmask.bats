@@ -31,13 +31,21 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "standardise check output filepath specified" {
-  run improver standardise \
-       "$IMPROVER_ACC_TEST_DIR/standardise/float64/float64_data.nc" --fix_float64
-  [[ "$status" -eq 1 ]]
-  read -d '' expected <<'__TEXT__' || true
-ValueError: An argument has been specified that requires an output filepath but none has been provided
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
-}
+@test "standardise with land-mask" {
+  improver_check_skip_acceptance
+  KGO="standardise/regrid-nearest/kgo.nc"
 
+  # Run cube regrid processing with iris nearest option and check it passes.
+  run improver standardise \
+      "$IMPROVER_ACC_TEST_DIR/standardise/regrid-basic/global_cutout.nc" \
+      --target_grid_filepath "$IMPROVER_ACC_TEST_DIR/standardise/regrid-landmask/ukvx_landmask.nc" \
+      --input_landmask_filepath "$IMPROVER_ACC_TEST_DIR/standardise/regrid-landmask/glm_landmask.nc" \
+      --output_filepath "$TEST_DIR/output.nc" --nearest
+  [[ "$status" -eq 0 ]]
+
+  improver_check_recreate_kgo "output.nc" $KGO
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+}
