@@ -45,9 +45,10 @@ from iris.time import PartialDateTime
 
 from improver.utilities.temporal import (
     cycletime_to_datetime, cycletime_to_number, forecast_period_coord,
-    iris_time_to_datetime, dt_to_utc_hours, datetime_constraint,
+    iris_time_to_datetime, datetime_constraint,
     extract_cube_at_time, set_utc_offset, get_forecast_times,
-    unify_forecast_reference_time, find_latest_cycletime)
+    unify_forecast_reference_time, find_latest_cycletime,
+    extract_nearest_time_point, datetime_to_iris_time)
 from improver.tests.blending.weights.helper_functions import (
     set_up_temperature_cube, add_model_id_and_model_configuration)
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
@@ -257,15 +258,53 @@ class Test_iris_time_to_datetime(Test_common_functions):
         self.assertEqual(result[0], datetime.datetime(2017, 2, 17, 6, 0))
 
 
-class Test_dt_to_utc_hours(IrisTest):
-    """ Test dt_to_utc_hours """
-    def test_basic(self):
-        """Test dt_to_utc_hours returns float with expected value """
-        dt_in = datetime.datetime(2017, 2, 17, 6, 0)
-        result = dt_to_utc_hours(dt_in)
+class Test_datetime_to_iris_time(IrisTest):
+
+    """Test the datetime_to_iris_time function."""
+
+    def setUp(self):
+        """Define datetime for use in tests."""
+        self.dt_in = datetime.datetime(2017, 2, 17, 6, 0)
+
+    def test_hours(self):
+        """Test datetime_to_iris_time returns float with expected value
+        in hours"""
+        result = datetime_to_iris_time(self.dt_in)
         expected = 413142.0
         self.assertIsInstance(result, float)
         self.assertEqual(result, expected)
+
+    def test_minutes(self):
+        """Test datetime_to_iris_time returns float with expected value
+        in minutes"""
+        result = datetime_to_iris_time(self.dt_in, time_units="minutes")
+        expected = 24788520.0
+        self.assertIsInstance(result, float)
+        self.assertEqual(result, expected)
+
+    def test_seconds(self):
+        """Test datetime_to_iris_time returns float with expected value
+        in seconds"""
+        result = datetime_to_iris_time(self.dt_in, time_units="seconds")
+        expected = 1487311200.0
+        self.assertIsInstance(result, float)
+        self.assertEqual(result, expected)
+
+    def test_seconds_from_origin(self):
+        """Test datetime_to_iris_time returns float with expected value
+        in seconds when an origin is supplied."""
+        result = datetime_to_iris_time(
+            self.dt_in, time_units="seconds since 1970-01-01 00:00:00")
+        expected = 1487311200.0
+        self.assertIsInstance(result, float)
+        self.assertEqual(result, expected)
+
+    def test_exception_raised(self):
+        """Test an exception is raised if the if the time unit does not
+        contain hours, minutes or seconds."""
+        msg = "The time unit must contain 'hours', 'minutes' or 'seconds'"
+        with self.assertRaisesRegex(ValueError, msg):
+            datetime_to_iris_time(self.dt_in, time_units="days")
 
 
 class Test_datetime_constraint(Test_common_functions):
@@ -310,7 +349,6 @@ class Test_datetime_constraint(Test_common_functions):
 class Test_extract_cube_at_time(Test_common_functions):
     """
     Test wrapper for iris cube extraction at desired times.
-
     """
 
     def test_valid_time(self):
@@ -348,14 +386,12 @@ class Test_extract_cube_at_time(Test_common_functions):
 class Test_set_utc_offset(IrisTest):
     """
     Test setting of UTC_offsets with longitudes using crude 15 degree bins.
-
     """
 
     def test_output(self):
         """
         Test full span of crude timezones from UTC-12 to UTC+12. Note the
         degeneracy at +-180.
-
         """
         longitudes = np.arange(-180, 185, 15)
         expected = np.arange(-12, 13, 1)
@@ -450,6 +486,71 @@ class Test_get_forecast_times(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             get_forecast_times(144, forecast_date=forecast_date,
                                forecast_time=6)
+
+
+class Test_extract_nearest_time_point(IrisTest):
+
+    """Test the extract_nearest_time_point function."""
+
+    def setUp(self):
+        """Set up a cube for the tests."""
+        cube = set_up_cube(num_time_points=2)
+        # The time points specified correspond to 2015-11-23 07:00:00
+        # and 2015-11-23 08:00:00, respectively.
+        self.cube = add_forecast_reference_time_and_forecast_period(
+            cube, time_point=[402295.0, 402296.0], fp_point=[4.0, 5.0])
+
+    def test_time_coord(self):
+        """Test that the nearest time point within the time coordinate is
+        extracted."""
+        expected = self.cube[:, 0, :, :]
+        time_point = datetime.datetime(2015, 11, 23, 6, 0)
+        result = extract_nearest_time_point(self.cube, time_point)
+        self.assertEqual(result, expected)
+
+    def test_time_coord_lower_case(self):
+        """Test that the nearest time point within the time coordinate is
+        extracted, when a time of 07:30 is requested."""
+        expected = self.cube[:, 0, :, :]
+        time_point = datetime.datetime(2015, 11, 23, 7, 30)
+        result = extract_nearest_time_point(self.cube, time_point)
+        self.assertEqual(result, expected)
+
+    def test_time_coord_upper_case(self):
+        """Test that the nearest time point within the time coordinate is
+        extracted, when a time of 07:31 is requested."""
+        expected = self.cube[:, 1, :, :]
+        time_point = datetime.datetime(2015, 11, 23, 7, 31)
+        result = extract_nearest_time_point(self.cube, time_point)
+        self.assertEqual(result, expected)
+
+    def test_forecast_reference_time_coord(self):
+        """Test that the nearest time point within the forecast_reference_time
+        coordinate is extracted."""
+        expected = self.cube
+        time_point = datetime.datetime(2015, 11, 23, 6, 0)
+        result = extract_nearest_time_point(
+            self.cube, time_point, time_name="forecast_reference_time")
+        self.assertEqual(result, expected)
+
+    def test_exception_using_allowed_dt_difference(self):
+        """Test that an exception is raised, if the time point is outside of
+        the allowed difference specified in seconds."""
+        time_point = datetime.datetime(2017, 11, 23, 6, 0)
+        msg = "is not available within the input cube"
+        with self.assertRaisesRegex(ValueError, msg):
+            extract_nearest_time_point(self.cube, time_point,
+                                       allowed_dt_difference=3600)
+
+    def test_time_name_exception(self):
+        """Test that an exception is raised, if an invalid time name
+        is specified."""
+        time_point = datetime.datetime(2017, 11, 23, 6, 0)
+        msg = ("The time_name must be either "
+               "'time' or 'forecast_reference_time'")
+        with self.assertRaisesRegex(ValueError, msg):
+            extract_nearest_time_point(self.cube, time_point,
+                                       time_name="forecast_period")
 
 
 # temporary utility - to be removed

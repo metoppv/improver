@@ -39,7 +39,7 @@ from iris.cube import Cube, CubeList
 from iris.coords import DimCoord
 from improver.utilities.temporal import (iris_time_to_datetime,
                                          datetime_constraint,
-                                         dt_to_utc_hours)
+                                         datetime_to_iris_time)
 
 
 class ExtractExtrema(object):
@@ -56,13 +56,11 @@ class ExtractExtrema(object):
             period (int (units: hours)):
                 Period in hours over which to calculate the extrema values,
                 e.g. 24 hours for maxima/minima in a whole day.
-
             start_hour (int (units: hours)):
                 Hour in local_time on the 24hr clock at which to start the
                 series of periods, e.g. period=12, start_hour=9 --> 09-21,
                 21-09, etc. The default hour of 0900 is chosen to align with
                 the NCM (national climate message) reporting period.
-
         """
         self.period = period
         self.start_hour = start_hour
@@ -84,7 +82,6 @@ class ExtractExtrema(object):
         Returns:
             period_cubes (iris.cube.CubeList):
                 CubeList of diagnostic extrema cubes.
-
         """
         # Change to 64 bit to avoid the 2038 problem with any time
         # manipulations on units in seconds since the epoch.
@@ -112,10 +109,10 @@ class ExtractExtrema(object):
             cube_over_period = local_tz_cube.extract(extrema_constraint)
             if cube_over_period is not None:
                 # Ensure time dimension of resulting cube reflects period.
-                mid_time = dt_to_utc_hours(period_start +
-                                           (period_end - period_start)/2)
-                bounds = [dt_to_utc_hours(period_start),
-                          dt_to_utc_hours(period_end)]
+                mid_time = datetime_to_iris_time(period_start +
+                                                 (period_end - period_start)/2)
+                bounds = [datetime_to_iris_time(period_start),
+                          datetime_to_iris_time(period_end)]
 
                 extremas = [['max', iris.analysis.MAX],
                             ['min', iris.analysis.MIN]]
@@ -143,9 +140,7 @@ def make_local_time_cube(cube):
       UTC Coord  :  12   13   14   15   16
       Data: Site 1  300  302  296  294  290 (UTC offset = -2)
             Site 2  280  282  283  280  279 (UTC offset = +2)
-
     Data redistributed according to UTC offset to sit on local time::
-
       Local times:  10   11   12   13   14   15   16   17   18
       Data: Site 1  300  302  296  294  290  -    -    -    -
             Site 2  -    -    -    -    280  282  283  280  279
@@ -240,7 +235,6 @@ def get_datetime_limits(time_coord, start_hour):
     Args:
         time_coord (iris.coords.DimCoord):
             An iris time coordinate from which to extract the date limits.
-
         start_hour (int):
             The hour on a 24hr clock at which to set the returned times.
 
@@ -249,7 +243,6 @@ def get_datetime_limits(time_coord, start_hour):
             **start_time** (datetime.datetime object):
                 First day on a time coordinate, with the time set to the hour
                 given by start hour
-
             **end_time** (datetime.datetime object):
                 Last day on a time coordinate, with the time set to the hour
                 given by start hour
