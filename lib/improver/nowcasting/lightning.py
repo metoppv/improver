@@ -85,6 +85,7 @@ class NowcastLightning(object):
 
         heavy:  prob(precip > 7mm/hr) >= 0.4 => min lightning prob 0.25 (LR2)
                 equiv radar refl 37dBZ
+
         intense:prob(precip > 35mm/hr) >= 0.2 => min lightning prob 1.0 (LR1)
                 equiv radar refl 48dBZ
 
@@ -236,7 +237,6 @@ class NowcastLightning(object):
                 Must have same other dimensions as cube.
 
         Keyword Args:
-
             prob_vii_cube (iris.cube.Cube):
                 Radar-derived vertically integrated ice content (VII).
                 Must have same x and y dimensions as cube.
@@ -452,7 +452,6 @@ class NowcastLightning(object):
                     * (optional) Analysis of vertically integrated ice (VII)
                       from radar thresholded into probability slices
                       at self.ice_thresholds.
-
 
         Returns:
             new_cube (iris.cube.Cube):

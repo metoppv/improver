@@ -274,6 +274,14 @@ class Test_datetime_to_iris_time(IrisTest):
         self.assertIsInstance(result, float)
         self.assertEqual(result, expected)
 
+    def test_minutes(self):
+        """Test datetime_to_iris_time returns float with expected value
+        in minutes"""
+        result = datetime_to_iris_time(self.dt_in, time_units="minutes")
+        expected = 24788520.0
+        self.assertIsInstance(result, float)
+        self.assertEqual(result, expected)
+
     def test_seconds(self):
         """Test datetime_to_iris_time returns float with expected value
         in seconds"""
@@ -341,7 +349,6 @@ class Test_datetime_constraint(Test_common_functions):
 class Test_extract_cube_at_time(Test_common_functions):
     """
     Test wrapper for iris cube extraction at desired times.
-
     """
 
     def test_valid_time(self):
@@ -379,14 +386,12 @@ class Test_extract_cube_at_time(Test_common_functions):
 class Test_set_utc_offset(IrisTest):
     """
     Test setting of UTC_offsets with longitudes using crude 15 degree bins.
-
     """
 
     def test_output(self):
         """
         Test full span of crude timezones from UTC-12 to UTC+12. Note the
         degeneracy at +-180.
-
         """
         longitudes = np.arange(-180, 185, 15)
         expected = np.arange(-12, 13, 1)
@@ -490,6 +495,8 @@ class Test_extract_nearest_time_point(IrisTest):
     def setUp(self):
         """Set up a cube for the tests."""
         cube = set_up_cube(num_time_points=2)
+        # The time points specified correspond to 2015-11-23 07:00:00
+        # and 2015-11-23 08:00:00, respectively.
         self.cube = add_forecast_reference_time_and_forecast_period(
             cube, time_point=[402295.0, 402296.0], fp_point=[4.0, 5.0])
 
@@ -498,6 +505,22 @@ class Test_extract_nearest_time_point(IrisTest):
         extracted."""
         expected = self.cube[:, 0, :, :]
         time_point = datetime.datetime(2015, 11, 23, 6, 0)
+        result = extract_nearest_time_point(self.cube, time_point)
+        self.assertEqual(result, expected)
+
+    def test_time_coord_lower_case(self):
+        """Test that the nearest time point within the time coordinate is
+        extracted, when a time of 07:30 is requested."""
+        expected = self.cube[:, 0, :, :]
+        time_point = datetime.datetime(2015, 11, 23, 7, 30)
+        result = extract_nearest_time_point(self.cube, time_point)
+        self.assertEqual(result, expected)
+
+    def test_time_coord_upper_case(self):
+        """Test that the nearest time point within the time coordinate is
+        extracted, when a time of 07:31 is requested."""
+        expected = self.cube[:, 1, :, :]
+        time_point = datetime.datetime(2015, 11, 23, 7, 31)
         result = extract_nearest_time_point(self.cube, time_point)
         self.assertEqual(result, expected)
 
@@ -510,14 +533,24 @@ class Test_extract_nearest_time_point(IrisTest):
             self.cube, time_point, time_name="forecast_reference_time")
         self.assertEqual(result, expected)
 
-    def test_exception_raised(self):
-        """Test that an exception raised, if the time point is outside of
+    def test_exception_using_allowed_dt_difference(self):
+        """Test that an exception is raised, if the time point is outside of
         the allowed difference specified in seconds."""
         time_point = datetime.datetime(2017, 11, 23, 6, 0)
         msg = "is not available within the input cube"
         with self.assertRaisesRegex(ValueError, msg):
             extract_nearest_time_point(self.cube, time_point,
                                        allowed_dt_difference=3600)
+
+    def test_time_name_exception(self):
+        """Test that an exception is raised, if an invalid time name
+        is specified."""
+        time_point = datetime.datetime(2017, 11, 23, 6, 0)
+        msg = ("The time_name must be either "
+               "'time' or 'forecast_reference_time'")
+        with self.assertRaisesRegex(ValueError, msg):
+            extract_nearest_time_point(self.cube, time_point,
+                                       time_name="forecast_period")
 
 
 # temporary utility - to be removed
