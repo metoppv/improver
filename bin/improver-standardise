@@ -76,8 +76,9 @@ def main():
     regrid_group.add_argument(
         "--target_grid_filepath", metavar="TARGET_GRID",
         help=('If specified then regridding of the source '
-              'against the target grid is enabled. If also using landmask-aware'
-              ' regridding, then this must be land_binary_mask data.'))
+              'against the target grid is enabled. If also using '
+              'landmask-aware regridding, then this must be land_binary_mask '
+              'data.'))
 
     regrid_group.add_argument(
         "--nearest", action='store_true', default=False,
