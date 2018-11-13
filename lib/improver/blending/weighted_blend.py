@@ -321,20 +321,19 @@ class PercentileBlendingAggregator:
 
         Args:
             perc_values (np.array):
-                    Array containing the percentile values to blend, with
-                    shape: (length of coord to blend, num of percentiles)
+                Array containing the percentile values to blend, with
+                shape: (length of coord to blend, num of percentiles)
             percentiles (np.array):
-                    Array of percentile values e.g
-                    [0, 20.0, 50.0, 70.0, 100.0],
-                    same size as the percentile dimension of data.
+                Array of percentile values e.g [0, 20.0, 50.0, 70.0, 100.0],
+                same size as the percentile dimension of data.
             weights (np.array):
-                    Array of weights, same size as the axis dimension of data,
-                    that we will blend over.
+                Array of weights, same size as the axis dimension of data,
+                that we will blend over.
 
         Returns:
-            result (np.array):
-                    containing the weighted percentile blend data
-                    across the chosen coord
+            new_combined_perc (np.array):
+                Array containing the weighted percentile blend data
+                across the chosen coord
         """
         # Find the size of the dimension we want to blend over.
         num = perc_values.shape[0]
@@ -403,18 +402,16 @@ class MaxProbabilityAggregator:
 
         Args:
             data (np.array):
-                   Array containing the data to blend
+                Array containing the data to blend
             axis (int):
-                   The index of the coordinate dimension in the cube. This
-                   dimension will be aggregated over.
+                The index of the coordinate dimension in the cube. This
+                dimension will be aggregated over.
             arr_weights (np.array):
-                   Array of weights, same size as the axis dimension of data.
-
-
+                Array of weights, same size as the axis dimension of data.
         Returns:
             result (np.array):
-                     The data collapsed along the axis dimension, containing
-                     the maximum weighted probability.
+                The data collapsed along the axis dimension, containing the
+                maximum weighted probability.
         """
         # Iris aggregators support indexing from the end of the array.
         if axis < 0:
@@ -497,8 +494,8 @@ class WeightedBlendAcrossWholeDimension:
                 The cube to be checked for a percentile coordinate.
         Returns:
             None or perc_coord (iris.coords.DimCoord):
-            None if no percentile dimension coordinate is found. If
-            such a coordinate is found it is returned.
+                None if no percentile dimension coordinate is found. If
+                such a coordinate is found it is returned.
         Raises:
             ValueError : If there is a percentile coord and it is not a
                 dimension coord in the cube.
@@ -561,10 +558,8 @@ class WeightedBlendAcrossWholeDimension:
             weights (iris.cube.Cube):
                 Cube of blending weights.
         Returns:
-            None or weights_array (np.array):
-                None if no weights cube is provided.
+            weights_array (np.array):
                 An array of weights that matches the cube data shape.
-
         Raises:
             ValueError: If weights cube shape is not broadcastable to the data
                         cube shape.
@@ -611,9 +606,12 @@ class WeightedBlendAcrossWholeDimension:
     def non_percentile_weights(self, cube, weights, custom_aggregator=False):
         """
         Given a 1 or multidimensional cube of weights, reshape and broadcast
-        these in such a way as to make them applicable to the data cube. The
-        output of this function is different depending upon the method being
-        used to blend the data.
+        these in such a way as to make them applicable to the data cube. If no
+        weights are provided, an array of weights is returned that equally
+        weights all slices across the blending coordinate of the cube.
+
+        The output of this function is different depending upon the method
+        being used to blend the data.
 
         weighted_mean:
             reshape and broadcast to match data shape.
@@ -628,8 +626,7 @@ class WeightedBlendAcrossWholeDimension:
             weights (iris.cube.Cube):
                 Cube of blending weights.
         Returns:
-            None or weights_array (np.array):
-                None if no weights cube is provided.
+            weights_array (np.array):
                 An array of weights that matches the cube data shape.
         """
         weights_array = None
@@ -658,7 +655,10 @@ class WeightedBlendAcrossWholeDimension:
     def percentile_weights(self, cube, weights, perc_coord):
         """
         Given a 1, or multidimensional cube of weights, reshape and broadcast
-        these in such a way as to make them applicable to the data cube.
+        these in such a way as to make them applicable to the data cube. If no
+        weights are provided, an array of weights is returned that equally
+        weights all slices across the blending coordinate of the cube.
+
         For percentiles the dimensionality of the weights cube is checked
         against the cube without the including the percentile coordinate for
         which no weights are likely to ever be provided (e.g. we don't want to
@@ -673,8 +673,7 @@ class WeightedBlendAcrossWholeDimension:
             weights (iris.cube.Cube):
                 Cube of blending weights.
         Returns:
-            None or weights_array (np.array):
-                None if no weights cube is provided.
+            weights_array (np.array):
                 An array of weights that matches the cube data shape.
         """
         if weights is None:
@@ -725,7 +724,7 @@ class WeightedBlendAcrossWholeDimension:
             perc_coord (iris.coords.DimCoord):
                 The percentile coordinate for this cube.
         Returns:
-            new_cube (iris.cube.Cube):
+            cube_new (iris.cube.Cube):
                 The cube with percentile values blended over self.coord,
                 with suitable weightings applied.
         """
@@ -774,7 +773,7 @@ class WeightedBlendAcrossWholeDimension:
             weights (iris.cube.Cube):
                 Cube of blending weights.
         Returns:
-            new_cube (iris.cube.Cube):
+            cube_new (iris.cube.Cube):
                 The cube with values blended over self.coord, with suitable
                 weightings applied.
         """
@@ -808,7 +807,7 @@ class WeightedBlendAcrossWholeDimension:
             weights (iris.cube.Cube):
                 Cube of blending weights.
         Returns:
-            new_cube (iris.cube.Cube):
+            cube_new (iris.cube.Cube):
                 The cube with values blended over self.coord, with suitable
                 weightings applied.
         """
@@ -844,7 +843,8 @@ class WeightedBlendAcrossWholeDimension:
                 containing the weighted blend across the chosen coord.
         Raises:
             TypeError : If the first argument not a cube.
-            ValueError : If coordinate to be collapsed not found in cube.
+            CoordinateNotFoundError : If coordinate to be collapsed not found
+                                      in cube.
             ValueError : If coordinate to be collapsed is not a dimension.
         """
         if not isinstance(cube, iris.cube.Cube):
