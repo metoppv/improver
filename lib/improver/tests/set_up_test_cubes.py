@@ -29,7 +29,9 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Functions to set up cubes for unit tests
+Functions to set up variable, multi-realization, percentile and probability
+cubes for unit tests.  Standardises time units and spatial coordinates,
+including coordinate order expected by IMPROVER plugins.
 """
 
 from cf_units import Unit, date2num
@@ -96,9 +98,14 @@ def construct_scalar_time_coords(time, frt):
     time_point_seconds = (
         date2num(time, TIME_UNIT, CALENDAR) if time is not None else
         date2num(datetime(2017, 11, 10, 4, 0), TIME_UNIT, CALENDAR))
+    time_point_seconds = np.round(time_point_seconds).astype(np.int64)
     frt_point_seconds = (
         date2num(frt, TIME_UNIT, CALENDAR) if frt is not None else
         date2num(datetime(2017, 11, 10, 0, 0), TIME_UNIT, CALENDAR))
+    frt_point_seconds = np.round(frt_point_seconds).astype(np.int64)
+
+    if time_point_seconds < frt_point_seconds:
+        raise ValueError('Cannot set up cube with negative forecast period')
     fp_point_seconds = time_point_seconds - frt_point_seconds
 
     time_coord = DimCoord(time_point_seconds, "time", units=TIME_UNIT)
@@ -170,7 +177,7 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
             'Expected 2 or 3 dimensions on input data: got {}'.format(ndims))
 
     # construct list of aux_coords_and_dims
-    scalar_coords = construct_scalar_time_coords(time, frt, fp)
+    scalar_coords = construct_scalar_time_coords(time, frt)
     if include_scalar_coords is not None:
         for coord in include_scalar_coords:
             scalar_coords.append((coord, None))
@@ -349,7 +356,7 @@ def set_up_cube_list(data, name='air_temperature', units='K',
 
     Returns:
         iris.cube.Cube or iris.cube.CubeList
-    """    
+    """
     # TODO check not more than one of "percentiles", "realizations" or
     # "thresholds" is set
 
@@ -385,13 +392,12 @@ def set_up_cube_list(data, name='air_temperature', units='K',
         # TODO
         pass
 
-
     else:
         # set up a list of variable cubes, with or without realizations
         if new_axis == "forecast_reference_time":
             for frt, data_slice in zip(frt_points, data):
                 cube = set_up_variable_cube(
-                    data_slice, name=name, units=units, 
+                    data_slice, name=name, units=units,
                     spatial_grid=spatial_grid, time=time, frt=frt,
                     realizations=realizations, attributes=attributes,
                     include_scalar_coords=include_scalar_coords)
@@ -403,17 +409,15 @@ def set_up_cube_list(data, name='air_temperature', units='K',
                 scalar_coords = include_scalar_coords
                 scalar_coords.append(new_scalar_coord)
                 cube = set_up_variable_cube(
-                    data_slice, name=name, units=units, 
+                    data_slice, name=name, units=units,
                     spatial_grid=spatial_grid, time=time, frt=frt_points,
                     realizations=realizations, attributes=attributes,
                     include_scalar_coords=scalar_coords)
                 cube_list.append(cube)
-                
+
     # merge outputs if required
     output = iris.cube.CubeList(cube_list)
     if merge:
         output = output.merge_cube()
 
     return output
-
-
