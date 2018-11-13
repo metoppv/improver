@@ -59,6 +59,10 @@ class ApplyOrographicEnhancement(object):
             ValueError: Operation not supported.
 
         """
+        # A minimum precipitation rate in mm/h that will be used as a lower
+        # precipitation rate threshold.
+        self.min_precip_rate_mmh = 1/32.
+
         possible_operations = ['+', 'add', '-', 'subtract']
 
         if operation in possible_operations:
@@ -75,8 +79,8 @@ class ApplyOrographicEnhancement(object):
         return result.format(self.operation)
 
     @staticmethod
-    def _extract_orographic_enhancement_cube(precip_cube, oe_cubes):
-        """Extract the orographic enhancement cube with the required time
+    def _select_orographic_enhancement_cube(precip_cube, oe_cubes):
+        """Select the orographic enhancement cube with the required time
         coordinate.
 
         Args:
@@ -91,11 +95,11 @@ class ApplyOrographicEnhancement(object):
                 required time.
 
         """
-        time_point, = iris_time_to_datetime(precip_cube.coord("time"))
+        time_point, = iris_time_to_datetime(precip_cube.coord("time").copy())
         oe_cube = extract_nearest_time_point(oe_cubes, time_point)
         return oe_cube
 
-    def _apply_cube_combiner(self, precip_cube, oe_cube):
+    def _apply_orographic_enhancement(self, precip_cube, oe_cube):
         """Combine the precipitation rate cube and the orographic enhancement
         cube.
 
@@ -103,7 +107,8 @@ class ApplyOrographicEnhancement(object):
             precip_cube (iris.cube.Cube):
                 Cube containing the input precipitation field.
             oe_cube (iris.cube.Cube):
-                Cube containing the orographic enhancement field.
+                Cube containing the orographic enhancement field matching
+                the validity time of the precipitation cube.
 
         Returns:
             cube (iris.cube.Cube):
@@ -123,7 +128,8 @@ class ApplyOrographicEnhancement(object):
         # precipitation rate of < 1/32 mm/hr.
         original_units = Unit("mm/hr")
         threshold_in_cube_units = (
-            original_units.convert(1/32., precip_cube.units))
+            original_units.convert(self.min_precip_rate_mmh,
+                                   precip_cube.units))
         oe_cube.data[precip_cube.data < threshold_in_cube_units] = 0.
 
         # Use CubeCombiner to combine the cubes.
@@ -132,16 +138,15 @@ class ApplyOrographicEnhancement(object):
             temp_cubelist, precip_cube.name())
         return cube
 
-    @staticmethod
-    def apply_minimum_precip_rate(cube, tolerance=-1e-9):
+    def _apply_minimum_precip_rate(self, precip_cube, cube):
         """Ensure that negative precipitation rates are capped at +1/32 mm/hr.
 
         Args:
+            precip_cube (iris.cube.Cube):
+                Cube containing a precipitation rate input field.
             cube (iris.cube.Cube):
-                Cube containing a precipitation rate field.
-            tolerance (float):
-                Value to indicate the tolerance in m/s for floating point
-                values below 0.
+                Cube containing the precipitation rate field after combining
+                with orographic enhancement.
 
         Returns:
             cube (iris.cube.Cube):
@@ -149,15 +154,25 @@ class ApplyOrographicEnhancement(object):
                 negative precipitation rates have been capped at +1/32 mm/hr.
 
         """
-        original_units = Unit("mm/hr")
-        # Ignore invalid warnings generated if e.g. a NaN is encountered
-        # within the less than (<) comparison.
-        with np.errstate(invalid='ignore'):
-            # Set any values lower than the tolerance to be 1/32 mm/hr.
-            cube.data[cube.data < tolerance] = (
-                original_units.convert(1/32., cube.units))
-            # Set any values between zero and the tolerance to be zero.
-            cube.data[cube.data < 0] = 0.
+        if self.operation == "subtract":
+            original_units = Unit("mm/hr")
+            threshold_in_cube_units = (
+                original_units.convert(self.min_precip_rate_mmh,
+                                       cube.units))
+
+            # Ignore invalid warnings generated if e.g. a NaN is encountered
+            # within the less than (<) comparison.
+            with np.errstate(invalid='ignore'):
+                # Create a mask computed from where the input precipitation
+                # cube is greater or equal to the threshold and the result
+                # of combining the precipitation rate input cube with the
+                # orographic enhancement has generated a cube with
+                # precipitation rates less than the threshold.
+                mask = ((precip_cube.data >= threshold_in_cube_units) &
+                        (cube.data <= threshold_in_cube_units))
+
+                # Set any values lower than the tolerance to be 1/32 mm/hr.
+                cube.data[mask] = threshold_in_cube_units
         return cube
 
     def process(self, precip_cubes, orographic_enhancement_cubes):
@@ -168,7 +183,7 @@ class ApplyOrographicEnhancement(object):
         Args:
             precip_cubes (iris.cube.Cube or iris.cube.CubeList):
                 Cube or CubeList containing the input precipitation fields.
-            orographic_enhancemlent_cubes (iris.cube.Cube or
+            orographic_enhancement_cubes (iris.cube.Cube or
                                           iris.cube.CubeList):
                 Cube or CubeList containing the orographic enhancement fields.
 
@@ -188,9 +203,9 @@ class ApplyOrographicEnhancement(object):
 
         updated_cubes = iris.cube.CubeList([])
         for precip_cube in precip_cubes:
-            oe_cube = self._extract_orographic_enhancement_cube(
+            oe_cube = self._select_orographic_enhancement_cube(
                 precip_cube, orographic_enhancement_cube.copy())
-            cube = self._apply_cube_combiner(precip_cube, oe_cube)
-            cube = self.apply_minimum_precip_rate(cube)
+            cube = self._apply_orographic_enhancement(precip_cube, oe_cube)
+            cube = self._apply_minimum_precip_rate(precip_cube, cube)
             updated_cubes.append(cube)
         return updated_cubes
