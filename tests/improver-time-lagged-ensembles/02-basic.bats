@@ -33,16 +33,16 @@
 
 @test "time-lagged-ensembles" {
   improver_check_skip_acceptance
-  KGO="1300_validity/kgo.nc"
+  KGO="time-lagged-ens/same_validity/kgo.nc"
 
   # Run time-lagged-ensemble processing and check it passes.
   run improver time-lagged-ensembles \
-      "$IMPROVER_ACC_TEST_DIR/1300_validity/20180924T1300Z-PT0005H00M-temperature_at_surface.nc" \
-      "$IMPROVER_ACC_TEST_DIR/1300_validity/20180924T1300Z-PT0006H00M-temperature_at_surface.nc" \
-      "$IMPROVER_ACC_TEST_DIR/1300_validity/20180924T1300Z-PT0007H00M-temperature_at_surface.nc" \
-      "$IMPROVER_ACC_TEST_DIR/1300_validity/20180924T1300Z-PT0008H00M-temperature_at_surface.nc" \
-      "$IMPROVER_ACC_TEST_DIR/1300_validity/20180924T1300Z-PT0009H00M-temperature_at_surface.nc" \
-      "$IMPROVER_ACC_TEST_DIR/1300_validity/20180924T1300Z-PT0010H00M-temperature_at_surface.nc" \
+      "$IMPROVER_ACC_TEST_DIR/time-lagged-ens/same_validity/20180924T1300Z-PT0005H00M-temperature_at_surface.nc" \
+      "$IMPROVER_ACC_TEST_DIR/time-lagged-ens/same_validity/20180924T1300Z-PT0006H00M-temperature_at_surface.nc" \
+      "$IMPROVER_ACC_TEST_DIR/time-lagged-ens/same_validity/20180924T1300Z-PT0007H00M-temperature_at_surface.nc" \
+      "$IMPROVER_ACC_TEST_DIR/time-lagged-ens/same_validity/20180924T1300Z-PT0008H00M-temperature_at_surface.nc" \
+      "$IMPROVER_ACC_TEST_DIR/time-lagged-ens/same_validity/20180924T1300Z-PT0009H00M-temperature_at_surface.nc" \
+      "$IMPROVER_ACC_TEST_DIR/time-lagged-ens/same_validity/20180924T1300Z-PT0010H00M-temperature_at_surface.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

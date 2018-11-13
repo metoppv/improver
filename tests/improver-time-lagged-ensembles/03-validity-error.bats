@@ -36,8 +36,8 @@
 
   # Run with different validity times and check it fails.
   run improver time-lagged-ensembles \
-      "$IMPROVER_ACC_TEST_DIR/mixed_validity/20180924T1300Z-PT0001H00M-temperature_at_surface.nc" \
-      "$IMPROVER_ACC_TEST_DIR/mixed_validity/20180924T1900Z-PT0006H00M-temperature_at_surface.nc" \
+      "$IMPROVER_ACC_TEST_DIR/time-lagged-ens/mixed_validity/20180924T1300Z-PT0001H00M-temperature_at_surface.nc" \
+      "$IMPROVER_ACC_TEST_DIR/time-lagged-ens/mixed_validity/20180924T1900Z-PT0006H00M-temperature_at_surface.nc" \
       "NO_OUTPUT_FILE"
   echo "status = ${status}"
   [[ "$status" -eq 1 ]]
