@@ -39,10 +39,10 @@
       "$IMPROVER_ACC_TEST_DIR/standardise/regrid-basic/global_cutout.nc" \
       --target_grid_filepath "$IMPROVER_ACC_TEST_DIR/standardise/regrid-basic/ukvx_grid.nc" \
       --input_landmask_filepath "$IMPROVER_ACC_TEST_DIR/standardise/regrid-landmask/glm_landmask.nc" \
-      --output_filepath "$TEST_DIR/output.nc" --nearest
+      --output_filepath "$TEST_DIR/output.nc" --regrid_mode="nearest-with-mask"
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__TEXT__' || true
-Expected land_binary_mask in input_landmask_filepath
+UserWarning: Expected land_binary_mask in target_grid_filepath
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 

@@ -35,18 +35,19 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver-standardise [-h] [--profile] [--profile_file PROFILE_FILE]
                             [--output_filepath OUTPUT_FILE]
-                            [--target_grid_filepath TARGET_GRID] [--nearest]
+                            [--target_grid_filepath TARGET_GRID]
+                            [--regrid_mode {bilinear,nearest,nearest-with-mask}]
                             [--extrapolation_mode EXTRAPOLATION_MODE]
                             [--input_landmask_filepath INPUT_LANDMASK_FILE]
                             [--landmask_vicinity LANDMASK_VICINITY]
                             [--fix_float64] [--json_file JSON_FILE]
                             SOURCE_DATA
 
-Standardise a source data cube. Three main options are available; checking and
-optionally fixing float64 data, regridding and updating metadata. If
-regridding then additional options are available to specify Iris nearest and
-extrapolation modes. If only a source file is specified with no other
-arguments, then an exception will be raised if float64 data is found on the
+Standardise a source data cube. Three main options are available; fixing
+float64 data, regridding and updating metadata. If regridding then additional
+options are available to use bilinear or nearest-neighbour (optionally with
+land-mask awareness) modes. If only a source file is specified with no other
+arguments, then an exception will be raised if float64 data are found on the
 source.
 
 positional arguments:
@@ -76,12 +77,17 @@ Regridding options:
                         If specified then regridding of the source against the
                         target grid is enabled. If also using landmask-aware
                         regridding, then this must be land_binary_mask data.
-  --nearest             If True, regridding will be performed using
-                        iris.analysis.Nearest() instead of Linear(). Use for
-                        less continuous fields, e.g. precipitation.
+  --regrid_mode {bilinear,nearest,nearest-with-mask}
+                        Selects which regridding technique to use. Default
+                        uses iris.analysis.Linear(); "nearest" uses Nearest()
+                        (Use for less continuous fields, e.g. precipitation.);
+                        "nearest-with-mask" ensures that target data are
+                        sourced from points with the same mask value (Use for
+                        coast-line-dependent variables like temperature).
   --extrapolation_mode EXTRAPOLATION_MODE
                         Mode to use for extrapolating data into regions beyond
-                        the limits of the source_data domain. Modes are:
+                        the limits of the source_data domain. Refer to online
+                        documentation for iris.analysis. Modes are:
                         extrapolate - The extrapolation points will take their
                         value from the nearest source point. nan - The
                         extrapolation points will be be set to NaN. error - A

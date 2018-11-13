@@ -45,20 +45,21 @@ from improver.utilities.spatial import RegridLandSea
 
 
 def main():
-    """Standardise a source cube. Standardisation options include regridding
-    (with options to fix float64 data, use Iris nearest and extrapolate
-    modes and update metadata. Standalone options included checking/fixing
-    float64 data and updating metadata. A check for float64 data compliance
-    can be made by only specify a source NetCDF file with no
-    other arguments."""
+    """
+    Standardise a source cube. Available options are regridding (bilinear or
+    nearest-neighbour, optionally with land-mask awareness), updating meta-data
+    and converting float64 data to float32. A check for float64 data compliance
+    can be made by only specify a source NetCDF file with no other arguments.
+    """
     parser = ArgParser(
         description='Standardise a source data cube. Three main options are '
-                    'available; checking and optionally fixing float64 data, '
-                    'regridding and updating metadata. If regridding then '
-                    'additional options are available to specify Iris nearest '
-                    'and extrapolation modes. If only a source file is '
-                    'specified with no other arguments, then an exception '
-                    'will be raised if float64 data is found on the source.')
+                    'available; fixing float64 data, regridding and updating '
+                    'metadata. If regridding then additional options are '
+                    'available to use bilinear or nearest-neighbour '
+                    '(optionally with land-mask awareness) modes. If only a '
+                    'source file is specified with no other arguments, then '
+                    'an exception will be raised if float64 data are found on '
+                    'the source.')
 
     parser.add_argument('source_data_filepath', metavar='SOURCE_DATA',
                         help='A cube of data that is to be standardised and '
@@ -81,16 +82,20 @@ def main():
               'data.'))
 
     regrid_group.add_argument(
-        "--nearest", action='store_true', default=False,
-        help='If True, regridding will be performed using '
-             'iris.analysis.Nearest() instead of Linear(). '
-             'Use for less continuous fields, '
-             'e.g. precipitation.')
+        "--regrid_mode", default='bilinear',
+        choices=['bilinear', 'nearest', 'nearest-with-mask'],
+        help=('Selects which regridding technique to use. Default uses '
+              'iris.analysis.Linear(); "nearest" uses Nearest() (Use for less '
+              'continuous fields, e.g. precipitation.); "nearest-with-mask" '
+              'ensures that target data are sourced from points with the same '
+              'mask value (Use for coast-line-dependent variables like '
+              'temperature).'))
 
     regrid_group.add_argument(
         "--extrapolation_mode", default='nanmask',
         help='Mode to use for extrapolating data into regions '
              'beyond the limits of the source_data domain. '
+             'Refer to online documentation for iris.analysis. '
              'Modes are: '
              'extrapolate - The extrapolation points will '
              'take their value from the nearest source point. '
@@ -129,6 +134,23 @@ def main():
 
     args = parser.parse_args()
 
+    if args.target_grid_filepath or args.json_file or args.fix_float64:
+        if not args.output_filepath:
+            msg = ("An argument has been specified that requires an output "
+                   "filepath but none has been provided")
+            raise ValueError(msg)
+
+    if (args.input_landmask_filepath and 
+        "nearest-with-mask" not in args.regrid_mode):
+        msg = ("Land-mask file supplied without appropriate regrid_mode. "
+               "Use --regrid_mode=nearest-with-mask.")
+        raise ValueError(msg)
+
+    if args.input_landmask_filepath and not args.target_grid_filepath:
+        msg = ("Cannot specify input_landmask_filepath without "
+               "target_grid_filepath")
+        raise ValueError(msg)
+
     # source file data path is a mandatory argument
     output_data = load_cube(args.source_data_filepath)
 
@@ -136,22 +158,6 @@ def main():
         check_cube_not_float64(output_data, fix=True)
     else:
         check_cube_not_float64(output_data, fix=False)
-
-    if args.target_grid_filepath or args.json_file or args.fix_float64:
-        if not args.output_filepath:
-            msg = ("An argument has been specified that requires an output "
-                   "filepath but none has been provided")
-            raise ValueError(msg)
-
-    if args.input_landmask_filepath and not args.target_grid_filepath:
-        msg = ("Cannot specify input_landmask_filepath without "
-               "target_grid_filepath")
-        raise ValueError(msg)
-
-    if args.input_landmask_filepath and not args.nearest:
-        msg = ("Land-mask-aware regridding is only configured for use "
-               "with nearest-neighbour regridding. Add --nearest flag.")
-        raise ValueError(msg)
 
     # Re-grid with options:
     # if a target grid file has been specified, then regrid optionally
@@ -165,13 +171,13 @@ def main():
         regridder = iris.analysis.Linear(
             extrapolation_mode=args.extrapolation_mode)
 
-        if args.nearest:
+        if args.regrid_mode in ["nearest", "nearest-with-mask"]:
             regridder = iris.analysis.Nearest(
                 extrapolation_mode=args.extrapolation_mode)
 
         output_data = output_data.regrid(target_grid, regridder)
 
-        if args.input_landmask_filepath:
+        if args.regrid_mode in ["nearest-with-mask"]:
             source_landsea = load_cube(args.input_landmask_filepath)
             if "land_binary_mask" not in source_landsea.name():
                 msg = ("Expected land_binary_mask in input_landmask_filepath "
