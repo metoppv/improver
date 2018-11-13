@@ -43,6 +43,8 @@ import numpy as np
 from improver.blending.weights import WeightsUtilities
 from improver.tests.blending.weights.helper_functions import (
     set_up_precipitation_cube)
+from improver.tests.utilities.test_cube_metadata import (
+    create_cube_with_threshold)
 
 
 class Test__repr__(IrisTest):
@@ -265,6 +267,59 @@ class Test_process_coord(IrisTest):
              self.cube, self.coordinate, exp_coord_vals)
         self.assertAlmostEqual(result_num_of_weights, expected_num)
         self.assertArrayAlmostEqual(result_missing, expected_array)
+
+
+class Test_build_weights_cube(IrisTest):
+    """Test the build_weights_cube function. """
+
+    def setUp(self):
+        """Setup for testing cube creation."""
+        self.cube = create_cube_with_threshold()
+
+    def test_basic_weights(self):
+        """Test building a cube with weights along the blending coordinate."""
+
+        weights = np.array([0.4, 0.6])
+        blending_coord = 'time'
+
+        plugin = WeightsUtilities.build_weights_cube
+        result = plugin(self.cube, weights, blending_coord)
+
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertEqual(result.name(), 'weights')
+        self.assertFalse(result.attributes)
+        self.assertArrayEqual(result.data, weights)
+        self.assertEqual(result.coords(dim_coords=True)[0].name(),
+                         blending_coord)
+
+    def test_weights_scalar_coord(self):
+        """Test building a cube of weights where the blending coordinate is a
+        scalar."""
+
+        weights = [1.0]
+        blending_coord = 'threshold'
+        cube = iris.util.squeeze(self.cube)
+
+        plugin = WeightsUtilities.build_weights_cube
+        result = plugin(cube, weights, blending_coord)
+
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertEqual(result.name(), 'weights')
+        self.assertFalse(result.attributes)
+        self.assertArrayEqual(result.data, weights)
+        self.assertEqual(result.coords(dim_coords=True)[0].name(),
+                         blending_coord)
+
+    def test_incompatible_weights(self):
+        """Test building a cube with weights that do not match the length of
+        the blending coordinate."""
+
+        weights = np.array([0.4, 0.4, 0.2])
+        blending_coord = 'time'
+
+        plugin = WeightsUtilities.build_weights_cube
+        with self.assertRaises(ValueError):
+            plugin(self.cube, weights, blending_coord)
 
 
 if __name__ == '__main__':

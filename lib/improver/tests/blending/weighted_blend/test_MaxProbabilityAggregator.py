@@ -55,10 +55,13 @@ class Test_aggregate(IrisTest):
     def test_basic(self):
         """Test a simple case with only ones"""
         data = np.ones((1, 1, 2, 1))
+        print('data', data)
         axis = 2
         weights = np.array([0, 1])
         plugin = MaxProbabilityAggregator
         result = plugin.aggregate(data, axis, weights)
+        print('Result', result)
+        print('Result', result.shape)
         self.assertEqual(result.shape, (1, 1, 1))
         self.assertArrayEqual(result, np.ones((1, 1, 1)))
 

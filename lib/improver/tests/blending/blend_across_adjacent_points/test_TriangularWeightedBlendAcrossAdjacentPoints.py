@@ -263,7 +263,7 @@ class Test_process(IrisTest):
         data = np.full((2, 2), fill_value)
 
         # Take a slice of the time coordinate.
-        expected_cube = self.cube[0].copy(data)
+        expected_cube = self.cube[0].copy(data.astype(np.float32))
 
         # Add threshold axis to expected output cube.
         changes = {'points': [0.5], 'units': '1'}

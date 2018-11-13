@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing classes for doing weighted blending by collapsing a
    whole dimension."""
-import warnings
 from cf_units import Unit
 
 import numpy as np
@@ -41,12 +40,10 @@ from iris.exceptions import CoordinateNotFoundError
 from improver.utilities.cube_manipulation import (
     add_renamed_cell_method, sort_coord_in_cube)
 from improver.utilities.cube_checker import find_percentile_coordinate
-from improver.utilities.cube_manipulation import (build_coordinate,
-                                                  enforce_coordinate_ordering)
+from improver.utilities.cube_manipulation import build_coordinate
 from improver.utilities.temporal import (
-    cycletime_to_datetime, cycletime_to_number, iris_time_to_datetime,
-    forecast_period_coord, unify_forecast_reference_time,
-    find_latest_cycletime)
+    cycletime_to_datetime, cycletime_to_number, forecast_period_coord,
+    unify_forecast_reference_time, find_latest_cycletime)
 
 
 def rationalise_blend_time_coords(
@@ -191,21 +188,21 @@ def conform_metadata(
             cube.attributes[key] = cube_orig.attributes[key]
 
     # remove appropriate scalar coordinates
-    for coord in ["model_id", "model_realization", "realization"]:
-        if cube.coords(coord) and cube.coord(coord).shape == (1,):
-            cube.remove_coord(coord)
+    for crd in ["model_id", "model_realization", "realization"]:
+        if cube.coords(crd) and cube.coord(crd).shape == (1,):
+            cube.remove_coord(crd)
 
     # remove bounds from specified scalar coordinates
     if coords_for_bounds_removal is not None:
-        for coord in cube.coords():
-            if coord.name() in coords_for_bounds_removal:
-                if coord.shape == (1,) and coord.has_bounds():
-                    coord.bounds = None
+        for crd in cube.coords():
+            if crd.name() in coords_for_bounds_removal:
+                if crd.shape == (1,) and crd.has_bounds():
+                    crd.bounds = None
 
     return cube
 
 
-class PercentileBlendingAggregator(object):
+class PercentileBlendingAggregator:
     """Class for the percentile blending aggregator
 
        This class implements the method described by Combining Probabilities
@@ -378,7 +375,7 @@ class PercentileBlendingAggregator(object):
         return new_combined_perc
 
 
-class MaxProbabilityAggregator(object):
+class MaxProbabilityAggregator:
     """Class for the Aggregator used to calculate the maximum weighted
        probability.
 
@@ -423,6 +420,14 @@ class MaxProbabilityAggregator(object):
         if axis < 0:
             axis += data.ndim
 
+        # Maintain old functionality, though weights passed in through the
+        # weighted blending plugin should always match.
+        if arr_weights.shape != data.shape:
+            # Reshape the weights to match the shape of the data.
+            shape = [len(arr_weights) if i == axis else 1
+                     for i in range(data.ndim)]
+            arr_weights = arr_weights.reshape(tuple(shape))
+
         # Calculate the weighted probabilities
         weighted_probs = data*arr_weights
         # Find the maximum along the axis of interest
@@ -430,7 +435,7 @@ class MaxProbabilityAggregator(object):
         return result
 
 
-class WeightedBlendAcrossWholeDimension(object):
+class WeightedBlendAcrossWholeDimension:
     """Apply a Weighted blend to a cube, collapsing across the whole
        dimension. Uses one of two methods, either weighted average, or
        the maximum of the weighted probabilities."""
@@ -577,7 +582,7 @@ class WeightedBlendAcrossWholeDimension(object):
             try:
                 weights_array = iris.util.broadcast_to_shape(
                     np.array(weights.data, dtype=np.float32),
-                    cube.shape, (0,))
+                    cube.shape, coord_dim_thres)
             except ValueError:
                 raise ValueError(msg)
 
@@ -585,8 +590,22 @@ class WeightedBlendAcrossWholeDimension(object):
 
     @staticmethod
     def check_weights(weights, blend_dim):
-        msg = ('Weights do not sum to 1 over the blending coordinate.')
-        if not (np.sum(weights, axis=blend_dim) == 1).all():
+        """
+        Checks that weights across the blending dimension sum up to 1.
+
+        Args:
+            weights (np.array):
+                Array of weights shaped to match the data cube.
+            blend_dim (integer):
+                The dimension in the weights array that is being collapsed.
+        Raises:
+            ValueError: Raised if the weights do not sum to 1 over the blending
+                        dimension.
+        """
+        sum_of_weights = np.sum(weights, axis=blend_dim)
+        msg = ('Weights do not sum to 1 over the blending coordinate. Max sum '
+               'of weights: {}'.format(sum_of_weights.max()))
+        if not (np.isclose(sum_of_weights, 1)).all():
             raise ValueError(msg)
 
     def non_percentile_weights(self, cube, weights, custom_aggregator=False):
@@ -636,7 +655,7 @@ class WeightedBlendAcrossWholeDimension(object):
 
         return weights_array.astype(np.float32)
 
-    def percentile_weights(self, cube, weights):
+    def percentile_weights(self, cube, weights, perc_coord):
         """
         Given a 1, or multidimensional cube of weights, reshape and broadcast
         these in such a way as to make them applicable to the data cube.
@@ -669,7 +688,7 @@ class WeightedBlendAcrossWholeDimension(object):
         # weights cube has been provided and use it directly. To this end we
         # need to compare the shape of the cube excluding the percentile dim.
         non_perc_crds = [crd.name() for crd in cube.coords(dim_coords=True)
-                         if not crd.name() == self.perc_coord.name()]
+                         if not crd.name() == perc_coord.name()]
         non_perc_slice = next(cube.slices(non_perc_crds))
 
         weights_array = self.shape_weights(non_perc_slice, weights)
@@ -678,7 +697,7 @@ class WeightedBlendAcrossWholeDimension(object):
         # which means broadcasting across the percentile dimension.
         crd_dims = [cube.coord_dims(crd)[0] for crd in non_perc_crds]
         blend_dim, = cube.coord_dims(self.coord)
-        perc_dim, = cube.coord_dims(self.perc_coord)
+        perc_dim, = cube.coord_dims(perc_coord)
 
         weights_array = iris.util.broadcast_to_shape(
             weights_array, cube.shape, tuple(crd_dims))
@@ -693,7 +712,6 @@ class WeightedBlendAcrossWholeDimension(object):
         self.check_weights(weights_array, 0)
 
         return weights_array.astype(np.float32)
-
 
     def percentile_weighted_mean(self, cube, weights, perc_coord):
         """
@@ -726,7 +744,7 @@ class WeightedBlendAcrossWholeDimension(object):
         if cube.coord_dims(self.coord)[0] < perc_dim:
             perc_dim -= 1
 
-        weights_array = self.percentile_weights(cube, weights)
+        weights_array = self.percentile_weights(cube, weights, perc_coord)
 
         # Set up aggregator
         PERCENTILE_BLEND = (Aggregator(
@@ -741,7 +759,6 @@ class WeightedBlendAcrossWholeDimension(object):
 
         # Ensure collapsed coordinates do not promote themselves
         # to float64.
-        # TODO Delete or modify this. Currently converting time to float.
         for coord in cube_new.coords():
             if coord.points.dtype == np.float64:
                 coord.points = coord.points.astype(np.float32)
@@ -808,7 +825,6 @@ class WeightedBlendAcrossWholeDimension(object):
         cube_new.data = cube_new.data.astype(np.float32)
         return cube_new
 
-
     def process(self, cube, weights=None):
         """Calculate weighted blend across the chosen coord, for either
            probabilistic or percentile data. If there is a percentile
@@ -832,9 +848,8 @@ class WeightedBlendAcrossWholeDimension(object):
             ValueError : If coordinate to be collapsed is not a dimension.
         """
         if not isinstance(cube, iris.cube.Cube):
-            msg = ('The first argument must be an instance of '
-                   'iris.cube.Cube but is'
-                   ' {}.'.format(type(cube)))
+            msg = ('The first argument must be an instance of iris.cube.Cube '
+                   'but is {}.'.format(type(cube)))
             raise TypeError(msg)
 
         if not cube.coords(self.coord):
@@ -849,19 +864,16 @@ class WeightedBlendAcrossWholeDimension(object):
         # Ensure input cube and weights cube are ordered equivalently along
         # blending coordinate.
         cube = sort_coord_in_cube(cube, self.coord, order="ascending")
-        try:
+        if weights is not None:
             weights = sort_coord_in_cube(weights, self.coord,
                                          order="ascending")
-        except ValueError:
-            # Weights is not a cube with the same dimensions as the cube.
-            pass
 
         # Check that the time coordinate is single valued if the coordinate
         # being blended is forecast_reference_time.
         self.check_compatible_time_points(cube)
 
         # Check to see if the data is percentile data
-        self.perc_coord = self.is_cube_percentile_data(cube)
+        perc_coord = self.is_cube_percentile_data(cube)
 
         # Create slices over the threshold coordinate
         try:
@@ -881,9 +893,9 @@ class WeightedBlendAcrossWholeDimension(object):
             # A selection of blending modes are available:
 
             # Percentile aggregator
-            if self.perc_coord and self.mode == "weighted_mean":
+            if perc_coord and self.mode == "weighted_mean":
                 cube_new = self.percentile_weighted_mean(cube_thres, weights,
-                                                         self.perc_coord)
+                                                         perc_coord)
             # Weighted mean
             elif self.mode == "weighted_mean":
                 cube_new = self.weighted_mean(cube_thres, weights)

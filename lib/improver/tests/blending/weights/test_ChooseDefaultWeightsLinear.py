@@ -33,6 +33,7 @@
 
 import unittest
 
+import iris
 from iris.coords import AuxCoord
 from iris.tests import IrisTest
 import numpy as np
@@ -137,16 +138,16 @@ class Test_process(IrisTest):
             [str(x) for x in self.cube.coord("time").points])
 
     def test_basic(self):
-        """Test that the plugin returns an array of weights. """
+        """Test that the plugin returns a cube of weights. """
         plugin = LinearWeights()
         result = plugin.process(self.cube, self.coord_name, self.coord_vals)
-        self.assertIsInstance(result, np.ndarray)
+        self.assertIsInstance(result, iris.cube.Cube)
 
     def test_array_sum_equals_one(self):
         """Test that the resulting weights add up to one. """
         plugin = LinearWeights()
         result = plugin.process(self.cube, self.coord_name, self.coord_vals)
-        self.assertAlmostEqual(result.sum(), 1.0)
+        self.assertAlmostEqual(result.data.sum(), 1.0)
 
     def test_fails_coord_not_in_cube(self):
         """Test it raises a Value Error if coord not in the cube. """
@@ -189,28 +190,28 @@ class Test_process(IrisTest):
         coord = cube.coord("scalar_coord")
         plugin = LinearWeights()
         result = plugin.process(cube, coord)
-        self.assertArrayAlmostEqual(result, np.array([1.0]))
+        self.assertArrayAlmostEqual(result.data, np.array([1.0]))
 
     def test_works_defaults_used(self):
         """Test it works if defaults used. """
         plugin = LinearWeights()
         result = plugin.process(self.cube, self.coord_name, self.coord_vals)
         expected_result = np.array([0.90909091, 0.09090909])
-        self.assertArrayAlmostEqual(result, expected_result)
+        self.assertArrayAlmostEqual(result.data, expected_result)
 
     def test_works_y0val_and_slope_set(self):
         """Test it works if y0val and slope_set. """
         plugin = LinearWeights(y0val=10.0, slope=-5.0)
         result = plugin.process(self.cube, self.coord_name, self.coord_vals)
         expected_result = np.array([0.66666667, 0.33333333])
-        self.assertArrayAlmostEqual(result, expected_result)
+        self.assertArrayAlmostEqual(result.data, expected_result)
 
     def test_works_y0val_and_ynval_set(self):
         """Test it works if y0val and ynval set. """
         plugin = LinearWeights(y0val=10.0, ynval=5.0)
         result = plugin.process(self.cube, self.coord_name, self.coord_vals)
         expected_result = np.array([0.66666667, 0.33333333])
-        self.assertArrayAlmostEqual(result, expected_result)
+        self.assertArrayAlmostEqual(result.data, expected_result)
 
     def test_works_with_larger_num(self):
         """Test it works with larger num_of_vals. """
@@ -221,7 +222,7 @@ class Test_process(IrisTest):
         expected_result = np.array([0.22222222, 0.2,
                                     0.17777778, 0.15555556,
                                     0.13333333, 0.11111111])
-        self.assertArrayAlmostEqual(result, expected_result)
+        self.assertArrayAlmostEqual(result.data, expected_result)
 
     def test_works_with_missing_coord(self):
         """Test it works with missing coord """
@@ -233,7 +234,7 @@ class Test_process(IrisTest):
         expected_result = np.array([0.206349, 0.190476,
                                     0.174603, 0.15873,
                                     0.142857, 0.126984])
-        self.assertArrayAlmostEqual(result, expected_result)
+        self.assertArrayAlmostEqual(result.data, expected_result)
 
 
 if __name__ == '__main__':

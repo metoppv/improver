@@ -33,6 +33,7 @@
 
 import unittest
 
+import iris
 from iris.tests import IrisTest
 import numpy as np
 
@@ -64,7 +65,7 @@ class Test_nonlinear_weights(IrisTest):
         expected_result = np.array([0.41957573, 0.25174544,
                                     0.15104726, 0.09062836,
                                     0.05437701, 0.03262621])
-        self.assertArrayAlmostEqual(result, expected_result)
+        self.assertArrayAlmostEqual(result.data, expected_result)
 
 
 class Test_process(IrisTest):
@@ -80,13 +81,13 @@ class Test_process(IrisTest):
         """Test that the plugin returns an array of weights. """
         plugin = NonLinearWeights()
         result = plugin.process(self.cube, self.coord_name, self.coord_vals)
-        self.assertIsInstance(result, np.ndarray)
+        self.assertIsInstance(result, iris.cube.Cube)
 
     def test_array_sum_equals_one(self):
         """Test that the resulting weights add up to one. """
         plugin = NonLinearWeights()
         result = plugin.process(self.cube, self.coord_name, self.coord_vals)
-        self.assertAlmostEqual(result.sum(), 1.0)
+        self.assertAlmostEqual(result.data.sum(), 1.0)
 
     def test_fails_coord_not_in_cube(self):
         """Test it raises a Value Error if coord not in the cube. """
@@ -126,21 +127,21 @@ class Test_process(IrisTest):
         coord = cube.coord("scalar_coord")
         plugin = NonLinearWeights()
         result = plugin.process(cube, coord)
-        self.assertArrayAlmostEqual(result, np.array([1.0]))
+        self.assertArrayAlmostEqual(result.data, np.array([1.0]))
 
     def test_works_with_default_cval(self):
         """Test it works with default cval. """
         plugin = NonLinearWeights()
         result = plugin.process(self.cube, self.coord_name, self.coord_vals)
         expected_result = np.array([0.54054054, 0.45945946])
-        self.assertArrayAlmostEqual(result, expected_result)
+        self.assertArrayAlmostEqual(result.data, expected_result)
 
     def test_works_with_cval_equal_one(self):
         """Test it works with cval = 1.0, i.e. equal weights. """
         plugin = NonLinearWeights(cval=1.0)
         result = plugin.process(self.cube, self.coord_name, self.coord_vals)
         expected_result = np.array([0.5, 0.5])
-        self.assertArrayAlmostEqual(result, expected_result)
+        self.assertArrayAlmostEqual(result.data, expected_result)
 
     def test_works_with_larger_num(self):
         """Test it works with larger num_of_vals. """
@@ -153,7 +154,7 @@ class Test_process(IrisTest):
         expected_result = np.array([0.50793651, 0.25396825,
                                     0.12698413, 0.06349206,
                                     0.03174603, 0.01587302])
-        self.assertArrayAlmostEqual(result, expected_result)
+        self.assertArrayAlmostEqual(result.data, expected_result)
 
     def test_works_with_missing_coord(self):
         """Test it works with missing coord """
@@ -165,7 +166,7 @@ class Test_process(IrisTest):
         expected_result = np.array([0.41472, 0.250112,
                                     0.151347, 0.092088,
                                     0.056533, 0.0352])
-        self.assertArrayAlmostEqual(result, expected_result)
+        self.assertArrayAlmostEqual(result.data, expected_result)
 
 
 if __name__ == '__main__':

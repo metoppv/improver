@@ -41,7 +41,7 @@ import iris
 from improver.utilities.cube_manipulation import check_cube_coordinates
 
 
-class WeightsUtilities(object):
+class WeightsUtilities:
     """ Utilities for Weight processing. """
 
     def __init__(self):
@@ -269,7 +269,13 @@ class WeightsUtilities(object):
                 weights_cube (iris.cube.Cube):
                     A cube containing the array of weights.
         """
-        weights_cube = next(cube.slices(blending_coord))
+        try:
+            weights_cube = next(cube.slices(blending_coord))
+        except ValueError:
+            weights_cube = iris.util.new_axis(cube, blending_coord)
+            weights_cube = next(weights_cube.slices(blending_coord))
+
+        weights_cube.attributes = None
         defunct_coords = [crd.name() for crd in cube.coords(dim_coords=True)
                           if not crd.name() == blending_coord]
         for crd in defunct_coords:
@@ -281,7 +287,7 @@ class WeightsUtilities(object):
         return weights_cube
 
 
-class ChooseWeightsLinear(object):
+class ChooseWeightsLinear:
     """Plugin to interpolate weights linearly to the required points, where
     original weights are provided as a cube or configuration dictionary"""
 
@@ -799,11 +805,10 @@ class ChooseWeightsLinear(object):
         return new_weights_cube
 
 
-class ChooseDefaultWeightsLinear(object):
+class ChooseDefaultWeightsLinear:
     """ Calculate Default Weights using Linear Function. """
 
     def __init__(self, y0val=None, slope=0.0, ynval=None):
-        # TODO Change kwargs here to args?
         """Set up for calculating default weights using linear function
 
             Keyword Args:
@@ -935,7 +940,7 @@ class ChooseDefaultWeightsLinear(object):
         return desc
 
 
-class ChooseDefaultWeightsNonLinear(object):
+class ChooseDefaultWeightsNonLinear:
     """ Calculate Default Weights using NonLinear Function. """
     def __init__(self, cval=0.85):
         """Set up for calculating default weights using non-linear function.
@@ -1030,7 +1035,7 @@ class ChooseDefaultWeightsNonLinear(object):
         return desc
 
 
-class ChooseDefaultWeightsTriangular(object):
+class ChooseDefaultWeightsTriangular:
     """ Calculate Default Weights using a Triangular Function. """
     def __init__(self, width, units="no_unit"):
         """Set up for calculating default weights using triangular function.
