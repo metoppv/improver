@@ -140,8 +140,8 @@ def main():
                    "filepath but none has been provided")
             raise ValueError(msg)
 
-    if (args.input_landmask_filepath and 
-        "nearest-with-mask" not in args.regrid_mode):
+    if (args.input_landmask_filepath and
+            "nearest-with-mask" not in args.regrid_mode):
         msg = ("Land-mask file supplied without appropriate regrid_mode. "
                "Use --regrid_mode=nearest-with-mask.")
         raise ValueError(msg)

@@ -548,7 +548,7 @@ class RegridLandSea():
             extrapolation_mode (string):
                 Mode to use for extrapolating data into regions
                 beyond the limits of the source_data domain.
-                Available modes are documented in 
+                Available modes are documented in
                 `iris.analysis <https://scitools.org.uk/iris/docs/latest/iris/
                 iris/analysis.html#iris.analysis.Nearest>`_
 
