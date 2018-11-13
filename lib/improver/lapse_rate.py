@@ -107,7 +107,7 @@ class LapseRate(object):
     4) Loop through array of neighbourhoods and take the height and temperature
        of all grid points and calculate the
        temperature/height gradient = lapse rate
-    5) Constrain the lapse rate as > DALR and < -3.0*DALR.
+    5) Default constraints for the lapse rate set as > DALR and < -3.0*DALR.
 
     """
 

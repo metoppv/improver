@@ -407,7 +407,7 @@ class Test_process(IrisTest):
                                  [0.0392, 0.0392, 0.0, -0.0196, -0.0196],
                                  [0.0392, 0.0392, 0.0, -0.0196, -0.0196]])
 
-        # West data points should be -3*DALR and East should be 2*DALR.
+        # West data points should be -4*DALR and East should be 2*DALR.
         self.temperature.data[:, :, 0] = 2
         self.temperature.data[:, :, 1] = 1
         self.temperature.data[:, :, 3] = -1
