@@ -235,7 +235,9 @@ def spatial_coords_match(first_cube, second_cube):
 
     Returns:
         result (bool):
-            True if the x and y coords are the same, otherwise False.
+            True if the x and y coords are the exactly the same to the
+            precision of the floating-point values (this should be true for
+            any cubes derived using cube.regrid()), otherwise False.
     """
     return (first_cube.coord(axis='x') == second_cube.coord(axis='x') and
             first_cube.coord(axis='y') == second_cube.coord(axis='y'))

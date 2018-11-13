@@ -128,7 +128,7 @@ class Test_correct_where_input_true(IrisTest):
             set_up_cube(num_grid_points=3,
                         zero_point_indices=((0, 0, 0, 1),)))
 
-    def test_basic_0(self):
+    def test_basic_sea(self):
         """Test that nothing changes with argument zero (sea)."""
         input_land = self.plugin.input_land.copy()
         output_land = self.plugin.output_land.copy()
@@ -138,7 +138,7 @@ class Test_correct_where_input_true(IrisTest):
         self.assertArrayEqual(output_land.data, self.plugin.output_land.data)
         self.assertArrayEqual(output_cube.data, self.plugin.output_cube.data)
 
-    def test_basic_1(self):
+    def test_basic_land(self):
         """Test that nothing changes with argument one (land)."""
         input_land = self.plugin.input_land.copy()
         output_land = self.plugin.output_land.copy()
@@ -148,7 +148,7 @@ class Test_correct_where_input_true(IrisTest):
         self.assertArrayEqual(output_land.data, self.plugin.output_land.data)
         self.assertArrayEqual(output_cube.data, self.plugin.output_cube.data)
 
-    def test_work_0(self):
+    def test_work_sea(self):
         """Test for expected change with argument zero (sea)."""
         self.plugin.input_land = self.move_sea_point
         output_cube = self.plugin.output_cube.copy()
@@ -158,7 +158,7 @@ class Test_correct_where_input_true(IrisTest):
         self.plugin.correct_where_input_true(0)
         self.assertArrayEqual(output_cube.data, self.plugin.output_cube.data)
 
-    def test_work_1(self):
+    def test_work_land(self):
         """Test for expected change with argument one (land)."""
         self.plugin.input_land = self.move_sea_point
         output_cube = self.plugin.output_cube.copy()
@@ -168,7 +168,7 @@ class Test_correct_where_input_true(IrisTest):
         self.plugin.correct_where_input_true(1)
         self.assertArrayEqual(output_cube.data, self.plugin.output_cube.data)
 
-    def test_work_01_eq_10(self):
+    def test_work_sealand_eq_landsea(self):
         """Test result is independent of order of sea/land handling."""
         self.plugin.input_land = self.move_sea_point.copy()
         reset_cube = self.plugin.output_cube.copy()

@@ -548,24 +548,9 @@ class RegridLandSea():
             extrapolation_mode (string):
                 Mode to use for extrapolating data into regions
                 beyond the limits of the source_data domain.
-                Modes are:
-
-                "extrapolate" - The extrapolation points will
-                take their value from the nearest source point.
-
-                "nan" - The extrapolation points will be be
-                set to NaN.
-
-                "error" - A ValueError exception will be raised,
-                notifying an attempt to extrapolate.
-
-                "mask"  - The extrapolation points will always be
-                masked, even if the source data is not a
-                MaskedArray.
-
-                "nanmask" - If the source data is a MaskedArray
-                the extrapolation points will be masked.
-                Otherwise they will be set to NaN.
+                Available modes are documented in 
+                `iris.analysis <https://scitools.org.uk/iris/docs/latest/iris/
+                iris/analysis.html#iris.analysis.Nearest>`_
 
                 Defaults to "nanmask".
             vicinity_radius (float):
@@ -648,9 +633,11 @@ class RegridLandSea():
             cube (Iris.cube.Cube):
                 Cube of data to be updated (on same grid as output_land).
             input_land (Iris.cube.Cube):
-                Cube of land_binary_mask data on the grid from which cube has
+                Cube of land_binary_mask data on the grid from which "cube" has
                 been reprojected (it is expected that the iris.analysis.Nearest
                 method would have been used).
+                This is used to determine where the input model data is
+                representing land and sea points.
             output_land (Iris.cube.Cube):
                 Cube of land_binary_mask data on target grid.
         """
@@ -663,8 +650,8 @@ class RegridLandSea():
         # Regrid input_land to output_land grid.
         self.input_land = input_land.regrid(self.output_land, self.regridder)
 
-        # Regrid cube to output grid
-        self.nearest_cube = cube.regrid(self.output_land, self.regridder)
+        # Store and copy cube ready for the output data
+        self.nearest_cube = cube
         self.output_cube = self.nearest_cube.copy()
 
         # Update sea points that were incorrectly sourced from land points
