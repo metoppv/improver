@@ -182,7 +182,7 @@ def main():
                 msg = ("An argument has been specified that requires an input "
                        "landmask filepath but none has been provided")
                 raise ValueError(msg)
- 
+
             source_landsea = load_cube(args.input_landmask_filepath)
             if "land_binary_mask" not in source_landsea.name():
                 msg = ("Expected land_binary_mask in input_landmask_filepath "
