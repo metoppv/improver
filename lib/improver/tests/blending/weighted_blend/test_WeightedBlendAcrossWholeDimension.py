@@ -95,7 +95,8 @@ class Test__repr__(IrisTest):
 
 class Test_weighted_blend(IrisTest):
 
-    """Test the Basic Weighted Average plugin."""
+    """A shared setup for tests in the WeightedBlendAcrossWholeDimension
+    plugin."""
 
     def setUp(self):
         """Create a cube with a single non-zero point."""
@@ -185,9 +186,9 @@ class Test_weighted_blend(IrisTest):
             aux_coords_and_dims=[(frt_coord, 0), (fp_coord, 0)])
 
 
-class Test_is_cube_percentile_data(Test_weighted_blend):
+class Test_check_percentile_coord(Test_weighted_blend):
 
-    """Test the percentile checking function."""
+    """Test the percentile coord checking function."""
 
     def test_fails_perc_coord_not_dim(self):
         """Test it raises a Value Error if percentile coord not a dim."""
@@ -199,7 +200,7 @@ class Test_is_cube_percentile_data(Test_weighted_blend):
         msg = ('The percentile coord must be a dimension '
                'of the cube.')
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.is_cube_percentile_data(new_cube)
+            plugin.check_percentile_coord(new_cube)
 
     def test_fails_only_one_percentile_value(self):
         """Test it raises a Value Error if there is only one percentile."""
@@ -213,7 +214,7 @@ class Test_is_cube_percentile_data(Test_weighted_blend):
         msg = ('Percentile coordinate does not have enough points'
                ' in order to blend. Must have at least 2 percentiles.')
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.is_cube_percentile_data(new_cube)
+            plugin.check_percentile_coord(new_cube)
 
     def test_fails_percentile_data_max_mode(self):
         """Test a Value Error is raised if the maximum mode is applied to
@@ -224,7 +225,7 @@ class Test_is_cube_percentile_data(Test_weighted_blend):
         msg = ('The "weighted_maximum" mode cannot be used with percentile '
                'data.')
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.is_cube_percentile_data(new_cube)
+            plugin.check_percentile_coord(new_cube)
 
 
 class Test_compatible_time_points(Test_weighted_blend):
@@ -267,17 +268,44 @@ class Test_shape_weights(Test_weighted_blend):
         self.assertEqual(self.cube.shape, result.shape)
         self.assertArrayEqual(self.weights3d.data, result)
 
+    def test_3D_weights_3D_cube_weighted_mean_wrong_order(self):
+        """Test a 3D cube of weights results in a 3D array of weights of the
+        same shape as the data cube. In this test the weights cube has the
+        same coordinates but slightly differently ordered. These should be
+        reordered to match the cube."""
+
+        coord = "forecast_reference_time"
+        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        self.weights3d.transpose([1, 0, 2])
+        result = plugin.shape_weights(self.cube, self.weights3d)
+        self.assertEqual(self.cube.shape, result.shape)
+        self.assertArrayEqual(self.weights3d.data, result)
+
+    def test_3D_weights_3D_cube_weighted_mean_unmatched_coordinate(self):
+        """Test a 3D cube of weights results in a 3D array of weights of the
+        same shape as the data cube. In this test the weights cube has the
+        same shape but different coordinates to the diagnostic cube, raising
+        a ValueError as a result."""
+
+        coord = "forecast_reference_time"
+        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        weights = self.weights3d.copy()
+        weights.coord('longitude').rename('projection_x_coordinate')
+        msg = "Multidimensional weights cube does not contain the same"
+
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.shape_weights(self.cube, weights)
+
     def test_incompatible_weights_and_data_cubes(self):
         """Test an exception is raised if the weights cube and the data cube
         are of incompatible shapes."""
 
         coord = "forecast_reference_time"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
-        weights = np.linspace(0, 1, 5)
         msg = "Weights cube is not a compatible shape with the data cube"
 
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.shape_weights(self.cube, weights)
+            plugin.shape_weights(self.cube, self.weights_threshold)
 
 
 class Test_percentile_weights(Test_weighted_blend):
@@ -638,6 +666,15 @@ class Test_process(Test_weighted_blend):
         msg = ('Coordinate to be collapsed not found in cube.')
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             plugin.process(self.cube)
+
+    def test_fails_coord_not_in_weights_cube(self):
+        """Test it raises CoordinateNotFoundError if coord not in the weights
+        cube."""
+        coord = "notset"
+        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        msg = ('Coordinate to be collapsed not found in cube.')
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
+            plugin.process(self.cube, self.weights1d)
 
     def test_fails_input_not_a_cube(self):
         """Test it raises a Type Error if not supplied with a cube."""

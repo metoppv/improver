@@ -291,6 +291,7 @@ class Test_build_weights_cube(IrisTest):
         self.assertArrayEqual(result.data, weights)
         self.assertEqual(result.coords(dim_coords=True)[0].name(),
                          blending_coord)
+        self.assertEqual(len(result.coords(dim_coords=True)), 1)
 
     def test_weights_scalar_coord(self):
         """Test building a cube of weights where the blending coordinate is a

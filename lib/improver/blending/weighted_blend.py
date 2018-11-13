@@ -40,7 +40,8 @@ from iris.exceptions import CoordinateNotFoundError
 from improver.utilities.cube_manipulation import (
     add_renamed_cell_method, sort_coord_in_cube)
 from improver.utilities.cube_checker import find_percentile_coordinate
-from improver.utilities.cube_manipulation import build_coordinate
+from improver.utilities.cube_manipulation import (build_coordinate,
+                                                  enforce_coordinate_ordering)
 from improver.utilities.temporal import (
     cycletime_to_datetime, cycletime_to_number, forecast_period_coord,
     unify_forecast_reference_time, find_latest_cycletime)
@@ -484,7 +485,7 @@ class WeightedBlendAcrossWholeDimension:
                        ' coord_adjust = {2}>')
         return description.format(self.coord, self.mode, self.coord_adjust)
 
-    def is_cube_percentile_data(self, cube):
+    def check_percentile_coord(self, cube):
         """
         Determines if the cube to be blended has a percentile dimension
         coordinate.
@@ -552,6 +553,14 @@ class WeightedBlendAcrossWholeDimension:
 
     def shape_weights(self, cube, weights):
         """
+        The function shapes weights to match the diagnostic cube. A 1D cube of
+        weights that vary across the blending coordinate will be broadcast to
+        match the complete multidimensional cube shape. A multidimensional cube
+        of weights will be checked to ensure that the coordinate names match
+        between the two cubes. If they match the order will be enforced and
+        then the shape will be checked. If the shapes match the weights will be
+        returned as an array.
+
         Args:
             cube (iris.cube.Cube):
                 The data cube on which a coordinate is being blended.
@@ -561,9 +570,22 @@ class WeightedBlendAcrossWholeDimension:
             weights_array (np.array):
                 An array of weights that matches the cube data shape.
         Raises:
+            ValueError: If weights cube coordinates do not match the diagnostic
+                        cube in the case of a multidimensional weights cube.
             ValueError: If weights cube shape is not broadcastable to the data
                         cube shape.
         """
+        # Check that a multidimensional weights cube has coordinates that match
+        # the diagnostic cube. Checking names only to not to be too exacting.
+        weight_dims = [crd.name() for crd in weights.coords(dim_coords=True)]
+        cube_dims = [crd.name() for crd in cube.coords(dim_coords=True)]
+        if set(weight_dims) == set(cube_dims):
+            enforce_coordinate_ordering(weights, cube_dims)
+        elif len(weight_dims) > 1:
+            msg = ("Multidimensional weights cube does not contain the same "
+                   "coordinates as the diagnostic cube. Weights: {}, "
+                   "Diagnostic: {}".format(weight_dims, cube_dims))
+            raise ValueError(msg)
 
         msg = ("Weights cube is not a compatible shape with the data cube. "
                "Weights: {}, Diagnostic: {}".format(weights.shape, cube.shape))
@@ -845,6 +867,8 @@ class WeightedBlendAcrossWholeDimension:
             TypeError : If the first argument not a cube.
             CoordinateNotFoundError : If coordinate to be collapsed not found
                                       in cube.
+            CoordinateNotFoundError : If coordinate to be collapsed not found
+                                      in provided weights cube.
             ValueError : If coordinate to be collapsed is not a dimension.
         """
         if not isinstance(cube, iris.cube.Cube):
@@ -865,6 +889,9 @@ class WeightedBlendAcrossWholeDimension:
         # blending coordinate.
         cube = sort_coord_in_cube(cube, self.coord, order="ascending")
         if weights is not None:
+            if not weights.coords(self.coord):
+                msg = ('Coordinate to be collapsed not found in weights cube.')
+                raise CoordinateNotFoundError(msg)
             weights = sort_coord_in_cube(weights, self.coord,
                                          order="ascending")
 
@@ -873,7 +900,7 @@ class WeightedBlendAcrossWholeDimension:
         self.check_compatible_time_points(cube)
 
         # Check to see if the data is percentile data
-        perc_coord = self.is_cube_percentile_data(cube)
+        perc_coord = self.check_percentile_coord(cube)
 
         # Create slices over the threshold coordinate
         try:
