@@ -48,8 +48,7 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import (
         set_up_probability_above_threshold_temperature_cube,
         set_up_temperature_cube)
-from improver.tests.utilities.cube_manipulation.helper_functions import (
-    set_up_percentile_temperature_cube)
+from improver.tests.set_up_test_cubes import set_up_percentile_cube
 
 
 def create_sample_cube_with_additional_coordinate(
@@ -183,15 +182,15 @@ class Test_load_cube(IrisTest):
         """Test that the cube has been reordered, if it is originally in an
         undesirable order and the cube contains a "percentile_over"
         coordinate."""
-        cube = set_up_percentile_temperature_cube()
-        cube.transpose([3, 2, 1, 0])
+        data = np.ones((3, 4, 5), dtype=np.float32)
+        cube = set_up_percentile_cube(data, np.array([10, 50, 90]))
+        cube.transpose([2, 1, 0])
         save_netcdf(cube, self.filepath)
         result = load_cube(self.filepath)
         self.assertEqual(
             result.coord_dims("percentile_over_realization")[0], 0)
-        self.assertEqual(result.coord_dims("time")[0], 1)
-        self.assertArrayAlmostEqual(result.coord_dims("latitude")[0], 2)
-        self.assertArrayAlmostEqual(result.coord_dims("longitude")[0], 3)
+        self.assertArrayAlmostEqual(result.coord_dims("latitude")[0], 1)
+        self.assertArrayAlmostEqual(result.coord_dims("longitude")[0], 2)
 
     def test_ordering_for_threshold_coordinate(self):
         """Test that the cube has been reordered, if it is originally in an
