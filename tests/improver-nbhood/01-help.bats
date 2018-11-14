@@ -111,7 +111,9 @@ optional arguments:
   --input_mask_filepath INPUT_MASK_FILE
                         A path to an input mask NetCDF file to be used to mask
                         the input file. This is currently only supported for
-                        square neighbourhoods.
+                        square neighbourhoods. The data should contain 1 for
+                        usable points and 0 for discarded points, e.g. a land-
+                        mask.
   --apply-recursive-filter
                         Option to apply the recursive filter to a square
                         neighbourhooded output dataset, converting it into a

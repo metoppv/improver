@@ -121,7 +121,9 @@ def main():
                         help='A path to an input mask NetCDF file to be '
                              'used to mask the input file. '
                              'This is currently only supported for square '
-                             'neighbourhoods. ')
+                             'neighbourhoods. The data should contain 1 for '
+                             'usable points and 0 for discarded points, e.g. '
+                             'a land-mask.')
     parser.add_argument('--apply-recursive-filter', action='store_true',
                         default=False,
                         help='Option to apply the recursive filter to a '
