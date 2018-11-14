@@ -311,7 +311,7 @@ class Test_process(IrisTest):
                                                 self.land_sea_mask)
 
     def test_fails_if_max_height_diff_less_than_zero(self):
-        """Test code raises a Value Error if input neighbourhood radius
+        """Test code raises a Value Error if the maximum height difference
         is less than zero"""
         msg = "Maximum height difference is less than zero"
 

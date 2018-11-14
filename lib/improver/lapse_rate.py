@@ -107,8 +107,9 @@ class LapseRate(object):
     4) Loop through array of neighbourhoods and take the height and temperature
        of all grid points and calculate the
        temperature/height gradient = lapse rate
-    5) Default constraints for the lapse rate set as > DALR and < -3.0*DALR.
-
+    5) Constrain the returned lapse rates between min_lapse_rate and
+       max_lapse_rate. These default to > DALR and < -3.0*DALR but are user
+       configurable
     """
 
     def __init__(self, max_height_diff=35, nbhood_radius=7,
