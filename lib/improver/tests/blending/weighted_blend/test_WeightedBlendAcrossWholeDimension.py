@@ -509,8 +509,13 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
         time_leading = percentile_cube()
         time_leading.transpose([1, 0, 2, 3])
 
-        result_percentile_leading = plugin.process(percentile_leading, weights)
-        result_time_leading = plugin.process(time_leading, weights)
+        pl_perc_coord = percentile_leading.coord('percentile_over_realization')
+        tl_perc_coord = time_leading.coord('percentile_over_realization')
+
+        result_percentile_leading = plugin.percentile_weighted_mean(
+            percentile_leading, weights, pl_perc_coord)
+        result_time_leading = plugin.percentile_weighted_mean(
+            time_leading, weights, tl_perc_coord)
 
         self.assertArrayAlmostEqual(result_percentile_leading.data,
                                     BLENDED_PERCENTILE_DATA_EQUAL_WEIGHTS)

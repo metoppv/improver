@@ -40,8 +40,7 @@ from iris.exceptions import CoordinateNotFoundError
 from improver.utilities.cube_manipulation import (
     add_renamed_cell_method, sort_coord_in_cube)
 from improver.utilities.cube_checker import find_percentile_coordinate
-from improver.utilities.cube_manipulation import (build_coordinate,
-                                                  enforce_coordinate_ordering)
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.temporal import (
     cycletime_to_datetime, cycletime_to_number, forecast_period_coord,
     unify_forecast_reference_time, find_latest_cycletime)
@@ -698,10 +697,12 @@ class WeightedBlendAcrossWholeDimension:
             weights_array (np.array):
                 An array of weights that matches the cube data shape.
         """
+        weights_array = None
         if weights is None:
             number_of_fields, = cube.coord(self.coord).shape
-            return np.broadcast_to(1./number_of_fields, cube.shape).astype(
-                np.float32)
+            weights_array = (
+                np.broadcast_to(1./number_of_fields, cube.shape).astype(
+                    np.float32))
 
         # Percentile blending preserves the percentile dimension, but we will
         # not want to vary weights by percentile. If all the other dimensions
@@ -712,16 +713,16 @@ class WeightedBlendAcrossWholeDimension:
                          if not crd.name() == perc_coord.name()]
         non_perc_slice = next(cube.slices(non_perc_crds))
 
-        weights_array = self.shape_weights(non_perc_slice, weights)
-
         # The weights need to be broadcast to match the percentile cube shape,
         # which means broadcasting across the percentile dimension.
         crd_dims = [cube.coord_dims(crd)[0] for crd in non_perc_crds]
         blend_dim, = cube.coord_dims(self.coord)
         perc_dim, = cube.coord_dims(perc_coord)
 
-        weights_array = iris.util.broadcast_to_shape(
-            weights_array, cube.shape, tuple(crd_dims))
+        if weights_array is None:
+            weights_array = self.shape_weights(non_perc_slice, weights)
+            weights_array = iris.util.broadcast_to_shape(
+                weights_array, cube.shape, tuple(crd_dims))
 
         # The percentile aggregator performs some coordinate reodering on
         # the data. We don't have sufficient information in the aggregator
