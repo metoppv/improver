@@ -77,7 +77,7 @@ def main():
     if len(cubes) == 1:
         warnings.warn('Only a single cube input, so time lagging will have '
                       'no effect.')
-        save_netcdf(cubes, args.output_file)
+        save_netcdf(cubes[0], args.output_file)
     else:
         result = GenerateTimeLaggedEnsemble().process(cubes)
         save_netcdf(result, args.output_file)
