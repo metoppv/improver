@@ -42,7 +42,7 @@ from iris.tests import IrisTest
 from improver.utilities.temporal import iris_time_to_datetime
 from improver.tests.set_up_test_cubes import (
     construct_xy_coords, construct_scalar_time_coords, set_up_variable_cube,
-    set_up_percentile_cube, set_up_probability_cube, set_up_cube_list)
+    set_up_percentile_cube, set_up_probability_cube)
 
 
 class test_construct_xy_coords(IrisTest):
@@ -159,23 +159,83 @@ class test_set_up_variable_cube(IrisTest):
         self.assertArrayEqual(realization_coord.points, np.array([0, 3, 4]))
 
     def test_error_unmatched_realizations(self):
-        """Test an error is raised if the realizations provided do not match
-        the data dimensions"""
+        """Test error is raised if the realizations provided do not match the
+        data dimensions"""
         msg = 'Cannot generate 4 realizations'
         with self.assertRaisesRegex(ValueError, msg):
             _ = set_up_variable_cube(self.data_3d, realizations=np.arange(4))
 
+    def test_error_too_many_dimensions(self):
+        """Test error is raised if input cube has more than 3 dimensions"""
+        data_4d = np.array([self.data_3d, self.data_3d])
+        msg = 'Expected 2 or 3 dimensions on input data: got 4'
+        with self.assertRaisesRegex(ValueError, msg):
+            _ = set_up_variable_cube(data_4d)
+
 
 class test_set_up_percentile_cube(IrisTest):
     """Test the set_up_percentile_cube function"""
-    # TODO
-    pass
+
+    def setUp(self):
+        """Set up simple array of percentile-type data"""
+        self.data = np.array([[[273.5, 275.1, 274.9], [274.2, 274.8, 274.1]],
+                              [[274.2, 276.4, 275.5], [275.1, 276.8, 274.6]],
+                              [[275.6, 278.1, 277.2], [276.4, 277.5, 275.3]]])
+        self.percentiles = np.array([20, 50, 80])
+
+    def test_defaults(self):
+        """Test default arguments produce cube with expected dimensions
+        and metadata"""
+        result = set_up_percentile_cube(self.data, self.percentiles)
+        perc_coord = result.coord("percentile_over_realization")
+        self.assertArrayEqual(perc_coord.points, self.percentiles)
+        self.assertEqual(perc_coord.units, "%")
+
+    def test_percentile_coord_name(self):
+        """Test ability to set a different name"""
+        result = set_up_percentile_cube(self.data, self.percentiles,
+                                        percentile_dim_name="percentile")
+        dim_coords = [coord.name() for coord in result.coords(dim_coords=True)]
+        self.assertIn("percentile", dim_coords)
 
 
 class test_set_up_probability_cube(IrisTest):
     """Test the set_up_probability_cube function"""
-    # TODO
-    pass
+
+    def setUp(self):
+        """Set up array of exceedance probabilities"""
+        self.data = np.array([[[1.0, 1.0, 0.9], [0.9, 0.9, 0.8]],
+                              [[0.8, 0.8, 0.7], [0.7, 0.6, 0.4]],
+                              [[0.6, 0.4, 0.3], [0.3, 0.2, 0.1]],
+                              [[0.2, 0.1, 0.0], [0.1, 0.0, 0.0]]])
+        self.thresholds = np.array([275., 275.5, 276., 276.5])
+
+    def test_defaults(self):
+        """Test default arguments produce cube with expected dimensions
+        and metadata"""
+        result = set_up_probability_cube(self.data, self.thresholds)
+        thresh_coord = result.coord("threshold")
+        self.assertEqual(result.name(), 'probability_of_air_temperature')
+        self.assertEqual(result.units, '1')
+        self.assertArrayEqual(thresh_coord.points, self.thresholds)
+        self.assertEqual(thresh_coord.units, 'K')
+        self.assertEqual(len(result.attributes), 1)
+        self.assertEqual(result.attributes['relative_to_threshold'], 'above')
+
+    def test_probability_of_name(self):
+        """Test a name with "probability" at the start is correctly parsed"""
+        result = set_up_probability_cube(
+            self.data, self.thresholds,
+            variable_name='probability_of_air_temperature')
+        self.assertEqual(result.name(), 'probability_of_air_temperature')
+
+    def test_relative_to_threshold(self):
+        """Test ability to reset the "relative_to_threshold" attribute"""
+        data = np.flipud(self.data)
+        result = set_up_probability_cube(self.data, self.thresholds,
+                                         relative_to_threshold='below')
+        self.assertEqual(len(result.attributes), 1)
+        self.assertEqual(result.attributes['relative_to_threshold'], 'below')
 
 
 if __name__ == '__main__':
