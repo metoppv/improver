@@ -159,6 +159,9 @@ class ApplyOrographicEnhancement(object):
             threshold_in_cube_units = (
                 original_units.convert(self.min_precip_rate_mmh,
                                        cube.units))
+            threshold_in_precip_cube_units = (
+                original_units.convert(self.min_precip_rate_mmh,
+                                       precip_cube.units))
 
             # Ignore invalid warnings generated if e.g. a NaN is encountered
             # within the less than (<) comparison.
@@ -168,7 +171,7 @@ class ApplyOrographicEnhancement(object):
                 # of combining the precipitation rate input cube with the
                 # orographic enhancement has generated a cube with
                 # precipitation rates less than the threshold.
-                mask = ((precip_cube.data >= threshold_in_cube_units) &
+                mask = ((precip_cube.data >= threshold_in_precip_cube_units) &
                         (cube.data <= threshold_in_cube_units))
 
                 # Set any values lower than the tolerance to be 1/32 mm/hr.

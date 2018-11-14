@@ -381,6 +381,27 @@ class Test__apply_minimum_precip_rate(IrisTest):
         self.assertEqual(result.metadata, subtracted_cube.metadata)
         self.assertArrayAlmostEqual(result.data, expected)
 
+    def test_differing_units(self):
+        """Test that the minimum precipitation rate is applied correctly,
+        when the units of the input precipitation cube and the cube
+        computed using the input precipitation cube and the orographic
+        enhancement cube are handled correctly, even if the units differ."""
+        expected = np.array([[[[0., 1., 2.],
+                               [1., 2., MIN_PRECIP_RATE_MMH],
+                               [0., 1., MIN_PRECIP_RATE_MMH]]]])
+        precip_cube = self.precip_cube.copy()
+        subtracted_cube = self.subtracted_cube.copy()
+        precip_cube.convert_units("km/hr")
+        subtracted_cube.convert_units("ft/s")
+        plugin = ApplyOrographicEnhancement("subtract")
+        result = (
+            plugin._apply_minimum_precip_rate(precip_cube, subtracted_cube))
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertEqual(result.units, Unit("ft/s"))
+        self.assertEqual(result.metadata, subtracted_cube.metadata)
+        result.convert_units("mm/hr")
+        self.assertArrayAlmostEqual(result.data, expected)
+
     def test_NaN_values(self):
         """Test that NaN values are preserved when they are contained within
         the input when applying a minimum precipitation rate."""
