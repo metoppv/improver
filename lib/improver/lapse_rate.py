@@ -107,8 +107,9 @@ class LapseRate(object):
     4) Loop through array of neighbourhoods and take the height and temperature
        of all grid points and calculate the
        temperature/height gradient = lapse rate
-    5) Constrain the lapse rate as > DALR and < -3.0*DALR.
-
+    5) Constrain the returned lapse rates between min_lapse_rate and
+       max_lapse_rate. These default to > DALR and < -3.0*DALR but are user
+       configurable
     """
 
     def __init__(self, max_height_diff=35, nbhood_radius=7,
@@ -141,6 +142,18 @@ class LapseRate(object):
         self.nbhood_radius = nbhood_radius
         self.max_lapse_rate = max_lapse_rate
         self.min_lapse_rate = min_lapse_rate
+
+        if self.max_lapse_rate < self.min_lapse_rate:
+            msg = "Maximum lapse rate is less than minimum lapse rate"
+            raise ValueError(msg)
+
+        if self.nbhood_radius < 0:
+            msg = "Neighbourhood radius is less than zero"
+            raise ValueError(msg)
+
+        if self.max_height_diff < 0:
+            msg = "Maximum height difference is less than zero"
+            raise ValueError(msg)
 
         # nbhood_size=3 corresponds to a 3x3 array centred on the
         # central point.
@@ -373,5 +386,6 @@ class LapseRate(object):
         lapse_rate_cube = lapse_rate_cube_list.merge_cube()
         lapse_rate_cube.rename('temperature_lapse_rate')
         lapse_rate_cube.long_name = "lapse_rate"
+        lapse_rate_cube.units = 'K m-1'
 
         return lapse_rate_cube
