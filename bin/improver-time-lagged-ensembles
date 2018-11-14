@@ -63,22 +63,21 @@ def main():
         new_cube = load_cube(filename)
         cubes.append(new_cube)
 
-    # Raises an error if the validity times do not match
-    for i, this_cube in enumerate(cubes):
-        for later_cube in cubes[i+1:]:
-            if this_cube.coord('time') == later_cube.coord('time'):
-                continue
-            else:
-                msg = ("Cubes with mismatched validity times are not "
-                       "compatible.")
-                raise ValueError(msg)
-
     # Warns if a single file is input
     if len(cubes) == 1:
         warnings.warn('Only a single cube input, so time lagging will have '
                       'no effect.')
         save_netcdf(cubes[0], args.output_file)
+    # Raises an error if the validity times do not match
     else:
+        for i, this_cube in enumerate(cubes):
+            for later_cube in cubes[i+1:]:
+                if this_cube.coord('time') == later_cube.coord('time'):
+                    continue
+                else:
+                    msg = ("Cubes with mismatched validity times are not "
+                           "compatible.")
+                    raise ValueError(msg)
         result = GenerateTimeLaggedEnsemble().process(cubes)
         save_netcdf(result, args.output_file)
 
