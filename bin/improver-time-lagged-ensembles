@@ -62,10 +62,6 @@ def main():
     for filename in args.input_filenames:
         new_cube = load_cube(filename)
         cubes.append(new_cube)
-    
-    # Warns if a single file is input
-    if len(cubes) == 1:
-        warnings.warn('Only a single cube so no differences will be found')
 
     # Raises an error if the validity times do not match
     for i, this_cube in enumerate(cubes):
@@ -77,8 +73,14 @@ def main():
                        "compatible.")
                 raise ValueError(msg)
 
-    result = GenerateTimeLaggedEnsemble().process(cubes)
-    save_netcdf(result, args.output_file)
+    # Warns if a single file is input
+    if len(cubes) == 1:
+        warnings.warn('Only a single cube input, so time lagging will have '
+                      'no effect.')
+        save_netcdf(cubes, args.output_file)
+    else:
+        result = GenerateTimeLaggedEnsemble().process(cubes)
+        save_netcdf(result, args.output_file)
 
 
 if __name__ == "__main__":
