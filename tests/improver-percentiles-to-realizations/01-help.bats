@@ -68,7 +68,7 @@ optional arguments:
                         "quantile" is the default option. The "quantile"
                         option produces equally spaced percentiles which is
                         the preferred option for full Ensemble Copula Coupling
-                        with reordering enabled.')
+                        with reordering enabled.
   --reordering          The option used to create ensemble realizations from
                         percentiles by reordering the input percentiles based
                         on the order of the raw ensemble forecast.
