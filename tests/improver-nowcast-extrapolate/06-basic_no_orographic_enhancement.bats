@@ -33,17 +33,20 @@
 
 @test "extrapolate basic no orographic enhancement" {
   improver_check_skip_acceptance
-  KGO0="optical-flow/no_orographic_enhancement_extrapolate/kgo0.nc"
-  KGO1="optical-flow/no_orographic_enhancement_extrapolate/kgo1.nc"
-  KGO2="optical-flow/no_orographic_enhancement_extrapolate/kgo2.nc"
+  KGO0="optical-flow/extrapolate_no_orographic_enhancement/kgo0.nc"
+  KGO1="optical-flow/extrapolate_no_orographic_enhancement/kgo1.nc"
+  KGO2="optical-flow/extrapolate_no_orographic_enhancement/kgo2.nc"
 
   UCOMP="$IMPROVER_ACC_TEST_DIR/optical-flow/basic/ucomp_kgo.nc"
   VCOMP="$IMPROVER_ACC_TEST_DIR/optical-flow/basic/vcomp_kgo.nc"
   INFILE="201811031600_radar_rainrate_composite_UK_regridded.nc"
 
-  # Run processing and check it passes
+  # Run processing and check it passes when the input files are not
+  # specifically precipitation. In this case, the input radar precipitation
+  # files and fields have been renamed as rain to be able to test the
+  # CLIs function as intended for a non-precipitation field.
   run improver nowcast-extrapolate \
-    "$IMPROVER_ACC_TEST_DIR/optical-flow/no_orographic_enhancement/$INFILE" \
+    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic_no_orographic_enhancement/$INFILE" \
     --output_dir "$TEST_DIR" --max_lead_time 30 \
     --eastward_advection "$UCOMP" \
     --northward_advection "$VCOMP"

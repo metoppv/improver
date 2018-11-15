@@ -86,7 +86,7 @@ def set_up_orographic_enhancement_cube():
     cube2.coord("time").points = [412228.0]
     cube2.convert_units("m s-1")
 
-    return iris.cube.CubeList([cube1, cube2])
+    return iris.cube.CubeList([cube1, cube2]).concatenate_cube()
 
 
 class Test__init__(IrisTest):
@@ -96,7 +96,7 @@ class Test__init__(IrisTest):
     def setUp(self):
         """Set up cubes for testing."""
         self.precip_cubes = set_up_precipitation_rate_cube()
-        self.oe_cubes = set_up_orographic_enhancement_cube()
+        self.oe_cube = set_up_orographic_enhancement_cube()
 
     def test_basic(self):
         """Test that the plugin can be initialised as required."""
@@ -129,7 +129,7 @@ class Test__select_orographic_enhancement_cube(IrisTest):
     def setUp(self):
         """Set up cubes for testing."""
         self.precip_cubes = set_up_precipitation_rate_cube()
-        self.oe_cube = set_up_orographic_enhancement_cube().concatenate_cube()
+        self.oe_cube = set_up_orographic_enhancement_cube()
         self.first_slice = self.oe_cube[:, 0, :, :]
         self.second_slice = self.oe_cube[:, 1, :, :]
 
@@ -184,12 +184,14 @@ class Test__select_orographic_enhancement_cube(IrisTest):
 
 class Test__apply_orographic_enhancement(IrisTest):
 
-    """Test the __apply_orographic_enhancement method."""
+    """Test the _apply_orographic_enhancement method."""
 
     def setUp(self):
         """Set up cubes for testing."""
         self.precip_cubes = set_up_precipitation_rate_cube()
-        self.oe_cubes = set_up_orographic_enhancement_cube()
+        self.oe_cube = set_up_orographic_enhancement_cube()
+        self.sliced_oe_cube = (
+            iris.util.new_axis(self.oe_cube[:, 0, :, :], "time"))
 
     def test_check_expected_values_add(self):
         """Test the expected values are returned when cubes are added.
@@ -199,7 +201,7 @@ class Test__apply_orographic_enhancement(IrisTest):
                                [0., 3., 4.]]]])
         plugin = ApplyOrographicEnhancement("add")
         result = plugin._apply_orographic_enhancement(
-            self.precip_cubes[0], self.oe_cubes[0])
+            self.precip_cubes[0], self.sliced_oe_cube)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.metadata, self.precip_cubes[0].metadata)
         result.convert_units("mm/hr")
@@ -213,7 +215,7 @@ class Test__apply_orographic_enhancement(IrisTest):
                                [0., 1., 0.]]]])
         plugin = ApplyOrographicEnhancement("subtract")
         result = plugin._apply_orographic_enhancement(
-            self.precip_cubes[0], self.oe_cubes[0])
+            self.precip_cubes[0], self.sliced_oe_cube)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.metadata, self.precip_cubes[0].metadata)
         result.convert_units("mm/hr")
@@ -235,7 +237,7 @@ class Test__apply_orographic_enhancement(IrisTest):
         expected = np.array([[[[0., 1., 2.],
                                [1., 2., 7.],
                                [0., 3., 4.]]]])
-        oe_cube = self.oe_cubes[0][:, 0, :, :]
+        oe_cube = self.oe_cube[:, 0, :, :]
         plugin = ApplyOrographicEnhancement("add")
         result = plugin._apply_orographic_enhancement(
             self.precip_cubes[0], oe_cube)
@@ -251,7 +253,7 @@ class Test__apply_orographic_enhancement(IrisTest):
         expected = np.array([[[[0., 1., 2.],
                                [1., 2., 7.],
                                [0., 3., 4.]]]])
-        oe_cube = self.oe_cubes[0]
+        oe_cube = self.sliced_oe_cube
         oe_cube.convert_units("m/hr")
         plugin = ApplyOrographicEnhancement("add")
         result = plugin._apply_orographic_enhancement(
@@ -261,10 +263,20 @@ class Test__apply_orographic_enhancement(IrisTest):
         result.convert_units("mm/hr")
         self.assertArrayAlmostEqual(result.data, expected)
 
+    def test_check_unchanged_oe_cube_for_subtract(self):
+        """Test the expected values are returned when one cube is subtracted
+        from another."""
+        orig_oe_cube = self.sliced_oe_cube.copy()
+        oe_cube = self.sliced_oe_cube.copy()
+        oe_cube.convert_units("m/hr")
+        plugin = ApplyOrographicEnhancement("subtract")
+        plugin._apply_orographic_enhancement(self.precip_cubes[0], oe_cube)
+        self.assertEqual(orig_oe_cube, self.sliced_oe_cube)
+
 
 class Test__apply_minimum_precip_rate(IrisTest):
 
-    """Test the __apply_minimum_precip_rate method."""
+    """Test the _apply_minimum_precip_rate method."""
 
     def setUp(self):
         """Set up cubes for testing. This includes a 'subtracted_cube'
@@ -272,7 +284,8 @@ class Test__apply_minimum_precip_rate(IrisTest):
         set to a minimum precipitation rate threshold."""
         precip_cube = set_up_precipitation_rate_cube()[0]
         self.precip_cube = precip_cube
-        oe_cube = set_up_orographic_enhancement_cube()[0]
+        oe_cube = set_up_orographic_enhancement_cube()[:, 0, :, :]
+        oe_cube = iris.util.new_axis(oe_cube, "time")
         # Cap orographic enhancement to be zero where there is a precipitation
         # rate of zero.
         original_units = Unit("mm/hr")
@@ -432,11 +445,11 @@ class Test_process(IrisTest):
     def setUp(self):
         """Set up cubes for testing."""
         self.precip_cubes = set_up_precipitation_rate_cube()
-        self.oe_cubes = set_up_orographic_enhancement_cube()
+        self.oe_cube = set_up_orographic_enhancement_cube()
 
     def test_basic_add(self):
-        """Test the addition of cubelists containing cubes of
-        precipitation rate and orographic enhancement."""
+        """Test the addition of a precipitation rate cubelist and an
+        orographic enhancement cube with multiple times."""
         expected0 = np.array([[[[0., 1., 2.],
                                 [1., 2., 7.],
                                 [0., 3., 4.]]]])
@@ -444,7 +457,7 @@ class Test_process(IrisTest):
                                 [6., 5., 1.],
                                 [6., 5., 1.]]]])
         plugin = ApplyOrographicEnhancement("add")
-        result = plugin.process(self.precip_cubes, self.oe_cubes)
+        result = plugin.process(self.precip_cubes, self.oe_cube)
         self.assertIsInstance(result, iris.cube.CubeList)
         for aresult, precip_cube in zip(result, self.precip_cubes):
             self.assertEqual(
@@ -455,8 +468,8 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result[1].data, expected1)
 
     def test_basic_subtract(self):
-        """Test the subtraction of cubelists containing cubes of orographic
-        enhancement from cubes of precipitation rate."""
+        """Test the subtraction of a cube of orographic
+        enhancement with multiple times from cubes of precipitation rate."""
         expected0 = np.array([[[[0., 1., 2.],
                                 [1., 2., MIN_PRECIP_RATE_MMH],
                                 [0., 1., MIN_PRECIP_RATE_MMH]]]])
@@ -465,7 +478,7 @@ class Test_process(IrisTest):
                [2., 3., 1.],
                [2., 3., 1.]]]])
         plugin = ApplyOrographicEnhancement("subtract")
-        result = plugin.process(self.precip_cubes, self.oe_cubes)
+        result = plugin.process(self.precip_cubes, self.oe_cube)
         self.assertIsInstance(result, iris.cube.CubeList)
         for aresult, precip_cube in zip(result, self.precip_cubes):
             self.assertEqual(
@@ -501,7 +514,7 @@ class Test_process(IrisTest):
             new_precip_cubes.append(precip_cube)
 
         plugin = ApplyOrographicEnhancement("add")
-        result = plugin.process(self.precip_cubes, self.oe_cubes)
+        result = plugin.process(self.precip_cubes, self.oe_cube)
         self.assertIsInstance(result, iris.cube.CubeList)
         for aresult, precip_cube in zip(result, self.precip_cubes):
             self.assertEqual(
@@ -536,7 +549,7 @@ class Test_process(IrisTest):
             new_precip_cubes.append(precip_cube)
 
         plugin = ApplyOrographicEnhancement("subtract")
-        result = plugin.process(self.precip_cubes, self.oe_cubes)
+        result = plugin.process(self.precip_cubes, self.oe_cube)
         self.assertIsInstance(result, iris.cube.CubeList)
         for aresult, precip_cube in zip(result, self.precip_cubes):
             self.assertEqual(
@@ -553,24 +566,7 @@ class Test_process(IrisTest):
                                [1., 2., 7.],
                                [0., 3., 4.]]]])
         plugin = ApplyOrographicEnhancement("add")
-        result = plugin.process(self.precip_cubes[0], self.oe_cubes)
-        self.assertIsInstance(result, iris.cube.CubeList)
-        for aresult, precip_cube in zip(result, self.precip_cubes):
-            self.assertEqual(
-                aresult.metadata, precip_cube.metadata)
-        for cube in result:
-            cube.convert_units("mm/hr")
-        self.assertArrayAlmostEqual(result[0].data, expected)
-
-    def test_inputs_and_orographic_enhancements_as_cubes(self):
-        """Test the addition of precipitation rate and orographic enhancement,
-        where a single precipitation rate cube and a single orographic
-        enhancement cube is provided."""
-        expected = np.array([[[[0., 1., 2.],
-                               [1., 2., 7.],
-                               [0., 3., 4.]]]])
-        plugin = ApplyOrographicEnhancement("add")
-        result = plugin.process(self.precip_cubes[0], self.oe_cubes[0])
+        result = plugin.process(self.precip_cubes[0], self.oe_cube)
         self.assertIsInstance(result, iris.cube.CubeList)
         for aresult, precip_cube in zip(result, self.precip_cubes):
             self.assertEqual(

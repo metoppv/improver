@@ -90,9 +90,9 @@ def main():
     vcube = load_cube(args.northward_advection_filepath)
 
     if args.orographic_enhancement_filepaths:
-        oe_cube_list = load_cubelist(args.orographic_enhancement_filepaths)
+        oe_cube = load_cube(args.orographic_enhancement_filepaths)
         input_cube, = ApplyOrographicEnhancement("subtract").process(
-            input_cube, oe_cube_list)
+            input_cube, oe_cube)
     else:
         if "precipitation_rate" in input_cube.name():
             msg = ("For precipitation fields, orographic enhancement "
@@ -126,7 +126,7 @@ def main():
         if args.orographic_enhancement_filepaths:
             # Add orographic enhancement.
             forecast_cube, = ApplyOrographicEnhancement("add").process(
-                  forecast_cube, oe_cube_list)
+                  forecast_cube, oe_cube)
 
         # save to a suitably-named output file
         if args.output_filepaths:

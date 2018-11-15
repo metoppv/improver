@@ -43,7 +43,7 @@ from improver.nowcasting.optical_flow import AdvectField, OpticalFlow
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
 from improver.utilities.cube_manipulation import merge_cubes, strip_var_names
 from improver.utilities.filename import generate_file_name
-from improver.utilities.load import load_cubelist
+from improver.utilities.load import load_cube, load_cubelist
 from improver.utilities.save import save_netcdf
 
 
@@ -109,9 +109,9 @@ def main():
 
     if args.orographic_enhancement_filepaths:
         # Subtract orographic enhancement
-        oe_cube_list = load_cubelist(args.orographic_enhancement_filepaths)
+        oe_cube = load_cube(args.orographic_enhancement_filepaths)
         cube_list = ApplyOrographicEnhancement("subtract").process(
-            cube_list, oe_cube_list)
+            cube_list, oe_cube)
     else:
         if any("precipitation_rate" in cube.name() for cube in cube_list):
             cube_names = [cube.name() for cube in cube_list]
@@ -185,7 +185,7 @@ def main():
             if args.orographic_enhancement_filepaths:
                 # Re-add orographic enhancement.
                 forecast_cube, = ApplyOrographicEnhancement("add").process(
-                    forecast_cube, oe_cube_list)
+                    forecast_cube, oe_cube)
 
             # save to a suitably-named output file
             if args.nowcast_filepaths:

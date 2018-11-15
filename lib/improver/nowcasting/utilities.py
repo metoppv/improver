@@ -38,7 +38,6 @@ import iris
 
 from improver.cube_combiner import CubeCombiner
 from improver.utilities.cube_checker import check_cube_coordinates
-from improver.utilities.cube_manipulation import merge_cubes
 from improver.utilities.temporal import (
     extract_nearest_time_point, iris_time_to_datetime)
 
@@ -118,7 +117,7 @@ class ApplyOrographicEnhancement(object):
         """
         # Ensure the orographic enhancement cube matches the
         # dimensions of the precip_cube.
-        oe_cube = check_cube_coordinates(precip_cube, oe_cube)
+        oe_cube = check_cube_coordinates(precip_cube, oe_cube.copy())
 
         # Ensure that orographic enhancement is in the units of the
         # precipitation rate cube.
@@ -130,7 +129,11 @@ class ApplyOrographicEnhancement(object):
         threshold_in_cube_units = (
             original_units.convert(self.min_precip_rate_mmh,
                                    precip_cube.units))
-        oe_cube.data[precip_cube.data < threshold_in_cube_units] = 0.
+
+        # Ignore invalid warnings generated if e.g. a NaN is encountered
+        # within the less than (<) comparison.
+        with np.errstate(invalid='ignore'):
+            oe_cube.data[precip_cube.data < threshold_in_cube_units] = 0.
 
         # Use CubeCombiner to combine the cubes.
         temp_cubelist = iris.cube.CubeList([precip_cube, oe_cube])
@@ -139,7 +142,8 @@ class ApplyOrographicEnhancement(object):
         return cube
 
     def _apply_minimum_precip_rate(self, precip_cube, cube):
-        """Ensure that negative precipitation rates are capped at +1/32 mm/hr.
+        """Ensure that negative precipitation rates are capped at the defined
+        minimum precipitation rate.
 
         Args:
             precip_cube (iris.cube.Cube):
@@ -151,7 +155,8 @@ class ApplyOrographicEnhancement(object):
         Returns:
             cube (iris.cube.Cube):
                 Cube containing the precipitation rate field where any
-                negative precipitation rates have been capped at +1/32 mm/hr.
+                negative precipitation rates have been capped at the defined
+                minimum precipitation rate.
 
         """
         if self.operation == "subtract":
@@ -174,11 +179,12 @@ class ApplyOrographicEnhancement(object):
                 mask = ((precip_cube.data >= threshold_in_precip_cube_units) &
                         (cube.data <= threshold_in_cube_units))
 
-                # Set any values lower than the tolerance to be 1/32 mm/hr.
+                # Set any values lower than the threshold to be equal to
+                # the minimum precipitation rate.
                 cube.data[mask] = threshold_in_cube_units
         return cube
 
-    def process(self, precip_cubes, orographic_enhancement_cubes):
+    def process(self, precip_cubes, orographic_enhancement_cube):
         """Apply orographic enhancement by modifying the input fields. This can
         include either adding or deleting the orographic enhancement component
         from the input precipitation fields.
@@ -186,9 +192,8 @@ class ApplyOrographicEnhancement(object):
         Args:
             precip_cubes (iris.cube.Cube or iris.cube.CubeList):
                 Cube or CubeList containing the input precipitation fields.
-            orographic_enhancement_cubes (iris.cube.Cube or
-                                          iris.cube.CubeList):
-                Cube or CubeList containing the orographic enhancement fields.
+            orographic_enhancement_cube (iris.cube.Cube):
+                Cube containing the orographic enhancement fields.
 
         Returns:
             updated_cubes (iris.cube.CubeList):
@@ -197,12 +202,6 @@ class ApplyOrographicEnhancement(object):
         """
         if isinstance(precip_cubes, iris.cube.Cube):
             precip_cubes = iris.cube.CubeList([precip_cubes])
-
-        if isinstance(orographic_enhancement_cubes, iris.cube.CubeList):
-            orographic_enhancement_cube = (
-                merge_cubes(orographic_enhancement_cubes))
-        else:
-            orographic_enhancement_cube = orographic_enhancement_cubes
 
         updated_cubes = iris.cube.CubeList([])
         for precip_cube in precip_cubes:
