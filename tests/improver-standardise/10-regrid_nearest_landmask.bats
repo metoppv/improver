@@ -29,19 +29,23 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "standardise no arguments" {
-  run improver standardise
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-standardise [-h] [--profile] [--profile_file PROFILE_FILE]
-                            [--output_filepath OUTPUT_FILE]
-                            [--target_grid_filepath TARGET_GRID]
-                            [--regrid_mode {bilinear,nearest,nearest-with-mask}]
-                            [--extrapolation_mode EXTRAPOLATION_MODE]
-                            [--input_landmask_filepath INPUT_LANDMASK_FILE]
-                            [--landmask_vicinity LANDMASK_VICINITY]
-                            [--fix_float64] [--json_file JSON_FILE]
-                            SOURCE_DATA
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "standardise with land-mask" {
+  improver_check_skip_acceptance
+  KGO="standardise/regrid-landmask/kgo.nc"
+
+  # Run cube regrid processing with iris nearest option and check it passes.
+  run improver standardise \
+      "$IMPROVER_ACC_TEST_DIR/standardise/regrid-basic/global_cutout.nc" \
+      --target_grid_filepath "$IMPROVER_ACC_TEST_DIR/standardise/regrid-landmask/ukvx_landmask.nc" \
+      --input_landmask_filepath "$IMPROVER_ACC_TEST_DIR/standardise/regrid-landmask/glm_landmask.nc" \
+      --output_filepath "$TEST_DIR/output.nc" --regrid_mode="nearest-with-mask"
+  [[ "$status" -eq 0 ]]
+
+  improver_check_recreate_kgo "output.nc" $KGO
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

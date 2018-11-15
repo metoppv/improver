@@ -29,19 +29,27 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "standardise no arguments" {
-  run improver standardise
-  [[ "$status" -eq 2 ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "standardise check input filepath contains mask" {
+  improver_check_skip_acceptance
+  KGO="standardise/regrid-nearest/kgo.nc"
+
+  run improver standardise \
+      "$IMPROVER_ACC_TEST_DIR/standardise/regrid-basic/global_cutout.nc" \
+      --target_grid_filepath "$IMPROVER_ACC_TEST_DIR/standardise/regrid-basic/ukvx_grid.nc" \
+      --input_landmask_filepath "$IMPROVER_ACC_TEST_DIR/standardise/regrid-landmask/glm_landmask.nc" \
+      --output_filepath "$TEST_DIR/output.nc" --regrid_mode="nearest-with-mask"
+  [[ "$status" -eq 0 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-standardise [-h] [--profile] [--profile_file PROFILE_FILE]
-                            [--output_filepath OUTPUT_FILE]
-                            [--target_grid_filepath TARGET_GRID]
-                            [--regrid_mode {bilinear,nearest,nearest-with-mask}]
-                            [--extrapolation_mode EXTRAPOLATION_MODE]
-                            [--input_landmask_filepath INPUT_LANDMASK_FILE]
-                            [--landmask_vicinity LANDMASK_VICINITY]
-                            [--fix_float64] [--json_file JSON_FILE]
-                            SOURCE_DATA
+UserWarning: Expected land_binary_mask in target_grid_filepath
 __TEXT__
   [[ "$output" =~ "$expected" ]]
+
+  # Don't recreate KGO for this test as it is the same as test 03.
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }
+
