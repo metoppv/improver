@@ -42,7 +42,7 @@ def apply_plugin(plugin, cubes):
 
     Args:
         plugin (object):
-            Plugin class, or process method to be executed.
+            Plugin instance, or its process method to be executed.
         cubes (iterator):
             Cubes to be operated on by the plugin.
 
