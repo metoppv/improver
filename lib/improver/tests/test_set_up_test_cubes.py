@@ -297,7 +297,7 @@ class test_set_up_probability_cube(IrisTest):
     def test_relative_to_threshold(self):
         """Test ability to reset the "relative_to_threshold" attribute"""
         data = np.flipud(self.data)
-        result = set_up_probability_cube(self.data, self.thresholds,
+        result = set_up_probability_cube(data, self.thresholds,
                                          relative_to_threshold='below')
         self.assertEqual(len(result.attributes), 1)
         self.assertEqual(result.attributes['relative_to_threshold'], 'below')
