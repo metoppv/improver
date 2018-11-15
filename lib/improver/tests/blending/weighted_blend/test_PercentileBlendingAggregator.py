@@ -41,6 +41,11 @@ import numpy as np
 
 from improver.blending.weighted_blend import PercentileBlendingAggregator
 
+
+# The PERCENTILE_DATA below were generated using a call to np.random.rand
+# The numbers were then scaled between 12 and 18, envisaged as Spring or
+# Autumn temperatures in Celsius.
+
 PERCENTILE_DATA = np.array([
     17.458706, 13.732982, 15.138694, 13.966815, 16.187801,
     15.125104, 12.560181, 14.662473, 13.505879, 14.229357,
@@ -140,7 +145,17 @@ def percentile_cube():
 
 
 def generate_matching_weights_array(weights, shape):
-    """Create an array of weights that matches the shape of the cube."""
+    """Create an array of weights that matches the shape of the cube.
+
+    Args:
+        weights (np.array):
+            An array of weights that needs to be broadcast to match the
+            specified shape.
+        shape (tuple):
+            A tuple that specifies the shape to which weights should be
+            broadcast. If broadcasting to this shape is not possible numpy will
+            raise a broadcast error.
+    """
     weights_array = np.broadcast_to(weights, shape)
     return weights_array.astype(np.float32)
 

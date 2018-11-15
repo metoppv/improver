@@ -32,10 +32,10 @@
 
 """Script to run weighted blending."""
 
-import numpy as np
-import json
-import iris
 import warnings
+import json
+
+import numpy as np
 from cf_units import Unit
 
 from improver.argparser import ArgParser
@@ -116,8 +116,7 @@ def calculate_blending_weights(cube, blend_coord, method, wts_dict=None,
             warnings.warn('Calculation of spatially varying weights is '
                           'not yet supported - using dict only')
 
-        # sort weights cube by blending coordinate and extract
-        # data array as input to blending plugin
+        # sort weights cube by blending coordinate
         weights = sort_coord_in_cube(
             weights_cube, blend_coord, order="ascending")
 

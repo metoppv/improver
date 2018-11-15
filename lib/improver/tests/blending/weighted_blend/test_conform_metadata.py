@@ -199,18 +199,6 @@ class Test_conform_metadata(IrisTest):
         self.assertFalse(result.coords("model_id"))
         self.assertFalse(result.coords("model_realization"))
 
-    def test_scalar_coordinate_bounds_removal(self):
-        """Test that if a cube contains scalar coordinates, these coordinates
-        do not have bounds."""
-        cube = self.cube
-        cube.add_aux_coord(
-            AuxCoord([10.], standard_name="height", units="m",
-                     bounds=np.array([5., 15.])))
-        result = conform_metadata(
-            self.cube, self.cube_orig, self.coord,
-            coords_for_bounds_removal=["height"])
-        self.assertFalse(result.coord("height").bounds)
-
     def test_forecast_coordinate_bounds_removal(self):
         """Test that if a cube has bounds on the forecast period and reference
         time, that these are removed"""

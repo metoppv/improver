@@ -33,12 +33,10 @@
 
 import unittest
 
-from cf_units import Unit
-from iris.coords import DimCoord
-from iris.cube import Cube
-from iris.tests import IrisTest
-import iris
 import numpy as np
+
+import iris
+from iris.tests import IrisTest
 
 from improver.blending.weights import WeightsUtilities
 from improver.tests.blending.weights.helper_functions import (
@@ -317,9 +315,10 @@ class Test_build_weights_cube(IrisTest):
 
         weights = np.array([0.4, 0.4, 0.2])
         blending_coord = 'time'
-
+        msg = ("Weights array provided is not the same size as the "
+               "blending coordinate")
         plugin = WeightsUtilities.build_weights_cube
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(ValueError, msg):
             plugin(self.cube, weights, blending_coord)
 
 

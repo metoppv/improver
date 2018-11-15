@@ -268,7 +268,18 @@ class WeightsUtilities:
             Returns:
                 weights_cube (iris.cube.Cube):
                     A cube containing the array of weights.
+            Raises:
+                ValueError : If weights array is not of the same length as the
+                             coordinate being blended over on cube.
         """
+
+        if len(weights) != len(cube.coord(blending_coord).points):
+            msg = ("Weights array provided is not the same size as the "
+                   "blending coordinate; weights shape: {}, blending "
+                   "coordinate shape: {}".format(
+                       len(weights), len(cube.coord(blending_coord).points)))
+            raise ValueError(msg)
+
         try:
             weights_cube = next(cube.slices(blending_coord))
         except ValueError:
@@ -280,6 +291,7 @@ class WeightsUtilities:
                           if not crd.name() == blending_coord]
         for crd in defunct_coords:
             weights_cube.remove_coord(crd)
+
         weights_cube.data = weights
         weights_cube.rename('weights')
         weights_cube.units = 1
@@ -317,8 +329,8 @@ class ChooseWeightsLinear:
                 points along the specified coordinate at which the weights are
                 valid. An example dictionary is shown below.
 
-        Dictionary of format:
-        ::
+        Dictionary of format::
+
             {
                 "uk_det": {
                     "forecast_period": [7, 12],
