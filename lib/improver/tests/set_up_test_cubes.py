@@ -41,6 +41,8 @@ import numpy as np
 import iris
 from iris.coords import DimCoord
 
+from improver.utilities.cube_checker import check_cube_not_float64
+
 TIME_UNIT = "seconds since 1970-01-01 00:00:00"
 CALENDAR = "gregorian"
 
@@ -187,6 +189,10 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
                           dim_coords_and_dims=dim_coords,
                           aux_coords_and_dims=scalar_coords,
                           attributes=attributes)
+
+    # don't allow unit tests to set up invalid cubes
+    check_cube_not_float64(cube)
+
     return cube
 
 

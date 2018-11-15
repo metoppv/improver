@@ -127,7 +127,8 @@ class test_set_up_variable_cube(IrisTest):
 
     def setUp(self):
         """Set up simple temperature data array"""
-        self.data = np.linspace(275.0, 284.0, 12).reshape(3, 4)
+        self.data = (
+            np.linspace(275.0, 284.0, 12).reshape(3, 4).astype(np.float32))
         self.data_3d = np.array([self.data, self.data, self.data])
 
     def test_defaults(self):
@@ -243,9 +244,10 @@ class test_set_up_percentile_cube(IrisTest):
 
     def setUp(self):
         """Set up simple array of percentile-type data"""
-        self.data = np.array([[[273.5, 275.1, 274.9], [274.2, 274.8, 274.1]],
-                              [[274.2, 276.4, 275.5], [275.1, 276.8, 274.6]],
-                              [[275.6, 278.1, 277.2], [276.4, 277.5, 275.3]]])
+        self.data = np.array([
+            [[273.5, 275.1, 274.9], [274.2, 274.8, 274.1]],
+            [[274.2, 276.4, 275.5], [275.1, 276.8, 274.6]],
+            [[275.6, 278.1, 277.2], [276.4, 277.5, 275.3]]], dtype=np.float32)
         self.percentiles = np.array([20, 50, 80])
 
     def test_defaults(self):
@@ -269,11 +271,13 @@ class test_set_up_probability_cube(IrisTest):
 
     def setUp(self):
         """Set up array of exceedance probabilities"""
-        self.data = np.array([[[1.0, 1.0, 0.9], [0.9, 0.9, 0.8]],
-                              [[0.8, 0.8, 0.7], [0.7, 0.6, 0.4]],
-                              [[0.6, 0.4, 0.3], [0.3, 0.2, 0.1]],
-                              [[0.2, 0.1, 0.0], [0.1, 0.0, 0.0]]])
-        self.thresholds = np.array([275., 275.5, 276., 276.5])
+        self.data = np.array([
+            [[1.0, 1.0, 0.9], [0.9, 0.9, 0.8]],
+            [[0.8, 0.8, 0.7], [0.7, 0.6, 0.4]],
+            [[0.6, 0.4, 0.3], [0.3, 0.2, 0.1]],
+            [[0.2, 0.1, 0.0], [0.1, 0.0, 0.0]]], dtype=np.float32)
+        self.thresholds = np.array(
+            [275., 275.5, 276., 276.5], dtype=np.float32)
 
     def test_defaults(self):
         """Test default arguments produce cube with expected dimensions
