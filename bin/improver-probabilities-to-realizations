@@ -120,18 +120,19 @@ def main():
             raise ValueError(message)
         else:
             raw_forecast = load_cube(args.raw_forecast_filepath)
-        # If no_of_realizations is not given, take the number from the raw
-        # ensemble cube.
-        if args.no_of_realizations is None:
             try:
-                no_of_realizations = len(
-                    raw_forecast.coord("realization").points)
+                raw_forecast.coord("realization")
             except CoordinateNotFoundError:
                 message = ("The netCDF file from the raw_forecast_filepath "
                            "must have a realization coordinate.")
                 raise ValueError(message)
-        else:
-            no_of_realizations = args.no_of_realizations
+
+        no_of_realizations = args.no_of_realizations
+        # If no_of_realizations is not given, take the number from the raw
+        # ensemble cube.
+        if args.no_of_realizations is None:
+            no_of_realizations = len(raw_forecast.coord("realization").points)
+
         cube = GeneratePercentilesFromProbabilities().process(
             cube, no_of_percentiles=no_of_realizations)
         cube = EnsembleReordering().process(

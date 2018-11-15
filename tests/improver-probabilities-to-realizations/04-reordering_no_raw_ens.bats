@@ -32,6 +32,7 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "probabilities-to-realizations --reordering input output" {
+  improver_check_skip_acceptance
 
   run improver probabilities-to-realizations --reordering \
       "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/basic/input.nc" \
