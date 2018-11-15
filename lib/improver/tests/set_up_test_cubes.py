@@ -82,13 +82,15 @@ def construct_xy_coords(ypoints, xpoints, spatial_grid):
     return y_coord, x_coord
 
 
-def construct_scalar_time_coords(time, frt):
+def construct_scalar_time_coords(time, time_bounds, frt):
     """
     Construct scalar time coordinates as aux_coord list
 
     Args:
         time (datetime.datetime or None):
             Single time point
+        time_bounds (tuple or list of datetime.datetime instances or None):
+            Lower and upper bound on time point, if required
         frt (datetime.datetime or None):
             Single forecast reference time point
 
@@ -97,10 +99,12 @@ def construct_scalar_time_coords(time, frt):
             List of iris.coord.DimCoord instances with the associated "None"
             dimension (format required by iris.cube.Cube initialisation).
     """
+    # generate time coordinate points
     time_point_seconds = (
         date2num(time, TIME_UNIT, CALENDAR) if time is not None else
         date2num(datetime(2017, 11, 10, 4, 0), TIME_UNIT, CALENDAR))
     time_point_seconds = np.round(time_point_seconds).astype(np.int64)
+
     frt_point_seconds = (
         date2num(frt, TIME_UNIT, CALENDAR) if frt is not None else
         date2num(datetime(2017, 11, 10, 0, 0), TIME_UNIT, CALENDAR))
@@ -110,7 +114,24 @@ def construct_scalar_time_coords(time, frt):
         raise ValueError('Cannot set up cube with negative forecast period')
     fp_point_seconds = time_point_seconds - frt_point_seconds
 
-    time_coord = DimCoord(time_point_seconds, "time", units=TIME_UNIT)
+    # parse bounds if required
+    if time_bounds is not None:
+        lower_bound = np.round(
+            date2num(time_bounds[0], TIME_UNIT, CALENDAR)).astype(np.int64)
+        upper_bound = np.round(
+            date2num(time_bounds[1], TIME_UNIT, CALENDAR)).astype(np.int64)
+        bounds = (min(lower_bound, upper_bound),
+                  max(lower_bound, upper_bound))
+        if time_point_seconds < bounds[0] or time_point_seconds > bounds[1]:
+            raise ValueError(
+                'Time point {} not within bounds {}-{}'.format(
+                    time, time_bounds[0], time_bounds[1]))
+    else:
+        bounds = None
+
+    # create coordinates
+    time_coord = DimCoord(
+        time_point_seconds, "time", units=TIME_UNIT, bounds=bounds)
     frt_coord = DimCoord(
         frt_point_seconds, "forecast_reference_time", units=TIME_UNIT)
     fp_coord = DimCoord(fp_point_seconds, "forecast_period", units="seconds")
@@ -120,9 +141,9 @@ def construct_scalar_time_coords(time, frt):
 
 
 def set_up_variable_cube(data, name='air_temperature', units='K',
-                         spatial_grid='latlon', time=None, frt=None,
-                         realizations=None, include_scalar_coords=None,
-                         attributes=None):
+                         spatial_grid='latlon', time=None, time_bounds=None,
+                         frt=None, realizations=None,
+                         include_scalar_coords=None, attributes=None):
     """
     Set up a cube containing a single variable field with:
     - x/y spatial dimensions (equal area or lat / lon)
@@ -145,6 +166,8 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
             otherwise uses "projection_[x|y]_coordinate".
         time (datetime.datetime):
             Single cube validity time
+        time_bounds (tuple or list of datetime.datetime instances):
+            Lower and upper bound on time point, if required
         frt (datetime.datetime):
             Single cube forecast reference time
         realizations (list):
@@ -179,7 +202,7 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
             'Expected 2 or 3 dimensions on input data: got {}'.format(ndims))
 
     # construct list of aux_coords_and_dims
-    scalar_coords = construct_scalar_time_coords(time, frt)
+    scalar_coords = construct_scalar_time_coords(time, time_bounds, frt)
     if include_scalar_coords is not None:
         for coord in include_scalar_coords:
             scalar_coords.append((coord, None))
@@ -199,8 +222,9 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
 def set_up_percentile_cube(data, percentiles, name='air_temperature',
                            units='K',
                            percentile_dim_name='percentile_over_realization',
-                           spatial_grid='latlon', time=None, frt=None,
-                           include_scalar_coords=None, attributes=None):
+                           spatial_grid='latlon', time=None, time_bounds=None,
+                           frt=None, include_scalar_coords=None,
+                           attributes=None):
     """
     Set up a cube containing percentiles of a variable with:
     - x/y spatial dimensions (equal area or lat / lon)
@@ -228,6 +252,8 @@ def set_up_percentile_cube(data, percentiles, name='air_temperature',
             Name for the percentile dimension.
         time (datetime.datetime):
             Single cube validity time
+        time_bounds (tuple or list of datetime.datetime instances):
+            Lower and upper bound on time point, if required
         frt (datetime.datetime):
             Single cube forecast reference time
         include_scalar_coords (list):
@@ -246,8 +272,8 @@ def set_up_percentile_cube(data, percentiles, name='air_temperature',
 
 def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
                             threshold_units='K', relative_to_threshold='above',
-                            spatial_grid='latlon', time=None, frt=None,
-                            percentiles=None, include_scalar_coords=None,
+                            spatial_grid='latlon', time=None, time_bounds=None,
+                            frt=None, include_scalar_coords=None,
                             attributes=None):
     """
     Set up a cube containing probabilities at thresholds with:
@@ -277,6 +303,8 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
             otherwise uses "projection_[x|y]_coordinate".
         time (datetime.datetime):
             Single cube validity time
+        time_bounds (tuple or list of datetime.datetime instances):
+            Lower and upper bound on time point, if required
         frt (datetime.datetime):
             Single cube forecast reference time
         include_scalar_coords (list):

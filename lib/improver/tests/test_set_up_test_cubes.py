@@ -76,12 +76,13 @@ class test_construct_scalar_time_coords(IrisTest):
 
     def test_default(self):
         """Test default values"""
-        coord_dims = construct_scalar_time_coords(None, None)
+        coord_dims = construct_scalar_time_coords(None, None, None)
         # check types
         self.assertIsInstance(coord_dims, list)
         time_coords = [item[0] for item in coord_dims]
         for crd in time_coords:
             self.assertIsInstance(crd, iris.coords.DimCoord)
+            self.assertEqual(crd.dtype, np.int64)
 
         # check point values
         self.assertEqual(time_coords[0].name(), "time")
@@ -102,7 +103,7 @@ class test_construct_scalar_time_coords(IrisTest):
     def test_configurable(self):
         """Test times can be set"""
         coord_dims = construct_scalar_time_coords(
-            datetime(2017, 12, 1, 14, 0), datetime(2017, 12, 1, 9, 0))
+            datetime(2017, 12, 1, 14, 0), None, datetime(2017, 12, 1, 9, 0))
         time_coords = [item[0] for item in coord_dims]
         self.assertEqual(time_coords[0].name(), "time")
         self.assertEqual(iris_time_to_datetime(time_coords[0])[0],
@@ -119,7 +120,42 @@ class test_construct_scalar_time_coords(IrisTest):
         msg = 'Cannot set up cube with negative forecast period'
         with self.assertRaisesRegex(ValueError, msg):
             _ = construct_scalar_time_coords(
-                datetime(2017, 12, 1, 14, 0), datetime(2017, 12, 1, 16, 0))
+                datetime(2017, 12, 1, 14, 0), None,
+                datetime(2017, 12, 1, 16, 0))
+
+    def test_time_bounds(self):
+        """Test creation of time coordinate with bounds"""
+        coord_dims = construct_scalar_time_coords(
+            datetime(2017, 12, 1, 14, 0), (datetime(2017, 12, 1, 13, 0),
+                                           datetime(2017, 12, 1, 14, 0)),
+            datetime(2017, 12, 1, 9, 0))
+        time_coord = coord_dims[0][0]
+        self.assertEqual(iris_time_to_datetime(time_coord)[0],
+                         datetime(2017, 12, 1, 14, 0))
+        self.assertEqual(time_coord.bounds[0][0], time_coord.points[0] - 3600)
+        self.assertEqual(time_coord.bounds[0][1], time_coord.points[0])
+
+    def test_time_bounds_wrong_order(self):
+        """Test time bounds are correctly applied even if supplied in the wrong
+        order"""
+        coord_dims = construct_scalar_time_coords(
+            datetime(2017, 12, 1, 14, 0), (datetime(2017, 12, 1, 14, 0),
+                                           datetime(2017, 12, 1, 13, 0)),
+            datetime(2017, 12, 1, 9, 0))
+        time_coord = coord_dims[0][0]
+        self.assertEqual(iris_time_to_datetime(time_coord)[0],
+                         datetime(2017, 12, 1, 14, 0))
+        self.assertEqual(time_coord.bounds[0][0], time_coord.points[0] - 3600)
+        self.assertEqual(time_coord.bounds[0][1], time_coord.points[0])
+
+    def test_error_invalid_time_bounds(self):
+        """Test an error is raised if the time point is not between the
+        specified bounds"""
+        msg = 'not within bounds'
+        with self.assertRaisesRegex(ValueError, msg):
+            _ = construct_scalar_time_coords(
+                None, (datetime(2017, 12, 1, 13, 0),
+                       datetime(2017, 12, 1, 14, 0)), None)
 
 
 class test_set_up_variable_cube(IrisTest):
@@ -144,14 +180,8 @@ class test_set_up_variable_cube(IrisTest):
         self.assertEqual(result.attributes, {})
 
         # check dimension coordinates
-        lat = result.coord("latitude")
-        lon = result.coord("longitude")
-        self.assertEqual(len(lat.points), 3)
-        self.assertEqual(len(lon.points), 4)
-        self.assertEqual(result.coord_dims(lat), (0,))
-        self.assertEqual(result.coord_dims(lon), (1,))
-        self.assertEqual(lat.units, "degrees")
-        self.assertEqual(lon.units, "degrees")
+        self.assertEqual(result.coord_dims("latitude"), (0,))
+        self.assertEqual(result.coord_dims("longitude"), (1,))
 
         # check scalar time coordinates
         for time_coord in ["time", "forecast_reference_time",
@@ -185,16 +215,10 @@ class test_set_up_variable_cube(IrisTest):
         self.assertEqual(result.attributes, attributes)
 
     def test_spatial_grid(self):
-        """Test ability to set up equal area grid"""
+        """Test ability to set up non lat-lon grid"""
         result = set_up_variable_cube(self.data, spatial_grid='equal_area')
-        y_coord = result.coord('projection_y_coordinate')
-        x_coord = result.coord('projection_x_coordinate')
-        self.assertEqual(len(y_coord.points), 3)
-        self.assertEqual(len(x_coord.points), 4)
-        self.assertEqual(result.coord_dims(y_coord), (0,))
-        self.assertEqual(result.coord_dims(x_coord), (1,))
-        self.assertEqual(y_coord.units, "metres")
-        self.assertEqual(x_coord.units, "metres")
+        self.assertEqual(result.coord_dims('projection_y_coordinate'), (0,))
+        self.assertEqual(result.coord_dims('projection_x_coordinate'), (1,))
 
     def test_time_points(self):
         """Test ability to configure time and forecast reference time"""
@@ -213,16 +237,18 @@ class test_set_up_variable_cube(IrisTest):
         """Test realization coordinate is added for 3D data"""
         result = set_up_variable_cube(self.data_3d)
         self.assertArrayAlmostEqual(result.data, self.data_3d)
-        realization_coord = result.coord("realization")
-        self.assertEqual(result.coord_dims(realization_coord), (0,))
-        self.assertArrayEqual(realization_coord.points, np.array([0, 1, 2]))
+        self.assertEqual(result.coord_dims("realization"), (0,))
+        self.assertArrayEqual(
+            result.coord("realization").points, np.array([0, 1, 2]))
+        self.assertEqual(result.coord_dims("latitude"), (1,))
+        self.assertEqual(result.coord_dims("longitude"), (2,))
 
     def test_realizations(self):
         """Test specific realization values"""
         result = set_up_variable_cube(
             self.data_3d, realizations=np.array([0, 3, 4]))
-        realization_coord = result.coord("realization")
-        self.assertArrayEqual(realization_coord.points, np.array([0, 3, 4]))
+        self.assertArrayEqual(
+            result.coord("realization").points, np.array([0, 3, 4]))
 
     def test_error_unmatched_realizations(self):
         """Test error is raised if the realizations provided do not match the
