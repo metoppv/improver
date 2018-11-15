@@ -36,7 +36,7 @@
   KGO="probabilities-to-realizations/basic_reordering/kgo.nc"
 
   run improver probabilities-to-realizations --reordering --random_seed 0 \
-      --no-of-realizations 12 --raw_forecast_filepath \
+      --raw_forecast_filepath \
       "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/basic_reordering/raw_ens.nc" \
       "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/basic_reordering/input.nc" \
       "$TEST_DIR/output.nc"

@@ -44,7 +44,7 @@ def main():
     """Convert from probabilities to ensemble realizations via a CLI."""
 
     cli_specific_arguments = [
-        (['--no-of-realizations'],
+        (['--no_of_realizations'],
          {'metavar': 'NUMBER_OF_REALIZATIONS', 'default': None, 'type': int,
           'help': (
             "Optional definition of the number of ensemble realizations to be "

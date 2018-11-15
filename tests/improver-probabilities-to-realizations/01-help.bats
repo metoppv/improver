@@ -35,7 +35,7 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver-probabilities-to-realizations [-h] [--profile]
                                               [--profile_file PROFILE_FILE]
-                                              [--no-of-realizations NUMBER_OF_REALIZATIONS]
+                                              [--no_of_realizations NUMBER_OF_REALIZATIONS]
                                               (--reordering | --rebadging)
                                               [--raw_forecast_filepath RAW_FORECAST_FILE]
                                               [--random_seed RANDOM_SEED]
@@ -53,7 +53,7 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
-  --no-of-realizations NUMBER_OF_REALIZATIONS
+  --no_of_realizations NUMBER_OF_REALIZATIONS
                         Optional definition of the number of ensemble
                         realizations to be generated. These are generated
                         through an intermediate percentile representation.

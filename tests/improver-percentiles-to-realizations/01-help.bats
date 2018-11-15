@@ -65,7 +65,9 @@ optional arguments:
                         Method to be used for generating the list of
                         percentiles with forecasts generated at each
                         percentile. The options are "quantile" and "random".
-                        "quantile" is the default option.
+                        "quantile" is the default option. The "quantile"
+                        option produces equally spaced percentiles which is
+                        the prefered option for ECC.
   --reordering          The option used to create ensemble realizations from
                         percentiles by reordering the input percentiles based
                         on the order of the raw ensemble forecast.

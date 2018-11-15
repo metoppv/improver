@@ -32,7 +32,6 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "probabilities-to-realizations --rebadging input output --random_seed" {
-  improver_check_skip_acceptance
 
   run improver probabilities-to-realizations --rebadging --random_seed 0 \
       "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/basic/input.nc" \
@@ -41,7 +40,7 @@
   read -d '' expected <<'__TEXT__' || true
 usage: improver-probabilities-to-realizations [-h] [--profile]
                                               [--profile_file PROFILE_FILE]
-                                              [--no-of-realizations NUMBER_OF_REALIZATIONS]
+                                              [--no_of_realizations NUMBER_OF_REALIZATIONS]
                                               (--reordering | --rebadging)
                                               [--raw_forecast_filepath RAW_FORECAST_FILE]
                                               [--random_seed RANDOM_SEED]

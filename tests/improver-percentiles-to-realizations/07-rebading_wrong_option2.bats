@@ -32,11 +32,10 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "percentiles-to-realizations --sampling_method 'quantile' --rebadging input output --raw_forecast_file input " {
-  improver_check_skip_acceptance
-  KGO="ecc/percentiles_rebadging_extra_option/kgo.nc"
 
   # Test that the right error is raised when the wrong options are passed in.
-  run improver percentiles-to-realizations "$IMPROVER_ACC_TEST_DIR/ecc/percentiles_rebadging/multiple_percentiles_wind_cube.nc" \
+  run improver percentiles-to-realizations \
+      "$IMPROVER_ACC_TEST_DIR/percentiles-to-realizations/percentiles_rebadging/multiple_percentiles_wind_cube.nc" \
       "$TEST_DIR/output.nc" --sampling_method 'quantile' \
       --rebadging --raw_forecast_filepath "a_file.nc"
 

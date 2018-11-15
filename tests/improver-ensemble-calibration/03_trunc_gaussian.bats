@@ -33,14 +33,14 @@
 
 @test "ensemble-calibration emos truncated_gaussian m s-1 input history truth output" {
   improver_check_skip_acceptance
-  KGO="ens_calib/truncated_gaussian/kgo.nc"
+  KGO="ensemble-calibration/truncated_gaussian/kgo.nc"
 
   # Run ensemble calibration and check it passes.
   run improver ensemble-calibration 'ensemble model output statistics' \
       'm s-1' 'truncated gaussian' \
-      "$IMPROVER_ACC_TEST_DIR/ens_calib/truncated_gaussian/input.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ens_calib/truncated_gaussian/history/*.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ens_calib/truncated_gaussian/truth/*.nc" \
+      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/truncated_gaussian/input.nc" \
+      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/truncated_gaussian/history/*.nc" \
+      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/truncated_gaussian/truth/*.nc" \
       "$TEST_DIR/output.nc" --random_seed 0
   [[ "$status" -eq 0 ]]
 

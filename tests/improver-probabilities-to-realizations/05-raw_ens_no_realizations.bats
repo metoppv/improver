@@ -32,8 +32,6 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "probabilities-to-realizations --reordering --raw_forecast_filepath input input output" {
-  improver_check_skip_acceptance
-  KGO="probabilities-to-realizations/basic/kgo.nc"
 
   run improver probabilities-to-realizations --reordering \
       --raw_forecast_filepath \
