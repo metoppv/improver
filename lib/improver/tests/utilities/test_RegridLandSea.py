@@ -84,6 +84,7 @@ class Test__init__(IrisTest):
         result = RegridLandSea(vicinity_radius=30000.)
         vicinity = getattr(result, 'vicinity')
         self.assertTrue(isinstance(vicinity, OccurrenceWithinVicinity))
+        self.assertEqual(vicinity.distance, 30000.)
 
     def test_vicinity_arg_error(self):
         """Test with invalid vicinity_radius argument.

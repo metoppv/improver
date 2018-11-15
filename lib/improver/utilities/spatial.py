@@ -586,42 +586,45 @@ class RegridLandSea():
                 Intended to be 1 for filling land points near the coast
                 and 0 for filling sea points near the coast.
         """
-        # Get shape of output grid
-        ynum, xnum = self.output_land.shape
-
         # Find all points on output grid matching selector_val
         use_points = np.where(self.input_land.data == selector_val)
 
         # If there are no matching points on the input grid, no alteration can
         # be made. This tests the size of the y-coordinate of use_points.
-        if use_points[0].size is not 0:
-            # Using only these points, extrapolate to fill domain using nearest
-            # neighbour. This will generate a grid where the non-selector_val
-            # points are filled with the most appropriate value.
-            (y_points, x_points) = np.mgrid[0:ynum, 0:xnum]
-            selector_data = griddata(use_points,
-                                     self.nearest_cube.data[use_points],
-                                     (y_points, x_points), method="nearest")
+        if use_points[0].size is 0:
+            return
 
-            # Identify nearby points on regridded input_land that match the
-            # selector_value
-            if selector_val > 0.5:
-                thresholder = BasicThreshold(0.5)
-            else:
-                thresholder = BasicThreshold(0.5, below_thresh_ok=True)
-            in_vicinity = self.vicinity.process(
-                thresholder.process(self.input_land))
+        # Get shape of output grid
+        ynum, xnum = self.output_land.shape
 
-            # Identify those points sourced from the opposite mask that are
-            # close to a source point of the correct mask
-            mismatch_points, = np.logical_and(
-                np.logical_and(self.output_land.data == selector_val,
-                               self.input_land.data != selector_val),
-                in_vicinity.data > 0.5)
+        # Using only these points, extrapolate to fill domain using nearest
+        # neighbour. This will generate a grid where the non-selector_val
+        # points are filled with the nearest value in the same mask
+        # classification.
+        (y_points, x_points) = np.mgrid[0:ynum, 0:xnum]
+        selector_data = griddata(use_points,
+                                 self.nearest_cube.data[use_points],
+                                 (y_points, x_points), method="nearest")
 
-            # Replace these points with the filled-domain data
-            self.output_cube.data[mismatch_points] = (
-                selector_data[mismatch_points])
+        # Identify nearby points on regridded input_land that match the
+        # selector_value
+        if selector_val > 0.5:
+            thresholder = BasicThreshold(0.5)
+        else:
+            thresholder = BasicThreshold(0.5, below_thresh_ok=True)
+        in_vicinity = self.vicinity.process(
+            thresholder.process(self.input_land))
+
+        # Identify those points sourced from the opposite mask that are
+        # close to a source point of the correct mask
+        mismatch_points, = np.logical_and(
+            np.logical_and(self.output_land.data == selector_val,
+                           self.input_land.data != selector_val),
+            in_vicinity.data > 0.5)
+
+        # Replace these points with the filled-domain data
+        self.output_cube.data[mismatch_points] = (
+            selector_data[mismatch_points])
 
     def process(self, cube, input_land, output_land):
         """
