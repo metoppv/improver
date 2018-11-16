@@ -211,7 +211,7 @@ def concatenate_cubes(
     return result
 
 
-def merge_cubes(cubes, model_id="mosg__model_configuration"):
+def merge_cubes(cubes, model_id_attr="mosg__model_configuration"):
     """
     Function to merge cubes, accounting for differences in the
     attributes, and coords.
@@ -219,7 +219,7 @@ def merge_cubes(cubes, model_id="mosg__model_configuration"):
     Args:
         cubes (Iris cubelist or Iris cube):
             Cubes to be merged.
-        model_id (str):
+        model_id_attr (str):
             Identification string of the model configuration. Default
             is to use the Met Office model configuration.
 
@@ -231,7 +231,7 @@ def merge_cubes(cubes, model_id="mosg__model_configuration"):
     if isinstance(cubes, iris.cube.Cube):
         cubes = iris.cube.CubeList([cubes])
 
-    cubelist = equalise_cubes(cubes, model_id, merging=True)
+    cubelist = equalise_cubes(cubes, model_id_attr, merging=True)
 
     for cube in cubelist:
         iris.util.squeeze(cube)
@@ -241,7 +241,7 @@ def merge_cubes(cubes, model_id="mosg__model_configuration"):
 
 
 def equalise_cubes(
-        cubes_in, model_id="mosg__model_configuration", merging=True):
+        cubes_in, model_id_attr="mosg__model_configuration", merging=True):
     """
     Function to equalise cubes where they do not match.
 
@@ -251,7 +251,7 @@ def equalise_cubes(
         merging (boolean):
             Flag for whether the equalising is for merging
             as slightly different processing is required.
-        model_id (str):
+        model_id_attr (str):
             Identification string of the model configuration. Default
             is to use the Met Office model configuration.
     Returns:
@@ -267,7 +267,7 @@ def equalise_cubes(
     cubes = iris.cube.CubeList([])
     for cube in cubes_in:
         cubes.append(cube.copy())
-    _equalise_cube_attributes(cubes, model_id)
+    _equalise_cube_attributes(cubes, model_id_attr)
     strip_var_names(cubes)
     if merging:
         cubelist = _equalise_cube_coords(cubes)

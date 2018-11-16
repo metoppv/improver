@@ -97,10 +97,10 @@ class Test_merge_cubes(IrisTest):
             iris.Constraint(realization=1))
         self.cube_non_mo_det.remove_coord('realization')
         self.cube_non_mo_det.attributes[
-            'non_mo__model_configuration'] = 'uk_det'
+            'non_mo__model_configuration'] = 'non_uk_det'
 
         self.cube_non_mo_ens.attributes[
-            'non_mo__model_configuration'] = 'uk_ens'
+            'non_mo__model_configuration'] = 'non_uk_ens'
 
 
     @ManageWarnings(record=True)
@@ -152,11 +152,11 @@ class Test_merge_cubes(IrisTest):
         default mosg__model_configuration"""
         cubes = iris.cube.CubeList([self.cube_non_mo_ens, self.cube_non_mo_det])
         result = merge_cubes(cubes, 'non_mo__model_configuration')
-        print(result)
-        print(result.coord('model_configuration'))
+        # print(result)
+        # print(result.coord('model_configuration'))
         self.assertIsInstance(result, Cube)
-        # self.assertArrayAlmostEqual(
-            # result.coord("model_realization").points, [3000., 4000., 4001., 4002.])
+        self.assertArrayAlmostEqual(
+            result.coord("model_realization").points, [7000., 8000., 8001., 8002.])
 
 
 if __name__ == '__main__':

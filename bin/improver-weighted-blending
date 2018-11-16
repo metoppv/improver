@@ -175,7 +175,7 @@ def main():
                         'YYYYMMDDTHHMMZ. If not provided, the blended file '
                         'will take the latest available forecast reference '
                         'time from the input cubes supplied.')
-    parser.add_argument('--model_id', metavar='MODEL_ID', type=str,
+    parser.add_argument('--model_id_attr', metavar='MODEL_ID', type=str,
                         default="mosg__model_configuration",
                         help='This argument can be used to specify '
                              'a non Met Office model identification string. '
@@ -279,7 +279,7 @@ def main():
         weighting_coord=weighting_coord)
 
     # merge cube list
-    cube = merge_cubes(cubelist, args.model_id)
+    cube = merge_cubes(cubelist, args.model_id_attr)
 
     # if the coord for blending does not exist or has only one value,
     # update metadata only
