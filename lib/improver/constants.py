@@ -101,5 +101,7 @@ MODEL_ID_DICT = {
     3000: 'uk_det',
     4000: 'uk_ens',
     5000: 'nc_det',
-    6000: 'nc_ens'
+    6000: 'nc_ens',
+    7000: 'non_uk_det',
+    8000: 'non_uk_ens'
     }

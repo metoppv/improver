@@ -211,7 +211,7 @@ def concatenate_cubes(
     return result
 
 
-def merge_cubes(cubes):
+def merge_cubes(cubes, model_id="mosg__model_configuration"):
     """
     Function to merge cubes, accounting for differences in the
     attributes, and coords.
@@ -219,6 +219,9 @@ def merge_cubes(cubes):
     Args:
         cubes (Iris cubelist or Iris cube):
             Cubes to be merged.
+        model_id (str):
+            Identification string of the model configuration. Default
+            is to use the Met Office model configuration.
 
     Returns:
         result (Iris cube):
@@ -228,7 +231,7 @@ def merge_cubes(cubes):
     if isinstance(cubes, iris.cube.Cube):
         cubes = iris.cube.CubeList([cubes])
 
-    cubelist = equalise_cubes(cubes)
+    cubelist = equalise_cubes(cubes, model_id, merging=True)
 
     for cube in cubelist:
         iris.util.squeeze(cube)
@@ -237,7 +240,8 @@ def merge_cubes(cubes):
     return result
 
 
-def equalise_cubes(cubes_in, merging=True):
+def equalise_cubes(
+        cubes_in, model_id="mosg__model_configuration", merging=True):
     """
     Function to equalise cubes where they do not match.
 
@@ -247,6 +251,9 @@ def equalise_cubes(cubes_in, merging=True):
         merging (boolean):
             Flag for whether the equalising is for merging
             as slightly different processing is required.
+        model_id (str):
+            Identification string of the model configuration. Default
+            is to use the Met Office model configuration.
     Returns:
         cubelist (Iris cubelist):
             List of cubes with revised cubes.
@@ -260,7 +267,7 @@ def equalise_cubes(cubes_in, merging=True):
     cubes = iris.cube.CubeList([])
     for cube in cubes_in:
         cubes.append(cube.copy())
-    _equalise_cube_attributes(cubes)
+    _equalise_cube_attributes(cubes, model_id)
     strip_var_names(cubes)
     if merging:
         cubelist = _equalise_cube_coords(cubes)
@@ -271,13 +278,17 @@ def equalise_cubes(cubes_in, merging=True):
     return cubelist
 
 
-def _equalise_cube_attributes(cubes):
+def _equalise_cube_attributes(
+        cubes, model_id_attr="mosg__model_configuration"):
     """
     Function to equalise attributes that do not match.
 
     Args:
         cubes (Iris cubelist):
             List of cubes to check the attributes and revise.
+        model_id_attr (str):
+            Identification string of the model configuration, Default
+            is to use the Met Office model configuration.
     Returns:
         cubelist (Iris cubelist):
         Note: This internal function modifies the incoming cubes
@@ -297,8 +308,8 @@ def _equalise_cube_attributes(cubes):
                     cube.attributes.pop(attr)
                     unmatching_attributes[i].pop(attr)
             # Add associated model_id if model_configurations do not match.
-            if "mosg__model_configuration" in unmatching_attributes[i]:
-                model_title = cube.attributes.pop('mosg__model_configuration')
+            if model_id_attr in unmatching_attributes[i]:
+                model_title = cube.attributes.pop(model_id_attr)
                 for key, val in MODEL_ID_DICT.items():
                     if val == model_title:
                         break
@@ -312,7 +323,7 @@ def _equalise_cube_attributes(cubes):
                                      data_type=np.str))
                 cube.add_aux_coord(new_model_id_coord)
                 cube.add_aux_coord(new_model_coord)
-                unmatching_attributes[i].pop("mosg__model_configuration")
+                unmatching_attributes[i].pop(model_id_attr)
             # Remove any other mismatching attributes but raise warning.
             if len(unmatching_attributes[i]) != 0:
                 for key in unmatching_attributes[i]:

@@ -39,6 +39,7 @@ usage: improver-weighted-blending [-h] [--profile]
                                   [--coordinate_unit UNIT_STRING]
                                   [--calendar CALENDAR]
                                   [--cycletime CYCLETIME]
+                                  [--model_id MODEL_ID]
                                   [--y0val LINEAR_STARTING_POINT]
                                   [--ynval LINEAR_END_POINT]
                                   [--cval NON_LINEAR_FACTOR]
@@ -90,6 +91,10 @@ optional arguments:
                         provided, the blended file will take the latest
                         available forecast reference time from the input cubes
                         supplied.
+  --model_id MODEL_ID   This argument can be used to specify a non Met Office
+                        model identification string. Default value is the Met
+                        Office model identification:
+                        "mosg__model_configuration".
 
 linear weights options:
   Options for the linear weights calculation in ChooseDefaultWeightsLinear
