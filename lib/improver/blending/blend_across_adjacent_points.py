@@ -103,7 +103,8 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
         # Set up the blending function, based on whether weighted blending or
         # maximum probabilities are needed.
         self.BlendingPlugin = (
-            WeightedBlendAcrossWholeDimension(coord, weighting_mode))
+            WeightedBlendAcrossWholeDimension(coord, weighting_mode,
+                                              timeblending=True))
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""

@@ -34,7 +34,7 @@
 import unittest
 
 from cf_units import Unit
-from iris.coords import DimCoord
+from iris.coords import DimCoord, AuxCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
@@ -137,10 +137,19 @@ def percentile_cube():
     time_origin = "seconds since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
-    times = np.array([1447891200, 1447894800, 1447898400])
-    cube.add_dim_coord(DimCoord(times, "time", units=tunit), 1)
+    times = np.array([1447898400])
+    time_coord = AuxCoord(times, "time", units=tunit)
+    frt_coord = DimCoord([1447891200, 1447894800, 1447898400],
+                         "forecast_reference_time", units=tunit)
+    fp_coord = AuxCoord([7200, 3600, 0], "forecast_period",
+                        units='seconds')
+
     cube.add_dim_coord(DimCoord([0, 20, 40, 60, 80, 100],
                                 long_name="percentile_over_realization"), 0)
+    cube.add_dim_coord(frt_coord, 1)
+    cube.add_aux_coord(fp_coord, 1)
+    cube.add_aux_coord(time_coord)
+
     return cube
 
 
