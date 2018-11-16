@@ -89,9 +89,7 @@ class Test_merge_cubes(IrisTest):
         self.prob_enuk.attributes.update({'mosg__grid_domain': 'uk_extended'})
         self.prob_enuk.attributes.update({'mosg__grid_version': '1.2.0'})
 
-        # Setup 2 non-Met Office model configuration cubes. Note the attributes
-        # 'uk_det' and 'uk_ens' are still used as these have been defined in
-        # the MODEL_ID_DICT within improver constants.py.
+        # Setup 2 example non-Met Office model configuration cubes.
         self.cube_non_mo_ens = set_up_temperature_cube()
         self.cube_non_mo_det = self.cube_non_mo_ens.extract(
             iris.Constraint(realization=1))
@@ -137,26 +135,24 @@ class Test_merge_cubes(IrisTest):
         result = merge_cubes(cubes)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
-            result.coord("model_realization").points, [3000., 4000.,
-                                                       4001., 4002.])
+            result.coord("model_realization").points, [0., 1.,
+                                                       2., 1000.])
 
     def test_threshold_data(self):
         """Test threshold data merges OK"""
         cubes = iris.cube.CubeList([self.prob_ukv, self.prob_enuk])
         result = merge_cubes(cubes)
         self.assertArrayAlmostEqual(
-            result.coord("model_id").points, [3000., 4000.])
+            result.coord("model_id").points, [0., 1000.])
 
     def test_non_mo_model_id(self):
         """Test that a model ID string can be specified to replace the
         default mosg__model_configuration"""
         cubes = iris.cube.CubeList([self.cube_non_mo_ens, self.cube_non_mo_det])
         result = merge_cubes(cubes, 'non_mo__model_configuration')
-        # print(result)
-        # print(result.coord('model_configuration'))
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
-            result.coord("model_realization").points, [7000., 8000., 8001., 8002.])
+            result.coord("model_realization").points, [0., 1., 2., 1000.])
 
 
 if __name__ == '__main__':

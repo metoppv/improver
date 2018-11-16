@@ -19,7 +19,7 @@
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# IMPLIED  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
 # ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
 # LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
 # CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -38,7 +38,6 @@ import numpy as np
 import iris
 from iris.coords import AuxCoord, DimCoord
 from iris.exceptions import CoordinateNotFoundError
-from improver.constants import MODEL_ID_DICT
 from improver.utilities.cube_checker import check_cube_coordinates
 
 
@@ -308,19 +307,30 @@ def _equalise_cube_attributes(
                     cube.attributes.pop(attr)
                     unmatching_attributes[i].pop(attr)
             # Add associated model_id if model_configurations do not match.
+            # if model_id_attr in unmatching_attributes[i]:
+            #     model_title = cube.attributes.pop(model_id_attr)
+            #     for key, val in MODEL_ID_DICT.items():
+            #         if val == model_title:
+            #             break
+            #     new_model_id_coord = build_coordinate([key],
+            #                                           long_name='model_id',
+            #                                           data_type=np.int)
+            #     new_model_coord = (
+            #         build_coordinate([model_title],
+            #                          long_name='model_configuration',
+            #                          coord_type=AuxCoord,
+            #                          data_type=np.str))
+
             if model_id_attr in unmatching_attributes[i]:
                 model_title = cube.attributes.pop(model_id_attr)
-                for key, val in MODEL_ID_DICT.items():
-                    if val == model_title:
-                        break
-                new_model_id_coord = build_coordinate([key],
+                new_model_id_coord = build_coordinate([1000 * i],
                                                       long_name='model_id',
                                                       data_type=np.int)
-                new_model_coord = (
-                    build_coordinate([model_title],
-                                     long_name='model_configuration',
-                                     coord_type=AuxCoord,
-                                     data_type=np.str))
+
+                new_model_coord = (build_coordinate([model_title],
+                                                    long_name='model_configuration',
+                                                    coord_type=AuxCoord,
+                                                    data_type=np.str))
                 cube.add_aux_coord(new_model_id_coord)
                 cube.add_aux_coord(new_model_coord)
                 unmatching_attributes[i].pop(model_id_attr)

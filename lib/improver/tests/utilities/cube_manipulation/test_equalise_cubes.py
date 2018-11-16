@@ -93,11 +93,11 @@ class Test_equalise_cubes(IrisTest):
         cubelist = iris.cube.CubeList([self.cube_ukv, self.cube])
         result = equalise_cubes(cubelist)
         self.assertArrayAlmostEqual(result[0].coord("model_id").points,
-                                    np.array([3000]))
+                                    np.array([0]))
         self.assertEqual(result[0].coord("model_configuration").points[0],
                          'uk_det')
         self.assertArrayAlmostEqual(result[1].coord("model_id").points,
-                                    np.array([4000]))
+                                    np.array([1000]))
         self.assertEqual(result[1].coord("model_configuration").points[0],
                          'uk_ens')
         self.assertNotIn("mosg__model_configuration", result[0].attributes)
@@ -133,7 +133,7 @@ class Test_equalise_cubes(IrisTest):
         result = equalise_cubes(cubelist)
         self.assertEqual(len(result), 4)
         self.assertAlmostEqual(result[3].coord('model_realization').points,
-                               4002.0)
+                               1002.0)
 
 
 if __name__ == '__main__':
