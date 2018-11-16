@@ -575,6 +575,30 @@ class Test_process(IrisTest):
             cube.convert_units("mm/hr")
         self.assertArrayAlmostEqual(result[0].data, expected)
 
+    def test_only_one_orographic_enhancement_cube(self):
+        """Test where is an orographic enhancement cube with a single time
+        point is supplied, so that multiple input precipitation fields are
+        adjusted by the same orographic enhancement."""
+        expected0 = np.array([[[[0., 1., 2.],
+                                [1., 2., MIN_PRECIP_RATE_MMH],
+                                [0., 1., MIN_PRECIP_RATE_MMH]]]])
+        expected1 = np.array(
+            [[[[4., 4., 1.],
+               [4., 4., MIN_PRECIP_RATE_MMH],
+               [3., 3., MIN_PRECIP_RATE_MMH]]]])
+        sliced_oe_cube = (
+            iris.util.new_axis(self.oe_cube[:, 0, :, :], "time"))
+        plugin = ApplyOrographicEnhancement("subtract")
+        result = plugin.process(self.precip_cubes, sliced_oe_cube)
+        self.assertIsInstance(result, iris.cube.CubeList)
+        for aresult, precip_cube in zip(result, self.precip_cubes):
+            self.assertEqual(
+                aresult.metadata, precip_cube.metadata)
+        for cube in result:
+            cube.convert_units("mm/hr")
+        self.assertArrayAlmostEqual(result[0].data, expected0)
+        self.assertArrayAlmostEqual(result[1].data, expected1)
+
 
 if __name__ == '__main__':
     unittest.main()
