@@ -50,8 +50,9 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
             restore_non_probabilistic_dimensions)
 from improver.utilities.cube_manipulation import (
     concatenate_cubes, enforce_coordinate_ordering)
-from improver.utilities.cube_checker import (find_percentile_coordinate,
-                                             check_for_x_and_y_axes)
+from improver.utilities.cube_checker import (
+    find_percentile_coordinate, check_for_x_and_y_axes,
+    check_cube_coordinates)
 
 
 class RebadgePercentilesAsRealizations(object):
@@ -248,16 +249,15 @@ class ResamplePercentiles(object):
     def process(self, forecast_at_percentiles, no_of_percentiles=None,
                 sampling="quantile"):
         """
-        1. Concatenates cubes with a percentile coordinate.
-        2. Creates a list of percentiles.
-        3. Accesses the lower and upper bound pair of the forecast values,
+        1. Creates a list of percentiles.
+        2. Accesses the lower and upper bound pair of the forecast values,
            in order to specify lower and upper bounds for the percentiles.
-        4. Interpolate the percentile coordinate into an alternative
+        3. Interpolate the percentile coordinate into an alternative
            set of percentiles using linear interpolation.
 
         Args:
-            forecast_at_percentiles (Iris CubeList or Iris Cube):
-                Cube or CubeList expected to contain a percentile coordinate.
+            forecast_at_percentiles (Iris Cube):
+                Cube expected to contain a percentile coordinate.
             no_of_percentiles (Integer or None):
                 Number of percentiles
                 If None, the number of percentiles within the input
@@ -280,8 +280,6 @@ class ResamplePercentiles(object):
                 The percentile coordinate is always the zeroth dimension.
 
         """
-        forecast_at_percentiles = concatenate_cubes(forecast_at_percentiles)
-
         percentile_coord = (
             find_percentile_coordinate(forecast_at_percentiles).name())
 
@@ -682,11 +680,12 @@ class GeneratePercentilesFromMeanAndVariance(object):
         """
         (calibrated_forecast_predictor, calibrated_forecast_variance) = (
             calibrated_forecast_predictor_and_variance)
-
-        calibrated_forecast_predictor = concatenate_cubes(
-            calibrated_forecast_predictor)
-        calibrated_forecast_variance = concatenate_cubes(
-            calibrated_forecast_variance)
+        if isinstance(calibrated_forecast_predictor, iris.cube.CubeList):
+            calibrated_forecast_predictor = (
+                calibrated_forecast_predictor.merge_cube())
+        if isinstance(calibrated_forecast_variance, iris.cube.CubeList):
+            calibrated_forecast_variance = (
+                calibrated_forecast_variance.merge_cube())
 
         percentiles = choose_set_of_percentiles(no_of_percentiles)
         calibrated_forecast_percentiles = (
@@ -989,7 +988,12 @@ class EnsembleReordering(object):
             # np.choose allows indexing of a 3d array using a 3d array,
             calfc.data = np.choose(ranking, calfc.data)
             results.append(calfc)
-        return concatenate_cubes(results)
+        # Ensure we haven't lost any dimensional coordinates with only one
+        # value in.
+        results = results.merge_cube()
+        results = check_cube_coordinates(
+            post_processed_forecast_percentiles, results)
+        return results
 
     def process(
             self, post_processed_forecast, raw_forecast,
@@ -1030,7 +1034,7 @@ class EnsembleReordering(object):
 
         post_processed_forecast_percentiles = concatenate_cubes(
             post_processed_forecast,
-            coords_to_slice_over=[percentile_coord, "time"])
+            coords_to_slice_over=[percentile_coord])
         post_processed_forecast_percentiles = (
             enforce_coordinate_ordering(
                 post_processed_forecast_percentiles, percentile_coord))

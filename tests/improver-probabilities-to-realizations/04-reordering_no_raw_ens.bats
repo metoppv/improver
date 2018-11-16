@@ -31,22 +31,15 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "ecc --sampling_method 'quantile' --no_of_percentiles 12 --rebadging input output --realization_numbers $(seq 100 1 111) " {
+@test "probabilities-to-realizations --reordering input output" {
   improver_check_skip_acceptance
-  KGO="ecc/percentiles_rebadging_extra_option/kgo.nc"
 
-  # Run Ensemble Copula Coupling to convert one set of percentiles to another
-  # set of percentiles, and then rebadge the percentiles to be ensemble
-  # realizations.
-  run improver ecc "$IMPROVER_ACC_TEST_DIR/ecc/percentiles_rebadging/multiple_percentiles_wind_cube.nc" \
-      "$TEST_DIR/output.nc" --sampling_method 'quantile' --no_of_percentiles 12 \
-      --rebadging --realization_numbers $(seq 100 1 111)
-
-  [[ "$status" -eq 0 ]]
-
-  improver_check_recreate_kgo "output.nc" $KGO
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
+  run improver probabilities-to-realizations --reordering \
+      "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/basic/input.nc" \
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 1 ]]
+  read -d '' expected <<'__TEXT__' || true
+ValueError: You must supply a raw forecast filepath if using the reording option.
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
 }

@@ -31,21 +31,27 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "ensemble-calibration emos gaussian kelvin input history truth output" {
-  improver_check_skip_acceptance
-  KGO="ensemble-calibration/gaussian/kgo.nc"
+@test "percentiles-to-realizations --sampling_method 'quantile' --rebadging input output --raw_forecast_file input " {
 
-  # Run ensemble calibration and check it passes.
-  run improver ensemble-calibration 'ensemble model output statistics' 'K' \
-      'gaussian' "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/input.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
-      "$TEST_DIR/output.nc" --random_seed 0
-  [[ "$status" -eq 0 ]]
+  # Test that the right error is raised when the wrong options are passed in.
+  run improver percentiles-to-realizations \
+      "$IMPROVER_ACC_TEST_DIR/percentiles-to-realizations/percentiles_rebadging/multiple_percentiles_wind_cube.nc" \
+      "$TEST_DIR/output.nc" --sampling_method 'quantile' \
+      --rebadging --raw_forecast_filepath "a_file.nc"
 
-  improver_check_recreate_kgo "output.nc" $KGO
-
-  # Run nccmp to compare the output and kgo realizations and check it passes.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
+  [[ "$status" -eq 2 ]]
+  read -d '' expected <<'__TEXT__' || true
+usage: improver-percentiles-to-realizations [-h] [--profile]
+                                            [--profile_file PROFILE_FILE]
+                                            [--no_of_percentiles NUMBER_OF_PERCENTILES]
+                                            [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
+                                            (--reordering | --rebadging)
+                                            [--raw_forecast_filepath RAW_FORECAST_FILE]
+                                            [--random_ordering]
+                                            [--random_seed RANDOM_SEED]
+                                            [--realization_numbers REALIZATION_NUMBERS [REALIZATION_NUMBERS ...]]
+                                            INPUT_FILE OUTPUT_FILE
+improver-percentiles-to-realizations: error: Method: rebadging does not accept arguments: raw_forecast_filepath, random_ordering
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
 }

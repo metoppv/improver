@@ -29,24 +29,27 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "ecc -h" {
-  run improver ecc -h
+@test "percentiles-to-realizations -h" {
+  run improver percentiles-to-realizations -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-ecc [-h] [--profile] [--profile_file PROFILE_FILE]
-                    [--no_of_percentiles NUMBER_OF_PERCENTILES]
-                    [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
-                    (--reordering | --rebadging)
-                    [--raw_forecast_filepath RAW_FORECAST_FILE]
-                    [--random_ordering] [--random_seed RANDOM_SEED]
-                    [--realization_numbers REALIZATION_NUMBERS [REALIZATION_NUMBERS ...]]
-                    INPUT_FILE OUTPUT_FILE
+usage: improver-percentiles-to-realizations [-h] [--profile]
+                                            [--profile_file PROFILE_FILE]
+                                            [--no_of_percentiles NUMBER_OF_PERCENTILES]
+                                            [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
+                                            (--reordering | --rebadging)
+                                            [--raw_forecast_filepath RAW_FORECAST_FILE]
+                                            [--random_ordering]
+                                            [--random_seed RANDOM_SEED]
+                                            [--realization_numbers REALIZATION_NUMBERS [REALIZATION_NUMBERS ...]]
+                                            INPUT_FILE OUTPUT_FILE
 
-Apply Ensemble Copula Coupling to a file whose data can be loaded as a single
-iris.cube.Cube.
+Convert a dataset containing probabilities into one containing ensemble
+realizations using Ensemble Copula Coupling.
 
 positional arguments:
-  INPUT_FILE            A path to an input NetCDF file to be processed.
+  INPUT_FILE            A path to an input NetCDF file to be processed. Must
+                        contain a percentile dimension.
   OUTPUT_FILE           The output path for the processed NetCDF.
 
 optional arguments:
@@ -62,7 +65,10 @@ optional arguments:
                         Method to be used for generating the list of
                         percentiles with forecasts generated at each
                         percentile. The options are "quantile" and "random".
-                        "quantile" is the default option.
+                        "quantile" is the default option. The "quantile"
+                        option produces equally spaced percentiles which is
+                        the preferred option for full Ensemble Copula Coupling
+                        with reordering enabled.
   --reordering          The option used to create ensemble realizations from
                         percentiles by reordering the input percentiles based
                         on the order of the raw ensemble forecast.

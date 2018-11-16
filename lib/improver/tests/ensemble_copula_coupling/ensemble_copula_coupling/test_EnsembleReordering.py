@@ -334,7 +334,6 @@ class Test_rank_ecc(IrisTest):
 
         plugin = Plugin()
         result = plugin.rank_ecc(calibrated_cube, raw_cube)
-        result.transpose([1, 0, 2, 3])
         self.assertArrayAlmostEqual(result.data, calibrated_data)
 
     def test_unordered_data(self):
@@ -385,7 +384,6 @@ class Test_rank_ecc(IrisTest):
 
         plugin = Plugin()
         result = plugin.rank_ecc(calibrated_cube, raw_cube)
-        result.transpose([1, 0, 2, 3])
         self.assertArrayAlmostEqual(result.data, result_data)
 
     def test_3d_cube(self):
@@ -419,8 +417,6 @@ class Test_rank_ecc(IrisTest):
 
         plugin = Plugin()
         result = plugin.rank_ecc(calibrated_cube, raw_cube)
-
-        result.transpose([1, 0, 2])
 
         self.assertArrayAlmostEqual(result.data, result_data)
 
@@ -464,7 +460,6 @@ class Test_rank_ecc(IrisTest):
         calibrated_cube.data = calibrated_data
         plugin = Plugin()
         result = plugin.rank_ecc(calibrated_cube, raw_cube)
-        result.transpose([1, 0, 2])
         permutations = [result_data_first, result_data_second]
         matches = [
             np.array_equal(aresult, result.data) for aresult in permutations]
@@ -504,7 +499,6 @@ class Test_rank_ecc(IrisTest):
         calibrated_cube.data = calibrated_data
         plugin = Plugin()
         result = plugin.rank_ecc(calibrated_cube, raw_cube, random_seed=0)
-        result.transpose([1, 0, 2])
         self.assertArrayAlmostEqual(result.data, result_data)
 
     def test_2d_cube(self):
@@ -533,7 +527,6 @@ class Test_rank_ecc(IrisTest):
 
         plugin = Plugin()
         result = plugin.rank_ecc(calibrated_cube, raw_cube)
-        result.transpose([1, 0])
         self.assertArrayAlmostEqual(result.data, result_data)
 
     def test_2d_cube_random_ordering(self):
@@ -562,7 +555,6 @@ class Test_rank_ecc(IrisTest):
         plugin = Plugin()
         result = plugin.rank_ecc(calibrated_cube, raw_cube,
                                  random_ordering=True)
-        result.transpose([1, 0])
 
         permutations = list(itertools.permutations(raw_data))
         permutations = [np.array(permutation) for permutation in permutations]

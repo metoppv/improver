@@ -44,15 +44,17 @@ from improver.utilities.save import save_netcdf
 def main():
     """
     Load in the arguments and apply the requested variant of Ensemble
-    Copula Coupling.
+    Copula Coupling for converting percentile data to realizations.
     """
     parser = ArgParser(
-        description='Apply Ensemble Copula Coupling to a file whose '
-                    'data can be loaded as a single iris.cube.Cube.')
+        description='Convert a dataset containing '
+                    'probabilities into one containing '
+                    'ensemble realizations using Ensemble Copula Coupling.')
 
     # General options:
     parser.add_argument('input_filepath', metavar='INPUT_FILE',
-                        help='A path to an input NetCDF file to be processed.')
+                        help='A path to an input NetCDF file to be processed.'
+                             ' Must contain a percentile dimension.')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
     parser.add_argument('--no_of_percentiles', default=None, type=int,
@@ -67,7 +69,11 @@ def main():
                         help='Method to be used for generating the list of '
                              'percentiles with forecasts generated at each '
                              'percentile. The options are "quantile" and '
-                             '"random". "quantile" is the default option.')
+                             '"random". "quantile" is the default option. '
+                             'The "quantile" option produces equally spaced '
+                             'percentiles which is the preferred '
+                             'option for full Ensemble Copula Coupling with '
+                             'reordering enabled.')
 
     # Different use cases:
     # (We can either reorder OR rebadge)
@@ -126,18 +132,17 @@ def main():
     # Note: Shouldn't need to check that both/none are set, since they are
     # defined as mandatory, but mutually exclusive, options.
     if args.reordering:
-        if np.any([args.realization_numbers]):
+        if args.realization_numbers is not None:
             parser.wrong_args_error('realization_numbers', 'reordering')
     if args.rebadging:
-        if np.any([args.raw_forecast_filepath, args.random_ordering]):
+        if ((args.raw_forecast_filepath is not None)
+                or (args.random_ordering is not False)):
             parser.wrong_args_error(
                 'raw_forecast_filepath, random_ordering', 'rebadging')
 
     # Safe to now actually do the work...
     cube = load_cube(args.input_filepath)
 
-    # TODO: For now, assume only doing percentiles -> percentiles.
-    # TODO: Support for probabilities is not yet provided.
     result_cube = ResamplePercentiles().process(
         cube, no_of_percentiles=args.no_of_percentiles,
         sampling=args.sampling_method)
