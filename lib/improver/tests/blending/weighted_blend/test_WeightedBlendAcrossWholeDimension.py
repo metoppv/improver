@@ -257,7 +257,7 @@ class Test_check_compatible_time_points(Test_weighted_blend):
         coord = "forecast_reference_time"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean',
                                                    timeblending=True)
-        result = plugin.check_compatible_time_points(self.cube)
+        plugin.check_compatible_time_points(self.cube)
 
 
 class Test_shape_weights(Test_weighted_blend):
