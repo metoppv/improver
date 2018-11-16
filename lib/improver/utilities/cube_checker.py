@@ -249,16 +249,17 @@ def find_percentile_coordinate(cube):
     Args:
         cube (iris.cube.Cube):
             Cube contain one or more percentiles.
-
     Returns:
         perc_coord(iris.coords.Coord) :
             Percentile coordinate.
-
+    Raises:
+        TypeError : If cube is not of type iris.cube.Cube.
+        CoordinateNotFoundError : If no percentile coordinate is found in cube.
+        ValueError : If there is more than one percentile coords in the cube.
     """
     if not isinstance(cube, iris.cube.Cube):
         msg = ('Expecting data to be an instance of '
-               'iris.cube.Cube but is'
-               ' {0}.'.format(type(cube)))
+               'iris.cube.Cube but is {0}.'.format(type(cube)))
         raise TypeError(msg)
     standard_name = cube.name()
     perc_coord = None
@@ -269,11 +270,11 @@ def find_percentile_coordinate(cube):
             perc_coord = coord
     if perc_found != 1:
         if perc_found == 0:
-            msg = ('No percentile coord found on '
-                   '{0:s} data'.format(standard_name))
+            msg = ('No percentile coord found on {0:s} data'.format(
+                standard_name))
             raise CoordinateNotFoundError(msg)
         else:
-            msg = ('Too many percentile coords found on '
-                   '{0:s} data'.format(standard_name))
+            msg = ('Too many percentile coords found on {0:s} data'.format(
+                standard_name))
             raise ValueError(msg)
     return perc_coord

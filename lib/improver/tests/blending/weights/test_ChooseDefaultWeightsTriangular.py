@@ -233,7 +233,7 @@ class Test_process(IrisTest):
                                            self.coord_name,
                                            midpoint)
         expected_weights = np.array([0.33333333, 0.66666667])
-        self.assertArrayAlmostEqual(weights, expected_weights)
+        self.assertArrayAlmostEqual(weights.data, expected_weights)
 
     def test_different_units(self):
         """"Test plugin produces the correct weights when the parameters for
@@ -247,7 +247,7 @@ class Test_process(IrisTest):
                                            self.coord_name,
                                            midpoint)
         expected_weights = np.array([0.33333333, 0.66666667])
-        self.assertArrayAlmostEqual(weights, expected_weights)
+        self.assertArrayAlmostEqual(weights.data, expected_weights)
 
     def test_unconvertable_units(self):
         """"Test plugin produces the correct weights when the parameters for

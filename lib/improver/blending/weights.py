@@ -41,7 +41,7 @@ import iris
 from improver.utilities.cube_manipulation import check_cube_coordinates
 
 
-class WeightsUtilities(object):
+class WeightsUtilities:
     """ Utilities for Weight processing. """
 
     def __init__(self):
@@ -253,8 +253,53 @@ class WeightsUtilities(object):
             exp_forecast_found = np.ones(exp_coord_len)
         return (exp_coord_len, exp_forecast_found)
 
+    @staticmethod
+    def build_weights_cube(cube, weights, blending_coord):
+        """Build a cube containing weights for use in blending.
 
-class ChooseWeightsLinear(object):
+            Args:
+                cube (iris.cube.Cube):
+                    The cube that is being blended over blending_coord.
+                weights (numpy.array):
+                    Array of weights
+                blending_coord (string):
+                    Name of the coordinate over which the weights will be used
+                    to blend data, e.g. across model name when grid blending.
+            Returns:
+                weights_cube (iris.cube.Cube):
+                    A cube containing the array of weights.
+            Raises:
+                ValueError : If weights array is not of the same length as the
+                             coordinate being blended over on cube.
+        """
+
+        if len(weights) != len(cube.coord(blending_coord).points):
+            msg = ("Weights array provided is not the same size as the "
+                   "blending coordinate; weights shape: {}, blending "
+                   "coordinate shape: {}".format(
+                       len(weights), len(cube.coord(blending_coord).points)))
+            raise ValueError(msg)
+
+        try:
+            weights_cube = next(cube.slices(blending_coord))
+        except ValueError:
+            weights_cube = iris.util.new_axis(cube, blending_coord)
+            weights_cube = next(weights_cube.slices(blending_coord))
+
+        weights_cube.attributes = None
+        defunct_coords = [crd.name() for crd in cube.coords(dim_coords=True)
+                          if not crd.name() == blending_coord]
+        for crd in defunct_coords:
+            weights_cube.remove_coord(crd)
+
+        weights_cube.data = weights
+        weights_cube.rename('weights')
+        weights_cube.units = 1
+
+        return weights_cube
+
+
+class ChooseWeightsLinear:
     """Plugin to interpolate weights linearly to the required points, where
     original weights are provided as a cube or configuration dictionary"""
 
@@ -284,8 +329,8 @@ class ChooseWeightsLinear(object):
                 points along the specified coordinate at which the weights are
                 valid. An example dictionary is shown below.
 
-        Dictionary of format:
-        ::
+        Dictionary of format::
+
             {
                 "uk_det": {
                     "forecast_period": [7, 12],
@@ -772,7 +817,7 @@ class ChooseWeightsLinear(object):
         return new_weights_cube
 
 
-class ChooseDefaultWeightsLinear(object):
+class ChooseDefaultWeightsLinear:
     """ Calculate Default Weights using Linear Function. """
 
     def __init__(self, y0val=None, slope=0.0, ynval=None):
@@ -893,7 +938,9 @@ class ChooseDefaultWeightsLinear(object):
         weights = WeightsUtilities.redistribute_weights(
             weights_in, exp_coord_found, weights_distrib_method)
 
-        return weights
+        weights_cube = WeightsUtilities.build_weights_cube(cube, weights,
+                                                           coord_name)
+        return weights_cube
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -905,7 +952,7 @@ class ChooseDefaultWeightsLinear(object):
         return desc
 
 
-class ChooseDefaultWeightsNonLinear(object):
+class ChooseDefaultWeightsNonLinear:
     """ Calculate Default Weights using NonLinear Function. """
     def __init__(self, cval=0.85):
         """Set up for calculating default weights using non-linear function.
@@ -989,7 +1036,9 @@ class ChooseDefaultWeightsNonLinear(object):
         weights = WeightsUtilities.redistribute_weights(
             weights_in, exp_coord_found, weights_distrib_method)
 
-        return weights
+        weights_cube = WeightsUtilities.build_weights_cube(cube, weights,
+                                                           coord_name)
+        return weights_cube
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -998,7 +1047,7 @@ class ChooseDefaultWeightsNonLinear(object):
         return desc
 
 
-class ChooseDefaultWeightsTriangular(object):
+class ChooseDefaultWeightsTriangular:
     """ Calculate Default Weights using a Triangular Function. """
     def __init__(self, width, units="no_unit"):
         """Set up for calculating default weights using triangular function.
@@ -1106,7 +1155,10 @@ class ChooseDefaultWeightsTriangular(object):
 
         weights = self.triangular_weights(
             coord_vals, midpoint, width_in_coord_units)
-        return weights
+
+        weights_cube = WeightsUtilities.build_weights_cube(cube, weights,
+                                                           coord_name)
+        return weights_cube
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
