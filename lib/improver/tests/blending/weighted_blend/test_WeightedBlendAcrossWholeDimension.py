@@ -186,8 +186,7 @@ class Test_weighted_blend(IrisTest):
             weights3d, long_name='weights',
             dim_coords_and_dims=[(frt_coord, 0), (lat_coord, 1),
                                  (lon_coord, 2)],
-            aux_coords_and_dims=[(fp_coord, 0)])
-        self.weights3d.add_aux_coord(time_coord)
+            aux_coords_and_dims=[(fp_coord, 0), (time_coord, None)])
 
 
 class Test_check_percentile_coord(Test_weighted_blend):
@@ -244,7 +243,7 @@ class Test_check_compatible_time_points(Test_weighted_blend):
         self.cube.coord('forecast_reference_time').rename('time')
         coord = "forecast_reference_time"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
-        msg = ('For blending using the forecast_reference_time')
+        msg = ('Attempting to blend data for different validity times.')
         with self.assertRaisesRegex(ValueError, msg):
             plugin.check_compatible_time_points(self.cube)
 

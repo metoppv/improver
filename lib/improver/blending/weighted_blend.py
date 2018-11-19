@@ -532,10 +532,9 @@ class WeightedBlendAcrossWholeDimension:
 
         time_points = cube.coord("time").points
         if len(set(time_points)) > 1:
-            msg = ("For blending using the forecast_reference_time "
-                   "coordinate, the points within the time coordinate need"
-                   " to be the same. The time points within the input cube"
-                   " are {}".format(time_points))
+            msg = ("Attempting to blend data for different validity times. The"
+                   " time points within the input cube are {}".format(
+                    time_points))
             raise ValueError(msg)
 
     def shape_weights(self, cube, weights):
