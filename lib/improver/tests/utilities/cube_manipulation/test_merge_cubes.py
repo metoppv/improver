@@ -89,17 +89,24 @@ class Test_merge_cubes(IrisTest):
         self.prob_enuk.attributes.update({'mosg__grid_domain': 'uk_extended'})
         self.prob_enuk.attributes.update({'mosg__grid_version': '1.2.0'})
 
-        # Setup 2 example non-Met Office model configuration cubes.
+        # Setup 2 example, non-Met Office model configuration cubes.
         self.cube_non_mo_ens = set_up_temperature_cube()
+
+        # Make this cube deterministic by removing realizations, add some
+        # non MO attributes
         self.cube_non_mo_det = self.cube_non_mo_ens.extract(
             iris.Constraint(realization=1))
         self.cube_non_mo_det.remove_coord('realization')
-        self.cube_non_mo_det.attributes[
-            'non_mo__model_configuration'] = 'non_uk_det'
+        self.cube_non_mo_det.attributes['non_mo_grid_type'] = 'standard'
+        self.cube_non_mo_det.attributes['non_mo_model_config'] = 'non_uk_det'
+        self.cube_non_mo_det.attributes['non_mo_grid_domain'] = 'other_grid'
+        self.cube_non_mo_det.attributes['non_mo_grid_version'] = '1.8.0'
 
-        self.cube_non_mo_ens.attributes[
-            'non_mo__model_configuration'] = 'non_uk_ens'
-
+        # Keep this cube as an ensemble and add some non MO attributes
+        self.cube_non_mo_ens.attributes['non_mo_grid_type'] = 'standard'
+        self.cube_non_mo_ens.attributes['non_mo_model_config'] = 'non_uk_ens'
+        self.cube_non_mo_ens.attributes['non_mo_grid_domain'] = 'other_grid'
+        self.cube_non_mo_ens.attributes['non_mo_grid_version'] = '1.8.0'
 
     @ManageWarnings(record=True)
     def test_basic(self, warning_list=None):
@@ -149,7 +156,7 @@ class Test_merge_cubes(IrisTest):
         """Test that a model ID string can be specified to replace the
         default mosg__model_configuration"""
         cubes = iris.cube.CubeList([self.cube_non_mo_ens, self.cube_non_mo_det])
-        result = merge_cubes(cubes, 'non_mo__model_configuration')
+        result = merge_cubes(cubes, 'non_mo_model_config')
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
             result.coord("model_realization").points, [0., 1., 2., 1000.])

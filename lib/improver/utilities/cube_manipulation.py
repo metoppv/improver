@@ -299,6 +299,9 @@ def _equalise_cube_attributes(
     # without raising a warning message
     silent_attributes = ['history', 'title', 'mosg__grid_version']
     unmatching_attributes = compare_attributes(cubes)
+
+
+
     if len(unmatching_attributes) > 0:
         for i, cube in enumerate(cubes):
             # Remove ignored attributes.
