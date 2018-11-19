@@ -77,4 +77,5 @@ fi
 export PYTHONPATH="$IMPROVER_DIR/lib/:${PYTHONPATH:-}"
 export PATH="$IMPROVER_DIR/bin/:$PATH"
 
-exec improver-$OPER "$@"
+# Run the IMPROVER app, wrapped with time to give resource usage information.
+exec /usr/bin/time -v improver-$OPER "$@"
