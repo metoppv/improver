@@ -42,7 +42,7 @@ from iris.tests import IrisTest
 from improver.utilities.temporal import iris_time_to_datetime
 from improver.tests.set_up_test_cubes import (
     construct_xy_coords, construct_scalar_time_coords, set_up_variable_cube,
-    set_up_percentile_cube, set_up_probability_cube)
+    set_up_percentile_cube, set_up_probability_cube, add_coordinate)
 
 
 class test_construct_xy_coords(IrisTest):
@@ -331,6 +331,45 @@ class test_set_up_probability_cube(IrisTest):
                                          relative_to_threshold='below')
         self.assertEqual(len(result.attributes), 1)
         self.assertEqual(result.attributes['relative_to_threshold'], 'below')
+
+
+class test_add_coordinate(IrisTest):
+
+    def setUp(self):
+        """Set up new coordinate descriptors"""
+        self.height_points = np.arange(100., 1001., 100.)
+        self.height_unit = "metres"
+
+    def test_basic(self):
+        """Test addition of a leading height coordinate"""
+        input_cube = set_up_variable_cube(np.ones((3, 4), dtype=np.float32))
+        result = add_coordinate(
+            input_cube, self.height_points, 'height',
+            coord_units=self.height_unit)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertSequenceEqual(result.shape, (10, 3, 4))
+        self.assertEqual(result.coord_dims('height'), (0,))
+        self.assertArrayAlmostEqual(
+            result.coord('height').points, self.height_points)
+        self.assertEqual(result.coord('height').dtype, np.float32)
+        self.assertEqual(result.coord('height').units, self.height_unit)
+
+    def test_reorder(self):
+        """Test new coordinate can be placed in different positions"""
+        input_cube = set_up_variable_cube(np.ones((4, 3, 4), dtype=np.float32))
+        result = add_coordinate(
+            input_cube, self.height_points, 'height',
+            coord_units=self.height_unit, order=[1, 0, 2, 3])
+        self.assertSequenceEqual(result.shape, (4, 10, 3, 4))
+        self.assertEqual(result.coord_dims('height'), (1,))
+        
+    def test_datatype(self):
+        """Test coordinate datatype"""
+        input_cube = set_up_variable_cube(np.ones((3, 4), dtype=np.float32))
+        result = add_coordinate(
+            input_cube, self.height_points, 'height',
+            coord_units=self.height_unit, dtype=np.int32)
+        self.assertEqual(result.coord('height').dtype, np.int32)
 
 
 if __name__ == '__main__':

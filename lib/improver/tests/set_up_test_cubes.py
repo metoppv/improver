@@ -329,3 +329,49 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
     cube.coord("realization").rename("threshold")
     cube.coord("threshold").units = Unit(threshold_units)
     return cube
+
+
+def add_coordinate(cube, coord_points, coord_name, coord_units=None,
+                   dtype=np.float32, order=None):
+    """
+    Function to duplicate a sample cube with an additional coordinate to create
+    a cubelist. The cubelist is merged to create a single cube, which can be
+    reordered to place the new coordinate in the required position.
+ 
+    Args:
+        cube (iris.cube.Cube):
+            Cube to be duplicated.
+        coord_points (list):
+            Values for the coordinate.
+        coord_name (str):
+            Long name of the coordinate to be added.
+
+    Kwargs:
+        coord_units (str):
+            Coordinate unit required.
+        dtype (type):
+            Datatype for coordinate points.
+        order (list):
+            Optional list of integers to reorder the dimensions on the new
+            merged cube.  For example, if the new coordinate is required to
+            be in position 1 on a 4D cube, use order=[1, 0, 2, 3] to swap the
+            new coordinate position with that of the original leading
+            coordinate.
+
+    Returns:
+        iris.cube.Cube:
+            Cube containing an additional dimension coordinate.
+    """
+    cubes = iris.cube.CubeList([])
+    for val in coord_points:
+        temp_cube = cube.copy()
+        temp_cube.add_aux_coord(
+            DimCoord(np.array([val], dtype=dtype), long_name=coord_name,
+                     units=coord_units))
+        cubes.append(temp_cube)
+
+    new_cube = cubes.merge_cube()
+    if order is not None:
+        new_cube.transpose(order)
+
+    return new_cube
