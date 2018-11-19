@@ -871,7 +871,7 @@ class WeightedBlendAcrossWholeDimension:
             weights = sort_coord_in_cube(weights, self.coord,
                                          order="ascending")
 
-        # Check that the time coordinate is single valued is required.
+        # Check that the time coordinate is single valued if required.
         self.check_compatible_time_points(cube)
 
         # Check to see if the data is percentile data
