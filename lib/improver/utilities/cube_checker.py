@@ -223,6 +223,26 @@ def find_dimension_coordinate_mismatch(
     return mismatch
 
 
+def spatial_coords_match(first_cube, second_cube):
+    """
+    Determine if the x and y coords in the two cubes are the same.
+
+    Args:
+        first_cube (Iris.cube.Cube):
+            First cube to compare.
+        second_cube (Iris.cube.Cube):
+            Second cube to compare.
+
+    Returns:
+        result (bool):
+            True if the x and y coords are the exactly the same to the
+            precision of the floating-point values (this should be true for
+            any cubes derived using cube.regrid()), otherwise False.
+    """
+    return (first_cube.coord(axis='x') == second_cube.coord(axis='x') and
+            first_cube.coord(axis='y') == second_cube.coord(axis='y'))
+
+
 def find_percentile_coordinate(cube):
     """Find percentile coord in cube.
 

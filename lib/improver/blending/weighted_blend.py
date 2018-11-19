@@ -641,7 +641,6 @@ class WeightedBlendAcrossWholeDimension:
         if weights:
             weights_array = self.shape_weights(cube, weights)
         else:
-            weights_array = None
             number_of_fields, = cube.coord(self.coord).shape
             weights_array = (
                 np.broadcast_to(1./number_of_fields, cube.shape).astype(

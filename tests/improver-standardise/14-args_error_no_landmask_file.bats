@@ -31,21 +31,16 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "ensemble-calibration emos gaussian kelvin input history truth output" {
+@test "standardise check input landmask file specified" {
   improver_check_skip_acceptance
-  KGO="ensemble-calibration/gaussian/kgo.nc"
-
-  # Run ensemble calibration and check it passes.
-  run improver ensemble-calibration 'ensemble model output statistics' 'K' \
-      'gaussian' "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/input.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
-      "$TEST_DIR/output.nc" --random_seed 0
-  [[ "$status" -eq 0 ]]
-
-  improver_check_recreate_kgo "output.nc" $KGO
-
-  # Run nccmp to compare the output and kgo realizations and check it passes.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
+  run improver standardise \
+      "$IMPROVER_ACC_TEST_DIR/standardise/regrid-basic/global_cutout.nc" \
+      --target_grid_filepath "$IMPROVER_ACC_TEST_DIR/standardise/regrid-landmask/ukvx_landmask.nc" \
+      --output_filepath "$TEST_DIR/output.nc" --regrid_mode="nearest-with-mask"
+  [[ "$status" -eq 1 ]]
+  read -d '' expected <<'__TEXT__' || true
+ValueError: An argument has been specified that requires an input landmask filepath but none has been provided
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
 }
+

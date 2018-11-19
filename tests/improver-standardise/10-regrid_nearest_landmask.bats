@@ -31,21 +31,21 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "ensemble-calibration emos gaussian kelvin input history truth output" {
+@test "standardise with land-mask" {
   improver_check_skip_acceptance
-  KGO="ensemble-calibration/gaussian/kgo.nc"
+  KGO="standardise/regrid-landmask/kgo.nc"
 
-  # Run ensemble calibration and check it passes.
-  run improver ensemble-calibration 'ensemble model output statistics' 'K' \
-      'gaussian' "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/input.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
-      "$TEST_DIR/output.nc" --random_seed 0
+  # Run cube regrid processing with iris nearest option and check it passes.
+  run improver standardise \
+      "$IMPROVER_ACC_TEST_DIR/standardise/regrid-basic/global_cutout.nc" \
+      --target_grid_filepath "$IMPROVER_ACC_TEST_DIR/standardise/regrid-landmask/ukvx_landmask.nc" \
+      --input_landmask_filepath "$IMPROVER_ACC_TEST_DIR/standardise/regrid-landmask/glm_landmask.nc" \
+      --output_filepath "$TEST_DIR/output.nc" --regrid_mode="nearest-with-mask"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
 
-  # Run nccmp to compare the output and kgo realizations and check it passes.
+  # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

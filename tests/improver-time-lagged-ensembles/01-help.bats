@@ -29,18 +29,30 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "ecc no arguments" {
-  run improver ecc
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-ecc [-h] [--profile] [--profile_file PROFILE_FILE]
-                    [--no_of_percentiles NUMBER_OF_PERCENTILES]
-                    [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
-                    (--reordering | --rebadging)
-                    [--raw_forecast_filepath RAW_FORECAST_FILE]
-                    [--random_ordering] [--random_seed RANDOM_SEED]
-                    [--realization_numbers REALIZATION_NUMBERS [REALIZATION_NUMBERS ...]]
-                    INPUT_FILE OUTPUT_FILE
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+@test "time-lagged-ensembles -h" {
+  run improver time-lagged-ensembles -h
+  [[ "$status" -eq 0 ]]
+  read -d '' expected <<'__HELP__' || true
+usage: improver-time-lagged-ensembles [-h] [--profile]
+                                      [--profile_file PROFILE_FILE]
+                                      INPUT_FILENAMES [INPUT_FILENAMES ...]
+                                      OUTPUT_FILE
+
+This combines the realizations from different forecast cycles into one cube.
+It does this by taking an input CubeList containing forecasts from different
+cycles and merges them into a single cube, removing any metadata that does not
+match.
+
+positional arguments:
+  INPUT_FILENAMES       Paths to input NetCDF files for the time-lagged
+                        ensemble to combine the realizations.
+  OUTPUT_FILE           The output file for the processed NetCDF.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
+__HELP__
+  [[ "$output" == "$expected" ]]
 }

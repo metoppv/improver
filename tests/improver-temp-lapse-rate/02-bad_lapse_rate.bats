@@ -31,21 +31,20 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "ensemble-calibration emos gaussian kelvin input history truth output" {
+@test "temp-lapse-rate temp orography land-mask output --max_lapse_rate --min_lapse_rate" {
   improver_check_skip_acceptance
-  KGO="ensemble-calibration/gaussian/kgo.nc"
 
-  # Run ensemble calibration and check it passes.
-  run improver ensemble-calibration 'ensemble model output statistics' 'K' \
-      'gaussian' "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/input.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
-      "$TEST_DIR/output.nc" --random_seed 0
-  [[ "$status" -eq 0 ]]
-
-  improver_check_recreate_kgo "output.nc" $KGO
-
-  # Run nccmp to compare the output and kgo realizations and check it passes.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
+  # Run the temperature lapse rate calculation and check the result.
+  run improver temp-lapse-rate \
+      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/temperature_at_screen_level.nc" \
+      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/ukvx_orography.nc" \
+      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/ukvx_landmask.nc" \
+      --max_lapse_rate=-1 \
+      --min_lapse_rate=1 \
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 1 ]]
+  read -d '' expected <<'__TEXT__' || true
+ValueError: Minimum lapse rate specified is greater than the maximum.
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
 }

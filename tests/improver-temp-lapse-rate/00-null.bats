@@ -29,23 +29,17 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-. $IMPROVER_DIR/tests/lib/utils
-
-@test "ensemble-calibration emos gaussian kelvin input history truth output" {
-  improver_check_skip_acceptance
-  KGO="ensemble-calibration/gaussian/kgo.nc"
-
-  # Run ensemble calibration and check it passes.
-  run improver ensemble-calibration 'ensemble model output statistics' 'K' \
-      'gaussian' "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/input.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
-      "$TEST_DIR/output.nc" --random_seed 0
-  [[ "$status" -eq 0 ]]
-
-  improver_check_recreate_kgo "output.nc" $KGO
-
-  # Run nccmp to compare the output and kgo realizations and check it passes.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
+@test "temp-lapse-rate no arguments" {
+  run improver temp-lapse-rate
+  [[ "$status" -eq 2 ]]
+  read -d '' expected <<'__TEXT__' || true
+usage: improver-temp-lapse-rate [-h] [--profile] [--profile_file PROFILE_FILE]
+                                [--max_height_diff MAX_HEIGHT_DIFF]
+                                [--nbhood_radius NBHOOD_RADIUS]
+                                [--max_lapse_rate MAX_LAPSE_RATE]
+                                [--min_lapse_rate MIN_LAPSE_RATE]
+                                INPUT_TEMPERATURE_FILE INPUT_OROGRAPHY_FILE
+                                LAND_SEA_MASK_FILE OUTPUT_FILE
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
 }

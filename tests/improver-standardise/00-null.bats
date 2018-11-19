@@ -36,9 +36,11 @@
 usage: improver-standardise [-h] [--profile] [--profile_file PROFILE_FILE]
                             [--output_filepath OUTPUT_FILE]
                             [--target_grid_filepath TARGET_GRID]
-                            [--fix_float64] [--nearest]
+                            [--regrid_mode {bilinear,nearest,nearest-with-mask}]
                             [--extrapolation_mode EXTRAPOLATION_MODE]
-                            [--json_file JSON_FILE]
+                            [--input_landmask_filepath INPUT_LANDMASK_FILE]
+                            [--landmask_vicinity LANDMASK_VICINITY]
+                            [--fix_float64] [--json_file JSON_FILE]
                             SOURCE_DATA
 __TEXT__
   [[ "$output" =~ "$expected" ]]

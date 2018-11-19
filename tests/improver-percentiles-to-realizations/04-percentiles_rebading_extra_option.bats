@@ -31,21 +31,23 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "ensemble-calibration emos gaussian kelvin input history truth output" {
+@test "percentiles-to-realizations --sampling_method 'quantile' --no_of_percentiles 12 --rebadging input output --realization_numbers $(seq 100 1 111) " {
   improver_check_skip_acceptance
-  KGO="ensemble-calibration/gaussian/kgo.nc"
+  KGO="percentiles-to-realizations/percentiles_rebadging_extra_option/kgo.nc"
 
-  # Run ensemble calibration and check it passes.
-  run improver ensemble-calibration 'ensemble model output statistics' 'K' \
-      'gaussian' "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/input.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
-      "$TEST_DIR/output.nc" --random_seed 0
+  # Run Ensemble Copula Coupling to convert one set of percentiles to another
+  # set of percentiles, and then rebadge the percentiles to be ensemble
+  # realizations.
+  run improver percentiles-to-realizations \
+      "$IMPROVER_ACC_TEST_DIR/percentiles-to-realizations/percentiles_rebadging/multiple_percentiles_wind_cube.nc" \
+      "$TEST_DIR/output.nc" --sampling_method 'quantile' --no_of_percentiles 12 \
+      --rebadging --realization_numbers $(seq 100 1 111)
+
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
 
-  # Run nccmp to compare the output and kgo realizations and check it passes.
+  # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

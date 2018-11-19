@@ -31,22 +31,27 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "ecc --sampling_method 'quantile' --no_of_percentiles 12 --rebadging input output --realization_numbers $(seq 100 1 111) " {
-  improver_check_skip_acceptance
-  KGO="ecc/percentiles_rebadging_extra_option/kgo.nc"
+@test "percentiles-to-realizations --sampling_method 'quantile' --rebadging input output --random_ordering " {
 
-  # Run Ensemble Copula Coupling to convert one set of percentiles to another
-  # set of percentiles, and then rebadge the percentiles to be ensemble
-  # realizations.
-  run improver ecc "$IMPROVER_ACC_TEST_DIR/ecc/percentiles_rebadging/multiple_percentiles_wind_cube.nc" \
-      "$TEST_DIR/output.nc" --sampling_method 'quantile' --no_of_percentiles 12 \
-      --rebadging --realization_numbers $(seq 100 1 111)
+  # Test that the right error is raised when the wrong options are passed in.
+  run improver percentiles-to-realizations \
+      "$IMPROVER_ACC_TEST_DIR/percentiles-to-realizations/percentiles_rebadging/multiple_percentiles_wind_cube.nc" \
+      "$TEST_DIR/output.nc" --sampling_method 'quantile' \
+      --rebadging --random_ordering
 
-  [[ "$status" -eq 0 ]]
-
-  improver_check_recreate_kgo "output.nc" $KGO
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
+  [[ "$status" -eq 2 ]]
+  read -d '' expected <<'__TEXT__' || true
+usage: improver-percentiles-to-realizations [-h] [--profile]
+                                            [--profile_file PROFILE_FILE]
+                                            [--no_of_percentiles NUMBER_OF_PERCENTILES]
+                                            [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
+                                            (--reordering | --rebadging)
+                                            [--raw_forecast_filepath RAW_FORECAST_FILE]
+                                            [--random_ordering]
+                                            [--random_seed RANDOM_SEED]
+                                            [--realization_numbers REALIZATION_NUMBERS [REALIZATION_NUMBERS ...]]
+                                            INPUT_FILE OUTPUT_FILE
+improver-percentiles-to-realizations: error: Method: rebadging does not accept arguments: raw_forecast_filepath, random_ordering
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
 }

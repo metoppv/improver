@@ -31,21 +31,24 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "ensemble-calibration emos gaussian kelvin input history truth output" {
+@test "time-lagged-ensembles" {
   improver_check_skip_acceptance
-  KGO="ensemble-calibration/gaussian/kgo.nc"
+  KGO="time-lagged-ens/same_validity/kgo.nc"
 
-  # Run ensemble calibration and check it passes.
-  run improver ensemble-calibration 'ensemble model output statistics' 'K' \
-      'gaussian' "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/input.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
-      "$TEST_DIR/output.nc" --random_seed 0
+  # Run time-lagged-ensemble processing and check it passes.
+  run improver time-lagged-ensembles \
+      "$IMPROVER_ACC_TEST_DIR/time-lagged-ens/same_validity/20180924T1300Z-PT0005H00M-temperature_at_surface.nc" \
+      "$IMPROVER_ACC_TEST_DIR/time-lagged-ens/same_validity/20180924T1300Z-PT0006H00M-temperature_at_surface.nc" \
+      "$IMPROVER_ACC_TEST_DIR/time-lagged-ens/same_validity/20180924T1300Z-PT0007H00M-temperature_at_surface.nc" \
+      "$IMPROVER_ACC_TEST_DIR/time-lagged-ens/same_validity/20180924T1300Z-PT0008H00M-temperature_at_surface.nc" \
+      "$IMPROVER_ACC_TEST_DIR/time-lagged-ens/same_validity/20180924T1300Z-PT0009H00M-temperature_at_surface.nc" \
+      "$IMPROVER_ACC_TEST_DIR/time-lagged-ens/same_validity/20180924T1300Z-PT0010H00M-temperature_at_surface.nc" \
+      "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
 
-  # Run nccmp to compare the output and kgo realizations and check it passes.
+  # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

@@ -31,21 +31,21 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "ensemble-calibration emos gaussian kelvin input history truth output" {
+@test "temp-lapse-rate input-temp input-orography land-sea-mask output" {
   improver_check_skip_acceptance
-  KGO="ensemble-calibration/gaussian/kgo.nc"
+  KGO="temp-lapse-rate/realizations/kgo.nc"
 
-  # Run ensemble calibration and check it passes.
-  run improver ensemble-calibration 'ensemble model output statistics' 'K' \
-      'gaussian' "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/input.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
-      "$TEST_DIR/output.nc" --random_seed 0
+  # Run the temperature lapse rate calculation and check the result.
+  run improver temp-lapse-rate \
+      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/realizations/enukx_temperature.nc" \
+      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/realizations/enukx_orography.nc" \
+      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/realizations/enukx_landmask.nc" \
+      "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
 
-  # Run nccmp to compare the output and kgo realizations and check it passes.
+  # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
 }
