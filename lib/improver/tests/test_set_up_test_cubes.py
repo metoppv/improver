@@ -74,37 +74,16 @@ class test_construct_xy_coords(IrisTest):
 class test_construct_scalar_time_coords(IrisTest):
     """Test the construct_scalar_time_coords method"""
 
-    def test_default(self):
-        """Test default values"""
-        coord_dims = construct_scalar_time_coords(None, None, None)
-        # check types
-        self.assertIsInstance(coord_dims, list)
-        time_coords = [item[0] for item in coord_dims]
-        for crd in time_coords:
-            self.assertIsInstance(crd, iris.coords.DimCoord)
-            self.assertEqual(crd.dtype, np.int64)
-
-        # check point values
-        self.assertEqual(time_coords[0].name(), "time")
-        self.assertEqual(iris_time_to_datetime(time_coords[0])[0],
-                         datetime(2017, 11, 10, 4, 0))
-        self.assertEqual(time_coords[1].name(), "forecast_reference_time")
-        self.assertEqual(iris_time_to_datetime(time_coords[1])[0],
-                         datetime(2017, 11, 10, 0, 0))
-        self.assertEqual(time_coords[2].name(), "forecast_period")
-        self.assertEqual(time_coords[2].points[0], 3600*4)
-
-        # check units
-        for crd in time_coords[:2]:
-            self.assertEqual(
-                crd.units, "seconds since 1970-01-01 00:00:00")
-        self.assertEqual(time_coords[2].units, "seconds")
-
-    def test_configurable(self):
+    def test_basic(self):
         """Test times can be set"""
         coord_dims = construct_scalar_time_coords(
             datetime(2017, 12, 1, 14, 0), None, datetime(2017, 12, 1, 9, 0))
         time_coords = [item[0] for item in coord_dims]
+
+        for crd in time_coords:
+            self.assertIsInstance(crd, iris.coords.DimCoord)
+            self.assertEqual(crd.dtype, np.int64)
+
         self.assertEqual(time_coords[0].name(), "time")
         self.assertEqual(iris_time_to_datetime(time_coords[0])[0],
                          datetime(2017, 12, 1, 14, 0))
@@ -113,6 +92,11 @@ class test_construct_scalar_time_coords(IrisTest):
                          datetime(2017, 12, 1, 9, 0))
         self.assertEqual(time_coords[2].name(), "forecast_period")
         self.assertEqual(time_coords[2].points[0], 3600*5)
+
+        for crd in time_coords[:2]:
+            self.assertEqual(
+                crd.units, "seconds since 1970-01-01 00:00:00")
+        self.assertEqual(time_coords[2].units, "seconds")
 
     def test_error_negative_fp(self):
         """Test an error is raised if the calculated forecast period is
@@ -154,8 +138,9 @@ class test_construct_scalar_time_coords(IrisTest):
         msg = 'not within bounds'
         with self.assertRaisesRegex(ValueError, msg):
             _ = construct_scalar_time_coords(
-                None, (datetime(2017, 12, 1, 13, 0),
-                       datetime(2017, 12, 1, 14, 0)), None)
+                datetime(2017, 11, 10, 4, 0), (datetime(2017, 12, 1, 13, 0),
+                                               datetime(2017, 12, 1, 14, 0)),
+                datetime(2017, 11, 10, 0, 0))
 
 
 class test_set_up_variable_cube(IrisTest):
@@ -232,6 +217,7 @@ class test_set_up_variable_cube(IrisTest):
             result.coord("forecast_reference_time"))[0]
         self.assertEqual(frt_point, expected_frt)
         self.assertEqual(result.coord("forecast_period").points[0], 10800)
+        self.assertFalse(result.coords('time', dim_coords=True))
 
     def test_realizations_from_data(self):
         """Test realization coordinate is added for 3D data"""
@@ -362,7 +348,7 @@ class test_add_coordinate(IrisTest):
             coord_units=self.height_unit, order=[1, 0, 2, 3])
         self.assertSequenceEqual(result.shape, (4, 10, 3, 4))
         self.assertEqual(result.coord_dims('height'), (1,))
-        
+
     def test_datatype(self):
         """Test coordinate datatype"""
         input_cube = set_up_variable_cube(np.ones((3, 4), dtype=np.float32))

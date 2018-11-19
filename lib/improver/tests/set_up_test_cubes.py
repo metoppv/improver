@@ -57,7 +57,7 @@ def construct_xy_coords(ypoints, xpoints, spatial_grid):
         xpoints (int):
             Number of grid points required along the x-axis
         spatial_grid (str):
-            Specifier to produce either a lat-lon or equal area grid
+            Specifier to produce either a "latlon" or "equalarea" grid
 
     Returns:
         y_coord, x_coord (tuple):
@@ -71,7 +71,7 @@ def construct_xy_coords(ypoints, xpoints, spatial_grid):
         x_coord = DimCoord(
             np.linspace(40, 80, xpoints, dtype=np.float32),
             "longitude", units="degrees")
-    else:
+    elif 'equalarea':
         # use UK eastings and northings
         y_coord = DimCoord(
             np.linspace(-100000, 900000, ypoints, dtype=np.float32),
@@ -79,6 +79,9 @@ def construct_xy_coords(ypoints, xpoints, spatial_grid):
         x_coord = DimCoord(
             np.linspace(-400000, 600000, xpoints, dtype=np.float32),
             "projection_x_coordinate", units="metres")
+    else:
+        raise ValueError('Grid type {} not recognised'.format(spatial_grid))
+
     return y_coord, x_coord
 
 
@@ -87,11 +90,11 @@ def construct_scalar_time_coords(time, time_bounds, frt):
     Construct scalar time coordinates as aux_coord list
 
     Args:
-        time (datetime.datetime or None):
+        time (datetime.datetime):
             Single time point
         time_bounds (tuple or list of datetime.datetime instances or None):
             Lower and upper bound on time point, if required
-        frt (datetime.datetime or None):
+        frt (datetime.datetime):
             Single forecast reference time point
 
     Returns:
@@ -100,15 +103,10 @@ def construct_scalar_time_coords(time, time_bounds, frt):
             dimension (format required by iris.cube.Cube initialisation).
     """
     # generate time coordinate points
-    time_point_seconds = (
-        date2num(time, TIME_UNIT, CALENDAR) if time is not None else
-        date2num(datetime(2017, 11, 10, 4, 0), TIME_UNIT, CALENDAR))
-    time_point_seconds = np.round(time_point_seconds).astype(np.int64)
-
-    frt_point_seconds = (
-        date2num(frt, TIME_UNIT, CALENDAR) if frt is not None else
-        date2num(datetime(2017, 11, 10, 0, 0), TIME_UNIT, CALENDAR))
-    frt_point_seconds = np.round(frt_point_seconds).astype(np.int64)
+    time_point_seconds = np.round(
+        date2num(time, TIME_UNIT, CALENDAR)).astype(np.int64)
+    frt_point_seconds = np.round(
+        date2num(frt, TIME_UNIT, CALENDAR)).astype(np.int64)
 
     if time_point_seconds < frt_point_seconds:
         raise ValueError('Cannot set up cube with negative forecast period')
@@ -141,8 +139,9 @@ def construct_scalar_time_coords(time, time_bounds, frt):
 
 
 def set_up_variable_cube(data, name='air_temperature', units='K',
-                         spatial_grid='latlon', time=None, time_bounds=None,
-                         frt=None, realizations=None,
+                         spatial_grid='latlon',
+                         time=datetime(2017, 11, 10, 4, 0), time_bounds=None,
+                         frt=datetime(2017, 11, 10, 0, 0), realizations=None,
                          include_scalar_coords=None, attributes=None):
     """
     Set up a cube containing a single variable field with:
@@ -154,7 +153,8 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
 
     Args:
         data (np.ndarray):
-            2D or 3D array of data to put into the cube
+            2D (y-x ordered) or 3D (realization-y-x ordered) array of data
+            to put into the cube.
 
     Kwargs:
         name (str):
@@ -162,8 +162,8 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
         units (str):
             Variable units
         spatial_grid (str):
-            What type of x/y coordinate values to use.  Default is "latlon",
-            otherwise uses "projection_[x|y]_coordinate".
+            What type of x/y coordinate values to use.  Permitted values are
+            "latlon" or "equalarea".
         time (datetime.datetime):
             Single cube validity time
         time_bounds (tuple or list of datetime.datetime instances):
@@ -220,11 +220,11 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
 
 
 def set_up_percentile_cube(data, percentiles, name='air_temperature',
-                           units='K',
+                           units='K', spatial_grid='latlon',
                            percentile_dim_name='percentile_over_realization',
-                           spatial_grid='latlon', time=None, time_bounds=None,
-                           frt=None, include_scalar_coords=None,
-                           attributes=None):
+                           time=datetime(2017, 11, 10, 4, 0), time_bounds=None,
+                           frt=datetime(2017, 11, 10, 0, 0),
+                           include_scalar_coords=None, attributes=None):
     """
     Set up a cube containing percentiles of a variable with:
     - x/y spatial dimensions (equal area or lat / lon)
@@ -235,7 +235,7 @@ def set_up_percentile_cube(data, percentiles, name='air_temperature',
 
     Args:
         data (np.ndarray):
-            3D array of data to put into the cube
+            3D (percentile-y-x ordered) array of data to put into the cube
         percentiles (list):
             List of int / float percentile values whose length must match the
             first dimension on the input data cube
@@ -272,9 +272,11 @@ def set_up_percentile_cube(data, percentiles, name='air_temperature',
 
 def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
                             threshold_units='K', relative_to_threshold='above',
-                            spatial_grid='latlon', time=None, time_bounds=None,
-                            frt=None, include_scalar_coords=None,
-                            attributes=None):
+                            spatial_grid='latlon',
+                            time=datetime(2017, 11, 10, 4, 0),
+                            time_bounds=None,
+                            frt=datetime(2017, 11, 10, 0, 0),
+                            include_scalar_coords=None, attributes=None):
     """
     Set up a cube containing probabilities at thresholds with:
     - x/y spatial dimensions (equal area or lat / lon)
@@ -287,7 +289,7 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
 
     Args:
         data (np.ndarray):
-            3D array of data to put into the cube
+            3D (threshold-y-x ordered) array of data to put into the cube
         thresholds (list):
             List of int / float threshold values whose length must match the
             first dimension on the input data cube
@@ -301,6 +303,9 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
         spatial_grid (str):
             What type of x/y coordinate values to use.  Default is "latlon",
             otherwise uses "projection_[x|y]_coordinate".
+        relative_to_threshold (str):
+            Value of the attribute "relative_to_threshold" which is required
+            for IMPROVER probability cubes.
         time (datetime.datetime):
             Single cube validity time
         time_bounds (tuple or list of datetime.datetime instances):
@@ -337,7 +342,7 @@ def add_coordinate(cube, coord_points, coord_name, coord_units=None,
     Function to duplicate a sample cube with an additional coordinate to create
     a cubelist. The cubelist is merged to create a single cube, which can be
     reordered to place the new coordinate in the required position.
- 
+
     Args:
         cube (iris.cube.Cube):
             Cube to be duplicated.
