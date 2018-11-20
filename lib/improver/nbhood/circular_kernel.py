@@ -35,6 +35,7 @@ import scipy.ndimage.filters
 
 import iris
 
+from improver.utilities.jit import jit
 from improver.constants import DEFAULT_PERCENTILES
 from improver.utilities.cube_checker import (
     check_cube_coordinates, find_dimension_coordinate_mismatch)
@@ -355,10 +356,21 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
                      [ 0.5,  0.5,  0.5],
                      [ 0.5,  0.5,  0.5]]]
         """
+        pctcube_data = self.pad_and_unpad_array(self.percentiles,
+                                                slice_2d.data, kernel)
+        # Create a cube and add the data
+        pctcube = self.make_percentile_cube(slice_2d, data=pctcube_data)
+        return pctcube
+
+    @staticmethod
+    @jit(nopython=True)
+    def pad_and_unpad_array(percentiles, data_array, kernel):
+        """
+        """
         ranges_xy = np.empty(2, dtype=int)
         ranges_xy[0] = int(np.floor(kernel.shape[0] / 2.0))
         ranges_xy[1] = int(np.floor(kernel.shape[1] / 2.0))
-        padded = np.pad(slice_2d.data, ranges_xy, mode='mean',
+        padded = np.pad(data_array, ranges_xy, mode='mean',
                         stat_length=np.max(ranges_xy))
         padshape = np.shape(padded)  # Store size to make unflatten easier
         padded = padded.flatten()
@@ -375,7 +387,7 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
         # Collapse this dimension into percentiles (a new 2nd dimension)
         perc_data = np.percentile(
             nbhood_slices,
-            np.array(self.percentiles, dtype=np.float32),
+            np.array(percentiles, dtype=np.float32),
             axis=0
         )
 
@@ -384,13 +396,11 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
 
         # Return to 3D
         perc_data = perc_data.reshape(
-            len(self.percentiles), padshape[0], padshape[1])
-        # Create a cube for these data:
-        pctcube = self.make_percentile_cube(slice_2d)
-        # And put in data, removing the padding
-        pctcube.data = perc_data[:, ranges_xy[0]:-ranges_xy[0],
+            len(percentiles), padshape[0], padshape[1])
+        # Remove the padding
+        pctcube_data = perc_data[:, ranges_xy[0]:-ranges_xy[0],
                                  ranges_xy[1]:-ranges_xy[1]]
-        return pctcube
+        return pctcube_data
 
     def run(self, cube, radius, mask_cube=None):
         """
@@ -461,7 +471,7 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
 
         return result
 
-    def make_percentile_cube(self, cube):
+    def make_percentile_cube(self, cube, data=None):
         """Returns a cube with the same metadata as the sample cube
         but with an added percentile dimension.
 
@@ -485,4 +495,6 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
         # This is required when self.percentiles is length 1.
         if result.coord_dims(pct_coord_name) == ():
             result = iris.util.new_axis(result, scalar_coord=pct_coord_name)
+        if data is not None:
+            result.data = data
         return result
