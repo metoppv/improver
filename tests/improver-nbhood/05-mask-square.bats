@@ -43,8 +43,7 @@
 
   improver_check_recreate_kgo "output.nc" $KGO
 
-  # Run cmp -b to compare the output and kgo.
-  cmp -b "$TEST_DIR/output.nc" \
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
-  [[ "$status" -eq 0 ]]
 }
