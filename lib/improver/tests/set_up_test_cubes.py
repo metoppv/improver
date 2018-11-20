@@ -41,6 +41,7 @@ import numpy as np
 import iris
 from iris.coords import DimCoord
 
+from improver.grids import STANDARD_GRID_CCRS
 from improver.utilities.cube_checker import check_cube_not_float64
 
 TIME_UNIT = "seconds since 1970-01-01 00:00:00"
@@ -72,13 +73,15 @@ def construct_xy_coords(ypoints, xpoints, spatial_grid):
             np.linspace(40, 80, xpoints, dtype=np.float32),
             "longitude", units="degrees")
     elif 'equalarea':
-        # use UK eastings and northings
+        # use UK eastings and northings on standard grid
         y_coord = DimCoord(
             np.linspace(-100000, 900000, ypoints, dtype=np.float32),
-            "projection_y_coordinate", units="metres")
+            "projection_y_coordinate", units="metres",
+            coord_system=STANDARD_GRID_CCRS)
         x_coord = DimCoord(
             np.linspace(-400000, 600000, xpoints, dtype=np.float32),
-            "projection_x_coordinate", units="metres")
+            "projection_x_coordinate", units="metres",
+            coord_system=STANDARD_GRID_CCRS)
     else:
         raise ValueError('Grid type {} not recognised'.format(spatial_grid))
 
