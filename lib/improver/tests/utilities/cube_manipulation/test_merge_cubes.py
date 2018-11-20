@@ -153,13 +153,35 @@ class Test_merge_cubes(IrisTest):
             result.coord("model_id").points, [0., 1000.])
 
     def test_non_mo_model_id(self):
-        """Test that a model ID string can be specified to replace the
-        default mosg__model_configuration"""
-        cubes = iris.cube.CubeList([self.cube_non_mo_ens, self.cube_non_mo_det])
+        """Test that a model ID attribute string can be specified to replace
+        the default mosg__model_configuration"""
+        cubes = iris.cube.CubeList(
+            [self.cube_non_mo_ens, self.cube_non_mo_det])
         result = merge_cubes(cubes, 'non_mo_model_config')
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
             result.coord("model_realization").points, [0., 1., 2., 1000.])
+
+    # I can't get this test to work yet....
+    @ManageWarnings(record=True)
+    def test_non_mo_model_id_mismatch(self, warning_list=None):
+        """Test that when a model ID attribute string is specified that does
+        not match the model ID attribute key name on both cubes to be merged,
+        an error is thrown"""
+        cubes = iris.cube.CubeList(
+            [self.cube_non_mo_ens, self.cube_non_mo_det])
+        result = merge_cubes(cubes, 'non_matching_model_config')
+
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        # The test cubes contain the 'non_mo_model_config' attribute key and
+        # as we've specified 'non_matching_model_config' as our model ID
+        # attribute key argument, merge_cubes should raise a warning for a
+        # mismatching attribute.
+        warning_msg = "Do not know what to do with non_mo_model_config will " \
+                      "delete it - value is non_uk_ens"
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
 
 
 if __name__ == '__main__':

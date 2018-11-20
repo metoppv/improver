@@ -75,10 +75,10 @@ def _associate_any_coordinate_with_master_coordinate(
 
     if not cube.coords(master_coord):
         msg = (
-            "The master coordinate for associating other " +
-            "coordinates with is not present: " +
-            "master_coord: {}, other coordinates: {}".format(
-                master_coord, coordinates))
+                "The master coordinate for associating other " +
+                "coordinates with is not present: " +
+                "master_coord: {}, other coordinates: {}".format(
+                    master_coord, coordinates))
         raise ValueError(msg)
 
     # If the master_coord is not a dimension coordinate, then the other
@@ -300,8 +300,6 @@ def _equalise_cube_attributes(
     silent_attributes = ['history', 'title', 'mosg__grid_version']
     unmatching_attributes = compare_attributes(cubes)
 
-
-
     if len(unmatching_attributes) > 0:
         for i, cube in enumerate(cubes):
             # Remove ignored attributes.
@@ -329,14 +327,16 @@ def _equalise_cube_attributes(
                 new_model_id_coord = build_coordinate([1000 * i],
                                                       long_name='model_id',
                                                       data_type=np.int)
+                new_model_coord = (
+                    build_coordinate([model_title],
+                                     long_name='model_configuration',
+                                     coord_type=AuxCoord,
+                                     data_type=np.str))
 
-                new_model_coord = (build_coordinate([model_title],
-                                                    long_name='model_configuration',
-                                                    coord_type=AuxCoord,
-                                                    data_type=np.str))
                 cube.add_aux_coord(new_model_id_coord)
                 cube.add_aux_coord(new_model_coord)
                 unmatching_attributes[i].pop(model_id_attr)
+
             # Remove any other mismatching attributes but raise warning.
             if len(unmatching_attributes[i]) != 0:
                 for key in unmatching_attributes[i]:
@@ -468,7 +468,7 @@ def _equalise_coord_bounds(cubes):
     """
     # Check each cube against all remaining cubes
     for i, this_cube in enumerate(cubes):
-        for later_cube in cubes[i+1:]:
+        for later_cube in cubes[i + 1:]:
             for coord in this_cube.coords():
                 try:
                     match_coord = later_cube.coord(coord)
@@ -557,7 +557,7 @@ def compare_attributes(cubes):
             for key in cube.attributes.keys():
                 if key not in common_keys:
                     unmatching_attributes[i].update({key:
-                                                     cube.attributes[key]})
+                                                         cube.attributes[key]})
     return unmatching_attributes
 
 
@@ -605,9 +605,9 @@ def compare_coords(cubes):
                     if dim_val is None and len(cube.coord_dims(coord)) > 0:
                         aux_val = cube.coord_dims(coord)[0]
                     unmatching_coords[i].update({coord.name():
-                                                 {'data_dims': dim_val,
-                                                  'aux_dims': aux_val,
-                                                  'coord': coord}})
+                                                     {'data_dims': dim_val,
+                                                      'aux_dims': aux_val,
+                                                      'coord': coord}})
 
     return unmatching_coords
 
@@ -843,7 +843,7 @@ def enforce_coordinate_ordering(
                 msg = ("More than 1 coordinate: {} matched the specified "
                        "coordinate name: {}. Unable to distinguish which "
                        "coordinate should be reordered.".format(
-                           coord, coord_name))
+                    coord, coord_name))
                 raise ValueError(msg)
 
         # If the requested coordinate is not a dimension coordinate, make it
@@ -877,9 +877,9 @@ def enforce_coordinate_ordering(
     # Transpose by inserting the requested coordinates at either the start
     # or the end.
     if anchor == "start":
-        cube.transpose(coord_dims+remaining_coords)
+        cube.transpose(coord_dims + remaining_coords)
     elif anchor == "end":
-        cube.transpose(remaining_coords+coord_dims)
+        cube.transpose(remaining_coords + coord_dims)
     return cube
 
 
