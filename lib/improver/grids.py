@@ -33,6 +33,9 @@
 from iris.coord_systems import (LambertAzimuthalEqualArea,
                                 GeogCS)
 
+# Global grid coordinate reference system
+GLOBAL_GRID_CCRS = GeogCS(6371229.0)
+
 # Reference ellipsoid for Earth's geoid
 ELLIPSOID = GeogCS(semi_major_axis=6378137.0,
                    semi_minor_axis=6356752.314140356)

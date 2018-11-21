@@ -40,9 +40,8 @@ from datetime import datetime
 import numpy as np
 import iris
 from iris.coords import DimCoord
-from cartopy.crs import PlateCarree
 
-from improver.grids import STANDARD_GRID_CCRS
+from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
 from improver.utilities.cube_checker import check_cube_not_float64
 
 TIME_UNIT = "seconds since 1970-01-01 00:00:00"
@@ -69,10 +68,10 @@ def construct_xy_coords(ypoints, xpoints, spatial_grid):
         # make a lat-lon grid including the UK area
         y_coord = DimCoord(
             np.linspace(-20.0, 20.0, ypoints, dtype=np.float32),
-            "latitude", units="degrees", coord_system=PlateCarree())
+            "latitude", units="degrees", coord_system=GLOBAL_GRID_CCRS)
         x_coord = DimCoord(
             np.linspace(40, 80, xpoints, dtype=np.float32),
-            "longitude", units="degrees", coord_system=PlateCarree())
+            "longitude", units="degrees", coord_system=GLOBAL_GRID_CCRS)
     elif 'equalarea':
         # use UK eastings and northings on standard grid
         y_coord = DimCoord(
