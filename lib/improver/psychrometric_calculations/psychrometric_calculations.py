@@ -31,6 +31,7 @@
 """Module to contain Psychrometric Calculations."""
 
 import warnings
+from functools import partial
 
 import numpy as np
 import iris
@@ -429,18 +430,32 @@ class WetBulbTemperature(object):
         wbt.rename('wet_bulb_temperature')
 
         # Calculate enthalpy.
-        g_tw = Utilities.calculate_enthalpy(mixing_ratio, specific_heat,
-                                            latent_heat, wbt)
-        return self._fsl_minimise(wbt, g_tw, saturation_mixing_ratio,
-                                  specific_heat,
-                                  latent_heat,
-                                  pressure)
+        g_tw = Utilities.calculate_enthalpy(mixing_ratio,
+                                            specific_heat, latent_heat,
+                                            temperature)
+        func = self.enthalpy_denthalpy(specific_heat, latent_heat, pressure)
+        return self._fsl_minimise(wbt, g_tw, func, self.precision)
 
+    def enthalpy_denthalpy(self, specific_heat, latent_heat, pressure):
+        def mixing_ratio_func(temperature):
+            return self._calculate_mixing_ratio(temperature,
+                                                pressure)
 
-    def _fsl_minimise(self, wbt, g_tw, saturation_mixing_ratio, specific_heat,
-                      latent_heat, pressure):
+        def result(temperature):
+            mixing_ratio = mixing_ratio_func(temperature)
+            enthalpy = Utilities.calculate_enthalpy(mixing_ratio, specific_heat,
+                                                    latent_heat, temperature)
+            denthalpy = Utilities.calculate_d_enthalpy_dt(mixing_ratio,
+                                                          specific_heat,
+                                                          latent_heat,
+                                                          temperature)
+            return (enthalpy, denthalpy)
+        return result
+
+    @staticmethod
+    def _fsl_minimise(wbt, g_tw, func, precision_amount):
         # wbt is initial guess
-        precision = np.full(wbt.data.shape, self.precision)
+        precision = np.full(wbt.data.shape, precision_amount)
 
         delta_wbt = wbt.copy(data=(10. * precision))
         delta_wbt_history = wbt.copy(data=(5. * precision))
@@ -449,10 +464,7 @@ class WetBulbTemperature(object):
 
         # Iterate to find the wet bulb temperature
         while (np.abs(delta_wbt.data) > precision).any():
-            g_tw_new = Utilities.calculate_enthalpy(
-                saturation_mixing_ratio, specific_heat, latent_heat, wbt)
-            dg_dt = Utilities.calculate_d_enthalpy_dt(
-                saturation_mixing_ratio, specific_heat, latent_heat, wbt)
+            g_tw_new, dg_dt = func(wbt)
             delta_wbt = (g_tw - g_tw_new) / dg_dt
 
             # Only change values at those points yet to converge to avoid
@@ -470,11 +482,6 @@ class WetBulbTemperature(object):
                 break
             delta_wbt_history = delta_wbt
             iteration += 1
-
-            # Recalculate the saturation mixing ratio
-            saturation_mixing_ratio = self._calculate_mixing_ratio(
-                wbt, pressure)
-
         return wbt
 
     def process(self, temperature, relative_humidity, pressure):
