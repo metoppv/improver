@@ -411,8 +411,6 @@ class WetBulbTemperature(object):
                 Cube of wet bulb temperature (K).
 
         """
-        precision = np.full(temperature.data.shape, self.precision)
-
         # Set units of input diagnostics.
         relative_humidity.convert_units(1)
         pressure.convert_units('Pa')
@@ -426,14 +424,26 @@ class WetBulbTemperature(object):
         specific_heat = Utilities.specific_heat_of_moist_air(mixing_ratio)
         latent_heat = Utilities.latent_heat_of_condensation(temperature)
 
-        # Calculate enthalpy.
-        g_tw = Utilities.calculate_enthalpy(mixing_ratio, specific_heat,
-                                            latent_heat, temperature)
         # Use air temperature as a first guess for wet bulb temperature.
         wbt = temperature.copy()
         wbt.rename('wet_bulb_temperature')
-        delta_wbt = temperature.copy(data=(10. * precision))
-        delta_wbt_history = temperature.copy(data=(5. * precision))
+
+        # Calculate enthalpy.
+        g_tw = Utilities.calculate_enthalpy(mixing_ratio, specific_heat,
+                                            latent_heat, wbt)
+        return self._fsl_minimise(wbt, g_tw, saturation_mixing_ratio,
+                                  specific_heat,
+                                  latent_heat,
+                                  pressure)
+
+
+    def _fsl_minimise(self, wbt, g_tw, saturation_mixing_ratio, specific_heat,
+                      latent_heat, pressure):
+        # wbt is initial guess
+        precision = np.full(wbt.data.shape, self.precision)
+
+        delta_wbt = wbt.copy(data=(10. * precision))
+        delta_wbt_history = wbt.copy(data=(5. * precision))
         max_iterations = 20
         iteration = 0
 
