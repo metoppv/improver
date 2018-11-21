@@ -286,7 +286,7 @@ def _equalise_cube_attributes(
         cubes (Iris cubelist):
             List of cubes to check the attributes and revise.
         model_id_attr (str):
-            Identification string of the model configuration, Default
+            Identification string of the model configuration. Default
             is to use the Met Office model configuration.
     Returns:
         cubelist (Iris cubelist):
@@ -307,20 +307,6 @@ def _equalise_cube_attributes(
                 if attr in unmatching_attributes[i]:
                     cube.attributes.pop(attr)
                     unmatching_attributes[i].pop(attr)
-            # Add associated model_id if model_configurations do not match.
-            # if model_id_attr in unmatching_attributes[i]:
-            #     model_title = cube.attributes.pop(model_id_attr)
-            #     for key, val in MODEL_ID_DICT.items():
-            #         if val == model_title:
-            #             break
-            #     new_model_id_coord = build_coordinate([key],
-            #                                           long_name='model_id',
-            #                                           data_type=np.int)
-            #     new_model_coord = (
-            #         build_coordinate([model_title],
-            #                          long_name='model_configuration',
-            #                          coord_type=AuxCoord,
-            #                          data_type=np.str))
 
             if model_id_attr in unmatching_attributes[i]:
                 model_title = cube.attributes.pop(model_id_attr)
