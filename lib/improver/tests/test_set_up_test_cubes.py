@@ -38,6 +38,7 @@ import numpy as np
 
 import iris
 from iris.tests import IrisTest
+from cartopy.crs import PlateCarree
 
 from improver.grids import STANDARD_GRID_CCRS
 from improver.utilities.temporal import iris_time_to_datetime
@@ -57,6 +58,7 @@ class test_construct_xy_coords(IrisTest):
         for crd in [y_coord, x_coord]:
             self.assertEqual(crd.units, "degrees")
             self.assertEqual(crd.dtype, np.float32)
+            self.assertEqual(crd.coord_system, PlateCarree())
         self.assertEqual(len(y_coord.points), 4)
         self.assertEqual(len(x_coord.points), 3)
 
