@@ -38,6 +38,7 @@ import iris
 from iris.cube import Cube
 from iris.exceptions import DuplicateDataError
 from iris.tests import IrisTest
+import numpy as np
 
 from improver.utilities.cube_manipulation import merge_cubes
 
@@ -48,6 +49,7 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
         add_forecast_reference_time_and_forecast_period)
 
 from improver.utilities.warnings_handler import ManageWarnings
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
 class Test_merge_cubes(IrisTest):
@@ -90,15 +92,18 @@ class Test_merge_cubes(IrisTest):
         self.prob_enuk.attributes.update({'mosg__grid_version': '1.2.0'})
 
         # Setup two non-Met Office model example configuration cubes.
-        self.cube_non_mo_ens = set_up_temperature_cube()
-        # Make this cube deterministic by removing realizations, add a
-        # non MO model attribute
-        self.cube_non_mo_det = self.cube_non_mo_ens.extract(
-            iris.Constraint(realization=1))
-        self.cube_non_mo_det.remove_coord('realization')
-        self.cube_non_mo_det.attributes['non_mo_model_config'] = 'non_uk_det'
+        # Using a simple temperature data array, one cube set is setup
+        # as a deterministic model, the other as an ensemble.
+        self.data = (
+            np.linspace(275.0, 284.0, 12).reshape(3, 4).astype(np.float32))
+        self.data_3d = np.array([self.data, self.data, self.data])
 
-        # Keep this cube as an ensemble and add a non MO model attribute
+        self.cube_non_mo_det = set_up_variable_cube(self.data_3d)
+
+        self.cube_non_mo_ens = set_up_variable_cube(
+            self.data_3d, realizations=np.array([0, 3, 4]))
+
+        self.cube_non_mo_det.attributes['non_mo_model_config'] = 'non_uk_det'
         self.cube_non_mo_ens.attributes['non_mo_model_config'] = 'non_uk_ens'
 
     @ManageWarnings(record=True)
@@ -153,7 +158,8 @@ class Test_merge_cubes(IrisTest):
         result = merge_cubes(cubes, 'non_mo_model_config')
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
-            result.coord("model_realization").points, [0., 1., 2., 1000.])
+            result.coord(
+                "model_realization").points, [0., 3., 4., 1000., 1001., 1002.])
 
     def test_model_id_attr_mismatch(self):
         """Test that when a model ID attribute string is specified that does
