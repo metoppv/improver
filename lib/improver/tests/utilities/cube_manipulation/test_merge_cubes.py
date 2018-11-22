@@ -167,9 +167,9 @@ class Test_merge_cubes(IrisTest):
         # attribute key argument. Merge_cubes should then raise a warning
         # as our specified model ID does not match that on the cubes and it
         # will not be able to build a model ID coordinate.
-        msg = 'Cannot create model ID coordinate for grid blending ' \
-              'as the model ID attribute specified does not match ' \
-              'that on the cubes to be blended'
+        msg = ('Cannot create model ID coordinate for grid blending '
+               'as the model ID attribute specified does not match '
+               'that on the cubes to be blended')
 
         with self.assertRaisesRegex(ValueError, msg):
             merge_cubes(cubes, 'non_matching_model_config')
@@ -190,9 +190,9 @@ class Test_merge_cubes(IrisTest):
         cubes = iris.cube.CubeList(
             [self.cube_non_mo_ens, self.cube_non_mo_det])
 
-        msg = 'Cannot create model ID coordinate for grid blending ' \
-              'as the model ID attribute specified does not match ' \
-              'that on the cubes to be blended'
+        msg = ('Cannot create model ID coordinate for grid blending '
+               'as the model ID attribute specified does not match '
+               'that on the cubes to be blended')
 
         with self.assertRaisesRegex(ValueError, msg):
             merge_cubes(cubes, 'non_matching_model_config')

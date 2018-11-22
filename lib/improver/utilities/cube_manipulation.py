@@ -247,12 +247,12 @@ def equalise_cubes(
     Args:
         cubes_in (Iris cubelist):
             List of cubes to check and equalise.
-        merging (boolean):
-            Flag for whether the equalising is for merging
-            as slightly different processing is required.
         model_id_attr (str):
             Name of cube attribute used to identify the model
             for grid blending.
+        merging (boolean):
+            Flag for whether the equalising is for merging
+            as slightly different processing is required.
 
     Returns:
         cubelist (Iris cubelist):
