@@ -19,7 +19,7 @@
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
 # ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
 # LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
 # CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
@@ -210,7 +210,7 @@ def concatenate_cubes(
     return result
 
 
-def merge_cubes(cubes, model_id_attr="mosg__model_configuration"):
+def merge_cubes(cubes, model_id_attr=None):
     """
     Function to merge cubes, accounting for differences in the
     attributes, and coords.
@@ -219,8 +219,8 @@ def merge_cubes(cubes, model_id_attr="mosg__model_configuration"):
         cubes (Iris cubelist or Iris cube):
             Cubes to be merged.
         model_id_attr (str):
-            Identification string of the model configuration. Default
-            is to use the Met Office model configuration.
+            Identification string of the model configuration, required for
+            building a Model ID coord if grid blending cubes.
 
     Returns:
         result (Iris cube):
@@ -240,7 +240,7 @@ def merge_cubes(cubes, model_id_attr="mosg__model_configuration"):
 
 
 def equalise_cubes(
-        cubes_in, model_id_attr="mosg__model_configuration", merging=True):
+        cubes_in, model_id_attr=None, merging=True):
     """
     Function to equalise cubes where they do not match.
 
@@ -251,8 +251,8 @@ def equalise_cubes(
             Flag for whether the equalising is for merging
             as slightly different processing is required.
         model_id_attr (str):
-            Identification string of the model configuration. Default
-            is to use the Met Office model configuration.
+            Identification string of the model configuration.
+
     Returns:
         cubelist (Iris cubelist):
             List of cubes with revised cubes.
@@ -278,7 +278,7 @@ def equalise_cubes(
 
 
 def _equalise_cube_attributes(
-        cubes, model_id_attr="mosg__model_configuration"):
+        cubes, model_id_attr=None):
     """
     Function to equalise attributes that do not match.
 
@@ -286,8 +286,9 @@ def _equalise_cube_attributes(
         cubes (Iris cubelist):
             List of cubes to check the attributes and revise.
         model_id_attr (str):
-            Identification string of the model configuration. Default
-            is to use the Met Office model configuration.
+            Identification string of the model configuration. Required for
+            building a model ID coord when grid blending cubes.
+
     Returns:
         cubelist (Iris cubelist):
         Note: This internal function modifies the incoming cubes
@@ -307,6 +308,16 @@ def _equalise_cube_attributes(
                 if attr in unmatching_attributes[i]:
                     cube.attributes.pop(attr)
                     unmatching_attributes[i].pop(attr)
+
+            # If a model_id_attr has been specified, assume we are trying to
+            # grid blend and throw an error at this stage if the model ID
+            # does not match that on the cubes to be blended.
+            if model_id_attr is not None and \
+                    model_id_attr not in cube.attributes:
+                msg = 'Cannot create model ID coordinate for grid blending ' \
+                      'as the model ID attribute specified does not match ' \
+                      'that on the cubes to be blended'
+                raise ValueError(msg)
 
             if model_id_attr in unmatching_attributes[i]:
                 model_title = cube.attributes.pop(model_id_attr)
@@ -543,7 +554,7 @@ def compare_attributes(cubes):
             for key in cube.attributes.keys():
                 if key not in common_keys:
                     unmatching_attributes[i].update({key:
-                                                         cube.attributes[key]})
+                                                    cube.attributes[key]})
     return unmatching_attributes
 
 
@@ -591,9 +602,9 @@ def compare_coords(cubes):
                     if dim_val is None and len(cube.coord_dims(coord)) > 0:
                         aux_val = cube.coord_dims(coord)[0]
                     unmatching_coords[i].update({coord.name():
-                                                     {'data_dims': dim_val,
-                                                      'aux_dims': aux_val,
-                                                      'coord': coord}})
+                                                 {'data_dims': dim_val,
+                                                  'aux_dims': aux_val,
+                                                  'coord': coord}})
 
     return unmatching_coords
 
@@ -829,7 +840,7 @@ def enforce_coordinate_ordering(
                 msg = ("More than 1 coordinate: {} matched the specified "
                        "coordinate name: {}. Unable to distinguish which "
                        "coordinate should be reordered.".format(
-                    coord, coord_name))
+                        coord, coord_name))
                 raise ValueError(msg)
 
         # If the requested coordinate is not a dimension coordinate, make it

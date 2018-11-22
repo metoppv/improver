@@ -121,7 +121,8 @@ class Test__equalise_cube_attributes(IrisTest):
 
         cubelist = iris.cube.CubeList([cube1, cube2])
 
-        result = _equalise_cube_attributes(cubelist)
+        result = _equalise_cube_attributes(
+            cubelist, "mosg__model_configuration")
 
         self.assertArrayAlmostEqual(result[0].coord("model_id").points,
                                     np.array([0]))
@@ -149,7 +150,8 @@ class Test__equalise_cube_attributes(IrisTest):
 
         cubelist = iris.cube.CubeList([cube1, cube2])
 
-        result = _equalise_cube_attributes(cubelist)
+        result = _equalise_cube_attributes(
+            cubelist)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         warning_msg = "Do not know what to do with "

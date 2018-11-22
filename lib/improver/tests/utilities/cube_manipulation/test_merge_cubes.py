@@ -89,7 +89,7 @@ class Test_merge_cubes(IrisTest):
         self.prob_enuk.attributes.update({'mosg__grid_domain': 'uk_extended'})
         self.prob_enuk.attributes.update({'mosg__grid_version': '1.2.0'})
 
-        # Setup 2 example, non-Met Office model configuration cubes.
+        # Setup two non-Met Office model example configuration cubes.
         self.cube_non_mo_ens = set_up_temperature_cube()
         # Make this cube deterministic by removing realizations, add some
         # non MO attributes
@@ -138,7 +138,7 @@ class Test_merge_cubes(IrisTest):
     def test_multi_model(self):
         """Test Multi models merge OK"""
         cubes = iris.cube.CubeList([self.cube, self.cube_ukv])
-        result = merge_cubes(cubes)
+        result = merge_cubes(cubes, "mosg__model_configuration")
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
             result.coord("model_realization").points, [0., 1.,
@@ -147,13 +147,13 @@ class Test_merge_cubes(IrisTest):
     def test_threshold_data(self):
         """Test threshold data merges OK"""
         cubes = iris.cube.CubeList([self.prob_ukv, self.prob_enuk])
-        result = merge_cubes(cubes)
+        result = merge_cubes(cubes, "mosg__model_configuration")
         self.assertArrayAlmostEqual(
             result.coord("model_id").points, [0., 1000.])
 
     def test_non_mo_model_id(self):
-        """Test that a model ID attribute string can be specified to replace
-        the default mosg__model_configuration"""
+        """Test that a model ID attribute string can be specified when
+        merging multi model cubes"""
         cubes = iris.cube.CubeList(
             [self.cube_non_mo_ens, self.cube_non_mo_det])
         result = merge_cubes(cubes, 'non_mo_model_config')
@@ -161,26 +161,24 @@ class Test_merge_cubes(IrisTest):
         self.assertArrayAlmostEqual(
             result.coord("model_realization").points, [0., 1., 2., 1000.])
 
-    # # I can't get this test to work yet....
-    # # @ManageWarnings(record=True)
-    # def test_non_mo_model_id_mismatch(self, warning_list=None):
-    #     """Test that when a model ID attribute string is specified that does
-    #     not match the model ID attribute key name on both cubes to be merged,
-    #     an error is thrown"""
-    #     cubes = iris.cube.CubeList(
-    #         [self.cube_non_mo_ens, self.cube_non_mo_det])
-    #     result = merge_cubes(cubes, 'non_matching_model_config')
-    #
-    #     # self.assertTrue(any(item.category == UserWarning
-    #     #                     for item in warning_list))
-    #     # The test cubes contain the 'non_mo_model_config' attribute key and
-    #     # as we've specified 'non_matching_model_config' as our model ID
-    #     # attribute key argument, merge_cubes should raise a warning for a
-    #     # mismatching attribute.
-    #     # warning_msg = "Do not know what to do with non_mo_model_config will " \
-    #     #               "delete it - value is non_uk_ens"
-    #     # self.assertTrue(any(warning_msg in str(item)
-    #     #                     for item in warning_list))
+    def test_non_mo_model_id_mismatch(self):
+        """Test that when a model ID attribute string is specified that does
+        not match the model ID attribute key name on both cubes to be merged,
+        an error is thrown"""
+        cubes = iris.cube.CubeList(
+            [self.cube_non_mo_ens, self.cube_non_mo_det])
+
+        # The test cubes contain the 'non_mo_model_config' attribute key.
+        # We'll specify 'non_matching_model_config' as our model ID
+        # attribute key argument. Merge_cubes should then raise a warning
+        # as our specified model ID does not match that on the cubes and it
+        # will not be able to build a model ID coordinate.
+        msg = 'Cannot create model ID coordinate for grid blending ' \
+              'as the model ID attribute specified does not match ' \
+              'that on the cubes to be blended'
+
+        with self.assertRaisesRegex(ValueError, msg):
+            merge_cubes(cubes, 'non_matching_model_config')
 
 
 if __name__ == '__main__':
