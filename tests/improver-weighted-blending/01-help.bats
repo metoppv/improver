@@ -92,10 +92,10 @@ optional arguments:
                         available forecast reference time from the input cubes
                         supplied.
   --model_id_attr MODEL_ID_ATTR
-                        This argument can be used to specify a non Met Office
-                        model identification string. Default value is the Met
-                        Office model identification:
-                        "mosg__model_configuration".
+                        The name of the netCDF file attribute to be used to
+                        identify the source model for multi-model blends.
+                        Default assumes Met Office model metadata. Must be
+                        present on all input files if blending over models.
 
 linear weights options:
   Options for the linear weights calculation in ChooseDefaultWeightsLinear

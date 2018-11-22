@@ -75,10 +75,10 @@ def _associate_any_coordinate_with_master_coordinate(
 
     if not cube.coords(master_coord):
         msg = (
-                "The master coordinate for associating other " +
-                "coordinates with is not present: " +
-                "master_coord: {}, other coordinates: {}".format(
-                    master_coord, coordinates))
+            "The master coordinate for associating other "
+            "coordinates with is not present: "
+            "master_coord: {}, other coordinates: {}".format(
+                master_coord, coordinates))
         raise ValueError(msg)
 
     # If the master_coord is not a dimension coordinate, then the other
@@ -219,8 +219,8 @@ def merge_cubes(cubes, model_id_attr=None):
         cubes (Iris cubelist or Iris cube):
             Cubes to be merged.
         model_id_attr (str):
-            Identification string of the model configuration, required for
-            building a Model ID coord if grid blending cubes.
+            Name of cube attribute used to identify the model
+            for grid blending.
 
     Returns:
         result (Iris cube):
@@ -251,7 +251,8 @@ def equalise_cubes(
             Flag for whether the equalising is for merging
             as slightly different processing is required.
         model_id_attr (str):
-            Identification string of the model configuration.
+            Name of cube attribute used to identify the model
+            for grid blending.
 
     Returns:
         cubelist (Iris cubelist):
@@ -286,8 +287,8 @@ def _equalise_cube_attributes(
         cubes (Iris cubelist):
             List of cubes to check the attributes and revise.
         model_id_attr (str):
-            Identification string of the model configuration. Required for
-            building a model ID coord when grid blending cubes.
+            Name of cube attribute used to identify the model
+            for grid blending.
 
     Returns:
         cubelist (Iris cubelist):
@@ -310,13 +311,13 @@ def _equalise_cube_attributes(
                     unmatching_attributes[i].pop(attr)
 
             # If a model_id_attr has been specified, assume we are trying to
-            # grid blend and throw an error at this stage if the model ID
-            # does not match that on the cubes to be blended.
+            # grid blend and throw an error if the model_id_attr does not
+            # match that on the cubes to be blended.
             if model_id_attr is not None and \
                     model_id_attr not in cube.attributes:
-                msg = 'Cannot create model ID coordinate for grid blending ' \
-                      'as the model ID attribute specified does not match ' \
-                      'that on the cubes to be blended'
+                msg = ('Cannot create model ID coordinate for grid blending '
+                       'as the model ID attribute specified does not match '
+                       'that on the cubes to be blended')
                 raise ValueError(msg)
 
             if model_id_attr in unmatching_attributes[i]:
@@ -465,7 +466,7 @@ def _equalise_coord_bounds(cubes):
     """
     # Check each cube against all remaining cubes
     for i, this_cube in enumerate(cubes):
-        for later_cube in cubes[i + 1:]:
+        for later_cube in cubes[i+1:]:
             for coord in this_cube.coords():
                 try:
                     match_coord = later_cube.coord(coord)
