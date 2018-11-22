@@ -32,7 +32,6 @@
 
 import iris
 
-
 from improver.utilities.cube_checker import check_cube_not_float64
 
 

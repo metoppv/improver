@@ -46,8 +46,25 @@ from improver.utilities.cube_manipulation import (
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import set_up_temperature_cube
 
-from improver.tests.utilities.cube_manipulation.\
-    helper_functions import check_coord_type
+
+def check_coord_type(cube, coord):
+    '''Function to test whether coord is classified
+       as scalar or auxiliary coordinate.
+
+       Args:
+           cube (iris.cube.Cube):
+               Iris cube containing coordinates to be checked
+           coord (iris.coords.DimCoord or iris.coords.AuxCoord):
+               Cube coordinate to check
+    '''
+    coord_scalar = True
+    coord_aux = False
+    cube_summary = cube.summary()
+    aux_ind = cube_summary.find("Auxiliary")
+    if coord in cube_summary[aux_ind:]:
+        coord_scalar = False
+        coord_aux = True
+    return coord_scalar, coord_aux
 
 
 class Test__associate_any_coordinate_with_master_coordinate(IrisTest):
