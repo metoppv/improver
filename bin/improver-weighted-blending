@@ -34,6 +34,7 @@
 
 import warnings
 import json
+import iris
 
 import numpy as np
 from cf_units import Unit
@@ -272,6 +273,10 @@ def main():
     rationalise_blend_time_coords(
         cubelist, args.coordinate, cycletime=args.cycletime,
         weighting_coord=weighting_coord)
+
+    # squeeze cubes to remove any dimensions of length one
+    for i, cube in enumerate(cubelist):
+        cubelist[i] = iris.util.squeeze(cube)
 
     # merge cube list
     cube = merge_cubes(cubelist)
