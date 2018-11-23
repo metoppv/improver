@@ -184,13 +184,16 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
         attributes (dict):
             Optional cube attributes.
         uk_standard_grid_metadata (bool):
-            Flag to add attributes for the UK standard grid.  These will
-            **overwrite** any explicitly set attributes of the same name.
+            Flag to add attributes for the UK standard grid.  These can be
+            overridden by explicitly setting attributes of the same name.
     """
     # construct spatial dimension coordimates
     ypoints = data.shape[-2]
     xpoints = data.shape[-1]
     y_coord, x_coord = construct_xy_coords(ypoints, xpoints, spatial_grid)
+
+    # set up attributes dict
+    cube_attrs = {}
 
     # construct realization dimension for 3D data, and dim_coords list
     ndims = len(data.shape)
@@ -204,8 +207,16 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
             realizations = np.arange(data.shape[0]).astype(np.int32)
         realization_coord = DimCoord(realizations, "realization", units="1")
         dim_coords = [(realization_coord, 0), (y_coord, 1), (x_coord, 2)]
+
+        # set up StaGE attributes if required
+        if uk_standard_grid_metadata:
+            cube_attrs.update(GRID_ID_LOOKUP['enukx_standard_v1'])
+            cube_attrs['mosg__grid_version'] = '1.3.0'
     elif ndims == 2:
         dim_coords = [(y_coord, 0), (x_coord, 1)]
+        if uk_standard_grid_metadata:
+            cube_attrs.update(GRID_ID_LOOKUP['ukvx_standard_v1'])
+            cube_attrs['mosg__grid_version'] = '1.3.0'
     else:
         raise ValueError(
             'Expected 2 or 3 dimensions on input data: got {}'.format(ndims))
@@ -216,20 +227,15 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
         for coord in include_scalar_coords:
             scalar_coords.append((coord, None))
 
+    # update attributes dict
+    if attributes is not None:
+        cube_attrs.update(attributes)
+
     # create data cube
     cube = iris.cube.Cube(data, long_name=name, units=units,
                           dim_coords_and_dims=dim_coords,
                           aux_coords_and_dims=scalar_coords,
-                          attributes=attributes)
-
-    # add StaGE metadata
-    if uk_standard_grid_metadata:
-        try:
-            _ = cube.coord('realization')
-            cube.attributes.update(GRID_ID_LOOKUP['enukx_standard_v1'])
-        except CoordinateNotFoundError:
-            cube.attributes.update(GRID_ID_LOOKUP['ukvx_standard_v1'])
-        cube.attributes['mosg__grid_version'] = '1.3.0'
+                          attributes=cube_attrs)
 
     # don't allow unit tests to set up invalid cubes
     check_cube_not_float64(cube)
@@ -355,7 +361,7 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
     cube = set_up_variable_cube(
         data, name=name, units='1', spatial_grid=spatial_grid,
         time=time, frt=frt, realizations=thresholds, attributes=attributes,
-        include_scalar_coords=include_scalar_coords, 
+        include_scalar_coords=include_scalar_coords,
         uk_standard_grid_metadata=uk_standard_grid_metadata)
     cube.coord("realization").rename("threshold")
     cube.coord("threshold").units = Unit(threshold_units)

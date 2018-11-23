@@ -307,6 +307,18 @@ class test_set_up_percentile_cube(IrisTest):
         self.assertEqual(
             result.attributes['mosg__model_configuration'], 'uk_ens')
 
+    def test_override_grid_metadata(self):
+        """Test cube can be set up with a deterministic grid identifier"""
+        result = set_up_percentile_cube(
+            self.data, self.percentiles, uk_standard_grid_metadata=True,
+            attributes={'mosg__model_configuration': 'uk_det'})
+        self.assertEqual(result.attributes['mosg__grid_type'], 'standard')
+        self.assertEqual(result.attributes['mosg__grid_version'], '1.3.0')
+        self.assertEqual(
+            result.attributes['mosg__grid_domain'], 'uk_extended')
+        self.assertEqual(
+            result.attributes['mosg__model_configuration'], 'uk_det')  
+
 
 class test_set_up_probability_cube(IrisTest):
     """Test the set_up_probability_cube function"""
@@ -358,6 +370,7 @@ class test_set_up_probability_cube(IrisTest):
             result.attributes['mosg__grid_domain'], 'uk_extended')
         self.assertEqual(
             result.attributes['mosg__model_configuration'], 'uk_ens')
+
 
 class test_add_coordinate(IrisTest):
     """Test the add_coordinate utility"""
