@@ -126,10 +126,41 @@ class test_apply_lapse_rate(IrisTest):
     def test_realizations(self):
         """Test processing of a cube with multiple realizations"""
         temp_3d = add_coordinate(self.temperature, [0, 1, 2], 'realization')
-        result = apply_lapse_rate(temp_3d, self.lapse_rate,
-                                  self.source_orog, self.dest_orog)
+        lrt_3d = add_coordinate(self.lapse_rate, [0, 1, 2], 'realization')
+        result = apply_lapse_rate(
+            temp_3d, lrt_3d, self.source_orog, self.dest_orog)
+        self.assertArrayEqual(
+            result.coord('realization').points, np.array([0, 1, 2]))
         for subcube in result.slices_over('realization'):
             self.assertArrayAlmostEqual(subcube.data, self.expected_data)
+
+    def test_unmatched_realizations(self):
+        """Test error if realizations on temperature and lapse rate do not
+        match"""
+        temp_3d = add_coordinate(self.temperature, [0, 1, 2], 'realization')
+        lrt_3d = add_coordinate(self.lapse_rate, [2, 3, 4], 'realization')
+        msg = 'Lapse rate cube coordinate "realization" does not match '
+        with self.assertRaisesRegex(ValueError, msg):
+            _ = apply_lapse_rate(
+                temp_3d, lrt_3d, self.source_orog, self.dest_orog)
+
+    def test_missing_coord(self):
+        """Test error if temperature cube has realizations but lapse rate
+        does not"""
+        temp_3d = add_coordinate(self.temperature, [0, 1, 2], 'realization')
+        msg = 'Lapse rate cube has no coordinate "realization"'
+        with self.assertRaisesRegex(ValueError, msg):
+            _ = apply_lapse_rate(
+                temp_3d, self.lapse_rate, self.source_orog, self.dest_orog)
+
+    def test_spatial_mismatch(self):
+        """Test error if orography grid is not matched to temperature"""
+        new_y_points = self.source_orog.coord(axis='y').points + 100.
+        self.source_orog.coord(axis='y').points = new_y_points
+        msg = 'Source orography projection does not match'
+        with self.assertRaisesRegex(ValueError, msg):
+            _ = apply_lapse_rate(self.temperature, self.lapse_rate,
+                                 self.source_orog, self.dest_orog)
 
 
 if __name__ == '__main__':
