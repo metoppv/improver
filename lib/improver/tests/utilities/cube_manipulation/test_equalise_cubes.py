@@ -91,7 +91,8 @@ class Test_equalise_cubes(IrisTest):
     def test_equalise_attributes(self):
         """Test that the utility equalises the attributes as expected"""
         cubelist = iris.cube.CubeList([self.cube_ukv, self.cube])
-        result = equalise_cubes(cubelist, "mosg__model_configuration")
+        result = equalise_cubes(
+            cubelist, model_id_attr="mosg__model_configuration")
         self.assertArrayAlmostEqual(result[0].coord("model_id").points,
                                     np.array([0]))
         self.assertEqual(result[0].coord("model_configuration").points[0],
@@ -130,7 +131,8 @@ class Test_equalise_cubes(IrisTest):
     def test_coords_are_equalised_if_merging(self):
         """Test that the coords are equalised if merging"""
         cubelist = iris.cube.CubeList([self.cube_ukv, self.cube])
-        result = equalise_cubes(cubelist, "mosg__model_configuration")
+        result = equalise_cubes(
+            cubelist, model_id_attr="mosg__model_configuration")
         self.assertEqual(len(result), 4)
         self.assertAlmostEqual(result[3].coord('model_realization').points,
                                1002.0)

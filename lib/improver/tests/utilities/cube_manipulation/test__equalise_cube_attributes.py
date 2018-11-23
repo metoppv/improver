@@ -122,7 +122,7 @@ class Test__equalise_cube_attributes(IrisTest):
         cubelist = iris.cube.CubeList([cube1, cube2])
 
         result = _equalise_cube_attributes(
-            cubelist, "mosg__model_configuration")
+            cubelist, model_id_attr="mosg__model_configuration")
 
         self.assertArrayAlmostEqual(result[0].coord("model_id").points,
                                     np.array([0]))
@@ -142,7 +142,9 @@ class Test__equalise_cube_attributes(IrisTest):
         """Test that the utility returns warning and removes unknown
         mismatching attribute."""
         cube1 = self.cube_ukv.copy()
+        cube1.attributes.update({'mosg__model_configuration': 'uk_det'})
         cube2 = self.cube.copy()
+        cube2.attributes.update({'mosg__model_configuration': 'uk_ens'})
         cube1.attributes.update({'unknown_attribute':
                                  '1'})
         cube2.attributes.update({'unknown_attribute':
@@ -151,7 +153,7 @@ class Test__equalise_cube_attributes(IrisTest):
         cubelist = iris.cube.CubeList([cube1, cube2])
 
         result = _equalise_cube_attributes(
-            cubelist)
+            cubelist, model_id_attr='mosg__model_configuration')
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         warning_msg = "Do not know what to do with "

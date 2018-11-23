@@ -220,7 +220,7 @@ def merge_cubes(cubes, model_id_attr=None):
             Cubes to be merged.
         model_id_attr (str):
             Name of cube attribute used to identify the model
-            for grid blending.
+            for grid blending or None.
 
     Returns:
         result (Iris cube):
@@ -249,7 +249,7 @@ def equalise_cubes(
             List of cubes to check and equalise.
         model_id_attr (str):
             Name of cube attribute used to identify the model
-            for grid blending.
+            for grid blending or None.
         merging (boolean):
             Flag for whether the equalising is for merging
             as slightly different processing is required.
@@ -288,7 +288,7 @@ def _equalise_cube_attributes(
             List of cubes to check the attributes and revise.
         model_id_attr (str):
             Name of cube attribute used to identify the model
-            for grid blending.
+            for grid blending or None.
 
     Returns:
         cubelist (Iris cubelist):
@@ -316,12 +316,13 @@ def _equalise_cube_attributes(
             if model_id_attr is not None and \
                     model_id_attr not in cube.attributes:
                 msg = ('Cannot create model ID coordinate for grid blending '
-                       'as the model ID attribute specified does not match '
-                       'that on the cubes to be blended')
+                       'as the model ID attribute specified is not found '
+                       'within the cube attributes')
                 raise ValueError(msg)
 
             if model_id_attr in unmatching_attributes[i]:
                 model_title = cube.attributes.pop(model_id_attr)
+
                 new_model_id_coord = build_coordinate([1000 * i],
                                                       long_name='model_id',
                                                       data_type=np.int)
