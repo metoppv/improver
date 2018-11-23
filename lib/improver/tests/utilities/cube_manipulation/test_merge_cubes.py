@@ -98,7 +98,7 @@ class Test_merge_cubes(IrisTest):
             np.linspace(275.0, 284.0, 12).reshape(3, 4).astype(np.float32))
         self.data_3d = np.array([self.data, self.data, self.data])
 
-        self.cube_non_mo_det = set_up_variable_cube(self.data_3d)
+        self.cube_non_mo_det = set_up_variable_cube(self.data)
 
         self.cube_non_mo_ens = set_up_variable_cube(
             self.data_3d, realizations=np.array([0, 3, 4]))
@@ -159,7 +159,7 @@ class Test_merge_cubes(IrisTest):
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
             result.coord(
-                "model_realization").points, [0., 3., 4., 1000., 1001., 1002.])
+                "model_realization").points, [0., 3., 4., 1000.])
 
     def test_model_id_attr_mismatch(self):
         """Test that when a model ID attribute string is specified that does
