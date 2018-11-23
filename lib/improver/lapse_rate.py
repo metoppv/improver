@@ -30,13 +30,55 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing lapse rate calculation plugins."""
 
-import iris
 import numpy as np
 from numpy.linalg import lstsq
+from scipy.ndimage import generic_filter
+
+import iris
+from iris.analysis.maths import multiply
+
 from improver.utilities.cube_manipulation import enforce_float32_precision
 from improver.constants import DALR
 
-from scipy.ndimage import generic_filter
+
+def apply_lapse_rate(temperature, lapse_rate, source_orog, dest_orog):
+    """
+    Function to apply a lapse rate adjustment to temperature data forecast
+    at "source_orog" heights, to be applicable at "dest_orog" heights.
+
+    Args:
+        temperature (iris.cube.Cube):
+            Input temperature field to be adjusted
+        lapse_rate (iris.cube.Cube):
+            2D cube of pre-calculated lapse rates (units modified in place)
+        source_orog (iris.cube.Cube):
+            2D cube of source orography heights (units modified in place)
+        dest_orog (iris.cube.Cube):
+            2D cube of destination orography heights (units modified in place)
+
+    Returns:
+        adjusted_temperature (iris.cube.Cube):
+            Lapse-rate adjusted temperature field
+    """
+    # calculate height difference on which to adjust
+    source_orog.convert_units('m')
+    dest_orog.convert_units('m')
+    orog_diff = dest_orog - source_orog
+
+    # calculate temperature correction in K for a lapse rate cube in K m-1
+    lapse_rate.convert_units('K m-1')
+    adjustment = multiply(orog_diff, lapse_rate)
+
+    # apply adjustment to each spatial slice of the temperature cube
+    adjusted_temperature = []
+    for subcube in temperature.slices([temperature.coord(axis='y'),
+                                       temperature.coord(axis='x')]):
+        newcube = subcube.copy()
+        newcube.convert_units('K')
+        newcube.data += adjustment.data
+        adjusted_temperature.append(newcube)
+
+    return iris.cube.CubeList(adjusted_temperature).merge_cube()
 
 
 class SaveNeighbourhood(object):
