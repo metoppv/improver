@@ -32,17 +32,14 @@
 at surface and radiation flux in UV upward at the surface."""
 
 import iris
+from cf_units import Unit
 
-
-def uv_index(uv_upward, uv_downward, scale_factor=3.6):
+def calculate_uv_index(uv_upward, uv_downward, scale_factor=3.6):
     """
     A plugin to calculate the uv index using radiation flux in UV downward
     at surface, radiation flux UV upward at surface and a scaling factor.
     The scaling factor is currently set at 3.6 (for Global data) but needs
     to be configurable, since it may need to be changed after testing.
-
-    NOTE- The STASH codes and global model files don't specify a unit for
-    the upward and downward uv fluxes, so we have suggested W/m^2 for now.
 
     Args:
         uv_upward (iris.cube.Cube):
@@ -57,6 +54,6 @@ def uv_index(uv_upward, uv_downward, scale_factor=3.6):
             A cube of the calculated UV index.
     """
     uv_index = (uv_upward + uv_downward) * scale_factor
-    uv_index.long_name = "uv index"
-    uv_index.units = "1"
+    uv_index.long_name = "ultraviolet_index"
+    uv_index.units = Unit("1")
     return uv_index

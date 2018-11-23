@@ -33,16 +33,17 @@
 import unittest
 
 import numpy as np
+from cf_units import Unit
 
-import iris
 from iris.tests import IrisTest
 
 from improver.tests.set_up_test_cubes import set_up_variable_cube
-from improver.uv_index import uv_index
+from improver.uv_index import calculate_uv_index
 
 
-class Test__uv_index(IrisTest):
-    """ Tests that the uv_index plugin works """
+class Test_uv_index(IrisTest):
+    """ Tests that the uv_index plugin calculates the UV index 
+    correctly. """
 
     def setUp(self):
         """Set up the cubes for the upward and downward uv fluxes."""
@@ -61,11 +62,11 @@ class Test__uv_index(IrisTest):
 
     def test_basic(self):
         """ Test that the a basic uv calculation works, using the
-        set_up_test_cubes scaling factor. Make sure the output is a cube
+        default scaling factor. Make sure the output is a cube
         with the expected data."""
         expected = np.array([[1.08, 1.08, 1.08], [1.08, 1.08, 1.08]],
                             dtype=np.float32)
-        result = uv_index(self.cube_uv_down, self.cube_uv_up)
+        result = calculate_uv_index(self.cube_uv_down, self.cube_uv_up)
         self.assertArrayEqual(result.data, expected)
 
     def test_scale_factor(self):
@@ -73,15 +74,15 @@ class Test__uv_index(IrisTest):
         sure the output is a cube with the expected data."""
         expected = np.array([[3.0, 3.0, 3.0], [3.0, 3.0, 3.0]],
                             dtype=np.float32)
-        result = uv_index(self.cube_uv_down, self.cube_uv_up, 10)
+        result = calculate_uv_index(self.cube_uv_down, self.cube_uv_up, scale_factor=10)
         self.assertArrayEqual(result.data, expected)
 
     def test_metadata(self):
         """ Tests that the uv index output has the correct metadata (no units,
         and name = uv index."""
-        result = uv_index(self.cube_uv_down, self.cube_uv_up)
-        self.assertEqual(str(result.long_name), 'uv index')
-        self.assertEqual(str(result.units), '1')
+        result = calculate_uv_index(self.cube_uv_down, self.cube_uv_up)
+        self.assertEqual(str(result.long_name), 'ultraviolet_index')
+        self.assertEqual((result.units), Unit("1"))
 
 
 if __name__ == '__main__':
