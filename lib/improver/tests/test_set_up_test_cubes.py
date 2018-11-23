@@ -296,6 +296,17 @@ class test_set_up_percentile_cube(IrisTest):
         dim_coords = [coord.name() for coord in result.coords(dim_coords=True)]
         self.assertIn("percentile", dim_coords)
 
+    def test_standard_grid_metadata(self):
+        """Test standard grid metadata"""
+        result = set_up_percentile_cube(self.data, self.percentiles,
+                                        uk_standard_grid_metadata=True)
+        self.assertEqual(result.attributes['mosg__grid_type'], 'standard')
+        self.assertEqual(result.attributes['mosg__grid_version'], '1.3.0')
+        self.assertEqual(
+            result.attributes['mosg__grid_domain'], 'uk_extended')
+        self.assertEqual(
+            result.attributes['mosg__model_configuration'], 'uk_ens')
+
 
 class test_set_up_probability_cube(IrisTest):
     """Test the set_up_probability_cube function"""
@@ -337,6 +348,16 @@ class test_set_up_probability_cube(IrisTest):
         self.assertEqual(len(result.attributes), 1)
         self.assertEqual(result.attributes['relative_to_threshold'], 'below')
 
+    def test_standard_grid_metadata(self):
+        """Test standard grid metadata"""
+        result = set_up_probability_cube(self.data, self.thresholds,
+                                         uk_standard_grid_metadata=True)
+        self.assertEqual(result.attributes['mosg__grid_type'], 'standard')
+        self.assertEqual(result.attributes['mosg__grid_version'], '1.3.0')
+        self.assertEqual(
+            result.attributes['mosg__grid_domain'], 'uk_extended')
+        self.assertEqual(
+            result.attributes['mosg__model_configuration'], 'uk_ens')
 
 class test_add_coordinate(IrisTest):
     """Test the add_coordinate utility"""

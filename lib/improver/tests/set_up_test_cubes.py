@@ -184,7 +184,7 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
         attributes (dict):
             Optional cube attributes.
         uk_standard_grid_metadata (bool):
-            Flag to add attributes for the UK standard grid. These will
+            Flag to add attributes for the UK standard grid.  These will
             **overwrite** any explicitly set attributes of the same name.
     """
     # construct spatial dimension coordimates
@@ -280,7 +280,7 @@ def set_up_percentile_cube(data, percentiles, name='air_temperature',
         attributes (dict):
             Optional cube attributes.
         uk_standard_grid_metadata (bool):
-            Flag to include attributes for the UK standard grid
+            Flag to include attributes for the MOGREPS-UK ensemble grid.
     """
     cube = set_up_variable_cube(
         data, name=name, units=units, spatial_grid=spatial_grid,
@@ -340,7 +340,7 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
         attributes (dict):
             Optional cube attributes.
         uk_standard_grid_metadata (bool):
-            Flag to include attributes for the UK standard grid
+            Flag to include attributes for the MOGREPS-UK ensemble grid.
     """
     # create a "relative to threshold" attribute
     if attributes is None:
