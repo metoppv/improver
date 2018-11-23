@@ -31,15 +31,14 @@
 """Module for calculating the uv index using radiation flux in UV downward
 at surface and radiation flux in UV upward at the surface."""
 
-import iris
 from cf_units import Unit
 
-def calculate_uv_index(uv_upward, uv_downward, scale_factor=3.6):
+
+def calculate_uv_index(uv_upward, uv_downward, scale_factor=1.0):
     """
     A plugin to calculate the uv index using radiation flux in UV downward
     at surface, radiation flux UV upward at surface and a scaling factor.
-    The scaling factor is currently set at 3.6 (for Global data) but needs
-    to be configurable, since it may need to be changed after testing.
+    The scaling factor is configurable by the user.
 
     Args:
         uv_upward (iris.cube.Cube):
