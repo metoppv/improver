@@ -40,8 +40,10 @@ from datetime import datetime
 import numpy as np
 import iris
 from iris.coords import DimCoord
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
+from improver.utilities.cube_metadata import GRID_ID_LOOKUP
 from improver.utilities.cube_checker import check_cube_not_float64
 
 TIME_UNIT = "seconds since 1970-01-01 00:00:00"
@@ -145,7 +147,8 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
                          spatial_grid='latlon',
                          time=datetime(2017, 11, 10, 4, 0), time_bounds=None,
                          frt=datetime(2017, 11, 10, 0, 0), realizations=None,
-                         include_scalar_coords=None, attributes=None):
+                         include_scalar_coords=None, attributes=None,
+                         uk_standard_grid_metadata=False):
     """
     Set up a cube containing a single variable field with:
     - x/y spatial dimensions (equal area or lat / lon)
@@ -180,6 +183,9 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
             List of iris.coords.DimCoord or AuxCoord instances of length 1.
         attributes (dict):
             Optional cube attributes.
+        uk_standard_grid_metadata (bool):
+            Flag to add attributes for the UK standard grid. These will
+            **overwrite** any explicitly set attributes of the same name.
     """
     # construct spatial dimension coordimates
     ypoints = data.shape[-2]
@@ -216,6 +222,15 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
                           aux_coords_and_dims=scalar_coords,
                           attributes=attributes)
 
+    # add StaGE metadata
+    if uk_standard_grid_metadata:
+        try:
+            _ = cube.coord('realization')
+            cube.attributes.update(GRID_ID_LOOKUP['enukx_standard_v1'])
+        except CoordinateNotFoundError:
+            cube.attributes.update(GRID_ID_LOOKUP['ukvx_standard_v1'])
+        cube.attributes['mosg__grid_version'] = '1.3.0'
+
     # don't allow unit tests to set up invalid cubes
     check_cube_not_float64(cube)
 
@@ -227,7 +242,8 @@ def set_up_percentile_cube(data, percentiles, name='air_temperature',
                            percentile_dim_name='percentile_over_realization',
                            time=datetime(2017, 11, 10, 4, 0), time_bounds=None,
                            frt=datetime(2017, 11, 10, 0, 0),
-                           include_scalar_coords=None, attributes=None):
+                           include_scalar_coords=None, attributes=None,
+                           uk_standard_grid_metadata=False):
     """
     Set up a cube containing percentiles of a variable with:
     - x/y spatial dimensions (equal area or lat / lon)
@@ -263,11 +279,14 @@ def set_up_percentile_cube(data, percentiles, name='air_temperature',
             List of iris.coords.DimCoord or AuxCoord instances of length 1.
         attributes (dict):
             Optional cube attributes.
+        uk_standard_grid_metadata (bool):
+            Flag to include attributes for the UK standard grid
     """
     cube = set_up_variable_cube(
         data, name=name, units=units, spatial_grid=spatial_grid,
         time=time, frt=frt, realizations=percentiles, attributes=attributes,
-        include_scalar_coords=include_scalar_coords)
+        include_scalar_coords=include_scalar_coords,
+        uk_standard_grid_metadata=uk_standard_grid_metadata)
     cube.coord("realization").rename(percentile_dim_name)
     cube.coord(percentile_dim_name).units = Unit("%")
     return cube
@@ -279,7 +298,8 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
                             time=datetime(2017, 11, 10, 4, 0),
                             time_bounds=None,
                             frt=datetime(2017, 11, 10, 0, 0),
-                            include_scalar_coords=None, attributes=None):
+                            include_scalar_coords=None, attributes=None,
+                            uk_standard_grid_metadata=False):
     """
     Set up a cube containing probabilities at thresholds with:
     - x/y spatial dimensions (equal area or lat / lon)
@@ -319,6 +339,8 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
             List of iris.coords.DimCoord or AuxCoord instances of length 1.
         attributes (dict):
             Optional cube attributes.
+        uk_standard_grid_metadata (bool):
+            Flag to include attributes for the UK standard grid
     """
     # create a "relative to threshold" attribute
     if attributes is None:
@@ -333,7 +355,8 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
     cube = set_up_variable_cube(
         data, name=name, units='1', spatial_grid=spatial_grid,
         time=time, frt=frt, realizations=thresholds, attributes=attributes,
-        include_scalar_coords=include_scalar_coords)
+        include_scalar_coords=include_scalar_coords, 
+        uk_standard_grid_metadata=uk_standard_grid_metadata)
     cube.coord("realization").rename("threshold")
     cube.coord("threshold").units = Unit(threshold_units)
     return cube
