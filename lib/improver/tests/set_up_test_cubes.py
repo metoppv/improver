@@ -40,7 +40,6 @@ from datetime import datetime
 import numpy as np
 import iris
 from iris.coords import DimCoord
-from iris.exceptions import CoordinateNotFoundError
 
 from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
 from improver.utilities.cube_metadata import GRID_ID_LOOKUP
