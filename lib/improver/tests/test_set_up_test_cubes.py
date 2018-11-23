@@ -317,7 +317,7 @@ class test_set_up_percentile_cube(IrisTest):
         self.assertEqual(
             result.attributes['mosg__grid_domain'], 'uk_extended')
         self.assertEqual(
-            result.attributes['mosg__model_configuration'], 'uk_det')  
+            result.attributes['mosg__model_configuration'], 'uk_det')
 
 
 class test_set_up_probability_cube(IrisTest):
