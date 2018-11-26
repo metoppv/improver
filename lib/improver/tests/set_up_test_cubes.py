@@ -42,7 +42,6 @@ import iris
 from iris.coords import DimCoord
 
 from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
-from improver.utilities.cube_metadata import GRID_ID_LOOKUP
 from improver.utilities.cube_checker import check_cube_not_float64
 
 TIME_UNIT = "seconds since 1970-01-01 00:00:00"
