@@ -364,7 +364,7 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
     return cube
 
 
-def add_coordinate(cube, coord_points, coord_name, coord_units=None,
+def add_coordinate(incube, coord_points, coord_name, coord_units=None,
                    dtype=np.float32, order=None):
     """
     Function to duplicate a sample cube with an additional coordinate to create
@@ -372,7 +372,7 @@ def add_coordinate(cube, coord_points, coord_name, coord_units=None,
     reordered to place the new coordinate in the required position.
 
     Args:
-        cube (iris.cube.Cube):
+        incube (iris.cube.Cube):
             Cube to be duplicated.
         coord_points (list):
             Values for the coordinate.
@@ -395,6 +395,11 @@ def add_coordinate(cube, coord_points, coord_name, coord_units=None,
         iris.cube.Cube:
             Cube containing an additional dimension coordinate.
     """
+    # if the coordinate already exists as a scalar coordinate, remove it
+    cube = incube.copy()
+    if coord_name in [crd.name() for crd in cube.coords(dim_coords=False)]:
+        cube.remove_coord(coord_name)
+
     cubes = iris.cube.CubeList([])
     for val in coord_points:
         temp_cube = cube.copy()
