@@ -192,17 +192,6 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
     xpoints = data.shape[-1]
     y_coord, x_coord = construct_xy_coords(ypoints, xpoints, spatial_grid)
 
-    # set up attributes dict
-    cube_attrs = {}
-
-    # set up StaGE attributes if required
-    if standard_grid_metadata is not None:
-        cube_attrs['mosg__model_configuration'] = standard_grid_metadata
-        cube_attrs['mosg__grid_type'] = 'standard'
-        cube_attrs['mosg__grid_version'] = '1.3.0'
-        cube_attrs['mosg__grid_domain'] = (
-            'uk_extended' if 'uk' in standard_grid_metadata else 'global')
-
     # construct realization dimension for 3D data, and dim_coords list
     ndims = len(data.shape)
     if ndims == 3:
@@ -227,7 +216,14 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
         for coord in include_scalar_coords:
             scalar_coords.append((coord, None))
 
-    # update attributes dict
+    # set up attributes
+    cube_attrs = {}
+    if standard_grid_metadata is not None:
+        cube_attrs['mosg__model_configuration'] = standard_grid_metadata
+        cube_attrs['mosg__grid_type'] = 'standard'
+        cube_attrs['mosg__grid_version'] = '1.3.0'
+        cube_attrs['mosg__grid_domain'] = (
+            'uk_extended' if 'uk' in standard_grid_metadata else 'global')
     if attributes is not None:
         cube_attrs.update(attributes)
 
