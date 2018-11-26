@@ -43,6 +43,7 @@ from improver.tests.set_up_test_cubes import (
 
 
 class test_apply_lapse_rate(IrisTest):
+    """Test the apply_lapse_rate method"""
 
     def setUp(self):
         """Set up some input cubes"""
