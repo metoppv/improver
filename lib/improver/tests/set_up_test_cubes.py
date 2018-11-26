@@ -147,7 +147,7 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
                          time=datetime(2017, 11, 10, 4, 0), time_bounds=None,
                          frt=datetime(2017, 11, 10, 0, 0), realizations=None,
                          include_scalar_coords=None, attributes=None,
-                         uk_standard_grid_metadata=False):
+                         standard_grid_metadata=None):
     """
     Set up a cube containing a single variable field with:
     - x/y spatial dimensions (equal area or lat / lon)
@@ -182,9 +182,10 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
             List of iris.coords.DimCoord or AuxCoord instances of length 1.
         attributes (dict):
             Optional cube attributes.
-        uk_standard_grid_metadata (bool):
-            Flag to add attributes for the UK standard grid.  These can be
-            overridden by explicitly setting attributes of the same name.
+        standard_grid_metadata (str):
+            Recognised mosg__model_configuration for which to set up Met
+            Office standard grid attributes.  Should be 'uk_det', 'uk_ens',
+            'gl_det' or 'gl_ens'.
     """
     # construct spatial dimension coordimates
     ypoints = data.shape[-2]
@@ -193,6 +194,14 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
 
     # set up attributes dict
     cube_attrs = {}
+
+    # set up StaGE attributes if required
+    if standard_grid_metadata is not None:
+        cube_attrs['mosg__model_configuration'] = standard_grid_metadata
+        cube_attrs['mosg__grid_type'] = 'standard'
+        cube_attrs['mosg__grid_version'] = '1.3.0'
+        cube_attrs['mosg__grid_domain'] = (
+            'uk_extended' if 'uk' in standard_grid_metadata else 'global')
 
     # construct realization dimension for 3D data, and dim_coords list
     ndims = len(data.shape)
@@ -206,16 +215,8 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
             realizations = np.arange(data.shape[0]).astype(np.int32)
         realization_coord = DimCoord(realizations, "realization", units="1")
         dim_coords = [(realization_coord, 0), (y_coord, 1), (x_coord, 2)]
-
-        # set up StaGE attributes if required
-        if uk_standard_grid_metadata:
-            cube_attrs.update(GRID_ID_LOOKUP['enukx_standard_v1'])
-            cube_attrs['mosg__grid_version'] = '1.3.0'
     elif ndims == 2:
         dim_coords = [(y_coord, 0), (x_coord, 1)]
-        if uk_standard_grid_metadata:
-            cube_attrs.update(GRID_ID_LOOKUP['ukvx_standard_v1'])
-            cube_attrs['mosg__grid_version'] = '1.3.0'
     else:
         raise ValueError(
             'Expected 2 or 3 dimensions on input data: got {}'.format(ndims))
@@ -248,7 +249,7 @@ def set_up_percentile_cube(data, percentiles, name='air_temperature',
                            time=datetime(2017, 11, 10, 4, 0), time_bounds=None,
                            frt=datetime(2017, 11, 10, 0, 0),
                            include_scalar_coords=None, attributes=None,
-                           uk_standard_grid_metadata=False):
+                           standard_grid_metadata=None):
     """
     Set up a cube containing percentiles of a variable with:
     - x/y spatial dimensions (equal area or lat / lon)
@@ -284,14 +285,16 @@ def set_up_percentile_cube(data, percentiles, name='air_temperature',
             List of iris.coords.DimCoord or AuxCoord instances of length 1.
         attributes (dict):
             Optional cube attributes.
-        uk_standard_grid_metadata (bool):
-            Flag to include attributes for the MOGREPS-UK ensemble grid.
+        standard_grid_metadata (str):
+            Recognised mosg__model_configuration for which to set up Met
+            Office standard grid attributes.  Should be 'uk_det', 'uk_ens',
+            'gl_det' or 'gl_ens'.
     """
     cube = set_up_variable_cube(
         data, name=name, units=units, spatial_grid=spatial_grid,
         time=time, frt=frt, realizations=percentiles, attributes=attributes,
         include_scalar_coords=include_scalar_coords,
-        uk_standard_grid_metadata=uk_standard_grid_metadata)
+        standard_grid_metadata=standard_grid_metadata)
     cube.coord("realization").rename(percentile_dim_name)
     cube.coord(percentile_dim_name).units = Unit("%")
     return cube
@@ -304,7 +307,7 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
                             time_bounds=None,
                             frt=datetime(2017, 11, 10, 0, 0),
                             include_scalar_coords=None, attributes=None,
-                            uk_standard_grid_metadata=False):
+                            standard_grid_metadata=None):
     """
     Set up a cube containing probabilities at thresholds with:
     - x/y spatial dimensions (equal area or lat / lon)
@@ -344,8 +347,10 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
             List of iris.coords.DimCoord or AuxCoord instances of length 1.
         attributes (dict):
             Optional cube attributes.
-        uk_standard_grid_metadata (bool):
-            Flag to include attributes for the MOGREPS-UK ensemble grid.
+        standard_grid_metadata (str):
+            Recognised mosg__model_configuration for which to set up Met
+            Office standard grid attributes.  Should be 'uk_det', 'uk_ens',
+            'gl_det' or 'gl_ens'.
     """
     # create a "relative to threshold" attribute
     if attributes is None:
@@ -361,7 +366,7 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
         data, name=name, units='1', spatial_grid=spatial_grid,
         time=time, frt=frt, realizations=thresholds, attributes=attributes,
         include_scalar_coords=include_scalar_coords,
-        uk_standard_grid_metadata=uk_standard_grid_metadata)
+        standard_grid_metadata=standard_grid_metadata)
     cube.coord("realization").rename("threshold")
     cube.coord("threshold").units = Unit(threshold_units)
     return cube

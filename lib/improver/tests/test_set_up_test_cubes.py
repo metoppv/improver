@@ -253,21 +253,25 @@ class test_set_up_variable_cube(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             _ = set_up_variable_cube(data_4d)
 
-    def test_standard_grid_metadata(self):
+    def test_standard_grid_metadata_uk(self):
         """Test standard grid metadata is added if specified"""
-        result_det = set_up_variable_cube(
-            self.data, uk_standard_grid_metadata=True)
-        result_ens = set_up_variable_cube(
-            self.data_3d, uk_standard_grid_metadata=True)
-        for cube in [result_det, result_ens]:
-            self.assertEqual(cube.attributes['mosg__grid_type'], 'standard')
-            self.assertEqual(cube.attributes['mosg__grid_version'], '1.3.0')
-            self.assertEqual(
-                cube.attributes['mosg__grid_domain'], 'uk_extended')
+        result = set_up_variable_cube(
+            self.data, standard_grid_metadata='uk_det')
+        self.assertEqual(result.attributes['mosg__grid_type'], 'standard')
+        self.assertEqual(result.attributes['mosg__grid_version'], '1.3.0')
+        self.assertEqual(result.attributes['mosg__grid_domain'], 'uk_extended')
         self.assertEqual(
-            result_det.attributes['mosg__model_configuration'], 'uk_det')
+            result.attributes['mosg__model_configuration'], 'uk_det')
+
+    def test_standard_grid_metadata_global(self):
+        """Test standard grid metadata is added if specified"""
+        result = set_up_variable_cube(
+            self.data_3d, standard_grid_metadata='gl_ens')
+        self.assertEqual(result.attributes['mosg__grid_type'], 'standard')
+        self.assertEqual(result.attributes['mosg__grid_version'], '1.3.0')
+        self.assertEqual(result.attributes['mosg__grid_domain'], 'global')
         self.assertEqual(
-            result_ens.attributes['mosg__model_configuration'], 'uk_ens')
+            result.attributes['mosg__model_configuration'], 'gl_ens')
 
 
 class test_set_up_percentile_cube(IrisTest):
@@ -299,25 +303,13 @@ class test_set_up_percentile_cube(IrisTest):
     def test_standard_grid_metadata(self):
         """Test standard grid metadata"""
         result = set_up_percentile_cube(self.data, self.percentiles,
-                                        uk_standard_grid_metadata=True)
+                                        standard_grid_metadata='uk_ens')
         self.assertEqual(result.attributes['mosg__grid_type'], 'standard')
         self.assertEqual(result.attributes['mosg__grid_version'], '1.3.0')
         self.assertEqual(
             result.attributes['mosg__grid_domain'], 'uk_extended')
         self.assertEqual(
             result.attributes['mosg__model_configuration'], 'uk_ens')
-
-    def test_override_grid_metadata(self):
-        """Test cube can be set up with a deterministic grid identifier"""
-        result = set_up_percentile_cube(
-            self.data, self.percentiles, uk_standard_grid_metadata=True,
-            attributes={'mosg__model_configuration': 'uk_det'})
-        self.assertEqual(result.attributes['mosg__grid_type'], 'standard')
-        self.assertEqual(result.attributes['mosg__grid_version'], '1.3.0')
-        self.assertEqual(
-            result.attributes['mosg__grid_domain'], 'uk_extended')
-        self.assertEqual(
-            result.attributes['mosg__model_configuration'], 'uk_det')
 
 
 class test_set_up_probability_cube(IrisTest):
@@ -363,7 +355,7 @@ class test_set_up_probability_cube(IrisTest):
     def test_standard_grid_metadata(self):
         """Test standard grid metadata"""
         result = set_up_probability_cube(self.data, self.thresholds,
-                                         uk_standard_grid_metadata=True)
+                                         standard_grid_metadata='uk_ens')
         self.assertEqual(result.attributes['mosg__grid_type'], 'standard')
         self.assertEqual(result.attributes['mosg__grid_version'], '1.3.0')
         self.assertEqual(
