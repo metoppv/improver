@@ -31,11 +31,11 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending linear default" {
+@test "weighted-blending one threshold" {
   improver_check_skip_acceptance
   KGO="weighted_blending/one_threshold/kgo.nc"
 
-  # Run weighted blending with linear weights and check it passes.
+  # Run weighted blending where both cubes have only one threshold but on one cube it is a dim coord and check it passes.
   run improver weighted-blending 'model_configuration' 'weighted_mean' \
       --wts_calc_method 'dict' \
       --wts_dict "$IMPROVER_ACC_TEST_DIR/weighted_blending/one_threshold/blending-weights.json" \
