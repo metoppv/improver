@@ -38,8 +38,9 @@ import json
 
 from improver.argparser import ArgParser
 from improver.nowcasting.optical_flow import AdvectField
+from improver.nowcasting.utilities import ApplyOrographicEnhancement
 from improver.utilities.filename import generate_file_name
-from improver.utilities.load import load_cube
+from improver.utilities.load import load_cube, load_cubelist
 from improver.utilities.save import save_netcdf
 
 
@@ -64,6 +65,11 @@ def main():
     parser.add_argument("--northward_advection_filepath", type=str, help="Path"
                         " to input file containing Northward advection "
                         "velocities.")
+    parser.add_argument("--orographic_enhancement_filepaths", nargs="+",
+                        type=str, default=None,  help="List or wildcarded "
+                        "file specification to the input orographic "
+                        "enhancement files. Orographic enhancement files are "
+                        "compulsory for precipitation fields.")
     parser.add_argument("--json_file", metavar="JSON_FILE", default=None,
                         help="Filename for the json file containing "
                         "required changes to the metadata. Information "
@@ -82,6 +88,17 @@ def main():
     input_cube = load_cube(args.input_filepath)
     ucube = load_cube(args.eastward_advection_filepath)
     vcube = load_cube(args.northward_advection_filepath)
+
+    if args.orographic_enhancement_filepaths:
+        oe_cube = load_cube(args.orographic_enhancement_filepaths)
+        input_cube, = ApplyOrographicEnhancement("subtract").process(
+            input_cube, oe_cube)
+    else:
+        if "precipitation_rate" in input_cube.name():
+            msg = ("For precipitation fields, orographic enhancement "
+                   "filepaths must be supplied. The names of the cubes "
+                   "supplied were: {}".format(input_cube.name()))
+            raise ValueError(msg)
 
     metadata_dict = None
     if args.json_file:
@@ -105,6 +122,11 @@ def main():
         # cast to float as datetime.timedelta cannot accept np.int
         timestep = datetime.timedelta(seconds=60.*lead_time)
         forecast_cube = advection_plugin.process(input_cube, timestep)
+
+        if args.orographic_enhancement_filepaths:
+            # Add orographic enhancement.
+            forecast_cube, = ApplyOrographicEnhancement("add").process(
+                  forecast_cube, oe_cube)
 
         # save to a suitably-named output file
         if args.output_filepaths:

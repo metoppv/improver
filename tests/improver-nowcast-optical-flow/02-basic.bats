@@ -36,20 +36,24 @@
   KGO1="optical-flow/basic/ucomp_kgo.nc"
   KGO2="optical-flow/basic/vcomp_kgo.nc"
 
-  COMP1="201804100430_radar_rainrate_composite_UK_regridded.nc"
-  COMP2="201804100445_radar_rainrate_composite_UK_regridded.nc"
-  COMP3="201804100500_radar_rainrate_composite_UK_regridded.nc"
+  COMP1="201811031530_radar_rainrate_composite_UK_regridded.nc"
+  COMP2="201811031545_radar_rainrate_composite_UK_regridded.nc"
+  COMP3="201811031600_radar_rainrate_composite_UK_regridded.nc"
+
+  OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
 
   # Run processing and check it passes
   run improver nowcast-optical-flow \
     "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$COMP1" \
     "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$COMP2" \
     "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$COMP3" \
+    --orographic_enhancement_filepaths \
+    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$OE1" \
     --output_dir "$TEST_DIR"
   [[ "$status" -eq 0 ]]
 
-  UCOMP="20180410T0500Z-PT0000H00M-precipitation_advection_x_velocity.nc"
-  VCOMP="20180410T0500Z-PT0000H00M-precipitation_advection_y_velocity.nc"
+  UCOMP="20181103T1600Z-PT0000H00M-precipitation_advection_x_velocity.nc"
+  VCOMP="20181103T1600Z-PT0000H00M-precipitation_advection_y_velocity.nc"
 
   improver_check_recreate_kgo "$UCOMP" $KGO1
   improver_check_recreate_kgo "$VCOMP" $KGO2

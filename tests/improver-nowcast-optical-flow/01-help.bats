@@ -37,6 +37,7 @@ usage: improver-nowcast-optical-flow [-h] [--profile]
                                      [--profile_file PROFILE_FILE]
                                      [--output_dir OUTPUT_DIR]
                                      [--nowcast_filepaths NOWCAST_FILEPATHS [NOWCAST_FILEPATHS ...]]
+                                     [--orographic_enhancement_filepaths OROGRAPHIC_ENHANCEMENT_FILEPATHS [OROGRAPHIC_ENHANCEMENT_FILEPATHS ...]]
                                      [--json_file JSON_FILE]
                                      [--ofc_box_size OFC_BOX_SIZE]
                                      [--smart_smoothing_iterations SMART_SMOOTHING_ITERATIONS]
@@ -68,6 +69,10 @@ optional arguments:
                         Optional list of full paths to output nowcast files.
                         Overrides OUTPUT_DIR. Ignored unless '--extrapolate'
                         is set.
+  --orographic_enhancement_filepaths OROGRAPHIC_ENHANCEMENT_FILEPATHS [OROGRAPHIC_ENHANCEMENT_FILEPATHS ...]
+                        List or wildcarded file specification to the input
+                        orographic enhancement files. Orographic enhancement
+                        files are compulsory for precipitation fields.
   --json_file JSON_FILE
                         Filename for the json file containing required changes
                         to the metadata. Information describing the intended
