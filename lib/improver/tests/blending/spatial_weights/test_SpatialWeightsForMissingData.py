@@ -154,13 +154,14 @@ class Test_create_fuzzy_spatial_weights(IrisTest):
     """Test the create_fuzzy_spatial_weights method"""
 
     def setUp(self):
+        """Set up a basic 2D cube with a large enough grid to see the
+           effect of the fuzzy weights."""
         thresholds = [10]
         data = np.ones((1, 7, 7), dtype=np.float32)
         self.cube = set_up_probability_cube(
             data, thresholds, spatial_grid="projection_[x|y]_coordinate",
             time=datetime(2017, 11, 10, 4, 0),
             frt=datetime(2017, 11, 10, 0, 0),)
-
         self.cube = squeeze(self.cube)
 
     def test_no_fuzziness(self):
@@ -286,6 +287,10 @@ class Test_multiply_weights(IrisTest):
     """Test multiply_weights method"""
 
     def setUp(self):
+        """
+        Set up a basic weights cube with 2 thresholds to multiple with
+        a cube with one_dimensional weights.
+        """
         thresholds = [10, 20]
         data = np.ones((2, 2, 3), dtype=np.float32)
         cycle1 = set_up_probability_cube(
@@ -319,14 +324,18 @@ class Test_multiply_weights(IrisTest):
                                                     [[1, 1, 1],
                                                      [1, 1, 1]]]],
                                                   dtype=np.float32)
-        # Create a linear weights cube by slicing the larger weights cube.
+        # Create a one_dimensional weights cube by slicing the
+        # larger weights cube.
         # The resulting cube only has a forecast_reference_time coordinate.
-        self.linear_weights_cube = self.spatial_weights_cube[:, 0, 0, 0]
-        self.linear_weights_cube.remove_coord("projection_x_coordinate")
-        self.linear_weights_cube.remove_coord("projection_y_coordinate")
-        self.linear_weights_cube.remove_coord("threshold")
-        self.linear_weights_cube.data = np.array([0.2, 0.5, 0.3],
-                                                 dtype=np.float32)
+        self.one_dimensional_weights_cube = (
+            self.spatial_weights_cube[:, 0, 0, 0])
+        self.one_dimensional_weights_cube.remove_coord(
+            "projection_x_coordinate")
+        self.one_dimensional_weights_cube.remove_coord(
+            "projection_y_coordinate")
+        self.one_dimensional_weights_cube.remove_coord("threshold")
+        self.one_dimensional_weights_cube.data = np.array(
+            [0.2, 0.5, 0.3], dtype=np.float32)
         self.plugin = SpatialWeightsForMissingData()
 
     def test_basic(self):
@@ -345,7 +354,7 @@ class Test_multiply_weights(IrisTest):
                                       [0.3, 0.3, 0.3]]]],
                                    dtype=np.float32)
         result = self.plugin.multiply_weights(
-            self.spatial_weights_cube, self.linear_weights_cube,
+            self.spatial_weights_cube, self.one_dimensional_weights_cube,
             "forecast_reference_time")
         self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertEqual(result.metadata, self.spatial_weights_cube.metadata)
@@ -360,7 +369,8 @@ class Test_multiply_weights(IrisTest):
                                      [0.3, 0.3, 0.3]]],
                                    dtype=np.float32)
         result = self.plugin.multiply_weights(
-            self.spatial_weights_cube[:, 0, :, :], self.linear_weights_cube,
+            self.spatial_weights_cube[:, 0, :, :],
+            self.one_dimensional_weights_cube,
             "forecast_reference_time")
         self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertEqual(result.metadata,
@@ -374,7 +384,8 @@ class Test_multiply_weights(IrisTest):
                                     [0.2, 0, 0.2]],
                                    dtype=np.float32)
         result = self.plugin.multiply_weights(
-            self.spatial_weights_cube[0, 0, :, :], self.linear_weights_cube[0],
+            self.spatial_weights_cube[0, 0, :, :],
+            self.one_dimensional_weights_cube[0],
             "forecast_reference_time")
         self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertEqual(result.metadata,
@@ -383,10 +394,12 @@ class Test_multiply_weights(IrisTest):
     def test_mismatching_cubes(self):
         """Test the input cubes don't match along the collapsing_coord dim"""
         message = ("The collapsing_coord forecast_reference_time does not "
-                   "match on masked_weights_cube and linear_weights_cube")
+                   "match on masked_weights_cube and "
+                   "one_dimensional_weights_cube")
         with self.assertRaisesRegex(ValueError, message):
             result = self.plugin.multiply_weights(
-                self.spatial_weights_cube, self.linear_weights_cube[0],
+                self.spatial_weights_cube,
+                self.one_dimensional_weights_cube[0],
                 "forecast_reference_time")
 
     def test_wrong_coord(self):
@@ -396,13 +409,16 @@ class Test_multiply_weights(IrisTest):
             "Expected to find exactly 1 model coordinate, but found none.")
         with self.assertRaisesRegex(CoordinateNotFoundError, message):
             result = self.plugin.multiply_weights(
-                self.spatial_weights_cube, self.linear_weights_cube, "model")
+                self.spatial_weights_cube, self.one_dimensional_weights_cube,
+                "model")
 
 
 class Test_normalised_masked_weights(IrisTest):
     """Test normalised_masked_weights method"""
 
     def setUp(self):
+        """Set up a cube with 2 thresholds to test normalisation. We are
+           testing normalising along the leading dimension in this cube."""
         thresholds = [10, 20]
         data = np.ones((2, 2, 3), dtype=np.float32)
         cycle1 = set_up_probability_cube(
@@ -558,6 +574,9 @@ class Test_process(IrisTest):
     """Test process method"""
 
     def setUp(self):
+        """Set up a basic cube and linear weights cube for the process
+           method. Input cube has 2 thresholds on and 3
+           forecast_reference_times"""
         thresholds = [10, 20]
         data = np.ones((2, 2, 3), dtype=np.float32)
         cycle1 = set_up_probability_cube(
@@ -593,14 +612,17 @@ class Test_process(IrisTest):
                                               dtype=np.float32)
         self.cube_to_collapse.data = np.ma.masked_equal(
             self.cube_to_collapse.data, 0)
-        # Create a linear weights cube by slicing the larger weights cube.
+        # Create a one_dimensional weights cube by slicing the larger
+        # weights cube.
         # The resulting cube only has a forecast_reference_time coordinate.
-        self.linear_weights_cube = self.cube_to_collapse[:, 0, 0, 0]
-        self.linear_weights_cube.remove_coord("projection_x_coordinate")
-        self.linear_weights_cube.remove_coord("projection_y_coordinate")
-        self.linear_weights_cube.remove_coord("threshold")
-        self.linear_weights_cube.data = np.array([0.2, 0.5, 0.3],
-                                                 dtype=np.float32)
+        self.one_dimensional_weights_cube = self.cube_to_collapse[:, 0, 0, 0]
+        self.one_dimensional_weights_cube.remove_coord(
+            "projection_x_coordinate")
+        self.one_dimensional_weights_cube.remove_coord(
+            "projection_y_coordinate")
+        self.one_dimensional_weights_cube.remove_coord("threshold")
+        self.one_dimensional_weights_cube.data = np.array(
+            [0.2, 0.5, 0.3], dtype=np.float32)
         self.plugin = SpatialWeightsForMissingData(fuzzy_length=4)
 
     def test_none_masked(self):
@@ -612,7 +634,7 @@ class Test_process(IrisTest):
                    "must be masked")
         with self.assertRaisesRegex(ValueError, message):
             result = self.plugin.process(
-                self.cube_to_collapse, self.linear_weights_cube,
+                self.cube_to_collapse, self.one_dimensional_weights_cube,
                 "forecast_reference_time")
 
     @ManageWarnings(ignored_messages=[
@@ -623,7 +645,7 @@ class Test_process(IrisTest):
         self.cube_to_collapse.data = np.ma.masked_equal(
             self.cube_to_collapse.data, 1)
         result = self.plugin.process(
-                self.cube_to_collapse, self.linear_weights_cube,
+                self.cube_to_collapse, self.one_dimensional_weights_cube,
                 "forecast_reference_time")
         expected_data = np.zeros((3, 2, 2, 3))
         self.assertArrayAlmostEqual(expected_data, result.data)
@@ -631,11 +653,11 @@ class Test_process(IrisTest):
 
     @ManageWarnings(ignored_messages=[
         "Collapsing a non-contiguous coordinate."])
-    def test_no_fuzziness_no_linear_weights(self):
+    def test_no_fuzziness_no_one_dimensional_weights(self):
         """Test a simple case where we have no fuzziness in the spatial
-           weights and no adjustment from the linear weights."""
+           weights and no adjustment from the one_dimensional weights."""
         plugin = SpatialWeightsForMissingData(fuzzy_length=1)
-        self.linear_weights_cube.data = np.ones((3))
+        self.one_dimensional_weights_cube.data = np.ones((3))
         expected_result = np.array([[[[0.5, 0., 0.33333333],
                                       [0.5, 0.33333333, 0.33333333]],
                                      [[0.5, 0., 0.33333333],
@@ -650,19 +672,19 @@ class Test_process(IrisTest):
                                       [0.5, 0.33333333, 0.33333333]]]],
                                    dtype=np.float32)
         result = plugin.process(
-            self.cube_to_collapse, self.linear_weights_cube,
+            self.cube_to_collapse, self.one_dimensional_weights_cube,
             "forecast_reference_time")
         self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
 
     @ManageWarnings(ignored_messages=[
         "Collapsing a non-contiguous coordinate."])
-    def test_no_fuzziness_no_linear_weights_transpose(self):
+    def test_no_fuzziness_no_one_dimensional_weights_transpose(self):
         """Test a simple case where we have no fuzziness in the spatial
-           weights and no adjustment from the linear weights and transpose
-           the input cube."""
+           weights and no adjustment from the one_dimensional weights and
+           transpose the input cube."""
         plugin = SpatialWeightsForMissingData(fuzzy_length=1)
-        self.linear_weights_cube.data = np.ones((3))
+        self.one_dimensional_weights_cube.data = np.ones((3))
         expected_result = np.array([[[[0.5, 0., 0.33333333],
                                       [0.5, 0.33333333, 0.33333333]],
                                      [[0.5, 0., 0.33333333],
@@ -679,16 +701,16 @@ class Test_process(IrisTest):
         expected_result = np.transpose(expected_result, [2, 0, 1, 3])
         self.cube_to_collapse.transpose([2, 0, 1, 3])
         result = plugin.process(
-            self.cube_to_collapse, self.linear_weights_cube,
+            self.cube_to_collapse, self.one_dimensional_weights_cube,
             "forecast_reference_time")
         self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
 
     @ManageWarnings(ignored_messages=[
         "Collapsing a non-contiguous coordinate."])
-    def test_no_fuzziness_with_linear_weights(self):
+    def test_no_fuzziness_with_one_dimensional_weights(self):
         """Test a simple case where we have no fuzziness in the spatial
-           weights and an adjustment from the linear weights."""
+           weights and an adjustment from the one_dimensional weights."""
         plugin = SpatialWeightsForMissingData(fuzzy_length=1)
         expected_result = np.array([[[[0.4, 0., 0.2],
                                       [0.4, 0.2, 0.2]],
@@ -704,18 +726,18 @@ class Test_process(IrisTest):
                                       [0.6, 0.3, 0.3]]]],
                                    dtype=np.float32)
         result = plugin.process(
-            self.cube_to_collapse, self.linear_weights_cube,
+            self.cube_to_collapse, self.one_dimensional_weights_cube,
             "forecast_reference_time")
         self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
 
     @ManageWarnings(ignored_messages=[
         "Collapsing a non-contiguous coordinate."])
-    def test_fuzziness_no_linear_weights(self):
+    def test_fuzziness_no_one_dimensional_weights(self):
         """Test a simple case where we have some fuzziness in the spatial
-           weights and no adjustment from the linear weights."""
+           weights and no adjustment from the one_dimensional weights."""
         plugin = SpatialWeightsForMissingData(fuzzy_length=2)
-        self.linear_weights_cube.data = np.ones((3))
+        self.one_dimensional_weights_cube.data = np.ones((3))
         expected_result = np.array([[[[0.33333334, 0., 0.25],
                                       [0.41421354, 0.25, 0.2928932]],
                                      [[0.33333334, 0., 0.25],
@@ -730,16 +752,16 @@ class Test_process(IrisTest):
                                       [0.5857864, 0.5, 0.41421354]]]],
                                    dtype=np.float32)
         result = plugin.process(
-            self.cube_to_collapse, self.linear_weights_cube,
+            self.cube_to_collapse, self.one_dimensional_weights_cube,
             "forecast_reference_time")
         self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
 
     @ManageWarnings(ignored_messages=[
         "Collapsing a non-contiguous coordinate."])
-    def test_fuzziness_with_linear_weights(self):
+    def test_fuzziness_with_one_dimensional_weights(self):
         """Test a simple case where we have some fuzziness in the spatial
-           weights and with adjustment from the linear weights."""
+           weights and with adjustment from the one_dimensional weights."""
         plugin = SpatialWeightsForMissingData(fuzzy_length=2)
         expected_result = np.array([[[[0.25, 0., 0.15384616],
                                       [0.32037723, 0.15384616, 0.17789416]],
@@ -755,7 +777,7 @@ class Test_process(IrisTest):
                                       [0.6796227, 0.4615385, 0.3773705]]]],
                                    dtype=np.float32)
         result = plugin.process(
-            self.cube_to_collapse, self.linear_weights_cube,
+            self.cube_to_collapse, self.one_dimensional_weights_cube,
             "forecast_reference_time")
         self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
