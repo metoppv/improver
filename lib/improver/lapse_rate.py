@@ -76,10 +76,12 @@ def apply_lapse_rate(temperature, lapse_rate, source_orog, dest_orog):
 
     if not spatial_coords_match(temperature, source_orog):
         raise ValueError(
-            'Source orography projection does not match temperature grid')
+            'Source orography spatial coordinates do not match '
+            'temperature grid')
     if not spatial_coords_match(temperature, dest_orog):
         raise ValueError(
-            'Destination orography projection does not match temperature grid')
+            'Destination orography spatial coordinates do not match '
+            'temperature grid')
 
     # calculate height difference (in m) on which to adjust
     source_orog.convert_units('m')

@@ -42,7 +42,7 @@ from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, add_coordinate)
 
 
-class test_apply_lapse_rate(IrisTest):
+class Test_apply_lapse_rate(IrisTest):
     """Test the apply_lapse_rate method"""
 
     def setUp(self):
@@ -66,9 +66,12 @@ class test_apply_lapse_rate(IrisTest):
             units='K m-1', spatial_grid='equalarea')
 
         # specify temperature values ascending in 0.25 K increments
+        temp_data = np.array([[276., 276.25, 276.5, 276.75],
+                              [277., 277.25, 277.5, 277.75],
+                              [278., 278.25, 278.5, 278.75],
+                              [279., 279.25, 279.5, 279.75]], dtype=np.float32)
         self.temperature = set_up_variable_cube(
-            np.linspace(276., 279.75, 16).reshape(4, 4).astype(np.float32),
-            name='screen_temperature', spatial_grid='equalarea')
+            temp_data, name='screen_temperature', spatial_grid='equalarea')
 
         self.expected_data = np.array([
             [276., 276.2402, 276.5098, 276.75],
@@ -155,10 +158,20 @@ class test_apply_lapse_rate(IrisTest):
                 temp_3d, self.lapse_rate, self.source_orog, self.dest_orog)
 
     def test_spatial_mismatch(self):
-        """Test error if orography grid is not matched to temperature"""
+        """Test error if source orography grid is not matched to temperature"""
         new_y_points = self.source_orog.coord(axis='y').points + 100.
         self.source_orog.coord(axis='y').points = new_y_points
-        msg = 'Source orography projection does not match'
+        msg = 'Source orography spatial coordinates do not match'
+        with self.assertRaisesRegex(ValueError, msg):
+            _ = apply_lapse_rate(self.temperature, self.lapse_rate,
+                                 self.source_orog, self.dest_orog)
+
+    def test_spatial_mismatch_2(self):
+        """Test error if destination orography grid is not matched to
+        temperature"""
+        new_y_points = self.dest_orog.coord(axis='y').points + 100.
+        self.dest_orog.coord(axis='y').points = new_y_points
+        msg = 'Destination orography spatial coordinates do not match'
         with self.assertRaisesRegex(ValueError, msg):
             _ = apply_lapse_rate(self.temperature, self.lapse_rate,
                                  self.source_orog, self.dest_orog)
