@@ -90,7 +90,7 @@ def rationalise_blend_time_coords(
 
 
 def conform_metadata(
-        cube, cube_orig, coord, cycletime=None, attributes=None):
+        cube, cube_orig, coord, cycletime=None):
     """Ensure that the metadata conforms after blending together across
     the chosen coordinate.
 
@@ -112,6 +112,8 @@ def conform_metadata(
           time coordinates are present, then a forecast_period coordinate is
           calculated and added to the cube.
         - Model_id, model_realization and realization coordinates are removed.
+        - A title attribute is added to the cube if none is found. Otherwise
+          the attributes are unchanged.
 
     Args:
         cube (iris.cube.Cube):
@@ -126,10 +128,6 @@ def conform_metadata(
     Keyword Args:
         cycletime (str):
             The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
-        attributes (str or list or None):
-            Attributes that match or partially match this string or list of
-            strings in the original cube will be copied onto the cube on which
-            metadata is being modified. If None, no attributes will be copied.
 
     Returns:
         cube (iris.cube.Cube):
@@ -169,14 +167,6 @@ def conform_metadata(
                 forecast_period_coord(cube))
             ndim = cube.coord_dims("time")
             cube.add_aux_coord(forecast_period, data_dims=ndim)
-
-    # inherit requested attributes
-    if attributes is not None:
-        attributes = ([attributes] if isinstance(attributes, str)
-                      else attributes)
-        for attribute in attributes:
-            if attribute in cube_orig.attributes.keys():
-                cube.attributes[attribute] = cube_orig.attributes[attribute]
 
     # update blended cube attributes
     if "title" not in cube.attributes.keys():

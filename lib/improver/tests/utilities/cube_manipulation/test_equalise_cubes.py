@@ -102,7 +102,6 @@ class Test_equalise_cubes(IrisTest):
         self.assertEqual(result[1].coord("model_configuration").points[0],
                          'uk_ens')
 
-
         self.assertIn("mosg__model_configuration", result[0].attributes.keys())
         self.assertIn("mosg__model_configuration", result[1].attributes.keys())
         self.assertEqual(result[0].attributes["mosg__model_configuration"],
