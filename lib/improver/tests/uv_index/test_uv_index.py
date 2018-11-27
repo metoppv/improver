@@ -45,7 +45,7 @@ class Test_uv_index(IrisTest):
     correctly. """
 
     def setUp(self):
-        """Set up the cubes for upward and downward uv fluxes, 
+        """Set up the cubes for upward and downward uv fluxes,
         and also one with different units."""
         data_up = np.array([[0.2, 0.2, 0.2], [0.2, 0.2, 0.2]],
                            dtype=np.float32)
@@ -59,20 +59,20 @@ class Test_uv_index(IrisTest):
                                                  name='radiation flux in '
                                                  'downward at surface',
                                                  units='W/m^2')
-        data_down_diff_units = np.array([[0.1, 0.1, 0.1], [0.1, 0.1, 0.1]],
-                             dtype=np.float32)
         self.cube_diff_units = set_up_variable_cube(data_down,
-                                                 name='radiation flux in '
-                                                 'downward at surface',
-                                                 units='m')        
+                                                    name='radiation flux in '
+                                                    'downward at surface',
+                                                    units='m')
 
     def test_basic(self):
         """ Test that the a basic uv calculation works, using the
         default scaling factor. Make sure the output is a cube
         with the expected data."""
+        scale_factor = 1.0
         expected = np.array([[0.3, 0.3, 0.3], [0.3, 0.3, 0.3]],
                             dtype=np.float32)
-        result = calculate_uv_index(self.cube_uv_down, self.cube_uv_up)
+        result = calculate_uv_index(self.cube_uv_down, self.cube_uv_up,
+                                    scale_factor)
         self.assertArrayEqual(result.data, expected)
 
     def test_scale_factor(self):
@@ -87,16 +87,18 @@ class Test_uv_index(IrisTest):
     def test_metadata(self):
         """ Tests that the uv index output has the correct metadata (no units,
         and name = uv index)."""
-        result = calculate_uv_index(self.cube_uv_down, self.cube_uv_up)
+        result = calculate_uv_index(self.cube_uv_down, self.cube_uv_up,
+                                    scale_factor=1.0)
         self.assertEqual(str(result.standard_name), 'ultraviolet_index')
         self.assertEqual((result.units), Unit("1"))
 
     def test_diff_units(self):
-        """Tests that there is an Error if the input uv files have difference
-        units. """
+        """Tests that a ValueError is raised if the input uv files have
+        different units. """
         msg = 'The input uv files do not have the same units.'
         with self.assertRaisesRegex(ValueError, msg):
-            calculate_uv_index(self.cube_uv_down, self.cube_diff_units)
+            calculate_uv_index(self.cube_uv_down, self.cube_diff_units,
+                               scale_factor=1.0)
 
 
 if __name__ == '__main__':

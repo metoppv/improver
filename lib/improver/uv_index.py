@@ -34,7 +34,7 @@ at surface and radiation flux in UV upward at the surface."""
 from cf_units import Unit
 
 
-def calculate_uv_index(uv_upward, uv_downward, scale_factor=1.0):
+def calculate_uv_index(uv_upward, uv_downward, scale_factor):
     """
     A plugin to calculate the uv index using radiation flux in UV downward
     at surface, radiation flux UV upward at surface and a scaling factor.
