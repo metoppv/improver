@@ -68,7 +68,7 @@ MOSG_GRID_DEFINITION = {
 GRID_ID_LOOKUP = {'enukx_standard_v1': 'uk_ens',
                   'engl_standard_v1': 'gl_ens',
                   'ukvx_standard_v1': 'uk_det',
-                  'glm_standard_v1': 'gl_ens'}
+                  'glm_standard_v1': 'gl_det'}
 
 
 def stage_v110_to_v120(cube):
