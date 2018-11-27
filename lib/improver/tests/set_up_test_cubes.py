@@ -42,6 +42,7 @@ import iris
 from iris.coords import DimCoord
 
 from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
+from improver.utilities.cube_metadata import MOSG_GRID_DEFINITION
 from improver.utilities.cube_checker import check_cube_not_float64
 
 TIME_UNIT = "seconds since 1970-01-01 00:00:00"
@@ -218,11 +219,7 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
     # set up attributes
     cube_attrs = {}
     if standard_grid_metadata is not None:
-        cube_attrs['mosg__model_configuration'] = standard_grid_metadata
-        cube_attrs['mosg__grid_type'] = 'standard'
-        cube_attrs['mosg__grid_version'] = '1.3.0'
-        cube_attrs['mosg__grid_domain'] = (
-            'uk_extended' if 'uk' in standard_grid_metadata else 'global')
+        cube_attrs.update(MOSG_GRID_DEFINITION[standard_grid_metadata])
     if attributes is not None:
         cube_attrs.update(attributes)
 
