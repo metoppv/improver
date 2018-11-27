@@ -206,6 +206,14 @@ class Test_check_cube_coordinates(IrisTest):
         result = check_cube_coordinates(cube, cube)
         self.assertIsInstance(result, Cube)
 
+    def test_basic_transpose(self):
+        """Test when we only want to transpose the new_cube."""
+        cube = set_up_cube()
+        new_cube = set_up_cube()
+        new_cube.transpose([3, 2, 0, 1])
+        result = check_cube_coordinates(cube, new_cube)
+        self.assertEqual(result.dim_coords, cube.dim_coords)
+
     def test_coord_promotion(self):
         """Test that scalar coordinates in new_cube are promoted to dimension
         coordinates to match the parent cube."""
@@ -254,8 +262,9 @@ class Test_check_cube_coordinates(IrisTest):
         cube = set_up_cube()
         new_cube = cube[0].copy()
         cube = iris.util.squeeze(cube)
-        msg = 'is not within the permitted exceptions'
-        with self.assertRaisesRegex(iris.exceptions.InvalidCubeError, msg):
+        msg = 'The number of dimension coordinates within the new cube'
+        with self.assertRaisesRegex(iris.exceptions.CoordinateNotFoundError,
+                                    msg):
             check_cube_coordinates(
                 cube, new_cube)
 
@@ -267,8 +276,10 @@ class Test_check_cube_coordinates(IrisTest):
         new_cube = cube[0].copy()
         cube = iris.util.squeeze(cube)
         exception_coordinates = ["height"]
-        msg = 'is not within the permitted exceptions'
-        with self.assertRaisesRegex(iris.exceptions.InvalidCubeError, msg):
+        msg = ("The coordinate: height is not new_cube, but is within the"
+               " permitted exceptions")
+        with self.assertRaisesRegex(iris.exceptions.CoordinateNotFoundError,
+                                    msg):
             check_cube_coordinates(
                 cube, new_cube, exception_coordinates=exception_coordinates)
 
