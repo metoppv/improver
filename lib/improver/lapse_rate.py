@@ -43,7 +43,7 @@ from improver.utilities.cube_manipulation import enforce_float32_precision
 from improver.constants import DALR
 
 
-def apply_lapse_rate(temperature, lapse_rate, source_orog, dest_orog):
+def apply_gridded_lapse_rate(temperature, lapse_rate, source_orog, dest_orog):
     """
     Function to apply a lapse rate adjustment to temperature data forecast
     at "source_orog" heights, to be applicable at "dest_orog" heights.
