@@ -47,16 +47,15 @@ def main():
                     "apparent temperature equation.")
     parser.add_argument("temperature", metavar="TEMPERATURE",
                         help="Path to a NetCDF file of air temperatures at "
-                        "the surface.")
+                        "screen level.")
     parser.add_argument("wind_speed", metavar="WIND_SPEED",
-                        help="Path to the NetCDF file of wind speed at the "
-                        "surface.")
+                        help="Path to the NetCDF file of wind speed at 10m.")
     parser.add_argument("relative_humidity", metavar="RELATIVE_HUMIDITY",
                         help="Path to the NetCDF file of relative humidity "
-                        "at the surface.")
+                        "at screen level.")
     parser.add_argument("pressure", metavar="PRESSURE",
-                        help="Path to a NetCDF file of air pressures at "
-                        "the surface.")
+                        help="Path to a NetCDF file of mean sea level "
+                        "pressure.")
     parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
                         help="The output path for the processed NetCDF")
 
