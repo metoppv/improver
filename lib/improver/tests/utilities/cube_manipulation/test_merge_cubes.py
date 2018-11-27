@@ -133,6 +133,19 @@ class Test_merge_cubes(IrisTest):
         self.assertArrayAlmostEqual(
             result.coord("model_id").points, [3000., 4000.])
 
+    def test_one_threshold_data(self):
+        """Test threshold data where one cube has single threshold as dim"""
+        ukv_prob = self.prob_ukv[0]
+        ukv_prob = iris.util.new_axis(ukv_prob, 'threshold')
+        enuk_prob = self.prob_enuk[0]
+        cubes = iris.cube.CubeList([ukv_prob, enuk_prob])
+        result = merge_cubes(cubes)
+        self.assertArrayAlmostEqual(
+            result.coord("model_id").points, [3000., 4000.])
+        self.assertEqual(ukv_prob.data.shape, (1, 1, 3, 3))
+        self.assertEqual(enuk_prob.data.shape, (1, 3, 3))
+        self.assertEqual(result.data.shape, (2, 3, 3))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -230,8 +230,8 @@ def merge_cubes(cubes):
 
     cubelist = equalise_cubes(cubes)
 
-    for cube in cubelist:
-        iris.util.squeeze(cube)
+    for i, cube in enumerate(cubelist):
+        cubelist[i] = iris.util.squeeze(cube)
 
     result = cubelist.merge_cube()
     return result
