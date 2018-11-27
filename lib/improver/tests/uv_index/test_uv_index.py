@@ -79,7 +79,7 @@ class Test_uv_index(IrisTest):
 
     def test_metadata(self):
         """ Tests that the uv index output has the correct metadata (no units,
-        and name = uv index."""
+        and name = uv index)."""
         result = calculate_uv_index(self.cube_uv_down, self.cube_uv_up)
         self.assertEqual(str(result.standard_name), 'ultraviolet_index')
         self.assertEqual((result.units), Unit("1"))
