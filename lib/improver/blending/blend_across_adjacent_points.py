@@ -35,7 +35,6 @@ from cf_units import Unit
 import iris
 
 from improver.blending.weights import ChooseDefaultWeightsTriangular
-from improver.utilities.cube_manipulation import concatenate_cubes
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
 from improver.utilities.cube_checker import check_cube_coordinates
 
