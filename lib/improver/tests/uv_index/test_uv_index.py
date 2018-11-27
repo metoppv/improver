@@ -45,7 +45,8 @@ class Test_uv_index(IrisTest):
     correctly. """
 
     def setUp(self):
-        """Set up the cubes for the upward and downward uv fluxes."""
+        """Set up the cubes for upward and downward uv fluxes, 
+        and also one with different units."""
         data_up = np.array([[0.2, 0.2, 0.2], [0.2, 0.2, 0.2]],
                            dtype=np.float32)
         self.cube_uv_up = set_up_variable_cube(data_up,
@@ -58,6 +59,12 @@ class Test_uv_index(IrisTest):
                                                  name='radiation flux in '
                                                  'downward at surface',
                                                  units='W/m^2')
+        data_down_diff_units = np.array([[0.1, 0.1, 0.1], [0.1, 0.1, 0.1]],
+                             dtype=np.float32)
+        self.cube_diff_units = set_up_variable_cube(data_down,
+                                                 name='radiation flux in '
+                                                 'downward at surface',
+                                                 units='m')        
 
     def test_basic(self):
         """ Test that the a basic uv calculation works, using the
@@ -83,6 +90,13 @@ class Test_uv_index(IrisTest):
         result = calculate_uv_index(self.cube_uv_down, self.cube_uv_up)
         self.assertEqual(str(result.standard_name), 'ultraviolet_index')
         self.assertEqual((result.units), Unit("1"))
+
+    def test_diff_units(self):
+        """Tests that there is an Error if the input uv files have difference
+        units. """
+        msg = 'The input uv files do not have the same units.'
+        with self.assertRaisesRegex(ValueError, msg):
+            calculate_uv_index(self.cube_uv_down, self.cube_diff_units)
 
 
 if __name__ == '__main__':
