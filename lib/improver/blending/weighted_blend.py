@@ -422,7 +422,8 @@ class WeightedBlendAcrossWholeDimension:
        dimension. Uses one of two methods, either weighted average, or
        the maximum of the weighted probabilities."""
 
-    def __init__(self, coord, weighting_mode, cycletime=None):
+    def __init__(self, coord, weighting_mode, cycletime=None,
+                 timeblending=False):
         """Set up for a Weighted Blending plugin
 
         Args:
@@ -439,6 +440,12 @@ class WeightedBlendAcrossWholeDimension:
         Keyword Args:
             cycletime (str):
                 The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
+            timeblending (bool):
+                With the default of False the cube being blended will be
+                checked to ensure that slices across the blending coordinate
+                all have the same validity time. Setting this to True will
+                bypass this test, as is necessary for triangular time
+                blending.
 
         Raises:
             ValueError : If an invalid weighting_mode is given.
@@ -450,13 +457,15 @@ class WeightedBlendAcrossWholeDimension:
             raise ValueError(msg)
         self.mode = weighting_mode
         self.cycletime = cycletime
+        self.timeblending = timeblending
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         description = ('<WeightedBlendAcrossWholeDimension:'
                        ' coord = {0:}, weighting_mode = {1:},'
-                       ' cycletime = {2:}>')
-        return description.format(self.coord, self.mode, self.cycletime)
+                       ' cycletime = {2:}, timeblending: {3:}>')
+        return description.format(self.coord, self.mode, self.cycletime,
+                                  self.timeblending)
 
     def check_percentile_coord(self, cube):
         """
@@ -504,8 +513,11 @@ class WeightedBlendAcrossWholeDimension:
 
     def check_compatible_time_points(self, cube):
         """
-        Check that the time coordinate only contains a single time if the
-        coordinate being blended is forecast_reference_time.
+        Check that the time coordinate only contains a single time. Data
+        varying over the blending coordinate should all be for the same
+        validity time unless we are triangular time blending. In this case the
+        timeblending flag should be true and this function will not raise an
+        exception.
 
         Args:
             cube (iris.cube.Cube):
@@ -515,14 +527,15 @@ class WeightedBlendAcrossWholeDimension:
             ValueError : If blending over forecast reference time on a cube
                          with multiple times.
         """
-        if self.coord == "forecast_reference_time":
-            time_points = cube.coord("time").points
-            if len(time_points) > 1:
-                msg = ("For blending using the forecast_reference_time "
-                       "coordinate, the points within the time coordinate need"
-                       " to be the same. The time points within the input cube"
-                       " are {}".format(time_points))
-                raise ValueError(msg)
+        if self.timeblending is True:
+            return
+
+        time_points = cube.coord("time").points
+        if len(set(time_points)) > 1:
+            msg = ("Attempting to blend data for different validity times. The"
+                   " time points within the input cube are {}".format(
+                    time_points))
+            raise ValueError(msg)
 
     def shape_weights(self, cube, weights):
         """
@@ -858,8 +871,7 @@ class WeightedBlendAcrossWholeDimension:
             weights = sort_coord_in_cube(weights, self.coord,
                                          order="ascending")
 
-        # Check that the time coordinate is single valued if the coordinate
-        # being blended is forecast_reference_time.
+        # Check that the time coordinate is single valued if required.
         self.check_compatible_time_points(cube)
 
         # Check to see if the data is percentile data
