@@ -116,15 +116,53 @@ class Test_conform_metadata(IrisTest):
         """Test that correct metadata are added to cycle blends"""
         expected_attributes = self.cube_orig.attributes
         expected_attributes["title"] = "IMPROVER Model Forecast"
-        result = conform_metadata(self.cube, self.cube_orig, self.coord)
+        result = conform_metadata(self.cube, self.cube_orig, self.coord,
+                                  attributes=["mosg__grid_type",
+                                              "mosg__grid_domain",
+                                              "mosg__grid_version"])
         self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_grid_blended_attributes(self):
-        """Test that correct metadata are added to grid blends"""
+        """Test that correct metadata are added to grid blends. Conform
+        metadata previously added a 'mosg__model_configuration' key to the
+        attributes with the value 'blend' when model blending. This is now
+        performed in _equalise_cube_attributes when two model configurations
+        do not match. This means it works for non-met office models."""
         expected_attributes = self.cube_orig.attributes
         expected_attributes["title"] = "IMPROVER Model Forecast"
-        expected_attributes["mosg__model_configuration"] = "blend"
-        result = conform_metadata(self.cube, self.cube_orig, "model")
+        result = conform_metadata(self.cube, self.cube_orig, "model",
+                                  attributes=["mosg__grid_type",
+                                              "mosg__grid_domain",
+                                              "mosg__grid_version"])
+        self.assertDictEqual(result.attributes, expected_attributes)
+
+    def test_attribute_subset_as_list(self):
+        """Test that only the desired attributed are copied onto the output
+        cube. Desired attributes provided as a list."""
+        expected_attributes = {"mosg__grid_domain": "uk_extended"}
+        expected_attributes["title"] = "IMPROVER Model Forecast"
+        result = conform_metadata(self.cube, self.cube_orig, self.coord,
+                                  attributes=["mosg__grid_domain"])
+        self.assertDictEqual(result.attributes, expected_attributes)
+
+    def test_attribute_subset_as_string(self):
+        """Test that only the desired attributed are copied onto the output
+        cube. Desired attributes provided as a string."""
+        expected_attributes = {"mosg__grid_domain": "uk_extended"}
+        expected_attributes["title"] = "IMPROVER Model Forecast"
+        result = conform_metadata(self.cube, self.cube_orig, self.coord,
+                                  attributes="mosg__grid_domain")
+        self.assertDictEqual(result.attributes, expected_attributes)
+
+    def test_attribute_unavailable(self):
+        """Test that if an attribute is requested, that is unavailable on the
+        original_cube, the code carries on silently. This function is doing as
+        much as it can to make metadata conform, it does not raise exceptions
+        or warnings for what it cannot achieve."""
+        expected_attributes = {}
+        expected_attributes["title"] = "IMPROVER Model Forecast"
+        result = conform_metadata(self.cube, self.cube_orig, self.coord,
+                                  attributes="not_an_attribute")
         self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_with_forecast_period(self):

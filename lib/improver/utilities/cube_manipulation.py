@@ -322,6 +322,7 @@ def _equalise_cube_attributes(
 
             if model_id_attr in unmatching_attributes[i]:
                 model_title = cube.attributes.pop(model_id_attr)
+                cube.attributes[model_id_attr] = "blend"
 
                 new_model_id_coord = build_coordinate([1000 * i],
                                                       long_name='model_id',

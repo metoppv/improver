@@ -36,7 +36,7 @@ import unittest
 
 import iris
 from iris.cube import Cube
-from iris.exceptions import DuplicateDataError
+from iris.exceptions import DuplicateDataError, MergeError
 from iris.tests import IrisTest
 import numpy as np
 
@@ -142,6 +142,13 @@ class Test_merge_cubes(IrisTest):
         self.assertArrayAlmostEqual(
             result.coord("model_realization").points, [0., 1.,
                                                        2., 1000.])
+
+    def test_no_model_id_attr_multi_model(self):
+        """Test multiple model blending fails and results in a merge error if
+        not model_id_attr is specified."""
+        cubes = iris.cube.CubeList([self.cube, self.cube_ukv])
+        with self.assertRaises(MergeError):
+            merge_cubes(cubes)
 
     def test_threshold_data(self):
         """Test threshold data merges OK"""

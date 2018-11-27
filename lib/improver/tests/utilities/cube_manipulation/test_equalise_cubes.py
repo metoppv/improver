@@ -101,8 +101,14 @@ class Test_equalise_cubes(IrisTest):
                                     np.array([1000]))
         self.assertEqual(result[1].coord("model_configuration").points[0],
                          'uk_ens')
-        self.assertNotIn("mosg__model_configuration", result[0].attributes)
-        self.assertNotIn("mosg__model_configuration", result[1].attributes)
+
+
+        self.assertIn("mosg__model_configuration", result[0].attributes.keys())
+        self.assertIn("mosg__model_configuration", result[1].attributes.keys())
+        self.assertEqual(result[0].attributes["mosg__model_configuration"],
+                         "blend")
+        self.assertEqual(result[1].attributes["mosg__model_configuration"],
+                         "blend")
         self.assertAlmostEqual(result[0].attributes["mosg__grid_domain"],
                                result[1].attributes["mosg__grid_domain"])
         self.assertEqual(result[0].attributes["mosg__grid_domain"],

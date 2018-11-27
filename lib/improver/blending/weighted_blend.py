@@ -90,7 +90,7 @@ def rationalise_blend_time_coords(
 
 
 def conform_metadata(
-        cube, cube_orig, coord, cycletime=None):
+        cube, cube_orig, coord, cycletime=None, attributes=None):
     """Ensure that the metadata conforms after blending together across
     the chosen coordinate.
 
@@ -126,6 +126,10 @@ def conform_metadata(
     Keyword Args:
         cycletime (str):
             The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
+        attributes (str or list or None):
+            Attributes that match or partially match this string or list of
+            strings in the original cube will be copied onto the cube on which
+            metadata is being modified. If None, no attributes will be copied.
 
     Returns:
         cube (iris.cube.Cube):
@@ -166,18 +170,17 @@ def conform_metadata(
             ndim = cube.coord_dims("time")
             cube.add_aux_coord(forecast_period, data_dims=ndim)
 
+    # inherit requested attributes
+    if attributes is not None:
+        attributes = ([attributes] if isinstance(attributes, str)
+                      else attributes)
+        for attribute in attributes:
+            if attribute in cube_orig.attributes.keys():
+                cube.attributes[attribute] = cube_orig.attributes[attribute]
+
     # update blended cube attributes
     if "title" not in cube.attributes.keys():
         cube.attributes["title"] = "IMPROVER Model Forecast"
-
-    if ("model" in coord) and any(
-            "mosg__" in key for key in cube_orig.attributes.keys()):
-        cube.attributes["mosg__model_configuration"] = "blend"
-
-    # inherit grid attributes
-    for key in cube_orig.attributes.keys():
-        if "mosg__grid" in key:
-            cube.attributes[key] = cube_orig.attributes[key]
 
     # remove appropriate scalar coordinates
     for crd in ["model_id", "model_realization", "realization"]:
