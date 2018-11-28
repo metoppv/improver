@@ -32,7 +32,7 @@
 """Script to apply lapse rates to temperature data."""
 
 from improver.argparser import ArgParser
-from improver.lapse_rate import apply_lapse_rate
+from improver.lapse_rate import apply_gridded_lapse_rate
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
@@ -63,7 +63,7 @@ def main():
     dest_orog = load_cube(args.high_res_orography)
 
     # apply lapse rate to temperature data
-    adjusted_temperature = apply_lapse_rate(
+    adjusted_temperature = apply_gridded_lapse_rate(
         temperature, lapse_rate, source_orog, dest_orog)
 
     # save to output file
