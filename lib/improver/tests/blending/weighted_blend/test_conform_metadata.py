@@ -100,13 +100,16 @@ class Test_conform_metadata(IrisTest):
         self.cube_model = cube_orig_model.collapsed(
             "forecast_reference_time", iris.analysis.MEAN)
 
-        # Coordinate that is being blended.nowcast-optical-flow
+        # Coordinate that is being blended.
         self.coord = "forecast_reference_time"
 
     def test_basic(self):
-        """Test that conform_metadata returns a cube."""
+        """Test that conform_metadata returns a cube with a suitable title
+        attribute."""
         result = conform_metadata(self.cube, self.cube_orig, self.coord)
+        expected_attributes = {'title': 'IMPROVER Model Forecast'}
         self.assertIsInstance(result, iris.cube.Cube)
+        self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_with_forecast_period(self):
         """Test that a cube is dealt with correctly, if the cube contains
