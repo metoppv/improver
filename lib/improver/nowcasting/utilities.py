@@ -75,15 +75,6 @@ class ExtendRadarMask(object):
                 Radar rain rate data with mask extended to mask out regions
                 where 1/32 mm/h are not detectable
         """
-        # check cube names
-        if 'lwe_precipitation_rate' not in rainrate.name():
-            raise ValueError('Rainrate cube name "lwe_precipitation_rate" '
-                             'expected, got {}'.format(rainrate.name()))
-
-        if 'coverage' not in coverage.name():
-            raise ValueError('Coverage cube "coverage" expected, got '
-                             '{}'.format(coverage.name()))
-
         # check cube coordinates match
         for crd in rainrate.coords():
             if coverage.coord(crd.name()) != crd:

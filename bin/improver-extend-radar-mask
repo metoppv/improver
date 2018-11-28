@@ -57,7 +57,7 @@ def main():
 
     # load data
     rainrate = load_cube(args.rainrate_filepath)
-    coverage = load_cube(args.rainrate_filepath)
+    coverage = load_cube(args.coverage_filepath)
 
     # extend mask
     remasked_rainrate = ExtendRadarMask().process(rainrate, coverage)
