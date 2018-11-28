@@ -71,7 +71,7 @@ GRID_ID_LOOKUP = {'enukx_standard_v1': 'uk_ens',
                   'glm_standard_v1': 'gl_det'}
 
 
-def stage_v110_to_v120(cube):
+def update_stage_v110_metadata(cube):
     """Translates meta-data relating to the grid_id attribute from StaGE
     version 1.1.0 to later StaGE versions.
     Cubes that have no "grid_id" attribute are not recognised as v1.1.0 and

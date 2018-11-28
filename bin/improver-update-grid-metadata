@@ -40,7 +40,7 @@ import iris
 from improver.argparser import ArgParser
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
-from improver.utilities.cube_metadata import stage_v110_to_v120
+from improver.utilities.cube_metadata import update_stage_v110_metadata
 
 
 def main():
@@ -64,7 +64,7 @@ def main():
     args = ArgParser(**cli_definition).parse_args()
 
     cube = load_cube(args.input_filepath)
-    cube_changed = stage_v110_to_v120(cube)
+    cube_changed = update_stage_v110_metadata(cube)
 
     # Create normalised file paths to make them comparable
     in_file_norm = os.path.normpath(args.input_filepath)

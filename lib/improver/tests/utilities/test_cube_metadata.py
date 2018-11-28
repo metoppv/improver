@@ -46,7 +46,7 @@ from improver.utilities.cube_metadata import (
     amend_metadata,
     delete_attributes,
     resolve_metadata_diff,
-    stage_v110_to_v120,
+    update_stage_v110_metadata,
     update_cell_methods,
     update_coord,
     update_attribute)
@@ -93,8 +93,8 @@ def create_cube_with_threshold(data=None,
     return cube
 
 
-class Test_stage_v110_to_v120(IrisTest):
-    """Test the stage_v110_to_v120 function"""
+class Test_update_stage_v110_metadata(IrisTest):
+    """Test the update_stage_v110_metadata function"""
 
     def setUp(self):
         """Set up variables for use in testing."""
@@ -103,7 +103,7 @@ class Test_stage_v110_to_v120(IrisTest):
     def test_basic(self):
         """Test that cube is unchanged and function returns False"""
         result = self.cube.copy()
-        output = stage_v110_to_v120(result)
+        output = update_stage_v110_metadata(result)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.data, self.cube.data)
         self.assertEqual(result.attributes, self.cube.attributes)
@@ -112,7 +112,7 @@ class Test_stage_v110_to_v120(IrisTest):
     def test_update_ukv(self):
         """Test that cube attributes from ukv 1.1.0 are updated"""
         self.cube.attributes['grid_id'] = 'ukvx_standard_v1'
-        output = stage_v110_to_v120(self.cube)
+        output = update_stage_v110_metadata(self.cube)
         self.assertTrue('mosg__grid_type' in self.cube.attributes.keys())
         self.assertTrue('mosg__model_configuration' in
                         self.cube.attributes.keys())
