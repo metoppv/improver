@@ -31,7 +31,7 @@
 """ Provides support utilities for checking cubes."""
 
 import iris
-from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
+from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 
 
@@ -132,9 +132,8 @@ def check_cube_coordinates(cube, new_cube, exception_coordinates=None):
     Raises:
         CoordinateNotFoundError : Raised if the final dimension
             coordinates of the returned cube do not match the input cube.
-        InvalidCubeError : If the coordinate is not within the original cube
-            and it is not within the list of permitted exceptions.
-
+        CoordinateNotFoundError : If a coordinate is within in the permitted
+            exceptions but is not in the new_cube.
     """
     if exception_coordinates is None:
         exception_coordinates = []
@@ -144,48 +143,42 @@ def check_cube_coordinates(cube, new_cube, exception_coordinates=None):
     for coord in new_cube.aux_coords[::-1]:
         if coord.name() in cube_dim_names:
             new_cube = iris.util.new_axis(new_cube, coord)
-
-    # Ensure dimension order matches; if lengths are unequal a coordinate
-    # is missing, so raise an appropriate error.
-    cube_dimension_order = {coord.name(): cube.coord_dims(coord.name())[0]
-                            for coord in cube.dim_coords}
-
-    correct_order = []
-    new_cube_only_dims = []
     new_cube_dim_names = [coord.name() for coord in new_cube.dim_coords]
-    for coord_name in new_cube_dim_names:
-        if coord_name in cube_dim_names:
-            correct_order.append(cube_dimension_order[coord_name])
-        else:
-            if coord_name in exception_coordinates:
-                new_coord_dim = new_cube.coord_dims(coord_name)[0]
-                new_cube_only_dims.append(new_coord_dim)
-            else:
-                msg = ("The coordinate: {0} is within new_cube, "
-                       "however, this is not within the original "
-                       "cube. As {0} is not within the permitted "
-                       "exceptions: {1}, this is not allowed. "
-                       "\nnew_cube: {2}"
-                       "\ncube: {3}").format(
-                           coord_name, exception_coordinates, new_cube,
-                           cube)
-                raise InvalidCubeError(msg)
+    # If we have the wrong number of dimensions then raise an error.
+    if (len(cube.dim_coords)+len(exception_coordinates) !=
+            len(new_cube.dim_coords)):
 
-    correct_order = np.array(correct_order)
-    for dim in new_cube_only_dims:
-        correct_order[correct_order >= dim] += 1
-        correct_order = np.insert(correct_order, dim, dim)
-
-    if (len(cube_dimension_order.keys())+len(exception_coordinates) ==
-            len(correct_order)):
-        new_cube.transpose(correct_order)
-    else:
         msg = ('The number of dimension coordinates within the new cube '
                'do not match the number of dimension coordinates within the '
                'original cube plus the number of exception coordinates. '
-               '\n input cube shape {} returned cube shape {}'.format(
-                   cube.shape, new_cube.shape))
+               '\n input cube dimensions {}, new cube dimensions {}'.format(
+                   cube_dim_names, new_cube_dim_names))
         raise CoordinateNotFoundError(msg)
+
+    # Ensure dimension order matches
+    new_cube_dimension_order = {coord.name(): new_cube.coord_dims(
+        coord.name())[0] for coord in new_cube.dim_coords}
+    correct_order = []
+    new_cube_only_dims = []
+    for coord_name in cube_dim_names:
+        correct_order.append(new_cube_dimension_order[coord_name])
+    for coord_name in exception_coordinates:
+        try:
+            new_coord_dim = new_cube.coord_dims(coord_name)[0]
+            new_cube_only_dims.append(new_coord_dim)
+        except CoordinateNotFoundError:
+            msg = ("All permitted exception_coordinates must be on the"
+                   " new_cube. In this case, coordinate {0} within the list "
+                   "of permitted exception_coordinates ({1}) is not available"
+                   " on the new_cube.").format(
+                        coord_name, exception_coordinates)
+            raise CoordinateNotFoundError(msg)
+
+    correct_order = np.array(correct_order)
+    for dim in new_cube_only_dims:
+        correct_order = np.insert(correct_order, dim, dim)
+
+    new_cube.transpose(correct_order)
 
     return new_cube
 
