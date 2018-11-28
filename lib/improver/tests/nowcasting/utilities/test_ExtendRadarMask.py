@@ -99,7 +99,7 @@ class Test_process(IrisTest):
     def test_values(self):
         """Test output cube has expected mask and underlying data is
         unchanged"""
-        result = ExtendRadarMask().process(self.rainrate, self.coverage)        
+        result = ExtendRadarMask().process(self.rainrate, self.coverage)
         self.assertArrayEqual(result.data.mask, self.expected_mask)
         self.assertArrayEqual(result.data.data, self.rainrate.data.data)
 
