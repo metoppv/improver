@@ -276,8 +276,7 @@ class Test_check_cube_coordinates(IrisTest):
         new_cube = cube[0].copy()
         cube = iris.util.squeeze(cube)
         exception_coordinates = ["height"]
-        msg = ("The coordinate: height is not new_cube, but is within the"
-               " permitted exceptions")
+        msg = "All permitted exception_coordinates must be on the new_cube."
         with self.assertRaisesRegex(iris.exceptions.CoordinateNotFoundError,
                                     msg):
             check_cube_coordinates(
