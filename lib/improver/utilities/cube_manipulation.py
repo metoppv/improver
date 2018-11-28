@@ -230,7 +230,7 @@ def merge_cubes(cubes, model_id_attr=None):
     if isinstance(cubes, iris.cube.Cube):
         cubes = iris.cube.CubeList([cubes])
 
-    cubelist = equalise_cubes(cubes, model_id_attr, merging=True)
+    cubelist = equalise_cubes(cubes, model_id_attr=model_id_attr, merging=True)
 
     for cube in cubelist:
         iris.util.squeeze(cube)
@@ -267,7 +267,7 @@ def equalise_cubes(
     cubes = iris.cube.CubeList([])
     for cube in cubes_in:
         cubes.append(cube.copy())
-    _equalise_cube_attributes(cubes, model_id_attr)
+    _equalise_cube_attributes(cubes, model_id_attr=model_id_attr)
     strip_var_names(cubes)
     if merging:
         cubelist = _equalise_cube_coords(cubes)
