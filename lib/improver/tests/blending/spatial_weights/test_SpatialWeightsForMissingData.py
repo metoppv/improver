@@ -124,7 +124,7 @@ class Test_create_initial_weights_from_mask(IrisTest):
         message = ("Input cube to SpatialWeightsForMissingData "
                    "must be masked")
         with self.assertRaisesRegex(ValueError, message):
-            result = self.plugin.create_initial_weights_from_mask(self.cube)
+            self.plugin.create_initial_weights_from_mask(self.cube)
 
     def test_all_masked(self):
         """Test the weights coming out of a simple masked cube."""
