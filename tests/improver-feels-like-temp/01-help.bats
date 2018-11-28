@@ -41,12 +41,12 @@ This calculates the feels like temperature using a combination of the wind
 chill index and Steadman's apparent temperature equation.
 
 positional arguments:
-  TEMPERATURE           Path to a NetCDF file of air temperatures at the
-                        surface.
-  WIND_SPEED            Path to the NetCDF file of wind speed at the surface.
-  RELATIVE_HUMIDITY     Path to the NetCDF file of relative humidity at the
-                        surface.
-  PRESSURE              Path to a NetCDF file of air pressures at the surface.
+  TEMPERATURE           Path to a NetCDF file of air temperatures at screen
+                        level.
+  WIND_SPEED            Path to the NetCDF file of wind speed at 10m.
+  RELATIVE_HUMIDITY     Path to the NetCDF file of relative humidity at screen
+                        level.
+  PRESSURE              Path to a NetCDF file of mean sea level pressure.
   OUTPUT_FILE           The output path for the processed NetCDF
 
 optional arguments:
@@ -54,6 +54,7 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
+
 __HELP__
   [[ "$output" == "$expected" ]]
 }
