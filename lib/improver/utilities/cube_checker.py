@@ -132,7 +132,7 @@ def check_cube_coordinates(cube, new_cube, exception_coordinates=None):
     Raises:
         CoordinateNotFoundError : Raised if the final dimension
             coordinates of the returned cube do not match the input cube.
-        CoordinateNotFoundError : If a coodinate is within in the permitted
+        CoordinateNotFoundError : If a coordinate is within in the permitted
             exceptions but is not in the new_cube.
     """
     if exception_coordinates is None:
@@ -167,15 +167,15 @@ def check_cube_coordinates(cube, new_cube, exception_coordinates=None):
             new_coord_dim = new_cube.coord_dims(coord_name)[0]
             new_cube_only_dims.append(new_coord_dim)
         except CoordinateNotFoundError:
-            msg = ("The coordinate: {0} is not new_cube, "
-                   "but is within the permitted "
-                   "exceptions: {1}, this is not allowed. ").format(
+            msg = ("All permitted exception_coordinates must be on the"
+                   " new_cube. In this case, coordinate {0} within the list "
+                   "of permitted exception_coordinates ({1}) is not available"
+                   " on the new_cube.").format(
                         coord_name, exception_coordinates)
             raise CoordinateNotFoundError(msg)
 
     correct_order = np.array(correct_order)
     for dim in new_cube_only_dims:
-        correct_order[correct_order >= dim]
         correct_order = np.insert(correct_order, dim, dim)
 
     new_cube.transpose(correct_order)
