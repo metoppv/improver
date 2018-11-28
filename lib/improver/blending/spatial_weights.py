@@ -216,7 +216,6 @@ class SpatialWeightsForMissingData(object):
                 The collapsing_coord will be the leading dimension on the
                 output cube.
         """
-        normalisation_axis = weights_cube.coord_dims(collapsing_coord)
         summed_weights = weights_cube.collapsed(
             collapsing_coord, iris.analysis.SUM)
         result = iris.cube.CubeList()

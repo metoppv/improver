@@ -83,7 +83,7 @@ class Test_create_initial_weights_from_mask(IrisTest):
         message = ("Input cube to SpatialWeightsForMissingData "
                    "must be masked")
         with self.assertRaisesRegex(ValueError, message):
-            result = self.plugin.create_initial_weights_from_mask(self.cube)
+            self.plugin.create_initial_weights_from_mask(self.cube)
 
     def test_basic(self):
         """Test the weights coming out of a simple masked cube."""
@@ -397,7 +397,7 @@ class Test_multiply_weights(IrisTest):
                    "match on masked_weights_cube and "
                    "one_dimensional_weights_cube")
         with self.assertRaisesRegex(ValueError, message):
-            result = self.plugin.multiply_weights(
+            self.plugin.multiply_weights(
                 self.spatial_weights_cube,
                 self.one_dimensional_weights_cube[0],
                 "forecast_reference_time")
@@ -408,7 +408,7 @@ class Test_multiply_weights(IrisTest):
         message = (
             "Expected to find exactly 1 model coordinate, but found none.")
         with self.assertRaisesRegex(CoordinateNotFoundError, message):
-            result = self.plugin.multiply_weights(
+            self.plugin.multiply_weights(
                 self.spatial_weights_cube, self.one_dimensional_weights_cube,
                 "model")
 
@@ -633,7 +633,7 @@ class Test_process(IrisTest):
         message = ("Input cube to SpatialWeightsForMissingData "
                    "must be masked")
         with self.assertRaisesRegex(ValueError, message):
-            result = self.plugin.process(
+            self.plugin.process(
                 self.cube_to_collapse, self.one_dimensional_weights_cube,
                 "forecast_reference_time")
 
