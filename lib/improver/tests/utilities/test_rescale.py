@@ -45,7 +45,7 @@ class Test_rescale(IrisTest):
     """Test the utilities.rescale rescale function."""
 
     def setUp(self):
-        """Create a cube with a single non-zero point."""
+        """Create a cube of ones with a single zero point."""
         self.cube = set_up_variable_cube(
             np.ones((1, 16, 16), dtype=np.float32))
         self.cube.data[0, 7, 7] = 0.
