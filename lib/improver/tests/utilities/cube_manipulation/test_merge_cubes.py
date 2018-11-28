@@ -145,7 +145,7 @@ class Test_merge_cubes(IrisTest):
 
     def test_no_model_id_attr_multi_model(self):
         """Test multiple model blending fails and results in a merge error if
-        not model_id_attr is specified."""
+        no model_id_attr is specified."""
         cubes = iris.cube.CubeList([self.cube, self.cube_ukv])
         with self.assertRaises(MergeError):
             merge_cubes(cubes)
