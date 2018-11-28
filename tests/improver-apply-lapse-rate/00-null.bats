@@ -36,8 +36,7 @@
 usage: improver-apply-lapse-rate [-h] [--profile]
                                  [--profile_file PROFILE_FILE]
                                  TEMPERATURE_FILEPATH LAPSE_RATE_FILEPATH
-                                 SOURCE_OROG_FILE HIGH_RES_OROG_FILE
-                                 OUTPUT_FILE
+                                 SOURCE_OROG_FILE TARGET_OROG_FILE OUTPUT_FILE
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

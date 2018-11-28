@@ -46,11 +46,11 @@ def main():
     parser.add_argument('lapse_rate_filepath', metavar='LAPSE_RATE_FILEPATH',
                         help='Full path to input lapse rate NetCDF file')
     parser.add_argument('source_orography', metavar='SOURCE_OROG_FILE',
-                        help='Full path to coarse resolution source orography '
-                        'NetCDF file')
-    parser.add_argument('high_res_orography', metavar='HIGH_RES_OROG_FILE',
-                        help='Full path to higher resolution orography NetCDF '
-                        'file (to which temperature will be downscaled)')
+                        help='Full path to NetCDF file containing the source '
+                        'model orography')
+    parser.add_argument('target_orography', metavar='TARGET_OROG_FILE',
+                        help='Full path to target orography NetCDF file '
+                        '(to which temperature will be downscaled)')
     parser.add_argument('output_file', metavar='OUTPUT_FILE', help='File name '
                         'to write lapse rate adjusted temperature data')
 
@@ -60,11 +60,11 @@ def main():
     temperature = load_cube(args.temperature_filepath)
     lapse_rate = load_cube(args.lapse_rate_filepath)
     source_orog = load_cube(args.source_orography)
-    dest_orog = load_cube(args.high_res_orography)
+    target_orog = load_cube(args.target_orography)
 
     # apply lapse rate to temperature data
     adjusted_temperature = apply_gridded_lapse_rate(
-        temperature, lapse_rate, source_orog, dest_orog)
+        temperature, lapse_rate, source_orog, target_orog)
 
     # save to output file
     save_netcdf(adjusted_temperature, args.output_file)

@@ -36,18 +36,17 @@
 usage: improver-apply-lapse-rate [-h] [--profile]
                                  [--profile_file PROFILE_FILE]
                                  TEMPERATURE_FILEPATH LAPSE_RATE_FILEPATH
-                                 SOURCE_OROG_FILE HIGH_RES_OROG_FILE
-                                 OUTPUT_FILE
+                                 SOURCE_OROG_FILE TARGET_OROG_FILE OUTPUT_FILE
 
 Apply downscaling temperature adjustment using calculated lapse rate.
 
 positional arguments:
   TEMPERATURE_FILEPATH  Full path to input temperature NetCDF file
   LAPSE_RATE_FILEPATH   Full path to input lapse rate NetCDF file
-  SOURCE_OROG_FILE      Full path to coarse resolution source orography NetCDF
-                        file
-  HIGH_RES_OROG_FILE    Full path to higher resolution orography NetCDF file
-                        (to which temperature will be downscaled)
+  SOURCE_OROG_FILE      Full path to NetCDF file containing the source model
+                        orography
+  TARGET_OROG_FILE      Full path to target orography NetCDF file (to which
+                        temperature will be downscaled)
   OUTPUT_FILE           File name to write lapse rate adjusted temperature
                         data
 
