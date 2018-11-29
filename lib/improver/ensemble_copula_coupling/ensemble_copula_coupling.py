@@ -362,10 +362,9 @@ class GeneratePercentilesFromProbabilities(object):
         probabilities_for_cdf = concatenate_2d_array_with_2d_array_endpoints(
             probabilities_for_cdf, 0, 1)
 
-        if ecc_bounds_warning:
-            pass
-
         if np.any(np.diff(threshold_points) < 0):
+            if ecc_bounds_warning:
+                pass
             msg = ("The end points added to the threshold values for "
                    "constructing the Cumulative Distribution Function (CDF) "
                    "must result in an ascending order. "
