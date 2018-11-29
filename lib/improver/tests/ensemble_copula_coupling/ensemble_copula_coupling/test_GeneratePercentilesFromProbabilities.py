@@ -127,6 +127,27 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
             plugin._add_bounds_to_thresholds_and_probabilities(
                 threshold_points, probabilities_for_cdf, bounds_pairing)
 
+    @ManageWarnings(record=True)
+    def test_endpoints_of_distribution_exceeded_warning(
+            self, warning_list=None):
+        """
+        Test that the plugin raises a warning message when the constant
+        end points of the distribution are exceeded by a threshold value
+        used in the forecast and the ecc_bounds_warning keyword argument
+        has been specified.
+        """
+        probabilities_for_cdf = np.array([[0.05, 0.7, 0.95]])
+        threshold_points = np.array([8, 10, 60])
+        bounds_pairing = (-40, 50)
+        plugin = Plugin()
+
+        warning_msg = "The end points added to the threshold values for"
+        plugin._add_bounds_to_thresholds_and_probabilities(
+            threshold_points, probabilities_for_cdf, bounds_pairing,
+            ecc_bounds_warning=True)
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
+
 
 class Test__probabilities_to_percentiles(IrisTest):
 
