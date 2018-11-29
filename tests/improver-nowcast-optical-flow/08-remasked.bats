@@ -1,3 +1,4 @@
+#!/usr/bin/env bats
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
