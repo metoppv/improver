@@ -216,9 +216,9 @@ class Test_merge_cubes(IrisTest):
         ukv_prob = iris.util.new_axis(ukv_prob, 'threshold')
         enuk_prob = self.prob_enuk[0]
         cubes = iris.cube.CubeList([ukv_prob, enuk_prob])
-        result = merge_cubes(cubes)
+        result = merge_cubes(cubes, model_id_attr='mosg__model_configuration')
         self.assertArrayAlmostEqual(
-            result.coord("model_id").points, [3000., 4000.])
+            result.coord("model_id").points, [0., 1000.])
         self.assertEqual(ukv_prob.data.shape, (1, 1, 3, 3))
         self.assertEqual(enuk_prob.data.shape, (1, 3, 3))
         self.assertEqual(result.data.shape, (2, 3, 3))
