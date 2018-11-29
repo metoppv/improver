@@ -85,8 +85,6 @@ def main():
                        " pressure level in Pa to extract from the multi-level"
                        " advection_speed and advection_direction files. The"
                        " velocities at this level are used for advection.")
-
-
     parser.add_argument("--orographic_enhancement_filepaths", nargs="+",
                         type=str, default=None,  help="List or wildcarded "
                         "file specification to the input orographic "
@@ -119,12 +117,11 @@ def main():
     elif (spath and dpath) and not (upath or vpath):
         level_constraint = Constraint(pressure=args.pressure_level)
         try:
-            print(level_constraint)
             scube =load_cube(spath, constraints=level_constraint)
             dcube =load_cube(dpath, constraints=level_constraint)
-            print(scube)
         except:
-            print('oops')
+            raise ValueError('Unable to extract specified pressure level from'
+                             ' given speed and direction files.')
 
         ucube, vcube = ResolveWindComponents().process(scube, dcube)
     else:
