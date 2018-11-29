@@ -327,7 +327,8 @@ class GeneratePercentilesFromProbabilities(object):
 
     @staticmethod
     def _add_bounds_to_thresholds_and_probabilities(
-            threshold_points, probabilities_for_cdf, bounds_pairing):
+            threshold_points, probabilities_for_cdf, bounds_pairing,
+            ecc_bounds_warning=False):
         """
         Padding of the lower and upper bounds of the distribution for a
         given phenomenon for the threshold_points, and padding of
@@ -343,6 +344,9 @@ class GeneratePercentilesFromProbabilities(object):
             bounds_pairing (Tuple):
                 Lower and upper bound to be used as the ends of the
                 cumulative distribution function.
+            ecc_bounds_warning (bool):
+                If true and ECC bounds are exceeded, a warning will be
+                generated rather than an exception. Default value is FALSE.
         Returns:
             (tuple) : tuple containing:
                 **threshold_points** (Numpy array):
@@ -357,6 +361,10 @@ class GeneratePercentilesFromProbabilities(object):
             threshold_points, lower_bound, upper_bound)
         probabilities_for_cdf = concatenate_2d_array_with_2d_array_endpoints(
             probabilities_for_cdf, 0, 1)
+
+        if ecc_bounds_warning:
+            pass
+
         if np.any(np.diff(threshold_points) < 0):
             msg = ("The end points added to the threshold values for "
                    "constructing the Cumulative Distribution Function (CDF) "
@@ -369,7 +377,8 @@ class GeneratePercentilesFromProbabilities(object):
         return threshold_points, probabilities_for_cdf
 
     def _probabilities_to_percentiles(
-            self, forecast_probabilities, percentiles, bounds_pairing):
+            self, forecast_probabilities, percentiles, bounds_pairing,
+            ecc_bounds_warning=False):
         """
         Conversion of probabilities to percentiles through the construction
         of an cumulative distribution function. This is effectively
@@ -385,6 +394,9 @@ class GeneratePercentilesFromProbabilities(object):
             bounds_pairing (Tuple):
                 Lower and upper bound to be used as the ends of the
                 cumulative distribution function.
+            ecc_bounds_warning (bool):
+                If true and ECC bounds are exceeded, a warning will be
+                generated rather than an exception. Default value is FALSE.
 
         Returns:
             percentile_cube (Iris cube):
@@ -423,7 +435,8 @@ class GeneratePercentilesFromProbabilities(object):
 
         threshold_points, probabilities_for_cdf = (
             self._add_bounds_to_thresholds_and_probabilities(
-                threshold_points, probabilities_for_cdf, bounds_pairing))
+                threshold_points, probabilities_for_cdf, bounds_pairing,
+                ecc_bounds_warning))
 
         if np.any(np.diff(probabilities_for_cdf) < 0):
             msg = ("The probability values used to construct the "
@@ -505,7 +518,7 @@ class GeneratePercentilesFromProbabilities(object):
                 * Random: A random set of ordered percentiles.
             ecc_bounds_warning (bool):
                 If True then exceeding ECC bounds will only generate a
-                warning rather than an exception.
+                warning rather than an exception. Default value is FALSE.
 
         Returns:
             forecast_at_percentiles (Iris cube):
@@ -556,7 +569,8 @@ class GeneratePercentilesFromProbabilities(object):
         cubelist = iris.cube.CubeList([])
         for cube_realization in slices_over_realization:
             cubelist.append(self._probabilities_to_percentiles(
-                cube_realization, percentiles, bounds_pairing))
+                cube_realization, percentiles, bounds_pairing,
+                ecc_bounds_warning))
 
         forecast_at_percentiles = cubelist.merge_cube()
         return forecast_at_percentiles
