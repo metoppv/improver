@@ -33,15 +33,15 @@
 
 import datetime
 import os
-import numpy as np
 import json
+import numpy as np
 
 from iris import Constraint
 from improver.argparser import ArgParser
 from improver.nowcasting.optical_flow import AdvectField
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
 from improver.utilities.filename import generate_file_name
-from improver.utilities.load import load_cube, load_cubelist
+from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.wind_calculations.wind_components import ResolveWindComponents
 
@@ -86,7 +86,7 @@ def main():
                        " advection_speed and advection_direction files. The"
                        " velocities at this level are used for advection.")
     parser.add_argument("--orographic_enhancement_filepaths", nargs="+",
-                        type=str, default=None,  help="List or wildcarded "
+                        type=str, default=None, help="List or wildcarded "
                         "file specification to the input orographic "
                         "enhancement files. Orographic enhancement files are "
                         "compulsory for precipitation fields.")
@@ -117,9 +117,9 @@ def main():
     elif (spath and dpath) and not (upath or vpath):
         level_constraint = Constraint(pressure=args.pressure_level)
         try:
-            scube =load_cube(spath, constraints=level_constraint)
-            dcube =load_cube(dpath, constraints=level_constraint)
-        except:
+            scube = load_cube(spath, constraints=level_constraint)
+            dcube = load_cube(dpath, constraints=level_constraint)
+        except ValueError:
             raise ValueError('Unable to extract specified pressure level from'
                              ' given speed and direction files.')
 
@@ -165,7 +165,7 @@ def main():
         if args.orographic_enhancement_filepaths:
             # Add orographic enhancement.
             forecast_cube, = ApplyOrographicEnhancement("add").process(
-                  forecast_cube, oe_cube)
+                forecast_cube, oe_cube)
 
         # save to a suitably-named output file
         if args.output_filepaths:
