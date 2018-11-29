@@ -344,6 +344,8 @@ class GeneratePercentilesFromProbabilities(object):
             bounds_pairing (Tuple):
                 Lower and upper bound to be used as the ends of the
                 cumulative distribution function.
+
+        Keyword Args:
             ecc_bounds_warning (bool):
                 If true and ECC bounds are exceeded, a warning will be
                 generated rather than an exception. Default value is FALSE.
@@ -395,6 +397,8 @@ class GeneratePercentilesFromProbabilities(object):
             bounds_pairing (Tuple):
                 Lower and upper bound to be used as the ends of the
                 cumulative distribution function.
+
+        Keyword Args:
             ecc_bounds_warning (bool):
                 If true and ECC bounds are exceeded, a warning will be
                 generated rather than an exception. Default value is FALSE.
@@ -517,6 +521,8 @@ class GeneratePercentilesFromProbabilities(object):
                           at dividing a Cumulative Distribution Function into
                           blocks of equal probability.
                 * Random: A random set of ordered percentiles.
+
+        Keyword Args:
             ecc_bounds_warning (bool):
                 If True then exceeding ECC bounds will only generate a
                 warning rather than an exception. Default value is FALSE.
