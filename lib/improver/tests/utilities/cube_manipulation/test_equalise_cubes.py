@@ -91,17 +91,23 @@ class Test_equalise_cubes(IrisTest):
     def test_equalise_attributes(self):
         """Test that the utility equalises the attributes as expected"""
         cubelist = iris.cube.CubeList([self.cube_ukv, self.cube])
-        result = equalise_cubes(cubelist)
+        result = equalise_cubes(
+            cubelist, model_id_attr="mosg__model_configuration")
         self.assertArrayAlmostEqual(result[0].coord("model_id").points,
-                                    np.array([3000]))
+                                    np.array([0]))
         self.assertEqual(result[0].coord("model_configuration").points[0],
                          'uk_det')
         self.assertArrayAlmostEqual(result[1].coord("model_id").points,
-                                    np.array([4000]))
+                                    np.array([1000]))
         self.assertEqual(result[1].coord("model_configuration").points[0],
                          'uk_ens')
-        self.assertNotIn("mosg__model_configuration", result[0].attributes)
-        self.assertNotIn("mosg__model_configuration", result[1].attributes)
+
+        self.assertIn("mosg__model_configuration", result[0].attributes.keys())
+        self.assertIn("mosg__model_configuration", result[1].attributes.keys())
+        self.assertEqual(result[0].attributes["mosg__model_configuration"],
+                         "blend")
+        self.assertEqual(result[1].attributes["mosg__model_configuration"],
+                         "blend")
         self.assertAlmostEqual(result[0].attributes["mosg__grid_domain"],
                                result[1].attributes["mosg__grid_domain"])
         self.assertEqual(result[0].attributes["mosg__grid_domain"],
@@ -130,10 +136,11 @@ class Test_equalise_cubes(IrisTest):
     def test_coords_are_equalised_if_merging(self):
         """Test that the coords are equalised if merging"""
         cubelist = iris.cube.CubeList([self.cube_ukv, self.cube])
-        result = equalise_cubes(cubelist)
+        result = equalise_cubes(
+            cubelist, model_id_attr="mosg__model_configuration")
         self.assertEqual(len(result), 4)
         self.assertAlmostEqual(result[3].coord('model_realization').points,
-                               4002.0)
+                               1002.0)
 
 
 if __name__ == '__main__':

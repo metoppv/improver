@@ -36,8 +36,9 @@ import unittest
 
 import iris
 from iris.cube import Cube
-from iris.exceptions import DuplicateDataError
+from iris.exceptions import DuplicateDataError, MergeError
 from iris.tests import IrisTest
+import numpy as np
 
 from improver.utilities.cube_manipulation import merge_cubes
 
@@ -48,6 +49,7 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
         add_forecast_reference_time_and_forecast_period)
 
 from improver.utilities.warnings_handler import ManageWarnings
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
 class Test_merge_cubes(IrisTest):
@@ -89,6 +91,21 @@ class Test_merge_cubes(IrisTest):
         self.prob_enuk.attributes.update({'mosg__grid_domain': 'uk_extended'})
         self.prob_enuk.attributes.update({'mosg__grid_version': '1.2.0'})
 
+        # Setup two non-Met Office model example configuration cubes.
+        # Using a simple temperature data array, one cube set is setup
+        # as a deterministic model, the other as an ensemble.
+        self.data = (
+            np.linspace(275.0, 284.0, 12).reshape(3, 4).astype(np.float32))
+        self.data_3d = np.array([self.data, self.data, self.data])
+
+        self.cube_non_mo_det = set_up_variable_cube(self.data)
+
+        self.cube_non_mo_ens = set_up_variable_cube(
+            self.data_3d, realizations=np.array([0, 3, 4]))
+
+        self.cube_non_mo_det.attributes['non_mo_model_config'] = 'non_uk_det'
+        self.cube_non_mo_ens.attributes['non_mo_model_config'] = 'non_uk_ens'
+
     @ManageWarnings(record=True)
     def test_basic(self, warning_list=None):
         """Test that the utility returns an iris.cube.Cube."""
@@ -120,18 +137,78 @@ class Test_merge_cubes(IrisTest):
     def test_multi_model(self):
         """Test Multi models merge OK"""
         cubes = iris.cube.CubeList([self.cube, self.cube_ukv])
-        result = merge_cubes(cubes)
+        result = merge_cubes(cubes, model_id_attr="mosg__model_configuration")
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
-            result.coord("model_realization").points, [3000., 4000.,
-                                                       4001., 4002.])
+            result.coord("model_realization").points, [0., 1.,
+                                                       2., 1000.])
+
+    def test_no_model_id_attr_multi_model(self):
+        """Test multiple model blending fails and results in a merge error if
+        no model_id_attr is specified."""
+        cubes = iris.cube.CubeList([self.cube, self.cube_ukv])
+        with self.assertRaises(MergeError):
+            merge_cubes(cubes)
 
     def test_threshold_data(self):
         """Test threshold data merges OK"""
         cubes = iris.cube.CubeList([self.prob_ukv, self.prob_enuk])
-        result = merge_cubes(cubes)
+        result = merge_cubes(cubes, model_id_attr="mosg__model_configuration")
         self.assertArrayAlmostEqual(
-            result.coord("model_id").points, [3000., 4000.])
+            result.coord("model_id").points, [0., 1000.])
+
+    def test_non_mo_model_id(self):
+        """Test that a model ID attribute string can be specified when
+        merging multi model cubes"""
+        cubes = iris.cube.CubeList(
+            [self.cube_non_mo_ens, self.cube_non_mo_det])
+        result = merge_cubes(cubes, model_id_attr='non_mo_model_config')
+        self.assertIsInstance(result, Cube)
+        self.assertArrayAlmostEqual(
+            result.coord(
+                "model_realization").points, [0., 3., 4., 1000.])
+
+    def test_model_id_attr_mismatch(self):
+        """Test that when a model ID attribute string is specified that does
+        not match the model ID attribute key name on both cubes to be merged,
+        an error is thrown"""
+        cubes = iris.cube.CubeList(
+            [self.cube_non_mo_ens, self.cube_non_mo_det])
+
+        # The test cubes contain the 'non_mo_model_config' attribute key.
+        # We'll specify 'non_matching_model_config' as our model ID
+        # attribute key argument. Merge_cubes should then raise a warning
+        # as our specified model ID does not match that on the cubes and it
+        # will not be able to build a model ID coordinate.
+        msg = ('Cannot create model ID coordinate for grid blending '
+               'as the model ID attribute specified is not found '
+               'within the cube attributes')
+
+        with self.assertRaisesRegex(ValueError, msg):
+            merge_cubes(cubes, model_id_attr='non_matching_model_config')
+
+    def test_model_id_attr_mismatch_one_cube(self):
+        """Test that when a model ID attribute string is specified that only
+        matches the model ID attribute key name on one of the cubes to be
+        merged, an error is thrown"""
+
+        # Change the model ID attribute key on one of the test cubes so that
+        # it matches the model ID argument. Merge_cubes should still raise
+        # an error as the model ID attribute key has to match on all cubes
+        # to be blended.
+        self.cube_non_mo_det.attributes.pop('non_mo_model_config')
+        self.cube_non_mo_det.attributes[
+            'non_matching_model_config'] = 'non_uk_det'
+
+        cubes = iris.cube.CubeList(
+            [self.cube_non_mo_ens, self.cube_non_mo_det])
+
+        msg = ('Cannot create model ID coordinate for grid blending '
+               'as the model ID attribute specified is not found '
+               'within the cube attributes')
+
+        with self.assertRaisesRegex(ValueError, msg):
+            merge_cubes(cubes, model_id_attr='non_matching_model_config')
 
     def test_one_threshold_data(self):
         """Test threshold data where one cube has single threshold as dim"""

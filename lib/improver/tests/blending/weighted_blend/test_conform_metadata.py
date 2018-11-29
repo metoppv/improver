@@ -74,10 +74,6 @@ class Test_conform_metadata(IrisTest):
         cube_orig = cube_orig[0]  # slice out realization dimension
         cube_orig.remove_coord("realization")
 
-        cube_orig.attributes["mosg__grid_type"] = "standard"
-        cube_orig.attributes["mosg__grid_domain"] = "uk_extended"
-        cube_orig.attributes["mosg__grid_version"] = "1.2.0"
-
         self.cube_orig = cube_orig
 
         # Cube without forecast_period.
@@ -108,23 +104,11 @@ class Test_conform_metadata(IrisTest):
         self.coord = "forecast_reference_time"
 
     def test_basic(self):
-        """Test that conform_metadata returns a cube."""
+        """Test that conform_metadata returns a cube with a suitable title
+        attribute."""
         result = conform_metadata(self.cube, self.cube_orig, self.coord)
+        expected_attributes = {'title': 'IMPROVER Model Forecast'}
         self.assertIsInstance(result, iris.cube.Cube)
-
-    def test_cycle_blended_attributes(self):
-        """Test that correct metadata are added to cycle blends"""
-        expected_attributes = self.cube_orig.attributes
-        expected_attributes["title"] = "IMPROVER Model Forecast"
-        result = conform_metadata(self.cube, self.cube_orig, self.coord)
-        self.assertDictEqual(result.attributes, expected_attributes)
-
-    def test_grid_blended_attributes(self):
-        """Test that correct metadata are added to grid blends"""
-        expected_attributes = self.cube_orig.attributes
-        expected_attributes["title"] = "IMPROVER Model Forecast"
-        expected_attributes["mosg__model_configuration"] = "blend"
-        result = conform_metadata(self.cube, self.cube_orig, "model")
         self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_with_forecast_period(self):

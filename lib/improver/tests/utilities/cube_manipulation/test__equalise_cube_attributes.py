@@ -109,8 +109,10 @@ class Test__equalise_cube_attributes(IrisTest):
         self.assertEqual(result[0].attributes["mosg__model_configuration"],
                          'uk_det')
 
-    def test_cubelist_mosg__model_configuration(self):
-        """Test that the utility adds coords for model if not matching"""
+    def test_cubelist_mosg__model_configuration_mismatched(self):
+        """Test that the utility adds coords for model if not matching and that
+        mosg__model_configuration is changed to "blend" ensuring the two cubes
+        can be combined."""
 
         cube1 = self.cube_ukv.copy()
         cube2 = self.cube.copy()
@@ -121,20 +123,25 @@ class Test__equalise_cube_attributes(IrisTest):
 
         cubelist = iris.cube.CubeList([cube1, cube2])
 
-        result = _equalise_cube_attributes(cubelist)
+        result = _equalise_cube_attributes(
+            cubelist, model_id_attr="mosg__model_configuration")
 
         self.assertArrayAlmostEqual(result[0].coord("model_id").points,
-                                    np.array([3000]))
+                                    np.array([0]))
         self.assertEqual(result[0].coord("model_configuration").points[0],
                          'uk_det')
         self.assertArrayAlmostEqual(result[1].coord("model_id").points,
-                                    np.array([4000]))
+                                    np.array([1000]))
         self.assertEqual(result[1].coord("model_configuration").points[0],
                          'uk_ens')
-        self.assertNotIn("mosg__model_configuration",
-                         result[0].attributes.keys())
-        self.assertNotIn("mosg__model_configuration",
-                         result[1].attributes.keys())
+        self.assertIn("mosg__model_configuration",
+                      result[0].attributes.keys())
+        self.assertEqual(result[0].attributes["mosg__model_configuration"],
+                         "blend")
+        self.assertIn("mosg__model_configuration",
+                      result[1].attributes.keys())
+        self.assertEqual(result[1].attributes["mosg__model_configuration"],
+                         "blend")
 
     @ManageWarnings(record=True)
     def test_unknown_attribute(self, warning_list=None):
@@ -142,10 +149,8 @@ class Test__equalise_cube_attributes(IrisTest):
         mismatching attribute."""
         cube1 = self.cube_ukv.copy()
         cube2 = self.cube.copy()
-        cube1.attributes.update({'unknown_attribute':
-                                 '1'})
-        cube2.attributes.update({'unknown_attribute':
-                                 '2'})
+        cube1.attributes.update({'unknown_attribute': '1'})
+        cube2.attributes.update({'unknown_attribute': '2'})
 
         cubelist = iris.cube.CubeList([cube1, cube2])
 

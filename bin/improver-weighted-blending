@@ -175,7 +175,13 @@ def main():
                         'YYYYMMDDTHHMMZ. If not provided, the blended file '
                         'will take the latest available forecast reference '
                         'time from the input cubes supplied.')
-
+    parser.add_argument('--model_id_attr', metavar='MODEL_ID_ATTR', type=str,
+                        default="mosg__model_configuration",
+                        help='The name of the netCDF file attribute to be '
+                             'used to identify the source model for '
+                             'multi-model blends. Default assumes Met Office '
+                             'model metadata. Must be present on all input '
+                             'files if blending over models.')
     parser.add_argument('weighting_mode', metavar='WEIGHTED_BLEND_MODE',
                         choices=['weighted_mean', 'weighted_maximum'],
                         help='The method used in the weighted blend. '
@@ -274,7 +280,7 @@ def main():
         weighting_coord=weighting_coord)
 
     # merge cube list
-    cube = merge_cubes(cubelist)
+    cube = merge_cubes(cubelist, model_id_attr=args.model_id_attr)
 
     # if the coord for blending does not exist or has only one value,
     # update metadata only

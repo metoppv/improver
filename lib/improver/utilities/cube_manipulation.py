@@ -38,7 +38,6 @@ import numpy as np
 import iris
 from iris.coords import AuxCoord, DimCoord
 from iris.exceptions import CoordinateNotFoundError
-from improver.constants import MODEL_ID_DICT
 from improver.utilities.cube_checker import check_cube_coordinates
 
 
@@ -76,8 +75,8 @@ def _associate_any_coordinate_with_master_coordinate(
 
     if not cube.coords(master_coord):
         msg = (
-            "The master coordinate for associating other " +
-            "coordinates with is not present: " +
+            "The master coordinate for associating other "
+            "coordinates with is not present: "
             "master_coord: {}, other coordinates: {}".format(
                 master_coord, coordinates))
         raise ValueError(msg)
@@ -211,7 +210,7 @@ def concatenate_cubes(
     return result
 
 
-def merge_cubes(cubes):
+def merge_cubes(cubes, model_id_attr=None):
     """
     Function to merge cubes, accounting for differences in the
     attributes, and coords.
@@ -219,6 +218,9 @@ def merge_cubes(cubes):
     Args:
         cubes (Iris cubelist or Iris cube):
             Cubes to be merged.
+        model_id_attr (str):
+            Name of cube attribute used to identify the model
+            for grid blending or None.
 
     Returns:
         result (Iris cube):
@@ -228,7 +230,7 @@ def merge_cubes(cubes):
     if isinstance(cubes, iris.cube.Cube):
         cubes = iris.cube.CubeList([cubes])
 
-    cubelist = equalise_cubes(cubes)
+    cubelist = equalise_cubes(cubes, model_id_attr=model_id_attr, merging=True)
 
     for i, cube in enumerate(cubelist):
         cubelist[i] = iris.util.squeeze(cube)
@@ -237,16 +239,21 @@ def merge_cubes(cubes):
     return result
 
 
-def equalise_cubes(cubes_in, merging=True):
+def equalise_cubes(
+        cubes_in, model_id_attr=None, merging=True):
     """
     Function to equalise cubes where they do not match.
 
     Args:
         cubes_in (Iris cubelist):
             List of cubes to check and equalise.
+        model_id_attr (str):
+            Name of cube attribute used to identify the model
+            for grid blending or None.
         merging (boolean):
             Flag for whether the equalising is for merging
             as slightly different processing is required.
+
     Returns:
         cubelist (Iris cubelist):
             List of cubes with revised cubes.
@@ -260,7 +267,7 @@ def equalise_cubes(cubes_in, merging=True):
     cubes = iris.cube.CubeList([])
     for cube in cubes_in:
         cubes.append(cube.copy())
-    _equalise_cube_attributes(cubes)
+    _equalise_cube_attributes(cubes, model_id_attr=model_id_attr)
     strip_var_names(cubes)
     if merging:
         cubelist = _equalise_cube_coords(cubes)
@@ -271,13 +278,18 @@ def equalise_cubes(cubes_in, merging=True):
     return cubelist
 
 
-def _equalise_cube_attributes(cubes):
+def _equalise_cube_attributes(
+        cubes, model_id_attr=None):
     """
     Function to equalise attributes that do not match.
 
     Args:
         cubes (Iris cubelist):
             List of cubes to check the attributes and revise.
+        model_id_attr (str):
+            Name of cube attribute used to identify the model
+            for grid blending or None.
+
     Returns:
         cubelist (Iris cubelist):
         Note: This internal function modifies the incoming cubes
@@ -289,6 +301,7 @@ def _equalise_cube_attributes(cubes):
     # without raising a warning message
     silent_attributes = ['history', 'title', 'mosg__grid_version']
     unmatching_attributes = compare_attributes(cubes)
+
     if len(unmatching_attributes) > 0:
         for i, cube in enumerate(cubes):
             # Remove ignored attributes.
@@ -296,13 +309,22 @@ def _equalise_cube_attributes(cubes):
                 if attr in unmatching_attributes[i]:
                     cube.attributes.pop(attr)
                     unmatching_attributes[i].pop(attr)
-            # Add associated model_id if model_configurations do not match.
-            if "mosg__model_configuration" in unmatching_attributes[i]:
-                model_title = cube.attributes.pop('mosg__model_configuration')
-                for key, val in MODEL_ID_DICT.items():
-                    if val == model_title:
-                        break
-                new_model_id_coord = build_coordinate([key],
+
+            # If a model_id_attr has been specified, assume we are trying to
+            # grid blend and throw an error if the model_id_attr does not
+            # match that on the cubes to be blended.
+            if model_id_attr is not None and \
+                    model_id_attr not in cube.attributes:
+                msg = ('Cannot create model ID coordinate for grid blending '
+                       'as the model ID attribute specified is not found '
+                       'within the cube attributes')
+                raise ValueError(msg)
+
+            if model_id_attr in unmatching_attributes[i]:
+                model_title = cube.attributes.pop(model_id_attr)
+                cube.attributes[model_id_attr] = "blend"
+
+                new_model_id_coord = build_coordinate([1000 * i],
                                                       long_name='model_id',
                                                       data_type=np.int)
                 new_model_coord = (
@@ -310,9 +332,11 @@ def _equalise_cube_attributes(cubes):
                                      long_name='model_configuration',
                                      coord_type=AuxCoord,
                                      data_type=np.str))
+
                 cube.add_aux_coord(new_model_id_coord)
                 cube.add_aux_coord(new_model_coord)
-                unmatching_attributes[i].pop("mosg__model_configuration")
+                unmatching_attributes[i].pop(model_id_attr)
+
             # Remove any other mismatching attributes but raise warning.
             if len(unmatching_attributes[i]) != 0:
                 for key in unmatching_attributes[i]:
@@ -533,7 +557,7 @@ def compare_attributes(cubes):
             for key in cube.attributes.keys():
                 if key not in common_keys:
                     unmatching_attributes[i].update({key:
-                                                     cube.attributes[key]})
+                                                    cube.attributes[key]})
     return unmatching_attributes
 
 
@@ -819,7 +843,7 @@ def enforce_coordinate_ordering(
                 msg = ("More than 1 coordinate: {} matched the specified "
                        "coordinate name: {}. Unable to distinguish which "
                        "coordinate should be reordered.".format(
-                           coord, coord_name))
+                        coord, coord_name))
                 raise ValueError(msg)
 
         # If the requested coordinate is not a dimension coordinate, make it
@@ -853,9 +877,9 @@ def enforce_coordinate_ordering(
     # Transpose by inserting the requested coordinates at either the start
     # or the end.
     if anchor == "start":
-        cube.transpose(coord_dims+remaining_coords)
+        cube.transpose(coord_dims + remaining_coords)
     elif anchor == "end":
-        cube.transpose(remaining_coords+coord_dims)
+        cube.transpose(remaining_coords + coord_dims)
     return cube
 
 
