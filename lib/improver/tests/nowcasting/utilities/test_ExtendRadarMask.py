@@ -72,7 +72,8 @@ class Test_process(IrisTest):
         rainrate_data = np.ma.MaskedArray(rainrate_data, mask=rainrate_mask)
 
         self.rainrate = set_up_variable_cube(
-            rainrate_data, name='lwe_precipitation_rate', units='mm h-1')
+            rainrate_data, name='lwe_precipitation_rate', units='mm h-1',
+            spatial_grid='equalarea')
 
         coverage_data = np.array([[0, 0, 0, 0, 0],
                                   [0, 2, 1, 1, 3],
@@ -81,7 +82,8 @@ class Test_process(IrisTest):
                                   [0, 3, 1, 1, 1]])
 
         self.coverage = set_up_variable_cube(
-            coverage_data, name='radar_coverage', units='1')
+            coverage_data, name='radar_coverage', units='1',
+            spatial_grid='equalarea')
 
         self.expected_mask = np.array([
             [True, True, True, True, True],
