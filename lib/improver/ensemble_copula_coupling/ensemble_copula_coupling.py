@@ -470,7 +470,8 @@ class GeneratePercentilesFromProbabilities(object):
         return percentile_cube
 
     def process(self, forecast_probabilities, no_of_percentiles=None,
-                percentiles=None, sampling="quantile"):
+                percentiles=None, sampling="quantile",
+                ecc_bounds_warning=False):
         """
         1. Concatenates cubes with a threshold coordinate.
         2. Creates a list of percentiles.
@@ -502,6 +503,9 @@ class GeneratePercentilesFromProbabilities(object):
                           at dividing a Cumulative Distribution Function into
                           blocks of equal probability.
                 * Random: A random set of ordered percentiles.
+            ecc_bounds_warning (bool):
+                If True then exceeding ECC bounds will only generate a
+                warning rather than an exception.
 
         Returns:
             forecast_at_percentiles (Iris cube):

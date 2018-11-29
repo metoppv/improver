@@ -39,6 +39,7 @@ usage: improver-probabilities-to-realizations [-h] [--profile]
                                               (--reordering | --rebadging)
                                               [--raw_forecast_filepath RAW_FORECAST_FILE]
                                               [--random_seed RANDOM_SEED]
+                                              [--ecc_bounds_warning]
                                               INPUT_FILE OUTPUT_FILE
 __TEXT__
   [[ "$output" =~ "$expected" ]]

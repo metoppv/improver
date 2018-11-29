@@ -39,7 +39,7 @@
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-ValueError: You must supply a raw forecast filepath if using the reording option.
+ValueError: You must supply a raw forecast filepath if using the reordering option.
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }
