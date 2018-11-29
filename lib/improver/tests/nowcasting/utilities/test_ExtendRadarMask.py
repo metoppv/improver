@@ -109,6 +109,14 @@ class Test_process(IrisTest):
         _ = ExtendRadarMask().process(self.rainrate, self.coverage)
         self.assertEqual(reference, self.rainrate)
 
+    def test_coords_unmatched_error(self):
+        """Test error is raised if coordinates do not match"""
+        x_points = self.rainrate.coord(axis='x').points
+        self.rainrate.coord(axis='x').points = x_points + 100.
+        msg = 'Rain rate and coverage composites unmatched'
+        with self.assertRaisesRegex(ValueError, msg):
+            _ = ExtendRadarMask().process(self.rainrate, self.coverage)
+
 
 if __name__ == '__main__':
     unittest.main()
