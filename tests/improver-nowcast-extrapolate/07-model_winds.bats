@@ -33,12 +33,12 @@
 
 @test "extrapolate basic" {
   improver_check_skip_acceptance
-  KGO0="nowcast-extrapolate/speeds/kgo0.nc"
-  KGO1="nowcast-extrapolate/speeds/kgo1.nc"
-  KGO2="nowcast-extrapolate/speeds/kgo2.nc"
+  KGO0="nowcast-extrapolate/model_winds/kgo0.nc"
+  KGO1="nowcast-extrapolate/model_winds/kgo1.nc"
+  KGO2="nowcast-extrapolate/model_winds/kgo2.nc"
 
-  WSPEED="$IMPROVER_ACC_TEST_DIR/nowcast-extrapolate/speeds/20181103T1600Z-PT0001H00M-wind_speed_on_pressure_levels.nc"
-  WDIR="$IMPROVER_ACC_TEST_DIR/nowcast-extrapolate/speeds/20181103T1600Z-PT0001H00M-wind_direction_on_pressure_levels.nc"
+  WSPEED="$IMPROVER_ACC_TEST_DIR/nowcast-extrapolate/model_winds/20181103T1600Z-PT0001H00M-wind_speed_on_pressure_levels.nc"
+  WDIR="$IMPROVER_ACC_TEST_DIR/nowcast-extrapolate/model_winds/20181103T1600Z-PT0001H00M-wind_direction_on_pressure_levels.nc"
   INFILE="201811031600_radar_rainrate_composite_UK_regridded.nc"
   OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
 

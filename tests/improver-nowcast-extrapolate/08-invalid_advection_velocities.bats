@@ -34,7 +34,7 @@
 @test "extrapolate basic" {
   improver_check_skip_acceptance
 
-  WDIR="$IMPROVER_ACC_TEST_DIR/nowcast-extrapolate/speeds/20181103T1600Z-PT0001H00M-wind_direction_on_pressure_levels.nc"
+  WDIR="$IMPROVER_ACC_TEST_DIR/nowcast-extrapolate/model_winds/20181103T1600Z-PT0001H00M-wind_direction_on_pressure_levels.nc"
   UCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/ucomp_kgo.nc"
   INFILE="201811031600_radar_rainrate_composite_UK_regridded.nc"
 
