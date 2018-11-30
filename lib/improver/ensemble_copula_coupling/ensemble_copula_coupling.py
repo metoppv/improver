@@ -372,7 +372,12 @@ class GeneratePercentilesFromProbabilities(object):
                    "outside the allowable range given by the "
                    "bounds {}".format(
                        threshold_points, bounds_pairing))
-
+            # If ecc_bounds_warning has been set, generate a warning message
+            # rather than raising an exception so that subsequent processing
+            # can continue. Then re-apply the upper and lower bounds as
+            # necessary to ensure the threshold values and endpoints are in
+            # ascending order and avoid problems further along the processing
+            # chain.
             if ecc_bounds_warning:
                 warnings.warn(msg)
             else:
