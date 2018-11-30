@@ -31,10 +31,10 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "optical-flow basic no orographic enhancement" {
+@test "nowcast-optical-flow basic no orographic enhancement" {
   improver_check_skip_acceptance
-  KGO1="optical-flow/basic_no_orographic_enhancement/ucomp_kgo.nc"
-  KGO2="optical-flow/basic_no_orographic_enhancement/vcomp_kgo.nc"
+  KGO1="nowcast-optical-flow/basic_no_orographic_enhancement/ucomp_kgo.nc"
+  KGO2="nowcast-optical-flow/basic_no_orographic_enhancement/vcomp_kgo.nc"
 
   COMP1="201811031530_radar_rainrate_composite_UK_regridded.nc"
   COMP2="201811031545_radar_rainrate_composite_UK_regridded.nc"
@@ -42,9 +42,9 @@
 
   # Run processing and check it passes
   run improver nowcast-optical-flow \
-    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic_no_orographic_enhancement/$COMP1" \
-    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic_no_orographic_enhancement/$COMP2" \
-    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic_no_orographic_enhancement/$COMP3" \
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic_no_orographic_enhancement/$COMP1" \
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic_no_orographic_enhancement/$COMP2" \
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic_no_orographic_enhancement/$COMP3" \
     --output_dir "$TEST_DIR"
   [[ "$status" -eq 0 ]]
 

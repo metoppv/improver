@@ -33,17 +33,14 @@
 
 @test "extrapolate basic" {
   improver_check_skip_acceptance
-  KGO0="optical-flow/speeds/kgo0.nc"
-  KGO1="optical-flow/speeds/kgo1.nc"
-  KGO2="optical-flow/speeds/kgo2.nc"
 
-  WDIR="$IMPROVER_ACC_TEST_DIR/optical-flow/speeds/20181103T1600Z-PT0001H00M-wind_direction_on_pressure_levels.nc"
-  UCOMP="$IMPROVER_ACC_TEST_DIR/optical-flow/basic/ucomp_kgo.nc"
+  WDIR="$IMPROVER_ACC_TEST_DIR/nowcast-extrapolate/speeds/20181103T1600Z-PT0001H00M-wind_direction_on_pressure_levels.nc"
+  UCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/ucomp_kgo.nc"
   INFILE="201811031600_radar_rainrate_composite_UK_regridded.nc"
 
   # Run processing and check it passes
   run improver nowcast-extrapolate \
-    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$INFILE" \
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$INFILE" \
     --output_dir "$TEST_DIR" --max_lead_time 30 \
     --advection_direction_filepath "$WDIR" \
     --eastward_advection "$UCOMP"
