@@ -35,7 +35,7 @@
   read -d '' expected <<'__TEXT__' || true
 usage: improver-extend-radar-mask [-h] [--profile]
                                   [--profile_file PROFILE_FILE]
-                                  RAINRATE_FILEPATH COVERAGE_FILEPATH
+                                  RADAR_DATA_FILEPATH COVERAGE_FILEPATH
                                   OUTPUT_FILEPATH
 __TEXT__
   [[ "$output" =~ "$expected" ]]

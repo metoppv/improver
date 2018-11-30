@@ -35,17 +35,17 @@
   read -d '' expected <<'__TEXT__' || true
 usage: improver-extend-radar-mask [-h] [--profile]
                                   [--profile_file PROFILE_FILE]
-                                  RAINRATE_FILEPATH COVERAGE_FILEPATH
+                                  RADAR_DATA_FILEPATH COVERAGE_FILEPATH
                                   OUTPUT_FILEPATH
 
 Extend radar mask based on coverage data.
 
 positional arguments:
-  RAINRATE_FILEPATH     Full path to input NetCDF file containing radar rain
-                        rates.
+  RADAR_DATA_FILEPATH   Full path to input NetCDF file containing the radar
+                        variable to remask.
   COVERAGE_FILEPATH     Full path to input NetCDF file containing radar
                         coverage data.
-  OUTPUT_FILEPATH       Full path to save remasked rainrate NetCDF file.
+  OUTPUT_FILEPATH       Full path to save remasked radar data NetCDF file.
 
 optional arguments:
   -h, --help            show this help message and exit
