@@ -137,7 +137,7 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         has been specified.
         """
         probabilities_for_cdf = np.array([[0.05, 0.7, 0.95]])
-        threshold_points = np.array([8, 10, 60])
+        threshold_points = np.array([-50, 10, 60])
         bounds_pairing = (-40, 50)
         plugin = Plugin()
         warning_msg = "The end points added to the threshold values for"

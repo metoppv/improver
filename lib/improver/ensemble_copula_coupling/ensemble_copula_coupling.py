@@ -371,7 +371,8 @@ class GeneratePercentilesFromProbabilities(object):
                    "must result in an ascending order. "
                    "In this case, the threshold points {} must be "
                    "outside the allowable range given by the "
-                   "bounds {}".format(threshold_points, bounds_pairing))
+                   "bounds {}".format(threshold_points_with_endpoints,
+                                      bounds_pairing))
             # If ecc_bounds_warning has been set, generate a warning message
             # rather than raising an exception so that subsequent processing
             # can continue. Then re-apply the upper and lower bounds as
@@ -380,10 +381,10 @@ class GeneratePercentilesFromProbabilities(object):
             # chain.
             if ecc_bounds_warning:
                 warnings.warn(msg)
-                if upper_bound < max(threshold_points):
-                    upper_bound = max(threshold_points)
-                if lower_bound > min(threshold_points):
-                    lower_bound = min(threshold_points)
+                if upper_bound < max(threshold_points_with_endpoints):
+                    upper_bound = max(threshold_points_with_endpoints)
+                if lower_bound > min(threshold_points_with_endpoints):
+                    lower_bound = min(threshold_points_with_endpoints)
                 threshold_points_with_endpoints = \
                     insert_lower_and_upper_endpoint_to_1d_array(
                         threshold_points, lower_bound, upper_bound)
