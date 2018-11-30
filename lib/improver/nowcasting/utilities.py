@@ -87,7 +87,7 @@ class ExtendRadarMask(object):
         coverage_slices = coverage.slices([coverage.coord(axis='y'),
                                            coverage.coord(axis='x')])
 
-        cube_list = []
+        cube_list = iris.cube.CubeList()
         for rain, cov in zip(rainrate_slices, coverage_slices):
             # create a new mask that is False wherever coverage is valid
             new_mask = ~np.isin(cov.data, self.coverage_valid)
@@ -96,7 +96,7 @@ class ExtendRadarMask(object):
             remasked_data = np.ma.MaskedArray(rain.data.data, mask=new_mask)
             cube_list.append(rain.copy(remasked_data))
 
-        return iris.cube.CubeList(cube_list).merge_cube()
+        return cube_list.merge_cube()
 
 
 class ApplyOrographicEnhancement(object):

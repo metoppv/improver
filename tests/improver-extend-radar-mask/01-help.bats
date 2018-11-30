@@ -45,7 +45,7 @@ positional arguments:
                         rates.
   COVERAGE_FILEPATH     Full path to input NetCDF file containing radar
                         coverage data.
-  OUTPUT_FILEPATH       Full path save remasked rainrate NetCDF file.
+  OUTPUT_FILEPATH       Full path to save remasked rainrate NetCDF file.
 
 optional arguments:
   -h, --help            show this help message and exit

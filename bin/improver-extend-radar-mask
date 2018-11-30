@@ -31,10 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to extend a radar mask based on coverage data."""
 
-import datetime
-import os
-import numpy as np
-
 from improver.argparser import ArgParser
 from improver.nowcasting.utilities import ExtendRadarMask
 from improver.utilities.load import load_cube
@@ -52,7 +48,7 @@ def main():
                         type=str, help="Full path to input NetCDF file "
                         "containing radar coverage data.")
     parser.add_argument("output_filepath", metavar="OUTPUT_FILEPATH",
-                        type=str, help="Full path save remasked rainrate "
+                        type=str, help="Full path to save remasked rainrate "
                         "NetCDF file.")
     args = parser.parse_args()
 
