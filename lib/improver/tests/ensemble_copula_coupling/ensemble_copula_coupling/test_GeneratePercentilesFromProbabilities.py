@@ -140,7 +140,6 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         threshold_points = np.array([8, 10, 60])
         bounds_pairing = (-40, 50)
         plugin = Plugin()
-
         warning_msg = "The end points added to the threshold values for"
         plugin._add_bounds_to_thresholds_and_probabilities(
             threshold_points, probabilities_for_cdf, bounds_pairing,
