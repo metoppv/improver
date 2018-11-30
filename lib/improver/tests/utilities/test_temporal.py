@@ -192,8 +192,6 @@ class Test_forecast_period_coord(IrisTest):
         other than the usual units of seconds since 1970-01-01 00:00:00.
         """
         expected_result = self.cube.coord("forecast_period")
-        fp_coord = self.cube.coord("forecast_period").copy()
-        fp_coord.convert_units("hours")
         self.cube.coord("time").convert_units(
             "hours since 1970-01-01 00:00:00")
         result = forecast_period_coord(

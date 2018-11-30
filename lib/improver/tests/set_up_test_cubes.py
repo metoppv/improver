@@ -40,6 +40,7 @@ from datetime import datetime
 import numpy as np
 import iris
 from iris.coords import DimCoord
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
 from improver.utilities.cube_metadata import MOSG_GRID_DEFINITION
@@ -397,8 +398,10 @@ def add_coordinate(incube, coord_points, coord_name, coord_units=None,
     """
     # if the coordinate already exists as a scalar coordinate, remove it
     cube = incube.copy()
-    if coord_name in [crd.name() for crd in cube.coords(dim_coords=False)]:
+    try:
         cube.remove_coord(coord_name)
+    except CoordinateNotFoundError:
+        pass
 
     cubes = iris.cube.CubeList([])
     for val in coord_points:

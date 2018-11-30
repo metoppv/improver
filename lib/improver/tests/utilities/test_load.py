@@ -58,13 +58,10 @@ class Test_load_cube(IrisTest):
         self.filepath = os.path.join(self.directory, "temp.nc")
         self.cube = set_up_variable_cube(np.ones((3, 3, 3), dtype=np.float32))
         save_netcdf(self.cube, self.filepath)
-        self.realization_points = (
-            self.cube.coord("realization").points.astype(np.float32))
-        self.time_points = self.cube.coord("time").points.astype(np.int64)
-        self.latitude_points = (
-            self.cube.coord("latitude").points.astype(np.float32))
-        self.longitude_points = (
-            self.cube.coord("longitude").points.astype(np.float32))
+        self.realization_points = self.cube.coord("realization").points
+        self.time_points = self.cube.coord("time").points
+        self.latitude_points = self.cube.coord("latitude").points
+        self.longitude_points = self.cube.coord("longitude").points
 
     def tearDown(self):
         """Remove temporary directories created for testing."""
@@ -230,13 +227,10 @@ class Test_load_cubelist(IrisTest):
         self.filepath = os.path.join(self.directory, "temp.nc")
         self.cube = set_up_variable_cube(np.ones((3, 3, 3), dtype=np.float32))
         save_netcdf(self.cube, self.filepath)
-        self.realization_points = (
-            self.cube.coord("realization").points.astype(np.float32))
-        self.time_points = self.cube.coord("time").points.astype(np.int64)
-        self.latitude_points = (
-            self.cube.coord("latitude").points.astype(np.float32))
-        self.longitude_points = (
-            self.cube.coord("longitude").points.astype(np.float32))
+        self.realization_points = self.cube.coord("realization").points
+        self.time_points = self.cube.coord("time").points
+        self.latitude_points = self.cube.coord("latitude").points
+        self.longitude_points = self.cube.coord("longitude").points
         self.low_cloud_filepath = os.path.join(self.directory, "low_cloud.nc")
         self.med_cloud_filepath = os.path.join(self.directory,
                                                "medium_cloud.nc")
