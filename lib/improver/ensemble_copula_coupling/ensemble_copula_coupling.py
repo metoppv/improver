@@ -359,9 +359,6 @@ class GeneratePercentilesFromProbabilities(object):
                     each end.
         """
         lower_bound, upper_bound = bounds_pairing
-        print(bounds_pairing)
-        print(max(threshold_points))
-        print(min(threshold_points))
         threshold_points = insert_lower_and_upper_endpoint_to_1d_array(
             threshold_points, lower_bound, upper_bound)
         probabilities_for_cdf = concatenate_2d_array_with_2d_array_endpoints(
