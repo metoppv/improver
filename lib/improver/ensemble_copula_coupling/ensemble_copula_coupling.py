@@ -359,19 +359,19 @@ class GeneratePercentilesFromProbabilities(object):
                     each end.
         """
         lower_bound, upper_bound = bounds_pairing
-        threshold_points = insert_lower_and_upper_endpoint_to_1d_array(
-            threshold_points, lower_bound, upper_bound)
+        threshold_points_with_endpoints = \
+            insert_lower_and_upper_endpoint_to_1d_array(
+                threshold_points, lower_bound, upper_bound)
         probabilities_for_cdf = concatenate_2d_array_with_2d_array_endpoints(
             probabilities_for_cdf, 0, 1)
 
-        if np.any(np.diff(threshold_points) < 0):
+        if np.any(np.diff(threshold_points_with_endpoints) < 0):
             msg = ("The end points added to the threshold values for "
                    "constructing the Cumulative Distribution Function (CDF) "
                    "must result in an ascending order. "
                    "In this case, the threshold points {} must be "
                    "outside the allowable range given by the "
-                   "bounds {}".format(
-                       threshold_points, bounds_pairing))
+                   "bounds {}".format(threshold_points, bounds_pairing))
             # If ecc_bounds_warning has been set, generate a warning message
             # rather than raising an exception so that subsequent processing
             # can continue. Then re-apply the upper and lower bounds as
@@ -384,11 +384,12 @@ class GeneratePercentilesFromProbabilities(object):
                     upper_bound = max(threshold_points)
                 if lower_bound > min(threshold_points):
                     lower_bound = min(threshold_points)
-                threshold_points = insert_lower_and_upper_endpoint_to_1d_array(
-                    threshold_points, lower_bound, upper_bound)
+                threshold_points_with_endpoints = \
+                    insert_lower_and_upper_endpoint_to_1d_array(
+                        threshold_points, lower_bound, upper_bound)
             else:
                 raise ValueError(msg)
-        return threshold_points, probabilities_for_cdf
+        return threshold_points_with_endpoints, probabilities_for_cdf
 
     def _probabilities_to_percentiles(
             self, forecast_probabilities, percentiles, bounds_pairing,
