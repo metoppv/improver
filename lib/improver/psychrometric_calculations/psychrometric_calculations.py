@@ -33,6 +33,7 @@
 import warnings
 from functools import partial
 
+from numba import jit
 import numpy as np
 import iris
 from stratify import interpolate
@@ -40,13 +41,234 @@ from scipy.interpolate import griddata
 from scipy.stats import linregress
 from cf_units import Unit
 
-from numba import jit
 from improver.psychrometric_calculations import svp_table
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.mathematical_operations import Integration
 from improver.utilities.spatial import (
     OccurrenceWithinVicinity, convert_number_of_grid_cells_into_distance)
 import improver.constants as cc
+
+svp_table_d = svp_table.DATA
+
+
+@jit(nopython=True)
+def np_clip(a, a_min, a_max):
+    a_shape = a.shape
+    a = a.flatten()
+    for i, ax in enumerate(a):
+        if ax < a_min:
+            a[i] = a_min
+        if ax > a_max:
+            a[i] = a_max
+    return a.reshape(a_shape)
+
+
+@jit(nopython=True)
+def check_range(cube, low, high):
+    """Function to wrap functionality for throwing out temperatures
+    too low or high for a method to use safely.
+
+    Args:
+        cube (iris.cube.Cube):
+            A cube of temperature.
+
+        low (int or float):
+            Lowest allowable temperature for check
+
+        high (int or float):
+            Highest allowable temperature for check
+
+    Raises:
+        UserWarning : If any of the values in cube.data are outside the
+                      bounds set by the low and high variables.
+    """
+    if cube.max() > high or cube.min() < low:
+        emsg = ("Wet bulb temperatures are being calculated for conditions"
+                " beyond the valid range of the saturated vapour pressure"
+                " lookup table (< {}K or > {}K). Input cube has\n"
+                "Lowest temperature = {}\nHighest temperature = {}")
+        # warnings.warn(emsg.format(low, high, cube.min(),
+        #                           cube.max()))
+
+
+@jit(nopython=True)
+def lookup_svp(temperature):
+    """
+    Looks up a value for the saturation vapour pressure of water vapour
+    using the temperature and a table of values. These tabulated values
+    have been calculated using the utilties.ancillary_creation
+    SaturatedVapourPressureTable plugin that uses the Goff-Gratch method.
+
+    Args:
+        temperature (iris.cube.Cube):
+            A cube of air temperatures (K).
+    Returns:
+        svp (iris.cube.Cube):
+            A cube of saturated vapour pressures (Pa).
+    """
+    T_min = svp_table.T_MIN
+    T_max = svp_table.T_MAX
+    delta_T = svp_table.T_INCREMENT
+    check_range(temperature, T_min, T_max)
+    T_clipped = np_clip(temperature.copy(), T_min, T_max)
+
+    def svp_table_DATA(index):
+        index_shape = index.shape
+        data = np.zeros(index.size)
+        for i, idx in enumerate(list(index.flatten())):
+            data[i] = svp_table_d[idx]
+        return data.reshape(index_shape)
+
+    # Note the indexing below differs by -1 compared with the UM due to
+    # Python vs. Fortran indexing.
+    table_position = (T_clipped - T_min + delta_T)/delta_T - 1.
+    # table_index = np.array([int(i) for i in table_position.flatten()])
+    table_index = table_position.astype(np.int32)
+    interpolation_factor = table_position - table_index
+    svps = ((1.0 - interpolation_factor) * svp_table_DATA(table_index) +
+            interpolation_factor * svp_table_DATA(table_index + 1))
+
+    svp = svps
+#        svp.units = Unit('Pa')
+#        svp.rename("saturated_vapour_pressure")
+    return svp
+
+
+@jit(nopython=True)
+def pressure_correct_svp(svp, temperature, pressure):
+    """
+    Convert saturated vapour pressure in a pure water vapour system into
+    the saturated vapour pressure in air.
+
+    Method from referenced dcumentation.
+
+    References:
+        Atmosphere-Ocean Dynamics, Adrian E. Gill, International Geophysics
+        Series, Vol. 30; Equation A4.7.
+
+    Args:
+        svp (iris.cube.Cube):
+            A cube of saturated vapour pressures (Pa).
+        temperature (iris.cube.Cube):
+            A cube of air temperatures (K, converted to Celsius).
+        pressure (iris.cube.Cube):
+            Cube of pressure (Pa).
+
+    Returns:
+        svp (iris.cube.Cube):
+            The input cube of saturated vapour pressure of air (Pa) is
+            modified by the pressure correction.
+    """
+    temp = temperature
+    # temp.convert_units('celsius')
+    temp = temp - 273.15
+
+    correction = (1. + 1.0E-8 * pressure *
+                  (4.5 + 6.0E-4 * temp ** 2))
+    svp = svp*correction
+    return svp
+
+
+@jit(nopython=True)
+def _calculate_mixing_ratio(temperature, pressure):
+    """Function to compute the mixing ratio given temperature and pressure.
+
+    Args:
+        temperature (iris.cube.Cube):
+            Cube of air temperature (K).
+        pressure (iris.cube.Cube):
+            Cube of air pressure (Pa).
+
+    Returns
+        mixing_ratio (iris.cube.Cube):
+            Cube of mixing ratios.
+
+    Method from referenced documentation. Note that EARTH_REPSILON is
+    simply given as an unnamed constant in the reference (0.62198).
+
+    References:
+        ASHRAE Fundamentals handbook (2005) Equation 22, 24, p6.8
+    """
+    svp = lookup_svp(temperature)
+    svp = pressure_correct_svp(svp, temperature, pressure)
+
+    # Calculation
+    result_numer = (cc.EARTH_REPSILON * svp)
+    max_pressure_term = np.maximum(svp, pressure)
+    result_denom = (max_pressure_term - ((1. - cc.EARTH_REPSILON) *
+                                         svp))
+    mixing_ratio = result_numer / result_denom
+
+    # Tidying up cube
+#        mixing_ratio.rename("humidity_mixing_ratio")
+#        mixing_ratio.units = Unit("1")
+    return mixing_ratio
+
+
+@jit(nopython=True)
+def calculate_enthalpy(mixing_ratio, specific_heat, latent_heat,
+                       temperature):
+    """
+    Calculate the enthalpy (total energy per unit mass) of air (J kg-1).
+
+    Method from referenced UM documentation.
+
+    References:
+        Met Office UM Documentation Paper 080, UM Version 10.8,
+        last updated 2014-12-05.
+
+    Args:
+        mixing_ratio (iris.cube.Cube):
+            Cube of mixing ratios.
+        specific_heat (iris.cube.Cube):
+            Cube of specific heat capacities of moist air (J kg-1 K-1).
+        latent_heat (iris.cube.Cube):
+            Cube of latent heats of condensation of water vapour
+            (J kg-1).
+        temperature (iris.cube.Cube):
+            A cube of air temperatures (K).
+    Returns:
+       enthalpy (iris.cube.Cube):
+           A cube of enthalpy values calculated at the same points as the
+           input cubes (J kg-1).
+    """
+    enthalpy = latent_heat * mixing_ratio + specific_heat * temperature
+    # enthalpy.rename('enthalpy_of_air')
+    return enthalpy
+
+
+@jit(nopython=True)
+def calculate_d_enthalpy_dt(mixing_ratio, specific_heat,
+                            latent_heat, temperature_input):
+    """
+    Calculate the enthalpy gradient with respect to temperature.
+
+    Method from referenced UM documentation.
+
+    References:
+        Met Office UM Documentation Paper 080, UM Version 10.8,
+        last updated 2014-12-05.
+
+    Args:
+        mixing_ratio (iris.cube.Cube):
+            Cube of mixing ratios.
+        specific_heat (iris.cube.Cube):
+            Cube of specific heat capacities of moist air (J kg-1 K-1).
+        latent_heat (iris.cube.Cube):
+            Cube of latent heats of condensation of water vapour
+            (J kg-1).
+        temperature_input (iris.cube.Cube):
+            A cube of temperatures (K, or converted).
+
+    Returns:
+        iris.cube.Cube:
+            A cube of the enthalpy gradient with respect to temperature.
+    """
+    temperature = temperature_input
+    # temperature.convert_units('K')
+    numerator = (mixing_ratio * latent_heat ** 2)
+    denominator = cc.R_WATER_VAPOUR * temperature ** 2
+    return numerator/denominator + specific_heat
 
 
 class Utilities(object):
@@ -67,7 +289,6 @@ class Utilities(object):
         return result
 
     @staticmethod
-    @jit
     def specific_heat_of_moist_air(mixing_ratio):
         """
         Calculate the specific heat capacity for moist air by combining that of
@@ -86,7 +307,6 @@ class Utilities(object):
         return specific_heat
 
     @staticmethod
-    @jit
     def latent_heat_of_condensation(temperature_input):
         """
         Calculate a temperature adjusted latent heat of condensation for water
@@ -106,72 +326,6 @@ class Utilities(object):
         latent_heat.units = cc.U_LH_CONDENSATION_WATER.units
         latent_heat.rename('latent_heat_of_condensation')
         return latent_heat
-
-    @staticmethod
-    @jit
-    def calculate_enthalpy(mixing_ratio, specific_heat, latent_heat,
-                           temperature):
-        """
-        Calculate the enthalpy (total energy per unit mass) of air (J kg-1).
-
-        Method from referenced UM documentation.
-
-        References:
-            Met Office UM Documentation Paper 080, UM Version 10.8,
-            last updated 2014-12-05.
-
-        Args:
-            mixing_ratio (iris.cube.Cube):
-                Cube of mixing ratios.
-            specific_heat (iris.cube.Cube):
-                Cube of specific heat capacities of moist air (J kg-1 K-1).
-            latent_heat (iris.cube.Cube):
-                Cube of latent heats of condensation of water vapour
-                (J kg-1).
-            temperature (iris.cube.Cube):
-                A cube of air temperatures (K).
-        Returns:
-           enthalpy (iris.cube.Cube):
-               A cube of enthalpy values calculated at the same points as the
-               input cubes (J kg-1).
-        """
-        enthalpy = latent_heat * mixing_ratio + specific_heat * temperature
-        #enthalpy.rename('enthalpy_of_air')
-        return enthalpy
-
-    @staticmethod
-    @jit
-    def calculate_d_enthalpy_dt(mixing_ratio, specific_heat,
-                                latent_heat, temperature_input):
-        """
-        Calculate the enthalpy gradient with respect to temperature.
-
-        Method from referenced UM documentation.
-
-        References:
-            Met Office UM Documentation Paper 080, UM Version 10.8,
-            last updated 2014-12-05.
-
-        Args:
-            mixing_ratio (iris.cube.Cube):
-                Cube of mixing ratios.
-            specific_heat (iris.cube.Cube):
-                Cube of specific heat capacities of moist air (J kg-1 K-1).
-            latent_heat (iris.cube.Cube):
-                Cube of latent heats of condensation of water vapour
-                (J kg-1).
-            temperature_input (iris.cube.Cube):
-                A cube of temperatures (K, or converted).
-
-        Returns:
-            iris.cube.Cube:
-                A cube of the enthalpy gradient with respect to temperature.
-        """
-        temperature = temperature_input
-        #temperature.convert_units('K')
-        numerator = (mixing_ratio * latent_heat ** 2)
-        denominator = cc.U_R_WATER_VAPOUR.points * temperature ** 2
-        return numerator/denominator + specific_heat
 
     @staticmethod
     def saturation_vapour_pressure_goff_gratch(temperature):
@@ -210,7 +364,7 @@ class Utilities(object):
         triple_pt = cc.TRIPLE_PT_WATER
 
         # Values for which method is considered valid (see reference).
-        WetBulbTemperature.check_range(temperature, 173., 373.)
+        check_range(temperature, 173., 373.)
 
         data = temperature.data.copy()
         for cell in np.nditer(data, op_flags=['readwrite']):
@@ -270,138 +424,6 @@ class WetBulbTemperature(object):
         result = ('<WetBulbTemperature: precision: {}>'.format(self.precision))
         return result
 
-    @staticmethod
-    def check_range(cube, low, high):
-        """Function to wrap functionality for throwing out temperatures
-        too low or high for a method to use safely.
-
-        Args:
-            cube (iris.cube.Cube):
-                A cube of temperature.
-
-            low (int or float):
-                Lowest allowable temperature for check
-
-            high (int or float):
-                Highest allowable temperature for check
-
-        Raises:
-            UserWarning : If any of the values in cube.data are outside the
-                          bounds set by the low and high variables.
-        """
-        if cube.max() > high or cube.min() < low:
-            emsg = ("Wet bulb temperatures are being calculated for conditions"
-                    " beyond the valid range of the saturated vapour pressure"
-                    " lookup table (< {}K or > {}K). Input cube has\n"
-                    "Lowest temperature = {}\nHighest temperature = {}")
-            warnings.warn(emsg.format(low, high, cube.min(),
-                                      cube.max()))
-
-    @staticmethod
-    def lookup_svp(temperature):
-        """
-        Looks up a value for the saturation vapour pressure of water vapour
-        using the temperature and a table of values. These tabulated values
-        have been calculated using the utilties.ancillary_creation
-        SaturatedVapourPressureTable plugin that uses the Goff-Gratch method.
-
-        Args:
-            temperature (iris.cube.Cube):
-                A cube of air temperatures (K).
-        Returns:
-            svp (iris.cube.Cube):
-                A cube of saturated vapour pressures (Pa).
-        """
-        T_min = svp_table.T_MIN
-        T_max = svp_table.T_MAX
-        delta_T = svp_table.T_INCREMENT
-        WetBulbTemperature.check_range(temperature, T_min, T_max)
-        temperatures = temperature.copy()
-        T_clipped = np.clip(temperatures, T_min, T_max)
-
-        # Note the indexing below differs by -1 compared with the UM due to
-        # Python vs. Fortran indexing.
-        table_position = (T_clipped - T_min + delta_T)/delta_T - 1.
-        table_index = table_position.astype(int)
-        interpolation_factor = table_position - table_index
-        svps = ((1.0 - interpolation_factor) * svp_table.DATA[table_index] +
-                interpolation_factor * svp_table.DATA[table_index + 1])
-
-        svp = svps
-#        svp.units = Unit('Pa')
-#        svp.rename("saturated_vapour_pressure")
-        return svp
-
-    @staticmethod
-    def pressure_correct_svp(svp, temperature, pressure):
-        """
-        Convert saturated vapour pressure in a pure water vapour system into
-        the saturated vapour pressure in air.
-
-        Method from referenced dcumentation.
-
-        References:
-            Atmosphere-Ocean Dynamics, Adrian E. Gill, International Geophysics
-            Series, Vol. 30; Equation A4.7.
-
-        Args:
-            svp (iris.cube.Cube):
-                A cube of saturated vapour pressures (Pa).
-            temperature (iris.cube.Cube):
-                A cube of air temperatures (K, converted to Celsius).
-            pressure (iris.cube.Cube):
-                Cube of pressure (Pa).
-
-        Returns:
-            svp (iris.cube.Cube):
-                The input cube of saturated vapour pressure of air (Pa) is
-                modified by the pressure correction.
-        """
-        temp = temperature
-        #temp.convert_units('celsius')
-        temp = temp - 273.15
-
-        correction = (1. + 1.0E-8 * pressure *
-                      (4.5 + 6.0E-4 * temp ** 2))
-        svp = svp*correction
-        return svp
-
-    @staticmethod
-    @jit
-    def _calculate_mixing_ratio(temperature, pressure):
-        """Function to compute the mixing ratio given temperature and pressure.
-
-        Args:
-            temperature (iris.cube.Cube):
-                Cube of air temperature (K).
-            pressure (iris.cube.Cube):
-                Cube of air pressure (Pa).
-
-        Returns
-            mixing_ratio (iris.cube.Cube):
-                Cube of mixing ratios.
-
-        Method from referenced documentation. Note that EARTH_REPSILON is
-        simply given as an unnamed constant in the reference (0.62198).
-
-        References:
-            ASHRAE Fundamentals handbook (2005) Equation 22, 24, p6.8
-        """
-        svp = WetBulbTemperature.lookup_svp(temperature)
-        svp = WetBulbTemperature.pressure_correct_svp(svp, temperature, pressure)
-
-        # Calculation
-        result_numer = (cc.EARTH_REPSILON * svp)
-        max_pressure_term = np.maximum(svp, pressure)
-        result_denom = (max_pressure_term - ((1. - cc.EARTH_REPSILON) *
-                                             svp))
-        mixing_ratio = result_numer / result_denom
-
-        # Tidying up cube
-#        mixing_ratio.rename("humidity_mixing_ratio")
-#        mixing_ratio.units = Unit("1")
-        return mixing_ratio
-
     def calculate_wet_bulb_temperature(self, temperature, relative_humidity,
                                        pressure):
         """
@@ -427,8 +449,9 @@ class WetBulbTemperature(object):
         temperature.convert_units('K')
 
         # Calculate mixing ratios.
-        saturation_mixing_ratio = self._calculate_mixing_ratio(temperature.data,
-                                                               pressure.data)
+        saturation_mixing_ratio = _calculate_mixing_ratio(temperature.data,
+                                                          pressure.data)
+
         mixing_ratio = relative_humidity.data * saturation_mixing_ratio
         mixing_ratio = relative_humidity.copy(data=mixing_ratio)
         mixing_ratio.rename("humidity_mixing_ratio")
@@ -442,33 +465,18 @@ class WetBulbTemperature(object):
         wbt.rename('wet_bulb_temperature')
 
         # Calculate enthalpy.
-        g_tw = Utilities.calculate_enthalpy(mixing_ratio.data,
-                                            specific_heat.data, latent_heat.data,
-                                            temperature.data)
-        wbt.data = self._fsl_minimise(wbt.data, g_tw, specific_heat.data,
-                                      latent_heat.data, pressure.data, self.precision)
+        g_tw = calculate_enthalpy(mixing_ratio.data,
+                                  specific_heat.data, latent_heat.data,
+                                  temperature.data)
+        wbt.data = self._wbt_minimise(wbt.data, g_tw, saturation_mixing_ratio,
+                                      specific_heat.data, latent_heat.data,
+                                      pressure.data, self.precision)
         return wbt
 
     @staticmethod
-    def enthalpy_denthalpy(specific_heat, latent_heat, pressure):
-        def mixing_ratio_func(temperature):
-            return WetBulbTemperature._calculate_mixing_ratio(temperature,
-                                                pressure)
-
-        def result(temperature):
-            mixing_ratio = mixing_ratio_func(temperature)
-            enthalpy = Utilities.calculate_enthalpy(mixing_ratio, specific_heat,
-                                                    latent_heat, temperature)
-            denthalpy = Utilities.calculate_d_enthalpy_dt(mixing_ratio,
-                                                          specific_heat,
-                                                          latent_heat,
-                                                          temperature)
-            return (enthalpy, denthalpy)
-        return result
-
-    @staticmethod
     @jit
-    def _fsl_minimise(wbt, g_tw, specific_heat, latent_heat, pressure, precision_amount):
+    def _wbt_minimise(wbt, g_tw, saturation_mixing_ratio,
+                      specific_heat, latent_heat, pressure, precision_amount):
         # wbt is initial guess
         precision = np.full(wbt.shape, precision_amount)
 
@@ -477,18 +485,19 @@ class WetBulbTemperature(object):
         max_iterations = 20
         iteration = 0
 
-        func = WetBulbTemperature.enthalpy_denthalpy(specific_heat, latent_heat, pressure)
         # Iterate to find the wet bulb temperature
         while (np.abs(delta_wbt) > precision).any():
-            g_tw_new, dg_dt = func(wbt)
+            g_tw_new = calculate_enthalpy(
+                saturation_mixing_ratio, specific_heat, latent_heat, wbt)
+            dg_dt = calculate_d_enthalpy_dt(
+                saturation_mixing_ratio, specific_heat, latent_heat, wbt)
             delta_wbt = (g_tw - g_tw_new) / dg_dt
 
             # Only change values at those points yet to converge to avoid
             # oscillating solutions (the now fixed points are still calculated
             # unfortunately).
             unfinished = np.where(np.abs(delta_wbt) > precision)
-            wbt[unfinished] = (wbt[unfinished] +
-                                    delta_wbt[unfinished])
+            wbt[unfinished] = wbt[unfinished] + delta_wbt[unfinished]
 
             # If the errors are identical between two iterations, stop.
             if (np.array_equal(delta_wbt, delta_wbt_history) or
@@ -498,6 +507,10 @@ class WetBulbTemperature(object):
                 break
             delta_wbt_history = delta_wbt
             iteration += 1
+
+            # Recalculate the saturation mixing ratio
+            saturation_mixing_ratio = _calculate_mixing_ratio(
+                wbt, pressure)
         return wbt
 
     def process(self, temperature, relative_humidity, pressure):
