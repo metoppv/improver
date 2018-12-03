@@ -42,11 +42,15 @@ from improver.utilities.cube_checker import check_cube_coordinates
 class SpatialWeightsForMissingData(object):
     """
     Plugin for adjusting weights spatially based on missing data in the input
-    cube that will be collapsed using these weights.
+    cube. It takes in an initial one dimensional cube of weights which would
+    be used to collapse a dimension on the input cube and outputs weights
+    which have been adjusted based on the presence of missing data in x-y
+    slices of input data. The resulting weights cube has a x and y dimensions
+    in addition to the one dimension in the inital cube of weights.
 
     The plugin does the following steps:
 
-        1. Creates an initial spatial weights basked on the mask in the
+        1. Creates an initial spatial weights based on the mask in the
            input cube giving zero weight to where there is masked data and
            a weight of 1 where there is valid data.
         2. Make these weights fuzzy by smoothing the boundary between where
@@ -54,9 +58,9 @@ class SpatialWeightsForMissingData(object):
            weight, but reduces nearby grid points with a weight of 1 depending
            on how far they are from a grid point with a weight of zero. The
            range of the effect is controlled by the supplied fuzzy_length
-        3. Multiplies the fuzzy spatial weights by the one_dimensional weights
+        3. Multiplies the fuzzy spatial weights by the one dimensional weights
            supplied to the plugin.
-        4. Normalises the weights along the coordinatethat will be collapsed
+        4. Normalises the weights along the coordinate that will be collapsed
            when blending is carried out using these weights.
     """
 
@@ -66,7 +70,15 @@ class SpatialWeightsForMissingData(object):
         Keyword Args:
             fuzzy_length (int or float):
                 The length in terms of number of grid squares, over which the
-                weights from the input data mask are smoothed.
+                weights from the input data mask are smoothed. This is used
+                when calculating a fuzzy weighting based on how far away each
+                grid point is from a masked point. The distance is taken as
+                the euclidean distance from the masked point, so the fuzzy
+                length can be a non-integer value. Any points that are at least
+                this distance away from a masked point keep a weight of one,
+                and any points closer than this distance to a masked point have
+                a weight of less than one based on how close to the masked
+                point they are.
         """
         self.fuzzy_length = fuzzy_length
 
@@ -88,7 +100,7 @@ class SpatialWeightsForMissingData(object):
                 A cube containing the data we want to collapse by doing a
                 weighted blend along a given cordinate.
         Return:
-            masked_weights_cube (iris.cube.Cube):
+            weights_from_mask (iris.cube.Cube):
                 A cube containing an initial set of weights based on the mask
                 on the input cube.
         Rasies:
@@ -100,31 +112,39 @@ class SpatialWeightsForMissingData(object):
             message = ("Input cube to SpatialWeightsForMissingData "
                        "must be masked")
             raise ValueError(message)
-        masked_weights_cube = cube.copy(data=weights_data)
-        masked_weights_cube.rename("weights")
-        return masked_weights_cube
+        weights_from_mask = cube.copy(data=weights_data)
+        weights_from_mask.rename("weights")
+        return weights_from_mask
 
-    def create_fuzzy_spatial_weights(self, masked_weights_cube):
+    def create_fuzzy_spatial_weights(self, weights_from_mask):
         """
-        Create fuzzy weights around points in the masked_weights_cube with
+        Create fuzzy weights around points in the weights_from_mask with
         zero weight.
 
+        This works by doing an euclidean distance transform based on how far
+        each grid point is from a masked point. This returns an array
+        containing the distance each point is from the nearest masked point.
+        The result is then rescaled so that any point that are at least as far
+        as the fuzzy_length away from a masked point are set
+        back to a weight of one and any points that are closer than the
+        fuzzy_length to a masked point are scaled to be between 0 and 1.
+
         Args:
-            masked_weights_cube (iris.cube.Cube):
+            weights_from_mask (iris.cube.Cube):
                 A cube containing an initial set of weights based on the mask
                 on the input cube.
         Returns:
             result (iris.cube.Cube):
-                A cube contiaing the fuzzy weights calculated based on the
-                masked_weights_cube. The dimension order may have changed from
+                A cube containing the fuzzy weights calculated based on the
+                weights_from_mask. The dimension order may have changed from
                 the input cube as it has been sliced over x and y coordinates.
         """
         result = iris.cube.CubeList()
-        x_coord = masked_weights_cube.coord(axis='x').name()
-        y_coord = masked_weights_cube.coord(axis='y').name()
+        x_coord = weights_from_mask.coord(axis='x').name()
+        y_coord = weights_from_mask.coord(axis='y').name()
         # The distance_transform_edt works on N-D cubes, so we want to make
         # sure we only apply it to x-y slices.
-        for weights in masked_weights_cube.slices([x_coord, y_coord]):
+        for weights in weights_from_mask.slices([y_coord, x_coord]):
             if np.all(weights.data == 1.0):
                 # distance_transform_edt doesn't produce what we want if there
                 # are no zeros present.
@@ -140,25 +160,25 @@ class SpatialWeightsForMissingData(object):
         return result
 
     @staticmethod
-    def multiply_weights(masked_weights_cube, one_dimensional_weights_cube,
-                         collapsing_coord):
+    def multiply_weights(weights_from_mask, one_dimensional_weights_cube,
+                         blend_coord):
         """
         Multiply two cubes together by taking slices along the coordinate
-        matching the collapsing_coord string.
+        matching the blend_coord string.
 
         Args:
-            masked_weights_cube (iris.cube.Cube):
+            weights_from_mask (iris.cube.Cube):
                 A cube with spatial weights and any other leading dimensions.
                 This cube must have a coordinate matching the name given by
-                collapsing_coord and this coordinate must be the same length
+                blend_coord and this coordinate must be the same length
                 as the corresponding coordinate in the
                 one_dimensional_weights_cube.
             one_dimensional_weights_cube (iris.cube.Cube):
                 A cube with one_dimensional weights. The only dimension
                 coordinate in this cube matches the string given by
-                collapsing_coord and the length of this coord must match the
-                length of the same coordinate in masked_weights_cube.
-            collapsing_coord (string):
+                blend_coord and the length of this coord must match the
+                length of the same coordinate in weights_from_mask.
+            blend_coord (string):
                 The string that will match to a coordinate in both input cube.
                 This is the coordinate that the input cubes will be sliced
                 along and then multipled. The corresponds to the coordinate
@@ -169,19 +189,19 @@ class SpatialWeightsForMissingData(object):
             result (iris.cube.Cube):
                 A cube with the same dimensions as the input cube, but with
                 the weights multiplied by the weights from the
-                one_dimensional_weights_cube. The collapsing_coord will be the
+                one_dimensional_weights_cube. The blend_coord will be the
                 leading dimension on the output cube.
         """
         result = iris.cube.CubeList()
-        if (masked_weights_cube.coord(collapsing_coord) !=
-                one_dimensional_weights_cube.coord(collapsing_coord)):
-            message = ("The collapsing_coord {} does not match on "
-                       "masked_weights_cube and "
-                       "one_dimensional_weights_cube".format(collapsing_coord))
+        if (weights_from_mask.coord(blend_coord) !=
+                one_dimensional_weights_cube.coord(blend_coord)):
+            message = ("The blend_coord {} does not match on "
+                       "weights_from_mask and "
+                       "one_dimensional_weights_cube".format(blend_coord))
             raise ValueError(message)
         for masked_weight_slice, one_dimensional_weight in zip(
-                masked_weights_cube.slices_over(collapsing_coord),
-                one_dimensional_weights_cube.slices_over(collapsing_coord)):
+                weights_from_mask.slices_over(blend_coord),
+                one_dimensional_weights_cube.slices_over(blend_coord)):
             masked_weight_slice.data = (
                 masked_weight_slice.data * one_dimensional_weight.data)
             result.append(masked_weight_slice)
@@ -189,22 +209,22 @@ class SpatialWeightsForMissingData(object):
         return result
 
     @staticmethod
-    def normalised_masked_weights(weights_cube, collapsing_coord):
+    def normalised_masked_weights(weights_cube, blend_coord):
         """
         Normalise spatial weights along dimension associated with the
-        collapsing_coord. If for a given point the sum of the weights along
-        the collapsing_coord is zero then the returned normalised weight for
+        blend_coord. If for a given point the sum of the weights along
+        the blend_coord is zero then the returned normalised weight for
         that point will also be zero. This correspsonds to the case where
         there is missing data for that point for all slices along the
-        collapsing_coord.
+        blend_coord.
 
         Args:
             weights_cube (iris.cube.Cube):
                 A cube with spatial weights and any other leading dimension.
                 This cube must have a coordinate matching the name given by
-                collapsing_coord which corresponds to the dimension along
+                blend_coord which corresponds to the dimension along
                 which the normalisation is needed.
-            collapsing_coord (string):
+            blend_coord (string):
                 The string that will match to a coordinate in both input cube.
                 This coordinate corresponds to the dimension along which the
                 normalisation is needed.
@@ -212,19 +232,19 @@ class SpatialWeightsForMissingData(object):
         Returns:
             result (iris.cube.Cube):
                 A cube with the same dimensions as the input cube, but with
-                the weights normalised along the collapsing_coord dimension.
-                The collapsing_coord will be the leading dimension on the
+                the weights normalised along the blend_coord dimension.
+                The blend_coord will be the leading dimension on the
                 output cube.
         """
         summed_weights = weights_cube.collapsed(
-            collapsing_coord, iris.analysis.SUM)
+            blend_coord, iris.analysis.SUM)
         result = iris.cube.CubeList()
-        # Slice over collapsing_coord so the dimensions match.
+        # Slice over blend_coord so the dimensions match.
         for weight_slice in (
-                weights_cube.slices_over(collapsing_coord)):
+                weights_cube.slices_over(blend_coord)):
             # Only divide where the sum of weights are positive. Setting
             # the out keyword args sets the default value for where
-            # the sum of the weights are less than zero.
+            # the sum of the weights are zero.
             normalised_data = np.divide(
                 weight_slice.data, summed_weights.data,
                 out=np.zeros_like(weight_slice.data),
@@ -233,23 +253,23 @@ class SpatialWeightsForMissingData(object):
         return result.merge_cube()
 
     def process(self, cube_to_collapse, one_dimensional_weights_cube,
-                collapsing_coord):
+                blend_coord):
         """
         Create fuzzy spatial weights based on missing data in the cube we
         are going to collapse and combine these with 1D weights along the
-        collapsing_coord.
+        blend_coord.
 
         Args:
             cube_to_collapse (iris.cube.Cube):
-                The cube that will be collapsed along the collapsing_coord
+                The cube that will be collapsed along the blend_coord
                 using the spatial weights generated using this plugin. Must
                 be masked where there is invalid data.
             one_dimensional_weights_cube (iris.cube.Cube):
                 A cube containing a single dimension coordinate with the same
-                name given collapsing_coord. This cube contains 1D weights
-                that will be applied along the collapsing_coord but need
+                name given blend_coord. This cube contains 1D weights
+                that will be applied along the blend_coord but need
                 adjusting spatially based on missing data.
-            collapsing_coord (string):
+            blend_coord (string):
                 A string containing the name of the coordinate that the
                 cube_to_collapse will be collapsed along. Also matches the
                 coordinate in one_dimensional_weights_cube.
@@ -261,15 +281,15 @@ class SpatialWeightsForMissingData(object):
                 Contains the same dimensions in the same order as
                 cube_to_collapse.
         """
-        masked_weights_cube = self.create_initial_weights_from_mask(
+        weights_from_mask = self.create_initial_weights_from_mask(
             cube_to_collapse)
-        masked_weights_cube = self.create_fuzzy_spatial_weights(
-            masked_weights_cube)
+        weights_from_mask = self.create_fuzzy_spatial_weights(
+            weights_from_mask)
         final_weights = self.multiply_weights(
-            masked_weights_cube, one_dimensional_weights_cube,
-            collapsing_coord)
+            weights_from_mask, one_dimensional_weights_cube,
+            blend_coord)
         final_weights = self.normalised_masked_weights(
-            final_weights, collapsing_coord)
+            final_weights, blend_coord)
         # Check dimensions
         final_weights = check_cube_coordinates(cube_to_collapse, final_weights)
         return final_weights
