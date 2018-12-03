@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to adjust weights spatially based on missing data in input cubes."""
 
+import warnings
 import iris
 import numpy as np
 
@@ -110,9 +111,10 @@ class SpatiallyVaryingWeightsFromMask(object):
         if np.ma.is_masked(cube.data):
             weights_data = np.where(cube.data.mask, 0, 1).astype(np.float32)
         else:
+            weights_data = np.ones(cube.data.shape, dtype=np.float32)
             message = ("Input cube to SpatiallyVaryingWeightsFromMask "
                        "must be masked")
-            raise ValueError(message)
+            warnings.warn(message)
         weights_from_mask = cube.copy(data=weights_data)
         weights_from_mask.rename("weights")
         return weights_from_mask

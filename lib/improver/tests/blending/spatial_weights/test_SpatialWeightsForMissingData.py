@@ -79,12 +79,17 @@ class Test_create_initial_weights_from_mask(IrisTest):
         self.cube = squeeze(self.cube)
         self.plugin = SpatiallyVaryingWeightsFromMask()
 
-    def test_no_mask(self):
+    @ManageWarnings(record=True)
+    def test_no_mask(self, warning_list=None):
         """Test what happens when no mask is on the input cube"""
+        expected_data = np.ones((3, 2, 3), dtype=np.float32)
         message = ("Input cube to SpatiallyVaryingWeightsFromMask "
                    "must be masked")
-        with self.assertRaisesRegex(ValueError, message):
-            self.plugin.create_initial_weights_from_mask(self.cube)
+        result = self.plugin.create_initial_weights_from_mask(self.cube)
+        self.assertTrue(any(message in str(item)
+                            for item in warning_list))
+        self.assertArrayEqual(result.data, expected_data)
+        self.assertEqual(result.dtype, np.float32)
 
     def test_basic(self):
         """Test the weights coming out of a simple masked cube."""
@@ -115,7 +120,8 @@ class Test_create_initial_weights_from_mask(IrisTest):
         self.assertEqual(result.dtype, np.float32)
         self.assertEqual(result.name(), "weights")
 
-    def test_none_masked(self):
+    @ManageWarnings(record=True)
+    def test_none_masked(self, warning_list=None):
         """Test what happens if we try to create a masked array for input, but
         where all the values should be unmasked."""
         input_data = np.array([[[10, 5, 10],
@@ -125,14 +131,18 @@ class Test_create_initial_weights_from_mask(IrisTest):
                                [[10, 10, 10],
                                 [10, 10, 10]]],
                               dtype=np.float32)
+        expected_data = np.ones((3, 2, 3), dtype=np.float32)
         # This actually produces an array which numpy classes as NOT a masked
         # array.
         input_data = np.ma.masked_equal(input_data, 0)
         self.cube.data = input_data
         message = ("Input cube to SpatiallyVaryingWeightsFromMask "
                    "must be masked")
-        with self.assertRaisesRegex(ValueError, message):
-            self.plugin.create_initial_weights_from_mask(self.cube)
+        result = self.plugin.create_initial_weights_from_mask(self.cube)
+        self.assertTrue(any(message in str(item)
+                            for item in warning_list))
+        self.assertArrayEqual(result.data, expected_data)
+        self.assertEqual(result.dtype, np.float32)
 
     def test_all_masked(self):
         """Test the weights coming out of a simple masked cube."""
@@ -637,17 +647,34 @@ class Test_process(IrisTest):
             [0.2, 0.5, 0.3], dtype=np.float32)
         self.plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=4)
 
-    def test_none_masked(self):
+    @ManageWarnings(record=True)
+    def test_none_masked(self, warning_list=None):
         """Test when we have no masked data in the input cube."""
         self.cube_to_collapse.data = np.ones(self.cube_to_collapse.data.shape)
         self.cube_to_collapse.data = np.ma.masked_equal(
             self.cube_to_collapse.data, 0)
+        expected_data = np.array([[[[0.2, 0.2, 0.2],
+                                    [0.2, 0.2, 0.2]],
+                                   [[0.2, 0.2, 0.2],
+                                    [0.2, 0.2, 0.2]]],
+                                  [[[0.5, 0.5, 0.5],
+                                    [0.5, 0.5, 0.5]],
+                                   [[0.5, 0.5, 0.5],
+                                    [0.5, 0.5, 0.5]]],
+                                  [[[0.3, 0.3, 0.3],
+                                    [0.3, 0.3, 0.3]],
+                                   [[0.3, 0.3, 0.3],
+                                    [0.3, 0.3, 0.3]]]],
+                                 dtype=np.float32)
         message = ("Input cube to SpatiallyVaryingWeightsFromMask "
                    "must be masked")
-        with self.assertRaisesRegex(ValueError, message):
-            self.plugin.process(
-                self.cube_to_collapse, self.one_dimensional_weights_cube,
-                "forecast_reference_time")
+        result = self.plugin.process(
+            self.cube_to_collapse, self.one_dimensional_weights_cube,
+            "forecast_reference_time")
+        self.assertTrue(any(message in str(item)
+                            for item in warning_list))
+        self.assertArrayEqual(result.data, expected_data)
+        self.assertEqual(result.dtype, np.float32)
 
     @ManageWarnings(ignored_messages=[
         "Collapsing a non-contiguous coordinate."])
