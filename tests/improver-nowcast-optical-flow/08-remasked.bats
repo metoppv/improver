@@ -34,8 +34,8 @@
 @test "optical-flow remasked" {
 
   improver_check_skip_acceptance
-  KGO1="optical-flow/remasked/ucomp_kgo.nc"
-  KGO2="optical-flow/remasked/vcomp_kgo.nc"
+  KGO1="nowcast-optical-flow/remasked/ucomp_kgo.nc"
+  KGO2="nowcast-optical-flow/remasked/vcomp_kgo.nc"
 
   COMP1="201811271330_radar_rainrate_remasked_composite_2km_UK.nc"
   COMP2="201811271345_radar_rainrate_remasked_composite_2km_UK.nc"
@@ -43,9 +43,9 @@
 
   # Run processing with radar data whose masks differ
   run improver nowcast-optical-flow \
-    "$IMPROVER_ACC_TEST_DIR/optical-flow/remasked/$COMP1" \
-    "$IMPROVER_ACC_TEST_DIR/optical-flow/remasked/$COMP2" \
-    "$IMPROVER_ACC_TEST_DIR/optical-flow/remasked/$COMP3" \
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/remasked/$COMP1" \
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/remasked/$COMP2" \
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/remasked/$COMP3" \
     --output_dir "$TEST_DIR"
   [[ "$status" -eq 0 ]]
 
