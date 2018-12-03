@@ -114,18 +114,17 @@ def lookup_svp(temperature):
 
     def svp_table_DATA(index):
         index_shape = index.shape
-        data = np.zeros(index.size)
+        data = np.zeros(index.size, dtype=np.float32)
         for i, idx in enumerate(list(index.flatten())):
             data[i] = svp_table_d[idx]
         return data.reshape(index_shape)
 
     # Note the indexing below differs by -1 compared with the UM due to
     # Python vs. Fortran indexing.
-    table_position = (T_clipped - T_min + delta_T)/delta_T - 1.
-    # table_index = np.array([int(i) for i in table_position.flatten()])
+    table_position = ((T_clipped - T_min + delta_T)/delta_T - 1.).astype(np.float32)
     table_index = table_position.astype(np.int32)
     interpolation_factor = table_position - table_index
-    svps = ((1.0 - interpolation_factor) * svp_table_DATA(table_index) +
+    svps = ((np.float32(1.0) - interpolation_factor) * svp_table_DATA(table_index) +
             interpolation_factor * svp_table_DATA(table_index + 1))
 
     svp = svps
@@ -161,10 +160,10 @@ def pressure_correct_svp(svp, temperature, pressure):
     """
     temp = temperature
     # temp.convert_units('celsius')
-    temp = temp - 273.15
+    temp = temp - np.float32(273.15)
 
     correction = (1. + 1.0E-8 * pressure *
-                  (4.5 + 6.0E-4 * temp ** 2))
+                  (4.5 + 6.0E-4 * temp ** 2)).astype(np.float32)
     svp = svp*correction
     return svp
 
@@ -193,9 +192,9 @@ def _calculate_mixing_ratio(temperature, pressure):
     svp = pressure_correct_svp(svp, temperature, pressure)
 
     # Calculation
-    result_numer = (cc.EARTH_REPSILON * svp)
+    result_numer = np.float32(cc.EARTH_REPSILON) * svp
     max_pressure_term = np.maximum(svp, pressure)
-    result_denom = (max_pressure_term - ((1. - cc.EARTH_REPSILON) *
+    result_denom = (max_pressure_term - (np.float32(1. - cc.EARTH_REPSILON) *
                                          svp))
     mixing_ratio = result_numer / result_denom
 
@@ -267,7 +266,7 @@ def calculate_d_enthalpy_dt(mixing_ratio, specific_heat,
     temperature = temperature_input
     # temperature.convert_units('K')
     numerator = (mixing_ratio * latent_heat ** 2)
-    denominator = cc.R_WATER_VAPOUR * temperature ** 2
+    denominator = np.float32(cc.R_WATER_VAPOUR) * temperature ** 2
     return numerator/denominator + specific_heat
 
 
@@ -304,6 +303,7 @@ class Utilities(object):
         specific_heat = ((-1.*mixing_ratio + 1.) * cc.U_CP_DRY_AIR +
                          mixing_ratio * cc.U_CP_WATER_VAPOUR)
         specific_heat.rename('specific_heat_capacity_of_moist_air')
+        specific_heat.data = specific_heat.data.astype(np.float32)
         return specific_heat
 
     @staticmethod
@@ -325,6 +325,7 @@ class Utilities(object):
                        cc.U_LH_CONDENSATION_WATER)
         latent_heat.units = cc.U_LH_CONDENSATION_WATER.units
         latent_heat.rename('latent_heat_of_condensation')
+        latent_heat.data = latent_heat.data.astype(np.float32)
         return latent_heat
 
     @staticmethod
@@ -474,14 +475,14 @@ class WetBulbTemperature(object):
         return wbt
 
     @staticmethod
-    @jit
+    @jit  #(nopython=True)
     def _wbt_minimise(wbt, g_tw, saturation_mixing_ratio,
                       specific_heat, latent_heat, pressure, precision_amount):
         # wbt is initial guess
-        precision = np.full(wbt.shape, precision_amount)
+        precision = np.full(wbt.shape, precision_amount, dtype=np.float32)
 
-        delta_wbt = 10. * precision
-        delta_wbt_history = 5. * precision
+        delta_wbt = np.float32(10.) * precision
+        delta_wbt_history = np.float32(5.) * precision
         max_iterations = 20
         iteration = 0
 
