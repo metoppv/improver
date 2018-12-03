@@ -168,7 +168,7 @@ class Test_create_fuzzy_spatial_weights(IrisTest):
         thresholds = [10]
         data = np.ones((1, 7, 7), dtype=np.float32)
         self.cube = set_up_probability_cube(
-            data, thresholds, spatial_grid="projection_[x|y]_coordinate",
+            data, thresholds, spatial_grid="equalarea",
             time=datetime(2017, 11, 10, 4, 0),
             frt=datetime(2017, 11, 10, 0, 0),)
         self.cube = squeeze(self.cube)
@@ -258,7 +258,7 @@ class Test_create_fuzzy_spatial_weights(IrisTest):
         thresholds = [10, 20, 30]
         data = np.ones((3, 7, 7), dtype=np.float32)
         cube = set_up_probability_cube(
-            data, thresholds, spatial_grid="projection_[x|y]_coordinate",
+            data, thresholds, spatial_grid="equalarea",
             time=datetime(2017, 11, 10, 4, 0),
             frt=datetime(2017, 11, 10, 0, 0),)
         cube.data[0, 3, 3] = 0.0
@@ -303,15 +303,15 @@ class Test_multiply_weights(IrisTest):
         thresholds = [10, 20]
         data = np.ones((2, 2, 3), dtype=np.float32)
         cycle1 = set_up_probability_cube(
-            data, thresholds, spatial_grid="projection_[x|y]_coordinate",
+            data, thresholds, spatial_grid="equalarea",
             time=datetime(2017, 11, 10, 4, 0),
             frt=datetime(2017, 11, 10, 0, 0),)
         cycle2 = set_up_probability_cube(
-            data, thresholds, spatial_grid="projection_[x|y]_coordinate",
+            data, thresholds, spatial_grid="equalarea",
             time=datetime(2017, 11, 10, 4, 0),
             frt=datetime(2017, 11, 10, 1, 0),)
         cycle3 = set_up_probability_cube(
-            data, thresholds, spatial_grid="projection_[x|y]_coordinate",
+            data, thresholds, spatial_grid="equalarea",
             time=datetime(2017, 11, 10, 4, 0),
             frt=datetime(2017, 11, 10, 2, 0),)
         self.spatial_weights_cube = CubeList(
@@ -431,15 +431,15 @@ class Test_normalised_masked_weights(IrisTest):
         thresholds = [10, 20]
         data = np.ones((2, 2, 3), dtype=np.float32)
         cycle1 = set_up_probability_cube(
-            data, thresholds, spatial_grid="projection_[x|y]_coordinate",
+            data, thresholds, spatial_grid="equalarea",
             time=datetime(2017, 11, 10, 4, 0),
             frt=datetime(2017, 11, 10, 0, 0),)
         cycle2 = set_up_probability_cube(
-            data, thresholds, spatial_grid="projection_[x|y]_coordinate",
+            data, thresholds, spatial_grid="equalarea",
             time=datetime(2017, 11, 10, 4, 0),
             frt=datetime(2017, 11, 10, 1, 0),)
         cycle3 = set_up_probability_cube(
-            data, thresholds, spatial_grid="projection_[x|y]_coordinate",
+            data, thresholds, spatial_grid="equalarea",
             time=datetime(2017, 11, 10, 4, 0),
             frt=datetime(2017, 11, 10, 2, 0),)
         self.spatial_weights_cube = CubeList(
@@ -591,15 +591,15 @@ class Test_process(IrisTest):
         thresholds = [10, 20]
         data = np.ones((2, 2, 3), dtype=np.float32)
         cycle1 = set_up_probability_cube(
-            data, thresholds, spatial_grid="projection_[x|y]_coordinate",
+            data, thresholds, spatial_grid="equalarea",
             time=datetime(2017, 11, 10, 4, 0),
             frt=datetime(2017, 11, 10, 0, 0),)
         cycle2 = set_up_probability_cube(
-            data, thresholds, spatial_grid="projection_[x|y]_coordinate",
+            data, thresholds, spatial_grid="equalarea",
             time=datetime(2017, 11, 10, 4, 0),
             frt=datetime(2017, 11, 10, 1, 0),)
         cycle3 = set_up_probability_cube(
-            data, thresholds, spatial_grid="projection_[x|y]_coordinate",
+            data, thresholds, spatial_grid="equalarea",
             time=datetime(2017, 11, 10, 4, 0),
             frt=datetime(2017, 11, 10, 2, 0),)
         self.cube_to_collapse = CubeList(
