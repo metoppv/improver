@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "extrapolate basic" {
+@test "extrapolate using model winds on pressure levels" {
   improver_check_skip_acceptance
   KGO0="nowcast-extrapolate/model_winds/kgo0.nc"
   KGO1="nowcast-extrapolate/model_winds/kgo1.nc"

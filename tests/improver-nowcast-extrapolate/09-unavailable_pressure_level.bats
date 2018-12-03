@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "extrapolate basic" {
+@test "Unavailable pressure level" {
   improver_check_skip_acceptance
 
   WSPEED="$IMPROVER_ACC_TEST_DIR/nowcast-extrapolate/model_winds/20181103T1600Z-PT0001H00M-wind_speed_on_pressure_levels.nc"
@@ -50,7 +50,7 @@
     "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1"
   [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-ValueError: Unable to extract specified pressure level
+Unable to extract specified pressure level
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 

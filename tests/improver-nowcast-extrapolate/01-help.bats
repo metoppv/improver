@@ -89,7 +89,7 @@ Advect using files containing the x  and y components of the velocity:
 Advect using files containing speed and direction:
   --advection_speed_filepath ADVECTION_SPEED_FILEPATH
                         Path to input file containing advection speeds,
-                        usually wind speeds, on mutliple pressure levels.
+                        usually wind speeds, on multiple pressure levels.
   --advection_direction_filepath ADVECTION_DIRECTION_FILEPATH
                         Path to input file containing the directions from
                         which advection speeds are coming (180 degrees from

@@ -74,7 +74,7 @@ def main():
                                       ' direction')
     speed.add_argument("--advection_speed_filepath", type=str, help="Path"
                        " to input file containing advection speeds,"
-                       " usually wind speeds, on mutliple pressure levels.")
+                       " usually wind speeds, on multiple pressure levels.")
     speed.add_argument("--advection_direction_filepath", type=str,
                        help="Path to input file containing the directions from"
                        " which advection speeds are coming (180 degrees from"
@@ -119,9 +119,10 @@ def main():
         try:
             scube = load_cube(spath, constraints=level_constraint)
             dcube = load_cube(dpath, constraints=level_constraint)
-        except ValueError:
-            raise ValueError('Unable to extract specified pressure level from'
-                             ' given speed and direction files.')
+        except ValueError as err:
+            raise ValueError(
+                '{} Unable to extract specified pressure level from given '
+                'speed and direction files.'.format(err))
 
         ucube, vcube = ResolveWindComponents().process(scube, dcube)
     else:
