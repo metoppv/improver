@@ -130,7 +130,8 @@ class Test_rationalise_blend_time_coords(IrisTest):
         expected_fp = 3 * 3600
         rationalise_blend_time_coords(
             self.cubelist, "model", weighting_coord="forecast_period")
-        merged_cube = merge_cubes(self.cubelist)
+        merged_cube = merge_cubes(
+            self.cubelist, model_id_attr="mosg__model_configuration")
         for coord in ["forecast_reference_time", "forecast_period"]:
             self.assertEqual(len(merged_cube.coord(coord).points), 1)
         self.assertEqual(
@@ -147,7 +148,8 @@ class Test_rationalise_blend_time_coords(IrisTest):
         rationalise_blend_time_coords(
             self.cubelist, "model", weighting_coord="forecast_period",
             cycletime='20170109T2100Z')
-        merged_cube = merge_cubes(self.cubelist)
+        merged_cube = merge_cubes(
+            self.cubelist, model_id_attr="mosg__model_configuration")
         for coord in ["forecast_reference_time", "forecast_period"]:
             self.assertEqual(len(merged_cube.coord(coord).points), 1)
         self.assertEqual(

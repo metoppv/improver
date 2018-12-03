@@ -29,51 +29,45 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""
-Script to translate meta-data relating to thte grid_id attribute from StaGE
-version 1.1.0 to StaGE version 1.2.0.
-"""
-
-import os
-import iris
+"""Script to apply lapse rates to temperature data."""
 
 from improver.argparser import ArgParser
+from improver.lapse_rate import apply_gridded_lapse_rate
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
-from improver.utilities.cube_metadata import update_stage_v110_metadata
 
 
 def main():
-    """
-    Translate meta-data relating to thte grid_id attribute from StaGE version
-    1.1.0 to StaGE version 1.2.0.
-    """
+    parser = ArgParser(description='Apply downscaling temperature adjustment '
+                       'using calculated lapse rate.')
 
-    cli_definition = {'central_arguments': ['input_file', 'output_file'],
-                      'specific_arguments': [],
-                      'description': ('Translates meta-data relating to the '
-                                      'grid_id attribute from StaGE version '
-                                      '1.1.0 to StaGE version 1.2.0. '
-                                      'Files that have no "grid_id" attribute '
-                                      'are not recognised as v1.1.0 and are '
-                                      'not changed. Has no effect if '
-                                      'input_file and output_file are the '
-                                      'same and contain a cube with non '
-                                      'v1.1.0 meta-data')}
+    parser.add_argument('temperature_filepath', metavar='TEMPERATURE_FILEPATH',
+                        help='Full path to input temperature NetCDF file')
+    parser.add_argument('lapse_rate_filepath', metavar='LAPSE_RATE_FILEPATH',
+                        help='Full path to input lapse rate NetCDF file')
+    parser.add_argument('source_orography', metavar='SOURCE_OROG_FILE',
+                        help='Full path to NetCDF file containing the source '
+                        'model orography')
+    parser.add_argument('target_orography', metavar='TARGET_OROG_FILE',
+                        help='Full path to target orography NetCDF file '
+                        '(to which temperature will be downscaled)')
+    parser.add_argument('output_file', metavar='OUTPUT_FILE', help='File name '
+                        'to write lapse rate adjusted temperature data')
 
-    args = ArgParser(**cli_definition).parse_args()
+    args = parser.parse_args()
 
-    cube = load_cube(args.input_filepath)
-    cube_changed = update_stage_v110_metadata(cube)
+    # read cubes
+    temperature = load_cube(args.temperature_filepath)
+    lapse_rate = load_cube(args.lapse_rate_filepath)
+    source_orog = load_cube(args.source_orography)
+    target_orog = load_cube(args.target_orography)
 
-    # Create normalised file paths to make them comparable
-    in_file_norm = os.path.normpath(args.input_filepath)
-    out_file_norm = os.path.normpath(args.output_filepath)
-    if cube_changed or in_file_norm != out_file_norm:
-        # Ensure data are not lazy in case we are writing back to the same
-        # file.
-        cube.data
-        save_netcdf(cube, args.output_filepath)
+    # apply lapse rate to temperature data
+    adjusted_temperature = apply_gridded_lapse_rate(
+        temperature, lapse_rate, source_orog, target_orog)
+
+    # save to output file
+    save_netcdf(adjusted_temperature, args.output_file)
 
 
 if __name__ == "__main__":

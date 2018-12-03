@@ -42,6 +42,7 @@ import iris
 from iris.coords import DimCoord
 
 from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
+from improver.utilities.cube_metadata import MOSG_GRID_DEFINITION
 from improver.utilities.cube_checker import check_cube_not_float64
 
 TIME_UNIT = "seconds since 1970-01-01 00:00:00"
@@ -145,7 +146,8 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
                          spatial_grid='latlon',
                          time=datetime(2017, 11, 10, 4, 0), time_bounds=None,
                          frt=datetime(2017, 11, 10, 0, 0), realizations=None,
-                         include_scalar_coords=None, attributes=None):
+                         include_scalar_coords=None, attributes=None,
+                         standard_grid_metadata=None):
     """
     Set up a cube containing a single variable field with:
     - x/y spatial dimensions (equal area or lat / lon)
@@ -180,6 +182,10 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
             List of iris.coords.DimCoord or AuxCoord instances of length 1.
         attributes (dict):
             Optional cube attributes.
+        standard_grid_metadata (str):
+            Recognised mosg__model_configuration for which to set up Met
+            Office standard grid attributes.  Should be 'uk_det', 'uk_ens',
+            'gl_det' or 'gl_ens'.
     """
     # construct spatial dimension coordimates
     ypoints = data.shape[-2]
@@ -210,11 +216,18 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
         for coord in include_scalar_coords:
             scalar_coords.append((coord, None))
 
+    # set up attributes
+    cube_attrs = {}
+    if standard_grid_metadata is not None:
+        cube_attrs.update(MOSG_GRID_DEFINITION[standard_grid_metadata])
+    if attributes is not None:
+        cube_attrs.update(attributes)
+
     # create data cube
     cube = iris.cube.Cube(data, long_name=name, units=units,
                           dim_coords_and_dims=dim_coords,
                           aux_coords_and_dims=scalar_coords,
-                          attributes=attributes)
+                          attributes=cube_attrs)
 
     # don't allow unit tests to set up invalid cubes
     check_cube_not_float64(cube)
@@ -227,7 +240,8 @@ def set_up_percentile_cube(data, percentiles, name='air_temperature',
                            percentile_dim_name='percentile_over_realization',
                            time=datetime(2017, 11, 10, 4, 0), time_bounds=None,
                            frt=datetime(2017, 11, 10, 0, 0),
-                           include_scalar_coords=None, attributes=None):
+                           include_scalar_coords=None, attributes=None,
+                           standard_grid_metadata=None):
     """
     Set up a cube containing percentiles of a variable with:
     - x/y spatial dimensions (equal area or lat / lon)
@@ -263,11 +277,16 @@ def set_up_percentile_cube(data, percentiles, name='air_temperature',
             List of iris.coords.DimCoord or AuxCoord instances of length 1.
         attributes (dict):
             Optional cube attributes.
+        standard_grid_metadata (str):
+            Recognised mosg__model_configuration for which to set up Met
+            Office standard grid attributes.  Should be 'uk_det', 'uk_ens',
+            'gl_det' or 'gl_ens'.
     """
     cube = set_up_variable_cube(
         data, name=name, units=units, spatial_grid=spatial_grid,
         time=time, frt=frt, realizations=percentiles, attributes=attributes,
-        include_scalar_coords=include_scalar_coords)
+        include_scalar_coords=include_scalar_coords,
+        standard_grid_metadata=standard_grid_metadata)
     cube.coord("realization").rename(percentile_dim_name)
     cube.coord(percentile_dim_name).units = Unit("%")
     return cube
@@ -279,7 +298,8 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
                             time=datetime(2017, 11, 10, 4, 0),
                             time_bounds=None,
                             frt=datetime(2017, 11, 10, 0, 0),
-                            include_scalar_coords=None, attributes=None):
+                            include_scalar_coords=None, attributes=None,
+                            standard_grid_metadata=None):
     """
     Set up a cube containing probabilities at thresholds with:
     - x/y spatial dimensions (equal area or lat / lon)
@@ -319,6 +339,10 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
             List of iris.coords.DimCoord or AuxCoord instances of length 1.
         attributes (dict):
             Optional cube attributes.
+        standard_grid_metadata (str):
+            Recognised mosg__model_configuration for which to set up Met
+            Office standard grid attributes.  Should be 'uk_det', 'uk_ens',
+            'gl_det' or 'gl_ens'.
     """
     # create a "relative to threshold" attribute
     if attributes is None:
@@ -333,7 +357,8 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
     cube = set_up_variable_cube(
         data, name=name, units='1', spatial_grid=spatial_grid,
         time=time, frt=frt, realizations=thresholds, attributes=attributes,
-        include_scalar_coords=include_scalar_coords)
+        include_scalar_coords=include_scalar_coords,
+        standard_grid_metadata=standard_grid_metadata)
     cube.coord("realization").rename("threshold")
     cube.coord("threshold").units = Unit(threshold_units)
     return cube

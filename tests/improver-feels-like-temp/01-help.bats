@@ -29,32 +29,32 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-. $IMPROVER_DIR/tests/lib/utils
+@test "feels-like-temp -h" {
+  run improver feels-like-temp -h
+  [[ "$status" -eq 0 ]]
+  read -d '' expected <<'__HELP__' || true
+usage: improver-feels-like-temp [-h] [--profile] [--profile_file PROFILE_FILE]
+                                TEMPERATURE WIND_SPEED RELATIVE_HUMIDITY
+                                PRESSURE OUTPUT_FILE
 
-@test "weighted-blending nonlinear invalid options" {
-  # Run blending with non-linear weights calculation but linear args: check it fails.
-  run improver weighted-blending --wts_calc_method 'nonlinear' 'time' 'weighted_mean' --ynval 1 --y0val 0\
-      "NO_INPUT_FILE" \
-      "NO_OUTPUT_FILE"
-  [[ "${status}" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-weighted-blending [-h] [--profile]
-                                  [--profile_file PROFILE_FILE]
-                                  [--wts_calc_method WEIGHTS_CALCULATION_METHOD]
-                                  [--coordinate_unit UNIT_STRING]
-                                  [--calendar CALENDAR]
-                                  [--cycletime CYCLETIME]
-                                  [--model_id_attr MODEL_ID_ATTR]
-                                  [--y0val LINEAR_STARTING_POINT]
-                                  [--ynval LINEAR_END_POINT]
-                                  [--cval NON_LINEAR_FACTOR]
-                                  [--wts_dict WEIGHTS_DICTIONARY]
-                                  [--weighting_coord WEIGHTING_COORD]
-                                  [--wts_mask_constraint WEIGHTS_MASK_CONSTRAINT]
-                                  COORDINATE_TO_AVERAGE_OVER
-                                  WEIGHTED_BLEND_MODE INPUT_FILES
-                                  [INPUT_FILES ...] OUTPUT_FILE
-improver-weighted-blending: error: Method: non-linear does not accept arguments: y0val, ynval
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+This calculates the feels like temperature using a combination of the wind
+chill index and Steadman's apparent temperature equation.
+
+positional arguments:
+  TEMPERATURE           Path to a NetCDF file of air temperatures at screen
+                        level.
+  WIND_SPEED            Path to the NetCDF file of wind speed at 10m.
+  RELATIVE_HUMIDITY     Path to the NetCDF file of relative humidity at screen
+                        level.
+  PRESSURE              Path to a NetCDF file of mean sea level pressure.
+  OUTPUT_FILE           The output path for the processed NetCDF
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
+
+__HELP__
+  [[ "$output" == "$expected" ]]
 }

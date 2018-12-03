@@ -40,29 +40,40 @@ import iris
 from improver.utilities.cube_manipulation import compare_coords
 
 
+GRID_TYPE = 'standard'
+STAGE_VERSION = '1.3.0'
+
+# Define current StaGE grid metadata
+MOSG_GRID_DEFINITION = {
+    'uk_ens': {'mosg__grid_type': GRID_TYPE,
+               'mosg__model_configuration': 'uk_ens',
+               'mosg__grid_domain': 'uk_extended',
+               'mosg__grid_version': STAGE_VERSION},
+    'gl_ens': {'mosg__grid_type': GRID_TYPE,
+               'mosg__model_configuration': 'gl_ens',
+               'mosg__grid_domain': 'global',
+               'mosg__grid_version': STAGE_VERSION},
+    'uk_det': {'mosg__grid_type': GRID_TYPE,
+               'mosg__model_configuration': 'uk_det',
+               'mosg__grid_domain': 'uk_extended',
+               'mosg__grid_version': STAGE_VERSION},
+    'gl_det': {'mosg__grid_type': GRID_TYPE,
+               'mosg__model_configuration': 'gl_det',
+               'mosg__grid_domain': 'global',
+               'mosg__grid_version': STAGE_VERSION}
+}
+
+
 # Define correct v1.2.0 meta-data for v1.1.0 data.
-GRID_ID_LOOKUP = {'enukx_standard_v1': {'mosg__grid_type': 'standard',
-                                        'mosg__model_configuration': 'uk_ens',
-                                        'mosg__grid_domain': 'uk_extended',
-                                        'mosg__grid_version': '1.1.0'},
-                  'engl_standard_v1': {'mosg__grid_type': 'standard',
-                                       'mosg__model_configuration': 'gl_ens',
-                                       'mosg__grid_domain': 'global',
-                                       'mosg__grid_version': '1.1.0'},
-                  'ukvx_standard_v1': {'mosg__grid_type': 'standard',
-                                       'mosg__model_configuration': 'uk_det',
-                                       'mosg__grid_domain': 'uk_extended',
-                                       'mosg__grid_version': '1.1.0'},
-                  'glm_standard_v1': {'mosg__grid_type': 'standard',
-                                      'mosg__model_configuration': 'gl_det',
-                                      'mosg__grid_domain': 'global',
-                                      'mosg__grid_version': '1.1.0'},
-                  }
+GRID_ID_LOOKUP = {'enukx_standard_v1': 'uk_ens',
+                  'engl_standard_v1': 'gl_ens',
+                  'ukvx_standard_v1': 'uk_det',
+                  'glm_standard_v1': 'gl_det'}
 
 
-def stage_v110_to_v120(cube):
+def update_stage_v110_metadata(cube):
     """Translates meta-data relating to the grid_id attribute from StaGE
-    version 1.1.0 to StaGE version 1.2.0.
+    version 1.1.0 to later StaGE versions.
     Cubes that have no "grid_id" attribute are not recognised as v1.1.0 and
     are ignored.
 
@@ -79,7 +90,8 @@ def stage_v110_to_v120(cube):
     except KeyError:
         # Not a version 1.1.0 grid, so exit.
         return False
-    cube.attributes.update(GRID_ID_LOOKUP[grid_id])
+    cube.attributes.update(MOSG_GRID_DEFINITION[GRID_ID_LOOKUP[grid_id]])
+    cube.attributes['mosg__grid_version'] = '1.1.0'
     return True
 
 

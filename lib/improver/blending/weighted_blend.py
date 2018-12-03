@@ -112,6 +112,8 @@ def conform_metadata(
           time coordinates are present, then a forecast_period coordinate is
           calculated and added to the cube.
         - Model_id, model_realization and realization coordinates are removed.
+        - A title attribute is added to the cube if none is found. Otherwise
+          the attributes are unchanged.
 
     Args:
         cube (iris.cube.Cube):
@@ -169,15 +171,6 @@ def conform_metadata(
     # update blended cube attributes
     if "title" not in cube.attributes.keys():
         cube.attributes["title"] = "IMPROVER Model Forecast"
-
-    if ("model" in coord) and any(
-            "mosg__" in key for key in cube_orig.attributes.keys()):
-        cube.attributes["mosg__model_configuration"] = "blend"
-
-    # inherit grid attributes
-    for key in cube_orig.attributes.keys():
-        if "mosg__grid" in key:
-            cube.attributes[key] = cube_orig.attributes[key]
 
     # remove appropriate scalar coordinates
     for crd in ["model_id", "model_realization", "realization"]:

@@ -29,51 +29,46 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""
-Script to translate meta-data relating to thte grid_id attribute from StaGE
-version 1.1.0 to StaGE version 1.2.0.
-"""
-
-import os
-import iris
+"""Script to run the feels like temperature plugin."""
 
 from improver.argparser import ArgParser
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
-from improver.utilities.cube_metadata import update_stage_v110_metadata
+from improver.feels_like_temperature import calculate_feels_like_temperature
 
 
 def main():
-    """
-    Translate meta-data relating to thte grid_id attribute from StaGE version
-    1.1.0 to StaGE version 1.2.0.
-    """
+    """ Load in the arguments for feels like temperature and ensure they are
+    set correctly. Then calculate the feels like temperature using the data
+    in the input cubes."""
+    parser = ArgParser(
+        description="This calculates the feels like temperature using a "
+                    "combination of the wind chill index and Steadman's "
+                    "apparent temperature equation.")
+    parser.add_argument("temperature", metavar="TEMPERATURE",
+                        help="Path to a NetCDF file of air temperatures at "
+                        "screen level.")
+    parser.add_argument("wind_speed", metavar="WIND_SPEED",
+                        help="Path to the NetCDF file of wind speed at 10m.")
+    parser.add_argument("relative_humidity", metavar="RELATIVE_HUMIDITY",
+                        help="Path to the NetCDF file of relative humidity "
+                        "at screen level.")
+    parser.add_argument("pressure", metavar="PRESSURE",
+                        help="Path to a NetCDF file of mean sea level "
+                        "pressure.")
+    parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
+                        help="The output path for the processed NetCDF")
 
-    cli_definition = {'central_arguments': ['input_file', 'output_file'],
-                      'specific_arguments': [],
-                      'description': ('Translates meta-data relating to the '
-                                      'grid_id attribute from StaGE version '
-                                      '1.1.0 to StaGE version 1.2.0. '
-                                      'Files that have no "grid_id" attribute '
-                                      'are not recognised as v1.1.0 and are '
-                                      'not changed. Has no effect if '
-                                      'input_file and output_file are the '
-                                      'same and contain a cube with non '
-                                      'v1.1.0 meta-data')}
+    args = parser.parse_args()
 
-    args = ArgParser(**cli_definition).parse_args()
+    temperature = load_cube(args.temperature)
+    wind_speed = load_cube(args.wind_speed)
+    relative_humidity = load_cube(args.relative_humidity)
+    pressure = load_cube(args.pressure)
 
-    cube = load_cube(args.input_filepath)
-    cube_changed = update_stage_v110_metadata(cube)
-
-    # Create normalised file paths to make them comparable
-    in_file_norm = os.path.normpath(args.input_filepath)
-    out_file_norm = os.path.normpath(args.output_filepath)
-    if cube_changed or in_file_norm != out_file_norm:
-        # Ensure data are not lazy in case we are writing back to the same
-        # file.
-        cube.data
-        save_netcdf(cube, args.output_filepath)
+    result = calculate_feels_like_temperature(temperature, wind_speed,
+                                              relative_humidity, pressure)
+    save_netcdf(result, args.output_filepath)
 
 
 if __name__ == "__main__":

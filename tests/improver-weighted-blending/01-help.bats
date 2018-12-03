@@ -39,6 +39,7 @@ usage: improver-weighted-blending [-h] [--profile]
                                   [--coordinate_unit UNIT_STRING]
                                   [--calendar CALENDAR]
                                   [--cycletime CYCLETIME]
+                                  [--model_id_attr MODEL_ID_ATTR]
                                   [--y0val LINEAR_STARTING_POINT]
                                   [--ynval LINEAR_END_POINT]
                                   [--cval NON_LINEAR_FACTOR]
@@ -90,6 +91,11 @@ optional arguments:
                         provided, the blended file will take the latest
                         available forecast reference time from the input cubes
                         supplied.
+  --model_id_attr MODEL_ID_ATTR
+                        The name of the netCDF file attribute to be used to
+                        identify the source model for multi-model blends.
+                        Default assumes Met Office model metadata. Must be
+                        present on all input files if blending over models.
 
 linear weights options:
   Options for the linear weights calculation in ChooseDefaultWeightsLinear
