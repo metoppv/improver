@@ -42,6 +42,63 @@ from improver.utilities.temporal import (
     extract_nearest_time_point, iris_time_to_datetime)
 
 
+class ExtendRadarMask(object):
+    """
+    Extend the mask on radar rainrate data based on the radar coverage
+    composite
+    """
+
+    def __init__(self):
+        """
+        Initialise with known values of the coverage composite for which radar
+        data is valid.  All other areas will be masked.
+        """
+        self.coverage_valid = [1, 2]
+
+    def process(self, radar_data, coverage):
+        """
+        Update the mask on the input rainrate cube to reflect where coverage
+        is valid
+
+        Args:
+            radar_data (iris.cube.Cube):
+                Radar data with mask corresponding to radar domains
+            coverage (iris.cube.Cube):
+                Radar coverage data containing values:
+                    0: outside composite
+                    1: precip detected
+                    2: precip not detected & 1/32 mm/h detectable at this range
+                    3: precip not detected & 1/32 mm/h NOT detectable
+
+        Returns:
+            (iris.cube.Cube):
+                Radar data with mask extended to mask out regions where
+                1/32 mm/h are not detectable
+        """
+        # check cube coordinates match
+        for crd in radar_data.coords():
+            if coverage.coord(crd.name()) != crd:
+                raise ValueError('Rain rate and coverage composites unmatched '
+                                 '- coord {}'.format(crd.name()))
+
+        # accomodate data from multiple times
+        radar_data_slices = radar_data.slices([radar_data.coord(axis='y'),
+                                               radar_data.coord(axis='x')])
+        coverage_slices = coverage.slices([coverage.coord(axis='y'),
+                                           coverage.coord(axis='x')])
+
+        cube_list = iris.cube.CubeList()
+        for rad, cov in zip(radar_data_slices, coverage_slices):
+            # create a new mask that is False wherever coverage is valid
+            new_mask = ~np.isin(cov.data, self.coverage_valid)
+
+            # remask rainrate data
+            remasked_data = np.ma.MaskedArray(rad.data.data, mask=new_mask)
+            cube_list.append(rad.copy(remasked_data))
+
+        return cube_list.merge_cube()
+
+
 class ApplyOrographicEnhancement(object):
 
     """Apply orographic enhancement to precipitation rate input, either to
