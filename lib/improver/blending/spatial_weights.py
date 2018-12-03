@@ -67,6 +67,7 @@ class SpatialWeightsForMissingData(object):
     def __init__(self, fuzzy_length=10):
         """
         Initialise class.
+
         Keyword Args:
             fuzzy_length (int or float):
                 The length in terms of number of grid squares, over which the
