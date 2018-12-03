@@ -119,7 +119,7 @@ class SpatiallyVaryingWeightsFromMask(object):
         weights_from_mask.rename("weights")
         return weights_from_mask
 
-    def create_fuzzy_spatial_weights(self, weights_from_mask):
+    def smooth_initial_weights(self, weights_from_mask):
         """
         Create fuzzy weights around points in the weights_from_mask with
         zero weight.
@@ -286,7 +286,7 @@ class SpatiallyVaryingWeightsFromMask(object):
         """
         weights_from_mask = self.create_initial_weights_from_mask(
             cube_to_collapse)
-        weights_from_mask = self.create_fuzzy_spatial_weights(
+        weights_from_mask = self.smooth_initial_weights(
             weights_from_mask)
         final_weights = self.multiply_weights(
             weights_from_mask, one_dimensional_weights_cube,

@@ -168,8 +168,8 @@ class Test_create_initial_weights_from_mask(IrisTest):
         self.assertEqual(result.name(), "weights")
 
 
-class Test_create_fuzzy_spatial_weights(IrisTest):
-    """Test the create_fuzzy_spatial_weights method"""
+class Test_smooth_initial_weights(IrisTest):
+    """Test the smooth_initial_weights method"""
 
     def setUp(self):
         """
@@ -188,13 +188,13 @@ class Test_create_fuzzy_spatial_weights(IrisTest):
         """Test fuzziness over only 1 grid square, i.e. no fuzziness"""
         self.cube.data[3, 3] = 0.0
         plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=1)
-        result = plugin.create_fuzzy_spatial_weights(self.cube)
+        result = plugin.smooth_initial_weights(self.cube)
         self.assertArrayEqual(self.cube.data, result.data)
 
     def test_initial_weights_all_1(self):
         """Test the input cube all containing weights of one."""
         plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=4)
-        result = plugin.create_fuzzy_spatial_weights(self.cube)
+        result = plugin.smooth_initial_weights(self.cube)
         self.assertArrayEqual(self.cube.data, result.data)
 
     def test_basic_fuzziness(self):
@@ -210,7 +210,7 @@ class Test_create_fuzzy_spatial_weights(IrisTest):
              [1., 0.942809, 0.745356, 0.666667, 0.745356, 0.942809, 1.],
              [1., 1., 1., 1., 1., 1., 1.]],
             dtype=np.float32)
-        result = plugin.create_fuzzy_spatial_weights(self.cube)
+        result = plugin.smooth_initial_weights(self.cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_non_integer_fuzziness(self):
@@ -226,7 +226,7 @@ class Test_create_fuzzy_spatial_weights(IrisTest):
              [1., 1., 0.89442719, 0.8, 0.89442719, 1., 1.],
              [1., 1., 1., 1., 1., 1., 1.]],
             dtype=np.float32)
-        result = plugin.create_fuzzy_spatial_weights(self.cube)
+        result = plugin.smooth_initial_weights(self.cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_fuzziness_block_zero_weight_points(self):
@@ -243,7 +243,7 @@ class Test_create_fuzzy_spatial_weights(IrisTest):
              [1., 1., 1., 1., 1., 1., 1.],
              [1., 1., 1., 1., 1., 1., 1.]],
             dtype=np.float32)
-        result = plugin.create_fuzzy_spatial_weights(self.cube)
+        result = plugin.smooth_initial_weights(self.cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_fuzziness_more_zero_weight_points(self):
@@ -261,7 +261,7 @@ class Test_create_fuzzy_spatial_weights(IrisTest):
              [1., 1., 1., 0.70710678, 0.5, 0.70710678, 1.],
              [1., 1., 1., 1., 1., 1., 1.]],
             dtype=np.float32)
-        result = plugin.create_fuzzy_spatial_weights(self.cube)
+        result = plugin.smooth_initial_weights(self.cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_basic_fuzziness_3D_input_cube(self):
@@ -299,7 +299,7 @@ class Test_create_fuzzy_spatial_weights(IrisTest):
               [1., 1., 1., 1., 0.74535596, 0.47140452, 0.33333334],
               [1., 1., 1., 1., 0.6666667, 0.33333334, 0.]]],
             dtype=np.float32)
-        result = plugin.create_fuzzy_spatial_weights(cube)
+        result = plugin.smooth_initial_weights(cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
 
