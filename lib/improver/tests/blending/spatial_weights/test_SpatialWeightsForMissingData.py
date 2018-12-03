@@ -28,7 +28,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the spatial_weights.SpatialWeightsForMissingData plugin."""
+"""Unit tests for the spatial_weights.SpatiallyVaryingWeightsFromMask
+   plugin."""
 
 
 import unittest
@@ -41,7 +42,7 @@ from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 from datetime import datetime
 
-from improver.blending.spatial_weights import SpatialWeightsForMissingData
+from improver.blending.spatial_weights import SpatiallyVaryingWeightsFromMask
 from improver.tests.set_up_test_cubes import set_up_probability_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
@@ -52,8 +53,8 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
-        result = str(SpatialWeightsForMissingData())
-        msg = ('<SpatialWeightsForMissingData: fuzzy_length: 10>')
+        result = str(SpatiallyVaryingWeightsFromMask())
+        msg = ('<SpatiallyVaryingWeightsFromMask: fuzzy_length: 10>')
         self.assertEqual(result, msg)
 
 
@@ -76,11 +77,11 @@ class Test_create_initial_weights_from_mask(IrisTest):
                                          frt=datetime(2017, 11, 10, 2, 0))
         self.cube = CubeList([cycle1, cycle2, cycle3]).merge_cube()
         self.cube = squeeze(self.cube)
-        self.plugin = SpatialWeightsForMissingData()
+        self.plugin = SpatiallyVaryingWeightsFromMask()
 
     def test_no_mask(self):
         """Test what happens when no mask is on the input cube"""
-        message = ("Input cube to SpatialWeightsForMissingData "
+        message = ("Input cube to SpatiallyVaryingWeightsFromMask "
                    "must be masked")
         with self.assertRaisesRegex(ValueError, message):
             self.plugin.create_initial_weights_from_mask(self.cube)
@@ -128,7 +129,7 @@ class Test_create_initial_weights_from_mask(IrisTest):
         # array.
         input_data = np.ma.masked_equal(input_data, 0)
         self.cube.data = input_data
-        message = ("Input cube to SpatialWeightsForMissingData "
+        message = ("Input cube to SpatiallyVaryingWeightsFromMask "
                    "must be masked")
         with self.assertRaisesRegex(ValueError, message):
             self.plugin.create_initial_weights_from_mask(self.cube)
@@ -176,20 +177,20 @@ class Test_create_fuzzy_spatial_weights(IrisTest):
     def test_no_fuzziness(self):
         """Test fuzziness over only 1 grid square, i.e. no fuzziness"""
         self.cube.data[3, 3] = 0.0
-        plugin = SpatialWeightsForMissingData(fuzzy_length=1)
+        plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=1)
         result = plugin.create_fuzzy_spatial_weights(self.cube)
         self.assertArrayEqual(self.cube.data, result.data)
 
     def test_initial_weights_all_1(self):
         """Test the input cube all containing weights of one."""
-        plugin = SpatialWeightsForMissingData(fuzzy_length=4)
+        plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=4)
         result = plugin.create_fuzzy_spatial_weights(self.cube)
         self.assertArrayEqual(self.cube.data, result.data)
 
     def test_basic_fuzziness(self):
         """Test fuzzy weights over 3 grid squares"""
         self.cube.data[3, 3] = 0.0
-        plugin = SpatialWeightsForMissingData(fuzzy_length=3)
+        plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=3)
         expected = np.array(
             [[1., 1., 1., 1., 1., 1., 1.],
              [1., 0.942809, 0.745356, 0.666667, 0.745356, 0.942809, 1.],
@@ -205,7 +206,7 @@ class Test_create_fuzzy_spatial_weights(IrisTest):
     def test_non_integer_fuzziness(self):
         """Test fuzzy weights over 2.5 grid squares"""
         self.cube.data[3, 3] = 0.0
-        plugin = SpatialWeightsForMissingData(fuzzy_length=2.5)
+        plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=2.5)
         expected = np.array(
             [[1., 1., 1., 1., 1., 1., 1.],
              [1., 1., 0.89442719, 0.8, 0.89442719, 1., 1.],
@@ -222,7 +223,7 @@ class Test_create_fuzzy_spatial_weights(IrisTest):
         """Test fuzzy weights with a block of zero weight points"""
         # Set 4 grid points to zero in a square.
         self.cube.data[2:4, 3:5] = 0.0
-        plugin = SpatialWeightsForMissingData(fuzzy_length=2)
+        plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=2)
         expected = np.array(
             [[1., 1., 1., 1., 1., 1., 1.],
              [1., 1., 0.70710678, 0.5, 0.5, 0.70710678, 1.],
@@ -240,7 +241,7 @@ class Test_create_fuzzy_spatial_weights(IrisTest):
         # Set 4 grid points to zero in a square.
         self.cube.data[2, 2] = 0.0
         self.cube.data[4, 4] = 0.0
-        plugin = SpatialWeightsForMissingData(fuzzy_length=2)
+        plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=2)
         expected = np.array(
             [[1., 1., 1., 1., 1., 1., 1.],
              [1., 0.70710678, 0.5, 0.70710678, 1., 1., 1.],
@@ -264,7 +265,7 @@ class Test_create_fuzzy_spatial_weights(IrisTest):
         cube.data[0, 3, 3] = 0.0
         cube.data[1, 0, 0] = 0.0
         cube.data[2, 6, 6] = 0.0
-        plugin = SpatialWeightsForMissingData(fuzzy_length=3)
+        plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=3)
         expected = np.array(
             [[[1., 1., 1., 1., 1., 1., 1.],
               [1., 0.942809, 0.745356, 0.666667, 0.745356, 0.942809, 1.],
@@ -345,7 +346,7 @@ class Test_multiply_weights(IrisTest):
         self.one_dimensional_weights_cube.remove_coord("threshold")
         self.one_dimensional_weights_cube.data = np.array(
             [0.2, 0.5, 0.3], dtype=np.float32)
-        self.plugin = SpatialWeightsForMissingData()
+        self.plugin = SpatiallyVaryingWeightsFromMask()
 
     def test_basic(self):
         """Test a basic cube multiplication with a 4D input cube"""
@@ -461,7 +462,7 @@ class Test_normalised_masked_weights(IrisTest):
                                                     [[0.3, 0.3, 0.3],
                                                      [0.3, 0.3, 0.3]]]],
                                                   dtype=np.float32)
-        self.plugin = SpatialWeightsForMissingData()
+        self.plugin = SpatiallyVaryingWeightsFromMask()
 
     @ManageWarnings(ignored_messages=[
         "Collapsing a non-contiguous coordinate."])
@@ -634,14 +635,14 @@ class Test_process(IrisTest):
         self.one_dimensional_weights_cube.remove_coord("threshold")
         self.one_dimensional_weights_cube.data = np.array(
             [0.2, 0.5, 0.3], dtype=np.float32)
-        self.plugin = SpatialWeightsForMissingData(fuzzy_length=4)
+        self.plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=4)
 
     def test_none_masked(self):
         """Test when we have no masked data in the input cube."""
         self.cube_to_collapse.data = np.ones(self.cube_to_collapse.data.shape)
         self.cube_to_collapse.data = np.ma.masked_equal(
             self.cube_to_collapse.data, 0)
-        message = ("Input cube to SpatialWeightsForMissingData "
+        message = ("Input cube to SpatiallyVaryingWeightsFromMask "
                    "must be masked")
         with self.assertRaisesRegex(ValueError, message):
             self.plugin.process(
@@ -667,7 +668,7 @@ class Test_process(IrisTest):
     def test_no_fuzziness_no_one_dimensional_weights(self):
         """Test a simple case where we have no fuzziness in the spatial
         weights and no adjustment from the one_dimensional weights."""
-        plugin = SpatialWeightsForMissingData(fuzzy_length=1)
+        plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=1)
         self.one_dimensional_weights_cube.data = np.ones((3))
         expected_result = np.array([[[[0.5, 0., 0.33333333],
                                       [0.5, 0.33333333, 0.33333333]],
@@ -694,7 +695,7 @@ class Test_process(IrisTest):
         """Test a simple case where we have no fuzziness in the spatial
         weights and no adjustment from the one_dimensional weights and
         transpose the input cube."""
-        plugin = SpatialWeightsForMissingData(fuzzy_length=1)
+        plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=1)
         self.one_dimensional_weights_cube.data = np.ones((3))
         expected_result = np.array([[[[0.5, 0., 0.33333333],
                                       [0.5, 0.33333333, 0.33333333]],
@@ -722,7 +723,7 @@ class Test_process(IrisTest):
     def test_no_fuzziness_with_one_dimensional_weights(self):
         """Test a simple case where we have no fuzziness in the spatial
         weights and an adjustment from the one_dimensional weights."""
-        plugin = SpatialWeightsForMissingData(fuzzy_length=1)
+        plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=1)
         expected_result = np.array([[[[0.4, 0., 0.2],
                                       [0.4, 0.2, 0.2]],
                                      [[0.4, 0., 0.2],
@@ -747,7 +748,7 @@ class Test_process(IrisTest):
     def test_fuzziness_no_one_dimensional_weights(self):
         """Test a simple case where we have some fuzziness in the spatial
         weights and no adjustment from the one_dimensional weights."""
-        plugin = SpatialWeightsForMissingData(fuzzy_length=2)
+        plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=2)
         self.one_dimensional_weights_cube.data = np.ones((3))
         expected_result = np.array([[[[0.33333334, 0., 0.25],
                                       [0.41421354, 0.25, 0.2928932]],
@@ -773,7 +774,7 @@ class Test_process(IrisTest):
     def test_fuzziness_with_one_dimensional_weights(self):
         """Test a simple case where we have some fuzziness in the spatial
         sweights and with adjustment from the one_dimensional weights."""
-        plugin = SpatialWeightsForMissingData(fuzzy_length=2)
+        plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=2)
         expected_result = np.array([[[[0.25, 0., 0.15384616],
                                       [0.32037723, 0.15384616, 0.17789416]],
                                      [[0.25, 0., 0.15384616],

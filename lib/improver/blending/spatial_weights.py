@@ -39,7 +39,7 @@ from improver.utilities.rescale import rescale
 from improver.utilities.cube_checker import check_cube_coordinates
 
 
-class SpatialWeightsForMissingData(object):
+class SpatiallyVaryingWeightsFromMask(object):
     """
     Plugin for adjusting weights spatially based on missing data in the input
     cube. It takes in an initial one dimensional cube of weights which would
@@ -85,7 +85,7 @@ class SpatialWeightsForMissingData(object):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<SpatialWeightsForMissingData: fuzzy_length: {}>'.format(
+        result = ('<SpatiallyVaryingWeightsFromMask: fuzzy_length: {}>'.format(
                       self.fuzzy_length))
         return result
 
@@ -110,7 +110,7 @@ class SpatialWeightsForMissingData(object):
         if np.ma.is_masked(cube.data):
             weights_data = np.where(cube.data.mask, 0, 1).astype(np.float32)
         else:
-            message = ("Input cube to SpatialWeightsForMissingData "
+            message = ("Input cube to SpatiallyVaryingWeightsFromMask "
                        "must be masked")
             raise ValueError(message)
         weights_from_mask = cube.copy(data=weights_data)
