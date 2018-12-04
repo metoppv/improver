@@ -347,8 +347,9 @@ class GeneratePercentilesFromProbabilities(object):
 
         Keyword Args:
             ecc_bounds_warning (bool):
-                If true and ECC bounds are exceeded, a warning will be
-                generated rather than an exception. Default value is FALSE.
+                If true and ECC bounds are exceeded by the threshold values,
+                a warning will be generated rather than an exception.
+                Default value is FALSE.
         Returns:
             (tuple) : tuple containing:
                 **threshold_points** (Numpy array):
@@ -375,10 +376,9 @@ class GeneratePercentilesFromProbabilities(object):
                                         bounds_pairing))
             # If ecc_bounds_warning has been set, generate a warning message
             # rather than raising an exception so that subsequent processing
-            # can continue. Then re-apply the upper and lower bounds as
-            # necessary to ensure the threshold values and endpoints are in
-            # ascending order and avoid problems further along the processing
-            # chain.
+            # can continue. Then apply the new bounds as necessary to
+            # ensure the threshold values and endpoints are in ascending
+            # order and avoid problems further along the processing chain.
             if ecc_bounds_warning:
                 warn_msg = msg + ("The threshold points that have exceeded "
                                   "the existing bounds will be used as "
@@ -416,7 +416,8 @@ class GeneratePercentilesFromProbabilities(object):
 
         Keyword Args:
             ecc_bounds_warning (bool):
-                If true and ECC bounds are exceeded, a warning will be
+                If true and ECC bounds are exceeded by the threshold values
+                from the forecast_probabilities, then a warning will be
                 generated rather than an exception. Default value is FALSE.
 
         Returns:

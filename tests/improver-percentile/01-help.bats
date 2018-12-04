@@ -67,8 +67,9 @@ optional arguments:
                         probabilities to percentiles and may be omitted. This
                         coordinate(s) will be removed and replaced by a
                         percentile coordinate.
-  --ecc_bounds_warning  Option to specify that exceeding ECC bounds will only
-                        result in a warning message rather than an exception.
+  --ecc_bounds_warning  If True, where calculated percentiles are outside the
+                        ECC bounds range, raise a warning rather than an
+                        exception.
   --percentiles PERCENTILES [PERCENTILES ...]
                         Optional definition of percentiles at which to
                         calculate data, e.g. --percentiles 0 33.3 66.6 100

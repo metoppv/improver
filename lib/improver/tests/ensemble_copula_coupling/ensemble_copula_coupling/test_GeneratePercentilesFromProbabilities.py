@@ -148,11 +148,9 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
                             for item in warning_list))
 
     def test_new_endpoints_generation(self):
-        """
-        Test that the plugin re-applies the threshold bounds using the maximum
+        """Test that the plugin re-applies the threshold bounds using the maximum
         and minimum threshold points values when the original bounds have been
-        exceeded and ecc_bounds_warning has been set.
-        """
+        exceeded and ecc_bounds_warning has been set."""
         probabilities_for_cdf = np.array([[0.05, 0.7, 0.95]])
         threshold_points = np.array([-50, 10, 60])
         bounds_pairing = (-40, 50)
@@ -166,10 +164,8 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
 
 class Test__probabilities_to_percentiles(IrisTest):
 
-    """
-    Test the _probabilities_to_percentiles method of the
-    GeneratePercentilesFromProbabilities plugin.
-    """
+    """Test the _probabilities_to_percentiles method of the
+    GeneratePercentilesFromProbabilities plugin."""
 
     def setUp(self):
         """Set up temperature cube."""
