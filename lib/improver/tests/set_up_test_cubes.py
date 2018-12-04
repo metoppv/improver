@@ -40,6 +40,7 @@ from datetime import datetime
 import numpy as np
 import iris
 from iris.coords import DimCoord
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
 from improver.utilities.cube_metadata import MOSG_GRID_DEFINITION
@@ -364,7 +365,7 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
     return cube
 
 
-def add_coordinate(cube, coord_points, coord_name, coord_units=None,
+def add_coordinate(incube, coord_points, coord_name, coord_units=None,
                    dtype=np.float32, order=None):
     """
     Function to duplicate a sample cube with an additional coordinate to create
@@ -372,7 +373,7 @@ def add_coordinate(cube, coord_points, coord_name, coord_units=None,
     reordered to place the new coordinate in the required position.
 
     Args:
-        cube (iris.cube.Cube):
+        incube (iris.cube.Cube):
             Cube to be duplicated.
         coord_points (list):
             Values for the coordinate.
@@ -395,6 +396,13 @@ def add_coordinate(cube, coord_points, coord_name, coord_units=None,
         iris.cube.Cube:
             Cube containing an additional dimension coordinate.
     """
+    # if the coordinate already exists as a scalar coordinate, remove it
+    cube = incube.copy()
+    try:
+        cube.remove_coord(coord_name)
+    except CoordinateNotFoundError:
+        pass
+
     cubes = iris.cube.CubeList([])
     for val in coord_points:
         temp_cube = cube.copy()

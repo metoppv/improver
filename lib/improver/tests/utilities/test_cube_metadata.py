@@ -51,9 +51,9 @@ from improver.utilities.cube_metadata import (
     update_coord,
     update_attribute)
 from improver.utilities.warnings_handler import ManageWarnings
-from improver.tests.ensemble_calibration.ensemble_calibration.\
-    helper_functions import set_up_temperature_cube
 from improver.utilities.temporal import forecast_period_coord
+
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
 def create_cube_with_threshold(data=None,
@@ -77,15 +77,15 @@ def create_cube_with_threshold(data=None,
                                 units='degrees'), 2)
     cube.add_dim_coord(DimCoord(np.linspace(120, 180, 2), 'longitude',
                                 units='degrees'), 3)
-    time_origin = "hours since 1970-01-01 00:00:00"
+    time_origin = "seconds since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
-    cube.add_dim_coord(DimCoord([402192.5, 402193.5],
+    cube.add_dim_coord(DimCoord([1447893000, 1447896600],
                                 "time", units=tunit), 1)
     cube.add_dim_coord(DimCoord(threshold_values,
                                 long_name='threshold',
                                 units=units), 0)
-    cube.add_aux_coord(AuxCoord([402190.],
+    cube.add_aux_coord(AuxCoord([1447884000],
                                 standard_name='forecast_reference_time',
                                 units=tunit), None)
     cube.add_aux_coord(forecast_period_coord(cube), 1)
@@ -98,7 +98,8 @@ class Test_update_stage_v110_metadata(IrisTest):
 
     def setUp(self):
         """Set up variables for use in testing."""
-        self.cube = set_up_temperature_cube()
+        data = 275.*np.ones((3, 3), dtype=np.float32)
+        self.cube = set_up_variable_cube(data)
 
     def test_basic(self):
         """Test that cube is unchanged and function returns False"""
@@ -565,7 +566,8 @@ class Test_amend_metadata(IrisTest):
 
     def test_convert_units(self):
         """Test amend_metadata updates attributes OK. """
-        cube = set_up_temperature_cube()
+        cube = set_up_variable_cube(
+            np.ones((3, 3), dtype=np.float32), units='K')
         result = amend_metadata(cube, units="Celsius")
         self.assertEqual(result.units, "Celsius")
 
@@ -779,7 +781,7 @@ class Test_add_history_attribute(IrisTest):
 
     def test_add_history(self):
         """Test that a history attribute has been added."""
-        cube = set_up_temperature_cube()
+        cube = set_up_variable_cube(np.ones((3, 3), dtype=np.float32))
         add_history_attribute(cube, ["add", "Nowcast"])
         self.assertTrue("history" in cube.attributes)
         self.assertTrue("Nowcast" in cube.attributes["history"])
@@ -787,7 +789,7 @@ class Test_add_history_attribute(IrisTest):
     def test_history_already_exists(self):
         """Test that the history attribute is overwritten, if it
         already exists."""
-        cube = set_up_temperature_cube()
+        cube = set_up_variable_cube(np.ones((3, 3), dtype=np.float32))
         expected_history = "2018-09-13T11:28:29"
         cube.attributes["history"] = expected_history
         add_history_attribute(cube, ["Nowcast", "add"])

@@ -44,39 +44,9 @@ import numpy as np
 from improver.utilities.load import load_cube, load_cubelist
 from improver.utilities.save import save_netcdf
 
-from improver.tests.ensemble_calibration.ensemble_calibration.\
-    helper_functions import (
-        set_up_probability_above_threshold_temperature_cube,
-        set_up_temperature_cube)
-from improver.tests.set_up_test_cubes import set_up_percentile_cube
-
-
-def create_sample_cube_with_additional_coordinate(
-        cube, coord_name, coord_points):
-    """
-    Function to duplicate a sample cube with an additional coordinate to
-    create a cubelist. The cubelist is merged to create a single cube.
-
-    Args:
-        cube (iris.cube.Cube):
-            Create a cube to be duplicated.
-        coord_name (str):
-            Long name of the coordinate that you would like to add.
-        coord_points (list):
-            Values for the coordinate.
-
-    Returns:
-        iris.cube.Cube:
-            Cube containing an additional dimension coordinate.
-
-    """
-    cubes = iris.cube.CubeList([])
-    for val in coord_points:
-        temp_cube = cube.copy()
-        temp_cube.add_aux_coord(
-            DimCoord(np.array([val]), long_name=coord_name))
-        cubes.append(temp_cube)
-    return cubes.merge_cube()
+from improver.tests.set_up_test_cubes import (
+    set_up_variable_cube, set_up_percentile_cube, set_up_probability_cube,
+    add_coordinate)
 
 
 class Test_load_cube(IrisTest):
@@ -86,12 +56,12 @@ class Test_load_cube(IrisTest):
         """Set up variables for use in testing."""
         self.directory = mkdtemp()
         self.filepath = os.path.join(self.directory, "temp.nc")
-        self.cube = set_up_temperature_cube()
+        self.cube = set_up_variable_cube(np.ones((3, 3, 3), dtype=np.float32))
         save_netcdf(self.cube, self.filepath)
-        self.realization_points = np.array([0, 1, 2], dtype=np.float32)
-        self.time_points = np.array([412227], dtype=np.float64)
-        self.latitude_points = np.array([-45., 0., 45.], dtype=np.float32)
-        self.longitude_points = np.array([120., 150., 180.], dtype=np.float32)
+        self.realization_points = self.cube.coord("realization").points
+        self.time_points = self.cube.coord("time").points
+        self.latitude_points = self.cube.coord("latitude").points
+        self.longitude_points = self.cube.coord("longitude").points
 
     def tearDown(self):
         """Remove temporary directories created for testing."""
@@ -169,14 +139,13 @@ class Test_load_cube(IrisTest):
     def test_ordering_for_realization_coordinate(self):
         """Test that the cube has been reordered, if it is originally in an
         undesirable order and the cube contains a "realization" coordinate."""
-        cube = set_up_temperature_cube()
-        cube.transpose([3, 2, 1, 0])
+        cube = set_up_variable_cube(np.ones((3, 3, 3), dtype=np.float32))
+        cube.transpose([2, 1, 0])
         save_netcdf(cube, self.filepath)
         result = load_cube(self.filepath)
         self.assertEqual(result.coord_dims("realization")[0], 0)
-        self.assertEqual(result.coord_dims("time")[0], 1)
-        self.assertArrayAlmostEqual(result.coord_dims("latitude")[0], 2)
-        self.assertArrayAlmostEqual(result.coord_dims("longitude")[0], 3)
+        self.assertArrayAlmostEqual(result.coord_dims("latitude")[0], 1)
+        self.assertArrayAlmostEqual(result.coord_dims("longitude")[0], 2)
 
     def test_ordering_for_percentile_over_coordinate(self):
         """Test that the cube has been reordered, if it is originally in an
@@ -195,35 +164,36 @@ class Test_load_cube(IrisTest):
     def test_ordering_for_threshold_coordinate(self):
         """Test that the cube has been reordered, if it is originally in an
         undesirable order and the cube contains a "threshold" coordinate."""
-        cube = set_up_probability_above_threshold_temperature_cube()
-        cube.transpose([3, 2, 1, 0])
+        cube = set_up_probability_cube(
+            np.zeros((3, 4, 5), dtype=np.float32),
+            np.array([273., 274., 275.], dtype=np.float32))
+        cube.transpose([2, 1, 0])
         save_netcdf(cube, self.filepath)
         result = load_cube(self.filepath)
         self.assertEqual(result.coord_dims("threshold")[0], 0)
-        self.assertEqual(result.coord_dims("time")[0], 1)
-        self.assertArrayAlmostEqual(result.coord_dims("latitude")[0], 2)
-        self.assertArrayAlmostEqual(result.coord_dims("longitude")[0], 3)
+        self.assertArrayAlmostEqual(result.coord_dims("latitude")[0], 1)
+        self.assertArrayAlmostEqual(result.coord_dims("longitude")[0], 2)
 
     def test_ordering_for_realization_threshold_percentile_over_coordinate(
             self):
         """Test that the cube has been reordered, if it is originally in an
         undesirable order and the cube contains a "threshold" coordinate,
         a "realization" coordinate and a "percentile_over" coordinate."""
-        cube = set_up_probability_above_threshold_temperature_cube()
-        cube = create_sample_cube_with_additional_coordinate(
-            cube, "realization", [0, 1, 2])
-        cube = create_sample_cube_with_additional_coordinate(
-            cube, "percentile_over_neighbourhood", [10, 50, 90])
-        cube.transpose([5, 4, 3, 2, 1, 0])
+        cube = set_up_probability_cube(
+            np.zeros((3, 4, 5), dtype=np.float32),
+            np.array([273., 274., 275.], dtype=np.float32))
+        cube = add_coordinate(cube, [0, 1, 2], "realization")
+        cube = add_coordinate(
+            cube, [10, 50, 90], "percentile_over_neighbourhood")
+        cube.transpose([4, 3, 2, 1, 0])
         save_netcdf(cube, self.filepath)
         result = load_cube(self.filepath)
         self.assertEqual(result.coord_dims("realization")[0], 0)
         self.assertEqual(
             result.coord_dims("percentile_over_neighbourhood")[0], 1)
         self.assertEqual(result.coord_dims("threshold")[0], 2)
-        self.assertEqual(result.coord_dims("time")[0], 3)
-        self.assertArrayAlmostEqual(result.coord_dims("latitude")[0], 4)
-        self.assertArrayAlmostEqual(result.coord_dims("longitude")[0], 5)
+        self.assertArrayAlmostEqual(result.coord_dims("latitude")[0], 3)
+        self.assertArrayAlmostEqual(result.coord_dims("longitude")[0], 4)
 
     def test_attributes(self):
         """Test that metadata attributes are successfully stripped out."""
@@ -255,12 +225,12 @@ class Test_load_cubelist(IrisTest):
         """Set up variables for use in testing."""
         self.directory = mkdtemp()
         self.filepath = os.path.join(self.directory, "temp.nc")
-        self.cube = set_up_temperature_cube()
+        self.cube = set_up_variable_cube(np.ones((3, 3, 3), dtype=np.float32))
         save_netcdf(self.cube, self.filepath)
-        self.realization_points = np.array([0, 1, 2])
-        self.time_points = np.array(412227, dtype=np.float64)
-        self.latitude_points = np.array([-45., 0., 45.], dtype=np.float32)
-        self.longitude_points = np.array([120., 150., 180.], dtype=np.float32)
+        self.realization_points = self.cube.coord("realization").points
+        self.time_points = self.cube.coord("time").points
+        self.latitude_points = self.cube.coord("latitude").points
+        self.longitude_points = self.cube.coord("longitude").points
         self.low_cloud_filepath = os.path.join(self.directory, "low_cloud.nc")
         self.med_cloud_filepath = os.path.join(self.directory,
                                                "medium_cloud.nc")
