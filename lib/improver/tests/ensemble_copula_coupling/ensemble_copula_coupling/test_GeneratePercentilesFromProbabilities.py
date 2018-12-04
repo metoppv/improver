@@ -122,7 +122,7 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         threshold_points = np.array([8, 10, 60])
         bounds_pairing = (-40, 50)
         plugin = Plugin()
-        msg = "The end points added to the threshold values for"
+        msg = "The calculated threshold values"
         with self.assertRaisesRegex(ValueError, msg):
             plugin._add_bounds_to_thresholds_and_probabilities(
                 threshold_points, probabilities_for_cdf, bounds_pairing)
@@ -140,7 +140,7 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         threshold_points = np.array([8, 10, 60])
         bounds_pairing = (-40, 50)
         plugin = Plugin()
-        warning_msg = "The end points added to the threshold values for"
+        warning_msg = "The calculated threshold values"
         plugin._add_bounds_to_thresholds_and_probabilities(
             threshold_points, probabilities_for_cdf, bounds_pairing,
             ecc_bounds_warning=True)

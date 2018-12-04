@@ -367,13 +367,11 @@ class GeneratePercentilesFromProbabilities(object):
             probabilities_for_cdf, 0, 1)
 
         if np.any(np.diff(threshold_points_with_endpoints) < 0):
-            msg = ("The end points added to the threshold values for "
-                   "constructing the Cumulative Distribution Function (CDF) "
-                   "must result in an ascending order. "
-                   "In this case, the threshold points {} must be "
-                   "outside the allowable range given by the "
-                   "bounds {}. ".format(threshold_points_with_endpoints,
-                                        bounds_pairing))
+            msg = ("The calculated threshold values {} are not in ascending "
+                   "order as required for the cumulative distribution "
+                   "function (CDF). This is due to the threshold values "
+                   "exceeding the range given by the ECC bounds {}."
+                   .format(threshold_points_with_endpoints, bounds_pairing))
             # If ecc_bounds_warning has been set, generate a warning message
             # rather than raising an exception so that subsequent processing
             # can continue. Then apply the new bounds as necessary to
