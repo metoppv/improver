@@ -1113,38 +1113,49 @@ class FallingSnowLevel(object):
         orography = next(orog.slices([y_coord, x_coord]))
         orog_data = orography.data
         land_sea_data = next(land_sea_mask.slices([y_coord, x_coord])).data
+        max_nbhood_orog = self.find_max_in_nbhood_orography(orography)
 
         snow = iris.cube.CubeList([])
         slice_list = ['height', y_coord, x_coord]
         for wb_integral, wet_bulb_temp in zip(
                 wet_bulb_integral.slices(slice_list),
                 wet_bulb_temperature.slices(slice_list)):
-            height_points = wb_integral.coord('height').points
-            # Calculate falling snow level above sea level.
-            snow_cube = wb_integral[0]
-            snow_cube.rename('falling_snow_level_asl')
-            snow_cube.units = 'm'
-            snow_cube.remove_coord('height')
-
-            snow_cube.data = self.find_falling_level(wb_integral.data,
-                                                     orog_data,
-                                                     height_points)
-            # Fill in missing data
-            self.fill_in_high_snow_falling_levels(
-                snow_cube.data, orog_data, wb_integral.data.max(axis=0),
-                highest_height)
-            self.fill_in_sea_points(
-                snow_cube.data, land_sea_data, wb_integral.data.max(axis=0),
-                wet_bulb_temp.data,  heights)
-            max_nbhood_orog = self.find_max_in_nbhood_orography(orography)
-            updated_snow_level = self.fill_in_by_horizontal_interpolation(
-                snow_cube.data, max_nbhood_orog.data, orog_data)
-            points = np.where(~np.isfinite(snow_cube.data))
-            snow_cube.data[points] = updated_snow_level[points]
-            # Fill in any remaining points with missing data:
-            remaining_points = np.where(np.isnan(snow_cube.data))
-            snow_cube.data[remaining_points] = self.missing_data
+            snow_cube = self._snow_falling_level(wb_integral, wet_bulb_temp,
+                                                 orog_data, max_nbhood_orog,
+                                                 land_sea_data, heights,
+                                                 highest_height)
             snow.append(snow_cube)
 
         falling_snow_level = snow.merge_cube()
         return falling_snow_level
+
+    @staticmethod
+    def _snow_falling_level(wb_integral, wet_bulb_temp, orog_data,
+                            max_nbhood_orog, land_sea_data, heights,
+                            highest_height):
+
+        height_points = wb_integral.coord('height').points
+        # Calculate falling snow level above sea level.
+        snow_cube = wb_integral[0]
+        snow_cube.rename('falling_snow_level_asl')
+        snow_cube.units = 'm'
+        snow_cube.remove_coord('height')
+
+        snow_cube.data = self.find_falling_level(wb_integral.data,
+                                                 orog_data,
+                                                 height_points)
+        # Fill in missing data
+        self.fill_in_high_snow_falling_levels(
+            snow_cube.data, orog_data, wb_integral.data.max(axis=0),
+            highest_height)
+        self.fill_in_sea_points(
+            snow_cube.data, land_sea_data, wb_integral.data.max(axis=0),
+            wet_bulb_temp.data,  heights)
+        updated_snow_level = self.fill_in_by_horizontal_interpolation(
+            snow_cube.data, max_nbhood_orog.data, orog_data)
+        points = np.where(~np.isfinite(snow_cube.data))
+        snow_cube.data[points] = updated_snow_level[points]
+        # Fill in any remaining points with missing data:
+        remaining_points = np.where(np.isnan(snow_cube.data))
+        snow_cube.data[remaining_points] = self.missing_data
+        return snow_cube
