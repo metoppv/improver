@@ -77,4 +77,7 @@ fi
 export PYTHONPATH="$IMPROVER_DIR/lib/:${PYTHONPATH:-}"
 export PATH="$IMPROVER_DIR/bin/:$PATH"
 
-exec improver-$OPER "$@"
+if ${IMPROVER_PROFILE:-false} ; then
+    profile_option="--profile"
+fi
+exec improver-$OPER "$@" ${profile_option:-}
