@@ -31,24 +31,27 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "nowcast-optical-flow no orographic enhancement" {
+@test "Unavailable pressure level" {
   improver_check_skip_acceptance
-  KGO1="nowcast-optical-flow/basic/ucomp_kgo.nc"
-  KGO2="nowcast-optical-flow/basic/vcomp_kgo.nc"
 
-  COMP1="201811031530_radar_rainrate_composite_UK_regridded.nc"
-  COMP2="201811031545_radar_rainrate_composite_UK_regridded.nc"
-  COMP3="201811031600_radar_rainrate_composite_UK_regridded.nc"
+  WSPEED="$IMPROVER_ACC_TEST_DIR/nowcast-extrapolate/model_winds/20181103T1600Z-PT0001H00M-wind_speed_on_pressure_levels.nc"
+  WDIR="$IMPROVER_ACC_TEST_DIR/nowcast-extrapolate/model_winds/20181103T1600Z-PT0001H00M-wind_direction_on_pressure_levels.nc"
+  INFILE="201811031600_radar_rainrate_composite_UK_regridded.nc"
+  OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
 
   # Run processing and check it passes
-  run improver nowcast-optical-flow \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$COMP1" \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$COMP2" \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$COMP3" \
-    --output_dir "$TEST_DIR"
+  run improver nowcast-extrapolate \
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$INFILE" \
+    --output_dir "$TEST_DIR" --max_lead_time 30 \
+    --advection_speed_filepath "$WSPEED" \
+    --advection_direction_filepath "$WDIR" \
+    --pressure_level 1234 \
+    --orographic_enhancement_filepaths \
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1"
   [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-ValueError: For precipitation fields, orographic enhancement
+Unable to extract specified pressure level
 __TEXT__
   [[ "$output" =~ "$expected" ]]
+
 }

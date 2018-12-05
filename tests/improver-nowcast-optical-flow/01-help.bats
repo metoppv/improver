@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "optical-flow help" {
+@test "nowcast-optical-flow help" {
   run improver nowcast-optical-flow -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__TEXT__' || true

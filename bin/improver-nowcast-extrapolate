@@ -33,15 +33,17 @@
 
 import datetime
 import os
-import numpy as np
 import json
+import numpy as np
 
+from iris import Constraint
 from improver.argparser import ArgParser
 from improver.nowcasting.optical_flow import AdvectField
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
 from improver.utilities.filename import generate_file_name
-from improver.utilities.load import load_cube, load_cubelist
+from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
+from improver.wind_calculations.wind_components import ResolveWindComponents
 
 
 def main():
@@ -59,14 +61,32 @@ def main():
                        help="List of full paths to output nowcast files, in "
                        "order of increasing lead time.")
 
-    parser.add_argument("--eastward_advection_filepath", type=str, help="Path"
+    optflw = parser.add_argument_group('Advect using files containing the x '
+                                       ' and y components of the velocity')
+    optflw.add_argument("--eastward_advection_filepath", type=str, help="Path"
                         " to input file containing Eastward advection "
                         "velocities.")
-    parser.add_argument("--northward_advection_filepath", type=str, help="Path"
+    optflw.add_argument("--northward_advection_filepath", type=str, help="Path"
                         " to input file containing Northward advection "
                         "velocities.")
+
+    speed = parser.add_argument_group('Advect using files containing speed and'
+                                      ' direction')
+    speed.add_argument("--advection_speed_filepath", type=str, help="Path"
+                       " to input file containing advection speeds,"
+                       " usually wind speeds, on multiple pressure levels.")
+    speed.add_argument("--advection_direction_filepath", type=str,
+                       help="Path to input file containing the directions from"
+                       " which advection speeds are coming (180 degrees from"
+                       " the direction in which the speed is directed). The"
+                       " directions should be on the same grid as the input"
+                       " speeds, including the same vertical levels.")
+    speed.add_argument("--pressure_level", type=int, default=75000, help="The"
+                       " pressure level in Pa to extract from the multi-level"
+                       " advection_speed and advection_direction files. The"
+                       " velocities at this level are used for advection.")
     parser.add_argument("--orographic_enhancement_filepaths", nargs="+",
-                        type=str, default=None,  help="List or wildcarded "
+                        type=str, default=None, help="List or wildcarded "
                         "file specification to the input orographic "
                         "enhancement files. Orographic enhancement files are "
                         "compulsory for precipitation fields.")
@@ -84,10 +104,30 @@ def main():
                         help="Interval between required lead times (mins).")
     args = parser.parse_args()
 
+    upath, vpath = (args.eastward_advection_filepath,
+                    args.northward_advection_filepath)
+    spath, dpath = (args.advection_speed_filepath,
+                    args.advection_direction_filepath)
+
     # load files and initialise advection plugin
     input_cube = load_cube(args.input_filepath)
-    ucube = load_cube(args.eastward_advection_filepath)
-    vcube = load_cube(args.northward_advection_filepath)
+    if (upath and vpath) and not (spath or dpath):
+        ucube = load_cube(upath)
+        vcube = load_cube(vpath)
+    elif (spath and dpath) and not (upath or vpath):
+        level_constraint = Constraint(pressure=args.pressure_level)
+        try:
+            scube = load_cube(spath, constraints=level_constraint)
+            dcube = load_cube(dpath, constraints=level_constraint)
+        except ValueError as err:
+            raise ValueError(
+                '{} Unable to extract specified pressure level from given '
+                'speed and direction files.'.format(err))
+
+        ucube, vcube = ResolveWindComponents().process(scube, dcube)
+    else:
+        raise ValueError('Cannot mix advection component velocities with speed'
+                         ' and direction')
 
     if args.orographic_enhancement_filepaths:
         oe_cube = load_cube(args.orographic_enhancement_filepaths)
@@ -126,7 +166,7 @@ def main():
         if args.orographic_enhancement_filepaths:
             # Add orographic enhancement.
             forecast_cube, = ApplyOrographicEnhancement("add").process(
-                  forecast_cube, oe_cube)
+                forecast_cube, oe_cube)
 
         # save to a suitably-named output file
         if args.output_filepaths:

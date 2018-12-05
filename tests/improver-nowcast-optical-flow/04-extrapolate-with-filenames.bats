@@ -31,11 +31,11 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "optical-flow extrapolate with filenames" {
+@test "nowcast-optical-flow extrapolate with filenames" {
   improver_check_skip_acceptance
-  KGO0="optical-flow/extrapolate/kgo0.nc"
-  KGO1="optical-flow/extrapolate/kgo1.nc"
-  KGO2="optical-flow/extrapolate/kgo2.nc"
+  KGO0="nowcast-extrapolate/extrapolate/kgo0.nc"
+  KGO1="nowcast-extrapolate/extrapolate/kgo1.nc"
+  KGO2="nowcast-extrapolate/extrapolate/kgo2.nc"
 
   COMP1="201811031530_radar_rainrate_composite_UK_regridded.nc"
   COMP2="201811031545_radar_rainrate_composite_UK_regridded.nc"
@@ -45,11 +45,11 @@
 
   # Run processing and check it passes
   run improver nowcast-optical-flow \
-    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$COMP1" \
-    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$COMP2" \
-    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$COMP3" \
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$COMP1" \
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$COMP2" \
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$COMP3" \
     --orographic_enhancement_filepaths \
-    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$OE1" \
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1" \
     --output_dir "$TEST_DIR" \
     --nowcast_filepaths \
     "$TEST_DIR/outfile0.nc" \

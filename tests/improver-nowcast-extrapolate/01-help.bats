@@ -38,6 +38,9 @@ usage: improver-nowcast-extrapolate [-h] [--profile]
                                     [--output_dir OUTPUT_DIR | --output_filepaths OUTPUT_FILEPATHS [OUTPUT_FILEPATHS ...]]
                                     [--eastward_advection_filepath EASTWARD_ADVECTION_FILEPATH]
                                     [--northward_advection_filepath NORTHWARD_ADVECTION_FILEPATH]
+                                    [--advection_speed_filepath ADVECTION_SPEED_FILEPATH]
+                                    [--advection_direction_filepath ADVECTION_DIRECTION_FILEPATH]
+                                    [--pressure_level PRESSURE_LEVEL]
                                     [--orographic_enhancement_filepaths OROGRAPHIC_ENHANCEMENT_FILEPATHS [OROGRAPHIC_ENHANCEMENT_FILEPATHS ...]]
                                     [--json_file JSON_FILE]
                                     [--max_lead_time MAX_LEAD_TIME]
@@ -59,12 +62,6 @@ optional arguments:
   --output_filepaths OUTPUT_FILEPATHS [OUTPUT_FILEPATHS ...]
                         List of full paths to output nowcast files, in order
                         of increasing lead time.
-  --eastward_advection_filepath EASTWARD_ADVECTION_FILEPATH
-                        Path to input file containing Eastward advection
-                        velocities.
-  --northward_advection_filepath NORTHWARD_ADVECTION_FILEPATH
-                        Path to input file containing Northward advection
-                        velocities.
   --orographic_enhancement_filepaths OROGRAPHIC_ENHANCEMENT_FILEPATHS [OROGRAPHIC_ENHANCEMENT_FILEPATHS ...]
                         List or wildcarded file specification to the input
                         orographic enhancement files. Orographic enhancement
@@ -80,6 +77,29 @@ optional arguments:
                         Maximum lead time required (mins).
   --lead_time_interval LEAD_TIME_INTERVAL
                         Interval between required lead times (mins).
+
+Advect using files containing the x  and y components of the velocity:
+  --eastward_advection_filepath EASTWARD_ADVECTION_FILEPATH
+                        Path to input file containing Eastward advection
+                        velocities.
+  --northward_advection_filepath NORTHWARD_ADVECTION_FILEPATH
+                        Path to input file containing Northward advection
+                        velocities.
+
+Advect using files containing speed and direction:
+  --advection_speed_filepath ADVECTION_SPEED_FILEPATH
+                        Path to input file containing advection speeds,
+                        usually wind speeds, on multiple pressure levels.
+  --advection_direction_filepath ADVECTION_DIRECTION_FILEPATH
+                        Path to input file containing the directions from
+                        which advection speeds are coming (180 degrees from
+                        the direction in which the speed is directed). The
+                        directions should be on the same grid as the input
+                        speeds, including the same vertical levels.
+  --pressure_level PRESSURE_LEVEL
+                        The pressure level in Pa to extract from the multi-
+                        level advection_speed and advection_direction files.
+                        The velocities at this level are used for advection.
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

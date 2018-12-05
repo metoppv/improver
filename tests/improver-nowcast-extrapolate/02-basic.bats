@@ -33,23 +33,23 @@
 
 @test "extrapolate basic" {
   improver_check_skip_acceptance
-  KGO0="optical-flow/extrapolate/kgo0.nc"
-  KGO1="optical-flow/extrapolate/kgo1.nc"
-  KGO2="optical-flow/extrapolate/kgo2.nc"
+  KGO0="nowcast-extrapolate/extrapolate/kgo0.nc"
+  KGO1="nowcast-extrapolate/extrapolate/kgo1.nc"
+  KGO2="nowcast-extrapolate/extrapolate/kgo2.nc"
 
-  UCOMP="$IMPROVER_ACC_TEST_DIR/optical-flow/basic/ucomp_kgo.nc"
-  VCOMP="$IMPROVER_ACC_TEST_DIR/optical-flow/basic/vcomp_kgo.nc"
+  UCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/ucomp_kgo.nc"
+  VCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/vcomp_kgo.nc"
   INFILE="201811031600_radar_rainrate_composite_UK_regridded.nc"
   OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
 
   # Run processing and check it passes
   run improver nowcast-extrapolate \
-    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$INFILE" \
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$INFILE" \
     --output_dir "$TEST_DIR" --max_lead_time 30 \
     --eastward_advection "$UCOMP" \
     --northward_advection "$VCOMP" \
     --orographic_enhancement_filepaths \
-    "$IMPROVER_ACC_TEST_DIR/optical-flow/basic/$OE1"
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1"
   [[ "$status" -eq 0 ]]
 
   T0="20181103T1600Z-PT0000H00M-lwe_precipitation_rate.nc"
