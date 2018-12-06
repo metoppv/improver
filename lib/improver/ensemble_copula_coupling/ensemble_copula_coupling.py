@@ -378,9 +378,9 @@ class GeneratePercentilesFromProbabilities(object):
             # ensure the threshold values and endpoints are in ascending
             # order and avoid problems further along the processing chain.
             if ecc_bounds_warning:
-                warn_msg = msg + ("The threshold points that have exceeded "
-                                  "the existing bounds will be used as "
-                                  "new bounds.")
+                warn_msg = msg + (" The threshold points that have "
+                                  "exceeded the existing bounds will be used "
+                                  "as new bounds.")
                 warnings.warn(warn_msg)
                 if upper_bound < max(threshold_points_with_endpoints):
                     upper_bound = max(threshold_points_with_endpoints)
