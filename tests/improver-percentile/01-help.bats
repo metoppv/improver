@@ -35,6 +35,7 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver-percentile [-h] [--profile] [--profile_file PROFILE_FILE]
                            [--coordinates COORDINATES_TO_COLLAPSE [COORDINATES_TO_COLLAPSE ...]]
+                           [--ecc_bounds_warning]
                            [--percentiles PERCENTILES [PERCENTILES ...] |
                            --no-of-percentiles NUMBER_OF_PERCENTILES]
                            INPUT_FILE OUTPUT_FILE
@@ -66,6 +67,9 @@ optional arguments:
                         probabilities to percentiles and may be omitted. This
                         coordinate(s) will be removed and replaced by a
                         percentile coordinate.
+  --ecc_bounds_warning  If True, where calculated percentiles are outside the
+                        ECC bounds range, raise a warning rather than an
+                        exception.
   --percentiles PERCENTILES [PERCENTILES ...]
                         Optional definition of percentiles at which to
                         calculate data, e.g. --percentiles 0 33.3 66.6 100

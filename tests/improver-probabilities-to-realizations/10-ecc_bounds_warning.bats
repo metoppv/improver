@@ -29,14 +29,22 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "percentile no arguments" {
-  run improver percentile
-  [[ "$status" -eq 2 ]]
-  expected="usage: improver-percentile [-h] [--profile] [--profile_file PROFILE_FILE]
-                           [--coordinates COORDINATES_TO_COLLAPSE [COORDINATES_TO_COLLAPSE ...]]
-                           [--ecc_bounds_warning]
-                           [--percentiles PERCENTILES [PERCENTILES ...] |
-                           --no-of-percentiles NUMBER_OF_PERCENTILES]
-                           INPUT_FILE OUTPUT_FILE"
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "probabilities-to-realizations --reordering --ecc_bounds_warning raw_ens input output" {
+  improver_check_skip_acceptance
+  KGO="probabilities-to-realizations/ecc_bounds_warning/kgo.nc"
+
+  run improver probabilities-to-realizations --reordering --ecc_bounds_warning --random_seed 0 \
+      --raw_forecast_filepath \
+      "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/ecc_bounds_warning/raw_ens.nc" \
+      "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/ecc_bounds_warning/input.nc" \
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 0 ]]
+
+  improver_check_recreate_kgo "output.nc" $KGO
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

@@ -39,6 +39,7 @@ usage: improver-probabilities-to-realizations [-h] [--profile]
                                               (--reordering | --rebadging)
                                               [--raw_forecast_filepath RAW_FORECAST_FILE]
                                               [--random_seed RANDOM_SEED]
+                                              [--ecc_bounds_warning]
                                               INPUT_FILE OUTPUT_FILE
 
 Convert a dataset containing probabilities into one containing ensemble
@@ -85,6 +86,10 @@ Reordering options:
                         tied values within the raw ensemble, so that the
                         values from the input percentiles can be ordered to
                         match the raw ensemble.
+  --ecc_bounds_warning  If True, where percentiles (calculated as an
+                        intermediate output before realizations) exceed the
+                        ECC bounds range, raise a warning rather than an
+                        exception.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

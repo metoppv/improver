@@ -53,8 +53,8 @@ BOUNDS_FOR_ECDF = {
     "air_temperature": (
         Bounds((-140-ABSOLUTE_ZERO, 60-ABSOLUTE_ZERO), "Kelvin")),
     "wind_speed": Bounds((0, 50), "m s^-1"),
-    "wind_speed_of_gust": Bounds((0, 350), "m s^-1"),
-    "air_pressure_at_sea_level": Bounds((94000, 107000), "Pa"),
+    "wind_speed_of_gust": Bounds((0, 200), "m s^-1"),
+    "air_pressure_at_sea_level": Bounds((86000, 108000), "Pa"),
     ("cloud_base_altitude_assuming_only_consider_cloud_area" +
      "_fraction_greater_than_2p5_oktas"): Bounds((-300, 20000), "m"),
     "cloud_area_fraction": Bounds((0, 1.0), "1"),
@@ -64,14 +64,14 @@ BOUNDS_FOR_ECDF = {
     "precipitation_rate": Bounds((0, 0.00003), "m s-1"),
     "rainfall_rate": Bounds((0, 0.00003), "m s-1"),
     "rainfall_rate_in_vicinity": Bounds((0, 0.00003), "m s-1"),
-    "relative_humidity": Bounds((0, 2.0), "1"),
+    "relative_humidity": Bounds((0, 1.2), "1"),
     "thickness_of_precipitation_amount": Bounds((0, 0.2), "m"),
     "thickness_of_precipitation_amount_in_vicinity": Bounds((0, 0.2), "m"),
     "lwe_snowfall_rate": Bounds((0, 0.00001), "m s-1"),
     "lwe_snowfall_rate_in_vicinity": Bounds((0, 0.00001), "m s-1"),
     "visibility_in_air": Bounds((0, 100000), "m"),
     "temperature_at_screen_level_nighttime_min": (
-        Bounds((-40-ABSOLUTE_ZERO, 50-ABSOLUTE_ZERO), "Kelvin")),
+        Bounds((-90-ABSOLUTE_ZERO, 50-ABSOLUTE_ZERO), "Kelvin")),
     "temperature_at_screen_level_daytime_max": (
-        Bounds((-40-ABSOLUTE_ZERO, 50-ABSOLUTE_ZERO), "Kelvin"))
+        Bounds((-60-ABSOLUTE_ZERO, 65-ABSOLUTE_ZERO), "Kelvin"))
 }

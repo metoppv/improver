@@ -122,18 +122,50 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         threshold_points = np.array([8, 10, 60])
         bounds_pairing = (-40, 50)
         plugin = Plugin()
-        msg = "The end points added to the threshold values for"
+        msg = "The calculated threshold values"
         with self.assertRaisesRegex(ValueError, msg):
             plugin._add_bounds_to_thresholds_and_probabilities(
                 threshold_points, probabilities_for_cdf, bounds_pairing)
 
+    @ManageWarnings(record=True)
+    def test_endpoints_of_distribution_exceeded_warning(
+            self, warning_list=None):
+        """
+        Test that the plugin raises a warning message when the constant
+        end points of the distribution are exceeded by a threshold value
+        used in the forecast and the ecc_bounds_warning keyword argument
+        has been specified.
+        """
+        probabilities_for_cdf = np.array([[0.05, 0.7, 0.95]])
+        threshold_points = np.array([8, 10, 60])
+        bounds_pairing = (-40, 50)
+        plugin = Plugin()
+        warning_msg = "The calculated threshold values"
+        plugin._add_bounds_to_thresholds_and_probabilities(
+            threshold_points, probabilities_for_cdf, bounds_pairing,
+            ecc_bounds_warning=True)
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
+
+    def test_new_endpoints_generation(self):
+        """Test that the plugin re-applies the threshold bounds using the maximum
+        and minimum threshold points values when the original bounds have been
+        exceeded and ecc_bounds_warning has been set."""
+        probabilities_for_cdf = np.array([[0.05, 0.7, 0.95]])
+        threshold_points = np.array([-50, 10, 60])
+        bounds_pairing = (-40, 50)
+        plugin = Plugin()
+        result = plugin._add_bounds_to_thresholds_and_probabilities(
+            threshold_points, probabilities_for_cdf, bounds_pairing,
+            ecc_bounds_warning=True)
+        self.assertEqual(max(result[0]), max(threshold_points))
+        self.assertEqual(min(result[0]), min(threshold_points))
+
 
 class Test__probabilities_to_percentiles(IrisTest):
 
-    """
-    Test the _probabilities_to_percentiles method of the
-    GeneratePercentilesFromProbabilities plugin.
-    """
+    """Test the _probabilities_to_percentiles method of the
+    GeneratePercentilesFromProbabilities plugin."""
 
     def setUp(self):
         """Set up temperature cube."""

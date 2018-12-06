@@ -96,6 +96,11 @@ def main():
              'random numbers used for splitting tied values '
              'within the raw ensemble, so that the values from the input '
              'percentiles can be ordered to match the raw ensemble.')
+    reordering.add_argument(
+        '--ecc_bounds_warning', default=False, action='store_true',
+        help='If True, where percentiles (calculated as an intermediate '
+             'output before realizations) exceed the ECC bounds range, raise '
+             'a warning rather than an exception.')
 
     args = parser.parse_args()
 
@@ -116,7 +121,7 @@ def main():
     if args.reordering:
         if args.raw_forecast_filepath is None:
             message = ("You must supply a raw forecast filepath if using the "
-                       "reording option.")
+                       "reordering option.")
             raise ValueError(message)
         else:
             raw_forecast = load_cube(args.raw_forecast_filepath)
@@ -134,7 +139,8 @@ def main():
             no_of_realizations = len(raw_forecast.coord("realization").points)
 
         cube = GeneratePercentilesFromProbabilities().process(
-            cube, no_of_percentiles=no_of_realizations)
+            cube, no_of_percentiles=no_of_realizations,
+            ecc_bounds_warning=args.ecc_bounds_warning)
         cube = EnsembleReordering().process(
             cube, raw_forecast, random_ordering=False,
             random_seed=args.random_seed)

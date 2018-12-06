@@ -71,6 +71,11 @@ def main():
                         "when converting probabilities to percentiles and may "
                         "be omitted. This coordinate(s) will be removed "
                         "and replaced by a percentile coordinate.")
+    parser.add_argument('--ecc_bounds_warning', default=False,
+                        action='store_true',
+                        help='If True, where calculated percentiles are '
+                             'outside the ECC bounds range, raise a warning '
+                             'rather than an exception.')
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument("--percentiles", metavar="PERCENTILES",
                        nargs="+", default=None, type=float,
@@ -96,7 +101,8 @@ def main():
                           "not be used.")
 
         result = GeneratePercentilesFromProbabilities().process(
-            cube, percentiles=percentiles)
+            cube, percentiles=percentiles,
+            ecc_bounds_warning=args.ecc_bounds_warning)
     else:
         if not args.coordinates:
             raise ValueError("To collapse a coordinate to calculate "
