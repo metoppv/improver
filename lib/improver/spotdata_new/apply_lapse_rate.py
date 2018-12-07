@@ -83,11 +83,17 @@ class SpotLapseRateAdjust:
                         all cubes.
         """
         def _get_attributes(cube):
+            """Build dictionary of attributes that match the
+            self.grid_metadata_identifier."""
+
             attributes = cube.attributes
             attributes = {k:v for (k, v) in attributes.items()
                           if self.grid_metadata_identifier in k}
             return attributes
         def _compare_attributes(attributes, reference_attributes):
+            """Compare keys and values of attributes with reference_attributes.
+            Raise an exception if they do not match exactly."""
+
             match = ((attributes.items() & reference_attributes.items()) ==
                      reference_attributes.items())
             if match is not True:
