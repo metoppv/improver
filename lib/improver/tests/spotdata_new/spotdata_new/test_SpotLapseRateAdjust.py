@@ -31,11 +31,11 @@
 """Unit tests for SpotLapseRateAdjust class"""
 
 import unittest
+from datetime import datetime as dt
 import numpy as np
 
 import iris
 from iris.tests import IrisTest
-from datetime import datetime as dt
 
 from improver.spotdata_new.apply_lapse_rate import SpotLapseRateAdjust
 from improver.spotdata_new.build_spotdata_cube import build_spotdata_cube
@@ -44,6 +44,7 @@ from improver.tests.set_up_test_cubes import (set_up_variable_cube,
                                               construct_xy_coords,
                                               construct_scalar_time_coords)
 from improver.constants import DALR
+
 
 class Test_SpotLapseRateAdjust(IrisTest):
 
@@ -61,9 +62,9 @@ class Test_SpotLapseRateAdjust(IrisTest):
 
             A B C      A B C        A   B   C
 
-        a   1 1 1      1 1 1       270 270 270
+        a   2 1 1      1 1 1       270 270 270
         b   1 2 1      1 4 1       270 280 270
-        c   1 1 1      1 1 1       270 270 270
+        c   1 1 2      1 1 1       270 270 270
 
         Spot
 
@@ -77,14 +78,16 @@ class Test_SpotLapseRateAdjust(IrisTest):
 
         """
         # Set up lapse rate cube
-        attributes={
+        attributes = {
             'mosg__grid_domain': 'uk',
             'mosg__grid_type': 'standard',
             'mosg__grid_version': '1.2.0',
             'mosg__model_configuration': 'uk_det'}
 
         lapse_rate_data = np.ones(9).reshape(3, 3).astype(np.float32) * DALR
+        lapse_rate_data[0, 2] = 2 * DALR
         lapse_rate_data[1, 1] = 2 * DALR
+        lapse_rate_data[2, 0] = 2 * DALR
         self.lapse_rate_cube = set_up_variable_cube(lapse_rate_data,
                                                     name="lapse_rate",
                                                     units="K m-1",
@@ -226,6 +229,36 @@ class Test_process(Test_SpotLapseRateAdjust):
         result = plugin.process(self.spot_temperature_mindz,
                                 self.neighbour_cube,
                                 self.lapse_rate_cube)
+        self.assertArrayEqual(result.data, expected)
+
+    def test_xy_ordered_lapse_rate_cube(self):
+        """Ensure a lapse rate cube that does not have the expected y-x
+        ordering does not lead to different results. In this case the
+        lapse rate cube looks like this:
+
+         Lapse rate
+          (x DALR)
+
+            a b c
+
+        A   1 1 2
+        B   1 2 1
+        C   2 1 2
+
+        If the alternative ordering were not being handled (in this case by
+        the SpotExtraction plugin) we would expect a different result for
+        sites 0 and 2."""
+
+        plugin = SpotLapseRateAdjust()
+        expected = np.array(
+            [280 + (2 * DALR), 270, 280 - DALR]).astype(np.float32)
+        lapse_rate_cube = enforce_coordinate_ordering(
+            self.lapse_rate_cube, ['projection_x_coordinate',
+                                   'projection_y_coordinate'])
+
+        result = plugin.process(self.spot_temperature_nearest,
+                                self.neighbour_cube,
+                                lapse_rate_cube)
         self.assertArrayEqual(result.data, expected)
 
 

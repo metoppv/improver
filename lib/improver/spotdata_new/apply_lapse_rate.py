@@ -87,9 +87,10 @@ class SpotLapseRateAdjust:
             self.grid_metadata_identifier."""
 
             attributes = cube.attributes
-            attributes = {k:v for (k, v) in attributes.items()
+            attributes = {k: v for (k, v) in attributes.items()
                           if self.grid_metadata_identifier in k}
             return attributes
+
         def _compare_attributes(attributes, reference_attributes):
             """Compare keys and values of attributes with reference_attributes.
             Raise an exception if they do not match exactly."""
@@ -99,7 +100,7 @@ class SpotLapseRateAdjust:
             if match is not True:
                 raise ValueError('Cubes do not share the metadata identified '
                                  'by the grid_metadata_identifier ({})'.format(
-                                  self.grid_metadata_identifier))
+                                     self.grid_metadata_identifier))
 
         # Allow user to bypass cube comparison by setting identifier to None.
         if self.grid_metadata_identifier is None:
