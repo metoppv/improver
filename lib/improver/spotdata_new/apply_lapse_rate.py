@@ -94,9 +94,13 @@ class SpotLapseRateAdjust:
         def _compare_attributes(attributes, reference_attributes):
             """Compare keys and values of attributes with reference_attributes.
             Raise an exception if they do not match exactly."""
-
-            match = ((attributes.items() & reference_attributes.items()) ==
-                     reference_attributes.items())
+            try:
+                match = ((attributes.items() & reference_attributes.items()) ==
+                         reference_attributes.items())
+            except TypeError:
+                match = ((attributes.viewitems() &
+                          reference_attributes.viewitems()) ==
+                         reference_attributes.viewitems())
             if match is not True:
                 raise ValueError('Cubes do not share the metadata identified '
                                  'by the grid_metadata_identifier ({})'.format(
