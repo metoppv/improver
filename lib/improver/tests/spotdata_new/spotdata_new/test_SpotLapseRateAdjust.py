@@ -1,0 +1,233 @@
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# (C) British Crown Copyright 2017-2018 Met Office.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+# * Neither the name of the copyright holder nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+"""Unit tests for SpotLapseRateAdjust class"""
+
+import unittest
+import numpy as np
+
+import iris
+from iris.tests import IrisTest
+from datetime import datetime as dt
+
+from improver.spotdata_new.apply_lapse_rate import SpotLapseRateAdjust
+from improver.spotdata_new.build_spotdata_cube import build_spotdata_cube
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+from improver.tests.set_up_test_cubes import (set_up_variable_cube,
+                                              construct_xy_coords,
+                                              construct_scalar_time_coords)
+from improver.constants import DALR
+
+class Test_SpotLapseRateAdjust(IrisTest):
+
+    """Test class for the SpotLapseRateAdjust tests, setting up inputs."""
+
+    def setUp(self):
+        """
+        Set up cubes for use in testing SpotLapseRateAdjust. Inputs are
+        envisaged as follows:
+
+        Gridded
+
+         Lapse rate  Orography  Temperatures (not used directly)
+          (x DALR)
+
+            A B C      A B C        A   B   C
+
+        a   1 1 1      1 1 1       270 270 270
+        b   1 2 1      1 4 1       270 280 270
+        c   1 1 1      1 1 1       270 270 270
+
+        Spot
+
+         Site  Temperature Altitude  Nearest    DZ   MinDZ      DZ
+                                     neighbour       neighbour
+
+          0        280        3      Ac         2    Bb         -1
+          1        270        4      Bb         0    Bb          0
+          2        280        0      Ca        -1    Ca         -1
+
+
+        """
+        # Set up lapse rate cube
+        attributes={
+            'mosg__grid_domain': 'uk',
+            'mosg__grid_type': 'standard',
+            'mosg__grid_version': '1.2.0',
+            'mosg__model_configuration': 'uk_det'}
+
+        lapse_rate_data = np.ones(9).reshape(3, 3).astype(np.float32) * DALR
+        lapse_rate_data[1, 1] = 2 * DALR
+        self.lapse_rate_cube = set_up_variable_cube(lapse_rate_data,
+                                                    name="lapse_rate",
+                                                    units="K m-1",
+                                                    attributes=attributes,
+                                                    spatial_grid="equalarea")
+
+        # Set up neighbour and spot diagnostic cubes
+        y_coord, x_coord = construct_xy_coords(3, 3, "equalarea")
+        y_coord = y_coord.points
+        x_coord = x_coord.points
+
+        # neighbours, each group is for a point under two methods, e.g.
+        # [ 0.  0.  0.] is the nearest point to the first spot site, whilst
+        # [ 1.  1. -1.] is the nearest point with minimum height difference.
+        neighbours = np.array([[[0., 0., 2.],
+                                [1., 1., -1.]],
+                               [[1., 1., 0.],
+                                [1., 1., 0.]],
+                               [[2., 2., -1.],
+                                [2., 2., -1.]]])
+        altitudes = np.array([3, 4, 0])
+        latitudes = np.array([y_coord[0], y_coord[1], y_coord[2]])
+        longitudes = np.array([x_coord[0], x_coord[1], x_coord[2]])
+        wmo_ids = np.arange(3)
+        grid_attributes = ['x_index', 'y_index', 'vertical_displacement']
+        neighbour_methods = ['nearest', 'nearest_minimum_dz']
+        self.neighbour_cube = build_spotdata_cube(
+            neighbours, 'grid_neighbours', 1, altitudes, latitudes,
+            longitudes, wmo_ids, grid_attributes=grid_attributes,
+            neighbour_methods=neighbour_methods)
+        self.neighbour_cube.attributes = attributes
+
+        time = dt(2017, 11, 10, 4, 0)
+        time_bounds = None
+        frt = dt(2017, 11, 10, 0, 0)
+
+        time_coords = construct_scalar_time_coords(time, time_bounds, frt)
+        time_coords = [item[0] for item in time_coords]
+
+        # This temperature cube is set up with the spot sites having obtained
+        # their temperature values from the nearest grid sites.
+        temperatures_nearest = np.array([280, 270, 280])
+        self.spot_temperature_nearest = build_spotdata_cube(
+            temperatures_nearest, 'air_temperature', 'K', altitudes, latitudes,
+            longitudes, wmo_ids, scalar_coords=time_coords)
+        self.spot_temperature_nearest.attributes = attributes
+
+        # This temperature cube is set up with the spot sites having obtained
+        # their temperature values from the nearest minimum vertical
+        # displacment grid sites. The only difference here is for site 0, which
+        # now gets its temperature from Bb (see doc-string above).
+        temperatures_mindz = np.array([270, 270, 280])
+        self.spot_temperature_mindz = build_spotdata_cube(
+            temperatures_mindz, 'air_temperature', 'K', altitudes, latitudes,
+            longitudes, wmo_ids, scalar_coords=time_coords)
+        self.spot_temperature_mindz.attributes = attributes
+
+
+class Test_check_grid_match(Test_SpotLapseRateAdjust):
+
+    """Test the check_grid_match function."""
+
+    def test_matching_metadata(self):
+        """Test a case in which the grid metadata matches. There is no assert
+        statement as this test is successful if no exception is raised."""
+        plugin = SpotLapseRateAdjust()
+        cubes = [self.spot_temperature_nearest, self.neighbour_cube,
+                 self.lapse_rate_cube]
+        plugin.check_grid_match(cubes)
+
+    def test_non_matching_metadata(self):
+        """Test a case in which the grid metadata does not match. This will
+        raise an ValueError."""
+        plugin = SpotLapseRateAdjust()
+        self.spot_temperature_nearest.attributes["mosg__grid_domain"] = "eire"
+        cubes = [self.spot_temperature_nearest, self.neighbour_cube,
+                 self.lapse_rate_cube]
+        msg = "Cubes do not share the metadata identified"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.check_grid_match(cubes)
+
+    def test_ignore_non_matching_metadata(self):
+        """Test a case in which the grid metadata does not match but this is
+        forceably ignored by the user by setting self.grid_metadata_identifier
+        to None."""
+        plugin = SpotLapseRateAdjust(grid_metadata_identifier=None)
+        self.spot_temperature_nearest.attributes["mosg__grid_domain"] = "eire"
+        cubes = [self.spot_temperature_nearest, self.neighbour_cube,
+                 self.lapse_rate_cube]
+        plugin.check_grid_match(cubes)
+
+
+class Test_process(Test_SpotLapseRateAdjust):
+
+    """Tests the class process method."""
+
+    def test_basic(self):
+        """Test that the plugin returns a cube which is unchanged except for
+        data values."""
+        plugin = SpotLapseRateAdjust()
+        result = plugin.process(self.spot_temperature_nearest,
+                                self.neighbour_cube,
+                                self.lapse_rate_cube)
+
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertEqual(result.name(), self.spot_temperature_nearest.name())
+        self.assertEqual(result.units, self.spot_temperature_nearest.units)
+        self.assertEqual(result.coords(),
+                         self.spot_temperature_nearest.coords())
+
+    def test_nearest_neighbour_method(self):
+        """Test that the plugin modifies temperatures as expected using the
+        vertical displacements taken from the nearest neighbour method in the
+        neighbour cube."""
+        plugin = SpotLapseRateAdjust()
+        expected = np.array(
+            [280 + (2 * DALR), 270, 280 - DALR]).astype(np.float32)
+
+        result = plugin.process(self.spot_temperature_nearest,
+                                self.neighbour_cube,
+                                self.lapse_rate_cube)
+        self.assertArrayEqual(result.data, expected)
+
+    def test_different_neighbour_method(self):
+        """Test that the plugin uses the correct vertical displacements when
+        a different neighbour method is set. This should result in these
+        different values being chosen from the neighbour cube.
+
+        In this case site 0 has a displacement of -1 from the chosen grid site,
+        but the lapse rate at that site is 2*DALR, so the change below is by
+        2*DALR, compared with site 2 which has the same displacement, but for
+        which the lapse rate is just the DALR."""
+
+        plugin = SpotLapseRateAdjust(
+            neighbour_selection_method='nearest_minimum_dz')
+        expected = np.array(
+            [270 - (2 * DALR), 270, 280 - DALR]).astype(np.float32)
+
+        result = plugin.process(self.spot_temperature_mindz,
+                                self.neighbour_cube,
+                                self.lapse_rate_cube)
+        self.assertArrayEqual(result.data, expected)
+
+
+if __name__ == '__main__':
+    unittest.main()

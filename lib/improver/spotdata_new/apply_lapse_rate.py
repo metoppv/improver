@@ -31,6 +31,8 @@
 
 """Apply temperature lapse rate adjustments to a spot data cube."""
 
+import numpy as np
+
 import iris
 from improver.spotdata_new.spot_extraction import SpotExtraction
 
@@ -77,18 +79,20 @@ class SpotLapseRateAdjust:
             cubes (list of cubes):
                 List of cubes for which the attributes should be tested.
         Raises:
-            IOError: Raised if the metadata extracted is not identical on all
-                     cubes.
+            ValueError: Raised if the metadata extracted is not identical on
+                        all cubes.
         """
         def _get_attributes(cube):
-            attributes = [item for item in cube.attributes
-                          if self.grid_metadata_identifier in item]
+            attributes = cube.attributes
+            attributes = {k:v for (k, v) in attributes.items()
+                          if self.grid_metadata_identifier in k}
             return attributes
         def _compare_attributes(attributes, reference_attributes):
-            match = (set(attributes) == set(reference_attributes))
+            match = ((attributes.items() & reference_attributes.items()) ==
+                     reference_attributes.items())
             if match is not True:
-                raise IOError('Cubes do not share the metadata identified by'
-                              'the grid_metadata_identifier ({})'.format(
+                raise ValueError('Cubes do not share the metadata identified '
+                                 'by the grid_metadata_identifier ({})'.format(
                                   self.grid_metadata_identifier))
 
         # Allow user to bypass cube comparison by setting identifier to None.
@@ -144,8 +148,10 @@ class SpotLapseRateAdjust:
                                                        data_constraint)
 
         # Create a copy of the input cube with modified temperatures.
-        new_temperatures = spot_data_cube.data + (spot_lapse_rate.data *
-                                                  vertical_displacement.data)
+        new_temperatures = (
+            spot_data_cube.data + (
+                spot_lapse_rate.data * vertical_displacement.data)
+            ).astype(np.float32)
         new_spot_cube = spot_data_cube.copy(data=new_temperatures)
 
         return new_spot_cube
