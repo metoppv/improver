@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env bats
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
@@ -28,35 +28,16 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module for calculating the uv index using radiation flux in UV downward
-at surface and radiation flux in UV upward at the surface."""
 
-from cf_units import Unit
+@test "uv-index no arguments" {
+  run improver uv-index
+  [[ "$status" -eq 2 ]]
+  read -d '' expected <<'__TEXT__' || true
+usage: improver-uv-index [-h] [--profile] [--profile_file PROFILE_FILE]
+                         RADIATION_FLUX_DOWNWARD RADIATION_FLUX_UPWARD
+                         OUTPUT_FILE
+improver-uv-index: error: the following arguments are required: RADIATION_FLUX_DOWNWARD, RADIATION_FLUX_UPWARD, OUTPUT_FILE
 
-
-def calculate_uv_index(uv_upward, uv_downward, scale_factor=3.6):
-    """
-    A plugin to calculate the uv index using radiation flux in UV downward
-    at surface, radiation flux UV upward at surface and a scaling factor.
-    The scaling factor is configurable by the user.
-
-    Args:
-        uv_upward (iris.cube.Cube):
-            A cube of the radiation flux in UV upward at surface (W m-2)
-        uv_downward (iris.cube.Cube):
-            A cube of the radiation flux in UV downward at surface (W m-2)
-        scale_factor (float):
-            The uv scale factor. Default is 3.6 (no units)
-
-    Returns:
-        uv_index (iris.cube.Cube):
-            A cube of the calculated UV index.
-    """
-    if uv_upward.units != uv_downward.units:
-        msg = "The input uv files do not have the same units."
-        raise ValueError(msg)
-    else:
-        uv_index = (uv_upward + uv_downward) * scale_factor
-        uv_index.standard_name = "ultraviolet_index"
-        uv_index.units = Unit("1")
-        return uv_index
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
+}

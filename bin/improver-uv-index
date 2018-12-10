@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2018 Met Office.
@@ -28,35 +29,38 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module for calculating the uv index using radiation flux in UV downward
-at surface and radiation flux in UV upward at the surface."""
+"""Script to run the UV index plugin."""
 
-from cf_units import Unit
+from improver.argparser import ArgParser
+from improver.utilities.load import load_cube
+from improver.utilities.save import save_netcdf
+from improver.uv_index import calculate_uv_index
 
 
-def calculate_uv_index(uv_upward, uv_downward, scale_factor=3.6):
-    """
-    A plugin to calculate the uv index using radiation flux in UV downward
-    at surface, radiation flux UV upward at surface and a scaling factor.
-    The scaling factor is configurable by the user.
+def main():
+    """ Calculate the UV index using the data
+    in the input cubes."""
+    parser = ArgParser(
+        description="Calculates the UV index.")
+    parser.add_argument("radiation_flux_upward",
+                        metavar="RADIATION_FLUX_DOWNWARD",
+                        help="Path to a NetCDF file of radiation flux "
+                        "in uv downward at surface.")
+    parser.add_argument("radiation_flux_downward",
+                        metavar="RADIATION_FLUX_UPWARD",
+                        help="Path to a NetCDF file of radiation flux "
+                        "in uv upward at surface.")
+    parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
+                        help="The output path for the processed NetCDF")
 
-    Args:
-        uv_upward (iris.cube.Cube):
-            A cube of the radiation flux in UV upward at surface (W m-2)
-        uv_downward (iris.cube.Cube):
-            A cube of the radiation flux in UV downward at surface (W m-2)
-        scale_factor (float):
-            The uv scale factor. Default is 3.6 (no units)
+    args = parser.parse_args()
 
-    Returns:
-        uv_index (iris.cube.Cube):
-            A cube of the calculated UV index.
-    """
-    if uv_upward.units != uv_downward.units:
-        msg = "The input uv files do not have the same units."
-        raise ValueError(msg)
-    else:
-        uv_index = (uv_upward + uv_downward) * scale_factor
-        uv_index.standard_name = "ultraviolet_index"
-        uv_index.units = Unit("1")
-        return uv_index
+    rad_uv_up = load_cube(args.radiation_flux_upward)
+    rad_uv_down = load_cube(args.radiation_flux_downward)
+
+    result = calculate_uv_index(rad_uv_up, rad_uv_down)
+    save_netcdf(result, args.output_filepath)
+
+
+if __name__ == "__main__":
+    main()

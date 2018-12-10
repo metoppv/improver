@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env bats
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
@@ -28,35 +28,23 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module for calculating the uv index using radiation flux in UV downward
-at surface and radiation flux in UV upward at the surface."""
 
-from cf_units import Unit
+. $IMPROVER_DIR/tests/lib/utils
 
+@test "uv-index input1 input2 output" {
+  improver_check_skip_acceptance
+  KGO="uv-index/basic/kgo.nc"
 
-def calculate_uv_index(uv_upward, uv_downward, scale_factor=3.6):
-    """
-    A plugin to calculate the uv index using radiation flux in UV downward
-    at surface, radiation flux UV upward at surface and a scaling factor.
-    The scaling factor is configurable by the user.
+  # Run uv-index calculation and check the result.
+  run improver uv-index \
+      "$IMPROVER_ACC_TEST_DIR/uv-index/basic/20181210T0600Z-PT0000H00M-radiation_flux_in_uv_downward_at_surface.nc" \
+      "$IMPROVER_ACC_TEST_DIR/uv-index/basic/20181210T0600Z-PT0000H00M-radiation_flux_in_uv_upward_at_surface.nc" \
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 0 ]]
 
-    Args:
-        uv_upward (iris.cube.Cube):
-            A cube of the radiation flux in UV upward at surface (W m-2)
-        uv_downward (iris.cube.Cube):
-            A cube of the radiation flux in UV downward at surface (W m-2)
-        scale_factor (float):
-            The uv scale factor. Default is 3.6 (no units)
+  improver_check_recreate_kgo "output.nc" $KGO
 
-    Returns:
-        uv_index (iris.cube.Cube):
-            A cube of the calculated UV index.
-    """
-    if uv_upward.units != uv_downward.units:
-        msg = "The input uv files do not have the same units."
-        raise ValueError(msg)
-    else:
-        uv_index = (uv_upward + uv_downward) * scale_factor
-        uv_index.standard_name = "ultraviolet_index"
-        uv_index.units = Unit("1")
-        return uv_index
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+}
