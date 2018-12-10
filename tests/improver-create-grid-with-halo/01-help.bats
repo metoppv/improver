@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "create-grid-with-halo no arguments -h" {
+@test "create-grid-with-halo -h" {
   run improver create-grid-with-halo -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__TEXT__' || true
