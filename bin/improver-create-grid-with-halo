@@ -1,0 +1,80 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# (C) British Crown Copyright 2017-2018 Met Office.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+# * Neither the name of the copyright holder nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+"""Script to generate an ancillary file on "uk_with_halo" grid."""
+
+import iris
+
+from improver.argparser import ArgParser
+from improver.nbhood.square_kernel import SquareNeighbourhood
+from improver.utilities.spatial import (
+    convert_distance_into_number_of_grid_cells)
+from improver.utilities.load import load_cube
+from improver.utilities.save import save_netcdf
+
+
+def main():
+    """Invoke data extraction."""
+
+    parser = ArgParser(description='Generate grid with halo from UK extended '
+                       'domain input file.')
+    parser.add_argument('input_file', metavar='INPUT_FILE', help="NetCDF file "
+                        "containing data on a source grid.")
+    parser.add_argument('output_file', metavar='OUTPUT_FILE', help="NetCDF "
+                        "file defining the target grid with additional halo.")
+    parser.add_argument('--halo_size_km', metavar='HALO_SIZE', default=162., 
+                        type=float, help="Size of halo (in km) with which to "
+                        "pad the input grid.")
+    args = parser.parse_args()
+
+    # convert halo from metres to grid cells
+    halo_size = convert_distance_into_number_of_grid_cells(
+        1000.*args.halo_size_km)
+
+    # load original cube
+    cube = load_cube(args.input_file)
+
+    # create padded x- and y- coordinates
+    x_coord = SquareNeighbourhood.pad_coord(
+        cube.coord(axis='x'), halo_size, 'add')
+    y_coord = SquareNeighbourhood.pad_coord(
+        cube.coord(axis='y'), halo_size, 'add')
+
+    halo_cube = iris.cube.Cube(
+        np.zeros((len(y_coord.points), len(x_coord.points)), dtype=np.float32),
+        long_name='grid_with_halo', attributes={'source', 'IMPROVER'},
+        dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
+
+    save_netcdf(halo_cube, args.output_file)
+
+
+if __name__ == '__main__':
+    main()
