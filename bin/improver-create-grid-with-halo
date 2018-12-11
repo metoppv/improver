@@ -29,7 +29,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to generate an ancillary file on "uk_with_halo" grid."""
+"""Script to generate an ancillary "grid_with_halo" file."""
 
 import iris
 
@@ -44,7 +44,7 @@ from improver.utilities.save import save_netcdf
 def main():
     """Invoke data extraction."""
 
-    parser = ArgParser(description='Generate grid with halo from UK extended '
+    parser = ArgParser(description='Generate grid with halo from a source '
                        'domain input file.')
     parser.add_argument('input_file', metavar='INPUT_FILE', help="NetCDF file "
                         "containing data on a source grid.")

@@ -38,7 +38,7 @@ usage: improver-create-grid-with-halo [-h] [--profile]
                                       [--halo_size_km HALO_SIZE]
                                       INPUT_FILE OUTPUT_FILE
 
-Generate grid with halo from UK extended domain input file.
+Generate grid with halo from a source domain input file.
 
 positional arguments:
   INPUT_FILE            NetCDF file containing data on a source grid.
