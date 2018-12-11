@@ -35,6 +35,7 @@
   read -d '' expected <<'__TEXT__' || true
 usage: improver-extend-radar-mask [-h] [--profile]
                                   [--profile_file PROFILE_FILE]
+                                  [--fix_float64]
                                   RADAR_DATA_FILEPATH COVERAGE_FILEPATH
                                   OUTPUT_FILEPATH
 __TEXT__
