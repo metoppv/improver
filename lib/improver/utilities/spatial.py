@@ -85,7 +85,7 @@ def check_if_grid_is_equal_area(cube):
 
 
 def convert_distance_into_number_of_grid_cells(
-        cube, distance, max_distance_in_grid_cells):
+        cube, distance, max_distance_in_grid_cells=10**4):
     """
     Return the number of grid cells in the x and y direction based on the
     input distance in metres.
@@ -97,8 +97,10 @@ def convert_distance_into_number_of_grid_cells(
             which equates to the requested distance in the x and y direction.
         distance (Float):
             Distance in metres.
+
+    Kwargs:
         max_distance_in_grid_cells (int):
-            Maximum distance in grid cells.
+            Maximum distance in grid cells.  Defaults to large limit.
 
     Returns:
         (tuple) : tuple containing:

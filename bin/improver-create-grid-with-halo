@@ -31,6 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to generate an ancillary "grid_with_halo" file."""
 
+import numpy as np
 import iris
 
 from improver.argparser import ArgParser
@@ -55,22 +56,22 @@ def main():
                         "pad the input grid.")
     args = parser.parse_args()
 
-    # convert halo from metres to grid cells
-    halo_size = convert_distance_into_number_of_grid_cells(
-        1000.*args.halo_size_km)
-
     # load original cube
     cube = load_cube(args.input_file)
 
+    # convert halo from metres to grid cells
+    halo_size_x, halo_size_y = convert_distance_into_number_of_grid_cells(
+        cube, 1000.*args.halo_size_km)
+
     # create padded x- and y- coordinates
     x_coord = SquareNeighbourhood.pad_coord(
-        cube.coord(axis='x'), halo_size, 'add')
+        cube.coord(axis='x'), halo_size_x, 'add')
     y_coord = SquareNeighbourhood.pad_coord(
-        cube.coord(axis='y'), halo_size, 'add')
+        cube.coord(axis='y'), halo_size_y, 'add')
 
     halo_cube = iris.cube.Cube(
         np.zeros((len(y_coord.points), len(x_coord.points)), dtype=np.float32),
-        long_name='grid_with_halo', attributes={'source', 'IMPROVER'},
+        long_name='grid_with_halo',
         dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
 
     save_netcdf(halo_cube, args.output_file)
