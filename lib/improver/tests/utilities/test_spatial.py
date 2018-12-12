@@ -68,7 +68,8 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
         self.assertEqual(result, (3, 3))
 
     def test_basic_no_limit(self):
-        """Test the distance in metres to grid cell conversion."""
+        """Test the distance in metres to grid cell conversion still works when
+        the maximum distance limit is not explicitly set."""
         result = convert_distance_into_number_of_grid_cells(
             self.cube, self.DISTANCE)
         self.assertEqual(result, (3, 3))

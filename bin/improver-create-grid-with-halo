@@ -35,15 +35,13 @@ import numpy as np
 import iris
 
 from improver.argparser import ArgParser
-from improver.nbhood.square_kernel import SquareNeighbourhood
-from improver.utilities.spatial import (
-    convert_distance_into_number_of_grid_cells)
+from improver.nbhood.square_kernel import create_cube_with_halo
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
 
 def main():
-    """Invoke data extraction."""
+    """Generate target grid with a halo around the source file grid."""
 
     parser = ArgParser(description='Generate grid with halo from a source '
                        'domain input file.')
@@ -56,24 +54,8 @@ def main():
                         "pad the input grid.")
     args = parser.parse_args()
 
-    # load original cube
     cube = load_cube(args.input_file)
-
-    # convert halo from metres to grid cells
-    halo_size_x, halo_size_y = convert_distance_into_number_of_grid_cells(
-        cube, 1000.*args.halo_size_km)
-
-    # create padded x- and y- coordinates
-    x_coord = SquareNeighbourhood.pad_coord(
-        cube.coord(axis='x'), halo_size_x, 'add')
-    y_coord = SquareNeighbourhood.pad_coord(
-        cube.coord(axis='y'), halo_size_y, 'add')
-
-    halo_cube = iris.cube.Cube(
-        np.zeros((len(y_coord.points), len(x_coord.points)), dtype=np.float32),
-        long_name='grid_with_halo',
-        dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
-
+    halo_cube = create_cube_with_halo(cube, args.halo_size_km)
     save_netcdf(halo_cube, args.output_file)
 
 

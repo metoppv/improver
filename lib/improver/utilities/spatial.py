@@ -85,7 +85,7 @@ def check_if_grid_is_equal_area(cube):
 
 
 def convert_distance_into_number_of_grid_cells(
-        cube, distance, max_distance_in_grid_cells=10**4):
+        cube, distance, max_distance_in_grid_cells=None):
     """
     Return the number of grid cells in the x and y direction based on the
     input distance in metres.
@@ -99,8 +99,9 @@ def convert_distance_into_number_of_grid_cells(
             Distance in metres.
 
     Kwargs:
-        max_distance_in_grid_cells (int):
-            Maximum distance in grid cells.  Defaults to large limit.
+        max_distance_in_grid_cells (int or None):
+            Maximum distance in grid cells.  Defaults to None, which bypasses
+            the check.
 
     Returns:
         (tuple) : tuple containing:
@@ -137,11 +138,12 @@ def convert_distance_into_number_of_grid_cells(
         raise ValueError(
             "Neighbourhood processing distance of {0}m "
             "gives a negative cell extent".format(distance))
-    if (grid_cells_x > max_distance_in_grid_cells or
-            grid_cells_y > max_distance_in_grid_cells):
-        raise ValueError(
-            "Neighbourhood processing distance of {0}m "
-            "exceeds maximum grid cell extent".format(distance))
+    if max_distance_in_grid_cells is not None:
+        if (grid_cells_x > max_distance_in_grid_cells or
+                grid_cells_y > max_distance_in_grid_cells):
+            raise ValueError(
+                "Neighbourhood processing distance of {0}m "
+                "exceeds maximum grid cell extent".format(distance))
     return grid_cells_x, grid_cells_y
 
 
