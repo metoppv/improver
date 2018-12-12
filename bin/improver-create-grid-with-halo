@@ -51,7 +51,7 @@ def main():
                         "containing data on a source grid.")
     parser.add_argument('output_file', metavar='OUTPUT_FILE', help="NetCDF "
                         "file defining the target grid with additional halo.")
-    parser.add_argument('--halo_size_km', metavar='HALO_SIZE', default=162., 
+    parser.add_argument('--halo_size_km', metavar='HALO_SIZE', default=162.,
                         type=float, help="Size of halo (in km) with which to "
                         "pad the input grid.")
     args = parser.parse_args()
