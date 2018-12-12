@@ -58,32 +58,18 @@ def main():
 
     args = parser.parse_args()
 
-    if not args.output_filepath:
-        msg = ("An argument has been specified that requires an output "
-               "filepath but none has been provided")
-        raise ValueError(msg)
-
     # load data
     radar_data = load_cube(args.radar_data_filepath)
     coverage = load_cube(args.coverage_filepath)
-
-    if args.fix_float64:
-        check_cube_not_float64(radar_data, fix=True)
-        check_cube_not_float64(coverage, fix=True)
-    else:
-        check_cube_not_float64(radar_data, fix=False)
-        check_cube_not_float64(coverage, fix=False)
 
     # extend mask
     remasked_data = ExtendRadarMask().process(radar_data, coverage)
 
     # Check and fix for float64 data only option:
-    if args.fix_float64:
-        check_cube_not_float64(remasked_data, fix=True)
+    check_cube_not_float64(remasked_data, fix=args.fix_float64)
 
     # save output file
-    if args.output_filepath:
-        save_netcdf(remasked_data, args.output_filepath)
+    save_netcdf(remasked_data, args.output_filepath)
 
 
 if __name__ == "__main__":
