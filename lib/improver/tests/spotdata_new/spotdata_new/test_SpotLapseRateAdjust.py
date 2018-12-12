@@ -67,6 +67,7 @@ class Test_SpotLapseRateAdjust(IrisTest):
         c   1 1 2      1 1 1       270 270 270
 
         Spot
+        (note the neighbours are identified with the A-C, a-c indices above)
 
          Site  Temperature Altitude  Nearest    DZ   MinDZ      DZ
                                      neighbour       neighbour
@@ -144,6 +145,47 @@ class Test_SpotLapseRateAdjust(IrisTest):
             temperatures_mindz, 'air_temperature', 'K', altitudes, latitudes,
             longitudes, wmo_ids, scalar_coords=time_coords)
         self.spot_temperature_mindz.attributes = attributes
+        self.attributes = attributes
+
+
+class Test__get_attributes(Test_SpotLapseRateAdjust):
+
+    """Test the _get_attributes function."""
+
+    def test_with_matches(self):
+        """Test a case in which the cube passed in contains some attributes
+        that partially match the expected string."""
+        plugin = SpotLapseRateAdjust()
+        result = plugin._get_attributes(self.spot_temperature_nearest)
+        self.assertEqual(result, self.attributes)
+
+    def test_without_matches(self):
+        """Test a case in which the cube passed in does not contain any
+        attributes that partially match the expected string."""
+        plugin = SpotLapseRateAdjust(grid_metadata_identifier='test')
+        result = plugin._get_attributes(self.spot_temperature_nearest)
+        self.assertFalse(result)
+
+
+class Test__compare_attributes(Test_SpotLapseRateAdjust):
+
+    """Test the _compare_attributes function."""
+
+    def test_matching(self):
+        """Test a case in which the to attribute dictionaries passed in are
+        a perfect match."""
+        plugin = SpotLapseRateAdjust()
+        plugin._compare_attributes(self.attributes, self.attributes)
+
+    def test_mismatching(self):
+        """Test a case in which the to attribute dictionaries passed in are
+        mismatched."""
+        attributes = self.attributes.copy()
+        attributes['mosg__grid_domain'] = 'global'
+        plugin = SpotLapseRateAdjust()
+        msg = 'Cubes do not share the metadata identified'
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin._compare_attributes(attributes, self.attributes)
 
 
 class Test_check_grid_match(Test_SpotLapseRateAdjust):

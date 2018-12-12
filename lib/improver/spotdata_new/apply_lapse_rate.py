@@ -47,12 +47,22 @@ class SpotLapseRateAdjust:
     def __init__(self, neighbour_selection_method='nearest',
                  grid_metadata_identifier='mosg'):
         """
-        Args:
+        Keyword Args:
             neighbour_selection_method (str):
                 The neighbour cube may contain one or several sets of grid
                 coordinates that match a spot site. These are determined by
                 the neighbour finding method employed. This keyword is used to
                 extract the desired set of coordinates from the neighbour cube.
+                The methods available will be all, or a subset, of the
+                following::
+
+                  - nearest
+                  - nearest_land
+                  - nearest_land_minimum_dz
+                  - nearest_minimum_dz
+
+                The method available in a neigbour cube will depend on the
+                options that were specified when it was created.
             grid_metadata_identifier (str or None):
                 A string to search for in the input cube's attributes that
                 can be used to ensure that the cubes being used are for the
@@ -69,6 +79,56 @@ class SpotLapseRateAdjust:
                     self.neighbour_selection_method,
                     self.grid_metadata_identifier))
 
+    def _get_attributes(self, cube):
+        """
+        Build dictionary of attributes that match the
+        self.grid_metadata_identifier.
+
+        Args:
+            cube (iris.cube.Cube):
+                A cube from which attributes partially matching the
+                self.grid_metadata_identifier will be returned.
+        Returns:
+            attributes (dict):
+                A dictionary of attributes partially matching
+                self.grid_metadata_identifier that were found on the input
+                cube.
+        """
+        attributes = cube.attributes
+        attributes = {k: v for (k, v) in attributes.items()
+                      if self.grid_metadata_identifier in k}
+        return attributes
+
+    def _compare_attributes(self, attributes, reference_attributes):
+        """
+        Compare keys and values of attributes with reference_attributes.
+        Raise an exception if they do not match exactly; written by default
+        to use Python 3 behaviour, but currently also works with Python 2. When
+        this is no longer required the TypeError exception and resulting action
+        can be removed.
+
+        Args:
+            attributes (dict):
+                A dictionary of attributes.
+            reference_attributes (dict):
+                A reference dictionary of attributes with which to make a
+                comparison.
+        Raises:
+            ValueError: Raised if the metadata extracted is not identical on
+                        all cubes.
+        """
+        try:
+            match = ((attributes.items() & reference_attributes.items()) ==
+                     reference_attributes.items())
+        except TypeError:
+            match = ((attributes.viewitems() &
+                      reference_attributes.viewitems()) ==
+                     reference_attributes.viewitems())
+        if match is not True:
+            raise ValueError('Cubes do not share the metadata identified '
+                             'by the grid_metadata_identifier ({})'.format(
+                                 self.grid_metadata_identifier))
+
     def check_grid_match(self, cubes):
         """
         Uses the provided grid_metadata_identifier to extract and compare
@@ -76,49 +136,27 @@ class SpotLapseRateAdjust:
         identified should match for the cubes to be deemed compatible.
 
         Args:
-            cubes (list of cubes):
+            cubes (list of iris.cube.Cube items):
                 List of cubes for which the attributes should be tested.
-        Raises:
-            ValueError: Raised if the metadata extracted is not identical on
-                        all cubes.
         """
-        def _get_attributes(cube):
-            """Build dictionary of attributes that match the
-            self.grid_metadata_identifier."""
-
-            attributes = cube.attributes
-            attributes = {k: v for (k, v) in attributes.items()
-                          if self.grid_metadata_identifier in k}
-            return attributes
-
-        def _compare_attributes(attributes, reference_attributes):
-            """Compare keys and values of attributes with reference_attributes.
-            Raise an exception if they do not match exactly."""
-            try:
-                match = ((attributes.items() & reference_attributes.items()) ==
-                         reference_attributes.items())
-            except TypeError:
-                match = ((attributes.viewitems() &
-                          reference_attributes.viewitems()) ==
-                         reference_attributes.viewitems())
-            if match is not True:
-                raise ValueError('Cubes do not share the metadata identified '
-                                 'by the grid_metadata_identifier ({})'.format(
-                                     self.grid_metadata_identifier))
-
         # Allow user to bypass cube comparison by setting identifier to None.
         if self.grid_metadata_identifier is None:
             return
 
-        reference_attributes = _get_attributes(cubes[0])
+        reference_attributes = self._get_attributes(cubes[0])
         for cube in cubes:
-            attributes = _get_attributes(cube)
-            _compare_attributes(attributes, reference_attributes)
+            attributes = self._get_attributes(cube)
+            self._compare_attributes(attributes, reference_attributes)
 
     def process(self, spot_data_cube, neighbour_cube, gridded_lapse_rate_cube):
         """
         Extract lapse rates from the appropriate grid points and apply them to
         the spot extracted temperatures.
+
+        The calculation is::
+
+         lapse_rate_adjusted_temperatures = temperatures + lapse_rate *
+         vertical_displacement
 
         Args:
             spot_data_cube (iris.cube.Cube):
