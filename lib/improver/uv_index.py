@@ -46,7 +46,10 @@ def calculate_uv_index(uv_upward, uv_downward, scale_factor=3.6):
         uv_downward (iris.cube.Cube):
             A cube of the radiation flux in UV downward at surface (W m-2)
         scale_factor (float):
-            The uv scale factor. Default is 3.6 (no units)
+            The uv scale factor. Default is 3.6. This factor has
+            been empirically derived and should not be
+            changed except if there are scientific reasons to
+            do so. (no units)
 
     Returns:
         uv_index (iris.cube.Cube):

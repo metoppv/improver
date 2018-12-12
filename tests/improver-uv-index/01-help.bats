@@ -34,6 +34,7 @@
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
 usage: improver-uv-index [-h] [--profile] [--profile_file PROFILE_FILE]
+                         [--uv_scaling_factor UV_SCALING_FACTOR]
                          RADIATION_FLUX_DOWNWARD RADIATION_FLUX_UPWARD
                          OUTPUT_FILE
 
@@ -53,6 +54,11 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
+  --uv_scaling_factor UV_SCALING_FACTOR
+                        Scaling factor used in calculating the UV index.The
+                        default value is 3.6, an empirically derived value. DO
+                        NOT CHANGE THIS VALUE unless there are scientific
+                        reasons to do so.
 
 __HELP__
   [[ "$output" == "$expected" ]]
