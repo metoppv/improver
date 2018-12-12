@@ -33,12 +33,13 @@ Unit tests for the function "cube_manipulation.merge_cubes".
 """
 
 import unittest
+import numpy as np
+from datetime import datetime
 
 import iris
 from iris.cube import Cube
 from iris.exceptions import DuplicateDataError, MergeError
 from iris.tests import IrisTest
-import numpy as np
 
 from improver.utilities.cube_manipulation import merge_cubes
 
@@ -49,7 +50,8 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
         add_forecast_reference_time_and_forecast_period)
 
 from improver.utilities.warnings_handler import ManageWarnings
-from improver.tests.set_up_test_cubes import set_up_variable_cube
+from improver.tests.set_up_test_cubes import (
+    set_up_variable_cube, set_up_probability_cube)
 
 
 class Test_merge_cubes(IrisTest):
@@ -222,6 +224,55 @@ class Test_merge_cubes(IrisTest):
         self.assertEqual(ukv_prob.data.shape, (1, 1, 3, 3))
         self.assertEqual(enuk_prob.data.shape, (1, 3, 3))
         self.assertEqual(result.data.shape, (2, 3, 3))
+
+    def test_time_merge(self):
+        """Test cycles with different times and matching bounds lengths can be
+        merged""" # NOTE copied straight from Gavin's example files
+        test_data = 0.6*np.ones((2, 3, 3), dtype=np.float32)
+        shared_attrs = {
+            'institution': 'Met Office',
+            'mosg__model_run_duration': 'PT126H',
+            'source': 'Met Office Unified Model',
+            'source_realizations': '[0 1 2]',
+            'title': 'MOGREPS-UK Model Forecast on UK 2 km Standard Grid',
+            'um_version': '10.9',
+            'wind_gust_diagnostic': 'Typical gusts'}
+
+        attrs1 = shared_attrs
+        attrs1['history'] = '2018-10-12T13:35:50Z: StaGE Decoupler'
+        cube1 = set_up_probability_cube(
+            test_data, time=datetime(2018, 9, 14, 6, 0),
+            time_bounds=[datetime(2018, 9, 14, 5, 0),
+                         datetime(2018, 9, 14, 6, 0)],
+            frt=datetime(2018, 9, 14, 3, 0), attributes=attrs1,
+            standard_grid_metadata='uk_ens')
+
+        attrs2 = shared_attrs
+        attrs2['history'] = '2018-10-12T13:37:04Z: StaGE Decoupler'
+        cube2 = set_up_probability_cube(
+            test_data, time=datetime(2018, 9, 14, 7, 0),
+            time_bounds=[datetime(2018, 9, 14, 6, 0),
+                         datetime(2018, 9, 14, 7, 0)],
+            frt=datetime(2018, 9, 14, 3, 0), attributes=attrs1,
+            standard_grid_metadata='uk_ens')
+
+        attrs3 = shared_attrs
+        attrs3['history'] = '2018-10-12T13:37:04Z: StaGE Decoupler'
+        cube3 = set_up_probability_cube(
+            test_data, time=datetime(2018, 9, 14, 8, 0),
+            time_bounds=[datetime(2018, 9, 14, 7, 0),
+                         datetime(2018, 9, 14, 8, 0)],
+            frt=datetime(2018, 9, 14, 3, 0), attributes=attrs1,
+            standard_grid_metadata='uk_ens')
+
+        # try merging...
+
+
+    def test_time_merge_umnatched_bounds_failure(self):
+        """Test merging cycles with different times and unmatching bounds lengths
+        (eg merging 1hr with 3hr accumulation) fails"""
+
+
 
 
 if __name__ == '__main__':
