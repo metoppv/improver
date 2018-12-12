@@ -287,7 +287,7 @@ class LapseRate(object):
             return DALR
 
         matrix = np.stack([x_data, np.ones(len(x_data))], axis=0).T
-        gradient, _ = lstsq(matrix, y_data)[0]
+        gradient, _ = lstsq(matrix, y_data, rcond=None)[0]
 
         return gradient
 
