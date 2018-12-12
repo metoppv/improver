@@ -37,7 +37,7 @@ import iris
 
 from improver.argparser import ArgParser
 from improver.lapse_rate import LapseRate
-from improver.constants import DALR
+from improver.constants import DALR, U_DALR
 from improver.utilities.cube_metadata import add_history_attribute
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
@@ -104,7 +104,9 @@ def main():
 
     if args.return_dalr:
         result = temperature_cube.copy(
-            data=np.full_like(temperature_cube.data, DALR))
+            data=np.full_like(temperature_cube.data, U_DALR.points[0]))
+        result.rename('temperature_lapse_rate')
+        result.units = U_DALR.units
         result.attributes['source'] = 'IMPROVER'
         result.attributes['institution'] = 'Met Office'
         add_history_attribute(result, ['IMPROVER'])
