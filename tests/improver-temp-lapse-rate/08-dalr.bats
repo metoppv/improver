@@ -29,18 +29,23 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "temp-lapse-rate no arguments" {
-  run improver temp-lapse-rate
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-temp-lapse-rate [-h] [--profile] [--profile_file PROFILE_FILE]
-                                [--max_height_diff MAX_HEIGHT_DIFF]
-                                [--nbhood_radius NBHOOD_RADIUS]
-                                [--max_lapse_rate MAX_LAPSE_RATE]
-                                [--min_lapse_rate MIN_LAPSE_RATE]
-                                [--return_dalr]
-                                INPUT_TEMPERATURE_FILE INPUT_OROGRAPHY_FILE
-                                LAND_SEA_MASK_FILE OUTPUT_FILE
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "temp-lapse-rate dalr" {
+  improver_check_skip_acceptance
+  KGO="temp-lapse-rate/dalr/kgo.nc"
+
+  # Run the temperature lapse rate calculation and check the result.
+  run improver temp-lapse-rate \
+      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/temperature_at_screen_level.nc" \
+      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/ukvx_orography.nc" \
+      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/ukvx_landmask.nc" \
+      --return_dalr "$TEST_DIR/output.nc"
+  [[ "$status" -eq 0 ]]
+
+  improver_check_recreate_kgo "output.nc" $KGO
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

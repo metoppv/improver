@@ -38,6 +38,7 @@ usage: improver-temp-lapse-rate [-h] [--profile] [--profile_file PROFILE_FILE]
                                 [--nbhood_radius NBHOOD_RADIUS]
                                 [--max_lapse_rate MAX_LAPSE_RATE]
                                 [--min_lapse_rate MIN_LAPSE_RATE]
+                                [--return_dalr]
                                 INPUT_TEMPERATURE_FILE INPUT_OROGRAPHY_FILE
                                 LAND_SEA_MASK_FILE OUTPUT_FILE
 
@@ -72,6 +73,9 @@ optional arguments:
   --min_lapse_rate MIN_LAPSE_RATE
                         Minimum lapse rate allowed which must be provided in
                         units of K m-1. Default is the DALR
+  --return_dalr         Temporary flag to return a cube containing the dry
+                        adiabatic lapse rate rather than calculating the true
+                        lapse rate.
 __HELP__
   [[ "$output" == "$expected" ]]
 }
