@@ -228,7 +228,8 @@ class Test_merge_cubes(IrisTest):
     def test_time_merge(self):
         """Test cycles with different times and matching bounds lengths can be
         merged""" # NOTE copied straight from Gavin's example files
-        test_data = 0.6*np.ones((2, 3, 3), dtype=np.float32)
+        test_data = 0.6*np.ones((6, 5, 5), dtype=np.float32)
+        thresholds = np.arange(0, 51, 10)
         shared_attrs = {
             'institution': 'Met Office',
             'mosg__model_run_duration': 'PT126H',
@@ -241,7 +242,8 @@ class Test_merge_cubes(IrisTest):
         attrs1 = shared_attrs
         attrs1['history'] = '2018-10-12T13:35:50Z: StaGE Decoupler'
         cube1 = set_up_probability_cube(
-            test_data, time=datetime(2018, 9, 14, 6, 0),
+            test_data, thresholds,
+            time=datetime(2018, 9, 14, 6, 0),
             time_bounds=[datetime(2018, 9, 14, 5, 0),
                          datetime(2018, 9, 14, 6, 0)],
             frt=datetime(2018, 9, 14, 3, 0), attributes=attrs1,
@@ -250,7 +252,8 @@ class Test_merge_cubes(IrisTest):
         attrs2 = shared_attrs
         attrs2['history'] = '2018-10-12T13:37:04Z: StaGE Decoupler'
         cube2 = set_up_probability_cube(
-            test_data, time=datetime(2018, 9, 14, 7, 0),
+            test_data, thresholds,
+            time=datetime(2018, 9, 14, 7, 0),
             time_bounds=[datetime(2018, 9, 14, 6, 0),
                          datetime(2018, 9, 14, 7, 0)],
             frt=datetime(2018, 9, 14, 3, 0), attributes=attrs1,
@@ -259,19 +262,20 @@ class Test_merge_cubes(IrisTest):
         attrs3 = shared_attrs
         attrs3['history'] = '2018-10-12T13:37:04Z: StaGE Decoupler'
         cube3 = set_up_probability_cube(
-            test_data, time=datetime(2018, 9, 14, 8, 0),
+            test_data, thresholds,
+            time=datetime(2018, 9, 14, 8, 0),
             time_bounds=[datetime(2018, 9, 14, 7, 0),
                          datetime(2018, 9, 14, 8, 0)],
             frt=datetime(2018, 9, 14, 3, 0), attributes=attrs1,
             standard_grid_metadata='uk_ens')
 
-        # try merging...
+        result = merge_cubes([cube1, cube2, cube3])
 
 
-    def test_time_merge_umnatched_bounds_failure(self):
+    def test_time_merge_unmatched_bounds_failure(self):
         """Test merging cycles with different times and unmatching bounds lengths
         (eg merging 1hr with 3hr accumulation) fails"""
-
+        pass  # TODO
 
 
 
