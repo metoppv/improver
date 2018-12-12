@@ -55,7 +55,8 @@ def main():
     parser.add_argument("--uv_scaling_factor",
                         metavar="UV_SCALING_FACTOR",
                         default=3.6, type=float,
-                        help=("Scaling factor used in calculating the UV index."
+                        help=("Scaling factor used in calculating"
+                              " the UV index."
                               "The default value is 3.6, an empirically "
                               "derived value. DO NOT CHANGE THIS VALUE unless "
                               "there are scientific reasons to do so."))
