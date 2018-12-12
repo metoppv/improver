@@ -136,14 +136,14 @@ def convert_distance_into_number_of_grid_cells(
             "Distance of {0}m gives zero cell extent".format(distance))
     elif grid_cells_x < 0 or grid_cells_y < 0:
         raise ValueError(
-            "Neighbourhood processing distance of {0}m "
-            "gives a negative cell extent".format(distance))
+            "Distance of {0}m gives a negative cell extent - "
+            "check coordinate ordering".format(distance))
     if max_distance_in_grid_cells is not None:
         if (grid_cells_x > max_distance_in_grid_cells or
                 grid_cells_y > max_distance_in_grid_cells):
             raise ValueError(
-                "Neighbourhood processing distance of {0}m "
-                "exceeds maximum grid cell extent".format(distance))
+                "Distance of {0}m exceeds maximum permitted "
+                "grid cell extent".format(distance))
     return grid_cells_x, grid_cells_y
 
 

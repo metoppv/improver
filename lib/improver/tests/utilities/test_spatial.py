@@ -103,7 +103,7 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
     def test_single_point_range_negative(self):
         """Test behaviour with a non-zero point with negative range."""
         distance = -1.0 * self.DISTANCE
-        msg = "distance of -6100.0m gives a negative cell extent"
+        msg = "Distance of -6100.0m gives a negative cell extent"
         with self.assertRaisesRegex(ValueError, msg):
             convert_distance_into_number_of_grid_cells(
                 self.cube, distance, self.MAX_DISTANCE_IN_GRID_CELLS)
@@ -120,7 +120,7 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
         """Test behaviour with a non-zero point with unhandleable range."""
         distance = 40000.0
         max_distance_in_grid_cells = 10
-        msg = "distance of 40000.0m exceeds maximum grid cell extent"
+        msg = "Distance of 40000.0m exceeds maximum permitted"
         with self.assertRaisesRegex(ValueError, msg):
             convert_distance_into_number_of_grid_cells(
                 self.cube, distance, max_distance_in_grid_cells)
