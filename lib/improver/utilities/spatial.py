@@ -112,6 +112,20 @@ def convert_distance_into_number_of_grid_cells(
                 Number of grid cells in the y direction based on the requested
                 distance in metres.
 
+    Raises:
+        ValueError:
+            If the distance in grid cells is larger than the maximum dimension
+            of the rectangular domain (measured across the diagonal).  Needed
+            for neighbourhood processing.
+        ValueError:
+            If the distance in grid cells is zero.
+        ValueError:
+            If the distance in grid cells is negative.  (Assuming the distance
+            argument is positive, this indicates one or more spatial axes are
+            not correctly ordered.)
+        Value Error:
+            If max_distance_in_grid_cells is set and the distance in grid cells
+            exceeds this value.  Needed for neighbourhood processing.
     """
     try:
         x_coord = cube.coord("projection_x_coordinate").copy()

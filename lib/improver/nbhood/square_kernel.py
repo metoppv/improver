@@ -57,7 +57,7 @@ def create_cube_with_halo(cube, halo_size_km):
 
     Returns:
         halo_cube (iris.cube.Cube):
-            New cube with dummy data defining the halo-padded grid
+            New cube defining the halo-padded grid (data set to zero)
     """
     halo_size_x, halo_size_y = convert_distance_into_number_of_grid_cells(
         cube, 1000.*halo_size_km)
