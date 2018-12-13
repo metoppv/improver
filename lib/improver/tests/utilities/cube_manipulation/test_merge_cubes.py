@@ -38,6 +38,7 @@ import iris
 from iris.cube import Cube
 from iris.exceptions import DuplicateDataError, MergeError
 from iris.tests import IrisTest
+import numpy as np
 
 from improver.utilities.cube_manipulation import merge_cubes
 
