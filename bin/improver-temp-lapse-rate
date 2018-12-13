@@ -109,7 +109,7 @@ def main():
         result.units = U_DALR.units
         result.attributes['source'] = 'IMPROVER'
         result.attributes['institution'] = 'Met Office'
-        add_history_attribute(result, ['IMPROVER'])
+        add_history_attribute(result, 'IMPROVER')
         if 'title' in result.attributes.keys():
             result.attributes.pop('title')
     else:

@@ -782,7 +782,7 @@ class Test_add_history_attribute(IrisTest):
     def test_add_history(self):
         """Test that a history attribute has been added."""
         cube = set_up_variable_cube(np.ones((3, 3), dtype=np.float32))
-        add_history_attribute(cube, ["add", "Nowcast"])
+        add_history_attribute(cube, "Nowcast")
         self.assertTrue("history" in cube.attributes)
         self.assertTrue("Nowcast" in cube.attributes["history"])
 
@@ -790,11 +790,22 @@ class Test_add_history_attribute(IrisTest):
         """Test that the history attribute is overwritten, if it
         already exists."""
         cube = set_up_variable_cube(np.ones((3, 3), dtype=np.float32))
-        expected_history = "2018-09-13T11:28:29"
-        cube.attributes["history"] = expected_history
-        add_history_attribute(cube, ["Nowcast", "add"])
+        old_history = "2018-09-13T11:28:29: StaGE"
+        cube.attributes["history"] = old_history
+        add_history_attribute(cube, "Nowcast")
         self.assertTrue("history" in cube.attributes)
         self.assertTrue("Nowcast" in cube.attributes["history"])
+        self.assertFalse(old_history in cube.attributes["history"])
+
+    def test_history_append(self):
+        """Test that the history attribute can be updated."""
+        cube = set_up_variable_cube(np.ones((3, 3), dtype=np.float32))
+        old_history = "2018-09-13T11:28:29: StaGE"
+        cube.attributes["history"] = old_history
+        add_history_attribute(cube, "Nowcast", append=True)
+        self.assertTrue("history" in cube.attributes)
+        self.assertTrue("Nowcast" in cube.attributes["history"])
+        self.assertTrue(old_history in cube.attributes["history"])
 
 
 if __name__ == '__main__':
