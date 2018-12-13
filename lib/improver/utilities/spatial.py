@@ -114,6 +114,9 @@ def convert_distance_into_number_of_grid_cells(
 
     Raises:
         ValueError:
+            If the projection is not "equal area" (proxied by projection_x/y
+            spatial coordinate names).
+        ValueError:
             If the distance in grid cells is larger than the maximum dimension
             of the rectangular domain (measured across the diagonal).  Needed
             for neighbourhood processing.
