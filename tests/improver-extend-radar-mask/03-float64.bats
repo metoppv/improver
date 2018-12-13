@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "extend-radar-mask" {
+@test "extend-radar-mask enable fix_float64" {
   improver_check_skip_acceptance
   KGO="extend-radar-mask/float64/kgo.nc"
 
