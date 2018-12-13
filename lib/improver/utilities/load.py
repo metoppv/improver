@@ -64,7 +64,16 @@ def load_cube(filepath, constraints=None, no_lazy_load=False):
     # Remove metadata prefix cube if present
     constraints = iris.Constraint(
         cube_func=lambda cube: cube.long_name != 'prefixes') & constraints
-    cubes = iris.load(filepath, constraints=constraints)
+
+    # Load each file individually to avoid partial merging
+    if isinstance(filepath, str):
+        cubes = iris.load(filepath, constraints=constraints)
+    else:
+        cubes = iris.cube.CubeList([])
+        for item in filepath:
+            cubes.extend(iris.load(item, constraints=constraints))
+
+    # Merge loaded cubes
     if not cubes:
         message = "No cubes found using contraints {}".format(constraints)
         raise ValueError(message)
@@ -72,6 +81,7 @@ def load_cube(filepath, constraints=None, no_lazy_load=False):
         cube = cubes[0]
     else:
         cube = merge_cubes(cubes)
+
     # Remove metadata prefix cube attributes
     if 'bald__isPrefixedBy' in cube.attributes.keys():
         cube.attributes.pop('bald__isPrefixedBy')

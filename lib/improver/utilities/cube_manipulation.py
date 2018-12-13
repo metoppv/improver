@@ -467,6 +467,7 @@ def _equalise_coord_bounds(cubes):
             If two cubes with different valid bounds are found.
     """
     # Check each cube against all remaining cubes
+    time_coord_names = ["forecast_reference_time", "time", "forecast_period"]
     for i, this_cube in enumerate(cubes):
         for later_cube in cubes[i+1:]:
             for coord in this_cube.coords():
@@ -484,13 +485,29 @@ def _equalise_coord_bounds(cubes):
                     msg = ('Cubes with mismatching bounds are not '
                            'compatible')
                     raise ValueError(msg)
-                elif np.allclose(np.array(coord.bounds),
-                                 np.array(match_coord.bounds)):
-                    continue
+                elif (coord.name() in time_coord_names and
+                      coord not in this_cube.coords(dim_coords=True)):
+                    # for scalar time coordinates, require matching bounds
+                    # ranges but not bounds values
+                    coord_bounds_range = (
+                        max(coord.bounds[0]) - min(coord.bounds[0]))
+                    match_bounds_range = (
+                        max(match_coord.bounds[0]) -
+                        min(match_coord.bounds[0]))
+                    if np.isclose(coord_bounds_range, match_bounds_range):
+                        continue
+                    else:
+                        msg = ('Cubes with mismatching scalar time coord '
+                               'bounds ranges are not compatible')
+                        raise ValueError(msg)
                 else:
-                    msg = ('Cubes with mismatching bounds are not '
-                           'compatible')
-                    raise ValueError(msg)
+                    if np.allclose(np.array(coord.bounds),
+                                   np.array(match_coord.bounds)):
+                        continue
+                    else:
+                        msg = ('Cubes with mismatching coord bounds '
+                               'are not compatible')
+                        raise ValueError(msg)
 
 
 def _equalise_cell_methods(cubes):

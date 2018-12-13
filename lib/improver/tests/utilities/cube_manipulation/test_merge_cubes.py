@@ -225,59 +225,6 @@ class Test_merge_cubes(IrisTest):
         self.assertEqual(enuk_prob.data.shape, (1, 3, 3))
         self.assertEqual(result.data.shape, (2, 3, 3))
 
-    def test_time_merge(self):
-        """Test cycles with different times and matching bounds lengths can be
-        merged""" # NOTE copied straight from Gavin's example files
-        test_data = 0.6*np.ones((6, 5, 5), dtype=np.float32)
-        thresholds = np.arange(0, 51, 10)
-        shared_attrs = {
-            'institution': 'Met Office',
-            'mosg__model_run_duration': 'PT126H',
-            'source': 'Met Office Unified Model',
-            'source_realizations': '[0 1 2]',
-            'title': 'MOGREPS-UK Model Forecast on UK 2 km Standard Grid',
-            'um_version': '10.9',
-            'wind_gust_diagnostic': 'Typical gusts'}
-
-        attrs1 = shared_attrs
-        attrs1['history'] = '2018-10-12T13:35:50Z: StaGE Decoupler'
-        cube1 = set_up_probability_cube(
-            test_data, thresholds,
-            time=datetime(2018, 9, 14, 6, 0),
-            time_bounds=[datetime(2018, 9, 14, 5, 0),
-                         datetime(2018, 9, 14, 6, 0)],
-            frt=datetime(2018, 9, 14, 3, 0), attributes=attrs1,
-            standard_grid_metadata='uk_ens')
-
-        attrs2 = shared_attrs
-        attrs2['history'] = '2018-10-12T13:37:04Z: StaGE Decoupler'
-        cube2 = set_up_probability_cube(
-            test_data, thresholds,
-            time=datetime(2018, 9, 14, 7, 0),
-            time_bounds=[datetime(2018, 9, 14, 6, 0),
-                         datetime(2018, 9, 14, 7, 0)],
-            frt=datetime(2018, 9, 14, 3, 0), attributes=attrs1,
-            standard_grid_metadata='uk_ens')
-
-        attrs3 = shared_attrs
-        attrs3['history'] = '2018-10-12T13:37:04Z: StaGE Decoupler'
-        cube3 = set_up_probability_cube(
-            test_data, thresholds,
-            time=datetime(2018, 9, 14, 8, 0),
-            time_bounds=[datetime(2018, 9, 14, 7, 0),
-                         datetime(2018, 9, 14, 8, 0)],
-            frt=datetime(2018, 9, 14, 3, 0), attributes=attrs1,
-            standard_grid_metadata='uk_ens')
-
-        result = merge_cubes([cube1, cube2, cube3])
-
-
-    def test_time_merge_unmatched_bounds_failure(self):
-        """Test merging cycles with different times and unmatching bounds lengths
-        (eg merging 1hr with 3hr accumulation) fails"""
-        pass  # TODO
-
-
 
 if __name__ == '__main__':
     unittest.main()
