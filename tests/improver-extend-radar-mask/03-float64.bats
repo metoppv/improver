@@ -29,34 +29,23 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "extend-radar-mask -h" {
-  run improver extend-radar-mask -h
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "extend-radar-mask enable fix_float64" {
+  improver_check_skip_acceptance
+  KGO="extend-radar-mask/float64/kgo.nc"
+
+  # Run radar mask extension and check it passes when input files are float64
+  run improver extend-radar-mask \
+      "$IMPROVER_ACC_TEST_DIR/extend-radar-mask/float64/201811190205_u1096_ng_radar_precip_ratecomposite_2km.nc" \
+      "$IMPROVER_ACC_TEST_DIR/extend-radar-mask/float64/201811190205_u1096_ng_radar_coverage_composite_2km.nc" \
+      "$TEST_DIR/output.nc" \
+      --fix_float64
   [[ "$status" -eq 0 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-extend-radar-mask [-h] [--profile]
-                                  [--profile_file PROFILE_FILE]
-                                  [--fix_float64]
-                                  RADAR_DATA_FILEPATH COVERAGE_FILEPATH
-                                  OUTPUT_FILEPATH
 
-Extend radar mask based on coverage data.
+  improver_check_recreate_kgo "output.nc" $KGO
 
-positional arguments:
-  RADAR_DATA_FILEPATH   Full path to input NetCDF file containing the radar
-                        variable to remask.
-  COVERAGE_FILEPATH     Full path to input NetCDF file containing radar
-                        coverage data.
-  OUTPUT_FILEPATH       Full path to save remasked radar data NetCDF file.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --profile             Switch on profiling information.
-  --profile_file PROFILE_FILE
-                        Dump profiling info to a file. Implies --profile.
-  --fix_float64         Check and fix cube for float64 data. Without this
-                        option an exception will be raised if float64 data is
-                        found but no fix applied.
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }
-
