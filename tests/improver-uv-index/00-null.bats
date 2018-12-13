@@ -34,10 +34,9 @@
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
 usage: improver-uv-index [-h] [--profile] [--profile_file PROFILE_FILE]
-                         [--uv_scaling_factor UV_SCALING_FACTOR]
-                         RADIATION_FLUX_DOWNWARD RADIATION_FLUX_UPWARD
+                         RADIATION_FLUX_UPWARD RADIATION_FLUX_DOWNWARD
                          OUTPUT_FILE
-improver-uv-index: error: the following arguments are required: RADIATION_FLUX_DOWNWARD, RADIATION_FLUX_UPWARD, OUTPUT_FILE
+improver-uv-index: error: the following arguments are required: RADIATION_FLUX_UPWARD, RADIATION_FLUX_DOWNWARD, OUTPUT_FILE
 
 __TEXT__
   [[ "$output" =~ "$expected" ]]

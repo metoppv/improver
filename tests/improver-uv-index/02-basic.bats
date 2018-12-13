@@ -37,8 +37,8 @@
 
   # Run uv-index calculation and check the result.
   run improver uv-index \
-      "$IMPROVER_ACC_TEST_DIR/uv-index/basic/20181210T0600Z-PT0000H00M-radiation_flux_in_uv_downward_at_surface.nc" \
       "$IMPROVER_ACC_TEST_DIR/uv-index/basic/20181210T0600Z-PT0000H00M-radiation_flux_in_uv_upward_at_surface.nc" \
+      "$IMPROVER_ACC_TEST_DIR/uv-index/basic/20181210T0600Z-PT0000H00M-radiation_flux_in_uv_downward_at_surface.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

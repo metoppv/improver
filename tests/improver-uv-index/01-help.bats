@@ -34,18 +34,17 @@
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
 usage: improver-uv-index [-h] [--profile] [--profile_file PROFILE_FILE]
-                         [--uv_scaling_factor UV_SCALING_FACTOR]
-                         RADIATION_FLUX_DOWNWARD RADIATION_FLUX_UPWARD
+                         RADIATION_FLUX_UPWARD RADIATION_FLUX_DOWNWARD
                          OUTPUT_FILE
 
 Calculates the UV index.
 
 positional arguments:
-  RADIATION_FLUX_DOWNWARD
-                        Path to a NetCDF file of radiation flux in uv downward
-                        at surface.
   RADIATION_FLUX_UPWARD
                         Path to a NetCDF file of radiation flux in uv upward
+                        at surface.
+  RADIATION_FLUX_DOWNWARD
+                        Path to a NetCDF file of radiation flux in uv downward
                         at surface.
   OUTPUT_FILE           The output path for the processed NetCDF
 
@@ -54,11 +53,6 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
-  --uv_scaling_factor UV_SCALING_FACTOR
-                        Scaling factor used in calculating the UV index.The
-                        default value is 3.6, an empirically derived value. DO
-                        NOT CHANGE THIS VALUE unless there are scientific
-                        reasons to do so.
 
 __HELP__
   [[ "$output" == "$expected" ]]
