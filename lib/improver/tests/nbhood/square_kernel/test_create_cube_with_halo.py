@@ -41,6 +41,7 @@ from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
 class Test_create_cube_with_halo(IrisTest):
+    """Tests for the create_cube_with_halo function"""
 
     def setUp(self):
         """Set up a realistic input cube with lots of metadata.  Input cube
