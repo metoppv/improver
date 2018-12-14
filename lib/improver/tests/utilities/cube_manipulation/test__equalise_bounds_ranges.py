@@ -33,33 +33,60 @@ Unit tests for the function "cube_manipulation._equalise_bounds_ranges".
 """
 
 import unittest
+import numpy as np
+from datetime import datetime as dt
 
 import iris
 from iris.tests import IrisTest
 
 from improver.utilities.cube_manipulation import _equalise_bounds_ranges
+from improver.tests.set_up_test_cubes import set_up_probability_cube
 
 
 class Test__equalise_bounds_ranges(IrisTest):
     """Test for the _equalise_bounds_ranges function"""
 
-    pass
+    def setUp(self):
+        """Set up some cubes with different bounds ranges"""
+        frt = dt(2017, 11, 9, 21, 0)
+        times = [dt(2017, 11, 10, 3, 0),
+                 dt(2017, 11, 10, 4, 0),
+                 dt(2017, 11, 10, 5, 0)]
+        time_bounds = np.array([
+            [dt(2017, 11, 10, 2, 0), dt(2017, 11, 10, 3, 0)],
+            [dt(2017, 11, 10, 3, 0), dt(2017, 11, 10, 4, 0)],
+            [dt(2017, 11, 10, 4, 0), dt(2017, 11, 10, 5, 0)]])
 
+        cubes = iris.cube.CubeList([])
+        for tpoint, tbounds in zip(times, time_bounds):
+            cube = set_up_probability_cube(
+                0.6*np.ones((2, 3, 3), dtype=np.float32),
+                np.array([278., 280.], dtype=np.float32),
+                time=tpoint, frt=frt, time_bounds=tbounds)
+            cubes.append(cube)
+        self.matched_cube = cubes.merge_cube()
 
+        time_bounds[2, 0] = dt(2017, 11, 10, 2, 0)
+        cubes = iris.cube.CubeList([])
+        for tpoint, tbounds in zip(times, time_bounds):
+            cube = set_up_probability_cube(
+                0.6*np.ones((2, 3, 3), dtype=np.float32),
+                np.array([278., 280.], dtype=np.float32),
+                time=tpoint, frt=frt, time_bounds=tbounds)
+            cubes.append(cube)
+        self.unmatched_cube = cubes.merge_cube()
 
+    def test_basic(self):
+        """Test no error when bounds match"""
+        _equalise_bounds_ranges(
+            self.matched_cube, ["time", "forecast_period"])
 
-
-
-
-
-
-
-
-
-
-
-
-
+    def test_error(self):
+        """Test error when bounds do not match"""
+        msg = 'Cube with mismatching time bounds ranges'
+        with self.assertRaisesRegex(ValueError, msg):
+            _equalise_bounds_ranges(
+                self.unmatched_cube, ["time", "forecast_period"])
 
 
 if __name__ == '__main__':
