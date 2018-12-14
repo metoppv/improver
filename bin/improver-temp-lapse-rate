@@ -106,12 +106,11 @@ def main():
         result = temperature_cube.copy(
             data=np.full_like(temperature_cube.data, U_DALR.points[0]))
         result.rename('temperature_lapse_rate')
+        result.long_name = 'lapse_rate'
         result.units = U_DALR.units
-        result.attributes['source'] = 'IMPROVER'
-        result.attributes['institution'] = 'Met Office'
-        add_history_attribute(result, 'IMPROVER')
-        if 'title' in result.attributes.keys():
-            result.attributes.pop('title')
+        for attr in ['title', 'source', 'history', 'um_version']:
+            if attr in result.attributes.keys():
+                result.attributes.pop(attr)
     else:
         result = LapseRate(
             max_height_diff=args.max_height_diff,
