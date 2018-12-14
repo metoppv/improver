@@ -38,8 +38,8 @@ from iris.coords import DimCoord
 from cf_units import Unit
 import numpy as np
 from improver.nbhood.recursive_filter import RecursiveFilter
-from improver.nbhood.square_kernel import SquareNeighbourhood
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+from improver.utilities.pad_spatial import pad_cube_with_halo
 
 
 class Test__repr__(IrisTest):
@@ -286,8 +286,7 @@ class Test__run_recursion(Test_RecursiveFilter):
         cube = iris.util.squeeze(self.cube)
         alphas_x = RecursiveFilter()._set_alphas(cube, self.alpha_x, None)
         alphas_y = RecursiveFilter()._set_alphas(cube, self.alpha_y, None)
-        padded_cube = SquareNeighbourhood().pad_cube_with_halo(
-            cube, edge_width, edge_width)
+        padded_cube = pad_cube_with_halo(cube, 2*edge_width, 2*edge_width)
         result = RecursiveFilter()._run_recursion(
             padded_cube, alphas_x, alphas_y, self.iterations)
         self.assertIsInstance(result, Cube)
@@ -298,8 +297,7 @@ class Test__run_recursion(Test_RecursiveFilter):
         cube = iris.util.squeeze(self.cube)
         alphas_x = RecursiveFilter()._set_alphas(cube, self.alpha_x, None)
         alphas_y = RecursiveFilter()._set_alphas(cube, self.alpha_y, None)
-        padded_cube = SquareNeighbourhood().pad_cube_with_halo(
-            cube, edge_width, edge_width)
+        padded_cube = pad_cube_with_halo(cube, 2*edge_width, 2*edge_width)
         result = RecursiveFilter()._run_recursion(
             padded_cube, alphas_x, alphas_y, self.iterations)
         expected_result = 0.13382206
@@ -312,7 +310,7 @@ class Test__run_recursion(Test_RecursiveFilter):
         alpha_y = 0.5*self.alpha_x
         alphas_x = RecursiveFilter()._set_alphas(cube, self.alpha_x, None)
         alphas_y = RecursiveFilter()._set_alphas(cube, alpha_y, None)
-        padded_cube = SquareNeighbourhood().pad_cube_with_halo(cube, 1, 1)
+        padded_cube = pad_cube_with_halo(cube, 2, 2)
         result = RecursiveFilter()._run_recursion(
             padded_cube, alphas_x, alphas_y, 1)
         # slice back down to the source grid - easier to visualise!
