@@ -105,8 +105,7 @@ def main():
     if args.return_dalr:
         result = temperature_cube.copy(
             data=np.full_like(temperature_cube.data, U_DALR.points[0]))
-        result.rename('temperature_lapse_rate')
-        result.long_name = 'lapse_rate'
+        result.rename('lapse_rate')
         result.units = U_DALR.units
         for attr in ['title', 'source', 'history', 'um_version']:
             if attr in result.attributes.keys():
