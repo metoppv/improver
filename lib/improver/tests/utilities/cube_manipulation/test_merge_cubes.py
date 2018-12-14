@@ -223,6 +223,22 @@ class Test_merge_cubes(IrisTest):
         self.assertEqual(enuk_prob.data.shape, (1, 3, 3))
         self.assertEqual(result.data.shape, (2, 3, 3))
 
+    def test_mismatched_forecast_period_bounds_ranges(self):
+        """Test for error when scalar coordinates for promotion have mismatched
+        bounds ranges."""
+        fp_point, = self.cube.coord('forecast_period').points
+        cube_with_bounds = self.cube.copy()
+        cube_with_bounds.coord('forecast_period').bounds = \
+            [[fp_point-1, fp_point]]
+        cube_diff_bounds = self.cube.copy()
+        cube_diff_bounds.coord('forecast_period').points = [fp_point-1]
+        cube_diff_bounds.coord('forecast_period').bounds = \
+            [[fp_point-4, fp_point-1]]
+        cubelist = iris.cube.CubeList([cube_with_bounds, cube_diff_bounds])
+        msg = "Cubes with mismatching forecast_period bounds ranges"
+        with self.assertRaisesRegex(ValueError, msg):
+            merge_cubes(cubelist, new_coord='time')
+
 
 if __name__ == '__main__':
     unittest.main()

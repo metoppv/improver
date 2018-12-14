@@ -120,7 +120,7 @@ class Test__equalise_coord_bounds(IrisTest):
         cube_with_bounds = self.cube.copy()
         cube_with_bounds.coord('time').bounds = [0., 1.]
         result = iris.cube.CubeList([cube_with_bounds, self.cube])
-        msg = "Cubes with mismatching bounds are not compatible"
+        msg = "Cubes with mismatching time bounds are not compatible"
         with self.assertRaisesRegex(ValueError, msg):
             _equalise_coord_bounds(result)
 
@@ -132,7 +132,7 @@ class Test__equalise_coord_bounds(IrisTest):
         cube_no_bounds = self.cube.copy()
         result = iris.cube.CubeList([cube_with_bounds, cube_no_bounds,
                                      cube_with_bounds])
-        msg = "Cubes with mismatching bounds are not compatible"
+        msg = "Cubes with mismatching time bounds are not compatible"
         for cube in result:
             with self.assertRaisesRegex(ValueError, msg):
                 _equalise_coord_bounds(result)
@@ -144,79 +144,7 @@ class Test__equalise_coord_bounds(IrisTest):
         cube_diff_bounds = self.cube.copy()
         cube_diff_bounds.coord('time').bounds = [3., 4.]
         result = iris.cube.CubeList([cube_with_bounds, cube_diff_bounds])
-        msg = "Cubes with mismatching coord bounds are not compatible"
-        with self.assertRaisesRegex(ValueError, msg):
-            _equalise_coord_bounds(result)
-
-    def test_with_forecast_period_bounds(self):
-        """ Test that inputs are unchanged when the forecast_period bounds
-        match. """
-        cubeA = self.cube.copy()
-        add_forecast_reference_time_and_forecast_period(cubeA)
-        cubeB = self.cube.copy()
-        add_forecast_reference_time_and_forecast_period(cubeB)
-        bounds = [0., 1.]
-        cubeA.coord('forecast_period').bounds = bounds
-        cubeB.coord('forecast_period').bounds = bounds
-        result = iris.cube.CubeList([cubeA, cubeB])
-        _equalise_coord_bounds(result)
-        self.assertArrayEqual(
-            result[0].coord('forecast_period').bounds, [bounds])
-        self.assertArrayEqual(
-            result[1].coord('forecast_period').bounds, [bounds])
-
-    def test_with_no_forecast_period_bounds(self):
-        """Test that inputs are unchanged when there are no forecast_period
-        bounds."""
-        cubeA = self.cube.copy()
-        add_forecast_reference_time_and_forecast_period(cubeA)
-        cubeB = self.cube.copy()
-        add_forecast_reference_time_and_forecast_period(cubeB)
-        result = iris.cube.CubeList([cubeA, cubeB])
-        _equalise_coord_bounds(result)
-        self.assertTrue(result[0].coord('forecast_period').bounds is None)
-        self.assertTrue(result[1].coord('forecast_period').bounds is None)
-
-    def test_mismatched_forecast_period_bounds_ranges(self):
-        """Test for error when input cube scalar time coordinates have
-        mismatched bounds ranges."""
-        cube_with_bounds = self.cube.copy()
-        add_forecast_reference_time_and_forecast_period(cube_with_bounds)
-        cube_with_bounds.coord('forecast_period').bounds = [0., 1.]
-        cube_diff_bounds = self.cube.copy()
-        add_forecast_reference_time_and_forecast_period(cube_diff_bounds)
-        cube_diff_bounds.coord('forecast_period').bounds = [3., 5.]
-        result = iris.cube.CubeList([cube_with_bounds, cube_diff_bounds])
-        msg = "Cubes with mismatching scalar time coord"
-        with self.assertRaisesRegex(ValueError, msg):
-            _equalise_coord_bounds(result)
-
-    def test_different_forecast_period_bounds(self):
-        """Test success when input cube scalar time coordinates have
-        mismatched bounds but the same bounds range."""
-        cube_with_bounds = self.cube.copy()
-        add_forecast_reference_time_and_forecast_period(cube_with_bounds)
-        cube_with_bounds.coord('forecast_period').bounds = [0, 1]
-        cube_diff_bounds = self.cube.copy()
-        add_forecast_reference_time_and_forecast_period(cube_diff_bounds)
-        cube_diff_bounds.coord('forecast_period').bounds = [3, 4]
-        result = iris.cube.CubeList([cube_with_bounds, cube_diff_bounds])
-        _equalise_coord_bounds(result)
-        self.assertArrayEqual(
-            result[0].coord('forecast_period').bounds, [[0, 1]])
-        self.assertArrayEqual(
-            result[1].coord('forecast_period').bounds, [[3, 4]])
-
-    def test_one_forecast_period_bound(self):
-        """Test for error when input cubes have bounds on one cube and
-        none on the other."""
-        cube_with_bounds = self.cube.copy()
-        add_forecast_reference_time_and_forecast_period(cube_with_bounds)
-        cube_with_bounds.coord('forecast_period').bounds = [0., 1.]
-        cube_no_bounds = self.cube.copy()
-        add_forecast_reference_time_and_forecast_period(cube_no_bounds)
-        result = iris.cube.CubeList([cube_with_bounds, cube_no_bounds])
-        msg = "Cubes with mismatching bounds are not compatible"
+        msg = "Cubes with mismatching time bounds are not compatible"
         with self.assertRaisesRegex(ValueError, msg):
             _equalise_coord_bounds(result)
 

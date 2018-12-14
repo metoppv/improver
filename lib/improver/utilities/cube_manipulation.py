@@ -197,7 +197,7 @@ def concatenate_cubes(
     for coord_to_slice_over in coords_to_slice_over:
         cubes = _slice_over_coordinate(cubes, coord_to_slice_over)
 
-    cubes = equalise_cubes(cubes, merging=False)
+    cubes = _equalise_cubes(cubes, merging=False)
 
     associated_master_cubelist = iris.cube.CubeList([])
     for cube in cubes:
@@ -210,7 +210,7 @@ def concatenate_cubes(
     return result
 
 
-def merge_cubes(cubes, model_id_attr=None):
+def merge_cubes(cubes, model_id_attr=None, new_coord=None):
     """
     Function to merge cubes, accounting for differences in the
     attributes, and coords.
@@ -221,6 +221,9 @@ def merge_cubes(cubes, model_id_attr=None):
         model_id_attr (str):
             Name of cube attribute used to identify the model
             for grid blending or None.
+        new_coord (str):
+            Name of coordinate to be promoted within merged cubes (ie
+            blend coordinate).
 
     Returns:
         result (Iris cube):
@@ -230,29 +233,42 @@ def merge_cubes(cubes, model_id_attr=None):
     if isinstance(cubes, iris.cube.Cube):
         cubes = iris.cube.CubeList([cubes])
 
-    cubelist = equalise_cubes(cubes, model_id_attr=model_id_attr, merging=True)
+    # get list of dim coord names from the first cube
+    old_dims = [
+        coord.name() for coord in cubes[0].coords(dim_coords=True)]
+
+    cubelist = _equalise_cubes(
+        cubes, model_id_attr=model_id_attr, merging=True)
 
     for i, cube in enumerate(cubelist):
         cubelist[i] = iris.util.squeeze(cube)
 
     result = cubelist.merge_cube()
+
+    # check bounds ranges on promoted coordinates for blending
+    if new_coord is not None:
+        new_dims = [
+            coord.name() for coord in result.coords(dim_coords=True)]
+        promoted_coords = [name for name in new_dims if name not in old_dims]
+        _equalise_bounds_ranges(result, promoted_coords)
+
     return result
 
 
-def equalise_cubes(
-        cubes_in, model_id_attr=None, merging=True):
+def _equalise_cubes(cubes_in, model_id_attr=None, merging=True):
     """
     Function to equalise cubes where they do not match.
 
     Args:
         cubes_in (Iris cubelist):
             List of cubes to check and equalise.
+
+    Kwargs:
         model_id_attr (str):
-            Name of cube attribute used to identify the model
-            for grid blending or None.
-        merging (boolean):
-            Flag for whether the equalising is for merging
-            as slightly different processing is required.
+            Name of cube attribute used to identify the model for grid
+            blending or None.
+        merging (bool):
+            Flag for whether equalisation is for merging or concatenation.
 
     Returns:
         cubelist (Iris cubelist):
@@ -278,8 +294,7 @@ def equalise_cubes(
     return cubelist
 
 
-def _equalise_cube_attributes(
-        cubes, model_id_attr=None):
+def _equalise_cube_attributes(cubes, model_id_attr=None):
     """
     Function to equalise attributes that do not match.
 
@@ -355,6 +370,7 @@ def _equalise_cube_coords(cubes):
     Args:
         cubes (Iris cubelist):
             List of cubes to check the coords and revise.
+
     Returns:
         cubelist (Iris cubelist):
             List of cubes with revised coords.
@@ -374,7 +390,7 @@ def _equalise_cube_coords(cubes):
     # otherwise there will be a dict (possible empty) for
     # each cube in cubes.
     if len(unmatching_coords) != 0:
-        # Fix any issues with mismatches in coord bounds
+        # Fix any issues with mismatches in dim coord bounds
         _equalise_coord_bounds(cubes)
         # Are we ok now?
         unmatching_coords = compare_coords(cubes)
@@ -452,9 +468,7 @@ def _equalise_cube_coords(cubes):
 
 def _equalise_coord_bounds(cubes):
     """
-    Function to equalise coord bounds that do not match.
-    This is achieved by removing any unmatching bounds so long as the
-    comparison cube has bounds of None.
+    Function to equalise dimension coordinate bounds that do not match.
     If a coordinate is not present in all cubes, this is ignored.
 
     Args:
@@ -467,10 +481,10 @@ def _equalise_coord_bounds(cubes):
             If two cubes with different valid bounds are found.
     """
     # Check each cube against all remaining cubes
-    time_coord_names = ["forecast_reference_time", "time", "forecast_period"]
+    msg = 'Cubes with mismatching {} bounds are not compatible'
     for i, this_cube in enumerate(cubes):
         for later_cube in cubes[i+1:]:
-            for coord in this_cube.coords():
+            for coord in this_cube.coords(dim_coords=True):
                 try:
                     match_coord = later_cube.coord(coord)
                 except CoordinateNotFoundError:
@@ -478,36 +492,45 @@ def _equalise_coord_bounds(cubes):
                 if coord.bounds is None and match_coord.bounds is None:
                     continue
                 elif coord.bounds is None and match_coord.bounds is not None:
-                    msg = ('Cubes with mismatching bounds are not '
-                           'compatible')
-                    raise ValueError(msg)
+                    raise ValueError(msg.format(coord.name()))
                 elif coord.bounds is not None and match_coord.bounds is None:
-                    msg = ('Cubes with mismatching bounds are not '
-                           'compatible')
-                    raise ValueError(msg)
-                elif (coord.name() in time_coord_names and
-                      coord not in this_cube.coords(dim_coords=True)):
-                    # for scalar time coordinates, require matching bounds
-                    # ranges but not bounds values
-                    coord_bounds_range = (
-                        max(coord.bounds[0]) - min(coord.bounds[0]))
-                    match_bounds_range = (
-                        max(match_coord.bounds[0]) -
-                        min(match_coord.bounds[0]))
-                    if np.isclose(coord_bounds_range, match_bounds_range):
-                        continue
-                    else:
-                        msg = ('Cubes with mismatching scalar time coord '
-                               'bounds ranges are not compatible')
-                        raise ValueError(msg)
+                    raise ValueError(msg.format(coord.name()))
                 else:
                     if np.allclose(np.array(coord.bounds),
                                    np.array(match_coord.bounds)):
                         continue
                     else:
-                        msg = ('Cubes with mismatching coord bounds '
-                               'are not compatible')
-                        raise ValueError(msg)
+                        raise ValueError(msg.format(coord.name()))
+
+
+def _equalise_bounds_ranges(cube, coord_list):
+    """
+    Check the bounds ranges on the list of input coordinates match at each
+    point along that dimension.  Example: check time and forecast period
+    ranges for accumulations to avoid blending 1 hr with 3 hr accumulations.
+
+    Args:
+        cube (iris.cube.Cube):
+            Input cube with dimensional coordinates in coord_list
+        coord_list (list):
+            List of string coordinate names to check bounds
+
+    Raises:
+        ValueError:
+            If bounds ranges at different points are incompatible
+    """
+    for name in coord_list:
+        coord = cube.coord(name)
+        if coord.bounds is None:
+            continue
+
+        reference_range = max(coord.bounds[0]) - min(coord.bounds[0])
+        for bounds in coord.bounds[1:]:
+            bounds_range = max(bounds) - min(bounds)
+            if not np.isclose(bounds_range, reference_range):
+                msg = ('Cubes with mismatching {} bounds ranges '
+                       'cannot be blended'.format(name))
+                raise ValueError(msg)
 
 
 def _equalise_cell_methods(cubes):
