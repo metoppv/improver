@@ -179,12 +179,14 @@ class Test_process(IrisTest):
                                                     self.orography,
                                                     self.land_sea_mask)
         self.assertIsInstance(result, Cube)
+        self.assertEqual(result.name(), "lapse_rate")
+        self.assertEqual(result.long_name, "lapse_rate")
+        self.assertEqual(result.units, "K m-1")
 
     def test_fails_if_temperature_is_not_cube(self):
         """Test code raises a Type Error if input temperature cube is
            not a cube."""
         incorrect_input = 50.0
-
         msg = 'Temperature input is not a cube, but {0}'.format(
             type(incorrect_input))
         with self.assertRaisesRegexp(TypeError, msg):
@@ -196,7 +198,6 @@ class Test_process(IrisTest):
         """Test code raises a Type Error if input orography cube is
            not a cube."""
         incorrect_input = 50.0
-
         msg = 'Orography input is not a cube, but {0}'.format(
             type(incorrect_input))
         with self.assertRaisesRegexp(TypeError, msg):
@@ -208,7 +209,6 @@ class Test_process(IrisTest):
         """Test code raises a Type Error if input land/sea mask cube is
            not a cube."""
         incorrect_input = 50.0
-
         msg = 'Land/Sea mask input is not a cube, but {0}'.format(
             type(incorrect_input))
         with self.assertRaisesRegexp(TypeError, msg):
@@ -219,7 +219,6 @@ class Test_process(IrisTest):
     def test_fails_if_temperature_wrong_units(self):
         """Test code raises a Value Error if the temperature cube is the
            wrong unit."""
-
         #  Swap cubes around so have wrong units.
         msg = r"Unable to convert from 'Unit\('m'\)' to 'Unit\('K'\)'."
         with self.assertRaisesRegexp(ValueError, msg):
@@ -229,7 +228,6 @@ class Test_process(IrisTest):
     def test_fails_if_orography_wrong_units(self):
         """Test code raises a Value Error if the orography cube is the
            wrong unit."""
-
         msg = r"Unable to convert from 'Unit\('K'\)' to 'Unit\('metres'\)'."
         with self.assertRaisesRegexp(ValueError, msg):
             LapseRate(nbhood_radius=1).process(self.temperature,
@@ -241,9 +239,7 @@ class Test_process(IrisTest):
         result = LapseRate().process(self.temperature,
                                      self.orography,
                                      self.land_sea_mask)
-        units = result.units
-
-        self.assertEqual(units, 'K m-1')
+        self.assertEqual(result.units, 'K m-1')
 
     def test_correct_lapse_rate_units_with_arguments(self):
         """Test that the plugin returns the correct unit type when non-default
@@ -254,9 +250,7 @@ class Test_process(IrisTest):
                            min_lapse_rate=-0.01).process(self.temperature,
                                                          self.orography,
                                                          self.land_sea_mask)
-        units = result.units
-
-        self.assertEqual(units, 'K m-1')
+        self.assertEqual(result.units, 'K m-1')
 
     def test_return_single_precision(self):
         """Test that the function returns cube of float32."""
