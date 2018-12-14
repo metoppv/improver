@@ -35,12 +35,11 @@ import numpy as np
 
 from improver.utilities.cube_checker import (
     check_for_x_and_y_axes, check_cube_coordinates)
-from improver.utilities.spatial import (
-    convert_distance_into_number_of_grid_cells)
 from improver.utilities.cube_manipulation import clip_cube_data
 from improver.utilities.pad_spatial import (
-    pad_coord, pad_cube_with_halo, remove_halo_from_cube,
-    create_cube_with_new_data)
+    pad_cube_with_halo, remove_halo_from_cube)
+from improver.utilities.spatial import (
+    convert_distance_into_number_of_grid_cells)
 
 # Maximum radius of the neighbourhood width in grid cells.
 MAX_RADIUS_IN_GRID_CELLS = 500
@@ -388,9 +387,9 @@ class SquareNeighbourhood(object):
         # by the vectorisation of the 4-point method will appear outside
         # our domain of interest. These unwanted points can be trimmed off
         # later.
-        padded_cube = pad_cube_with_halo(cube, grid_cells_x, grid_cells_y,
+        padded_cube = pad_cube_with_halo(cube, 2*grid_cells_x, 2*grid_cells_y,
                                          masked_halo=True)
-        padded_mask = pad_cube_with_halo(mask, grid_cells_x, grid_cells_y,
+        padded_mask = pad_cube_with_halo(mask, 2*grid_cells_x, 2*grid_cells_y,
                                          masked_halo=True)
 
         # Check whether cube contains complex values
@@ -440,7 +439,7 @@ class SquareNeighbourhood(object):
         # calculated using larger neighbourhood areas than are present in
         # reality.
         neighbourhood_averaged_cube = remove_halo_from_cube(
-            neighbourhood_averaged_cube, grid_cells_x, grid_cells_y)
+            neighbourhood_averaged_cube, 2*grid_cells_x, 2*grid_cells_y)
         if self.re_mask and mask.data.min() < 1.0:
             neighbourhood_averaged_cube.data = np.ma.masked_array(
                 neighbourhood_averaged_cube.data,

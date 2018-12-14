@@ -73,17 +73,17 @@ def pad_coord(coord, width, method):
         raise ValueError(msg)
 
     if method == 'add':
-        num_of_new_points = len(orig_points) + 2*width + 2*width
+        num_of_new_points = len(orig_points) + width + width
         new_points = (
             np.linspace(
-                orig_points[0] - 2*width*increment,
-                orig_points[-1] + 2*width*increment,
+                orig_points[0] - width*increment,
+                orig_points[-1] + width*increment,
                 num_of_new_points,
                 dtype=np.float32)
         )
     elif method == 'remove':
-        end_width = -2*width if width != 0 else None
-        new_points = np.float32(orig_points[2*width:end_width])
+        end_width = -width if width != 0 else None
+        new_points = np.float32(orig_points[width:end_width])
     new_points = new_points.astype(orig_points.dtype)
 
     new_points_bounds = np.array(
@@ -173,12 +173,12 @@ def pad_cube_with_halo(cube, width_x, width_y, masked_halo=False):
     if masked_halo:
         padded_data = np.pad(
             cube.data,
-            ((2*width_y, 2*width_y), (2*width_x, 2*width_x)),
+            ((width_y, width_y), (width_x, width_x)),
             "constant", constant_values=(0.0, 0.0))
     else:
         padded_data = np.pad(
             cube.data,
-            ((2*width_y, 2*width_y), (2*width_x, 2*width_x)),
+            ((width_y, width_y), (width_x, width_x)),
             "mean", stat_length=((width_y, width_y), (width_x, width_x)))
     coord_x = cube.coord(axis='x')
     padded_x_coord = pad_coord(coord_x, width_x, 'add')
@@ -213,9 +213,9 @@ def remove_halo_from_cube(cube, width_x, width_y):
     """
     check_for_x_and_y_axes(cube)
 
-    end_y = -2*width_y if width_y != 0 else None
-    end_x = -2*width_x if width_x != 0 else None
-    trimmed_data = cube.data[2*width_y:end_y, 2*width_x:end_x]
+    end_y = -width_y if width_y != 0 else None
+    end_x = -width_x if width_x != 0 else None
+    trimmed_data = cube.data[width_y:end_y, width_x:end_x]
     coord_x = cube.coord(axis='x')
     trimmed_x_coord = pad_coord(coord_x, width_x, 'remove')
     coord_y = cube.coord(axis='y')
