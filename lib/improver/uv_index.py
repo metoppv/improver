@@ -49,7 +49,7 @@ def calculate_uv_index(uv_upward, uv_downward, scale_factor=3.6):
         uv_downward (iris.cube.Cube):
             A cube of the radiation flux in UV downward at surface.
             This is a UM diagnostic produced by the UM radiation scheme
-            see above or the paper refereneced for more details.(W m-2)
+            see above or the paper referenced for more details.(W m-2)
         scale_factor (float):
             The uv scale factor. Default is 3.6. This factor has
             been empirically derived and should not be

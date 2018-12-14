@@ -55,7 +55,7 @@ class Test_uv_index(IrisTest):
                                                units='W m-2')
         self.cube_up_badname = set_up_variable_cube(data_up,
                                                     name='Wrong name',
-                                                    units='m')
+                                                    units='W m-2')
         data_down = np.array([[0.1, 0.1, 0.1], [0.1, 0.1, 0.1]],
                              dtype=np.float32)
         uv_down_name = 'surface_downwelling_ultraviolet_flux_in_air'
@@ -67,7 +67,7 @@ class Test_uv_index(IrisTest):
                                                     units='m')
         self.cube_down_badname = set_up_variable_cube(data_down,
                                                       name='Wrong name',
-                                                      units='m')
+                                                      units='W m-2')
 
     def test_basic(self):
         """ Test that the a basic uv calculation works, using the
