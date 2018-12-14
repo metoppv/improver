@@ -303,6 +303,30 @@ class Test_pad_cube_with_halo(IrisTest):
         self.assertIsInstance(padded_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(padded_cube.data, expected)
 
+    def test_halo_smoothing(self):
+        """Test values in halo are correctly smoothed.  This impacts
+        recursive filter outputs."""
+        data = np.array([[0., 0., 0.1, 0., 0.],
+                         [0., 0., 0.25, 0., 0.],
+                         [0.1, 0.25, 0.5, 0.25, 0.1],
+                         [0., 0., 0.25, 0., 0.],
+                         [0., 0., 0.1, 0., 0.]], dtype=np.float32)
+        self.cube.data = data
+        expected_data = np.array([
+            [0., 0., 0., 0., 0.1, 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0.1, 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0.1, 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0.25, 0., 0., 0., 0.],
+            [0.1, 0.1, 0.1, 0.25, 0.5, 0.25, 0.1, 0.1, 0.1],
+            [0., 0., 0., 0., 0.25, 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0.1, 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0.1, 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0.1, 0., 0., 0., 0.]], dtype=np.float32)
+
+        padded_cube = pad_cube_with_halo(
+            self.cube, 2, 2, masked_halo=False)
+        self.assertArrayAlmostEqual(padded_cube.data, expected_data)
+
 
 class Test_remove_halo_from_cube(IrisTest):
 

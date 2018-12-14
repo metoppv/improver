@@ -40,6 +40,7 @@ import numpy as np
 from improver.nbhood.recursive_filter import RecursiveFilter
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.pad_spatial import pad_cube_with_halo
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
 class Test__repr__(IrisTest):
@@ -75,40 +76,17 @@ class Test_RecursiveFilter(IrisTest):
                           [0.00, 0.00, 0.25, 0.00, 0.00],
                           [0.10, 0.25, 0.50, 0.25, 0.10],
                           [0.00, 0.00, 0.25, 0.00, 0.00],
-                          [0.00, 0.00, 0.10, 0.00, 0.00]]])
-
-        cube = Cube(data, standard_name="precipitation_amount",
-                    units="kg m^-2 s^-1")
-        cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 5), 'latitude',
-                                    units='degrees'), 1)
-        cube.add_dim_coord(DimCoord(np.linspace(120, 180, 5), 'longitude',
-                                    units='degrees'), 2)
-        time_origin = "hours since 1970-01-01 00:00:00"
-        calendar = "gregorian"
-        tunit = Unit(time_origin, calendar)
-        cube.add_dim_coord(DimCoord([402192.5],
-                                    "time", units=tunit), 0)
-        self.cube = cube
+                          [0.00, 0.00, 0.10, 0.00, 0.00]]], dtype=np.float32)
+        self.cube = set_up_variable_cube(
+            data, name="precipitation_amount", units="kg m^-2 s^-1")
 
         # Generate alphas_cube with correct dimensions 5 x 5
-        alphas_data = np.ones((5, 5)) * 0.5
-        alphas_cube = Cube(alphas_data)
-        alphas_cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 5),
-                                           'latitude', units='degrees'), 0)
-        alphas_cube.add_dim_coord(DimCoord(np.linspace(120, 180, 5),
-                                           'longitude', units='degrees'), 1)
-        self.alphas_cube = alphas_cube
+        self.alphas_cube = set_up_variable_cube(
+            np.full((5, 5), 0.5, dtype=np.float32))
 
         # Generate alphas_cube with incorrect dimensions 6 x 6
-        alphas_data_wrong_dims = np.ones((6, 6)) * 0.5
-        alphas_cube_wrong_dims = Cube(alphas_data_wrong_dims)
-        alphas_cube_wrong_dims.add_dim_coord(
-            DimCoord(np.linspace(-45.0, 45.0, 6), 'latitude',
-                     units='degrees'), 0)
-        alphas_cube_wrong_dims.add_dim_coord(
-            DimCoord(np.linspace(120, 180, 6), 'longitude',
-                     units='degrees'), 1)
-        self.alphas_cube_wrong_dims = alphas_cube_wrong_dims
+        self.alphas_cube_wrong_dims = set_up_variable_cube(
+            np.full((6, 6), 0.5, dtype=np.float32))
 
 
 class Test__init__(Test_RecursiveFilter):
@@ -409,8 +387,8 @@ class Test_process(Test_RecursiveFilter):
         """Test that x and y alphas still apply to the right coordinate when
         the input cube spatial dimensions are (x, y) not (y, x)"""
         alpha_y = 0.5*self.alpha_x
-        cube = enforce_coordinate_ordering(self.cube,
-                                           ["time", "longitude", "latitude"])
+        cube = enforce_coordinate_ordering(
+            self.cube, ["realization", "longitude", "latitude"])
         plugin = RecursiveFilter(alpha_x=self.alpha_x, alpha_y=alpha_y,
                                  iterations=self.iterations)
         result = plugin.process(cube)
@@ -422,8 +400,9 @@ class Test_process(Test_RecursiveFilter):
              [0.02881413, 0.06486591, 0.15238355, 0.06486866, 0.02882582],
              [0.01657352, 0.04051282, 0.10726611, 0.04051464, 0.01658128]])
 
-        self.assertSequenceEqual([x.name() for x in result.coords()],
-                                 ["time", "longitude", "latitude"])
+        self.assertSequenceEqual(
+            [x.name() for x in result.coords(dim_coords=True)],
+            ["realization", "longitude", "latitude"])
         self.assertArrayAlmostEqual(result.data[0], expected_result)
 
 

@@ -179,7 +179,8 @@ def pad_cube_with_halo(cube, width_x, width_y, masked_halo=False):
         padded_data = np.pad(
             cube.data,
             ((width_y, width_y), (width_x, width_x)),
-            "mean", stat_length=((width_y, width_y), (width_x, width_x)))
+            "mean", stat_length=((0.5*width_y, 0.5*width_y),
+                                 (0.5*width_x, 0.5*width_x)))
     coord_x = cube.coord(axis='x')
     padded_x_coord = pad_coord(coord_x, width_x, 'add')
     coord_y = cube.coord(axis='y')
