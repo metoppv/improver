@@ -47,15 +47,16 @@ from improver.utilities.cube_manipulation import (
 from improver.blending.weights import (
     ChooseWeightsLinear, ChooseDefaultWeightsLinear,
     ChooseDefaultWeightsNonLinear)
+from improver.blending.spatial_weights import (
+    SpatiallyVaryingWeightsFromMask)
 from improver.blending.weighted_blend import (
     conform_metadata, rationalise_blend_time_coords,
     WeightedBlendAcrossWholeDimension)
 
 
 def calculate_blending_weights(cube, blend_coord, method, wts_dict=None,
-                               weighting_coord=None, wts_mask_constraint=None,
-                               coord_unit=None, y0val=None, ynval=None,
-                               cval=None):
+                               weighting_coord=None, coord_unit=None,
+                               y0val=None, ynval=None, cval=None):
     """
     Wrapper for plugins to calculate blending weights using the command line
     options specified.
@@ -76,9 +77,6 @@ def calculate_blending_weights(cube, blend_coord, method, wts_dict=None,
             calculation
         weighting_coord (str):
             Coordinate over which linear weights should be calculated from dict
-        wts_mask_constraint (str or iris.Constraint):
-            Optional constraint for identifying the masked cube from which to
-            calculate spatially varying blend weights.
         coord_unit (str or cf_units.Unit):
             Unit of blending coordinate (for default weights plugins)
         y0val (float):
@@ -107,14 +105,6 @@ def calculate_blending_weights(cube, blend_coord, method, wts_dict=None,
         weights_cube = ChooseWeightsLinear(
             weighting_coord, config_coord_name=blend_coord,
             config_dict=weights_dict).process(cube)
-
-        # if wts_mask_constraint is specified, use cube mask to determine
-        # spatially varying weights and combine with dictionary-derived
-        # weights cube to create final weights cube
-        if wts_mask_constraint is not None:
-            # NOTE this functionality is not yet coded, so raise a warning
-            warnings.warn('Calculation of spatially varying weights is '
-                          'not yet supported - using dict only')
 
         # sort weights cube by blending coordinate
         weights = sort_coord_in_cube(
@@ -182,6 +172,18 @@ def main():
                              'multi-model blends. Default assumes Met Office '
                              'model metadata. Must be present on all input '
                              'files if blending over models.')
+    parser.add_argument('--spatial_weights_from_mask',
+                        action='store_true', default=False,
+                        help='If set this option will result in the generation'
+                             ' of spatially varying weights based on the'
+                             ' masks of the data we are blending. The'
+                             ' one dimension weights are first calculated '
+                             ' using the chosen weights calculation method,'
+                             ' but the weights will then be adjusted spatially'
+                             ' based on where there is masked data in the data'
+                             ' we are blending. The spatial weights are'
+                             ' calculated using the'
+                             ' SpatiallyVaryingWeightsFromMask plugin.')
     parser.add_argument('weighting_mode', metavar='WEIGHTED_BLEND_MODE',
                         choices=['weighted_mean', 'weighted_maximum'],
                         help='The method used in the weighted blend. '
@@ -196,6 +198,22 @@ def main():
                         help='Paths to input files to be blended.')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
+
+    spatial = parser.add_argument_group(
+        'Spatial weights from mask options',
+        'Options for calculating the spatial weights using the '
+        'SpatiallyVaryingWeightsFromMask plugin.')
+    spatial.add_argument('--fuzzy_length', metavar='FUZZY_LENGTH', type=float,
+                         default=10,
+                         help='When calculating spatially varying weights we'
+                              ' can smooth the weights so that areas close to'
+                              ' areas that are masked have lower weights than'
+                              ' those further away. This fuzzy length controls'
+                              ' the scale over which the weights are smoothed.'
+                              ' The fuzzy length is in terms of the number of'
+                              ' grid points, default is 10. See'
+                              ' SpatiallyVaryingWeightsFromMask for more'
+                              ' detail.')
 
     linear = parser.add_argument_group('linear weights options',
                                        'Options for the linear weights '
@@ -238,13 +256,6 @@ def main():
                           'coordinate over which linear weights should be '
                           'scaled. This coordinate must be avilable in the '
                           'weights dictionary.')
-    wts_dict.add_argument('--wts_mask_constraint',
-                          metavar='WEIGHTS_MASK_CONSTRAINT', help='Optional '
-                          'constraint by which to identify an input cube whose'
-                          ' mask should be used to calculate spatially varying'
-                          ' blending weights. These are then scaled along the '
-                          'weighting coordinate using the dictionary derived '
-                          'weights.')
 
     args = parser.parse_args()
 
@@ -301,10 +312,14 @@ def main():
         weights = calculate_blending_weights(
             cube, args.coordinate, args.wts_calc_method,
             wts_dict=args.wts_dict, weighting_coord=args.weighting_coord,
-            wts_mask_constraint=args.wts_mask_constraint,
             coord_unit=coord_unit, y0val=args.y0val, ynval=args.ynval,
             cval=args.cval)
 
+        if args.spatial_weights_from_mask:
+            SpatialWeightsPlugin = SpatiallyVaryingWeightsFromMask(
+                args.fuzzy_length)
+            weights = SpatialWeightsPlugin.process(
+                cube, weights, args.coordinate)
         # blend across specified dimension
         BlendingPlugin = WeightedBlendAcrossWholeDimension(
             args.coordinate, args.weighting_mode,

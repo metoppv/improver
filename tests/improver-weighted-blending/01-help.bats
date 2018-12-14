@@ -40,12 +40,13 @@ usage: improver-weighted-blending [-h] [--profile]
                                   [--calendar CALENDAR]
                                   [--cycletime CYCLETIME]
                                   [--model_id_attr MODEL_ID_ATTR]
+                                  [--spatial_weights_from_mask]
+                                  [--fuzzy_length FUZZY_LENGTH]
                                   [--y0val LINEAR_STARTING_POINT]
                                   [--ynval LINEAR_END_POINT]
                                   [--cval NON_LINEAR_FACTOR]
                                   [--wts_dict WEIGHTS_DICTIONARY]
                                   [--weighting_coord WEIGHTING_COORD]
-                                  [--wts_mask_constraint WEIGHTS_MASK_CONSTRAINT]
                                   COORDINATE_TO_AVERAGE_OVER
                                   WEIGHTED_BLEND_MODE INPUT_FILES
                                   [INPUT_FILES ...] OUTPUT_FILE
@@ -96,6 +97,29 @@ optional arguments:
                         identify the source model for multi-model blends.
                         Default assumes Met Office model metadata. Must be
                         present on all input files if blending over models.
+  --spatial_weights_from_mask
+                        If set this option will result in the generation of
+                        spatially varying weights based on the masks of the
+                        data we are blending. The one dimension weights are
+                        first calculated using the chosen weights calculation
+                        method, but the weights will then be adjusted
+                        spatially based on where there is masked data in the
+                        data we are blending. The spatial weights are
+                        calculated using the SpatiallyVaryingWeightsFromMask
+                        plugin.
+
+Spatial weights from mask options:
+  Options for calculating the spatial weights using the
+  SpatiallyVaryingWeightsFromMask plugin.
+
+  --fuzzy_length FUZZY_LENGTH
+                        When calculating spatially varying weights we can
+                        smooth the weights so that areas close to areas that
+                        are masked have lower weights than those further away.
+                        This fuzzy length controls the scale over which the
+                        weights are smoothed. The fuzzy length is in terms of
+                        the number of grid points, default is 10. See
+                        SpatiallyVaryingWeightsFromMask for more detail.
 
 linear weights options:
   Options for the linear weights calculation in ChooseDefaultWeightsLinear
@@ -134,12 +158,6 @@ dict weights options:
                         Name of coordinate over which linear weights should be
                         scaled. This coordinate must be avilable in the
                         weights dictionary.
-  --wts_mask_constraint WEIGHTS_MASK_CONSTRAINT
-                        Optional constraint by which to identify an input cube
-                        whose mask should be used to calculate spatially
-                        varying blending weights. These are then scaled along
-                        the weighting coordinate using the dictionary derived
-                        weights.
 
 __HELP__
   [[ "$output" == "$expected" ]]
