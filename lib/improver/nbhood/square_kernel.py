@@ -383,13 +383,13 @@ class SquareNeighbourhood(object):
                 Cube containing the smoothed field after the square
                 neighbourhood method has been applied with halo added.
         """
-        # Pad the iris cube. This way, the edge effects produced
-        # by the vectorisation of the 4-point method will appear outside
-        # our domain of interest. These unwanted points can be trimmed off
-        # later.
-        padded_cube = pad_cube_with_halo(cube, 2*grid_cells_x, 2*grid_cells_y,
+        # Pad the iris cube with the neighbourhood radius plus 1 grid point.
+        # Since the neighbourhood size is 2*radius + 1, this means that all
+        # grid points within the original domain will have data available for
+        # the full neighbourhood size.  The halo is removed later.
+        padded_cube = pad_cube_with_halo(cube, grid_cells_x+1, grid_cells_y+1,
                                          masked_halo=True)
-        padded_mask = pad_cube_with_halo(mask, 2*grid_cells_x, 2*grid_cells_y,
+        padded_mask = pad_cube_with_halo(mask, grid_cells_x+1, grid_cells_y+1,
                                          masked_halo=True)
 
         # Check whether cube contains complex values
@@ -439,7 +439,7 @@ class SquareNeighbourhood(object):
         # calculated using larger neighbourhood areas than are present in
         # reality.
         neighbourhood_averaged_cube = remove_halo_from_cube(
-            neighbourhood_averaged_cube, 2*grid_cells_x, 2*grid_cells_y)
+            neighbourhood_averaged_cube, grid_cells_x+1, grid_cells_y+1)
         if self.re_mask and mask.data.min() < 1.0:
             neighbourhood_averaged_cube.data = np.ma.masked_array(
                 neighbourhood_averaged_cube.data,
