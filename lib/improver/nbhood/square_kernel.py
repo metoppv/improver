@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """This module contains methods for square neighbourhood processing."""
 
-import copy
 import iris
 import numpy as np
 
@@ -38,8 +37,10 @@ from improver.utilities.cube_checker import (
     check_for_x_and_y_axes, check_cube_coordinates)
 from improver.utilities.spatial import (
     convert_distance_into_number_of_grid_cells)
-from improver.utilities.cube_manipulation import (
-    clip_cube_data)
+from improver.utilities.cube_manipulation import clip_cube_data
+from improver.utilities.pad_spatial import (
+    pad_coord, pad_cube_with_halo, remove_halo_from_cube,
+    create_cube_with_new_data)
 
 # Maximum radius of the neighbourhood width in grid cells.
 MAX_RADIUS_IN_GRID_CELLS = 500
@@ -131,202 +132,6 @@ class SquareNeighbourhood(object):
             np.cumsum(data_summed_along_y, axis=1))
         summed_cube.data = data_summed_along_x
         return summed_cube
-
-    @staticmethod
-    def pad_coord(coord, width, method):
-        """
-        Construct a new coordinate by extending the current coordinate by the
-        padding width.
-
-        Args:
-            coord (iris.coord):
-                Original coordinate which will be used as the basis of the
-                new extended coordinate.
-            width (int):
-                The width of padding in grid cells (the extent of the
-                neighbourhood radius in grid cells in a given direction).
-            method (string):
-                A string determining whether the coordinate is being expanded
-                or contracted. Options: 'remove' to remove points from coord;
-                'add' to add points to coord.
-
-        Returns:
-            iris.coord:
-                Coordinate with expanded or contracted length, to be added to
-                the padded or unpadded iris cube.
-
-        Raises:
-            ValueError: Raise an error if non-uniform increments exist between
-                        grid points.
-        """
-        orig_points = coord.points
-        increment = orig_points[1:] - orig_points[:-1]
-        if np.isclose(np.sum(np.diff(increment)), 0):
-            increment = increment[0]
-        else:
-            msg = ("Non-uniform increments between grid points: "
-                   "{}.".format(increment))
-            raise ValueError(msg)
-
-        if method == 'add':
-            num_of_new_points = len(orig_points) + 2*width + 2*width
-            new_points = (
-                np.linspace(
-                    orig_points[0] - 2*width*increment,
-                    orig_points[-1] + 2*width*increment,
-                    num_of_new_points,
-                    dtype=np.float32)
-            )
-        elif method == 'remove':
-            end_width = -2*width if width != 0 else None
-            new_points = np.float32(orig_points[2*width:end_width])
-        new_points = new_points.astype(orig_points.dtype)
-
-        new_points_bounds = np.array([new_points - 0.5*increment,
-                                      new_points + 0.5*increment],
-                                     dtype=np.float32).T
-        return coord.copy(points=new_points, bounds=new_points_bounds)
-
-    @staticmethod
-    def _create_cube_with_new_data(cube, data, coord_x, coord_y):
-        """
-        Create a cube with newly created data where the metadata is copied from
-        the input cube and the supplied x and y coordinates are added to the
-        cube.
-
-        Args:
-            cube (Iris.cube.Cube):
-                Template cube used for copying metadata and non x and y axes
-                coordinates.
-            data (Numpy array):
-                Data to be put into the new cube.
-            coord_x (Iris.coords.DimCoord):
-                Coordinate to be added to the new cube to represent the x axis.
-            coord_y (Iris.coords.DimCoord):
-                Coordinate to be added to the new cube to represent the y axis.
-
-        Returns:
-            new_cube (Iris.cube.Cube):
-                Cube built from the template cube using the requested data and
-                the supplied x and y axis coordinates.
-        """
-        check_for_x_and_y_axes(cube)
-
-        yname = cube.coord(axis='y').name()
-        xname = cube.coord(axis='x').name()
-        ycoord_dim = cube.coord_dims(yname)
-        xcoord_dim = cube.coord_dims(xname)
-        metadata_dict = copy.deepcopy(cube.metadata._asdict())
-        new_cube = iris.cube.Cube(data, **metadata_dict)
-        for coord in cube.coords():
-            if coord.name() not in [yname, xname]:
-                if cube.coords(coord, dim_coords=True):
-                    coord_dim = cube.coord_dims(coord)
-                    new_cube.add_dim_coord(coord, coord_dim)
-                else:
-                    new_cube.add_aux_coord(coord)
-        if len(xcoord_dim) > 0:
-            new_cube.add_dim_coord(coord_x, xcoord_dim)
-        else:
-            new_cube.add_aux_coord(coord_x)
-        if len(ycoord_dim) > 0:
-            new_cube.add_dim_coord(coord_y, ycoord_dim)
-        else:
-            new_cube.add_aux_coord(coord_y)
-        return new_cube
-
-    def pad_cube_with_halo(self, cube, width_x, width_y, masked_halo=False):
-        """
-        Method to pad a halo around the data in an iris cube. Normally the
-        masked_halo should be zero as it is considered masked data however if
-        masked_halo is False then the padding calculates the mean within the
-        neighbourhood radius in grid cells i.e. the neighbourhood width at
-        the edge of the data and uses this mean value as the padding value.
-
-        Args:
-            cube (iris.cube.Cube):
-                The original cube prior to applying padding. The cube should
-                contain only x and y dimensions, so will generally be a slice
-                of a cube.
-            width_x, width_y (int):
-                The width in x and y directions of the neighbourhood radius in
-                grid cells. This will be the width of padding to be added to
-                the numpy array.
-            masked_halo (bool):
-                masked_halo = True means that the halo will be treated as
-                masked points (i.e. set to 0.0) otherwise the halo
-                will be filled with mean values.
-                Default is set to False for backwards
-                compatability as this function is used outside of
-                SquareNeighbourhooding.
-
-        Returns:
-            padded_cube (iris.cube.Cube):
-                Cube containing the new padded cube, with appropriate
-                changes to the cube's dimension coordinates.
-        """
-        check_for_x_and_y_axes(cube)
-
-        # Pad a halo around the original data with the extent of the halo
-        # given by width_y and width_x. Assumption to pad using the mean
-        # value within the neighbourhood width for backwards compatability
-        # as this function is used outside of SquareNeighbourhood.
-        if masked_halo:
-            padded_data = np.pad(
-                cube.data,
-                ((2*width_y, 2*width_y), (2*width_x, 2*width_x)),
-                "constant", constant_values=(0.0, 0.0))
-        else:
-            padded_data = np.pad(
-                cube.data,
-                ((2*width_y, 2*width_y), (2*width_x, 2*width_x)),
-                "mean", stat_length=((width_y, width_y), (width_x, width_x)))
-        coord_x = cube.coord(axis='x')
-        padded_x_coord = (
-            SquareNeighbourhood.pad_coord(coord_x, width_x, 'add'))
-        coord_y = cube.coord(axis='y')
-        padded_y_coord = (
-            SquareNeighbourhood.pad_coord(coord_y, width_y, 'add'))
-        padded_cube = self._create_cube_with_new_data(
-            cube, padded_data, padded_x_coord, padded_y_coord)
-
-        return padded_cube
-
-    def remove_halo_from_cube(self, cube, width_x, width_y):
-        """
-        Method to remove rows/columns from the edge of an iris cube.
-        Used to 'unpad' cubes which have been previously padded by
-        pad_cube_with_halo.
-
-        Args:
-            cube (iris.cube.Cube):
-                The original cube to be trimmed of edge data. The cube should
-                contain only x and y dimensions, so will generally be a slice
-                of a cube.
-            width_x, width_y (int):
-                The width in x and y directions of the neighbourhood radius in
-                grid cells. This will be the width removed from the numpy
-                array.
-
-        Returns:
-            trimmed_cube (iris.cube.Cube):
-                Cube containing the new trimmed cube, with appropriate
-                changes to the cube's dimension coordinates.
-        """
-        check_for_x_and_y_axes(cube)
-
-        end_y = -2*width_y if width_y != 0 else None
-        end_x = -2*width_x if width_x != 0 else None
-        trimmed_data = cube.data[2*width_y:end_y, 2*width_x:end_x]
-        coord_x = cube.coord(axis='x')
-        trimmed_x_coord = SquareNeighbourhood.pad_coord(
-            coord_x, width_x, 'remove')
-        coord_y = cube.coord(axis='y')
-        trimmed_y_coord = SquareNeighbourhood.pad_coord(
-            coord_y, width_y, 'remove')
-        trimmed_cube = self._create_cube_with_new_data(
-            cube, trimmed_data, trimmed_x_coord, trimmed_y_coord)
-        return trimmed_cube
 
     @staticmethod
     def calculate_neighbourhood(summed_cube,
@@ -583,10 +388,10 @@ class SquareNeighbourhood(object):
         # by the vectorisation of the 4-point method will appear outside
         # our domain of interest. These unwanted points can be trimmed off
         # later.
-        padded_cube = self.pad_cube_with_halo(cube, grid_cells_x, grid_cells_y,
-                                              masked_halo=True)
-        padded_mask = self.pad_cube_with_halo(mask, grid_cells_x, grid_cells_y,
-                                              masked_halo=True)
+        padded_cube = pad_cube_with_halo(cube, grid_cells_x, grid_cells_y,
+                                         masked_halo=True)
+        padded_mask = pad_cube_with_halo(mask, grid_cells_x, grid_cells_y,
+                                         masked_halo=True)
 
         # Check whether cube contains complex values
         is_complex = np.any(np.iscomplex(cube.data))
@@ -634,7 +439,7 @@ class SquareNeighbourhood(object):
         # Correct neighbourhood averages for masked data, which may have been
         # calculated using larger neighbourhood areas than are present in
         # reality.
-        neighbourhood_averaged_cube = self.remove_halo_from_cube(
+        neighbourhood_averaged_cube = remove_halo_from_cube(
             neighbourhood_averaged_cube, grid_cells_x, grid_cells_y)
         if self.re_mask and mask.data.min() < 1.0:
             neighbourhood_averaged_cube.data = np.ma.masked_array(
