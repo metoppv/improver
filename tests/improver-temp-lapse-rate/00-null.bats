@@ -34,13 +34,14 @@
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
 usage: improver-temp-lapse-rate [-h] [--profile] [--profile_file PROFILE_FILE]
+                                [--orography_filepath INPUT_OROGRAPHY_FILE]
+                                [--land_sea_mask_filepath LAND_SEA_MASK_FILE]
                                 [--max_height_diff MAX_HEIGHT_DIFF]
                                 [--nbhood_radius NBHOOD_RADIUS]
                                 [--max_lapse_rate MAX_LAPSE_RATE]
                                 [--min_lapse_rate MIN_LAPSE_RATE]
                                 [--return_dalr]
-                                INPUT_TEMPERATURE_FILE INPUT_OROGRAPHY_FILE
-                                LAND_SEA_MASK_FILE OUTPUT_FILE
+                                INPUT_TEMPERATURE_FILE OUTPUT_FILE
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

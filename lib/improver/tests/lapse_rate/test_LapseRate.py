@@ -179,8 +179,7 @@ class Test_process(IrisTest):
                                                     self.orography,
                                                     self.land_sea_mask)
         self.assertIsInstance(result, Cube)
-        self.assertEqual(result.name(), "lapse_rate")
-        self.assertEqual(result.long_name, "lapse_rate")
+        self.assertEqual(result.name(), "air_temperature_lapse_rate")
         self.assertEqual(result.units, "K m-1")
 
     def test_fails_if_temperature_is_not_cube(self):

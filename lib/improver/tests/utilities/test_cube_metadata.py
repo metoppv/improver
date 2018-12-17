@@ -362,6 +362,15 @@ class Test_update_attribute(IrisTest):
                             for item in warning_list))
         self.assertFalse('relative_to_threshold' in result.attributes)
 
+    def test_attributes_deleted_when_not_present(self):
+        """Test update_attribute copes when an attribute is requested to be
+        deleted, but this attribute is not available on the input cube."""
+        cube = create_cube_with_threshold()
+        attribute_name = 'invalid_name'
+        changes = 'delete'
+        result = update_attribute(cube, attribute_name, changes)
+        self.assertFalse('invalid_name' in result.attributes)
+
 
 class Test_update_cell_methods(IrisTest):
 

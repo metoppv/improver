@@ -38,8 +38,6 @@
   # Run the temperature lapse rate calculation and check the result.
   run improver temp-lapse-rate \
       "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/temperature_at_screen_level.nc" \
-      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/ukvx_orography.nc" \
-      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/ukvx_landmask.nc" \
       --return_dalr "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

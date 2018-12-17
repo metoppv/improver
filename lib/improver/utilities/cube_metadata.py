@@ -279,7 +279,7 @@ def update_attribute(cube, attribute_name, changes, warnings_on=False):
     """
     result = cube
     if changes == 'delete':
-        result.attributes.pop(attribute_name)
+        result.attributes.pop(attribute_name, None)
         if warnings_on:
             msg = ("Deleted attribute "
                    "{}".format(attribute_name))
