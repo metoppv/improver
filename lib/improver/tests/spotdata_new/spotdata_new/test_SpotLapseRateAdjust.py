@@ -223,8 +223,8 @@ class Test_process(Test_SpotLapseRateAdjust):
         2*DALR, compared with site 2 which has the same displacement, but for
         which the lapse rate is just the DALR."""
 
-        plugin = SpotLapseRateAdjust('mosg',
-            neighbour_selection_method='nearest_minimum_dz')
+        plugin = SpotLapseRateAdjust(
+            'mosg', neighbour_selection_method='nearest_minimum_dz')
         expected = np.array(
             [270 - (2 * DALR), 270, 280 - DALR]).astype(np.float32)
 
