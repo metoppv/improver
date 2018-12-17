@@ -148,40 +148,6 @@ class Test_SpotLapseRateAdjust(IrisTest):
         self.attributes = attributes
 
 
-class Test_check_grid_match(Test_SpotLapseRateAdjust):
-
-    """Test the check_grid_match function."""
-
-    def test_matching_metadata(self):
-        """Test a case in which the grid metadata matches. There is no assert
-        statement as this test is successful if no exception is raised."""
-        plugin = SpotLapseRateAdjust('mosg')
-        cubes = [self.spot_temperature_nearest, self.neighbour_cube,
-                 self.lapse_rate_cube]
-        plugin.check_grid_match(cubes)
-
-    def test_non_matching_metadata(self):
-        """Test a case in which the grid metadata does not match. This will
-        raise an ValueError."""
-        plugin = SpotLapseRateAdjust('mosg')
-        self.spot_temperature_nearest.attributes["mosg__grid_domain"] = "eire"
-        cubes = [self.spot_temperature_nearest, self.neighbour_cube,
-                 self.lapse_rate_cube]
-        msg = "Cubes do not share the metadata identified"
-        with self.assertRaisesRegex(ValueError, msg):
-            plugin.check_grid_match(cubes)
-
-    def test_ignore_non_matching_metadata(self):
-        """Test a case in which the grid metadata does not match but this is
-        forceably ignored by the user by setting self.grid_metadata_identifier
-        to None."""
-        plugin = SpotLapseRateAdjust(None)
-        self.spot_temperature_nearest.attributes["mosg__grid_domain"] = "eire"
-        cubes = [self.spot_temperature_nearest, self.neighbour_cube,
-                 self.lapse_rate_cube]
-        plugin.check_grid_match(cubes)
-
-
 class Test_process(Test_SpotLapseRateAdjust):
 
     """Tests the class process method."""

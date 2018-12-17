@@ -109,6 +109,15 @@ class Test_compare_attributes(IrisTest):
                                  'mosg__grid_version':
                                  '1.1.0'}])
 
+    def test_filtered_differences(self):
+        """Test that the utility returns differences only between attributes
+        that match the attribute filter."""
+        cubelist = iris.cube.CubeList([self.cube, self.cube_ukv])
+        result = compare_attributes(cubelist, attribute_filter='mosg__grid')
+        self.assertAlmostEqual(result,
+                               [{'mosg__grid_version': '1.2.0'},
+                                {'mosg__grid_version': '1.1.0'}])
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -574,9 +574,11 @@ def compare_attributes(cubes, attribute_filter=None):
         msg = ('Only a single cube so no differences will be found ')
         warnings.warn(msg)
     else:
-        reference_attributes = get_filtered_attributes(cubes[0])
+        reference_attributes = get_filtered_attributes(
+            cubes[0], attribute_filter=attribute_filter)
         for cube in cubes[1:]:
-            cube_attributes = get_filtered_attributes(cube)
+            cube_attributes = get_filtered_attributes(
+                cube, attribute_filter=attribute_filter)
             unmatching_attributes.append(
                 dict(reference_attributes.items() - cube_attributes.items()))
             unmatching_attributes.append(

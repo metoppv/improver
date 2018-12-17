@@ -34,7 +34,8 @@
 import numpy as np
 
 import iris
-from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+from improver.utilities.cube_manipulation import (enforce_coordinate_ordering,
+                                                  compare_attributes)
 from improver.spotdata_new.build_spotdata_cube import build_spotdata_cube
 
 
@@ -178,14 +179,9 @@ class SpotExtraction():
                 A cube containing diagnostic data for each spot site, as well
                 as information about the sites themselves.
         """
-
         # Check we are using a matched neighbour/diagnostic cube pair
-        if not check_cube_compatibility(self.grid_metadata_identifier,
-                                        neighbour_cube, diagnostic_cube):
-            msg = ("The grid_metadata_identifier attributes do not match "
-                   "between the neighbour cube and the diagnostic cube. "
-                   "Cubes may not be for the same grid/model.")
-            raise ValueError(msg)
+        check_grid_match(self.grid_metadata_identifier,
+                         [neighbour_cube, diagnostic_cube])
 
         coordinate_cube = self.extract_coordinates(neighbour_cube)
 
@@ -214,36 +210,33 @@ class SpotExtraction():
         return spotdata_cube
 
 
-def check_cube_compatibility(grid_metadata_identifier, reference_cube, cube):
+def check_grid_match(grid_metadata_identifier, cubes):
     """
-    Compare the desired attributes of two cubes to see if they match. If the
-    grid_metadata_identifier is an empty string the code will match all
-    attributes. If the identifier is None, no comparison will be made.
+    Uses the provided grid_metadata_identifier to extract and compare
+    attributes on the input cubes. The expectation is that all the metadata
+    identified should match for the cubes to be deemed compatible.
 
     Args:
         grid_metadata_identifier (str):
             A partial or complete attribute name. Attributes matching this are
             compared between the two cubes.
-        reference_cube (iris.cube.Cube):
-            The cube from which the reference list of attributes is
-            constructed.
-        cube (iris.cube.Cube):
-            The cube with attributes that are compared against the reference
-            cube to see if they match.
-    Returns:
-        bool:
-            True if the attributed of interest match between the two cubes,
-            False if they do not.
+        cubes (list of iris.cube.Cube items):
+            List of cubes for which the attributes should be tested.
+    Raises:
+        ValueError: Raised if the metadata extracted is not identical on
+                    all cubes.
     """
+    # Allow user to bypass cube comparison by setting identifier to None.
     if grid_metadata_identifier is None:
-        return True
+        return
 
-    reference_attributes = [
-        reference_cube.attributes[cube_attribute]
-        for cube_attribute in reference_cube.attributes
-        if grid_metadata_identifier in cube_attribute]
-    cube_attributes = [
-        cube.attributes[cube_attribute]
-        for cube_attribute in cube.attributes
-        if grid_metadata_identifier in cube_attribute]
-    return set(reference_attributes) == set(cube_attributes)
+    comparison_result = compare_attributes(
+        cubes, attribute_filter=grid_metadata_identifier)
+
+    print(comparison_result)
+
+    # Check that all dictionaries returned are empty, indicating matches.
+    if not all(not item for item in comparison_result):
+        raise ValueError('Cubes do not share the metadata identified '
+                         'by the grid_metadata_identifier ({})'.format(
+                             grid_metadata_identifier))

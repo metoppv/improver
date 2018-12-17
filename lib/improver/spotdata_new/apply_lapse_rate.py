@@ -34,7 +34,8 @@
 import numpy as np
 
 import iris
-from improver.spotdata_new.spot_extraction import SpotExtraction
+from improver.spotdata_new.spot_extraction import (SpotExtraction,
+                                                   check_grid_match)
 from improver.utilities.cube_manipulation import compare_attributes
 
 
@@ -81,32 +82,6 @@ class SpotLapseRateAdjust:
                     self.neighbour_selection_method,
                     self.grid_metadata_identifier))
 
-    def check_grid_match(self, cubes):
-        """
-        Uses the provided grid_metadata_identifier to extract and compare
-        attributes on the input cubes. The expectation is that all the metadata
-        identified should match for the cubes to be deemed compatible.
-
-        Args:
-            cubes (list of iris.cube.Cube items):
-                List of cubes for which the attributes should be tested.
-        Raises:
-            ValueError: Raised if the metadata extracted is not identical on
-                        all cubes.
-        """
-        # Allow user to bypass cube comparison by setting identifier to None.
-        if self.grid_metadata_identifier is None:
-            return
-
-        comparison_result = compare_attributes(
-            cubes, attribute_filter=self.grid_metadata_identifier)
-
-        # Check that all dictionaries returned are empty, indicating matches.
-        if not all(not item for item in comparison_result):
-            raise ValueError('Cubes do not share the metadata identified '
-                             'by the grid_metadata_identifier ({})'.format(
-                                 self.grid_metadata_identifier))
-
     def process(self, spot_data_cube, neighbour_cube, gridded_lapse_rate_cube):
         """
         Extract lapse rates from the appropriate grid points and apply them to
@@ -140,8 +115,9 @@ class SpotLapseRateAdjust:
                 temperatures.
         """
         # Check the cubes are compatible.
-        self.check_grid_match([spot_data_cube, neighbour_cube,
-                               gridded_lapse_rate_cube])
+        check_grid_match(self.grid_metadata_identifier,
+                         [spot_data_cube, neighbour_cube,
+                          gridded_lapse_rate_cube])
 
         # Extract the lapse rates that correspond to the spot sites.
         extraction_plugin = SpotExtraction(
