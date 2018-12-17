@@ -148,46 +148,6 @@ class Test_SpotLapseRateAdjust(IrisTest):
         self.attributes = attributes
 
 
-class Test__get_attributes(Test_SpotLapseRateAdjust):
-
-    """Test the _get_attributes function."""
-
-    def test_with_matches(self):
-        """Test a case in which the cube passed in contains some attributes
-        that partially match the expected string."""
-        plugin = SpotLapseRateAdjust()
-        result = plugin._get_attributes(self.spot_temperature_nearest)
-        self.assertEqual(result, self.attributes)
-
-    def test_without_matches(self):
-        """Test a case in which the cube passed in does not contain any
-        attributes that partially match the expected string."""
-        plugin = SpotLapseRateAdjust(grid_metadata_identifier='test')
-        result = plugin._get_attributes(self.spot_temperature_nearest)
-        self.assertFalse(result)
-
-
-class Test__compare_attributes(Test_SpotLapseRateAdjust):
-
-    """Test the _compare_attributes function."""
-
-    def test_matching(self):
-        """Test a case in which the to attribute dictionaries passed in are
-        a perfect match."""
-        plugin = SpotLapseRateAdjust()
-        plugin._compare_attributes(self.attributes, self.attributes)
-
-    def test_mismatching(self):
-        """Test a case in which the to attribute dictionaries passed in are
-        mismatched."""
-        attributes = self.attributes.copy()
-        attributes['mosg__grid_domain'] = 'global'
-        plugin = SpotLapseRateAdjust()
-        msg = 'Cubes do not share the metadata identified'
-        with self.assertRaisesRegex(ValueError, msg):
-            plugin._compare_attributes(attributes, self.attributes)
-
-
 class Test_check_grid_match(Test_SpotLapseRateAdjust):
 
     """Test the check_grid_match function."""
@@ -195,7 +155,7 @@ class Test_check_grid_match(Test_SpotLapseRateAdjust):
     def test_matching_metadata(self):
         """Test a case in which the grid metadata matches. There is no assert
         statement as this test is successful if no exception is raised."""
-        plugin = SpotLapseRateAdjust()
+        plugin = SpotLapseRateAdjust('mosg')
         cubes = [self.spot_temperature_nearest, self.neighbour_cube,
                  self.lapse_rate_cube]
         plugin.check_grid_match(cubes)
@@ -203,7 +163,7 @@ class Test_check_grid_match(Test_SpotLapseRateAdjust):
     def test_non_matching_metadata(self):
         """Test a case in which the grid metadata does not match. This will
         raise an ValueError."""
-        plugin = SpotLapseRateAdjust()
+        plugin = SpotLapseRateAdjust('mosg')
         self.spot_temperature_nearest.attributes["mosg__grid_domain"] = "eire"
         cubes = [self.spot_temperature_nearest, self.neighbour_cube,
                  self.lapse_rate_cube]
@@ -215,7 +175,7 @@ class Test_check_grid_match(Test_SpotLapseRateAdjust):
         """Test a case in which the grid metadata does not match but this is
         forceably ignored by the user by setting self.grid_metadata_identifier
         to None."""
-        plugin = SpotLapseRateAdjust(grid_metadata_identifier=None)
+        plugin = SpotLapseRateAdjust(None)
         self.spot_temperature_nearest.attributes["mosg__grid_domain"] = "eire"
         cubes = [self.spot_temperature_nearest, self.neighbour_cube,
                  self.lapse_rate_cube]
@@ -229,7 +189,7 @@ class Test_process(Test_SpotLapseRateAdjust):
     def test_basic(self):
         """Test that the plugin returns a cube which is unchanged except for
         data values."""
-        plugin = SpotLapseRateAdjust()
+        plugin = SpotLapseRateAdjust('mosg')
         result = plugin.process(self.spot_temperature_nearest,
                                 self.neighbour_cube,
                                 self.lapse_rate_cube)
@@ -244,7 +204,7 @@ class Test_process(Test_SpotLapseRateAdjust):
         """Test that the plugin modifies temperatures as expected using the
         vertical displacements taken from the nearest neighbour method in the
         neighbour cube."""
-        plugin = SpotLapseRateAdjust()
+        plugin = SpotLapseRateAdjust('mosg')
         expected = np.array(
             [280 + (2 * DALR), 270, 280 - DALR]).astype(np.float32)
 
@@ -263,7 +223,7 @@ class Test_process(Test_SpotLapseRateAdjust):
         2*DALR, compared with site 2 which has the same displacement, but for
         which the lapse rate is just the DALR."""
 
-        plugin = SpotLapseRateAdjust(
+        plugin = SpotLapseRateAdjust('mosg',
             neighbour_selection_method='nearest_minimum_dz')
         expected = np.array(
             [270 - (2 * DALR), 270, 280 - DALR]).astype(np.float32)
@@ -291,7 +251,7 @@ class Test_process(Test_SpotLapseRateAdjust):
         the SpotExtraction plugin) we would expect a different result for
         sites 0 and 2."""
 
-        plugin = SpotLapseRateAdjust()
+        plugin = SpotLapseRateAdjust('mosg')
         expected = np.array(
             [280 + (2 * DALR), 270, 280 - DALR]).astype(np.float32)
         lapse_rate_cube = enforce_coordinate_ordering(

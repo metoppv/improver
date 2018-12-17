@@ -35,6 +35,7 @@ import numpy as np
 
 import iris
 from improver.spotdata_new.spot_extraction import SpotExtraction
+from improver.utilities.cube_manipulation import compare_attributes
 
 
 class SpotLapseRateAdjust:
@@ -44,9 +45,15 @@ class SpotLapseRateAdjust:
     orography.
     """
 
-    def __init__(self, neighbour_selection_method='nearest',
-                 grid_metadata_identifier='mosg'):
+    def __init__(self, grid_metadata_identifier,
+                 neighbour_selection_method='nearest'):
         """
+        Args:
+            grid_metadata_identifier (str or None):
+                A string to search for in the input cube's attributes that
+                can be used to ensure that the cubes being used are for the
+                same model/grid. This test can be bypassed by setting this to
+                None.
         Keyword Args:
             neighbour_selection_method (str):
                 The neighbour cube may contain one or several sets of grid
@@ -61,13 +68,8 @@ class SpotLapseRateAdjust:
                   - nearest_land_minimum_dz
                   - nearest_minimum_dz
 
-                The method available in a neigbour cube will depend on the
+                The method available in a neighbour cube will depend on the
                 options that were specified when it was created.
-            grid_metadata_identifier (str or None):
-                A string to search for in the input cube's attributes that
-                can be used to ensure that the cubes being used are for the
-                same model/grid. This test can be bypassed by setting this to
-                None.
         """
         self.neighbour_selection_method = neighbour_selection_method
         self.grid_metadata_identifier = grid_metadata_identifier
@@ -79,56 +81,6 @@ class SpotLapseRateAdjust:
                     self.neighbour_selection_method,
                     self.grid_metadata_identifier))
 
-    def _get_attributes(self, cube):
-        """
-        Build dictionary of attributes that match the
-        self.grid_metadata_identifier.
-
-        Args:
-            cube (iris.cube.Cube):
-                A cube from which attributes partially matching the
-                self.grid_metadata_identifier will be returned.
-        Returns:
-            attributes (dict):
-                A dictionary of attributes partially matching
-                self.grid_metadata_identifier that were found on the input
-                cube.
-        """
-        attributes = cube.attributes
-        attributes = {k: v for (k, v) in attributes.items()
-                      if self.grid_metadata_identifier in k}
-        return attributes
-
-    def _compare_attributes(self, attributes, reference_attributes):
-        """
-        Compare keys and values of attributes with reference_attributes.
-        Raise an exception if they do not match exactly; written by default
-        to use Python 3 behaviour, but currently also works with Python 2. When
-        this is no longer required the TypeError exception and resulting action
-        can be removed.
-
-        Args:
-            attributes (dict):
-                A dictionary of attributes.
-            reference_attributes (dict):
-                A reference dictionary of attributes with which to make a
-                comparison.
-        Raises:
-            ValueError: Raised if the metadata extracted is not identical on
-                        all cubes.
-        """
-        try:
-            match = ((attributes.items() & reference_attributes.items()) ==
-                     reference_attributes.items())
-        except TypeError:
-            match = ((attributes.viewitems() &
-                      reference_attributes.viewitems()) ==
-                     reference_attributes.viewitems())
-        if match is not True:
-            raise ValueError('Cubes do not share the metadata identified '
-                             'by the grid_metadata_identifier ({})'.format(
-                                 self.grid_metadata_identifier))
-
     def check_grid_match(self, cubes):
         """
         Uses the provided grid_metadata_identifier to extract and compare
@@ -138,15 +90,22 @@ class SpotLapseRateAdjust:
         Args:
             cubes (list of iris.cube.Cube items):
                 List of cubes for which the attributes should be tested.
+        Raises:
+            ValueError: Raised if the metadata extracted is not identical on
+                        all cubes.
         """
         # Allow user to bypass cube comparison by setting identifier to None.
         if self.grid_metadata_identifier is None:
             return
 
-        reference_attributes = self._get_attributes(cubes[0])
-        for cube in cubes:
-            attributes = self._get_attributes(cube)
-            self._compare_attributes(attributes, reference_attributes)
+        comparison_result = compare_attributes(
+            cubes, attribute_filter=self.grid_metadata_identifier)
+
+        # Check that all dictionaries returned are empty, indicating matches.
+        if not all(not item for item in comparison_result):
+            raise ValueError('Cubes do not share the metadata identified '
+                             'by the grid_metadata_identifier ({})'.format(
+                                 self.grid_metadata_identifier))
 
     def process(self, spot_data_cube, neighbour_cube, gridded_lapse_rate_cube):
         """
@@ -160,15 +119,17 @@ class SpotLapseRateAdjust:
 
         Args:
             spot_data_cube (iris.cube.Cube):
-                The spot data cube of temperatures extracted from the gridded
-                fields. These temperatures will have been extracted using the
-                same neighbour_cube and neighbour_selection_method that are
-                being used here.
+                A spot data cube of temperatures for the spot data sites,
+                extracted from the gridded temperature field. These
+                temperatures will have been extracted using the same
+                neighbour_cube and neighbour_selection_method that are being
+                used here.
             neighbour_cube (iris.cube.Cube):
                 The neighbour_cube that contains the grid coordinates at which
                 lapse rates should be extracted and the vertical displacement
                 between those grid points on the model orography and the spot
-                data sites actual altitudes.
+                data sites actual altitudes. This cube is only updated when
+                a new site is added.
             gridded_lapse_rate_cube (iris.cube.Cube):
                 A cube of temperature lapse rates on the same grid as that from
                 which the spot data temperatures were extracted.
@@ -196,7 +157,7 @@ class SpotLapseRateAdjust:
         vertical_displacement = neighbour_cube.extract(method_constraint &
                                                        data_constraint)
 
-        # Create a copy of the input cube with modified temperatures.
+        # Apply lapse rate adjustment to the temperature at each site.
         new_temperatures = (
             spot_data_cube.data + (
                 spot_lapse_rate.data * vertical_displacement.data)

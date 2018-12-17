@@ -524,18 +524,48 @@ def _equalise_cell_methods(cubes):
     return cubelist
 
 
-def compare_attributes(cubes):
+def get_filtered_attributes(cube, attribute_filter=None):
+    """
+    Build dictionary of attributes that match the attribute_filter. If the
+    attribute_filter is None, return all attributes.
+
+    Args:
+        cube (iris.cube.Cube):
+            A cube from which attributes partially matching the
+            self.grid_metadata_identifier will be returned.
+    Keyword Args:
+        attribute_filter (string or None):
+            A string to match, or partially match, against attributes to build
+            a filtered attribute dictionary. If None, all attributes are
+            returned.
+    Returns:
+        attributes (dict):
+            A dictionary of attributes partially matching the attribute_filter
+            that were found on the input cube.
+    """
+    attributes = cube.attributes
+    if attribute_filter is not None:
+        attributes = {k: v for (k, v) in attributes.items()
+                      if attribute_filter in k}
+        return attributes
+
+    return dict(cube.attributes)
+
+
+def compare_attributes(cubes, attribute_filter=None):
     """
     Function to compare attributes of cubes
 
     Args:
         cubes (Iris cubelist):
             List of cubes to compare (must be more than 1)
-
+    Keyword Args:
+        attribute_filter (string or None):
+            A string to filter which attributes are actually compared. If None
+            all attributes are compared.
     Returns:
         unmatching_attributes (List):
             List of dictionaries of unmatching attributes
-
     Warns:
         Warning: If only a single cube is supplied
     """
@@ -544,20 +574,14 @@ def compare_attributes(cubes):
         msg = ('Only a single cube so no differences will be found ')
         warnings.warn(msg)
     else:
-        common_keys = cubes[0].attributes.keys()
+        reference_attributes = get_filtered_attributes(cubes[0])
         for cube in cubes[1:]:
-            cube_keys = cube.attributes.keys()
-            common_keys = [
-                key for key in common_keys
-                if (key in cube_keys and
-                    np.all(cube.attributes[key] == cubes[0].attributes[key]))]
+            cube_attributes = get_filtered_attributes(cube)
+            unmatching_attributes.append(
+                dict(reference_attributes.items() - cube_attributes.items()))
+            unmatching_attributes.append(
+                dict(cube_attributes.items() - reference_attributes.items()))
 
-        for i, cube in enumerate(cubes):
-            unmatching_attributes.append(dict())
-            for key in cube.attributes.keys():
-                if key not in common_keys:
-                    unmatching_attributes[i].update({key:
-                                                    cube.attributes[key]})
     return unmatching_attributes
 
 
