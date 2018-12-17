@@ -34,7 +34,7 @@ at surface and radiation flux in UV upward at the surface."""
 from cf_units import Unit
 
 
-def calculate_uv_index(uv_upward, uv_downward, scale_factor):
+def calculate_uv_index(uv_upward, uv_downward, scale_factor=3.6):
     """
     A plugin to calculate the uv index using radiation flux in UV downward
     at surface, radiation flux UV upward at surface and a scaling factor.
@@ -42,16 +42,49 @@ def calculate_uv_index(uv_upward, uv_downward, scale_factor):
 
     Args:
         uv_upward (iris.cube.Cube):
-            A cube of the radiation flux in UV upward at surface (W/m^2)
+            A cube of the radiation flux in UV upward at surface. This is a
+            UM diagnostic produced by the UM radiation scheme.
+            This band covers 200-320 nm and uses six absorption coefficients
+            for ozone and one Rayleigh scattering coefficient(W m-2)
         uv_downward (iris.cube.Cube):
-            A cube of the radiation flux in UV downward at surface (W/m^2)
+            A cube of the radiation flux in UV downward at surface.
+            This is a UM diagnostic produced by the UM radiation scheme
+            see above or the paper referenced for more details.(W m-2)
         scale_factor (float):
-            The uv scale factor (no units)
+            The uv scale factor. Default is 3.6. This factor has
+            been empirically derived and should not be
+            changed except if there are scientific reasons to
+            do so. For more information see section 2.1.1 of the paper
+            referenced below (no units)
 
     Returns:
         uv_index (iris.cube.Cube):
             A cube of the calculated UV index.
+
+    Raises: ValueError
+        If uv_upward is not named correctly.
+        If uv_downward is not named correctly.
+        If units do not match.
+
+    References:
+    Turner, E.C, Manners, J. Morcette, C. J, O'Hagan, J. B,
+    & Smedley, A.R.D. (2017): Toward a New UV Index Diagnostic
+    in the Met Office's Forecast Model. Journal of Advances in
+    Modeling Earth Systems 9, 2654-2671.
+
     """
+    if uv_upward.name() != 'surface_upwelling_ultraviolet_flux_in_air':
+        msg = ("The radiation flux in UV upward has the wrong name, "
+               "it should be "
+               "surface_upwelling_ultraviolet_flux_in_air "
+               "but is {}".format(uv_upward.name()))
+        raise ValueError(msg)
+    if uv_downward.name() != 'surface_downwelling_ultraviolet_flux_in_air':
+        msg = ("The radiation flux in UV downward has the wrong name, "
+               "it should be "
+               "surface_downwelling_ultraviolet_flux_in_air "
+               "but is {}".format(uv_downward.name()))
+        raise ValueError(msg)
     if uv_upward.units != uv_downward.units:
         msg = "The input uv files do not have the same units."
         raise ValueError(msg)
