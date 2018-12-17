@@ -125,6 +125,34 @@ class BaseNeighbourhoodProcessing(object):
         return result.format(
             neighbourhood_method, self.radii, self.lead_times)
 
+    def slice_process(self, cube_realization, mask_cube):
+        if self.lead_times is None:
+            cube_new = self.neighbourhood_method.run(
+                cube_realization, self.radii, mask_cube=mask_cube)
+        else:
+            # Interpolate to find the radius at each required lead time.
+            fp_coord = forecast_period_coord(cube_realization)
+            fp_coord.convert_units("hours")
+            required_radii = self._find_radii(
+                cube_lead_times=fp_coord.points)
+
+            cubes_time = iris.cube.CubeList([])
+            # Find the number of grid cells required for creating the
+            # neighbourhood, and then apply the neighbourhood
+            # processing method to smooth the field.
+            for cube_slice, radius in (
+                    zip(cube_realization.slices_over("time"),
+                        required_radii)):
+                cube_slice = self.neighbourhood_method.run(
+                    cube_slice, radius, mask_cube=mask_cube)
+                cubes_time.append(cube_slice)
+            if len(cubes_time) > 1:
+                cube_new = concatenate_cubes(
+                    cubes_time, coords_to_slice_over=["time"])
+            else:
+                cube_new = cubes_time[0]
+        return cube_new
+
     def process(self, cube, mask_cube=None):
         """
         Supply neighbourhood processing method, in order to smooth the
@@ -171,32 +199,9 @@ class BaseNeighbourhoodProcessing(object):
 
         cubes_real = []
         for cube_realization in slices_over_realization:
-            if self.lead_times is None:
-                cube_new = self.neighbourhood_method.run(
-                    cube_realization, self.radii, mask_cube=mask_cube)
-            else:
-                # Interpolate to find the radius at each required lead time.
-                fp_coord = forecast_period_coord(cube_realization)
-                fp_coord.convert_units("hours")
-                required_radii = self._find_radii(
-                    cube_lead_times=fp_coord.points)
-
-                cubes_time = iris.cube.CubeList([])
-                # Find the number of grid cells required for creating the
-                # neighbourhood, and then apply the neighbourhood
-                # processing method to smooth the field.
-                for cube_slice, radius in (
-                        zip(cube_realization.slices_over("time"),
-                            required_radii)):
-                    cube_slice = self.neighbourhood_method.run(
-                        cube_slice, radius, mask_cube=mask_cube)
-                    cubes_time.append(cube_slice)
-                if len(cubes_time) > 1:
-                    cube_new = concatenate_cubes(
-                        cubes_time, coords_to_slice_over=["time"])
-                else:
-                    cube_new = cubes_time[0]
+            cube_new = self.slice_process(cube_realization, mask_cube)
             cubes_real.append(cube_new)
+
         if len(cubes_real) > 1:
             combined_cube = concatenate_cubes(
                 cubes_real, coords_to_slice_over=["realization"])

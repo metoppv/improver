@@ -38,6 +38,7 @@ from improver.nbhood.nbhood import (
 from improver.nbhood.recursive_filter import RecursiveFilter
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
+from improver.utilities.parallel import ParallelProcessing
 from improver.wind_calculations.wind_direction import WindDirection
 
 
@@ -224,12 +225,17 @@ def main():
                 sum_or_fraction=args.sum_or_fraction, re_mask=args.re_mask
                 ).process(cube, mask_cube=mask_cube))
     elif args.neighbourhood_output == "percentiles":
+        print('here')
         result = (
-            GeneratePercentilesFromANeighbourhood(
-                args.neighbourhood_shape, radius_or_radii,
-                lead_times=lead_times,
-                percentiles=args.percentiles
-                ).process(cube))
+            ParallelProcessing(
+                GeneratePercentilesFromANeighbourhood(
+                    args.neighbourhood_shape, radius_or_radii,
+                    lead_times=lead_times,
+                    percentiles=args.percentiles
+                ),
+                slices_over=['realization'],
+                nprocs=4
+            ).process(cube))
 
     # If the '--apply-recursive-filter' option has been specified in the
     # input command, pass the neighbourhooded 'result' cube obtained above
