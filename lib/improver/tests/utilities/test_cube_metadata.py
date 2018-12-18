@@ -816,6 +816,13 @@ class Test_add_history_attribute(IrisTest):
         self.assertTrue("Nowcast" in cube.attributes["history"])
         self.assertTrue(old_history in cube.attributes["history"])
 
+    def test_history_append_no_existing(self):
+        """Test the "append" option doesn't crash when no history exists."""
+        cube = set_up_variable_cube(np.ones((3, 3), dtype=np.float32))
+        add_history_attribute(cube, "Nowcast", append=True)
+        self.assertTrue("history" in cube.attributes)
+        self.assertTrue("Nowcast" in cube.attributes["history"])
+
 
 if __name__ == '__main__':
     unittest.main()

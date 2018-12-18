@@ -600,7 +600,7 @@ def add_history_attribute(cube, value, append=False):
     tzinfo = tz.tzoffset('Z', 0)
     timestamp = datetime.strftime(datetime.now(tzinfo), "%Y-%m-%dT%H:%M:%S%Z")
     new_history = "{}: {}".format(timestamp, value)
-    if append:
+    if append and "history" in cube.attributes.keys():
         cube.attributes["history"] += '; {}'.format(new_history)
     else:
         cube.attributes["history"] = new_history
