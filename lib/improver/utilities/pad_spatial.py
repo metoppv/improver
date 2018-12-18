@@ -92,14 +92,14 @@ def pad_coord(coord, width, method):
     return coord.copy(points=new_points, bounds=new_points_bounds)
 
 
-def create_cube_with_new_data(cube, data, coord_x, coord_y):
+def _create_cube_with_padded_data(source_cube, data, coord_x, coord_y):
     """
     Create a cube with newly created data where the metadata is copied from
     the input cube and the supplied x and y coordinates are added to the
     cube.
 
     Args:
-        cube (Iris.cube.Cube):
+        source_cube (Iris.cube.Cube):
             Template cube used for copying metadata and non x and y axes
             coordinates.
         data (Numpy array):
@@ -114,39 +114,45 @@ def create_cube_with_new_data(cube, data, coord_x, coord_y):
             Cube built from the template cube using the requested data and
             the supplied x and y axis coordinates.
     """
-    check_for_x_and_y_axes(cube)
+    check_for_x_and_y_axes(source_cube)
 
-    yname = cube.coord(axis='y').name()
-    xname = cube.coord(axis='x').name()
-    ycoord_dim = cube.coord_dims(yname)
-    xcoord_dim = cube.coord_dims(xname)
-    metadata_dict = deepcopy(cube.metadata._asdict())
+    yname = source_cube.coord(axis='y').name()
+    xname = source_cube.coord(axis='x').name()
+    ycoord_dim = source_cube.coord_dims(yname)
+    xcoord_dim = source_cube.coord_dims(xname)
+
+    # inherit metadata (cube name, units, attributes etc)
+    metadata_dict = deepcopy(source_cube.metadata._asdict())
     new_cube = iris.cube.Cube(data, **metadata_dict)
-    for coord in cube.coords():
+
+    # inherit non-spatial coordinates
+    for coord in source_cube.coords():
         if coord.name() not in [yname, xname]:
-            if cube.coords(coord, dim_coords=True):
-                coord_dim = cube.coord_dims(coord)
+            if source_cube.coords(coord, dim_coords=True):
+                coord_dim = source_cube.coord_dims(coord)
                 new_cube.add_dim_coord(coord, coord_dim)
             else:
                 new_cube.add_aux_coord(coord)
+
+    # update spatial coordinates
     if len(xcoord_dim) > 0:
         new_cube.add_dim_coord(coord_x, xcoord_dim)
     else:
         new_cube.add_aux_coord(coord_x)
+
     if len(ycoord_dim) > 0:
         new_cube.add_dim_coord(coord_y, ycoord_dim)
     else:
         new_cube.add_aux_coord(coord_y)
+
     return new_cube
 
 
-def pad_cube_with_halo(cube, width_x, width_y, masked_halo=False):
+def pad_cube_with_halo(cube, width_x, width_y, halo_with_data=True):
     """
-    Method to pad a halo around the data in an iris cube. Normally the
-    masked_halo should be zero as it is considered masked data however if
-    masked_halo is False then the padding calculates the mean within the
-    neighbourhood radius in grid cells i.e. the neighbourhood width at
-    the edge of the data and uses this mean value as the padding value.
+    Method to pad a halo around the data in an iris cube.  If halo_with_data
+    is False, the halo is filled with zeros.  Otherwise the padding calculates
+    a mean within half the padding width with which to fill the halo region.
 
     Args:
         cube (iris.cube.Cube):
@@ -157,9 +163,9 @@ def pad_cube_with_halo(cube, width_x, width_y, masked_halo=False):
             The width in x and y directions of the neighbourhood radius in
             grid cells. This will be the width of padding to be added to
             the numpy array.
-        masked_halo (bool):
-            masked_halo = True means that the halo will be set to 0.0,
-            otherwise the halo will be filled with mean values.
+        halo_with_data (bool):
+            Flag whether to populate the halo region with 0.0 or to fill
+            with mean values derived from the existing data matrix.
 
     Returns:
         padded_cube (iris.cube.Cube):
@@ -170,7 +176,7 @@ def pad_cube_with_halo(cube, width_x, width_y, masked_halo=False):
 
     # Pad a halo around the original data with the extent of the halo
     # given by width_y and width_x.
-    if masked_halo:
+    if not halo_with_data:
         padded_data = np.pad(
             cube.data,
             ((width_y, width_y), (width_x, width_x)),
@@ -185,7 +191,7 @@ def pad_cube_with_halo(cube, width_x, width_y, masked_halo=False):
     padded_x_coord = pad_coord(coord_x, width_x, 'add')
     coord_y = cube.coord(axis='y')
     padded_y_coord = pad_coord(coord_y, width_y, 'add')
-    padded_cube = create_cube_with_new_data(
+    padded_cube = _create_cube_with_padded_data(
         cube, padded_data, padded_x_coord, padded_y_coord)
 
     return padded_cube
@@ -221,6 +227,6 @@ def remove_halo_from_cube(cube, width_x, width_y):
     trimmed_x_coord = pad_coord(coord_x, width_x, 'remove')
     coord_y = cube.coord(axis='y')
     trimmed_y_coord = pad_coord(coord_y, width_y, 'remove')
-    trimmed_cube = create_cube_with_new_data(
+    trimmed_cube = _create_cube_with_padded_data(
         cube, trimmed_data, trimmed_x_coord, trimmed_y_coord)
     return trimmed_cube

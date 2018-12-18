@@ -62,8 +62,8 @@ class RecursiveFilter(object):
             iterations (integer or None):
                 The number of iterations of the recursive filter.
             edge_width (integer):
-                The width of the padding applied to the grid cells
-                when adding the SquareNeighbourhood halo.
+                Half the width of the padding halo applied before
+                recursive filtering.
             re_mask (boolean):
                 If re_mask is True, the original un-recursively filtered
                 mask is applied to mask out the recursively filtered cube.
@@ -277,7 +277,8 @@ class RecursiveFilter(object):
                                              cube.data.shape))
 
         alphas_cube = pad_cube_with_halo(
-            alphas_cube, 2*self.edge_width, 2*self.edge_width)
+            alphas_cube, 2*self.edge_width, 2*self.edge_width,
+            halo_with_data=True)
         return alphas_cube
 
     def process(self, cube, alphas_x=None, alphas_y=None, mask_cube=None):
@@ -340,7 +341,8 @@ class RecursiveFilter(object):
             mask = mask.data.squeeze()
 
             padded_cube = pad_cube_with_halo(
-                output, 2*self.edge_width, 2*self.edge_width)
+                output, 2*self.edge_width, 2*self.edge_width,
+                halo_with_data=True)
 
             new_cube = self._run_recursion(padded_cube, alphas_x, alphas_y,
                                            self.iterations)

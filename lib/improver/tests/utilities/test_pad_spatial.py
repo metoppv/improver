@@ -39,7 +39,7 @@ from iris.tests import IrisTest
 
 from improver.utilities.pad_spatial import (
     pad_coord, pad_cube_with_halo, remove_halo_from_cube,
-    create_cube_with_new_data)
+    _create_cube_with_padded_data)
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
@@ -124,7 +124,7 @@ class Test_pad_coord(IrisTest):
         self.assertArrayEqual(new_coord.bounds, expected_bounds)
 
 
-class Test_create_cube_with_new_data(IrisTest):
+class Test__create_cube_with_padded_data(IrisTest):
 
     """Test creating a new cube using a template cube."""
 
@@ -145,7 +145,7 @@ class Test_create_cube_with_new_data(IrisTest):
         coord_x = sliced_cube.coord("projection_x_coordinate")
         coord_y = sliced_cube.coord("projection_y_coordinate")
 
-        new_cube = create_cube_with_new_data(
+        new_cube = _create_cube_with_padded_data(
             sliced_cube, data, coord_x, coord_y)
         self.assertIsInstance(new_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(new_cube.data, data)
@@ -163,7 +163,7 @@ class Test_create_cube_with_new_data(IrisTest):
         coord_x = sliced_cube.coord("projection_x_coordinate")
         coord_y = sliced_cube.coord("projection_y_coordinate")
 
-        new_cube = create_cube_with_new_data(
+        new_cube = _create_cube_with_padded_data(
             sliced_cube, data, coord_x, coord_y)
         self.assertIsInstance(new_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(new_cube.data, data)
@@ -182,7 +182,7 @@ class Test_create_cube_with_new_data(IrisTest):
         coord_x = sliced_cube.coord("projection_x_coordinate")
         coord_y = sliced_cube.coord("projection_y_coordinate")
 
-        new_cube = create_cube_with_new_data(
+        new_cube = _create_cube_with_padded_data(
             sliced_cube, data, coord_x, coord_y)
         self.assertIsInstance(new_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(new_cube.data, data)
@@ -200,7 +200,7 @@ class Test_create_cube_with_new_data(IrisTest):
         data = sliced_cube.data
         coord_x = sliced_cube.coord("projection_x_coordinate")
         coord_y = sliced_cube.coord("projection_y_coordinate")
-        new_cube = create_cube_with_new_data(
+        new_cube = _create_cube_with_padded_data(
             sliced_cube, data, coord_x, coord_y)
         self.assertIsInstance(new_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(new_cube.data, data)
@@ -234,24 +234,7 @@ class Test_pad_cube_with_halo(IrisTest):
              [0., 0., 0., 0., 0., 0., 0., 0., 0.]])
         width_x = width_y = 2
         padded_cube = pad_cube_with_halo(
-            self.cube, width_x, width_y, masked_halo=True)
-        self.assertIsInstance(padded_cube, iris.cube.Cube)
-        self.assertArrayAlmostEqual(padded_cube.data, expected)
-
-    def test_masked_halo_false(self):
-        """Test the halo data is as expeceted when masked_halo is false"""
-        expected = np.array(
-            [[1., 1., 1., 1., 1., 1., 1., 1., 1.],
-             [1., 1., 1., 1., 1., 1., 1., 1., 1.],
-             [1., 1., 1., 1., 1., 1., 1., 1., 1.],
-             [1., 1., 1., 1., 1., 1., 1., 1., 1.],
-             [1., 1., 1., 1., 0., 1., 1., 1., 1.],
-             [1., 1., 1., 1., 1., 1., 1., 1., 1.],
-             [1., 1., 1., 1., 1., 1., 1., 1., 1.],
-             [1., 1., 1., 1., 1., 1., 1., 1., 1.],
-             [1., 1., 1., 1., 1., 1., 1., 1., 1.]])
-        width_x = width_y = 2
-        padded_cube = pad_cube_with_halo(self.cube, width_x, width_y)
+            self.cube, width_x, width_y, halo_with_data=False)
         self.assertIsInstance(padded_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(padded_cube.data, expected)
 
@@ -275,7 +258,7 @@ class Test_pad_cube_with_halo(IrisTest):
         width_x = 2
         width_y = 4
         padded_cube = pad_cube_with_halo(
-            self.cube, width_x, width_y, masked_halo=True)
+            self.cube, width_x, width_y, halo_with_data=False)
         self.assertIsInstance(padded_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(padded_cube.data, expected)
 
@@ -299,7 +282,7 @@ class Test_pad_cube_with_halo(IrisTest):
         width_x = 0
         width_y = 4
         padded_cube = pad_cube_with_halo(
-            self.cube, width_x, width_y, masked_halo=True)
+            self.cube, width_x, width_y, halo_with_data=False)
         self.assertIsInstance(padded_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(padded_cube.data, expected)
 
@@ -324,7 +307,7 @@ class Test_pad_cube_with_halo(IrisTest):
             [0., 0., 0., 0., 0.1, 0., 0., 0., 0.]], dtype=np.float32)
 
         padded_cube = pad_cube_with_halo(
-            self.cube, 2, 2, masked_halo=False)
+            self.cube, 2, 2, halo_with_data=True)
         self.assertArrayAlmostEqual(padded_cube.data, expected_data)
 
 
