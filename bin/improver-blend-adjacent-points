@@ -37,7 +37,8 @@ from cf_units import Unit
 from improver.blending.blend_across_adjacent_points import \
     TriangularWeightedBlendAcrossAdjacentPoints
 from improver.argparser import ArgParser
-from improver.utilities.load import load_cube
+from improver.utilities.cube_manipulation import merge_cubes
+from improver.utilities.load import load_cubelist
 from improver.utilities.save import save_netcdf
 
 
@@ -96,7 +97,9 @@ def main():
 
     width = float(args.width)
 
-    cube = load_cube(args.input_filepaths)
+    #cube = load_cube(args.input_filepaths)
+    cubelist = load_cubelist(args.input_filepaths)
+    cube = merge_cubes(cubelist, blend_coord=args.coordinate)
 
     BlendingPlugin = TriangularWeightedBlendAcrossAdjacentPoints(
         args.coordinate, args.central_point, units, width,
