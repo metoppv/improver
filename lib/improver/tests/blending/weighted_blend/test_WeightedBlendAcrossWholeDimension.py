@@ -321,6 +321,7 @@ class Test_shape_weights(Test_weighted_blend):
         msg = "Weights cube is not a compatible shape with the data cube"
 
         with self.assertRaisesRegex(ValueError, msg):
+
             plugin.shape_weights(self.cube, self.weights_threshold)
 
 
