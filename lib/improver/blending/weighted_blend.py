@@ -560,11 +560,11 @@ class WeightedBlendAcrossWholeDimension:
         cube_dims = [crd.name() for crd in cube.coords(dim_coords=True)]
         if set(weight_dims) == set(cube_dims):
             enforce_coordinate_ordering(weights, cube_dims)
-        elif len(weight_dims) > 1:
-            msg = ("Multidimensional weights cube does not contain the same "
-                   "coordinates as the diagnostic cube. Weights: {}, "
-                   "Diagnostic: {}".format(weight_dims, cube_dims))
-            raise ValueError(msg)
+        #elif len(weight_dims) > 1:
+            #msg = ("Multidimensional weights cube does not contain the same "
+                   #"coordinates as the diagnostic cube. Weights: {}, "
+                   #"Diagnostic: {}".format(weight_dims, cube_dims))
+            #raise ValueError(msg)
 
         msg = ("Weights cube is not a compatible shape with the data cube. "
                "Weights: {}, Diagnostic: {}".format(weights.shape, cube.shape))
@@ -574,11 +574,22 @@ class WeightedBlendAcrossWholeDimension:
             weights_array = weights.data.astype(np.float32)
         else:
             # 1D array of weights across the blending coordinate.
-            coord_dim_thres = cube.coord_dims(self.coord)
+            dim_map = []
+            dim_coords = [coord.name() for coord in weights.dim_coords]
+            print(weights)
+            #for i in range(weights.ndim):
+                #dim_coords.append(weights.coord(dimensions=[i]).name())
+            #if self.coord not in dim_coords:
+                #dim_coords.append(self.coord)
+            for dim_coord in dim_coords:
+                dim_map.append(cube.coord_dims(dim_coord)[0])
+            print(dim_coords)
+            print(dim_map)
+            #coord_dim_thres = cube.coord_dims(self.coord)
             try:
                 weights_array = iris.util.broadcast_to_shape(
                     np.array(weights.data, dtype=np.float32),
-                    cube.shape, coord_dim_thres)
+                    cube.shape, tuple(dim_map))
             except ValueError:
                 raise ValueError(msg)
 
@@ -601,7 +612,8 @@ class WeightedBlendAcrossWholeDimension:
         sum_of_weights = np.sum(weights, axis=blend_dim)
         msg = ('Weights do not sum to 1 over the blending coordinate. Max sum '
                'of weights: {}'.format(sum_of_weights.max()))
-        if not (np.isclose(sum_of_weights, 1)).all():
+        sum_of_non_zero_weights = sum_of_weights[sum_of_weights > 0]
+        if not (np.isclose(sum_of_non_zero_weights, 1)).all():
             raise ValueError(msg)
 
     def non_percentile_weights(self, cube, weights, custom_aggregator=False):
@@ -630,6 +642,7 @@ class WeightedBlendAcrossWholeDimension:
             weights_array (np.array):
                 An array of weights that matches the cube data shape.
         """
+        print("\ntrying to match cube and weights. Cube:\n{}\n weights:\n{}\n\n".format(cube, weights))
         if weights:
             weights_array = self.shape_weights(cube, weights)
         else:
@@ -871,50 +884,63 @@ class WeightedBlendAcrossWholeDimension:
         perc_coord = self.check_percentile_coord(cube)
 
         # Create slices over the threshold coordinate
-        try:
-            cube.coord('threshold')
-        except iris.exceptions.CoordinateNotFoundError:
-            slices_over_threshold = [cube]
-        else:
-            if self.coord == 'threshold':
-                slices_over_threshold = [cube]
-            else:
-                slices_over_threshold = cube.slices_over('threshold')
+        #try:
+            #cube.coord('threshold')
+        #except iris.exceptions.CoordinateNotFoundError:
+            #slices_over_threshold = [cube]
+            #weights_over_threshold = [weights]
+        #else:
+            #if self.coord == 'threshold':
+                #slices_over_threshold = [cube]
+                #weights_over_threshold = [weights]
+            #else:
+                #slices_over_threshold = cube.slices_over('threshold')
+                #try:
+                    #weights.coord('threshold')
+                #except iris.exceptions.CoordinateNotFoundError:
+                    #weights_over_threshold = [weights]
+                #else:
+                    #weights_over_threshold = [weights] #weights.slices_over('threshold')
+        #no_of_cube_slices = 
+        #if sum(1 for _ in weights_over_threshold) < no_of_cube_slices:
+            #weights_over_threshold = [weights for _ in range(no_of_cube_slices)]
+            #print("x")
+        #print(slices_over_threshold, weights_over_threshold)
+        #cubelist = iris.cube.CubeList([])
+        ## For each threshold slice, blend the cube across the blending coord.
+        #for cube_thres, weights_thres in zip(slices_over_threshold, weights_over_threshold):
+        #print("hello", cube_thres, weights_thres)
+        # A selection of blending modes are available:
 
-        cubelist = iris.cube.CubeList([])
-        # For each threshold slice, blend the cube across the blending coord.
-        for cube_thres in slices_over_threshold:
+        # Percentile aggregator
+        if perc_coord and self.mode == "weighted_mean":
+            cube_new = self.percentile_weighted_mean(cube, weights,
+                                                        perc_coord)
+        # Weighted mean
+        elif self.mode == "weighted_mean":
+            cube_new = self.weighted_mean(cube, weights)
 
-            # A selection of blending modes are available:
+        # Maximum probability aggregator.
+        elif self.mode == "weighted_maximum":
+            cube_new = self.weighted_maximum(cube, weights)
 
-            # Percentile aggregator
-            if perc_coord and self.mode == "weighted_mean":
-                cube_new = self.percentile_weighted_mean(cube_thres, weights,
-                                                         perc_coord)
-            # Weighted mean
-            elif self.mode == "weighted_mean":
-                cube_new = self.weighted_mean(cube_thres, weights)
-
-            # Maximum probability aggregator.
-            elif self.mode == "weighted_maximum":
-                cube_new = self.weighted_maximum(cube_thres, weights)
-
-            # Modify the cube metadata and add to the cubelist.
-            cube_new = conform_metadata(
-                cube_new, cube_thres, coord=self.coord,
-                cycletime=self.cycletime)
-            cubelist.append(cube_new)
+        # Modify the cube metadata and add to the cubelist.
+        cube_new = conform_metadata(
+            cube_new, cube, coord=self.coord,
+            cycletime=self.cycletime)
+        #cubelist.append(cube_new)
 
         # Merge the cubelist to reform a cube that looks like the input but
         # without the coordinate over which blending has occurred.
-        result = cubelist.merge_cube()
-
+        #print(cubelist)
+        #result = cubelist.merge_cube()
+        result = cube_new
         # Add a source realizations attribute if collapsing realizations.
         if self.coord == "realization":
             result.attributes['source_realizations'] = (
                 cube.coord(self.coord).points)
 
-        if isinstance(cubelist[0].data, np.ma.core.MaskedArray):
+        if isinstance(cube.data, np.ma.core.MaskedArray):
             result.data = np.ma.array(result.data)
 
         return result

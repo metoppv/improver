@@ -255,6 +255,40 @@ class SpatiallyVaryingWeightsFromMask(object):
             result.append(weight_slice.copy(data=normalised_data))
         return result.merge_cube()
 
+    @staticmethod
+    def create_template_slice(cube_to_collapse, blend_coord):
+        """
+        Create a template cube.
+        """
+        # Takes slices over x, y coord_to_collapse
+        # find blend dim coord associated with blend coord:
+        blend_dim = cube_to_collapse.coord_dims(blend_coord)[0]
+        blend_coord = cube_to_collapse.coord(dimensions=blend_dim, dim_coords=True)
+        print(blend_coord.name())
+        original_dim_coords = [coord.name() for coord in cube_to_collapse.dim_coords]
+        x_coord = cube_to_collapse.coord(axis='x').name()
+        y_coord = cube_to_collapse.coord(axis='y').name()
+        coords_to_slice_over = [blend_coord.name(), y_coord, x_coord]
+        print()
+        slices = cube_to_collapse.slices(coords_to_slice_over)
+        # Check they all have the same mask
+        first_slice = slices.next()
+        if np.ma.is_masked(first_slice.data):
+            first_mask = first_slice.data.mask
+            for cube_slice in slices:
+                if not np.all(cube_slice.data.mask == first_mask):
+                    message = (
+                        "The mask on the input cube can only vary along the "
+                        "blend_coord, differences in the mask were found "
+                        "along another dimension")
+                    raise ValueError(message)
+        # Remove old dim coords
+        for coord in original_dim_coords:
+            if coord not in coords_to_slice_over:
+                first_slice.remove_coord(coord)
+        # Return slice template
+        return first_slice
+
     def process(self, cube_to_collapse, one_dimensional_weights_cube,
                 blend_coord):
         """
@@ -284,8 +318,9 @@ class SpatiallyVaryingWeightsFromMask(object):
                 Contains the same dimensions in the same order as
                 cube_to_collapse.
         """
+        template_cube = self.create_template_slice(cube_to_collapse, blend_coord)
         weights_from_mask = self.create_initial_weights_from_mask(
-            cube_to_collapse)
+            template_cube)
         weights_from_mask = self.smooth_initial_weights(
             weights_from_mask)
         final_weights = self.multiply_weights(
@@ -294,5 +329,5 @@ class SpatiallyVaryingWeightsFromMask(object):
         final_weights = self.normalised_masked_weights(
             final_weights, blend_coord)
         # Check dimensions
-        final_weights = check_cube_coordinates(cube_to_collapse, final_weights)
+        #final_weights = check_cube_coordinates(cube_to_collapse, final_weights)
         return final_weights

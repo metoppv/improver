@@ -286,9 +286,12 @@ class WeightsUtilities:
             weights_cube = iris.util.new_axis(cube, blending_coord)
             weights_cube = next(weights_cube.slices(blending_coord))
 
+        print("inside build weights cube", weights_cube)
+        print(cube)
         weights_cube.attributes = None
+        blending_dim = cube.coord_dims(blending_coord)
         defunct_coords = [crd.name() for crd in cube.coords(dim_coords=True)
-                          if not crd.name() == blending_coord]
+                          if not cube.coord_dims(crd) == blending_dim]
         for crd in defunct_coords:
             weights_cube.remove_coord(crd)
 
