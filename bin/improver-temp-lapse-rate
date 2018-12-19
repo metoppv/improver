@@ -80,9 +80,9 @@ def main():
                         help='Minimum lapse rate allowed which must be '
                              'provided in units of K m-1. Default is the DALR')
     parser.add_argument('--return_dalr', action='store_true', default=False,
-                        help='Temporary flag to return a cube containing the '
-                             'dry adiabatic lapse rate rather than calculating'
-                             ' the true lapse rate.')
+                        help='Flag to return a cube containing the dry '
+                             'adiabatic lapse rate rather than calculating '
+                             'the true lapse rate.')
 
     args = parser.parse_args()
 

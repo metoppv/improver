@@ -76,9 +76,9 @@ optional arguments:
   --min_lapse_rate MIN_LAPSE_RATE
                         Minimum lapse rate allowed which must be provided in
                         units of K m-1. Default is the DALR
-  --return_dalr         Temporary flag to return a cube containing the dry
-                        adiabatic lapse rate rather than calculating the true
-                        lapse rate.
+  --return_dalr         Flag to return a cube containing the dry adiabatic
+                        lapse rate rather than calculating the true lapse
+                        rate.
 __HELP__
   [[ "$output" == "$expected" ]]
 }
