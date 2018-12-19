@@ -388,9 +388,9 @@ class SquareNeighbourhood(object):
         # grid points within the original domain will have data available for
         # the full neighbourhood size.  The halo is removed later.
         padded_cube = pad_cube_with_halo(cube, grid_cells_x+1, grid_cells_y+1,
-                                         halo_with_data=False)
+                                         halo_mean_data=False)
         padded_mask = pad_cube_with_halo(mask, grid_cells_x+1, grid_cells_y+1,
-                                         halo_with_data=False)
+                                         halo_mean_data=False)
 
         # Check whether cube contains complex values
         is_complex = np.any(np.iscomplex(cube.data))

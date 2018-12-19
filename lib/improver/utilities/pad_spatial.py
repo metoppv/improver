@@ -148,7 +148,7 @@ def _create_cube_with_padded_data(source_cube, data, coord_x, coord_y):
     return new_cube
 
 
-def pad_cube_with_halo(cube, width_x, width_y, halo_with_data=True):
+def pad_cube_with_halo(cube, width_x, width_y, halo_mean_data=True):
     """
     Method to pad a halo around the data in an iris cube.  If halo_with_data
     is False, the halo is filled with zeros.  Otherwise the padding calculates
@@ -165,7 +165,8 @@ def pad_cube_with_halo(cube, width_x, width_y, halo_with_data=True):
             the numpy array.
         halo_with_data (bool):
             Flag whether to populate the halo region with 0.0 or to fill
-            with mean values derived from the existing data matrix.
+            with mean values derived from the existing data matrix. By default
+            the mean data is used.
 
     Returns:
         padded_cube (iris.cube.Cube):
@@ -176,7 +177,7 @@ def pad_cube_with_halo(cube, width_x, width_y, halo_with_data=True):
 
     # Pad a halo around the original data with the extent of the halo
     # given by width_y and width_x.
-    if not halo_with_data:
+    if not halo_mean_data:
         padded_data = np.pad(
             cube.data,
             ((width_y, width_y), (width_x, width_x)),

@@ -277,8 +277,7 @@ class RecursiveFilter(object):
                                              cube.data.shape))
 
         alphas_cube = pad_cube_with_halo(
-            alphas_cube, 2*self.edge_width, 2*self.edge_width,
-            halo_with_data=True)
+            alphas_cube, 2*self.edge_width, 2*self.edge_width)
         return alphas_cube
 
     def process(self, cube, alphas_x=None, alphas_y=None, mask_cube=None):
@@ -341,8 +340,7 @@ class RecursiveFilter(object):
             mask = mask.data.squeeze()
 
             padded_cube = pad_cube_with_halo(
-                output, 2*self.edge_width, 2*self.edge_width,
-                halo_with_data=True)
+                output, 2*self.edge_width, 2*self.edge_width)
 
             new_cube = self._run_recursion(padded_cube, alphas_x, alphas_y,
                                            self.iterations)

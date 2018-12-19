@@ -28,8 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the convert_distance_into_number_of_grid_cells function from
- spatial.py."""
+"""Unit tests for spatial padding utilities"""
 
 import unittest
 import numpy as np
@@ -234,7 +233,7 @@ class Test_pad_cube_with_halo(IrisTest):
              [0., 0., 0., 0., 0., 0., 0., 0., 0.]])
         width_x = width_y = 2
         padded_cube = pad_cube_with_halo(
-            self.cube, width_x, width_y, halo_with_data=False)
+            self.cube, width_x, width_y, halo_mean_data=False)
         self.assertIsInstance(padded_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(padded_cube.data, expected)
 
@@ -258,7 +257,7 @@ class Test_pad_cube_with_halo(IrisTest):
         width_x = 2
         width_y = 4
         padded_cube = pad_cube_with_halo(
-            self.cube, width_x, width_y, halo_with_data=False)
+            self.cube, width_x, width_y, halo_mean_data=False)
         self.assertIsInstance(padded_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(padded_cube.data, expected)
 
@@ -282,13 +281,13 @@ class Test_pad_cube_with_halo(IrisTest):
         width_x = 0
         width_y = 4
         padded_cube = pad_cube_with_halo(
-            self.cube, width_x, width_y, halo_with_data=False)
+            self.cube, width_x, width_y, halo_mean_data=False)
         self.assertIsInstance(padded_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(padded_cube.data, expected)
 
-    def test_halo_smoothing(self):
-        """Test values in halo are correctly smoothed.  This impacts
-        recursive filter outputs."""
+    def test_halo_using_mean_smoothing(self):
+        """Test values in halo are correctly smoothed when halo_mean_data=True.
+        This impacts recursive filter outputs."""
         data = np.array([[0., 0., 0.1, 0., 0.],
                          [0., 0., 0.25, 0., 0.],
                          [0.1, 0.25, 0.5, 0.25, 0.1],
@@ -306,8 +305,7 @@ class Test_pad_cube_with_halo(IrisTest):
             [0., 0., 0., 0., 0.1, 0., 0., 0., 0.],
             [0., 0., 0., 0., 0.1, 0., 0., 0., 0.]], dtype=np.float32)
 
-        padded_cube = pad_cube_with_halo(
-            self.cube, 2, 2, halo_with_data=True)
+        padded_cube = pad_cube_with_halo(self.cube, 2, 2)
         self.assertArrayAlmostEqual(padded_cube.data, expected_data)
 
 

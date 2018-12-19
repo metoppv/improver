@@ -264,8 +264,7 @@ class Test__run_recursion(Test_RecursiveFilter):
         cube = iris.util.squeeze(self.cube)
         alphas_x = RecursiveFilter()._set_alphas(cube, self.alpha_x, None)
         alphas_y = RecursiveFilter()._set_alphas(cube, self.alpha_y, None)
-        padded_cube = pad_cube_with_halo(
-            cube, 2*edge_width, 2*edge_width, halo_with_data=True)
+        padded_cube = pad_cube_with_halo(cube, 2*edge_width, 2*edge_width)
         result = RecursiveFilter()._run_recursion(
             padded_cube, alphas_x, alphas_y, self.iterations)
         self.assertIsInstance(result, Cube)
@@ -276,8 +275,7 @@ class Test__run_recursion(Test_RecursiveFilter):
         cube = iris.util.squeeze(self.cube)
         alphas_x = RecursiveFilter()._set_alphas(cube, self.alpha_x, None)
         alphas_y = RecursiveFilter()._set_alphas(cube, self.alpha_y, None)
-        padded_cube = pad_cube_with_halo(
-            cube, 2*edge_width, 2*edge_width, halo_with_data=True)
+        padded_cube = pad_cube_with_halo(cube, 2*edge_width, 2*edge_width)
         result = RecursiveFilter()._run_recursion(
             padded_cube, alphas_x, alphas_y, self.iterations)
         expected_result = 0.13382206
@@ -290,7 +288,7 @@ class Test__run_recursion(Test_RecursiveFilter):
         alpha_y = 0.5*self.alpha_x
         alphas_x = RecursiveFilter()._set_alphas(cube, self.alpha_x, None)
         alphas_y = RecursiveFilter()._set_alphas(cube, alpha_y, None)
-        padded_cube = pad_cube_with_halo(cube, 2, 2, halo_with_data=True)
+        padded_cube = pad_cube_with_halo(cube, 2, 2)
         result = RecursiveFilter()._run_recursion(
             padded_cube, alphas_x, alphas_y, 1)
         # slice back down to the source grid - easier to visualise!
