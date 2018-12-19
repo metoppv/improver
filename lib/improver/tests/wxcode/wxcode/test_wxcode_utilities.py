@@ -54,8 +54,7 @@ from improver.wxcode.wxcode_utilities import (WX_DICT,
                                               add_wxcode_metadata,
                                               expand_nested_lists,
                                               update_daynight)
-from improver.tests.ensemble_calibration.ensemble_calibration. \
-    helper_functions import set_up_cube
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
 def datetime_to_numdateval(year=2018, month=9, day=12, hour=5, minutes=43):
@@ -246,9 +245,8 @@ class Test_add_wxcode_metadata(IrisTest):
         data = np.array(
             [0, 1, 5, 11, 20, 5, 9, 10, 4, 2, 0, 1, 29, 30, 1, 5, 6, 6],
             dtype=np.float32
-        ).reshape(2, 1, 3, 3)
-        self.cube = set_up_cube(data, 'air_temperature', 'K',
-                                realizations=np.array([0, 1]))
+        ).reshape(2, 3, 3)
+        self.cube = set_up_variable_cube(data, realizations=[0, 1])
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
         self.data_directory = mkdtemp()

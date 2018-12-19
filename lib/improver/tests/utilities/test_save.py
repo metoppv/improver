@@ -44,18 +44,18 @@ from netCDF4 import Dataset
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.utilities.save import append_metadata_cube
+
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.save import order_cell_methods
-from improver.tests.ensemble_calibration.ensemble_calibration. \
-    helper_functions import set_up_cube
 
 
 def set_up_test_cube():
     """ Set up a temperature cube with additional global attributes. """
     data = (
-        np.linspace(-45.0, 45.0, 9, dtype=np.float32).reshape(1, 1, 3, 3) +
+        np.linspace(-45.0, 45.0, 9, dtype=np.float32).reshape(1, 3, 3) +
         273.15
     )
-    cube = set_up_cube(data, 'air_temperature', 'K', realizations=([0]))
+    cube = set_up_variable_cube(data, realizations=np.array([0]))
     cube.attributes['source_realizations'] = np.arange(12)
     # Desired attributes that will be global in netCDF file
     cube.attributes['um_version'] = '10.4'

@@ -32,7 +32,7 @@
 
 import iris
 
-from improver.utilities.cube_checker import check_cube_not_float64
+from improver.utilities.cube_checker import check_cube_datatypes
 
 
 def append_metadata_cube(cubelist, global_keys):
@@ -116,7 +116,7 @@ def save_netcdf(cubelist, filename):
         cubelist = [cubelist]
 
     for cube in cubelist:
-        check_cube_not_float64(cube)
+        check_cube_datatypes(cube)
         order_cell_methods(cube)
 
     global_keys = ['title', 'um_version', 'grid_id', 'source', 'Conventions',

@@ -35,47 +35,92 @@ from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 
 
-def check_cube_not_float64(cube, fix=False):
-    """Check a cube does not contain any float64 data, excepting time
-    coordinates. The cube can be modified in place, if the fix keyword is
+def check_cube_datatypes(cube, fix=False):
+    """Check the data within a cube is float64.
+    Coordinates are also checked to ensure that they have the desired datatype.
+    The cube can be modified in place, if the fix keyword is
     specified to be True.
 
     Args:
         cube (iris.cube.Cube):
-            The input cube that will be checked for float64 inclusion.
+            The input cube that will be checked for whether it is float64.
 
     Keyword Args:
         fix (bool):
-            If fix is True, then the cube is amended to not include float64
-            data, otherwise, an error will be raised if float64 data is found.
+            If fix is True, then the cube is amended to not include erroneous
+            datatypes, otherwise, an error will be raised.
 
     Raises:
-        TypeError : Raised if float64 values are found in the cube.
+        TypeError : Raised if the cube is not of the datatype specified, and
+            'fix' is not set to True.
 
     """
     if cube.dtype == np.float64:
         if fix:
             cube.data = cube.data.astype(np.float32)
         else:
-            raise TypeError("64 bit cube not allowed: {!r}".format(cube))
+            msg = ("The {} cube is expected to be of float32 datatype. "
+                   "The cube provided was of float64 datatype.".format(
+                       cube.name()))
+            raise TypeError(msg)
     for coord in cube.coords():
         if coord.name() in ["time", "forecast_reference_time"]:
-            continue
-        if coord.points.dtype == np.float64:
-            if fix:
-                coord.points = coord.points.astype(np.float32)
-            else:
-                raise TypeError(
-                    "64 bit coord points not allowed: {} in {!r}".format(
-                        coord, cube))
-        if (hasattr(coord, "bounds") and coord.bounds is not None and
-                coord.bounds.dtype == np.float64):
-            if fix:
-                coord.bounds = coord.bounds.astype(np.float32)
-            else:
-                raise TypeError(
-                    "64 bit coord bounds not allowed: {} in {!r}".format(
-                        coord, cube))
+            check_coord_datatypes(coord, np.int64, fix=True, rounding=True)
+        elif coord.name() in ["forecast_period", "realization"]:
+            check_coord_datatypes(coord, np.int32, fix=True, rounding=False)
+        else:
+            check_coord_datatypes(coord, np.float32, fix=True, rounding=False)
+
+
+def check_coord_datatypes(coord, datatype, fix=False, rounding=False):
+    """Check that the coordinate is of the datatype specified. The coordinate
+    will be modified in place, if the fix keyword is set to True.
+
+    Args:
+        coord (iris.coord.DimCoord, iris.coord.AuxCoord):
+            The coordinate that will be checked for its datatype.
+        datatype (type):
+            The datatype that is expected for the coordinate.
+            For example, np.int32, np.float32, np.float64, etc.
+
+    Keyword Args:
+       fix (bool):
+           If fix is True, then the cube is amended to not include datatype
+           specified, otherwise, an error will be raised.
+       rounding (bool):
+           If fix is True, then the rounding keyword can also be enabled,
+           that will round the coordinate points and bounds prior to changing
+           the datatype.
+
+    Raises:
+        TypeError: The coordinate points are not of the expected datatype.
+        TypeError: The coordinate bounds are not of the expected datatype.
+    """
+    if coord.points.dtype != datatype:
+        if fix:
+            if rounding:
+                coord.points = np.around(coord.points)
+            coord.points = coord.points.astype(datatype)
+        else:
+            msg = ("The {} coordinate points {} are expected "
+                   "to be of {} datatype. "
+                   "The coordinate points provided were "
+                   "of {} datatype.").format(
+                       coord.name(), coord.points, datatype, coord.dtype)
+            raise TypeError(msg)
+    if (hasattr(coord, "bounds") and coord.bounds is not None and
+            coord.bounds.dtype != datatype):
+        if fix:
+            if rounding:
+                coord.bounds = np.around(coord.bounds)
+            coord.bounds = coord.bounds.astype(datatype)
+        else:
+            msg = ("The {} coordinate bounds {} are expected "
+                   "to be of {} datatype. "
+                   "The coordinate bounds provided were "
+                   "of {} datatype.").format(
+                       coord.name(), coord.bounds, datatype, coord.dtype)
+            raise TypeError(msg)
 
 
 def check_for_x_and_y_axes(cube, require_dim_coords=False):

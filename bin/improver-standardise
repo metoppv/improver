@@ -30,7 +30,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to standardise a NetCDF file by one or more of regridding, updating
-meta-data and demoting float64 data to float32"""
+meta-data and correcting datatypes."""
 
 import iris
 import json
@@ -39,7 +39,7 @@ import warnings
 from improver.argparser import ArgParser
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
-from improver.utilities.cube_checker import check_cube_not_float64
+from improver.utilities.cube_checker import check_cube_datatypes
 from improver.utilities.cube_metadata import amend_metadata
 from improver.utilities.spatial import RegridLandSea
 
@@ -48,30 +48,29 @@ def main():
     """
     Standardise a source cube. Available options are regridding (bilinear or
     nearest-neighbour, optionally with land-mask awareness), updating meta-data
-    and converting float64 data to float32. A check for float64 data compliance
-    can be made by only specify a source NetCDF file with no other arguments.
+    and converting datatypes.
     """
     parser = ArgParser(
         description='Standardise a source data cube. Three main options are '
-                    'available; fixing float64 data, regridding and updating '
+                    'available; fixing datatypes, regridding and updating '
                     'metadata. If regridding then additional options are '
                     'available to use bilinear or nearest-neighbour '
                     '(optionally with land-mask awareness) modes. If only a '
                     'source file is specified with no other arguments, then '
-                    'an exception will be raised if float64 data are found on '
-                    'the source.')
+                    'an exception will be raised if unexpected datatypes '
+                    'are found on the source.')
 
     parser.add_argument('source_data_filepath', metavar='SOURCE_DATA',
                         help='A cube of data that is to be standardised and '
-                             'optionally fixed for float64 data, regridded '
-                             'and meta data changed')
+                             'optionally fixed for erroneous datatypes, '
+                             'regridded and meta data changed')
 
     parser.add_argument("--output_filepath", metavar="OUTPUT_FILE",
                         default=None,
                         help="The output path for the processed NetCDF. "
                              "If only a source file is specified and no "
-                             "output file, then the source will be checked"
-                             "for float64 data.")
+                             "output file, then the source will be checked "
+                             "for erroneous datatypes.")
 
     regrid_group = parser.add_argument_group("Regridding options")
     regrid_group.add_argument(
@@ -122,10 +121,11 @@ def main():
         help=("Radius of vicinity to search for a coastline, in metres. "
               "Default value; 25000 m"))
 
-    parser.add_argument("--fix_float64", action='store_true', default=False,
-                        help="Check and fix cube for float64 data. Without "
+    parser.add_argument("--fix_datatypes", action='store_true', default=False,
+                        help="Check and fix cube datatypes. Without "
                              "this option an exception will be raised if "
-                             "float64 data is found but no fix applied.")
+                             "data with an unexpected type is found "
+                             "but no fix applied.")
 
     parser.add_argument("--json_file", metavar="JSON_FILE", default=None,
                         help='Filename for the json file containing required '
@@ -134,7 +134,7 @@ def main():
 
     args = parser.parse_args()
 
-    if args.target_grid_filepath or args.json_file or args.fix_float64:
+    if args.target_grid_filepath or args.json_file or args.fix_datatypes:
         if not args.output_filepath:
             msg = ("An argument has been specified that requires an output "
                    "filepath but none has been provided")
@@ -154,14 +154,14 @@ def main():
     # source file data path is a mandatory argument
     output_data = load_cube(args.source_data_filepath)
 
-    if args.fix_float64:
-        check_cube_not_float64(output_data, fix=True)
+    if args.fix_datatypes:
+        check_cube_datatypes(output_data, fix=True)
     else:
-        check_cube_not_float64(output_data, fix=False)
+        check_cube_datatypes(output_data, fix=False)
 
     # Re-grid with options:
     # if a target grid file has been specified, then regrid optionally
-    # applying float64 data check, metadata change, Iris nearest and
+    # applying datatype check, metadata change, Iris nearest and
     # extrapolation mode as required.
 
     if args.target_grid_filepath:
@@ -209,9 +209,9 @@ def main():
             metadata_dict = json.load(input_file)
         output_data = amend_metadata(output_data, **metadata_dict)
 
-    # Check and fix for float64 data only option:
-    if args.fix_float64:
-        check_cube_not_float64(output_data, fix=True)
+    # Check and fix for data not of the expected datatype
+    if args.fix_datatypes:
+        check_cube_datatypes(output_data, fix=True)
 
     if args.output_filepath:
         save_netcdf(output_data, args.output_filepath)

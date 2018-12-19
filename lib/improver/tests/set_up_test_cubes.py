@@ -44,7 +44,7 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
 from improver.utilities.cube_metadata import MOSG_GRID_DEFINITION
-from improver.utilities.cube_checker import check_cube_not_float64
+from improver.utilities.cube_checker import check_cube_datatypes
 
 TIME_UNIT = "seconds since 1970-01-01 00:00:00"
 CALENDAR = "gregorian"
@@ -115,7 +115,8 @@ def construct_scalar_time_coords(time, time_bounds, frt):
 
     if time_point_seconds < frt_point_seconds:
         raise ValueError('Cannot set up cube with negative forecast period')
-    fp_point_seconds = time_point_seconds - frt_point_seconds
+    fp_point_seconds = (
+        (time_point_seconds - frt_point_seconds).astype(np.int32))
 
     # parse bounds if required
     if time_bounds is not None:
@@ -142,7 +143,6 @@ def construct_scalar_time_coords(time, time_bounds, frt):
         frt_point_seconds, "forecast_reference_time", units=TIME_UNIT)
     fp_coord = DimCoord(
         fp_point_seconds, "forecast_period", units="seconds", bounds=fp_bounds)
-
     coord_dims = [(time_coord, None), (frt_coord, None), (fp_coord, None)]
     return coord_dims
 
@@ -206,7 +206,8 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
                     'Cannot generate {} realizations from data of shape '
                     '{}'.format(len(realizations), data.shape))
         else:
-            realizations = np.arange(data.shape[0]).astype(np.int32)
+            realizations = np.arange(data.shape[0])
+        realizations = np.array(realizations).astype(np.int32)
         realization_coord = DimCoord(realizations, "realization", units="1")
         dim_coords = [(realization_coord, 0), (y_coord, 1), (x_coord, 2)]
     elif ndims == 2:
@@ -235,7 +236,7 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
                           attributes=cube_attrs)
 
     # don't allow unit tests to set up invalid cubes
-    check_cube_not_float64(cube)
+    check_cube_datatypes(cube)
 
     return cube
 
@@ -287,12 +288,15 @@ def set_up_percentile_cube(data, percentiles, name='air_temperature',
             Office standard grid attributes.  Should be 'uk_det', 'uk_ens',
             'gl_det' or 'gl_ens'.
     """
+    temporary_percentiles = np.arange(len(percentiles))
     cube = set_up_variable_cube(
         data, name=name, units=units, spatial_grid=spatial_grid,
         time=time, frt=frt, realizations=percentiles, attributes=attributes,
         include_scalar_coords=include_scalar_coords,
         standard_grid_metadata=standard_grid_metadata)
     cube.coord("realization").rename(percentile_dim_name)
+    cube.coord(percentile_dim_name).points = (
+        np.array(percentiles, dtype=np.float32))
     cube.coord(percentile_dim_name).units = Unit("%")
     return cube
 
@@ -359,13 +363,16 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
         name = variable_name
     else:
         name = 'probability_of_{}'.format(variable_name)
+
+    temporary_thresholds = np.arange(len(thresholds))
     cube = set_up_variable_cube(
         data, name=name, units='1', spatial_grid=spatial_grid,
         time=time, frt=frt, time_bounds=time_bounds,
-        realizations=thresholds, attributes=attributes,
+        realizations=temporary_thresholds, attributes=attributes,
         include_scalar_coords=include_scalar_coords,
         standard_grid_metadata=standard_grid_metadata)
     cube.coord("realization").rename("threshold")
+    cube.coord("threshold").points = np.array(thresholds, dtype=np.float32)
     cube.coord("threshold").units = Unit(threshold_units)
     return cube
 
