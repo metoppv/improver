@@ -40,6 +40,7 @@ from iris.tests import IrisTest
 from improver.spotdata_new.apply_lapse_rate import SpotLapseRateAdjust
 from improver.spotdata_new.build_spotdata_cube import build_spotdata_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+from improver.utilities.temporal import iris_time_to_datetime
 from improver.tests.set_up_test_cubes import (set_up_variable_cube,
                                               construct_xy_coords,
                                               construct_scalar_time_coords)
@@ -121,9 +122,10 @@ class Test_SpotLapseRateAdjust(IrisTest):
             neighbour_methods=neighbour_methods)
         self.neighbour_cube.attributes = attributes
 
-        time = dt(2017, 11, 10, 4, 0)
+        time, = iris_time_to_datetime(self.lapse_rate_cube.coord("time"))
+        frt, = iris_time_to_datetime(self.lapse_rate_cube.coord(
+                "forecast_reference_time"))
         time_bounds = None
-        frt = dt(2017, 11, 10, 0, 0)
 
         time_coords = construct_scalar_time_coords(time, time_bounds, frt)
         time_coords = [item[0] for item in time_coords]

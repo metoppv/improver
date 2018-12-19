@@ -36,7 +36,6 @@ import numpy as np
 import iris
 from improver.spotdata_new.spot_extraction import (SpotExtraction,
                                                    check_grid_match)
-from improver.utilities.cube_manipulation import compare_attributes
 
 
 class SpotLapseRateAdjust:

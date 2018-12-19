@@ -33,16 +33,13 @@
 import unittest
 import numpy as np
 
-import iris
 from iris.tests import IrisTest
 
 from improver.spotdata_new.spot_extraction import check_grid_match
-from improver.tests.spotdata_new.spotdata_new.test_SpotLapseRateAdjust import (
-    Test_SpotLapseRateAdjust)
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
-class Test_check_grid_match(Test_SpotLapseRateAdjust):
+class Test_check_grid_match(IrisTest):
 
     """Test the check_grid_match function."""
 

@@ -233,8 +233,6 @@ def check_grid_match(grid_metadata_identifier, cubes):
     comparison_result = compare_attributes(
         cubes, attribute_filter=grid_metadata_identifier)
 
-    print(comparison_result)
-
     # Check that all dictionaries returned are empty, indicating matches.
     if not all(not item for item in comparison_result):
         raise ValueError('Cubes do not share the metadata identified '
