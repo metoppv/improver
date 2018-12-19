@@ -46,10 +46,11 @@ from improver.utilities.cube_metadata import (
     amend_metadata,
     delete_attributes,
     resolve_metadata_diff,
-    update_stage_v110_metadata,
+    update_attribute,
     update_cell_methods,
     update_coord,
-    update_attribute)
+    update_stage_v110_metadata,
+    update_units)
 from improver.utilities.warnings_handler import ManageWarnings
 from improver.utilities.temporal import forecast_period_coord
 
@@ -129,9 +130,115 @@ class Test_update_stage_v110_metadata(IrisTest):
         self.assertTrue(output)
 
 
+class Test_update_units(IrisTest):
+    """Test the update_units function"""
+
+    def setUp(self):
+        """Set up variables for use in testing."""
+        data = 275.*np.ones((3, 3), dtype=np.float32)
+        self.cube = set_up_variable_cube(data)
+
+    def test_cube_add(self):
+        """Modify the units on the cube by adding units where they do not
+        already exist."""
+        changes = {
+            "units": {
+                "action": "set",
+                "units": "K"
+                }
+            }
+        cube = self.cube.copy()
+        cube.units = None
+        expected = self.cube.copy()
+        result = update_units(cube, changes)
+        self.assertEqual(result, expected)
+
+    def test_cube_overwrite(self):
+        """Modify the units on the cube by overwriting any existing units."""
+        changes = {
+            "units": {
+                "action": "set",
+                "units": "Celsius"
+                }
+            }
+        cube = self.cube.copy()
+        expected = self.cube.copy()
+        expected.units = Unit("Celsius")
+        result = update_units(cube, changes)
+        self.assertEqual(result, expected)
+
+    def test_cube_convert(self):
+        """Modify the units on the cube by converting any existing units."""
+        changes = {
+            "units": {
+                "action": "convert",
+                "units": "Celsius"
+                }
+            }
+        cube = self.cube.copy()
+        expected = self.cube.copy()
+        expected.convert_units(Unit("Celsius"))
+        result = update_units(cube, changes)
+        self.assertEqual(result, expected)
+
+    def test_coord_add(self):
+        """Modify the units on the coordinate by adding units where they do not
+        already exist."""
+        changes = {
+            "units": {
+                "action": "set",
+                "units": "seconds since 1970-01-01 00:00:00"
+                }
+            }
+        coord = self.cube.coord("time").copy()
+        coord.units = None
+        expected = self.cube.coord("time").copy()
+        result = update_units(coord, changes)
+        self.assertEqual(result, expected)
+
+    def test_coord_convert(self):
+        """Modify the units on the coordinate by overwriting any
+        existing units."""
+        changes = {
+            "units": {
+                "action": "convert",
+                "units": "hours since 1970-01-01 00:00:00"
+                }
+            }
+        coord = self.cube.coord("time").copy()
+        expected = self.cube.coord("time").copy()
+        expected.convert_units(Unit("hours since 1970-01-01 00:00:00"))
+        result = update_units(coord, changes)
+        self.assertEqual(result, expected)
+
+    def test_unknown_action(self):
+        """Check an error is raised if the specified action is not known."""
+        changes = {
+            "units": {
+                "action": "unknown",
+                "units": "K"
+                }
+            }
+        coord = self.cube.coord("time").copy()
+        msg = "The specified action is not known"
+        with self.assertRaisesRegex(KeyError, msg):
+            update_units(coord, changes)
+
+
 class Test_add_coord(IrisTest):
 
     """Test the add_coord method."""
+
+    def setUp(self):
+        """Set up information for testing."""
+        self.changes = {
+            'points': [2.0],
+            'bounds': [0.1, 2.0],
+            'units': {
+                'action': 'set',
+                'units': 'mm'
+                }
+             }
 
     def test_basic(self):
         """Test that add_coord returns a Cube and adds coord correctly. """
@@ -139,8 +246,7 @@ class Test_add_coord(IrisTest):
         cube = create_cube_with_threshold()
         cube.remove_coord(coord_name)
         cube = iris.util.squeeze(cube)
-        changes = {'points': [2.0], 'bounds': [0.1, 2.0], 'units': 'mm'}
-        result = add_coord(cube, coord_name, changes)
+        result = add_coord(cube, coord_name, self.changes)
         self.assertIsInstance(result, Cube)
         self.assertArrayEqual(result.coord(coord_name).points,
                               np.array([2.0]))
@@ -155,7 +261,13 @@ class Test_add_coord(IrisTest):
         cube = create_cube_with_threshold()
         cube.remove_coord(coord_name)
         cube = iris.util.squeeze(cube)
-        changes = {'bounds': [0.1, 2.0], 'units': 'mm'}
+        changes = {
+            'bounds': [0.1, 2.0],
+            'units': {
+                'action': 'set',
+                'units': 'mm'
+                }
+            }
         msg = 'Trying to add new coord but no points defined'
         with self.assertRaisesRegex(ValueError, msg):
             add_coord(cube, coord_name, changes)
@@ -166,7 +278,9 @@ class Test_add_coord(IrisTest):
         cube = create_cube_with_threshold()
         cube.remove_coord(coord_name)
         cube = iris.util.squeeze(cube)
-        changes = {'points': [0.1, 2.0]}
+        changes = {
+            'points': [0.1, 2.0]
+            }
         msg = 'Can not add a coordinate of length > 1'
         with self.assertRaisesRegex(ValueError, msg):
             add_coord(cube, coord_name, changes)
@@ -178,9 +292,8 @@ class Test_add_coord(IrisTest):
         cube = create_cube_with_threshold()
         cube.remove_coord(coord_name)
         cube = iris.util.squeeze(cube)
-        changes = {'points': [2.0], 'bounds': [0.1, 2.0], 'units': 'mm'}
         warning_msg = "Adding new coordinate"
-        add_coord(cube, coord_name, changes, warnings_on=True)
+        add_coord(cube, coord_name, self.changes, warnings_on=True)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         self.assertTrue(any(warning_msg in str(item)
@@ -194,7 +307,14 @@ class Test_update_coord(IrisTest):
     def test_basic(self):
         """Test update_coord returns a Cube and updates coord correctly. """
         cube = create_cube_with_threshold()
-        changes = {'points': [2.0], 'bounds': [0.1, 2.0], 'units': 'mm'}
+        changes = {
+            'points': [2.0],
+            'bounds': [0.1, 2.0],
+            'units': {
+                'action': 'set',
+                'units': 'mm'
+                }
+             }
         result = update_coord(cube, 'threshold', changes)
         self.assertIsInstance(result, Cube)
         self.assertArrayEqual(result.coord('threshold').points,
@@ -274,7 +394,14 @@ class Test_update_coord(IrisTest):
         """Test warning message is raised correctly when updating coord. """
         coord_name = 'threshold'
         cube = create_cube_with_threshold()
-        changes = {'points': [2.0], 'bounds': [0.1, 2.0], 'units': 'mm'}
+        changes = {
+            'points': [2.0],
+            'bounds': [0.1, 2.0],
+            'units': {
+                'action': 'set',
+                'units': 'mm'
+                }
+            }
         warning_msg = "Updated coordinate"
         update_coord(cube, coord_name, changes, warnings_on=True)
         self.assertTrue(any(item.category == UserWarning
@@ -575,9 +702,15 @@ class Test_amend_metadata(IrisTest):
 
     def test_convert_units(self):
         """Test amend_metadata updates attributes OK. """
+        changes = {
+            "units": {
+                "action": "convert",
+                "units": "Celsius"
+                }
+            }
         cube = set_up_variable_cube(
             np.ones((3, 3), dtype=np.float32), units='K')
-        result = amend_metadata(cube, units="Celsius")
+        result = amend_metadata(cube, units=changes)
         self.assertEqual(result.units, "Celsius")
 
     @ManageWarnings(record=True)
