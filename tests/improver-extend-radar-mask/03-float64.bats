@@ -40,7 +40,7 @@
       "$IMPROVER_ACC_TEST_DIR/extend-radar-mask/float64/201811190205_u1096_ng_radar_precip_ratecomposite_2km.nc" \
       "$IMPROVER_ACC_TEST_DIR/extend-radar-mask/float64/201811190205_u1096_ng_radar_coverage_composite_2km.nc" \
       "$TEST_DIR/output.nc" \
-      --fix_float64
+      --fix_datatypes
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

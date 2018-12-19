@@ -34,7 +34,7 @@
 @test "standardise check output filepath specified" {
   improver_check_skip_acceptance
   run improver standardise \
-       "$IMPROVER_ACC_TEST_DIR/standardise/float64/float64_data.nc" --fix_float64
+       "$IMPROVER_ACC_TEST_DIR/standardise/float64/float64_data.nc" --fix_datatypes
   [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
 ValueError: An argument has been specified that requires an output filepath but none has been provided

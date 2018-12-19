@@ -39,7 +39,7 @@
   run improver standardise \
       "$IMPROVER_ACC_TEST_DIR/standardise/float64/float64_data.nc" \
       --output_filepath "$TEST_DIR/output.nc" \
-      --fix_float64
+      --fix_datatypes
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

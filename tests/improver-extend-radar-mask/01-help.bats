@@ -35,7 +35,7 @@
   read -d '' expected <<'__TEXT__' || true
 usage: improver-extend-radar-mask [-h] [--profile]
                                   [--profile_file PROFILE_FILE]
-                                  [--fix_float64]
+                                  [--fix_datatypes]
                                   RADAR_DATA_FILEPATH COVERAGE_FILEPATH
                                   OUTPUT_FILEPATH
 
@@ -53,9 +53,9 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
-  --fix_float64         Check and fix cube for float64 data. Without this
-                        option an exception will be raised if float64 data is
-                        found but no fix applied.
+  --fix_datatypes       Check and fix cube datatypes. Without this option an
+                        exception will be raised if data with an unexpected
+                        type is found but no fix applied.
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

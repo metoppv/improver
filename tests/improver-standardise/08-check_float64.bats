@@ -38,7 +38,7 @@
        "$IMPROVER_ACC_TEST_DIR/standardise/float64/float64_data.nc"
   [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-TypeError: 64 bit cube not allowed
+TypeError:
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

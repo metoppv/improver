@@ -40,20 +40,20 @@ usage: improver-standardise [-h] [--profile] [--profile_file PROFILE_FILE]
                             [--extrapolation_mode EXTRAPOLATION_MODE]
                             [--input_landmask_filepath INPUT_LANDMASK_FILE]
                             [--landmask_vicinity LANDMASK_VICINITY]
-                            [--fix_float64] [--json_file JSON_FILE]
+                            [--fix_datatypes] [--json_file JSON_FILE]
                             SOURCE_DATA
 
 Standardise a source data cube. Three main options are available; fixing
-float64 data, regridding and updating metadata. If regridding then additional
+datatypes, regridding and updating metadata. If regridding then additional
 options are available to use bilinear or nearest-neighbour (optionally with
 land-mask awareness) modes. If only a source file is specified with no other
-arguments, then an exception will be raised if float64 data are found on the
-source.
+arguments, then an exception will be raised if unexpected datatypes are found
+on the source.
 
 positional arguments:
   SOURCE_DATA           A cube of data that is to be standardised and
-                        optionally fixed for float64 data, regridded and meta
-                        data changed
+                        optionally fixed for erroneous datatypes, regridded
+                        and meta data changed
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -63,10 +63,10 @@ optional arguments:
   --output_filepath OUTPUT_FILE
                         The output path for the processed NetCDF. If only a
                         source file is specified and no output file, then the
-                        source will be checkedfor float64 data.
-  --fix_float64         Check and fix cube for float64 data. Without this
-                        option an exception will be raised if float64 data is
-                        found but no fix applied.
+                        source will be checked for erroneous datatypes.
+  --fix_datatypes       Check and fix cube datatypes. Without this option an
+                        exception will be raised if data with an unexpected
+                        type is found but no fix applied.
   --json_file JSON_FILE
                         Filename for the json file containing required changes
                         that will be applied to the metadata. Defaults to

@@ -40,7 +40,7 @@ usage: improver-standardise [-h] [--profile] [--profile_file PROFILE_FILE]
                             [--extrapolation_mode EXTRAPOLATION_MODE]
                             [--input_landmask_filepath INPUT_LANDMASK_FILE]
                             [--landmask_vicinity LANDMASK_VICINITY]
-                            [--fix_float64] [--json_file JSON_FILE]
+                            [--fix_datatypes] [--json_file JSON_FILE]
                             SOURCE_DATA
 __TEXT__
   [[ "$output" =~ "$expected" ]]
