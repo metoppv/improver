@@ -362,6 +362,15 @@ class Test_update_attribute(IrisTest):
                             for item in warning_list))
         self.assertFalse('relative_to_threshold' in result.attributes)
 
+    def test_attributes_deleted_when_not_present(self):
+        """Test update_attribute copes when an attribute is requested to be
+        deleted, but this attribute is not available on the input cube."""
+        cube = create_cube_with_threshold()
+        attribute_name = 'invalid_name'
+        changes = 'delete'
+        result = update_attribute(cube, attribute_name, changes)
+        self.assertFalse('invalid_name' in result.attributes)
+
 
 class Test_update_cell_methods(IrisTest):
 
@@ -782,7 +791,7 @@ class Test_add_history_attribute(IrisTest):
     def test_add_history(self):
         """Test that a history attribute has been added."""
         cube = set_up_variable_cube(np.ones((3, 3), dtype=np.float32))
-        add_history_attribute(cube, ["add", "Nowcast"])
+        add_history_attribute(cube, "Nowcast")
         self.assertTrue("history" in cube.attributes)
         self.assertTrue("Nowcast" in cube.attributes["history"])
 
@@ -790,9 +799,27 @@ class Test_add_history_attribute(IrisTest):
         """Test that the history attribute is overwritten, if it
         already exists."""
         cube = set_up_variable_cube(np.ones((3, 3), dtype=np.float32))
-        expected_history = "2018-09-13T11:28:29"
-        cube.attributes["history"] = expected_history
-        add_history_attribute(cube, ["Nowcast", "add"])
+        old_history = "2018-09-13T11:28:29: StaGE"
+        cube.attributes["history"] = old_history
+        add_history_attribute(cube, "Nowcast")
+        self.assertTrue("history" in cube.attributes)
+        self.assertTrue("Nowcast" in cube.attributes["history"])
+        self.assertFalse(old_history in cube.attributes["history"])
+
+    def test_history_append(self):
+        """Test that the history attribute can be updated."""
+        cube = set_up_variable_cube(np.ones((3, 3), dtype=np.float32))
+        old_history = "2018-09-13T11:28:29: StaGE"
+        cube.attributes["history"] = old_history
+        add_history_attribute(cube, "Nowcast", append=True)
+        self.assertTrue("history" in cube.attributes)
+        self.assertTrue("Nowcast" in cube.attributes["history"])
+        self.assertTrue(old_history in cube.attributes["history"])
+
+    def test_history_append_no_existing(self):
+        """Test the "append" option doesn't crash when no history exists."""
+        cube = set_up_variable_cube(np.ones((3, 3), dtype=np.float32))
+        add_history_attribute(cube, "Nowcast", append=True)
         self.assertTrue("history" in cube.attributes)
         self.assertTrue("Nowcast" in cube.attributes["history"])
 

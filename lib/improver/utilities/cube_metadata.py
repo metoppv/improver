@@ -279,14 +279,16 @@ def update_attribute(cube, attribute_name, changes, warnings_on=False):
     """
     result = cube
     if changes == 'delete':
-        result.attributes.pop(attribute_name)
+        result.attributes.pop(attribute_name, None)
         if warnings_on:
             msg = ("Deleted attribute "
                    "{}".format(attribute_name))
             warnings.warn(msg)
     elif "add" in changes:
         if attribute_name in ["history"]:
-            add_history_attribute(result, changes)
+            new_history = changes
+            new_history.remove("add")
+            add_history_attribute(result, new_history[0])
         else:
             msg = ("Only the history attribute can be added. "
                    "The attribute specified was {}".format(attribute_name))
@@ -578,20 +580,27 @@ def delete_attributes(cube, patterns):
         cube.attributes.pop(key)
 
 
-def add_history_attribute(cube, values):
+def add_history_attribute(cube, value, append=False):
     """Add a history attribute to a cube. This uses the current datetime to
     generate the timestamp for the history attribute. The new history attribute
-    will overwrite any existing history attribute. The history attribute
-    will be the format "Timestamp: Description".
+    will overwrite any existing history attribute unless the "append" option is
+    set to True. The history attribute is of the form "Timestamp: Description".
 
     Args:
         cube (iris.cube.Cube):
             The cube to which the history attribute will be added.
-        values (list):
-            List usually of the form ["add", "Description"] with "description"
-            extra details that are to be included within the history attribute.
+        value (str):
+            String defining details to be included in the history attribute.
+
+    Kwargs:
+        append (bool):
+            If True, add to the existing history rather than replacing the
+            existing attribute.  Default is False.
     """
-    description, = [value for value in values if value != "add"]
     tzinfo = tz.tzoffset('Z', 0)
     timestamp = datetime.strftime(datetime.now(tzinfo), "%Y-%m-%dT%H:%M:%S%Z")
-    cube.attributes["history"] = "{}: {}".format(timestamp, description)
+    new_history = "{}: {}".format(timestamp, value)
+    if append and "history" in cube.attributes.keys():
+        cube.attributes["history"] += '; {}'.format(new_history)
+    else:
+        cube.attributes["history"] = new_history

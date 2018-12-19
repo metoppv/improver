@@ -460,8 +460,7 @@ class LapseRate(object):
             lapse_rate_cube_list.append(lapse_rate_slice)
 
         lapse_rate_cube = lapse_rate_cube_list.merge_cube()
-        lapse_rate_cube.rename('temperature_lapse_rate')
-        lapse_rate_cube.long_name = "lapse_rate"
+        lapse_rate_cube.rename('air_temperature_lapse_rate')
         lapse_rate_cube.units = 'K m-1'
 
         return lapse_rate_cube

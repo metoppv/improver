@@ -32,9 +32,13 @@
 """Script to calculate temperature lapse rates for given temperature and
 orogrophy datasets."""
 
+import numpy as np
+import iris
+
 from improver.argparser import ArgParser
 from improver.lapse_rate import LapseRate
-from improver.constants import DALR
+from improver.constants import DALR, U_DALR
+from improver.utilities.cube_metadata import amend_metadata
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
@@ -47,10 +51,10 @@ def main():
                         metavar='INPUT_TEMPERATURE_FILE',
                         help='A path to an input NetCDF temperature file to'
                              'be processed. ')
-    parser.add_argument('orography_filepath',
+    parser.add_argument('--orography_filepath',
                         metavar='INPUT_OROGRAPHY_FILE',
                         help='A path to an input NetCDF orography file. ')
-    parser.add_argument('land_sea_mask_filepath',
+    parser.add_argument('--land_sea_mask_filepath',
                         metavar='LAND_SEA_MASK_FILE',
                         help='A path to an input NetCDF land/sea mask file. ')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
@@ -75,6 +79,10 @@ def main():
                         metavar='MIN_LAPSE_RATE', type=float, default=DALR,
                         help='Minimum lapse rate allowed which must be '
                              'provided in units of K m-1. Default is the DALR')
+    parser.add_argument('--return_dalr', action='store_true', default=False,
+                        help='Flag to return a cube containing the dry '
+                             'adiabatic lapse rate rather than calculating '
+                             'the true lapse rate.')
 
     args = parser.parse_args()
 
@@ -91,16 +99,26 @@ def main():
         raise ValueError(msg)
 
     temperature_cube = load_cube(args.temperature_filepath)
-    orography_cube = load_cube(args.orography_filepath)
-    land_sea_mask_cube = load_cube(args.land_sea_mask_filepath)
 
-    result = LapseRate(
-        max_height_diff=args.max_height_diff,
-        nbhood_radius=args.nbhood_radius,
-        max_lapse_rate=args.max_lapse_rate,
-        min_lapse_rate=args.min_lapse_rate).process(temperature_cube,
-                                                    orography_cube,
-                                                    land_sea_mask_cube)
+    if args.return_dalr:
+        result = temperature_cube.copy(
+            data=np.full_like(temperature_cube.data, U_DALR.points[0]))
+        result.rename('air_temperature_lapse_rate')
+        result.units = U_DALR.units
+    else:
+        orography_cube = load_cube(args.orography_filepath)
+        land_sea_mask_cube = load_cube(args.land_sea_mask_filepath)
+        result = LapseRate(
+            max_height_diff=args.max_height_diff,
+            nbhood_radius=args.nbhood_radius,
+            max_lapse_rate=args.max_lapse_rate,
+            min_lapse_rate=args.min_lapse_rate).process(temperature_cube,
+                                                        orography_cube,
+                                                        land_sea_mask_cube)
+
+    attributes = {"title": "delete", "source": "delete",
+                  "history": "delete", "um_version": "delete"}
+    result = amend_metadata(result, attributes=attributes)
 
     save_netcdf(result, args.output_filepath)
 

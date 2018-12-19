@@ -34,12 +34,14 @@
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
 usage: improver-temp-lapse-rate [-h] [--profile] [--profile_file PROFILE_FILE]
+                                [--orography_filepath INPUT_OROGRAPHY_FILE]
+                                [--land_sea_mask_filepath LAND_SEA_MASK_FILE]
                                 [--max_height_diff MAX_HEIGHT_DIFF]
                                 [--nbhood_radius NBHOOD_RADIUS]
                                 [--max_lapse_rate MAX_LAPSE_RATE]
                                 [--min_lapse_rate MIN_LAPSE_RATE]
-                                INPUT_TEMPERATURE_FILE INPUT_OROGRAPHY_FILE
-                                LAND_SEA_MASK_FILE OUTPUT_FILE
+                                [--return_dalr]
+                                INPUT_TEMPERATURE_FILE OUTPUT_FILE
 
 Calculate temperature lapse rates in units of K m-1 over a given orography
 grid.
@@ -48,8 +50,6 @@ positional arguments:
   INPUT_TEMPERATURE_FILE
                         A path to an input NetCDF temperature file tobe
                         processed.
-  INPUT_OROGRAPHY_FILE  A path to an input NetCDF orography file.
-  LAND_SEA_MASK_FILE    A path to an input NetCDF land/sea mask file.
   OUTPUT_FILE           The output path for the processed temperature lapse
                         rates NetCDF.
 
@@ -58,6 +58,10 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
+  --orography_filepath INPUT_OROGRAPHY_FILE
+                        A path to an input NetCDF orography file.
+  --land_sea_mask_filepath LAND_SEA_MASK_FILE
+                        A path to an input NetCDF land/sea mask file.
   --max_height_diff MAX_HEIGHT_DIFF
                         Maximum allowable height difference between the
                         central point and points in the neighbourhood over
@@ -72,6 +76,9 @@ optional arguments:
   --min_lapse_rate MIN_LAPSE_RATE
                         Minimum lapse rate allowed which must be provided in
                         units of K m-1. Default is the DALR
+  --return_dalr         Flag to return a cube containing the dry adiabatic
+                        lapse rate rather than calculating the true lapse
+                        rate.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

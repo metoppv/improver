@@ -351,7 +351,7 @@ class AdvectField(object):
                 "{} Nowcast".format(advected_cube.attributes["institution"]))
         else:
             advected_cube.attributes["source"] = "Nowcast"
-        add_history_attribute(advected_cube, ["add", "Nowcast"])
+        add_history_attribute(advected_cube, "Nowcast")
 
         advected_cube = amend_metadata(advected_cube, **self.metadata_dict)
         return advected_cube

@@ -37,8 +37,8 @@
   # Run the temperature lapse rate calculation and check the result.
   run improver temp-lapse-rate \
       "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/temperature_at_screen_level.nc" \
-      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/ukvx_orography.nc" \
-      "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/ukvx_landmask.nc" \
+      --orography_filepath "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/ukvx_orography.nc" \
+      --land_sea_mask_filepath "$IMPROVER_ACC_TEST_DIR/temp-lapse-rate/basic/ukvx_landmask.nc" \
       --max_lapse_rate=-1 \
       --min_lapse_rate=1 \
       "$TEST_DIR/output.nc"
