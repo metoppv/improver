@@ -258,18 +258,58 @@ class SpatiallyVaryingWeightsFromMask(object):
     @staticmethod
     def create_template_slice(cube_to_collapse, blend_coord):
         """
-        Create a template cube.
+        Create a template cube from a slice of the cube we are collapsing.
+        The slice will be over blend_coord, y and x and will remove any other
+        dimensions. This means that the resulting spatial weights won't vary in
+        any other dimension other than the blend_coord. If the mask does
+        vary in another dimension an error is raised.
+
+        Args:
+            cube_to_collapse (iris.cube.Cube):
+                The cube that will be collapsed along the blend_coord
+                using the spatial weights generated using this plugin. Must
+                be masked where there is invalid data.
+            blend_coord (string):
+                A string containing the name of the coordinate that the
+                cube_to_collapse will be collapsed along. Also matches the
+                coordinate in one_dimensional_weights_cube.
+
+        Returns:
+            first slice (iris.cube.Cube):
+                A cube containing dimension coordinates blend_coord, y, x,
+                with all other dimensions stripped out.
+
+        Raises:
+            ValueError: if the blend coordinate is associated with more than
+                        one dimension on the cube to collapse
+            ValueError: if the mask on cube_to_collapse varies along a
+                        dimension other than the dimension associated with
+                        blend_coord.
         """
         # Takes slices over x, y coord_to_collapse
-        # find blend dim coord associated with blend coord:
-        blend_dim = cube_to_collapse.coord_dims(blend_coord)[0]
-        blend_coord = cube_to_collapse.coord(dimensions=blend_dim, dim_coords=True)
-        print(blend_coord.name())
-        original_dim_coords = [coord.name() for coord in cube_to_collapse.dim_coords]
+        # Find blend dim coord associated with blend coord, sometimes we name a
+        # blend_coord that is a aux_coord associated with a dim coord rather
+        # than using name of the dim_coord itself.
+        # Here we reset blend_coord to the name of the dim_coord to catch the
+        # case where blend_coord is an aux_coord.
+        blend_dim = cube_to_collapse.coord_dims(blend_coord)
+        if len(blend_dim) == 1:
+            blend_dim = blend_dim[0]
+        else:
+            message = (
+                "Blend coordinate must only be across one dimension."
+                "Coordinate {} is associated with dimensions {}")
+            message.format(blend_coord, blend_dim)
+            raise ValueError(message)
+        blend_coord = cube_to_collapse.coord(
+            dimensions=blend_dim, dim_coords=True).name()
+        # Find original dim coords in input cube
+        original_dim_coords = [
+            coord.name() for coord in cube_to_collapse.dim_coords]
+        # Slice over relevant coords.
         x_coord = cube_to_collapse.coord(axis='x').name()
         y_coord = cube_to_collapse.coord(axis='y').name()
-        coords_to_slice_over = [blend_coord.name(), y_coord, x_coord]
-        print()
+        coords_to_slice_over = [blend_coord, y_coord, x_coord]
         slices = cube_to_collapse.slices(coords_to_slice_over)
         # Check they all have the same mask
         first_slice = slices.next()
@@ -300,7 +340,9 @@ class SpatiallyVaryingWeightsFromMask(object):
             cube_to_collapse (iris.cube.Cube):
                 The cube that will be collapsed along the blend_coord
                 using the spatial weights generated using this plugin. Must
-                be masked where there is invalid data.
+                be masked where there is invalid data. The mask must only
+                vary along the blend_coord, an not along any other dimensions
+                on the cube.
             one_dimensional_weights_cube (iris.cube.Cube):
                 A cube containing a single dimension coordinate with the same
                 name given blend_coord. This cube contains 1D weights
@@ -315,10 +357,10 @@ class SpatiallyVaryingWeightsFromMask(object):
             result (iris.cube.Cube):
                 A cube containing normalised spatial weights based on the
                 cube_to_collapsemask and the one_dimensional weights supplied.
-                Contains the same dimensions in the same order as
-                cube_to_collapse.
+                Contains the dimensions, blend_coord, y, x.
         """
-        template_cube = self.create_template_slice(cube_to_collapse, blend_coord)
+        template_cube = self.create_template_slice(
+            cube_to_collapse, blend_coord)
         weights_from_mask = self.create_initial_weights_from_mask(
             template_cube)
         weights_from_mask = self.smooth_initial_weights(
@@ -328,6 +370,4 @@ class SpatiallyVaryingWeightsFromMask(object):
             blend_coord)
         final_weights = self.normalised_masked_weights(
             final_weights, blend_coord)
-        # Check dimensions
-        #final_weights = check_cube_coordinates(cube_to_collapse, final_weights)
         return final_weights
