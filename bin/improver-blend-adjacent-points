@@ -95,14 +95,11 @@ def main():
     else:
         units = args.units
 
-    width = float(args.width)
-
-    #cube = load_cube(args.input_filepaths)
     cubelist = load_cubelist(args.input_filepaths)
     cube = merge_cubes(cubelist, blend_coord=args.coordinate)
 
     BlendingPlugin = TriangularWeightedBlendAcrossAdjacentPoints(
-        args.coordinate, args.central_point, units, width,
+        args.coordinate, args.central_point, units, float(args.width),
         args.weighting_mode)
     result = BlendingPlugin.process(cube)
     save_netcdf(result, args.output_filepath)
