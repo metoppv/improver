@@ -91,8 +91,11 @@ class Test_check_grid_match(IrisTest):
         """Test case in which an empty string is provided as the identifier,
         which matches all keys, assuming no numeric keys. In this case we
         expect a failure as we add an extra attribute."""
+        self.cube1.attributes['extra_attribute'] = 'extra'
         cubes = [self.reference_cube, self.cube1, self.cube2]
-        check_grid_match('', cubes)
+        msg = "Cubes do not share the metadata identified"
+        with self.assertRaisesRegex(ValueError, msg):
+            check_grid_match('', cubes)
 
 
 if __name__ == '__main__':

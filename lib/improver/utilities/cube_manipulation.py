@@ -532,7 +532,7 @@ def get_filtered_attributes(cube, attribute_filter=None):
     Args:
         cube (iris.cube.Cube):
             A cube from which attributes partially matching the
-            self.grid_metadata_identifier will be returned.
+            attribute_filter will be returned.
     Keyword Args:
         attribute_filter (string or None):
             A string to match, or partially match, against attributes to build
@@ -547,9 +547,7 @@ def get_filtered_attributes(cube, attribute_filter=None):
     if attribute_filter is not None:
         attributes = {k: v for (k, v) in attributes.items()
                       if attribute_filter in k}
-        return attributes
-
-    return dict(cube.attributes)
+    return attributes
 
 
 def compare_attributes(cubes, attribute_filter=None):

@@ -41,9 +41,9 @@ from improver.utilities.cube_manipulation import get_filtered_attributes
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
-class Test__get_attributes(IrisTest):
+class Test_get_filtered_attributes(IrisTest):
 
-    """Test the _get_attributes function."""
+    """Test the get_filtered_attributes function."""
 
     def setUp(self):
         """Use temperature cube to test with."""
