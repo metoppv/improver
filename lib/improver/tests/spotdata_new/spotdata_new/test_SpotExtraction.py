@@ -219,7 +219,7 @@ class Test_process(Test_SpotExtraction):
         """Test that an error is raised if the neighbour cube and diagnostic
         cube do not have the expected attributes matching."""
         plugin = SpotExtraction(grid_metadata_identifier='mosg')
-        msg = 'The grid_metadata_identifier attributes do not match'
+        msg = 'Cubes do not share the metadata identified '
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(self.neighbour_cube, self.diagnostic_cube_xy)
 
