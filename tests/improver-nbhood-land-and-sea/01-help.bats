@@ -38,7 +38,6 @@ usage: improver-nbhood-land-and-sea [-h] [--profile]
                                     [--weights_for_collapsing_dim WEIGHTS]
                                     [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
                                     [--sum_or_fraction {sum,fraction}]
-                                    [--halo_radius HALO_RADIUS]
                                     [--intermediate_filepath INTERMEDIATE_FILEPATH]
                                     INPUT_FILE INPUT_MASK OUTPUT_FILE
 
@@ -68,11 +67,6 @@ optional arguments:
                         a sum of the neighbourhood, or a fraction calculated
                         by dividing the sum of the neighbourhood by the
                         neighbourhood area. "fraction" is the default option.
-  --halo_radius HALO_RADIUS
-                        radius in metres of excess halo to clip. Used where a
-                        larger grid was defined than the standard grid and we
-                        want to clip the grid back to the standard grid e.g.
-                        for global data regridded to UK area. Default=None
   --intermediate_filepath INTERMEDIATE_FILEPATH
                         Intermediate filepath for results following
                         topographic masked neighbourhood processing of land

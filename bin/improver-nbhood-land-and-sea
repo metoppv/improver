@@ -41,10 +41,9 @@ from improver.nbhood.use_nbhood import (
     ApplyNeighbourhoodProcessingWithAMask,
     CollapseMaskedNeighbourhoodCoordinate)
 from improver.nbhood.nbhood import NeighbourhoodProcessing
-from improver.nbhood.square_kernel import MAX_RADIUS_IN_GRID_CELLS
 from improver.utilities.load import load_cube
+
 from improver.utilities.save import save_netcdf
-from improver.utilities.pad_spatial import remove_halo_from_cube
 
 
 def main():
@@ -105,14 +104,6 @@ def main():
                         'fraction calculated by dividing the sum of the '
                         'neighbourhood by the neighbourhood area. '
                         '"fraction" is the default option.')
-    parser.add_argument('--halo_radius', metavar='HALO_RADIUS',
-                        default=None,
-                        help='radius in metres of excess halo to clip.'
-                        ' Used where a larger'
-                        ' grid was defined than the standard grid'
-                        ' and we want to clip the grid back to the'
-                        ' standard grid e.g. for global data'
-                        ' regridded to UK area. Default=None')
     parser.add_argument('--intermediate_filepath', default=None,
                         help='Intermediate filepath for results following '
                         'topographic masked neighbourhood processing of '
@@ -218,13 +209,6 @@ def main():
         # Recombine cubes to be a single output.
         combined_data = result_land.data.filled(0) + result_sea.data.filled(0)
         result = result_land.copy(data=combined_data)
-
-    # Remove halo if requested.
-    if args.halo_radius is not None:
-        width_x, width_y = (
-            convert_distance_into_number_of_grid_cells(
-                result, args.halo_radius, MAX_RADIUS_IN_GRID_CELLS))
-        result = remove_halo_from_cube(result, width_x, width_y)
 
     save_netcdf(result, args.output_filepath)
 

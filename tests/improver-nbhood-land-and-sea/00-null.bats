@@ -38,7 +38,6 @@ usage: improver-nbhood-land-and-sea [-h] [--profile]
                                     [--weights_for_collapsing_dim WEIGHTS]
                                     [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
                                     [--sum_or_fraction {sum,fraction}]
-                                    [--halo_radius HALO_RADIUS]
                                     [--intermediate_filepath INTERMEDIATE_FILEPATH]
                                     INPUT_FILE INPUT_MASK OUTPUT_FILE
 __TEXT__
