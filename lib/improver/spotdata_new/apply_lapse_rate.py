@@ -120,7 +120,8 @@ class SpotLapseRateAdjust:
 
         # Extract the lapse rates that correspond to the spot sites.
         extraction_plugin = SpotExtraction(
-            neighbour_selection_method=self.neighbour_selection_method)
+            neighbour_selection_method=self.neighbour_selection_method,
+            grid_metadata_identifier=self.grid_metadata_identifier)
         spot_lapse_rate = extraction_plugin.process(neighbour_cube,
                                                     gridded_lapse_rate_cube)
 
