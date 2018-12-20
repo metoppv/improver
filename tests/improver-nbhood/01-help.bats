@@ -39,7 +39,7 @@ usage: improver-nbhood [-h] [--profile] [--profile_file PROFILE_FILE]
                        [--sum_or_fraction {sum,fraction}] [--re_mask]
                        [--percentiles PERCENTILES [PERCENTILES ...]]
                        [--input_mask_filepath INPUT_MASK_FILE]
-                       [--apply-recursive-filter]
+                       [--halo_radius HALO_RADIUS] [--apply-recursive-filter]
                        [--input_filepath_alphas_x_cube ALPHAS_X_FILE]
                        [--input_filepath_alphas_y_cube ALPHAS_Y_FILE]
                        [--alpha_x ALPHA_X] [--alpha_y ALPHA_Y]
@@ -114,6 +114,11 @@ optional arguments:
                         square neighbourhoods. The data should contain 1 for
                         usable points and 0 for discarded points, e.g. a land-
                         mask.
+  --halo_radius HALO_RADIUS
+                        radius in metres of excess halo to clip. Used where a
+                        larger grid was defined than the standard grid and we
+                        want to clip the grid back to the standard grid e.g.
+                        for global data regridded to UK area. Default=None
   --apply-recursive-filter
                         Option to apply the recursive filter to a square
                         neighbourhooded output dataset, converting it into a
