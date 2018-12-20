@@ -163,7 +163,7 @@ def pad_cube_with_halo(cube, width_x, width_y, halo_mean_data=True):
             The width in x and y directions of the neighbourhood radius in
             grid cells. This will be the width of padding to be added to
             the numpy array.
-        halo_with_data (bool):
+        halo_mean_data (bool):
             Flag whether to populate the halo region with 0.0 or to fill
             with mean values derived from the existing data matrix. By default
             the mean data is used.
@@ -177,17 +177,18 @@ def pad_cube_with_halo(cube, width_x, width_y, halo_mean_data=True):
 
     # Pad a halo around the original data with the extent of the halo
     # given by width_y and width_x.
-    if not halo_mean_data:
-        padded_data = np.pad(
-            cube.data,
-            ((width_y, width_y), (width_x, width_x)),
-            "constant", constant_values=(0.0, 0.0))
-    else:
+    if halo_mean_data:
         padded_data = np.pad(
             cube.data,
             ((width_y, width_y), (width_x, width_x)),
             "mean", stat_length=((0.5*width_y, 0.5*width_y),
                                  (0.5*width_x, 0.5*width_x)))
+    else:
+        padded_data = np.pad(
+            cube.data,
+            ((width_y, width_y), (width_x, width_x)),
+            "constant", constant_values=(0.0, 0.0))
+
     coord_x = cube.coord(axis='x')
     padded_x_coord = pad_coord(coord_x, width_x, 'add')
     coord_y = cube.coord(axis='y')
