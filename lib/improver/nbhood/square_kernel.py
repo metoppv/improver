@@ -45,37 +45,6 @@ from improver.utilities.spatial import (
 MAX_RADIUS_IN_GRID_CELLS = 500
 
 
-def create_cube_with_halo(cube, halo_size_km):
-    """
-    Pad an input cube with a fixed width halo on all sides.
-
-    Args:
-        cube (iris.cube.Cube):
-            Cube on original grid
-        halo_size_km (float):
-            Size of border to pad original grid
-
-    Returns:
-        halo_cube (iris.cube.Cube):
-            New cube defining the halo-padded grid (data set to zero)
-    """
-    halo_size_x, halo_size_y = convert_distance_into_number_of_grid_cells(
-        cube, 1000.*halo_size_km)
-
-    # create padded x- and y- coordinates
-    x_coord = SquareNeighbourhood.pad_coord(
-        cube.coord(axis='x'), halo_size_x, 'add')
-    y_coord = SquareNeighbourhood.pad_coord(
-        cube.coord(axis='y'), halo_size_y, 'add')
-
-    halo_cube = iris.cube.Cube(
-        np.zeros((len(y_coord.points), len(x_coord.points)), dtype=np.float32),
-        long_name='grid_with_halo',
-        dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
-
-    return halo_cube
-
-
 class SquareNeighbourhood(object):
 
     """

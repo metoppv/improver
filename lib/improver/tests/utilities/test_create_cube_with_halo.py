@@ -36,7 +36,7 @@ import numpy as np
 import iris
 from iris.tests import IrisTest
 
-from improver.nbhood.square_kernel import create_cube_with_halo
+from improver.utilities.pad_spatial import create_cube_with_halo
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
@@ -64,8 +64,8 @@ class Test_create_cube_with_halo(IrisTest):
         self.assertFalse(result.attributes)
 
     def test_values(self):
-        """Test coordinate values with standard halo radius (rounds to 2
-        grid cells)"""
+        """Test coordinate values with standard halo radius (rounds down to 1
+        grid cell)"""
         halo_size_km = 162.
 
         x_min = self.cube.coord(axis='x').points[0] - 2*self.grid_spacing
@@ -76,7 +76,7 @@ class Test_create_cube_with_halo(IrisTest):
         expected_y_points = np.arange(y_min, y_max+1, self.grid_spacing)
 
         result = create_cube_with_halo(self.cube, halo_size_km)
-        self.assertSequenceEqual(result.data.shape, (15, 15))
+        self.assertSequenceEqual(result.data.shape, (13, 13))
         self.assertArrayAlmostEqual(
             result.coord(axis='x').points, expected_x_points)
         self.assertArrayAlmostEqual(

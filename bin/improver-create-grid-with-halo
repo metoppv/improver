@@ -35,7 +35,7 @@ import numpy as np
 import iris
 
 from improver.argparser import ArgParser
-from improver.nbhood.square_kernel import create_cube_with_halo
+from improver.utilities.pad_spatial import create_cube_with_halo
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
