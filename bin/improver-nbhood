@@ -31,6 +31,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run neighbourhood processing."""
 
+import iris
+
 from improver.argparser import ArgParser
 from improver.constants import DEFAULT_PERCENTILES
 from improver.nbhood.nbhood import (
@@ -40,6 +42,9 @@ from improver.nbhood.recursive_filter import RecursiveFilter
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.utilities.pad_spatial import remove_halo_from_cube
+from improver.utilities.spatial import (
+    convert_distance_into_number_of_grid_cells)
+
 from improver.wind_calculations.wind_direction import WindDirection
 
 
@@ -127,7 +132,7 @@ def main():
                              'usable points and 0 for discarded points, e.g. '
                              'a land-mask.')
     parser.add_argument('--halo_radius', metavar='HALO_RADIUS',
-                        default=None,
+                        default=None, type=float,
                         help='radius in metres of excess halo to clip.'
                              ' Used where a larger'
                              ' grid was defined than the standard grid'
@@ -275,7 +280,18 @@ def main():
         width_x, width_y = (
             convert_distance_into_number_of_grid_cells(
                 result, args.halo_radius, MAX_RADIUS_IN_GRID_CELLS))
-        result = remove_halo_from_cube(result, width_x, width_y)
+        original_attributes = result.attributes
+        original_methods = result.cell_methods
+        result_slices = iris.cube.CubeList()
+        for cube_slice in cube.slices([cube.coord(axis='y'),
+                                       cube.coord(axis='x')]):
+            cube_halo = remove_halo_from_cube(cube_slice,
+                                              width_x, width_y)
+            result_slices.append(cube_halo)
+        result = result_slices.merge_cube()
+
+        result.cell_methods = original_methods
+        result.attributes = original_attributes
 
     save_netcdf(result, args.output_filepath)
 
