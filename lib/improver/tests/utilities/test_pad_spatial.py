@@ -137,9 +137,8 @@ class Test__create_cube_with_padded_data(IrisTest):
         """Test that a cube is created with the expected order for the y and x
         coordinates within the output cube, if the input cube has dimensions
         of projection_y_coordinate and projection_x_coordinate."""
-        for sliced_cube in self.cube.slices(
-                ["projection_y_coordinate", "projection_x_coordinate"]):
-            break
+        sliced_cube = next(self.cube.slices(
+            ["projection_y_coordinate", "projection_x_coordinate"]))
         data = sliced_cube.data
         coord_x = sliced_cube.coord("projection_x_coordinate")
         coord_y = sliced_cube.coord("projection_y_coordinate")
@@ -155,9 +154,8 @@ class Test__create_cube_with_padded_data(IrisTest):
         """Test that a cube is created with the expected order for the y and x
         coordinates within the output cube, if the input cube has dimensions
         of projection_x_coordinate and projection_y_coordinate."""
-        for sliced_cube in self.cube.slices(
-                ["projection_x_coordinate", "projection_y_coordinate"]):
-            break
+        sliced_cube = next(self.cube.slices(
+            ["projection_x_coordinate", "projection_y_coordinate"]))
         data = sliced_cube.data
         coord_x = sliced_cube.coord("projection_x_coordinate")
         coord_y = sliced_cube.coord("projection_y_coordinate")
@@ -173,10 +171,9 @@ class Test__create_cube_with_padded_data(IrisTest):
         """Test that a cube is created with the expected order for coordinates
         within the output cube, if the input cube has dimensions of
         realization, projection_y_coordinate and projection_x_coordinate."""
-        for sliced_cube in self.cube.slices(["realization",
+        sliced_cube = next(self.cube.slices(["realization",
                                              "projection_y_coordinate",
-                                             "projection_x_coordinate"]):
-            break
+                                             "projection_x_coordinate"]))
         data = sliced_cube.data
         coord_x = sliced_cube.coord("projection_x_coordinate")
         coord_y = sliced_cube.coord("projection_y_coordinate")
@@ -193,9 +190,7 @@ class Test__create_cube_with_padded_data(IrisTest):
         """Test that a cube is created with the expected y and x coordinates
         within the output cube, if the input cube only has a
         projection_y_coordinate dimension coordinate."""
-        for sliced_cube in self.cube.slices(
-                ["projection_x_coordinate"]):
-            break
+        sliced_cube = next(self.cube.slices(["projection_x_coordinate"]))
         data = sliced_cube.data
         coord_x = sliced_cube.coord("projection_x_coordinate")
         coord_y = sliced_cube.coord("projection_y_coordinate")

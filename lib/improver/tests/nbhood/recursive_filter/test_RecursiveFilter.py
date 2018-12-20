@@ -34,8 +34,6 @@ import unittest
 import iris
 from iris.cube import Cube
 from iris.tests import IrisTest
-from iris.coords import DimCoord
-from cf_units import Unit
 import numpy as np
 from improver.nbhood.recursive_filter import RecursiveFilter
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering

@@ -44,7 +44,6 @@ from improver.nbhood.square_kernel import SquareNeighbourhood
 from improver.wind_calculations.wind_direction import WindDirection
 from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
     set_up_cube)
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test__init__(IrisTest):
