@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Unit tests for the function "cube_manipulation._equalise_coord_bounds".
+Unit tests for the function "cube_manipulation._check_coord_bounds".
 """
 
 import unittest
@@ -37,7 +37,7 @@ import unittest
 import iris
 from iris.tests import IrisTest
 
-from improver.utilities.cube_manipulation import _equalise_coord_bounds
+from improver.utilities.cube_manipulation import _check_coord_bounds
 
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import set_up_temperature_cube
@@ -47,7 +47,7 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
 from improver.utilities.warnings_handler import ManageWarnings
 
 
-class Test__equalise_coord_bounds(IrisTest):
+class Test__check_coord_bounds(IrisTest):
 
     """Test the_equalise_cube_coords utility."""
 
@@ -58,21 +58,21 @@ class Test__equalise_coord_bounds(IrisTest):
     def test_basic(self):
         """Test that the input remains an iris.cube.CubeList."""
         result = iris.cube.CubeList([self.cube])
-        _equalise_coord_bounds(result)
+        _check_coord_bounds(result)
         self.assertIsInstance(result, iris.cube.CubeList)
 
     def test_basic_twocubes(self):
         """Test that the input remains an iris.cube.CubeList when two cubes
         are present."""
         result = iris.cube.CubeList([self.cube, self.cube])
-        _equalise_coord_bounds(result)
+        _check_coord_bounds(result)
         self.assertIsInstance(result, iris.cube.CubeList)
 
     def test_basic_threecubes(self):
         """Test that the input remains an iris.cube.CubeList when three cubes
         are present."""
         result = iris.cube.CubeList([self.cube, self.cube, self.cube])
-        _equalise_coord_bounds(result)
+        _check_coord_bounds(result)
         self.assertIsInstance(result, iris.cube.CubeList)
 
     def test_with_bounds(self):
@@ -83,7 +83,7 @@ class Test__equalise_coord_bounds(IrisTest):
         cubeA.coord('time').bounds = bounds
         cubeB.coord('time').bounds = bounds
         result = iris.cube.CubeList([cubeA, cubeB])
-        _equalise_coord_bounds(result)
+        _check_coord_bounds(result)
         self.assertArrayAlmostEqual(result[0].coord('time').bounds, [bounds])
         self.assertArrayAlmostEqual(result[1].coord('time').bounds, [bounds])
 
@@ -98,7 +98,7 @@ class Test__equalise_coord_bounds(IrisTest):
         cubeB.coord('time').bounds = bounds
         cubeC.coord('time').bounds = bounds
         result = iris.cube.CubeList([cubeA, cubeB, cubeC])
-        _equalise_coord_bounds(result)
+        _check_coord_bounds(result)
         for cube in result:
             self.assertArrayAlmostEqual(cube.coord('time').bounds, [bounds])
 
@@ -110,7 +110,7 @@ class Test__equalise_coord_bounds(IrisTest):
         cubeB = self.cube.copy()
         add_forecast_reference_time_and_forecast_period(cubeB)
         result = iris.cube.CubeList([cubeA, cubeB])
-        _equalise_coord_bounds(result)
+        _check_coord_bounds(result)
         self.assertTrue(result[0].coord('time').bounds is None)
         self.assertTrue(result[1].coord('time').bounds is None)
 
@@ -122,7 +122,7 @@ class Test__equalise_coord_bounds(IrisTest):
         result = iris.cube.CubeList([cube_with_bounds, self.cube])
         msg = "Cubes with mismatching time bounds are not compatible"
         with self.assertRaisesRegex(ValueError, msg):
-            _equalise_coord_bounds(result)
+            _check_coord_bounds(result)
 
     def test_one_bounds_threecubes(self):
         """Test that when one of the input cubes has no bounds an error is
@@ -135,7 +135,7 @@ class Test__equalise_coord_bounds(IrisTest):
         msg = "Cubes with mismatching time bounds are not compatible"
         for cube in result:
             with self.assertRaisesRegex(ValueError, msg):
-                _equalise_coord_bounds(result)
+                _check_coord_bounds(result)
 
     def test_mismatched_bounds(self):
         """Test for error when input cubes has mismatched bounds."""
@@ -146,7 +146,7 @@ class Test__equalise_coord_bounds(IrisTest):
         result = iris.cube.CubeList([cube_with_bounds, cube_diff_bounds])
         msg = "Cubes with mismatching time bounds are not compatible"
         with self.assertRaisesRegex(ValueError, msg):
-            _equalise_coord_bounds(result)
+            _check_coord_bounds(result)
 
 
 if __name__ == '__main__':

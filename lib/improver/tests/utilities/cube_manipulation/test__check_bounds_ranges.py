@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Unit tests for the function "cube_manipulation._equalise_bounds_ranges".
+Unit tests for the function "cube_manipulation._check_bounds_ranges".
 """
 
 import unittest
@@ -39,12 +39,12 @@ from datetime import datetime as dt
 import iris
 from iris.tests import IrisTest
 
-from improver.utilities.cube_manipulation import _equalise_bounds_ranges
+from improver.utilities.cube_manipulation import _check_bounds_ranges
 from improver.tests.set_up_test_cubes import set_up_probability_cube
 
 
-class Test__equalise_bounds_ranges(IrisTest):
-    """Test for the _equalise_bounds_ranges function"""
+class Test__check_bounds_ranges(IrisTest):
+    """Test for the _check_bounds_ranges function"""
 
     def setUp(self):
         """Set up some cubes with different bounds ranges"""
@@ -78,14 +78,14 @@ class Test__equalise_bounds_ranges(IrisTest):
 
     def test_basic(self):
         """Test no error when bounds match"""
-        _equalise_bounds_ranges(
+        _check_bounds_ranges(
             self.matched_cube, ["time", "forecast_period"])
 
     def test_error(self):
         """Test error when bounds do not match"""
         msg = 'Cube with mismatching time bounds ranges'
         with self.assertRaisesRegex(ValueError, msg):
-            _equalise_bounds_ranges(
+            _check_bounds_ranges(
                 self.unmatched_cube, ["time", "forecast_period"])
 
 

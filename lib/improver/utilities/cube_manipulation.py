@@ -224,7 +224,8 @@ def merge_cubes(cubes, model_id_attr=None, blend_coord=None):
             Name of cube attribute used to identify the model for grid
             blending or None.
         blend_coord (str):
-            If "time", triggers bounds range checks.  This avoids passing
+            Name of coordinate over which merged cube is to be blended, or
+            None. If "time", triggers bounds range checks to avoid passing
             eg mismatched accumulation periods into blending.
 
     Returns:
@@ -249,7 +250,7 @@ def merge_cubes(cubes, model_id_attr=None, blend_coord=None):
         # coords.  Checking bounds ranges here raises a useful error,
         # rather than encountering a missing blend coord downstream.
         check_bounds_range_coords = ["time", "forecast_period"]
-        _equalise_bounds_ranges(result, check_bounds_range_coords)
+        _check_bounds_ranges(result, check_bounds_range_coords)
 
     return result
 
@@ -393,7 +394,7 @@ def _equalise_cube_coords(cubes):
         cubelist = cubes
     else:
         # Check for mismatches in dim coord bounds
-        _equalise_coord_bounds(cubes)
+        _check_coord_bounds(cubes)
 
         # Throw an error for specific coordinate mismatches
         error_keys = ['threshold']
@@ -464,7 +465,7 @@ def _equalise_cube_coords(cubes):
     return cubelist
 
 
-def _equalise_coord_bounds(cubes):
+def _check_coord_bounds(cubes):
     """
     Function to equalise dimension coordinate bounds that do not match.
     If a coordinate is not present in all cubes, it is ignored.
@@ -505,7 +506,7 @@ def _equalise_coord_bounds(cubes):
                         raise ValueError(msg.format(coord.name()))
 
 
-def _equalise_bounds_ranges(cube, coord_list):
+def _check_bounds_ranges(cube, coord_list):
     """
     Check the bounds ranges on a given list of coordinates match at each
     point along that dimension.  For example: to check time and forecast period
@@ -524,6 +525,8 @@ def _equalise_bounds_ranges(cube, coord_list):
     for name in coord_list:
         coord = cube.coord(name)
         if coord.bounds is None:
+            continue
+        if len(coord.points) == 1:
             continue
 
         reference_range = max(coord.bounds[0]) - min(coord.bounds[0])
