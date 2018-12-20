@@ -94,7 +94,7 @@ def pad_coord(coord, width, method):
     return coord.copy(points=new_points, bounds=new_points_bounds)
 
 
-def create_cube_with_halo(cube, halo_size_km):
+def create_cube_with_halo(cube, halo_radius):
     """
     Create a template cube defining a new grid by adding a fixed width halo
     on all sides to the input cube grid.  The cube contains no meaningful
@@ -103,15 +103,15 @@ def create_cube_with_halo(cube, halo_size_km):
     Args:
         cube (iris.cube.Cube):
             Cube on original grid
-        halo_size_km (float):
-            Size of border to pad original grid
+        halo_radius (float):
+            Size of border to pad original grid, in metres
 
     Returns:
         halo_cube (iris.cube.Cube):
             New cube defining the halo-padded grid (data set to zero)
     """
     halo_size_x, halo_size_y = convert_distance_into_number_of_grid_cells(
-        cube, 1000.*halo_size_km)
+        cube, halo_radius)
 
     # create padded x- and y- coordinates
     x_coord = pad_coord(cube.coord(axis='x'), halo_size_x, 'add')

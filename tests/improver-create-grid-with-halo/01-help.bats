@@ -52,6 +52,7 @@ optional arguments:
                         Dump profiling info to a file. Implies --profile.
   --halo_size_km HALO_SIZE
                         Size of halo (in km) with which to pad the input grid.
+                        Default is 162 km.
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }
