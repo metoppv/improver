@@ -73,5 +73,6 @@ BOUNDS_FOR_ECDF = {
     "temperature_at_screen_level_nighttime_min": (
         Bounds((-90-ABSOLUTE_ZERO, 50-ABSOLUTE_ZERO), "Kelvin")),
     "temperature_at_screen_level_daytime_max": (
-        Bounds((-60-ABSOLUTE_ZERO, 65-ABSOLUTE_ZERO), "Kelvin"))
+        Bounds((-60-ABSOLUTE_ZERO, 65-ABSOLUTE_ZERO), "Kelvin")),
+    "ultraviolet_index": Bounds((0, 25.0), "1")
 }
