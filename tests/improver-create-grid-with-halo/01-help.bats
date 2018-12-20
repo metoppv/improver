@@ -35,7 +35,7 @@
   read -d '' expected <<'__TEXT__' || true
 usage: improver-create-grid-with-halo [-h] [--profile]
                                       [--profile_file PROFILE_FILE]
-                                      [--halo_size_km HALO_SIZE]
+                                      [--halo_radius HALO_RADIUS]
                                       INPUT_FILE OUTPUT_FILE
 
 Generate grid with halo from a source domain input file.
@@ -50,7 +50,7 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
-  --halo_size_km HALO_SIZE
+  --halo_radius HALO_RADIUS
                         Size of halo (in km) with which to pad the input grid.
                         Default is 162 km.
 __TEXT__

@@ -49,13 +49,13 @@ def main():
                         "containing data on a source grid.")
     parser.add_argument('output_file', metavar='OUTPUT_FILE', help="NetCDF "
                         "file defining the target grid with additional halo.")
-    parser.add_argument('--halo_size_km', metavar='HALO_SIZE', default=162.,
+    parser.add_argument('--halo_radius', metavar='HALO_RADIUS', default=162.,
                         type=float, help="Size of halo (in km) with which to "
                         "pad the input grid.  Default is 162 km.")
     args = parser.parse_args()
 
     cube = load_cube(args.input_file)
-    halo_cube = create_cube_with_halo(cube, 1000.*args.halo_size_km)
+    halo_cube = create_cube_with_halo(cube, 1000.*args.halo_radius)
     save_netcdf(halo_cube, args.output_file)
 
 

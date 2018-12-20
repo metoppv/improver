@@ -35,7 +35,7 @@
   read -d '' expected <<'__TEXT__' || true
 usage: improver-create-grid-with-halo [-h] [--profile]
                                       [--profile_file PROFILE_FILE]
-                                      [--halo_size_km HALO_SIZE]
+                                      [--halo_radius HALO_RADIUS]
                                       INPUT_FILE OUTPUT_FILE
 __TEXT__
   [[ "$output" =~ "$expected" ]]
