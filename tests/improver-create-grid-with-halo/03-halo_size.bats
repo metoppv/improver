@@ -38,7 +38,7 @@
   # Run cube-combiner processing and check it passes.
   run improver create-grid-with-halo \
       "$IMPROVER_ACC_TEST_DIR/create-grid-with-halo/basic/source_grid.nc" \
-      "$TEST_DIR/output.nc" --halo_radius 75
+      "$TEST_DIR/output.nc" --halo_radius 75000
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
