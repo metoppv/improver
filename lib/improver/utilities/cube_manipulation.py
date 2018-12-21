@@ -467,7 +467,7 @@ def _equalise_cube_coords(cubes):
 
 def _check_coord_bounds(cubes):
     """
-    Function to equalise dimension coordinate bounds that do not match.
+    Function to check for dimension coordinate bounds that do not match.
     If a coordinate is not present in all cubes, it is ignored.
 
     Args:
@@ -529,13 +529,12 @@ def _check_bounds_ranges(cube, coord_list):
         if len(coord.points) == 1:
             continue
 
-        reference_range = max(coord.bounds[0]) - min(coord.bounds[0])
-        for bounds in coord.bounds[1:]:
-            bounds_range = max(bounds) - min(bounds)
-            if not np.isclose(bounds_range, reference_range):
-                msg = ('Cube with mismatching {} bounds ranges '
-                       'cannot be blended'.format(name))
-                raise ValueError(msg)
+        bounds_ranges = np.abs(np.diff(coord.bounds))
+        reference_range = bounds_ranges[0]
+        if not np.all(np.isclose(bounds_ranges, reference_range)):
+            msg = ('Cube with mismatching {} bounds ranges '
+                   'cannot be blended'.format(name))
+            raise ValueError(msg)
 
 
 def _equalise_cell_methods(cubes):

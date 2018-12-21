@@ -66,12 +66,7 @@ def load_cube(filepath, constraints=None, no_lazy_load=False):
         cube_func=lambda cube: cube.long_name != 'prefixes') & constraints
 
     # Load each file individually to avoid partial merging
-    if isinstance(filepath, str):
-        cubes = iris.load(filepath, constraints=constraints)
-    else:
-        cubes = iris.cube.CubeList([])
-        for item in filepath:
-            cubes.extend(iris.load(item, constraints=constraints))
+    cubes = iris.load_raw(filepath, constraints=constraints)
 
     # Merge loaded cubes
     if not cubes:

@@ -81,6 +81,15 @@ class Test__check_bounds_ranges(IrisTest):
         _check_bounds_ranges(
             self.matched_cube, ["time", "forecast_period"])
 
+    def test_inverted(self):
+        """Test no error when bounds ranges match but bound are in the wrong
+        order"""
+        inverted_bounds = np.flip(
+            self.matched_cube.coord("time").bounds.copy(), axis=1)
+        self.matched_cube.coord("time").bounds = inverted_bounds
+        _check_bounds_ranges(
+            self.matched_cube, ["time", "forecast_period"])
+
     def test_error(self):
         """Test error when bounds do not match"""
         msg = 'Cube with mismatching time bounds ranges'
