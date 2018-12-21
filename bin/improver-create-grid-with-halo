@@ -44,7 +44,7 @@ def main():
     """Generate target grid with a halo around the source file grid."""
 
     parser = ArgParser(description='Generate grid with halo from a source '
-                       'domain input file.')
+                       'domain input file. The grid is populated with zeroes.')
     parser.add_argument('input_file', metavar='INPUT_FILE', help="NetCDF file "
                         "containing data on a source grid.")
     parser.add_argument('output_file', metavar='OUTPUT_FILE', help="NetCDF "
