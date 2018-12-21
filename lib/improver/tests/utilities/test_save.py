@@ -37,12 +37,14 @@ from subprocess import call
 from tempfile import mkdtemp
 
 import iris
+from iris.coords import CellMethod
 from iris.tests import IrisTest
 from netCDF4 import Dataset
 
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.utilities.save import append_metadata_cube
+from improver.utilities.save import order_cell_methods
 from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_cube
 
@@ -82,6 +84,10 @@ class Test_save_netcdf(IrisTest):
         self.directory = mkdtemp()
         self.filepath = os.path.join(self.directory, "temp.nc")
         self.cube = set_up_test_cube()
+        self.cell_methods = (
+            CellMethod(method='maximum', coords='time', intervals='1 hour'),
+            CellMethod(method='mean', coords='realization'))
+        self.cube.cell_methods = self.cell_methods
 
     def tearDown(self):
         """ Remove temporary directories created for testing. """
@@ -129,6 +135,14 @@ class Test_save_netcdf(IrisTest):
                            for coord in self.cube.coords(dim_coords=True)]
         self.assertCountEqual(coord_names, reference_names)
 
+    def test_cell_method_reordering_in_saved_file(self):
+        """ Test cell methods are in the correct order when written out and
+        read back in."""
+        self.cube.cell_methods = (self.cell_methods[1], self.cell_methods[0])
+        save_netcdf(self.cube, self.filepath)
+        cube = load_cube(self.filepath)
+        self.assertEqual(cube.cell_methods, self.cell_methods)
+
     def test_cf_global_attributes(self):
         """ Test that a NetCDF file saved from one cube only contains the
         expected global attributes.
@@ -166,6 +180,34 @@ class Test_save_netcdf(IrisTest):
         self.assertEqual(len(global_keys_in_file), 10)
         self.assertTrue(all(key in self.global_keys_ref
                             for key in global_keys_in_file))
+
+
+class Test_order_cell_methods(IrisTest):
+    """ Test function that sorts cube cell_methods before saving. """
+
+    def setUp(self):
+        """ Set up cube with cell_methods."""
+        self.cube = set_up_test_cube()
+        self.cell_methods = (
+            CellMethod(method='maximum', coords='time', intervals='1 hour'),
+            CellMethod(method='mean', coords='realization'))
+        self.cube.cell_methods = self.cell_methods
+
+    def test_no_reordering_cube(self):
+        """ Test the order is preserved is no reordering required."""
+        order_cell_methods(self.cube)
+        self.assertEqual(self.cube.cell_methods, self.cell_methods)
+
+    def test_reordering_cube(self):
+        """ Test the order is changed when reordering is required."""
+        self.cube.cell_methods = (self.cell_methods[1], self.cell_methods[0])
+        # Test that following the manual reorder above the cube cell methods
+        # and the tuple don't match.
+        self.assertNotEqual(self.cube.cell_methods, self.cell_methods)
+
+        order_cell_methods(self.cube)
+        # Test that they do match once sorting has occured.
+        self.assertEqual(self.cube.cell_methods, self.cell_methods)
 
 
 class Test_append_metadata_cube(IrisTest):

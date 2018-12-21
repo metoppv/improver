@@ -85,6 +85,20 @@ def append_metadata_cube(cubelist, global_keys):
     return cubelist
 
 
+def order_cell_methods(cube):
+    """
+    Sorts the cell methods on a cube such that if there are multiple methods
+    they are always written in a consistent order in the output cube. The
+    input cube is modified.
+
+    Args:
+        cube (iris.cube.Cube):
+            The cube on which the cell methods are to be sorted.
+    """
+    cell_methods = tuple(sorted(cube.cell_methods))
+    cube.cell_methods = cell_methods
+
+
 def save_netcdf(cubelist, filename):
     """Save the input Cube or CubeList as a NetCDF file.
 
@@ -103,6 +117,7 @@ def save_netcdf(cubelist, filename):
 
     for cube in cubelist:
         check_cube_not_float64(cube)
+        order_cell_methods(cube)
 
     global_keys = ['title', 'um_version', 'grid_id', 'source', 'Conventions',
                    'mosg__grid_type', 'mosg__model_configuration',
