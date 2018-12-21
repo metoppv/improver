@@ -44,11 +44,44 @@ import numpy as np
 
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
 from improver.tests.blending.weighted_blend.test_PercentileBlendingAggregator \
-    import (percentile_cube, BLENDED_PERCENTILE_DATA,
+    import (PERCENTILE_DATA, BLENDED_PERCENTILE_DATA,
             BLENDED_PERCENTILE_DATA_EQUAL_WEIGHTS,
             BLENDED_PERCENTILE_DATA_SPATIAL_WEIGHTS)
 from improver.utilities.warnings_handler import ManageWarnings
 from improver.utilities.cube_manipulation import merge_cubes
+
+
+def percentile_cube():
+    """Create a percentile cube for testing."""
+    data = np.reshape(PERCENTILE_DATA, (6, 3, 2, 2))
+
+    # construct dim coords
+    perc_coord = DimCoord([0, 20, 40, 60, 80, 100],
+                          long_name="percentile_over_realization")
+    y_coord = DimCoord(np.linspace(-45.0, 45.0, 2).astype(np.float32),
+                       'latitude', units='degrees')
+    x_coord = DimCoord(np.linspace(120, 180, 2).astype(np.float32),
+                       'longitude', units='degrees')
+
+    # construct time coords
+    time_origin = "seconds since 1970-01-01 00:00:00"
+    calendar = "gregorian"
+    tunit = Unit(time_origin, calendar)
+    times = np.array([1447898400])
+    time_coord = AuxCoord(times, "time", units=tunit)
+    frt_coord = DimCoord([1447891200, 1447894800, 1447898400],
+                         "forecast_reference_time", units=tunit)
+    fp_coord = AuxCoord([7200, 3600, 0], "forecast_period",
+                        units='seconds')
+
+    dim_coords = [(perc_coord, 0), (frt_coord, 1),
+                  (y_coord, 2), (x_coord, 3)]
+    aux_coords = [(fp_coord, 1), (time_coord, None)]
+
+    cube = Cube(data, standard_name="air_temperature", units="C",
+                dim_coords_and_dims=dim_coords, aux_coords_and_dims=aux_coords)
+
+    return cube
 
 
 class Test__init__(IrisTest):

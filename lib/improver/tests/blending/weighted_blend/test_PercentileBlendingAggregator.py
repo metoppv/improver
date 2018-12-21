@@ -34,13 +34,10 @@
 import unittest
 
 from cf_units import Unit
-from iris.coords import DimCoord, AuxCoord
-from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
 
 from improver.blending.weighted_blend import PercentileBlendingAggregator
-
 
 # The PERCENTILE_DATA below were generated using a call to np.random.rand
 # The numbers were then scaled between 12 and 18, envisaged as Spring or
@@ -123,34 +120,6 @@ PERCENTILE_VALUES = np.array(
      [16.24727652, 17.57784376, 17.9637658, 18.52589225, 18.99357526,
       20.50915582, 21.82791334, 21.90645982, 21.95860878, 23.52203933,
       23.71409191]])
-
-
-def percentile_cube():
-    """Create a percentile cube for testing."""
-    data = np.reshape(PERCENTILE_DATA, (6, 3, 2, 2))
-    cube = Cube(data, standard_name="air_temperature",
-                units="C")
-    cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 2), 'latitude',
-                                units='degrees'), 2)
-    cube.add_dim_coord(DimCoord(np.linspace(120, 180, 2), 'longitude',
-                                units='degrees'), 3)
-    time_origin = "seconds since 1970-01-01 00:00:00"
-    calendar = "gregorian"
-    tunit = Unit(time_origin, calendar)
-    times = np.array([1447898400])
-    time_coord = AuxCoord(times, "time", units=tunit)
-    frt_coord = DimCoord([1447891200, 1447894800, 1447898400],
-                         "forecast_reference_time", units=tunit)
-    fp_coord = AuxCoord([7200, 3600, 0], "forecast_period",
-                        units='seconds')
-
-    cube.add_dim_coord(DimCoord([0, 20, 40, 60, 80, 100],
-                                long_name="percentile_over_realization"), 0)
-    cube.add_dim_coord(frt_coord, 1)
-    cube.add_aux_coord(fp_coord, 1)
-    cube.add_aux_coord(time_coord)
-
-    return cube
 
 
 def generate_matching_weights_array(weights, shape):

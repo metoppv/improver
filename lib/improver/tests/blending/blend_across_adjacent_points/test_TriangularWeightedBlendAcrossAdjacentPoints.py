@@ -155,7 +155,6 @@ class Test_process(IrisTest):
 
         self.forecast_period = self.central_cube.coord(
             "forecast_period").points[0]
-        self.width = 1.0
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
