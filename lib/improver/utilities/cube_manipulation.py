@@ -574,13 +574,23 @@ def compare_attributes(cubes, attribute_filter=None):
     else:
         reference_attributes = get_filtered_attributes(
             cubes[0], attribute_filter=attribute_filter)
+
+        common_keys = reference_attributes.keys()
         for cube in cubes[1:]:
             cube_attributes = get_filtered_attributes(
                 cube, attribute_filter=attribute_filter)
-            unmatching_attributes.append(
-                dict(reference_attributes.items() - cube_attributes.items()))
-            unmatching_attributes.append(
-                dict(cube_attributes.items() - reference_attributes.items()))
+            common_keys = {
+                key for key in cube_attributes.keys()
+                if key in common_keys and
+                np.all(cube_attributes[key] == reference_attributes[key])}
+
+        for cube in cubes:
+            cube_attributes = get_filtered_attributes(
+                cube, attribute_filter=attribute_filter)
+            unique_attributes = {
+                key: value for (key, value) in cube_attributes.items()
+                if key not in common_keys}
+            unmatching_attributes.append(unique_attributes)
 
     return unmatching_attributes
 
