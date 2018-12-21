@@ -52,7 +52,7 @@ optional arguments:
                         Dump profiling info to a file. Implies --profile.
   --halo_radius HALO_RADIUS
                         Size of halo (in m) with which to pad the input grid.
-                        Default is 162 km.
+                        Default is 162 000 m.
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }
