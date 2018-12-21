@@ -34,6 +34,8 @@
 import unittest
 
 from cf_units import Unit
+import numpy as np
+from datetime import datetime as dt
 
 import iris
 from iris.coords import DimCoord
@@ -41,15 +43,12 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 from iris.exceptions import CoordinateNotFoundError
 
-import numpy as np
-
 from improver.blending.blend_across_adjacent_points import \
     TriangularWeightedBlendAcrossAdjacentPoints
-from improver.tests.blending.weights.helper_functions import (
-    cubes_for_triangular_weighted_blend_tests)
 from improver.utilities.warnings_handler import ManageWarnings
 from improver.utilities.cube_metadata import add_coord
 from improver.utilities.cube_manipulation import concatenate_cubes
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
 class Test__repr__(IrisTest):
@@ -98,9 +97,20 @@ class Test__find_central_point(IrisTest):
     """Test the _find_central_point."""
 
     def setUp(self):
-        """Set up a test cube."""
-        self.cube, self.central_cube, self.forecast_period = (
-            cubes_for_triangular_weighted_blend_tests())
+        """Set up a test cubes."""
+        self.central_cube = set_up_variable_cube(
+            np.array([[1., 1.], [1., 1.]], dtype=np.float32),
+            name='lwe_thickness_of_precipitation_amount', units='m',
+            time=dt(2017, 1, 10, 3, 0), frt=dt(2017, 1, 10, 3, 0))
+        another_cube = set_up_variable_cube(
+            np.array([[2., 2.], [2., 2.]], dtype=np.float32),
+            name='lwe_thickness_of_precipitation_amount', units='m',
+            time=dt(2017, 1, 10, 4, 0), frt=dt(2017, 1, 10, 3, 0))
+        self.cube = iris.cube.CubeList(
+            [self.central_cube, another_cube]).merge_cube()
+
+        self.forecast_period = self.central_cube.coord(
+            "forecast_period").points[0]
         self.width = 1.0
 
     def test_central_point_available(self):
@@ -131,9 +141,21 @@ class Test_process(IrisTest):
     """Test the process method."""
 
     def setUp(self):
-        """Set up a test cube."""
-        self.cube, self.central_cube, self.forecast_period = (
-            cubes_for_triangular_weighted_blend_tests())
+        """Set up test cubes."""
+        self.central_cube = set_up_variable_cube(
+            np.array([[1., 1.], [1., 1.]], dtype=np.float32),
+            name='lwe_thickness_of_precipitation_amount', units='m',
+            time=dt(2017, 1, 10, 3, 0), frt=dt(2017, 1, 10, 3, 0))
+        another_cube = set_up_variable_cube(
+            np.array([[2., 2.], [2., 2.]], dtype=np.float32),
+            name='lwe_thickness_of_precipitation_amount', units='m',
+            time=dt(2017, 1, 10, 4, 0), frt=dt(2017, 1, 10, 3, 0))
+        self.cube = iris.cube.CubeList(
+            [self.central_cube, another_cube]).merge_cube()
+
+        self.forecast_period = self.central_cube.coord(
+            "forecast_period").points[0]
+        self.width = 1.0
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])

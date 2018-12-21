@@ -87,25 +87,6 @@ def set_up_precipitation_cube():
     return cube
 
 
-def cubes_for_triangular_weighted_blend_tests():
-    """Set up cubes for triangular weighted blend unit tests.
-
-    Returns:
-        (tuple): tuple containing:
-            **cube** (iris.cube.Cube):
-                Cube for testing.
-            **central_cube** (iris.cube.Cube):
-                Cube containing a single forecast period.
-            **forecast_period** (int):
-                A forecast period.
-    """
-    cube = set_up_precipitation_cube()
-    forecast_period = 0
-    constr = iris.Constraint(forecast_period=forecast_period)
-    central_cube = cube.extract(constr)
-    return cube, central_cube, forecast_period
-
-
 def set_up_temperature_cube(data=None, timesteps=3, realizations=None):
     """Create a cube with metadata and values suitable for air temperature.
 
