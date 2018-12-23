@@ -146,7 +146,8 @@ def main():
             random_seed=args.random_seed)
     elif args.rebadging:
         cube = GeneratePercentilesFromProbabilities().process(
-                cube, no_of_percentiles=args.no_of_realizations)
+                cube, no_of_percentiles=args.no_of_realizations,
+                ecc_bounds_warning=args.ecc_bounds_warning)
         cube = RebadgePercentilesAsRealizations().process(cube)
 
     save_netcdf(cube, args.output_filepath)

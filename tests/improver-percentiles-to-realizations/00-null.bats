@@ -37,12 +37,15 @@ usage: improver-percentiles-to-realizations [-h] [--profile]
                                             [--profile_file PROFILE_FILE]
                                             [--no_of_percentiles NUMBER_OF_PERCENTILES]
                                             [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
+                                            [--ecc_bounds_warning]
                                             (--reordering | --rebadging)
                                             [--raw_forecast_filepath RAW_FORECAST_FILE]
                                             [--random_ordering]
                                             [--random_seed RANDOM_SEED]
                                             [--realization_numbers REALIZATION_NUMBERS [REALIZATION_NUMBERS ...]]
                                             INPUT_FILE OUTPUT_FILE
+improver-percentiles-to-realizations: error: the following arguments are required: INPUT_FILE, OUTPUT_FILE
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }
+

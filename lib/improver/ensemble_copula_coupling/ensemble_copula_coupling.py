@@ -131,12 +131,12 @@ class ResamplePercentiles(object):
 
     @staticmethod
     def _add_bounds_to_percentiles_and_forecast_at_percentiles(
-            percentiles, forecast_at_percentiles, bounds_pairing):
+            percentiles, forecast_at_percentiles, bounds_pairing,
+            ecc_bounds_warning=False):
         """
         Padding of the lower and upper bounds of the percentiles for a
         given phenomenon, and padding of forecast values using the
         constant lower and upper bounds.
-
         Args:
             percentiles (Numpy array):
                 Array of percentiles from a Cumulative Distribution Function.
@@ -146,6 +146,10 @@ class ResamplePercentiles(object):
             bounds_pairing (Tuple):
                 Lower and upper bound to be used as the ends of the
                 cumulative distribution function.
+            ecc_bounds_warning (bool):
+                If true and ECC bounds are exceeded by the percentile values,
+                a warning will be generated rather than an exception.
+                Default value is FALSE.
         Returns:
             (tuple) : tuple containing:
                 **percentiles** (Numpy array):
@@ -158,26 +162,40 @@ class ResamplePercentiles(object):
         lower_bound, upper_bound = bounds_pairing
         percentiles = insert_lower_and_upper_endpoint_to_1d_array(
             percentiles, 0, 100)
-        forecast_at_percentiles = concatenate_2d_array_with_2d_array_endpoints(
-            forecast_at_percentiles, lower_bound, upper_bound)
-        if np.any(np.diff(forecast_at_percentiles) < 0):
-            msg = ("The end points added to the forecast at percentiles "
+        forecast_at_percentiles_with_endpoints = \
+            concatenate_2d_array_with_2d_array_endpoints(
+                forecast_at_percentiles, lower_bound, upper_bound)
+        if np.any(np.diff(forecast_at_percentiles_with_endpoints) < 0):
+            msg = ("The end points added to the forecast at percentile "
                    "values representing each percentile must result in "
                    "an ascending order. "
                    "In this case, the forecast at percentile values {} "
                    "is outside the allowable range given by the "
-                   "bounds {}".format(
-                       forecast_at_percentiles, bounds_pairing))
-            raise ValueError(msg)
+                   "bounds {}".format(forecast_at_percentiles, bounds_pairing))
+
+            if ecc_bounds_warning:
+                warn_msg = msg + (" The percentile values that have "
+                                  "exceeded the existing bounds will be used "
+                                  "as new bounds.")
+                warnings.warn(warn_msg)
+                if upper_bound < forecast_at_percentiles_with_endpoints.max():
+                    upper_bound = forecast_at_percentiles_with_endpoints.max()
+                if lower_bound > forecast_at_percentiles_with_endpoints.min():
+                    lower_bound = forecast_at_percentiles_with_endpoints.min()
+                forecast_at_percentiles_with_endpoints = \
+                    concatenate_2d_array_with_2d_array_endpoints(
+                        forecast_at_percentiles, lower_bound, upper_bound)
+            else:
+                raise ValueError(msg)
         if np.any(np.diff(percentiles) < 0):
             msg = ("The percentiles must be in ascending order."
                    "The input percentiles were {}".format(percentiles))
             raise ValueError(msg)
-        return percentiles, forecast_at_percentiles
+        return percentiles, forecast_at_percentiles_with_endpoints
 
     def _interpolate_percentiles(
             self, forecast_at_percentiles, desired_percentiles,
-            bounds_pairing, percentile_coord):
+            bounds_pairing, percentile_coord, ecc_bounds_warning=False):
         """
         Interpolation of forecast for a set of percentiles from an initial
         set of percentiles to a new set of percentiles. This is constructed
@@ -194,6 +212,10 @@ class ResamplePercentiles(object):
                 cumulative distribution function.
             percentile_coord (String):
                 Name of required percentile coordinate.
+            ecc_bounds_warning (bool):
+                If true and ECC bounds are exceeded by the percentile values,
+                a warning will be generated rather than an exception.
+                Default value is FALSE.
 
         Returns:
             percentile_cube (iris cube.Cube):
@@ -216,7 +238,7 @@ class ResamplePercentiles(object):
         original_percentiles, forecast_at_reshaped_percentiles = (
             self._add_bounds_to_percentiles_and_forecast_at_percentiles(
                 original_percentiles, forecast_at_reshaped_percentiles,
-                bounds_pairing))
+                bounds_pairing, ecc_bounds_warning))
 
         forecast_at_interpolated_percentiles = (
             np.empty(
@@ -247,7 +269,7 @@ class ResamplePercentiles(object):
         return percentile_cube
 
     def process(self, forecast_at_percentiles, no_of_percentiles=None,
-                sampling="quantile"):
+                sampling="quantile", ecc_bounds_warning=False):
         """
         1. Creates a list of percentiles.
         2. Accesses the lower and upper bound pair of the forecast values,
@@ -273,6 +295,10 @@ class ResamplePercentiles(object):
                      at dividing a Cumulative Distribution Function into
                      blocks of equal probability.
                 * Random: A random set of ordered percentiles.
+            ecc_bounds_warning (bool):
+                If true and ECC bounds are exceeded by the percentile values,
+                a warning will be generated rather than an exception.
+                Default value is FALSE.
 
         Returns:
             forecast_at_percentiles (iris.cube.Cube):
@@ -298,7 +324,7 @@ class ResamplePercentiles(object):
 
         forecast_at_percentiles = self._interpolate_percentiles(
             forecast_at_percentiles, percentiles, bounds_pairing,
-            percentile_coord)
+            percentile_coord, ecc_bounds_warning)
         return forecast_at_percentiles
 
 

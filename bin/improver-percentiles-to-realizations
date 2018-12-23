@@ -74,6 +74,11 @@ def main():
                              'percentiles which is the preferred '
                              'option for full Ensemble Copula Coupling with '
                              'reordering enabled.')
+    parser.add_argument(
+        '--ecc_bounds_warning', default=False, action='store_true',
+        help='If True, where percentiles (calculated as an intermediate '
+             'output before realizations) exceed the ECC bounds range, raise '
+             'a warning rather than an exception.')
 
     # Different use cases:
     # (We can either reorder OR rebadge)
@@ -145,7 +150,8 @@ def main():
 
     result_cube = ResamplePercentiles().process(
         cube, no_of_percentiles=args.no_of_percentiles,
-        sampling=args.sampling_method)
+        sampling=args.sampling_method,
+        ecc_bounds_warning=args.ecc_bounds_warning)
 
     if args.reordering:
         raw_forecast = load_cube(args.raw_forecast_filepath)
