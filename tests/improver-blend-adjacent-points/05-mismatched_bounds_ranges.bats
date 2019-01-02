@@ -37,14 +37,12 @@
   # Run triangular time blending with mismatched time bounds ranges and check it fails
   # Note this WON'T fail unless / until we call this to blend over 'time' ...
   run improver blend-adjacent-points 'forecast_period' '2' --units 'hours' \
-      --width 3.0 'weighted_mean' \
-      "$IMPROVER_ACC_TEST_DIR/blend-adjacent-points/mismatched_bounds_ranges/multiple_probabilities_rain_1H.nc" \
-      "$IMPROVER_ACC_TEST_DIR/blend-adjacent-points/basic_mean/multiple_probabilities_rain_2H.nc" \
-      "$IMPROVER_ACC_TEST_DIR/blend-adjacent-points/basic_mean/multiple_probabilities_rain_3H.nc" \
+      --width 3.0 'weighted_mean' --blend_time_using_forecast_period \
+      "$IMPROVER_ACC_TEST_DIR/blend-adjacent-points/basic_mean/multiple_probabilities_rain_*H.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-ValueError: Neighbourhood radius specified is less than zero.
+ValueError: Cube with mismatching time bounds ranges cannot be blended
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

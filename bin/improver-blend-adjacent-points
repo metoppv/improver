@@ -60,7 +60,7 @@ def main():
                         help='Central point at which the output from the '
                              'triangular weighted blending will be '
                              'calculated. This should be in the units of the '
-                             'units argument that is passed in.'
+                             'units argument that is passed in. '
                              'This value should be a point on the '
                              'coordinate for blending over.')
     parser.add_argument('--units', metavar='UNIT_STRING', required=True,
@@ -74,6 +74,13 @@ def main():
                         help='Width of the triangular weighting function used '
                              'in the blending, in the units of the '
                              'units argument passed in.')
+    parser.add_argument('--blend_time_using_forecast_period',
+                        default=False, action='store_true', help='Flag that '
+                        'we are blending over time but using the forecast '
+                        'period coordinate as a proxy.  Note this should only '
+                        'be used when time and forecast_period and share a '
+                        'dimension: ie when all files provided are from the '
+                        'same forecast cycle.')
     parser.add_argument('weighting_mode', metavar='WEIGHTED_BLEND_MODE',
                         choices=['weighted_mean', 'weighted_maximum'],
                         help='The method used in the weighted blend. '
@@ -96,7 +103,12 @@ def main():
         units = args.units
 
     cubelist = load_cubelist(args.input_filepaths)
-    cube = merge_cubes(cubelist, blend_coord=args.coordinate)
+
+    if (args.blend_time_using_forecast_period and
+            args.coordinate == 'forecast_period'):
+        cube = merge_cubes(cubelist, blend_coord='time')
+    else:
+        cube = merge_cubes(cubelist, blend_coord=args.coordinate)
 
     BlendingPlugin = TriangularWeightedBlendAcrossAdjacentPoints(
         args.coordinate, args.central_point, units, float(args.width),

@@ -37,6 +37,7 @@ usage: improver-blend-adjacent-points [-h] [--profile]
                                       [--profile_file PROFILE_FILE] --units
                                       UNIT_STRING [--calendar CALENDAR]
                                       --width TRIANGLE_WIDTH
+                                      [--blend_time_using_forecast_period]
                                       COORDINATE_TO_BLEND_OVER CENTRAL_POINT
                                       WEIGHTED_BLEND_MODE INPUT_FILES
                                       [INPUT_FILES ...] OUTPUT_FILE
@@ -53,8 +54,8 @@ positional arguments:
                         applied.
   CENTRAL_POINT         Central point at which the output from the triangular
                         weighted blending will be calculated. This should be
-                        in the units of the units argument that is passed
-                        in.This value should be a point on the coordinate for
+                        in the units of the units argument that is passed in.
+                        This value should be a point on the coordinate for
                         blending over.
   WEIGHTED_BLEND_MODE   The method used in the weighted blend.
                         "weighted_mean": calculate a normal weighted mean
@@ -77,6 +78,12 @@ optional arguments:
                         Width of the triangular weighting function used in the
                         blending, in the units of the units argument passed
                         in.
+  --blend_time_using_forecast_period
+                        Flag that we are blending over time but using the
+                        forecast period coordinate as a proxy. Note this
+                        should only be used when time and forecast_period and
+                        share a dimension: ie when all files provided are from
+                        the same forecast cycle.
 __HELP__
   [[ "$output" == "$expected" ]]
 }
