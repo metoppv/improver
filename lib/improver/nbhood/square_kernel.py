@@ -489,7 +489,8 @@ class SquareNeighbourhood(object):
         original_methods = cube.cell_methods
         grid_cells_x, grid_cells_y = (
             convert_distance_into_number_of_grid_cells(
-                cube, radius, MAX_RADIUS_IN_GRID_CELLS))
+                cube, radius,
+                max_distance_in_grid_cells=MAX_RADIUS_IN_GRID_CELLS))
         result_slices = iris.cube.CubeList()
         for cube_slice in cube.slices([cube.coord(axis='y'),
                                        cube.coord(axis='x')]):

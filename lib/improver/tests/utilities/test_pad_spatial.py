@@ -37,8 +37,8 @@ from iris.coords import DimCoord
 from iris.tests import IrisTest
 
 from improver.utilities.pad_spatial import (
-    pad_coord, pad_cube_with_halo, remove_halo_from_cube,
-    _create_cube_with_padded_data)
+    pad_coord, create_cube_with_halo, _create_cube_with_padded_data,
+    pad_cube_with_halo, remove_halo_from_cube)
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
@@ -121,6 +121,56 @@ class Test_pad_coord(IrisTest):
         self.assertIsInstance(new_coord, DimCoord)
         self.assertArrayAlmostEqual(new_coord.points, expected)
         self.assertArrayEqual(new_coord.bounds, expected_bounds)
+
+
+class Test_create_cube_with_halo(IrisTest):
+    """Tests for the create_cube_with_halo function"""
+
+    def setUp(self):
+        """Set up a realistic input cube with lots of metadata.  Input cube
+        grid is 1000x1000 km with points spaced 100 km apart."""
+        attrs = {'history': '2018-12-10Z: StaGE Decoupler',
+                 'title': 'Temperature on UK 2 km Standard Grid',
+                 'source': 'Met Office Unified Model'}
+
+        self.cube = set_up_variable_cube(
+            np.ones((11, 11), dtype=np.float32), spatial_grid='equalarea',
+            standard_grid_metadata='uk_det', attributes=attrs)
+        self.grid_spacing = 100000
+
+    def test_basic(self):
+        """Test function returns a cube with expected metadata"""
+        halo_size_km = 162.
+        result = create_cube_with_halo(self.cube, 1000.*halo_size_km)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertEqual(result.name(), 'grid_with_halo')
+        self.assertFalse(result.attributes)
+
+    def test_values(self):
+        """Test coordinate values with standard halo radius (rounds down to 1
+        grid cell)"""
+        halo_size_km = 162.
+
+        x_min = self.cube.coord(axis='x').points[0] - self.grid_spacing
+        x_max = self.cube.coord(axis='x').points[-1] + self.grid_spacing
+        expected_x_points = np.arange(x_min, x_max+1, self.grid_spacing)
+        y_min = self.cube.coord(axis='y').points[0] - self.grid_spacing
+        y_max = self.cube.coord(axis='y').points[-1] + self.grid_spacing
+        expected_y_points = np.arange(y_min, y_max+1, self.grid_spacing)
+
+        result = create_cube_with_halo(self.cube, 1000.*halo_size_km)
+        self.assertSequenceEqual(result.data.shape, (13, 13))
+        self.assertArrayAlmostEqual(
+            result.coord(axis='x').points, expected_x_points)
+        self.assertArrayAlmostEqual(
+            result.coord(axis='y').points, expected_y_points)
+
+        # check explicitly that the original grid remains an exact subset of
+        # the output cube (ie that padding hasn't shifted the existing grid)
+        self.assertArrayAlmostEqual(result.coord(axis='x').points[1:-1],
+                                    self.cube.coord(axis='x').points)
+        self.assertArrayAlmostEqual(result.coord(axis='y').points[1:-1],
+                                    self.cube.coord(axis='y').points)
 
 
 class Test__create_cube_with_padded_data(IrisTest):

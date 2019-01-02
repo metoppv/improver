@@ -35,6 +35,8 @@ import iris
 from copy import deepcopy
 
 from improver.utilities.cube_checker import check_for_x_and_y_axes
+from improver.utilities.spatial import (
+    convert_distance_into_number_of_grid_cells)
 
 
 def pad_coord(coord, width, method):
@@ -90,6 +92,37 @@ def pad_coord(coord, width, method):
         [new_points - 0.5*increment, new_points + 0.5*increment],
         dtype=np.float32).T
     return coord.copy(points=new_points, bounds=new_points_bounds)
+
+
+def create_cube_with_halo(cube, halo_radius):
+    """
+    Create a template cube defining a new grid by adding a fixed width halo
+    on all sides to the input cube grid.  The cube contains no meaningful
+    data.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube on original grid
+        halo_radius (float):
+            Size of border to pad original grid, in metres
+
+    Returns:
+        halo_cube (iris.cube.Cube):
+            New cube defining the halo-padded grid (data set to zero)
+    """
+    halo_size_x, halo_size_y = convert_distance_into_number_of_grid_cells(
+        cube, halo_radius)
+
+    # create padded x- and y- coordinates
+    x_coord = pad_coord(cube.coord(axis='x'), halo_size_x, 'add')
+    y_coord = pad_coord(cube.coord(axis='y'), halo_size_y, 'add')
+
+    halo_cube = iris.cube.Cube(
+        np.zeros((len(y_coord.points), len(x_coord.points)), dtype=np.float32),
+        long_name='grid_with_halo',
+        dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
+
+    return halo_cube
 
 
 def _create_cube_with_padded_data(source_cube, data, coord_x, coord_y):
