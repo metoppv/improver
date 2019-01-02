@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-@test "spot-extract-new -h" {
+@test "spot-extract -h" {
   run improver spot-extract-new -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
@@ -39,6 +39,7 @@ usage: improver-spot-extract-new [-h] [--profile]
                                  [--land_constraint] [--minimum_dz]
                                  [--temperature_lapse_rate_filepath TEMPERATURE_LAPSE_RATE_FILEPATH]
                                  [--grid_metadata_identifier GRID_METADATA_IDENTIFIER]
+                                 [--json_file JSON_FILE]
                                  NEIGHBOUR_FILEPATH DIAGNOSTIC_FILEPATH
                                  OUTPUT_FILEPATH
 
@@ -91,6 +92,10 @@ Metadata:
                         it is important that the grids are matching or the
                         data extracted may not match the location of the spot
                         data sites.
+  --json_file JSON_FILE
+                        If provided, this JSON file can be used to modify the
+                        metadata of the returned netCDF file. Defaults to
+                        None.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

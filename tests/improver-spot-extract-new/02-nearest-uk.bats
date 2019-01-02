@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "spot-extract" {
+@test "spot-extract nearest temperatures" {
   improver_check_skip_acceptance
   KGO="spot-extract-new/outputs/nearest_uk_temperatures.nc"
 

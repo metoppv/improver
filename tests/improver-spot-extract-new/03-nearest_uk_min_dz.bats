@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "spot-extract" {
+@test "spot-extract nearest minimum dz temperatures" {
   improver_check_skip_acceptance
   KGO="spot-extract-new/outputs/mindz_uk_temperatures.nc"
 

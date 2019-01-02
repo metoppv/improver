@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "spot-extract" {
+@test "spot-extract global sites with UK data" {
   improver_check_skip_acceptance
 
   # Run spot extract processing and check it passes.
@@ -42,7 +42,7 @@
   echo "status = ${status}"
   [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-ValueError: Cubes do not share the metadata identified by the grid_metadata_identifier (mosg)
+ValueError: Cubes do not share the metadata identified by the grid_metadata_identifier (mosg__grid)
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

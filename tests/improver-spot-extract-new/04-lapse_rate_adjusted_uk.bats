@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "spot-extract" {
+@test "spot-extract lapse rate adjusted temperatures" {
   improver_check_skip_acceptance
   KGO="spot-extract-new/outputs/lapse_rate_adjusted_uk_temperatures.nc"
 

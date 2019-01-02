@@ -38,6 +38,7 @@ usage: improver-spot-extract-new [-h] [--profile]
                                  [--land_constraint] [--minimum_dz]
                                  [--temperature_lapse_rate_filepath TEMPERATURE_LAPSE_RATE_FILEPATH]
                                  [--grid_metadata_identifier GRID_METADATA_IDENTIFIER]
+                                 [--json_file JSON_FILE]
                                  NEIGHBOUR_FILEPATH DIAGNOSTIC_FILEPATH
                                  OUTPUT_FILEPATH
 __TEXT__

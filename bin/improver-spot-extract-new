@@ -31,13 +31,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run spotdata extraction."""
 
+import json
+import warnings
 import numpy as np
 
-from improver.argparser import ArgParser
+from iris.exceptions import CoordinateNotFoundError
 
+from improver.argparser import ArgParser
 from improver.spotdata_new.apply_lapse_rate import SpotLapseRateAdjust
 from improver.spotdata_new.spot_extraction import SpotExtraction
 from improver.spotdata_new.neighbour_finding import NeighbourSelection
+from improver.utilities.cube_metadata import amend_metadata
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
@@ -88,12 +92,17 @@ def main():
 
     meta_group = parser.add_argument_group("Metadata")
     meta_group.add_argument(
-        "--grid_metadata_identifier", default="mosg",
+        "--grid_metadata_identifier", default="mosg__grid",
         help="A string to identify attributes from the input netCDF files that"
         " should be compared to ensure that the data is compatible. Spot"
         " data works using grid indices, so it is important that the grids"
         " are matching or the data extracted may not match the location of the"
         " spot data sites.")
+
+    meta_group.add_argument(
+        "--json_file", metavar="JSON_FILE", default=None,
+        help="If provided, this JSON file can be used to modify the metadata "
+        "of the returned netCDF file. Defaults to None.")
 
     args = parser.parse_args()
     neighbour_cube = load_cube(args.neighbour_filepath)
@@ -108,19 +117,42 @@ def main():
         grid_metadata_identifier=args.grid_metadata_identifier)
     result = plugin.process(neighbour_cube, diagnostic_cube)
 
-    # Check whether the diagnostic is screen temperature and a lapse rate cube
-    # has been provided.
-    screen_temperature = (
-        diagnostic_cube.name() == "air_temperature" and
-        np.isclose(diagnostic_cube.coord("height").points, 1.5) and
-        args.temperature_lapse_rate_filepath)
+    # Check whether a lapse rate cube has been provided and we are dealing with
+    # temperature data.
+    if (args.temperature_lapse_rate_filepath and
+            diagnostic_cube.name() == "air_temperature"):
 
-    if screen_temperature:
         lapse_rate_cube = load_cube(args.temperature_lapse_rate_filepath)
-        plugin = SpotLapseRateAdjust(
-            args.grid_metadata_identifier,
-            neighbour_selection_method=neighbour_selection_method)
-        result = plugin.process(result, neighbour_cube, lapse_rate_cube)
+        try:
+            lapse_rate_height_coord = lapse_rate_cube.coord("height")
+            lapse_rate_height, = lapse_rate_height_coord.points
+        except (ValueError, CoordinateNotFoundError):
+            msg = ("Lapse rate cube does not contain a single valued height "
+                   "coordinate. This is required to ensure it is applied to "
+                   "equivalent temperature data.")
+            raise ValueError(msg)
+
+        # Check the height of the temperature data  matches that used to
+        # calculate the lapse rates. If so, adjust temperatures using the lapse
+        # rate values.
+        if diagnostic_cube.coord("height") == lapse_rate_height_coord:
+            plugin = SpotLapseRateAdjust(
+                args.grid_metadata_identifier,
+                neighbour_selection_method=neighbour_selection_method)
+            result = plugin.process(result, neighbour_cube, lapse_rate_cube)
+        else:
+            msg = ("A lapse rate cube was provided, but the height of "
+                   "the temperature data does not match that of the data used "
+                   "to calculate the lapse rates. As such the temperatures "
+                   "were not adjusted with the lapse rates.")
+            warnings.warn(msg)
+
+    # Modify final metadata as described by provided JSON file.
+    if args.json_file:
+        with open(args.json_file, 'r') as input_file:
+            metadata_dict = json.load(input_file)
+        result = amend_metadata(result, **metadata_dict)
+
 
     # Save the spot data cube
     save_netcdf(result, args.output_filepath)

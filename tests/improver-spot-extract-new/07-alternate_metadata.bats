@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "spot-extract" {
+@test "spot-extract test non-default metadata can be used" {
   improver_check_skip_acceptance
   KGO="spot-extract-new/outputs/nearest_uk_temperatures_alternate_metadata.nc"
 
