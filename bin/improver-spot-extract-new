@@ -153,7 +153,6 @@ def main():
             metadata_dict = json.load(input_file)
         result = amend_metadata(result, **metadata_dict)
 
-
     # Save the spot data cube
     save_netcdf(result, args.output_filepath)
 
