@@ -107,11 +107,15 @@ def main():
     if (args.blend_time_using_forecast_period and
             args.coordinate == 'forecast_period'):
         cube = merge_cubes(cubelist, blend_coord='time')
+    elif args.blend_time_using_forecast_period:
+        msg = ('"--blend_time_using_forecast_period" can only be used with '
+               '"forecast_period" coordinate')
+        parser.error(msg)
     else:
         cube = merge_cubes(cubelist, blend_coord=args.coordinate)
 
     BlendingPlugin = TriangularWeightedBlendAcrossAdjacentPoints(
-        args.coordinate, args.central_point, units, float(args.width),
+        args.coordinate, args.central_point, units, args.width,
         args.weighting_mode)
     result = BlendingPlugin.process(cube)
     save_netcdf(result, args.output_filepath)
