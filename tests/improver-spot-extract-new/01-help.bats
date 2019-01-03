@@ -62,18 +62,21 @@ optional arguments:
                         Dump profiling info to a file. Implies --profile.
 
 Neighbour finding method:
-  --land_constraint     If set the neighbour cube will be interogated for grid
-                        point neighbours that were identified using a land
-                        constraint. This means that the grid points should be
-                        land points except for sites where none was found
-                        within the search radius when the neighbour cube was
-                        created. May be used with minimum_dz.
-  --minimum_dz          If set the neighbour cube will be interogated for grid
-                        point neighbours that were identified using a minimum
-                        height difference constraint. These are grid points
-                        that were found to be the closest in altitude to the
-                        spot site within the search radius defined when the
-                        neighbour cube was created. May be used with
+  If none of these options are set, the nearest grid point to a spot site
+  will be used without any other constraints.
+
+  --land_constraint     If set the neighbour cube will be interrogated for
+                        grid point neighbours that were identified using a
+                        land constraint. This means that the grid points
+                        should be land points except for sites where none were
+                        found within the search radius when the neighbour cube
+                        was created. May be used with minimum_dz.
+  --minimum_dz          If set the neighbour cube will be interrogated for
+                        grid point neighbours that were identified using a
+                        minimum height difference constraint. These are grid
+                        points that were found to be the closest in altitude
+                        to the spot site within the search radius defined when
+                        the neighbour cube was created. May be used with
                         land_constraint.
 
 Temperature lapse rate adjustment:
@@ -82,7 +85,7 @@ Temperature lapse rate adjustment:
                         rates. If this cube is provided, and a screen
                         temperature cube is being processed, the lapse rates
                         will be used to adjust the temperatures to better
-                        represent each spot site's altitude.
+                        represent each spot's site-altitude.
 
 Metadata:
   --grid_metadata_identifier GRID_METADATA_IDENTIFIER
@@ -91,7 +94,7 @@ Metadata:
                         is compatible. Spot data works using grid indices, so
                         it is important that the grids are matching or the
                         data extracted may not match the location of the spot
-                        data sites.
+                        data sites. The default is 'mosg__grid'.
   --json_file JSON_FILE
                         If provided, this JSON file can be used to modify the
                         metadata of the returned netCDF file. Defaults to

@@ -65,17 +65,20 @@ def main():
     parser.add_argument("output_filepath", metavar="OUTPUT_FILEPATH",
                         help="The output path for the resulting NetCDF")
 
-    method_group = parser.add_argument_group("Neighbour finding method")
+    method_group = parser.add_argument_group(
+        title="Neighbour finding method",
+        description="If none of these options are set, the nearest grid point "
+        "to a spot site will be used without any other constraints.")
     method_group.add_argument(
         "--land_constraint", default=False, action='store_true',
-        help="If set the neighbour cube will be interogated for grid point"
+        help="If set the neighbour cube will be interrogated for grid point"
         " neighbours that were identified using a land constraint. This means"
         " that the grid points should be land points except for sites where"
-        " none was found within the search radius when the neighbour cube was"
+        " none were found within the search radius when the neighbour cube was"
         " created. May be used with minimum_dz.")
     method_group.add_argument(
         "--minimum_dz", default=False, action='store_true',
-        help="If set the neighbour cube will be interogated for grid point"
+        help="If set the neighbour cube will be interrogated for grid point"
         " neighbours that were identified using a minimum height difference"
         " constraint. These are grid points that were found to be the closest"
         " in altitude to the spot site within the search radius defined when"
@@ -88,7 +91,7 @@ def main():
         help="Filepath to a NetCDF file containing temperature lapse rates. "
         "If this cube is provided, and a screen temperature cube is being "
         "processed, the lapse rates will be used to adjust the temperatures "
-        "to better represent each spot site's altitude.")
+        "to better represent each spot's site-altitude.")
 
     meta_group = parser.add_argument_group("Metadata")
     meta_group.add_argument(
@@ -97,7 +100,7 @@ def main():
         " should be compared to ensure that the data is compatible. Spot"
         " data works using grid indices, so it is important that the grids"
         " are matching or the data extracted may not match the location of the"
-        " spot data sites.")
+        " spot data sites. The default is 'mosg__grid'.")
 
     meta_group.add_argument(
         "--json_file", metavar="JSON_FILE", default=None,
@@ -132,7 +135,7 @@ def main():
                    "equivalent temperature data.")
             raise ValueError(msg)
 
-        # Check the height of the temperature data  matches that used to
+        # Check the height of the temperature data matches that used to
         # calculate the lapse rates. If so, adjust temperatures using the lapse
         # rate values.
         if diagnostic_cube.coord("height") == lapse_rate_height_coord:
@@ -146,6 +149,11 @@ def main():
                    "to calculate the lapse rates. As such the temperatures "
                    "were not adjusted with the lapse rates.")
             warnings.warn(msg)
+    elif args.temperature_lapse_rate_filepath:
+        msg = ("A lapse rate cube was provided, but the diagnostic being "
+               "processed is not air temperature. The lapse rate cube was "
+               "not used.")
+        warnings.warn(msg)
 
     # Modify final metadata as described by provided JSON file.
     if args.json_file:

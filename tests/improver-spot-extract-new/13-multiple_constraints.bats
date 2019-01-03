@@ -31,15 +31,15 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "spot-extract nearest minimum_dz temperatures" {
+@test "spot-extract nearest minimum_dz land_constraint temperatures" {
   improver_check_skip_acceptance
-  KGO="spot-extract-new/outputs/mindz_uk_temperatures.nc"
+  KGO="spot-extract-new/outputs/mindz_land_constraint_uk_temperatures.nc"
 
   # Run spot extract processing and check it passes.
   run improver spot-extract-new \
       "$IMPROVER_ACC_TEST_DIR/spot-extract-new/inputs/all_methods_uk.nc" \
       "$IMPROVER_ACC_TEST_DIR/spot-extract-new/inputs/ukvx_temperature.nc" \
-      --minimum_dz \
+      --minimum_dz --land_constraint \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
