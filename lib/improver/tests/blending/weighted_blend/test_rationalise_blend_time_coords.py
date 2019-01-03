@@ -43,6 +43,7 @@ from improver.utilities.cube_manipulation import merge_cubes
 from improver.blending.weighted_blend import rationalise_blend_time_coords
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 
+
 class Test_rationalise_blend_time_coords(IrisTest):
     """Tests for the rationalise_cycle_blend_time_coords function"""
 
