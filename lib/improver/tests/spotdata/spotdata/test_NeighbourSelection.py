@@ -38,7 +38,7 @@ import iris
 from iris.tests import IrisTest
 import cartopy.crs as ccrs
 
-from improver.spotdata_new.neighbour_finding import NeighbourSelection
+from improver.spotdata.neighbour_finding import NeighbourSelection
 from improver.utilities.warnings_handler import ManageWarnings
 
 

@@ -31,26 +31,18 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "spot-extract lapse rates provided for non-temperature diagnostic" {
+@test "spot-extract global sites with UK data" {
   improver_check_skip_acceptance
-  KGO="spot-extract-new/outputs/nearest_uk_pmsl.nc"
 
   # Run spot extract processing and check it passes.
-  run improver spot-extract-new \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract-new/inputs/all_methods_uk.nc" \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract-new/inputs/ukvx_pmsl.nc" \
-      --temperature_lapse_rate_filepath "$IMPROVER_ACC_TEST_DIR/spot-extract-new/inputs/ukvx_lapse_rate.nc" \
+  run improver spot-extract \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/all_methods_global.nc" \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_temperature.nc" \
       "$TEST_DIR/output.nc"
   echo "status = ${status}"
-  [[ "$status" -eq 0 ]]
+  [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-UserWarning: A lapse rate cube was provided, but the diagnostic being processed is not air temperature. The lapse rate cube was not used.
+ValueError: Cubes do not share the metadata identified by the grid_metadata_identifier (mosg__grid)
 __TEXT__
   [[ "$output" =~ "$expected" ]]
-
-  improver_check_recreate_kgo "output.nc" $KGO
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

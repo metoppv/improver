@@ -34,8 +34,8 @@
 import numpy as np
 
 import iris
-from improver.spotdata_new.spot_extraction import (SpotExtraction,
-                                                   check_grid_match)
+from improver.spotdata.spot_extraction import (SpotExtraction,
+                                               check_grid_match)
 
 
 class SpotLapseRateAdjust:

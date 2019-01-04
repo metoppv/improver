@@ -31,26 +31,20 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "spot-extract lapse rate heights do not match temperature heights" {
+@test "spot-extract lapse rate cube has no height coordinate" {
   improver_check_skip_acceptance
-  KGO="spot-extract-new/outputs/nearest_uk_temperatures.nc"
 
   # Run spot extract processing and check it passes.
-  run improver spot-extract-new \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract-new/inputs/all_methods_uk.nc" \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract-new/inputs/ukvx_temperature.nc" \
-      --temperature_lapse_rate_filepath "$IMPROVER_ACC_TEST_DIR/spot-extract-new/inputs/ukvx_lapse_rate_2m.nc" \
+  run improver spot-extract \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/all_methods_uk.nc" \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_temperature.nc" \
+      --temperature_lapse_rate_filepath \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_lapse_rate_no_height.nc" \
       "$TEST_DIR/output.nc"
   echo "status = ${status}"
-  [[ "$status" -eq 0 ]]
+  [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-UserWarning: A lapse rate cube was provided, but the height of the temperature data does not match that of the data used to calculate the lapse rates. As such the temperatures were not adjusted with the lapse rates
+ValueError: Lapse rate cube does not contain a single valued height coordinate. This is required to ensure it is applied to equivalent temperature data.
 __TEXT__
   [[ "$output" =~ "$expected" ]]
-
-  improver_check_recreate_kgo "output.nc" $KGO
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

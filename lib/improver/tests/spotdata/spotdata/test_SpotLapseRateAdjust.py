@@ -37,8 +37,8 @@ import numpy as np
 import iris
 from iris.tests import IrisTest
 
-from improver.spotdata_new.apply_lapse_rate import SpotLapseRateAdjust
-from improver.spotdata_new.build_spotdata_cube import build_spotdata_cube
+from improver.spotdata.apply_lapse_rate import SpotLapseRateAdjust
+from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.temporal import iris_time_to_datetime
 from improver.tests.set_up_test_cubes import (set_up_variable_cube,

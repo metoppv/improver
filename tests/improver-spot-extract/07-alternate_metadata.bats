@@ -31,18 +31,23 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "spot-extract global sites with UK data" {
+@test "spot-extract test non-default metadata can be used" {
   improver_check_skip_acceptance
+  KGO="spot-extract/outputs/nearest_uk_temperatures_alternate_metadata.nc"
 
   # Run spot extract processing and check it passes.
-  run improver spot-extract-new \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract-new/inputs/all_methods_global.nc" \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract-new/inputs/ukvx_temperature.nc" \
+  run improver spot-extract \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/all_methods_uk_alternate_metadata.nc" \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_temperature_alternate_metadata.nc" \
+      --temperature_lapse_rate_filepath \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_lapse_rate_alternate_metadata.nc" \
+      --grid_metadata_identifier my_grid_metadata \
       "$TEST_DIR/output.nc"
-  echo "status = ${status}"
-  [[ "$status" -eq 1 ]]
-  read -d '' expected <<'__TEXT__' || true
-ValueError: Cubes do not share the metadata identified by the grid_metadata_identifier (mosg__grid)
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+  [[ "$status" -eq 0 ]]
+
+  improver_check_recreate_kgo "output.nc" $KGO
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }
