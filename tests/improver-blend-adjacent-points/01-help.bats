@@ -81,7 +81,7 @@ optional arguments:
   --blend_time_using_forecast_period
                         Flag that we are blending over time but using the
                         forecast period coordinate as a proxy. Note this
-                        should only be used when time and forecast_period and
+                        should only be used when time and forecast_period
                         share a dimension: ie when all files provided are from
                         the same forecast cycle.
 __HELP__
