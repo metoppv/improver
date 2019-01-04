@@ -97,6 +97,15 @@ def main():
 
     args = parser.parse_args()
 
+    # TriangularWeightedBlendAcrossAdjacentPoints can't currently handle
+    # blending over times where iris reads the coordinate points as datetime
+    # objects.  Fail here to avoid unhelpful errors downstream.
+    if "time" in args.coordinate:
+        msg = ("Cannot blend over {} coordinate (points encoded as datetime "
+               "objects)".format(args.coordinate))
+        raise ValueError(msg)
+
+    # This is left as a placeholder for when we have this capability
     if args.coordinate == 'time':
         units = Unit(args.units, args.calendar)
     else:
