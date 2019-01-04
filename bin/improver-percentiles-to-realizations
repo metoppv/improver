@@ -32,8 +32,6 @@
 
 """Script to run Ensemble Copula Coupling processing."""
 
-import numpy as np
-
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsRealizations, ResamplePercentiles, EnsembleReordering)
 from improver.argparser import ArgParser
@@ -148,10 +146,10 @@ def main():
     # Safe to now actually do the work...
     cube = load_cube(args.input_filepath)
 
-    result_cube = ResamplePercentiles().process(
-        cube, no_of_percentiles=args.no_of_percentiles,
-        sampling=args.sampling_method,
-        ecc_bounds_warning=args.ecc_bounds_warning)
+    result_cube = ResamplePercentiles(
+        ecc_bounds_warning=args.ecc_bounds_warning).process(
+            cube, no_of_percentiles=args.no_of_percentiles,
+            sampling=args.sampling_method)
 
     if args.reordering:
         raw_forecast = load_cube(args.raw_forecast_filepath)

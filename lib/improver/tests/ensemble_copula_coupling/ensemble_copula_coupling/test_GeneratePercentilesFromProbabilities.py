@@ -33,9 +33,8 @@ Unit tests for the
 `ensemble_copula_coupling.GeneratePercentilesFromProbabilities` class.
 
 """
-import numpy as np
 import unittest
-
+import numpy as np
 
 import cf_units as unit
 from iris.cube import Cube
@@ -139,11 +138,10 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         probabilities_for_cdf = np.array([[0.05, 0.7, 0.95]])
         threshold_points = np.array([8, 10, 60])
         bounds_pairing = (-40, 50)
-        plugin = Plugin()
+        plugin = Plugin(ecc_bounds_warning=True)
         warning_msg = "The calculated threshold values"
         plugin._add_bounds_to_thresholds_and_probabilities(
-            threshold_points, probabilities_for_cdf, bounds_pairing,
-            ecc_bounds_warning=True)
+            threshold_points, probabilities_for_cdf, bounds_pairing)
         self.assertTrue(any(warning_msg in str(item)
                             for item in warning_list))
 
@@ -154,10 +152,9 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         probabilities_for_cdf = np.array([[0.05, 0.7, 0.95]])
         threshold_points = np.array([-50, 10, 60])
         bounds_pairing = (-40, 50)
-        plugin = Plugin()
+        plugin = Plugin(ecc_bounds_warning=True)
         result = plugin._add_bounds_to_thresholds_and_probabilities(
-            threshold_points, probabilities_for_cdf, bounds_pairing,
-            ecc_bounds_warning=True)
+            threshold_points, probabilities_for_cdf, bounds_pairing)
         self.assertEqual(max(result[0]), max(threshold_points))
         self.assertEqual(min(result[0]), min(threshold_points))
 

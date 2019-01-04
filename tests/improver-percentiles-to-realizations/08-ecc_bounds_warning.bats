@@ -38,11 +38,16 @@
   # Run Ensemble Copula Coupling to convert one set of percentiles to another
   # set of percentiles, and then rebadge the percentiles to be ensemble
   # realizations. Data in this input exceeds the ECC bounds and so tests ecc_bounds_warning functionality.
-  run improver percentiles-to-realizations  --sampling_method 'quantile' --no_of_percentiles 12 \
+  run improver percentiles-to-realizations  --sampling_method 'quantile' --no_of_percentiles 5 \
       --rebadging --ecc_bounds_warning \
       "$IMPROVER_ACC_TEST_DIR/percentiles-to-realizations/ecc_bounds_warning/multiple_percentiles_wind_cube_out_of_bounds.nc" \
       "$TEST_DIR/output.nc"
+  echo "status = ${status}"
   [[ "$status" -eq 0 ]]
+  read -d '' expected <<'__TEXT__' || true
+The percentile values that have exceeded the existing bounds will be used as new bounds.
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
 

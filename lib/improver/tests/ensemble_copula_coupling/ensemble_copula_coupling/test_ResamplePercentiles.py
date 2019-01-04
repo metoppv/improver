@@ -31,8 +31,8 @@
 """
 Unit tests for the `ensemble_copula_coupling.ResamplePercentiles` class.
 """
-import numpy as np
 import unittest
+import numpy as np
 
 from iris.cube import Cube
 from iris.tests import IrisTest
@@ -144,14 +144,15 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         forecast_at_percentiles = np.array([[8, 10, 60]])
         percentiles = np.array([5, 70, 95])
         bounds_pairing = (-40, 50)
-        plugin = Plugin()
+        plugin = Plugin(ecc_bounds_warning=True)
         warning_msg = "The end points added to the forecast at percentile "
         plugin._add_bounds_to_percentiles_and_forecast_at_percentiles(
-            percentiles, forecast_at_percentiles, bounds_pairing,
-            ecc_bounds_warning=True)
+            percentiles, forecast_at_percentiles, bounds_pairing)
         self.assertTrue(any(warning_msg in str(item)
                             for item in warning_list))
 
+    @ManageWarnings(
+        ignored_messages=["The end points added to the forecast at"])
     def test_new_endpoints_generation(self):
         """Test that the plugin re-applies the percentile bounds using the
         maximum and minimum percentile values when the original bounds have
@@ -159,10 +160,9 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         forecast_at_percentiles = np.array([[8, 10, 60]])
         percentiles = np.array([5, 70, 95])
         bounds_pairing = (-40, 50)
-        plugin = Plugin()
+        plugin = Plugin(ecc_bounds_warning=True)
         result = plugin._add_bounds_to_percentiles_and_forecast_at_percentiles(
-            percentiles, forecast_at_percentiles, bounds_pairing,
-            ecc_bounds_warning=True)
+            percentiles, forecast_at_percentiles, bounds_pairing)
         self.assertEqual(
             np.max(result[1]),
             max([forecast_at_percentiles.max(), max(bounds_pairing)]))

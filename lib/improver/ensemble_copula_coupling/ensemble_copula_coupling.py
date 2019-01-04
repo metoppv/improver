@@ -123,16 +123,20 @@ class ResamplePercentiles(object):
 
     """
 
-    def __init__(self):
+    def __init__(self, ecc_bounds_warning=False):
         """
         Initialise the class.
-        """
-        pass
 
-    @staticmethod
+        Keyword Args:
+            ecc_bounds_warning (bool):
+                If true and ECC bounds are exceeded by the percentile values,
+                a warning will be generated rather than an exception.
+                Default value is FALSE.
+        """
+        self.ecc_bounds_warning = ecc_bounds_warning
+
     def _add_bounds_to_percentiles_and_forecast_at_percentiles(
-            percentiles, forecast_at_percentiles, bounds_pairing,
-            ecc_bounds_warning=False):
+            self, percentiles, forecast_at_percentiles, bounds_pairing):
         """
         Padding of the lower and upper bounds of the percentiles for a
         given phenomenon, and padding of forecast values using the
@@ -146,10 +150,6 @@ class ResamplePercentiles(object):
             bounds_pairing (Tuple):
                 Lower and upper bound to be used as the ends of the
                 cumulative distribution function.
-            ecc_bounds_warning (bool):
-                If true and ECC bounds are exceeded by the percentile values,
-                a warning will be generated rather than an exception.
-                Default value is FALSE.
         Returns:
             (tuple) : tuple containing:
                 **percentiles** (Numpy array):
@@ -173,7 +173,7 @@ class ResamplePercentiles(object):
                    "is outside the allowable range given by the "
                    "bounds {}".format(forecast_at_percentiles, bounds_pairing))
 
-            if ecc_bounds_warning:
+            if self.ecc_bounds_warning:
                 warn_msg = msg + (" The percentile values that have "
                                   "exceeded the existing bounds will be used "
                                   "as new bounds.")
@@ -195,7 +195,7 @@ class ResamplePercentiles(object):
 
     def _interpolate_percentiles(
             self, forecast_at_percentiles, desired_percentiles,
-            bounds_pairing, percentile_coord, ecc_bounds_warning=False):
+            bounds_pairing, percentile_coord):
         """
         Interpolation of forecast for a set of percentiles from an initial
         set of percentiles to a new set of percentiles. This is constructed
@@ -212,11 +212,6 @@ class ResamplePercentiles(object):
                 cumulative distribution function.
             percentile_coord (String):
                 Name of required percentile coordinate.
-            ecc_bounds_warning (bool):
-                If true and ECC bounds are exceeded by the percentile values,
-                a warning will be generated rather than an exception.
-                Default value is FALSE.
-
         Returns:
             percentile_cube (iris cube.Cube):
                 Cube containing values for the required diagnostic e.g.
@@ -238,7 +233,7 @@ class ResamplePercentiles(object):
         original_percentiles, forecast_at_reshaped_percentiles = (
             self._add_bounds_to_percentiles_and_forecast_at_percentiles(
                 original_percentiles, forecast_at_reshaped_percentiles,
-                bounds_pairing, ecc_bounds_warning))
+                bounds_pairing))
 
         forecast_at_interpolated_percentiles = (
             np.empty(
@@ -269,7 +264,7 @@ class ResamplePercentiles(object):
         return percentile_cube
 
     def process(self, forecast_at_percentiles, no_of_percentiles=None,
-                sampling="quantile", ecc_bounds_warning=False):
+                sampling="quantile"):
         """
         1. Creates a list of percentiles.
         2. Accesses the lower and upper bound pair of the forecast values,
@@ -295,11 +290,6 @@ class ResamplePercentiles(object):
                      at dividing a Cumulative Distribution Function into
                      blocks of equal probability.
                 * Random: A random set of ordered percentiles.
-            ecc_bounds_warning (bool):
-                If true and ECC bounds are exceeded by the percentile values,
-                a warning will be generated rather than an exception.
-                Default value is FALSE.
-
         Returns:
             forecast_at_percentiles (iris.cube.Cube):
                 Cube with forecast values at the desired set of percentiles.
@@ -324,7 +314,7 @@ class ResamplePercentiles(object):
 
         forecast_at_percentiles = self._interpolate_percentiles(
             forecast_at_percentiles, percentiles, bounds_pairing,
-            percentile_coord, ecc_bounds_warning)
+            percentile_coord)
         return forecast_at_percentiles
 
 
@@ -345,16 +335,20 @@ class GeneratePercentilesFromProbabilities(object):
 
     """
 
-    def __init__(self):
+    def __init__(self, ecc_bounds_warning=False):
         """
         Initialise the class.
-        """
-        pass
 
-    @staticmethod
+        Keyword Args:
+            ecc_bounds_warning (bool):
+                If true and ECC bounds are exceeded by the percentile values,
+                a warning will be generated rather than an exception.
+                Default value is FALSE.
+        """
+        self.ecc_bounds_warning = ecc_bounds_warning
+
     def _add_bounds_to_thresholds_and_probabilities(
-            threshold_points, probabilities_for_cdf, bounds_pairing,
-            ecc_bounds_warning=False):
+            self, threshold_points, probabilities_for_cdf, bounds_pairing):
         """
         Padding of the lower and upper bounds of the distribution for a
         given phenomenon for the threshold_points, and padding of
@@ -370,12 +364,6 @@ class GeneratePercentilesFromProbabilities(object):
             bounds_pairing (Tuple):
                 Lower and upper bound to be used as the ends of the
                 cumulative distribution function.
-
-        Keyword Args:
-            ecc_bounds_warning (bool):
-                If true and ECC bounds are exceeded by the threshold values,
-                a warning will be generated rather than an exception.
-                Default value is FALSE.
         Returns:
             (tuple) : tuple containing:
                 **threshold_points** (Numpy array):
@@ -403,7 +391,7 @@ class GeneratePercentilesFromProbabilities(object):
             # can continue. Then apply the new bounds as necessary to
             # ensure the threshold values and endpoints are in ascending
             # order and avoid problems further along the processing chain.
-            if ecc_bounds_warning:
+            if self.ecc_bounds_warning:
                 warn_msg = msg + (" The threshold points that have "
                                   "exceeded the existing bounds will be used "
                                   "as new bounds.")
@@ -420,8 +408,7 @@ class GeneratePercentilesFromProbabilities(object):
         return threshold_points_with_endpoints, probabilities_for_cdf
 
     def _probabilities_to_percentiles(
-            self, forecast_probabilities, percentiles, bounds_pairing,
-            ecc_bounds_warning=False):
+            self, forecast_probabilities, percentiles, bounds_pairing):
         """
         Conversion of probabilities to percentiles through the construction
         of an cumulative distribution function. This is effectively
@@ -437,13 +424,6 @@ class GeneratePercentilesFromProbabilities(object):
             bounds_pairing (Tuple):
                 Lower and upper bound to be used as the ends of the
                 cumulative distribution function.
-
-        Keyword Args:
-            ecc_bounds_warning (bool):
-                If true and ECC bounds are exceeded by the threshold values
-                from the forecast_probabilities, then a warning will be
-                generated rather than an exception. Default value is FALSE.
-
         Returns:
             percentile_cube (Iris cube):
                 Cube containing values for the required diagnostic e.g.
@@ -481,8 +461,7 @@ class GeneratePercentilesFromProbabilities(object):
 
         threshold_points, probabilities_for_cdf = (
             self._add_bounds_to_thresholds_and_probabilities(
-                threshold_points, probabilities_for_cdf, bounds_pairing,
-                ecc_bounds_warning))
+                threshold_points, probabilities_for_cdf, bounds_pairing))
 
         if np.any(np.diff(probabilities_for_cdf) < 0):
             msg = ("The probability values used to construct the "
@@ -529,8 +508,7 @@ class GeneratePercentilesFromProbabilities(object):
         return percentile_cube
 
     def process(self, forecast_probabilities, no_of_percentiles=None,
-                percentiles=None, sampling="quantile",
-                ecc_bounds_warning=False):
+                percentiles=None, sampling="quantile"):
         """
         1. Concatenates cubes with a threshold coordinate.
         2. Creates a list of percentiles.
@@ -562,11 +540,6 @@ class GeneratePercentilesFromProbabilities(object):
                           at dividing a Cumulative Distribution Function into
                           blocks of equal probability.
                 * Random: A random set of ordered percentiles.
-
-        Keyword Args:
-            ecc_bounds_warning (bool):
-                If True then exceeding ECC bounds will only generate a
-                warning rather than an exception. Default value is FALSE.
 
         Returns:
             forecast_at_percentiles (Iris cube):
@@ -617,8 +590,7 @@ class GeneratePercentilesFromProbabilities(object):
         cubelist = iris.cube.CubeList([])
         for cube_realization in slices_over_realization:
             cubelist.append(self._probabilities_to_percentiles(
-                cube_realization, percentiles, bounds_pairing,
-                ecc_bounds_warning))
+                cube_realization, percentiles, bounds_pairing))
 
         forecast_at_percentiles = cubelist.merge_cube()
         return forecast_at_percentiles

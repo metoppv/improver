@@ -31,10 +31,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to collapse cube coordinates and calculate percentiled data."""
 
+import warnings
 import numpy as np
 
 from improver.argparser import ArgParser
-import warnings
 
 from improver.percentile import PercentileConverter
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
@@ -100,9 +100,9 @@ def main():
                           "provided COORDINATES_TO_COLLAPSE variable will "
                           "not be used.")
 
-        result = GeneratePercentilesFromProbabilities().process(
-            cube, percentiles=percentiles,
-            ecc_bounds_warning=args.ecc_bounds_warning)
+        result = GeneratePercentilesFromProbabilities(
+            ecc_bounds_warning=args.ecc_bounds_warning).process(
+                cube, percentiles=percentiles)
     else:
         if not args.coordinates:
             raise ValueError("To collapse a coordinate to calculate "
