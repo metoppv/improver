@@ -36,7 +36,7 @@
 
   # Run triangular time blending and see what happens...
   run improver blend-adjacent-points 'time' '1536908400' --units 'seconds since 1970-01-01 00:00:00' \
-      --width 2 'weighted_mean' \
+      --width 7200 'weighted_mean' \
       "$IMPROVER_ACC_TEST_DIR/blend-adjacent-points/time_bounds/*wind_gust*.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 1 ]]
