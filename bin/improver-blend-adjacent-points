@@ -110,7 +110,7 @@ def main():
     elif args.blend_time_using_forecast_period:
         msg = ('"--blend_time_using_forecast_period" can only be used with '
                '"forecast_period" coordinate')
-        parser.error(msg)
+        raise ValueError(msg)
     else:
         cube = merge_cubes(cubelist, blend_coord=args.coordinate)
 
