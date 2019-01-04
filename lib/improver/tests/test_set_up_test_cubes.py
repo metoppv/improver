@@ -371,12 +371,15 @@ class test_add_coordinate(IrisTest):
         """Set up new coordinate descriptors"""
         self.height_points = np.arange(100., 1001., 100.)
         self.height_unit = "metres"
+        self.input_cube = set_up_variable_cube(
+            np.ones((3, 4), dtype=np.float32),
+            time=datetime(2017, 10, 10, 1, 0),
+            frt=datetime(2017, 10, 9, 21, 0))
 
     def test_basic(self):
         """Test addition of a leading height coordinate"""
-        input_cube = set_up_variable_cube(np.ones((3, 4), dtype=np.float32))
         result = add_coordinate(
-            input_cube, self.height_points, 'height',
+            self.input_cube, self.height_points, 'height',
             coord_units=self.height_unit)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertSequenceEqual(result.shape, (10, 3, 4))
@@ -397,11 +400,25 @@ class test_add_coordinate(IrisTest):
 
     def test_datatype(self):
         """Test coordinate datatype"""
-        input_cube = set_up_variable_cube(np.ones((3, 4), dtype=np.float32))
         result = add_coordinate(
-            input_cube, self.height_points, 'height',
+            self.input_cube, self.height_points, 'height',
             coord_units=self.height_unit, dtype=np.int32)
         self.assertEqual(result.coord('height').dtype, np.int32)
+
+    def test_datetime(self):
+        """Test a leading time coordinate can be added successfully"""
+        datetime_points = [
+            datetime(2017, 10, 10, 3, 0), datetime(2017, 10, 10, 4, 0)]
+        result = add_coordinate(
+            self.input_cube, datetime_points, "time", is_datetime=True)
+        # check time is now the leading dimension
+        self.assertEqual(result.coord_dims("time"), (0,))
+        self.assertEqual(len(result.coord("time").points), 2)
+        # check forecast period has been updated
+        expected_fp_points = 3600*np.array([6, 7], dtype=np.int64)
+        print(result.coord("forecast_period").points)
+        self.assertArrayAlmostEqual(
+            result.coord("forecast_period").points, expected_fp_points)
 
 
 if __name__ == '__main__':
