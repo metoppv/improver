@@ -40,19 +40,18 @@ from iris.exceptions import InvalidCubeError
 from iris.tests import IrisTest
 
 from improver.nowcasting.optical_flow import AdvectField
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
 
-def set_up_xy_velocity_cube(name, coord_points_y=None, val_units='m s-1'):
+def set_up_xy_velocity_cube(name, coord_points_y=None, units='m s-1'):
     """Set up a 3x4 cube of simple velocities (no convergence / divergence)"""
-    data = np.ones(shape=(4, 3))
-    coord_points_x = 0.6*np.arange(3)
+    data = np.ones(shape=(4, 3), dtype=np.float32)
+    cube = set_up_variable_cube(data, name=name, units=units,
+        spatial_grid="equalarea")
+    cube.coord("projection_x_coordinate").points = 600*np.arange(3)
     if coord_points_y is None:
-        coord_points_y = 0.6*np.arange(4)
-    x_coord = DimCoord(coord_points_x, 'projection_x_coordinate', units='km')
-    y_coord = DimCoord(coord_points_y, 'projection_y_coordinate', units='km')
-    cube = iris.cube.Cube(data, long_name=name, units=val_units,
-                          dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
+        cube.coord("projection_y_coordinate").points = 600*np.arange(4)
     return cube
 
 
@@ -70,7 +69,7 @@ class Test__init__(IrisTest):
     def test_units(self):
         """Test velocity fields are converted to m/s"""
         vel_x = set_up_xy_velocity_cube("advection_velocity_x",
-                                        val_units="km h-1")
+                                        units="km h-1")
         expected_vel_x = vel_x.data / 3.6
         plugin = AdvectField(vel_x, vel_x)
         self.assertArrayAlmostEqual(plugin.vel_x.data, expected_vel_x)
@@ -246,16 +245,21 @@ class Test_process(IrisTest):
         data = np.array([[2., 3., 4.],
                          [1., 2., 3.],
                          [0., 1., 2.],
-                         [0., 0., 1.]])
-        self.cube = iris.cube.Cube(
-            data, standard_name='rainfall_rate', units='mm h-1',
-            dim_coords_and_dims=[(self.plugin.y_coord, 0),
-                                 (self.plugin.x_coord, 1)])
+                         [0., 0., 1.]], dtype=np.float32)
+        self.cube = set_up_variable_cube(data, name="rainfall_rate",
+            units="mm h-1", spatial_grid="equalarea")
+        self.cube.coord("projection_y_coordinate").points = (
+            self.plugin.y_coord.points)
+        self.cube.coord("projection_y_coordinate").bounds = (
+            self.plugin.y_coord.bounds)
+        self.cube.coord("projection_x_coordinate").points = (
+            self.plugin.x_coord.points)
+        self.cube.coord("projection_x_coordinate").bounds = (
+            self.plugin.x_coord.bounds)
 
         # input time: [datetime.datetime(2018, 2, 20, 4, 0)]
         self.time_coord = DimCoord(1519099200, standard_name="time",
                                    units='seconds since 1970-01-01 00:00:00')
-        self.cube.add_aux_coord(self.time_coord)
 
         self.timestep = datetime.timedelta(seconds=600)
 
@@ -381,9 +385,9 @@ class Test_process(IrisTest):
         result = self.plugin.process(self.cube, self.timestep)
         output_cube_time, = \
             (result.coord("time").units).num2date(result.coord("time").points)
-        self.assertEqual(output_cube_time.year, 2018)
-        self.assertEqual(output_cube_time.month, 2)
-        self.assertEqual(output_cube_time.day, 20)
+        self.assertEqual(output_cube_time.year, 2017)
+        self.assertEqual(output_cube_time.month, 11)
+        self.assertEqual(output_cube_time.day, 10)
         self.assertEqual(output_cube_time.hour, 4)
         self.assertEqual(output_cube_time.minute, 10)
 
