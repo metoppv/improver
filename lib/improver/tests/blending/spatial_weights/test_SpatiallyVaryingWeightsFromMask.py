@@ -36,6 +36,7 @@ import unittest
 
 from iris.tests import IrisTest
 from iris.cube import CubeList
+from iris.coords import AuxCoord
 from iris.util import squeeze
 from iris.exceptions import CoordinateNotFoundError
 
@@ -588,6 +589,110 @@ class Test_normalised_masked_weights(IrisTest):
             self.spatial_weights_cube, "forecast_reference_time")
         self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertEqual(result.metadata, self.spatial_weights_cube.metadata)
+
+
+class Test_create_template_slice(IrisTest):
+    """Test create_template_slice method"""
+
+    def setUp(self):
+        """
+        Set up a basic input cube. Input cube has 2 thresholds on and 3
+        forecast_reference_times
+        """
+        thresholds = [10, 20]
+        data = np.ones((2, 2, 3), dtype=np.float32)
+        cycle1 = set_up_probability_cube(
+            data, thresholds, spatial_grid="equalarea",
+            time=datetime(2017, 11, 10, 4, 0),
+            frt=datetime(2017, 11, 10, 0, 0),)
+        cycle2 = set_up_probability_cube(
+            data, thresholds, spatial_grid="equalarea",
+            time=datetime(2017, 11, 10, 4, 0),
+            frt=datetime(2017, 11, 10, 1, 0),)
+        cycle3 = set_up_probability_cube(
+            data, thresholds, spatial_grid="equalarea",
+            time=datetime(2017, 11, 10, 4, 0),
+            frt=datetime(2017, 11, 10, 2, 0),)
+        self.cube_to_collapse = CubeList(
+            [cycle1, cycle2, cycle3]).merge_cube()
+        self.cube_to_collapse = squeeze(self.cube_to_collapse)
+        self.cube_to_collapse.rename("weights")
+        # This input array has 3 forecast reference times and 2 thresholds.
+        # The two thresholds have the same weights.
+        self.cube_to_collapse.data = np.array([[[[1, 0, 1],
+                                                 [1, 1, 1]],
+                                                [[1, 0, 1],
+                                                 [1, 1, 1]]],
+                                               [[[0, 0, 1],
+                                                 [0, 1, 1]],
+                                                [[0, 0, 1],
+                                                 [0, 1, 1]]],
+                                               [[[1, 1, 1],
+                                                 [1, 1, 1]],
+                                                [[1, 1, 1],
+                                                 [1, 1, 1]]]],
+                                              dtype=np.float32)
+        self.cube_to_collapse.data = np.ma.masked_equal(
+            self.cube_to_collapse.data, 0)
+        self.plugin = SpatiallyVaryingWeightsFromMask()
+
+    def test_multi_dim_blend_coord_fail(self):
+        """Test error is raised when we have a multi-dimensional blend_coord"""
+        # Add a surface altitude coordinate which covers x and y dimensions.
+        altitudes = np.array([[10, 20, 30],
+                              [20, 30, 10]])
+        altitudes_coord = AuxCoord(
+            altitudes, standard_name="surface_altitude", units="m")
+        self.cube_to_collapse.add_aux_coord(altitudes_coord, data_dims=(2, 3))
+        message = ("Blend coordinate must only be across one dimension.")
+        with self.assertRaisesRegex(ValueError, message):
+            self.plugin.create_template_slice(
+                self.cube_to_collapse, "surface_altitude")
+
+    def test_varying_mask_fail(self):
+        """Test error is raised when mask varies along collapsing dim"""
+        # Check fails when blending along threshold coordinate, as mask
+        # varies along this coodinate.
+        message = (
+            "The mask on the input cube can only vary along the blend_coord")
+        with self.assertRaisesRegex(ValueError, message):
+            self.plugin.create_template_slice(
+                self.cube_to_collapse, "threshold")
+
+    def test_scalar_blend_coord_fail(self):
+        """Test error is raised when blend_coord is scalar"""
+        message = (
+            "Blend coordinate must only be across one dimension.")
+        with self.assertRaisesRegex(ValueError, message):
+            self.plugin.create_template_slice(
+                self.cube_to_collapse[0], "forecast_reference_time")
+
+    def test_basic(self):
+        """Test a correct template slice is returned for simple case"""
+        expected = self.cube_to_collapse.copy()[:, 0, :, :]
+        result = self.plugin.create_template_slice(
+            self.cube_to_collapse, "forecast_reference_time")
+        self.assertEqual(expected.metadata, result.metadata)
+        self.assertArrayAlmostEqual(expected.data, result.data)
+
+    def test_basic_no_change(self):
+        """Test a correct template slice is returned for a case where
+           no slicing is needed"""
+        input_cube = self.cube_to_collapse.copy()[:, 0, :, :]
+        expected = input_cube.copy()
+        result = self.plugin.create_template_slice(
+            self.cube_to_collapse, "forecast_reference_time")
+        self.assertEqual(expected.metadata, result.metadata)
+        self.assertArrayAlmostEqual(expected.data, result.data)
+
+    def test_aux_blending_coord(self):
+        """Test a correct template slice is returned when blending_coord is
+           an AuxCoord"""
+        expected = self.cube_to_collapse.copy()[:, 0, :, :]
+        result = self.plugin.create_template_slice(
+            self.cube_to_collapse, "forecast_period")
+        self.assertEqual(expected.metadata, result.metadata)
+        self.assertArrayAlmostEqual(expected.data, result.data)
 
 
 class Test_process(IrisTest):

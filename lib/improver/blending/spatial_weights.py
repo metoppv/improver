@@ -281,7 +281,7 @@ class SpatiallyVaryingWeightsFromMask(object):
 
         Raises:
             ValueError: if the blend coordinate is associated with more than
-                        one dimension on the cube to collapse
+                        one dimension on the cube to collapse, or no dimension
             ValueError: if the mask on cube_to_collapse varies along a
                         dimension other than the dimension associated with
                         blend_coord.
@@ -297,9 +297,9 @@ class SpatiallyVaryingWeightsFromMask(object):
             blend_dim = blend_dim[0]
         else:
             message = (
-                "Blend coordinate must only be across one dimension."
+                "Blend coordinate must only be across one dimension. "
                 "Coordinate {} is associated with dimensions {}")
-            message.format(blend_coord, blend_dim)
+            message = message.format(blend_coord, blend_dim)
             raise ValueError(message)
         blend_coord = cube_to_collapse.coord(
             dimensions=blend_dim, dim_coords=True).name()
