@@ -260,25 +260,3 @@ def add_height(cube, heights):
         cube_copy.add_aux_coord(height_coord)
         cubelist.append(cube_copy)
     return cubelist.merge_cube()
-
-
-def add_realizations(cube, num):
-    """Create num realizations of input cube.
-        Args:
-            cube (iris.cube.Cube):
-                   input cube.
-            num (integer):
-                   Number of realizations.
-        Returns:
-            cubeout (iris.cube.Cube):
-                      copy of cube with num realizations added.
-    """
-    cubelist = iris.cube.CubeList()
-    for i in range(0, num):
-        newcube = cube.copy()
-        new_ensemble_coord = (
-            iris.coords.AuxCoord(i, standard_name='realization'))
-        newcube.add_aux_coord(new_ensemble_coord)
-        cubelist.append(newcube)
-    cubeout = cubelist.merge_cube()
-    return cubeout
