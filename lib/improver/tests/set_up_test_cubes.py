@@ -288,7 +288,6 @@ def set_up_percentile_cube(data, percentiles, name='air_temperature',
             Office standard grid attributes.  Should be 'uk_det', 'uk_ens',
             'gl_det' or 'gl_ens'.
     """
-    temporary_percentiles = np.arange(len(percentiles))
     cube = set_up_variable_cube(
         data, name=name, units=units, spatial_grid=spatial_grid,
         time=time, frt=frt, realizations=percentiles, attributes=attributes,

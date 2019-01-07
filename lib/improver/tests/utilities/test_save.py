@@ -55,19 +55,15 @@ def set_up_test_cube():
         np.linspace(-45.0, 45.0, 9, dtype=np.float32).reshape(1, 3, 3) +
         273.15
     )
-    cube = set_up_variable_cube(data, realizations=np.array([0]))
+    cube = set_up_variable_cube(data, realizations=np.array([0]),
+                                standard_grid_metadata='uk_ens')
     cube.attributes['source_realizations'] = np.arange(12)
     # Desired attributes that will be global in netCDF file
     cube.attributes['um_version'] = '10.4'
-    cube.attributes['mosg__grid_type'] = 'standard'
-    cube.attributes['mosg__model_configuration'] = 'uk_ens'
-    cube.attributes['mosg__grid_domain'] = 'uk_extended'
-    cube.attributes['mosg__grid_version'] = '1.2.0'
     cube.attributes['source'] = 'Met Office Unified Model'
     cube.attributes['Conventions'] = 'CF-1.5'
     cube.attributes['institution'] = 'Met Office'
     cube.attributes['history'] = ''
-
     return cube
 
 

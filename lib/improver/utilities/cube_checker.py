@@ -36,7 +36,7 @@ import numpy as np
 
 
 def check_cube_datatypes(cube, fix=False):
-    """Check the data within a cube is float64.
+    """Check whether the data within a cube is float64.
     Coordinates are also checked to ensure that they have the desired datatype.
     The cube can be modified in place, if the fix keyword is
     specified to be True.
@@ -66,10 +66,13 @@ def check_cube_datatypes(cube, fix=False):
     for coord in cube.coords():
         if coord.name() in ["time", "forecast_reference_time"]:
             check_coord_datatypes(coord, np.int64, fix=True, rounding=True)
-        elif coord.name() in ["forecast_period", "realization"]:
-            check_coord_datatypes(coord, np.int32, fix=True, rounding=False)
+        elif coord.name() in ["forecast_period", "realization", "spot_index"]:
+            check_coord_datatypes(coord, np.int32, fix=True)
+        elif coord.name() in ["wmo_id", "neighbour_selection_method_name",
+                              "grid_attributes_key", "model_configuration"]:
+            check_coord_datatypes(coord, str, fix=True)
         else:
-            check_coord_datatypes(coord, np.float32, fix=True, rounding=False)
+            check_coord_datatypes(coord, np.float32, fix=True)
 
 
 def check_coord_datatypes(coord, datatype, fix=False, rounding=False):
