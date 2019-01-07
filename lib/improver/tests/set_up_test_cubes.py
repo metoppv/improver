@@ -130,8 +130,8 @@ def construct_scalar_time_coords(time, time_bounds, frt):
             raise ValueError(
                 'Time point {} not within bounds {}-{}'.format(
                     time, time_bounds[0], time_bounds[1]))
-        fp_bounds = (bounds[0] - frt_point_seconds,
-                     bounds[1] - frt_point_seconds)
+        fp_bounds = np.array([bounds[0] - frt_point_seconds,
+                              bounds[1] - frt_point_seconds]).astype(np.int32)
     else:
         bounds = None
         fp_bounds = None
