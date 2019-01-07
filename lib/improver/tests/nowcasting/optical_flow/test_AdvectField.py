@@ -47,8 +47,10 @@ from improver.utilities.warnings_handler import ManageWarnings
 def set_up_xy_velocity_cube(name, coord_points_y=None, units='m s-1'):
     """Set up a 3x4 cube of simple velocities (no convergence / divergence)"""
     data = np.ones(shape=(4, 3), dtype=np.float32)
-    cube = set_up_variable_cube(data, name=name, units=units,
-        spatial_grid="equalarea")
+    cube = set_up_variable_cube(
+        data, name=name, units=units, spatial_grid="equalarea",
+        time=datetime.datetime(2017, 11, 10, 4, 0),
+        frt=datetime.datetime(2017, 11, 10, 4, 0))
     cube.coord("projection_x_coordinate").points = 600*np.arange(3)
     if coord_points_y is None:
         cube.coord("projection_y_coordinate").points = 600*np.arange(4)
@@ -246,8 +248,11 @@ class Test_process(IrisTest):
                          [1., 2., 3.],
                          [0., 1., 2.],
                          [0., 0., 1.]], dtype=np.float32)
-        self.cube = set_up_variable_cube(data, name="rainfall_rate",
-            units="mm h-1", spatial_grid="equalarea")
+        self.cube = set_up_variable_cube(
+            data, name="rainfall_rate", units="mm h-1",
+            spatial_grid="equalarea",
+            time=datetime.datetime(2017, 11, 10, 4, 0),
+            frt=datetime.datetime(2017, 11, 10, 4, 0))
         self.cube.coord("projection_y_coordinate").points = (
             self.plugin.y_coord.points)
         self.cube.coord("projection_y_coordinate").bounds = (
@@ -399,6 +404,26 @@ class Test_process(IrisTest):
         lead_time = result.coord("forecast_period").points
         self.assertEqual(len(lead_time), 1)
         self.assertEqual(lead_time[0], self.timestep.total_seconds())
+
+    def test_units_and_datatypes_for_time_coordinates(self):
+        """Test that the output cube contains the desired units and datatypes
+        for the time, forecast_reference_time and forecast_period coordinate.
+        """
+        result = self.plugin.process(self.cube, self.timestep)
+        self.assertEqual(result.coord("forecast_period").points, 600)
+        # 2017-11-10 04:10:00
+        self.assertEqual(result.coord("time").points, 1510287000)
+        self.assertEqual(
+            result.coord("forecast_reference_time").points, 1510286400)
+        self.assertEqual(result.coord("forecast_period").units, "seconds")
+        self.assertEqual(result.coord("time").units,
+                         "seconds since 1970-01-01 00:00:00")
+        self.assertEqual(result.coord("forecast_reference_time").units,
+                         "seconds since 1970-01-01 00:00:00")
+        self.assertEqual(result.coord("forecast_period").dtype, np.int32)
+        self.assertEqual(result.coord("time").dtype, np.int64)
+        self.assertEqual(
+            result.coord("forecast_reference_time").dtype, np.int64)
 
 
 if __name__ == '__main__':
