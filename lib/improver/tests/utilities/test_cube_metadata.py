@@ -39,6 +39,7 @@ from iris.tests import IrisTest
 from iris.cube import Cube
 from iris.coords import DimCoord, AuxCoord
 from cf_units import Unit
+from datetime import datetime as dt
 
 from improver.utilities.cube_metadata import (
     add_coord,
@@ -53,43 +54,37 @@ from improver.utilities.cube_metadata import (
 from improver.utilities.warnings_handler import ManageWarnings
 from improver.utilities.temporal import forecast_period_coord
 
-from improver.tests.set_up_test_cubes import set_up_variable_cube
+from improver.tests.set_up_test_cubes import (
+    set_up_variable_cube, set_up_probability_cube, add_coordinate)
 
 
-def create_cube_with_threshold(data=None,
-                               long_name=None,
-                               threshold_values=None,
-                               units=None):
-    """Create a cube with threshold coord."""
+def create_cube_with_threshold(data=None, threshold_values=None):
+    """
+    Create a cube with threshold coord.  Data and threshold values MUST be
+    provided as float32 (not float64), or cube setup will fail.
+    """
     if threshold_values is None:
-        threshold_values = [1.0]
+        threshold_values = np.array([1.0], dtype=np.float32)
+
     if data is None:
-        data = np.zeros((len(threshold_values), 2, 2, 2))
+        data = np.zeros((len(threshold_values), 2, 2, 2), dtype=np.float32)
         data[:, 0, :, :] = 0.5
         data[:, 1, :, :] = 0.6
-    if long_name is None:
-        long_name = "probability_of_rainfall_rate"
-    if units is None:
-        units = "m s^-1"
 
-    cube = Cube(data, long_name=long_name, units='1')
-    cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 2), 'latitude',
-                                units='degrees'), 2)
-    cube.add_dim_coord(DimCoord(np.linspace(120, 180, 2), 'longitude',
-                                units='degrees'), 3)
-    time_origin = "seconds since 1970-01-01 00:00:00"
-    calendar = "gregorian"
-    tunit = Unit(time_origin, calendar)
-    cube.add_dim_coord(DimCoord([1447893000, 1447896600],
-                                "time", units=tunit), 1)
-    cube.add_dim_coord(DimCoord(threshold_values,
-                                long_name='threshold',
-                                units=units), 0)
-    cube.add_aux_coord(AuxCoord([1447884000],
-                                standard_name='forecast_reference_time',
-                                units=tunit), None)
-    cube.add_aux_coord(forecast_period_coord(cube), 1)
-    cube.attributes['relative_to_threshold'] = 'above'
+    long_name = "probability_of_rainfall_rate"
+    units = "m s^-1"
+
+    cube = set_up_probability_cube(
+        data[:, 0, :, :], threshold_values, variable_name=long_name,
+        threshold_units=units, time=dt(2015, 11, 19, 1, 30),
+        frt=dt(2015, 11, 18, 22, 0))
+
+    time_points = [dt(2015, 11, 19, 0, 30), dt(2015, 11, 19, 1, 30)]
+    cube = add_coordinate(
+        cube, time_points, "time", order=[1, 0, 2, 3], is_datetime=True)
+
+    cube.data = data
+
     return cube
 
 
@@ -132,6 +127,9 @@ class Test_update_stage_v110_metadata(IrisTest):
 class Test_add_coord(IrisTest):
 
     """Test the add_coord method."""
+    def setUp(self):
+        """Set up a test cube"""
+        self.cube = create_cube_with_threshold()
 
     def setUp(self):
         """Set up information for testing."""
@@ -161,10 +159,7 @@ class Test_add_coord(IrisTest):
         coord_name = 'threshold'
         self.cube.remove_coord(coord_name)
         cube = iris.util.squeeze(self.cube)
-        changes = {
-            'bounds': [0.1, 2.0],
-            'units':  'mm'
-            }
+        changes = {'bounds': [0.1, 2.0], 'units': 'mm'}
         msg = 'Trying to add new coord but no points defined'
         with self.assertRaisesRegex(ValueError, msg):
             add_coord(cube, coord_name, changes)
@@ -174,9 +169,7 @@ class Test_add_coord(IrisTest):
         coord_name = 'threshold'
         self.cube.remove_coord(coord_name)
         cube = iris.util.squeeze(self.cube)
-        changes = {
-            'points': [0.1, 2.0]
-            }
+        changes = {'points': [0.1, 2.0]}
         msg = 'Can not add a coordinate of length > 1'
         with self.assertRaisesRegex(ValueError, msg):
             add_coord(cube, coord_name, changes)
@@ -199,15 +192,15 @@ class Test_update_coord(IrisTest):
 
     """Test the update_coord method."""
 
+    def setUp(self):
+        """Set up test cube and thresholds"""
+        self.cube = create_cube_with_threshold()
+        self.thresholds = np.array([2.0, 3.0], dtype=np.float32)
+
     def test_basic(self):
-        """Test update_coord returns a Cube and updates coordinate points and
-        bounds correctly. """
-        cube = create_cube_with_threshold()
-        changes = {
-            'points': [2.0],
-            'bounds': [0.1, 2.0],
-            }
-        result = update_coord(cube, 'threshold', changes)
+        """Test update_coord returns a Cube and updates coord correctly. """
+        changes = {'points': [2.0], 'bounds': [0.1, 2.0], 'units': 'mm'}
+        result = update_coord(self.cube, 'threshold', changes)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.coord('threshold').points,
                                     np.array([2.0], dtype=np.float32))
@@ -225,29 +218,26 @@ class Test_update_coord(IrisTest):
 
     def test_coords_deleted(self):
         """Test update_coord deletes coordinate. """
-        cube = create_cube_with_threshold()
         changes = 'delete'
-        result = update_coord(cube, 'threshold', changes)
+        result = update_coord(self.cube, 'threshold', changes)
         found_key = 'threshold' in [coord.name() for coord in result.coords()]
         self.assertArrayEqual(found_key,
                               False)
 
     def test_coords_deleted_fails(self):
         """Test update_coord fails to delete coord of len > 1. """
-        cube = create_cube_with_threshold()
         changes = 'delete'
         msg = "Can only remove a coordinate of length 1"
         with self.assertRaisesRegex(ValueError, msg):
-            update_coord(cube, 'time', changes)
+            update_coord(self.cube, 'time', changes)
 
     @ManageWarnings(record=True)
     def test_warning_messages_with_delete(self, warning_list=None):
         """Test warning message is raised correctly when deleting coord. """
         coord_name = 'threshold'
-        cube = create_cube_with_threshold()
         changes = 'delete'
         warning_msg = "Deleted coordinate"
-        update_coord(cube, coord_name, changes, warnings_on=True)
+        update_coord(self.cube, coord_name, changes, warnings_on=True)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         self.assertTrue(any(warning_msg in str(item)
@@ -255,15 +245,14 @@ class Test_update_coord(IrisTest):
 
     def test_coords_update_fail_points(self):
         """Test that update_coord fails if points do not match. """
-        cube = create_cube_with_threshold()
         changes = {'points': [2.0, 3.0]}
         msg = "Mismatch in points in existing coord and updated metadata"
         with self.assertRaisesRegex(ValueError, msg):
-            update_coord(cube, 'threshold', changes)
+            update_coord(self.cube, 'threshold', changes)
 
     def test_coords_update_fail_bounds(self):
         """Test update_coord fails if shape of new bounds do not match. """
-        cube = create_cube_with_threshold(threshold_values=[2.0, 3.0])
+        cube = create_cube_with_threshold(threshold_values=self.thresholds)
         changes = {'bounds': [0.1, 2.0]}
         msg = "The shape of the bounds array should be"
         with self.assertRaisesRegex(ValueError, msg):
@@ -271,7 +260,7 @@ class Test_update_coord(IrisTest):
 
     def test_coords_update_bounds_succeed(self):
         """Test that update_coord succeeds if bounds do match """
-        cube = create_cube_with_threshold(threshold_values=[2.0, 3.0])
+        cube = create_cube_with_threshold(threshold_values=self.thresholds)
         cube.coord('threshold').guess_bounds()
         changes = {'bounds': [[0.1, 2.0], [2.0, 3.0]]}
         result = update_coord(cube, 'threshold', changes)
@@ -281,7 +270,7 @@ class Test_update_coord(IrisTest):
 
     def test_coords_update_fails_bounds_differ(self):
         """Test that update_coord fails if bounds differ."""
-        cube = create_cube_with_threshold(threshold_values=[2.0, 3.0])
+        cube = create_cube_with_threshold(threshold_values=self.thresholds)
         cube.coord('threshold').guess_bounds()
         changes = {'bounds': [[0.1, 2.0], [2.0, 3.0], [3.0, 4.0]]}
         msg = "Mismatch in bounds in existing coord and updated metadata"
@@ -292,13 +281,9 @@ class Test_update_coord(IrisTest):
     def test_warning_messages_with_update(self, warning_list=None):
         """Test warning message is raised correctly when updating coord. """
         coord_name = 'threshold'
-        cube = create_cube_with_threshold()
-        changes = {
-            'points': [2.0],
-            'bounds': [0.1, 2.0],
-            }
+        changes = {'points': [2.0], 'bounds': [0.1, 2.0], 'units': 'mm'}
         warning_msg = "Updated coordinate"
-        update_coord(cube, coord_name, changes, warnings_on=True)
+        update_coord(self.cube, coord_name, changes, warnings_on=True)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         self.assertTrue(any(warning_msg in str(item)
@@ -327,12 +312,15 @@ class Test_update_attribute(IrisTest):
 
     """Test the update_attribute method."""
 
+    def setUp(self):
+        """Set up test cube"""
+        self.cube = create_cube_with_threshold()
+
     def test_basic(self):
         """Test that update_attribute returns a Cube and updates OK. """
-        cube = create_cube_with_threshold()
         attribute_name = 'relative_to_threshold'
         changes = 'between'
-        result = update_attribute(cube, attribute_name, changes)
+        result = update_attribute(self.cube, attribute_name, changes)
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.attributes['relative_to_threshold'],
                          'between')
@@ -340,11 +328,10 @@ class Test_update_attribute(IrisTest):
     @ManageWarnings(record=True)
     def test_attributes_updated_warnings(self, warning_list=None):
         """Test update_attribute updates attributes and gives warning. """
-        cube = create_cube_with_threshold()
         attribute_name = 'relative_to_threshold'
         changes = 'between'
         warning_msg = "Adding or updating attribute"
-        result = update_attribute(cube, attribute_name, changes,
+        result = update_attribute(self.cube, attribute_name, changes,
                                   warnings_on=True)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
@@ -355,46 +342,41 @@ class Test_update_attribute(IrisTest):
 
     def test_attributes_added(self):
         """Test update_attribute adds attribute OK. """
-        cube = create_cube_with_threshold()
         attribute_name = 'new_attribute'
         changes = 'new_value'
-        result = update_attribute(cube, attribute_name, changes)
+        result = update_attribute(self.cube, attribute_name, changes)
         self.assertEqual(result.attributes['new_attribute'],
                          'new_value')
 
     def test_history_attribute_added(self):
         """Test update_attribute adds attribute OK. """
-        cube = create_cube_with_threshold()
         attribute_name = 'history'
         changes = ['add', "Nowcast"]
-        result = update_attribute(cube, attribute_name, changes)
+        result = update_attribute(self.cube, attribute_name, changes)
         self.assertTrue("history" in result.attributes.keys())
 
     def test_failure_to_add_history_attribute(self):
-        """Test update_attribute adds attribute OK. """
-        cube = create_cube_with_threshold()
+        """Test update_attribute doesn't adds non-history attribute. """
         attribute_name = 'new_attribute'
         changes = 'add'
         msg = "Only the history attribute can be added"
         with self.assertRaisesRegex(ValueError, msg):
-            update_attribute(cube, attribute_name, changes)
+            update_attribute(self.cube, attribute_name, changes)
 
     def test_attributes_deleted(self):
         """Test update_attribute deletes attribute OK. """
-        cube = create_cube_with_threshold()
         attribute_name = 'relative_to_threshold'
         changes = 'delete'
-        result = update_attribute(cube, attribute_name, changes)
+        result = update_attribute(self.cube, attribute_name, changes)
         self.assertFalse('relative_to_threshold' in result.attributes)
 
     @ManageWarnings(record=True)
     def test_attributes_deleted_warnings(self, warning_list=None):
         """Test update_attribute deletes and gives warning. """
-        cube = create_cube_with_threshold()
         attribute_name = 'relative_to_threshold'
         changes = 'delete'
         warning_msg = "Deleted attribute"
-        result = update_attribute(cube, attribute_name, changes,
+        result = update_attribute(self.cube, attribute_name, changes,
                                   warnings_on=True)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
@@ -405,10 +387,9 @@ class Test_update_attribute(IrisTest):
     def test_attributes_deleted_when_not_present(self):
         """Test update_attribute copes when an attribute is requested to be
         deleted, but this attribute is not available on the input cube."""
-        cube = create_cube_with_threshold()
         attribute_name = 'invalid_name'
         changes = 'delete'
-        result = update_attribute(cube, attribute_name, changes)
+        result = update_attribute(self.cube, attribute_name, changes)
         self.assertFalse('invalid_name' in result.attributes)
 
 
@@ -416,10 +397,13 @@ class Test_update_cell_methods(IrisTest):
 
     """Test that the cell methods are updated."""
 
+    def setUp(self):
+        """Set up test cube"""
+        self.cube = create_cube_with_threshold()
+
     def test_add_cell_method(self):
         """Test adding a cell method, where all cell method elements are
         present i.e. method, coords, intervals and comments."""
-        cube = create_cube_with_threshold()
         cell_methods = {'action': 'add',
                         'method': 'point',
                         'coords': 'time',
@@ -428,26 +412,24 @@ class Test_update_cell_methods(IrisTest):
         cm = deepcopy(cell_methods)
         cm.pop('action')
         expected_cell_method = iris.coords.CellMethod(**cm)
-        update_cell_methods(cube, cell_methods)
-        self.assertEqual((expected_cell_method,), cube.cell_methods)
+        update_cell_methods(self.cube, cell_methods)
+        self.assertEqual((expected_cell_method,), self.cube.cell_methods)
 
     def test_add_cell_method_partial_information(self):
         """Test adding a cell method, where there is only partial
         information available i.e. just method and coords."""
-        cube = create_cube_with_threshold()
         cell_methods = {'action': 'add',
                         'method': 'point',
                         'coords': 'time'}
         cm = deepcopy(cell_methods)
         cm.pop('action')
         expected_cell_method = iris.coords.CellMethod(**cm)
-        update_cell_methods(cube, cell_methods)
-        self.assertEqual((expected_cell_method,), cube.cell_methods)
+        update_cell_methods(self.cube, cell_methods)
+        self.assertEqual((expected_cell_method,), self.cube.cell_methods)
 
     def test_add_cell_method_empty_method(self):
         """Test add a cell method, where the method element is specified
         as an emtpy string."""
-        cube = create_cube_with_threshold()
         cell_methods = {'action': 'add',
                         'method': '',
                         'coords': 'time',
@@ -455,11 +437,10 @@ class Test_update_cell_methods(IrisTest):
                         'comments': ()}
         msg = "No method has been specified within the cell method"
         with self.assertRaisesRegex(ValueError, msg):
-            update_cell_methods(cube, cell_methods)
+            update_cell_methods(self.cube, cell_methods)
 
     def test_add_cell_method_no_coords(self):
         """Test add a cell method, where no coords element is specified."""
-        cube = create_cube_with_threshold()
         cell_methods = {'action': 'add',
                         'method': 'point',
                         'coords': (),
@@ -468,27 +449,25 @@ class Test_update_cell_methods(IrisTest):
         cm = deepcopy(cell_methods)
         cm.pop('action')
         expected_cell_method = iris.coords.CellMethod(**cm)
-        update_cell_methods(cube, cell_methods)
-        self.assertEqual((expected_cell_method,), cube.cell_methods)
+        update_cell_methods(self.cube, cell_methods)
+        self.assertEqual((expected_cell_method,), self.cube.cell_methods)
 
     def test_add_cell_method_already_on_cube(self):
         """Test that there is no change to the cell method, if the specified
         cell method is already on the cube."""
-        cube = create_cube_with_threshold()
         cell_methods = {'action': 'add',
                         'method': 'point',
                         'coords': 'time'}
         cm = deepcopy(cell_methods)
         cm.pop('action')
-        cube.cell_methods = (iris.coords.CellMethod(**cm),)
+        self.cube.cell_methods = (iris.coords.CellMethod(**cm),)
         expected_cell_method = iris.coords.CellMethod(**cm)
-        update_cell_methods(cube, cell_methods)
-        self.assertEqual((expected_cell_method,), cube.cell_methods)
+        update_cell_methods(self.cube, cell_methods)
+        self.assertEqual((expected_cell_method,), self.cube.cell_methods)
 
     def test_add_additional_cell_method_to_cube(self):
         """Test that there is no change to the cell method, if the specified
         cell method is already on the cube."""
-        cube = create_cube_with_threshold()
         existing_cell_methods = {'action': 'add',
                                  'method': 'point',
                                  'coords': 'time'}
@@ -497,17 +476,16 @@ class Test_update_cell_methods(IrisTest):
                                    'coords': 'realization'}
         cm = deepcopy(existing_cell_methods)
         cm.pop('action')
-        cube.cell_methods = (iris.coords.CellMethod(**cm),)
+        self.cube.cell_methods = (iris.coords.CellMethod(**cm),)
         cm = deepcopy(additional_cell_methods)
         cm.pop('action')
         expected_cell_method = iris.coords.CellMethod(**cm)
-        update_cell_methods(cube, additional_cell_methods)
-        self.assertTrue(expected_cell_method in cube.cell_methods)
+        update_cell_methods(self.cube, additional_cell_methods)
+        self.assertTrue(expected_cell_method in self.cube.cell_methods)
 
     def test_remove_cell_method(self):
         """Test removing a cell method, when the specified cell method is
         already on the input cube."""
-        cube = create_cube_with_threshold()
         cell_methods = {'action': 'delete',
                         'method': 'point',
                         'coords': 'time',
@@ -515,40 +493,42 @@ class Test_update_cell_methods(IrisTest):
                         'comments': ()}
         cm = deepcopy(cell_methods)
         cm.pop('action')
-        cube.cell_methods = (iris.coords.CellMethod(**cm),)
-        update_cell_methods(cube, cell_methods)
-        self.assertEqual(cube.cell_methods, ())
+        self.cube.cell_methods = (iris.coords.CellMethod(**cm),)
+        update_cell_methods(self.cube, cell_methods)
+        self.assertEqual(self.cube.cell_methods, ())
 
     def test_add_cell_method_no_action(self):
         """Test adding a cell method, where no action is specified."""
-        cube = create_cube_with_threshold()
         cell_methods = {'method': 'point',
                         'coords': 'time',
                         'intervals': (),
                         'comments': ()}
         msg = "No action has been specified within the cell method definition."
         with self.assertRaisesRegex(ValueError, msg):
-            update_cell_methods(cube, cell_methods)
+            update_cell_methods(self.cube, cell_methods)
 
 
 class Test_amend_metadata(IrisTest):
 
     """Test the amend_metadata method."""
 
+    def setUp(self):
+        """Set up test cube"""
+        self.cube = create_cube_with_threshold()
+
     def test_basic(self):
         """Test that the function returns a Cube. """
-        cube = create_cube_with_threshold()
-        result = amend_metadata(cube, name='new_cube_name', data_type=np.dtype)
+        result = amend_metadata(self.cube, name='new_cube_name', data_type=np.dtype)
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), 'new_cube_name')
 
     def test_attributes_updated_and_added(self):
         """Test amend_metadata updates and adds attributes OK. """
-        cube = create_cube_with_threshold()
         attributes = {'relative_to_threshold': 'between',
                       'new_attribute': 'new_value'}
-        result = amend_metadata(cube, name='new_cube_name', data_type=np.dtype,
-                                attributes=attributes)
+        result = amend_metadata(
+            self.cube, name='new_cube_name', data_type=np.dtype,
+            attributes=attributes)
         self.assertEqual(result.attributes['relative_to_threshold'],
                          'between')
         self.assertEqual(result.attributes['new_attribute'],
@@ -556,19 +536,19 @@ class Test_amend_metadata(IrisTest):
 
     def test_attributes_deleted(self):
         """Test amend_metadata updates attributes OK. """
-        cube = create_cube_with_threshold()
         attributes = {'relative_to_threshold': 'delete'}
-        result = amend_metadata(cube, name='new_cube_name', data_type=np.dtype,
-                                attributes=attributes)
+        result = amend_metadata(
+            self.cube, name='new_cube_name', data_type=np.dtype,
+            attributes=attributes)
         self.assertFalse('relative_to_threshold' in result.attributes)
 
     def test_coords_updated(self):
         """Test amend_metadata returns a Cube and updates coord correctly. """
-        cube = create_cube_with_threshold()
         updated_coords = {'threshold': {'points': [2.0]},
                           'time': {'points': [402193.5, 402194.5]}}
-        result = amend_metadata(cube, name='new_cube_name', data_type=np.dtype,
-                                coordinates=updated_coords)
+        result = amend_metadata(
+            self.cube, name='new_cube_name', data_type=np.dtype,
+            coordinates=updated_coords)
         self.assertArrayEqual(result.coord('threshold').points,
                               np.array([2.0]))
         self.assertArrayEqual(result.coord('time').points,
@@ -576,11 +556,11 @@ class Test_amend_metadata(IrisTest):
 
     def test_coords_deleted_and_adds(self):
         """Test amend metadata deletes and adds coordinate. """
-        cube = create_cube_with_threshold()
         coords = {'threshold': 'delete',
                   'new_coord': {'points': [2.0]}}
-        result = amend_metadata(cube, name='new_cube_name', data_type=np.dtype,
-                                coordinates=coords)
+        result = amend_metadata(
+            self.cube, name='new_cube_name', data_type=np.dtype,
+            coordinates=coords)
         found_key = 'threshold' in [coord.name() for coord in result.coords()]
         self.assertFalse(found_key)
         self.assertArrayEqual(result.coord('new_coord').points,
@@ -588,29 +568,29 @@ class Test_amend_metadata(IrisTest):
 
     def test_cell_method_updated_and_added(self):
         """Test amend_metadata updates and adds a cell method. """
-        cube = create_cube_with_threshold()
         cell_methods = {"1": {"action": "add",
                               "method": "point",
                               "coords": "time"}}
         cm = deepcopy(cell_methods)
         cm["1"].pop("action")
         expected_cell_method = iris.coords.CellMethod(**cm["1"])
-        result = amend_metadata(cube, name='new_cube_name', data_type=np.dtype,
-                                cell_methods=cell_methods)
+        result = amend_metadata(
+            self.cube, name='new_cube_name', data_type=np.dtype,
+            cell_methods=cell_methods)
         self.assertTrue(expected_cell_method in result.cell_methods)
 
     def test_cell_method_deleted(self):
         """Test amend_metadata updates attributes OK. """
-        cube = create_cube_with_threshold()
         cell_methods = {"1": {"action": "delete",
                               "method": "point",
                               "coords": "time"}}
         cm = deepcopy(cell_methods)
         cm["1"].pop("action")
         cell_method = iris.coords.CellMethod(**cm["1"])
-        cube.cell_methods = (cell_method,)
-        result = amend_metadata(cube, name='new_cube_name', data_type=np.dtype,
-                                cell_methods=cell_methods)
+        self.cube.cell_methods = (cell_method,)
+        result = amend_metadata(
+            self.cube, name='new_cube_name', data_type=np.dtype,
+            cell_methods=cell_methods)
         self.assertEqual(result.cell_methods, ())
 
     def test_convert_units(self):
@@ -624,15 +604,14 @@ class Test_amend_metadata(IrisTest):
     @ManageWarnings(record=True)
     def test_warnings_on_works(self, warning_list=None):
         """Test amend_metadata raises warnings """
-        cube = create_cube_with_threshold()
         updated_attributes = {'new_attribute': 'new_value'}
         updated_coords = {'threshold': {'points': [2.0]}}
         warning_msg_attr = "Adding or updating attribute"
         warning_msg_coord = "Updated coordinate"
-        result = amend_metadata(cube, name='new_cube_name', data_type=np.dtype,
-                                coordinates=updated_coords,
-                                attributes=updated_attributes,
-                                warnings_on=True)
+        result = amend_metadata(
+            self.cube, name='new_cube_name', data_type=np.dtype,
+            coordinates=updated_coords, attributes=updated_attributes,
+            warnings_on=True)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         self.assertTrue(any(warning_msg_attr in str(item)
@@ -649,38 +628,15 @@ class Test_resolve_metadata_diff(IrisTest):
 
     def setUp(self):
         """Create a cube with threshold coord is not first coord."""
-        threshold_values = [1.0]
-        data = np.zeros((2, len(threshold_values), 2, 2, 2))
-        data[:, :, 0, :, :] = 0.5
-        data[:, :, 1, :, :] = 0.6
-        long_name = "probability_of_rainfall_rate"
-        units = "m s^-1"
-
-        self.cube = Cube(data, long_name=long_name, units='1')
-        self.cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, 2),
-                                         'latitude',
-                                         units='degrees'), 3)
-        self.cube.add_dim_coord(DimCoord(np.linspace(120, 180, 2),
-                                         'longitude',
-                                         units='degrees'), 4)
-        time_origin = "hours since 1970-01-01 00:00:00"
-        calendar = "gregorian"
-        tunit = Unit(time_origin, calendar)
-        self.cube.add_dim_coord(DimCoord([402192.5, 402193.5],
-                                         "time", units=tunit), 2)
-        self.cube.add_dim_coord(DimCoord(threshold_values,
-                                         long_name='threshold',
-                                         units=units), 1)
-        self.cube.add_dim_coord(DimCoord([0, 1],
-                                         long_name='realization',
-                                         units=units), 0)
-        self.cube.attributes['relative_to_threshold'] = 'above'
+        self.cube1 = create_cube_with_threshold()
+        self.cube2 = add_coordinate(
+            self.cube1, np.arange(2).astype(np.float32),
+            "realization", dtype=np.float32)
 
     def test_basic(self):
         """Test that the function returns a tuple of Cubes. """
-        cube1 = create_cube_with_threshold()
-        cube2 = cube1.copy()
-        result = resolve_metadata_diff(cube1, cube2)
+        cube2 = self.cube1.copy()
+        result = resolve_metadata_diff(self.cube1, cube2)
         self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 2)
         self.assertIsInstance(result[0], Cube)
@@ -688,30 +644,28 @@ class Test_resolve_metadata_diff(IrisTest):
 
     def test_mismatching_coords_wrong_shape(self):
         """Test raises an error if shape do not match. """
-        cube1 = create_cube_with_threshold()
-        cube2 = create_cube_with_threshold(threshold_values=[1.0, 2.0])
+        cube2 = create_cube_with_threshold(
+            threshold_values=np.array([1.0, 2.0], dtype=np.float32))
         msg = "Can not combine cubes, mismatching shapes"
         with self.assertRaisesRegex(ValueError, msg):
-            resolve_metadata_diff(cube1, cube2)
+            resolve_metadata_diff(self.cube1, cube2)
 
     def test_mismatching_coords_1d_coord_pos0_on_cube1(self):
         """Test missing coord on cube2. Coord is leading coord in cube1."""
-        cube1 = create_cube_with_threshold()
-        cube2 = cube1.copy()
+        cube2 = self.cube1.copy()
         cube2.remove_coord('threshold')
         cube2 = iris.util.squeeze(cube2)
-        result = resolve_metadata_diff(cube1, cube2)
+        result = resolve_metadata_diff(self.cube1, cube2)
         self.assertIsInstance(result, tuple)
         self.assertArrayEqual(result[0].shape, np.array([1, 2, 2, 2]))
         self.assertArrayEqual(result[1].shape, np.array([1, 2, 2, 2]))
 
     def test_mismatching_coords_1d_coord_pos0_on_cube2(self):
         """Test missing coord on cube1. Coord is leading coord in cube2."""
-        cube1 = create_cube_with_threshold()
-        cube2 = cube1.copy()
-        cube1.remove_coord('threshold')
-        cube1 = iris.util.squeeze(cube1)
-        result = resolve_metadata_diff(cube1, cube2)
+        cube2 = self.cube1.copy()
+        self.cube1.remove_coord('threshold')
+        self.cube1 = iris.util.squeeze(self.cube1)
+        result = resolve_metadata_diff(self.cube1, cube2)
         self.assertIsInstance(result, tuple)
         self.assertArrayEqual(result[0].shape, np.array([2, 2, 2]))
         self.assertArrayEqual(result[1].shape, np.array([2, 2, 2]))
@@ -719,11 +673,10 @@ class Test_resolve_metadata_diff(IrisTest):
     def test_mismatching_coords_1d_coord_pos1_cube1(self):
         """Test missing 1d coord on cube2.
            Coord is not leading coord in cube1."""
-        cube1 = self.cube
-        cube2 = cube1.copy()
+        cube2 = self.cube2.copy()
         cube2.remove_coord('threshold')
         cube2 = iris.util.squeeze(cube2)
-        result = resolve_metadata_diff(cube1, cube2)
+        result = resolve_metadata_diff(self.cube2, cube2)
         self.assertIsInstance(result, tuple)
         self.assertArrayEqual(result[0].shape, np.array([2, 1, 2, 2, 2]))
         self.assertArrayEqual(result[1].shape, np.array([2, 1, 2, 2, 2]))
@@ -731,20 +684,19 @@ class Test_resolve_metadata_diff(IrisTest):
     def test_mismatching_coords_1d_coord_pos1_cube2(self):
         """Test missing 1d coord on cube1.
            Coord is not leading coord in cube2."""
-        cube1 = self.cube
-        cube2 = cube1.copy()
-        cube1.remove_coord('threshold')
-        cube1 = iris.util.squeeze(cube1)
-        result = resolve_metadata_diff(cube1, cube2)
+        cube2 = self.cube2.copy()
+        self.cube2.remove_coord('threshold')
+        self.cube2 = iris.util.squeeze(self.cube2)
+        result = resolve_metadata_diff(self.cube2, cube2)
         self.assertIsInstance(result, tuple)
         self.assertArrayEqual(result[0].shape, np.array([2, 2, 2, 2]))
         self.assertArrayEqual(result[1].shape, np.array([2, 2, 2, 2]))
 
     def test_mismatching_coords_same_shape(self):
         """Test works with mismatching coords but coords same shape."""
-        cube1 = create_cube_with_threshold()
-        cube2 = create_cube_with_threshold(threshold_values=[2.0])
-        result = resolve_metadata_diff(cube1, cube2)
+        cube2 = create_cube_with_threshold(
+            threshold_values=np.array([2.0], dtype=np.float32))
+        result = resolve_metadata_diff(self.cube1, cube2)
         self.assertIsInstance(result, tuple)
         self.assertArrayEqual(result[0].coord('threshold').points,
                               np.array([1.0]))
@@ -754,12 +706,11 @@ class Test_resolve_metadata_diff(IrisTest):
     @ManageWarnings(record=True)
     def test_warnings_on_work(self, warning_list=None):
         """Test warning messages are given if warnings_on is set."""
-        cube1 = create_cube_with_threshold()
-        cube2 = cube1.copy()
+        cube2 = self.cube1.copy()
         cube2.remove_coord('threshold')
         cube2 = iris.util.squeeze(cube2)
         warning_msg = 'Adding new coordinate'
-        result = resolve_metadata_diff(cube1, cube2,
+        result = resolve_metadata_diff(self.cube1, cube2,
                                        warnings_on=True)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
