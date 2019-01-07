@@ -162,6 +162,7 @@ class test_set_up_variable_cube(IrisTest):
 
         # check type, data and attributes
         self.assertIsInstance(result, iris.cube.Cube)
+        self.assertEqual(result.standard_name, 'air_temperature')
         self.assertEqual(result.name(), 'air_temperature')
         self.assertEqual(result.units, 'K')
         self.assertArrayAlmostEqual(result.data, self.data)
@@ -188,6 +189,11 @@ class test_set_up_variable_cube(IrisTest):
         self.assertEqual(result.coord("forecast_period").units, "seconds")
         self.assertEqual(result.coord("forecast_period").points[0], 14400)
 
+    def test_non_standard_name(self):
+        """Test non CF standard cube naming"""
+        result = set_up_variable_cube(self.data, name="temp_in_the_air")
+        self.assertEqual(result.name(), "temp_in_the_air")
+       
     def test_var_name(self):
         """Test ability to set data name and units"""
         result = set_up_variable_cube(
