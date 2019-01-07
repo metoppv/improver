@@ -37,18 +37,73 @@ from iris.coords import AuxCoord
 from iris.tests import IrisTest
 import numpy as np
 from copy import deepcopy
+from datetime import datetime as dt
 
 from improver.blending.weights import ChooseWeightsLinear
+from improver.utilities.temporal import forecast_period_coord
+
 from improver.tests.blending.weights.helper_functions import (
-    set_up_temperature_cube, set_up_basic_model_config_cube,
-    set_up_weights_cube, set_up_basic_weights_cube,
-    add_model_id_and_model_configuration, add_height)
+    set_up_temperature_cube, set_up_weights_cube,
+    add_model_id_and_model_configuration)
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
+
+from improver.tests.set_up_test_cubes import (
+    set_up_variable_cube, set_up_probability_cube, add_coordinate)
+
 
 CONFIG_DICT_UKV = {"uk_det": {"forecast_period": [7, 12, 48, 54],
                               "weights": [0, 1, 1, 0],
                               "units": "hours"}}
+
+
+def set_up_basic_model_config_cube():
+    """Set up cube with model configuration scalar coords for testing"""
+
+    model_id_coord = AuxCoord([1000], long_name="model_id")
+    model_config_coord = AuxCoord(["uk_det"], long_name="model_configuration")
+
+    data = np.full((1, 2, 2), 275.15, dtype=np.float32)
+    cube = set_up_variable_cube(
+        data, time=dt(2017, 1, 10, 3, 0), frt=dt(2017, 1, 10, 3, 0),
+        include_scalar_coords=[model_id_coord, model_config_coord])
+    time_points = [dt(2017, 1, 10, 9, 0), dt(2017, 1, 10, 10, 0),
+                    dt(2017, 1, 10, 11, 0)]
+    cube = add_coordinate(
+        cube, time_points, "time", is_datetime=True, order=[1, 0, 2, 3])
+
+    return cube
+
+
+def set_up_basic_weights_cube():
+    """Set up cube with model configuration scalar coords for testing"""
+
+    model_id_coord = AuxCoord([1000], long_name="model_id")
+    model_config_coord = AuxCoord(["uk_det"], long_name="model_configuration")
+
+    weights_cube = set_up_variable_cube(
+        np.zeros((1, 2, 2), dtype=np.float32), name="weights", units=1,
+        time=dt(2017, 1, 10, 3, 0), frt=dt(2017, 1, 10, 3, 0),
+        include_scalar_coords=[model_id_coord, model_config_coord])
+    time_points = [dt(2017, 1, 10, 10, 0), dt(2017, 1, 10, 15, 0),
+                   dt(2017, 1, 12, 3, 0), dt(2017, 1, 12, 9, 0)]
+    weights_cube = add_coordinate(weights_cube, time_points, "time",
+                                    is_datetime=True, order=[1, 0, 2, 3])
+    weights_cube.data = np.array([[[[0., 0.], [0., 0.]],
+                                   [[1., 1.], [1., 1.]],
+                                   [[1., 1.], [1., 1.]],
+                                   [[0., 0.], [0., 0.]]]], dtype=np.float32)
+    return weights_cube
+
+
+def update_time_and_forecast_period(cube, increment):
+    """Updates time and forecast period points on an existing cube by a given
+    increment (in units of time)"""
+    cube.coord("time").points = cube.coord("time").points + increment
+    forecast_period = forecast_period_coord(
+        cube, force_lead_time_calculation=True)
+    cube.replace_coord(forecast_period)
+    return cube
 
 
 class Test__init__(IrisTest):
@@ -144,24 +199,17 @@ class Test__get_interpolation_inputs_from_cube(IrisTest):
     def test_basic(self):
         """Test that the values for the source_points, target_points,
         source_weights, axis and fill_value are as expected."""
-        expected_source_points = [7, 12, 48, 54]
-        expected_target_points = [6., 7., 8.]
-        expected_source_weights = np.array([[[[0., 0.],
-                                              [0., 0.]],
-                                             [[1., 1.],
-                                              [1., 1.]],
-                                             [[1., 1.],
-                                              [1., 1.]],
-                                             [[0., 0.],
-                                              [0., 0.]]]])
+        cube = set_up_basic_model_config_cube()
+        weights_cube = set_up_basic_weights_cube()
+
+        expected_source_points = 3600*np.array([7, 12, 48, 54])
+        expected_target_points = 3600*np.array([6., 7., 8.])
+        expected_source_weights = weights_cube.data
         expected_axis = 1
         expected_fill_value = (np.array([[[0., 0.],
                                           [0., 0.]]]),
                                np.array([[[0., 0.],
                                           [0., 0.]]]))
-
-        cube = set_up_basic_model_config_cube()
-        weights_cube = set_up_basic_weights_cube()
 
         plugin = ChooseWeightsLinear("forecast_period")
         source_points, target_points, source_weights, axis, fill_value = (
@@ -179,8 +227,8 @@ class Test__get_interpolation_inputs_from_dict(IrisTest):
 
     def setUp(self):
         """Set up some plugin inputs"""
-        self.expected_source_points = [7, 12, 48, 54]
-        self.expected_target_points = [6., 7., 8.]
+        self.expected_source_points = 3600*np.array([7, 12, 48, 54])
+        self.expected_target_points = 3600*np.array([6., 7., 8.])
         self.expected_source_weights = [0, 1, 1, 0]
         self.expected_fill_value = (0, 0)
 
@@ -397,10 +445,7 @@ class Test__calculate_weights(IrisTest):
 
     def setUp(self):
         """Set up some cubes and plugins to work with"""
-        self.temp_cube = add_model_id_and_model_configuration(
-            set_up_temperature_cube(timesteps=3), model_ids=[1000],
-            model_configurations=["uk_det"])
-
+        self.temp_cube = set_up_basic_model_config_cube()
         self.weights_cube = set_up_basic_weights_cube()
 
         config_dict = CONFIG_DICT_UKV
@@ -456,9 +501,7 @@ class Test__calculate_weights(IrisTest):
         """Test that interpolation works as intended when the forecast period
         required for the interpolation output is within the range specified
         within the inputs."""
-        cube = add_forecast_reference_time_and_forecast_period(
-            self.temp_cube, time_point=[402299.0, 402300.0, 402301.0],
-            fp_point=[11., 12., 13.])
+        cube = update_time_and_forecast_period(self.temp_cube, 3600*5)
         new_weights_cube = (
             self.plugin_cubes._calculate_weights(
                 cube, self.weights_cube))
@@ -472,9 +515,7 @@ class Test__calculate_weights(IrisTest):
         """Test that interpolation works as intended when the forecast period
         required for the interpolation output is within the range specified
         within the inputs."""
-        cube = add_forecast_reference_time_and_forecast_period(
-            self.temp_cube, time_point=[402299.0, 402300.0, 402301.0],
-            fp_point=[11., 12., 13.])
+        cube = update_time_and_forecast_period(self.temp_cube, 3600*5)
         new_weights_cube = (
             self.plugin_dict._calculate_weights(cube))
         self.assertIsInstance(new_weights_cube, iris.cube.Cube)
@@ -487,9 +528,7 @@ class Test__calculate_weights(IrisTest):
         """Test that interpolation works as intended when the forecast period
         required for the interpolation output is above the range specified
         within the inputs."""
-        cube = add_forecast_reference_time_and_forecast_period(
-            self.temp_cube, time_point=[412280.0, 412281.0, 412282.0],
-            fp_point=[53., 54., 55.])
+        cube = update_time_and_forecast_period(self.temp_cube, 3600*47)
         new_weights_cube = (
             self.plugin_cubes._calculate_weights(
                 cube, self.weights_cube))
@@ -503,9 +542,7 @@ class Test__calculate_weights(IrisTest):
         """Test that interpolation works as intended when the forecast period
         required for the interpolation output is above the range specified
         within the inputs."""
-        cube = add_forecast_reference_time_and_forecast_period(
-            self.temp_cube, time_point=[402294.0, 402295.0, 402296.0],
-            fp_point=[53., 54., 55.])
+        cube = update_time_and_forecast_period(self.temp_cube, 3600*47)
         new_weights_cube = (
             self.plugin_dict._calculate_weights(cube))
         self.assertIsInstance(new_weights_cube, iris.cube.Cube)
@@ -517,21 +554,31 @@ class Test__calculate_weights(IrisTest):
     def test_spatial_varying_weights(self):
         """Test that interpolation works as intended when the weights vary
         spatially within the input cube."""
-        cube = add_forecast_reference_time_and_forecast_period(
-            self.temp_cube, time_point=[412280.0, 412281.0, 412282.0],
-            fp_point=[9., 15., 21.])
 
-        expected_weights = np.array([[[[1., 0.],
-                                       [0.5, 0.5]],
-                                      [[0.5, 0.5],
-                                       [0.5, 1.]],
-                                      [[0., 0.5],
-                                       [0., 1.]]]])
+        # set up common attributes
+        model_id_coord = AuxCoord([1000], long_name="model_id")
+        model_config_coord = AuxCoord(["uk_det"], long_name="model_configuration")
+        frt_common = dt(2017, 1, 10, 3, 0)
 
-        weights_cube = set_up_weights_cube(timesteps=4)
-        weights_cube = add_forecast_reference_time_and_forecast_period(
-            weights_cube, time_point=[412233.0, 412239.0, 412245.0, 412251.0],
-            fp_point=[6., 12., 18., 24.])
+        # set up data and weights cubes with suitable forecast periods
+        data = np.full((1, 2, 2), 275.15, dtype=np.float32)
+        time_points = [dt(2017, 1, 10, 12, 0), dt(2017, 1, 10, 18, 0),
+                       dt(2017, 1, 11, 0, 0)]
+        cube = set_up_variable_cube(
+            data, time=time_points[0], frt=frt_common,
+            include_scalar_coords=[model_id_coord, model_config_coord])
+        cube = add_coordinate(
+            cube, time_points, "time", is_datetime=True, order=[1, 0, 2, 3])
+
+        time_points = [dt(2017, 1, 10, 9, 0), dt(2017, 1, 10, 15, 0),
+                       dt(2017, 1, 10, 21, 0), dt(2017, 1, 11, 3, 0)]
+        weights_cube = set_up_variable_cube(
+            np.zeros((1, 2, 2), dtype=np.float32), name="weights", units=1,
+            time=time_points[0], frt=frt_common,
+            include_scalar_coords=[model_id_coord, model_config_coord])
+        weights_cube = add_coordinate(weights_cube, time_points, "time",
+                                      is_datetime=True, order=[1, 0, 2, 3])
+
         weights_cube.data = np.array([[[[1., 0.],
                                         [0., 0.]],
                                        [[1., 0.],
@@ -540,6 +587,14 @@ class Test__calculate_weights(IrisTest):
                                         [0., 1.]],
                                        [[0., 0.],
                                         [0., 1.]]]])
+
+        # define expected output and run test
+        expected_weights = np.array([[[[1., 0.],
+                                       [0.5, 0.5]],
+                                      [[0.5, 0.5],
+                                       [0.5, 1.]],
+                                      [[0., 0.5],
+                                       [0., 1.]]]])
 
         new_weights_cube = (
             self.plugin_cubes._calculate_weights(
@@ -830,7 +885,7 @@ class Test_process(IrisTest):
         cube = set_up_temperature_cube(
             data=data, timesteps=1, realizations=[0, 1])
         heights = [10., 20.]
-        cube = add_height(cube, heights)
+        cube = add_coordinate(cube, heights, "height", coord_units="m")
 
         cubes = iris.cube.CubeList([])
         for cube_slice in cube.slices_over("realization"):
@@ -840,7 +895,8 @@ class Test_process(IrisTest):
         weights_cube_uk_det = (
             set_up_weights_cube(data=data, timesteps=1, realizations=[0]))
         heights = [15., 25.]
-        weights_cube_uk_det = add_height(weights_cube_uk_det, heights)
+        weights_cube_uk_det = add_coordinate(
+            weights_cube_uk_det, heights, "height", coord_units="m")
         weights_cube_uk_det.data[0] = np.ones([1, 2, 2])
         for cube_slice in weights_cube_uk_det.slices_over("realization"):
             weights_cube_uk_det = cube_slice
@@ -849,7 +905,8 @@ class Test_process(IrisTest):
         weights_cube_uk_ens = (
             set_up_weights_cube(data=data, timesteps=1, realizations=[1]))
         heights = [15., 25.]
-        weights_cube_uk_ens = add_height(weights_cube_uk_ens, heights)
+        weights_cube_uk_ens = add_coordinate(
+            weights_cube_uk_ens, heights, "height", coord_units="m")
         weights_cube_uk_ens.data[1] = np.ones([1, 2, 2])
         for cube_slice in weights_cube_uk_ens.slices_over("realization"):
             weights_cube_uk_ens = cube_slice
@@ -881,7 +938,7 @@ class Test_process(IrisTest):
         cube = set_up_temperature_cube(
             data=data, timesteps=1, realizations=[0, 1])
         heights = [10., 20.]
-        cube = add_height(cube, heights)
+        cube = add_coordinate(cube, heights, "height", coord_units="m")
 
         cubes = iris.cube.CubeList([])
         for cube_slice in cube.slices_over("realization"):

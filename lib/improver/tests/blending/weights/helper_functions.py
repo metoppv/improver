@@ -237,26 +237,3 @@ def add_model_id_and_model_configuration(
             cube_copy.add_aux_coord(model_config_coord)
         cubelist.append(cube_copy)
     return cubelist.concatenate_cube()
-
-
-def add_height(cube, heights):
-    """Add a heights coordinate to the input cube.
-
-    Args:
-        cube (iris.cube.Cube):
-            Cube to which a height coordinate will be added.
-        heights (list or np.ndarray):
-            List of heights.
-
-    Returns:
-        cubelist.merge_cube():
-            Cube with a height coordinate added.
-    """
-    cubelist = iris.cube.CubeList([])
-    for height in heights:
-        cube_copy = cube.copy()
-        height_coord = iris.coords.AuxCoord(
-            height, long_name='height', units="m")
-        cube_copy.add_aux_coord(height_coord)
-        cubelist.append(cube_copy)
-    return cubelist.merge_cube()
