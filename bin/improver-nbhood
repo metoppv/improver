@@ -36,6 +36,7 @@ from improver.constants import DEFAULT_PERCENTILES
 from improver.nbhood.nbhood import (
     GeneratePercentilesFromANeighbourhood, NeighbourhoodProcessing)
 from improver.nbhood.recursive_filter import RecursiveFilter
+from improver.utilities.pad_spatial import remove_cube_halo
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.wind_calculations.wind_direction import WindDirection
@@ -124,6 +125,14 @@ def main():
                              'neighbourhoods. The data should contain 1 for '
                              'usable points and 0 for discarded points, e.g. '
                              'a land-mask.')
+    parser.add_argument('--halo_radius', metavar='HALO_RADIUS',
+                        default=None, type=float,
+                        help='radius in metres of excess halo to clip.'
+                             ' Used where a larger'
+                             ' grid was defined than the standard grid'
+                             ' and we want to clip the grid back to the'
+                             ' standard grid e.g. for global data'
+                             ' regridded to UK area. Default=None')
     parser.add_argument('--apply-recursive-filter', action='store_true',
                         default=False,
                         help='Option to apply the recursive filter to a '
@@ -260,6 +269,9 @@ def main():
     if args.degrees_as_complex:
         # convert neighbourhooded cube back to degrees
         result.data = WindDirection.complex_to_deg(result.data)
+
+    if args.halo_radius is not None:
+        result = remove_cube_halo(result, args.halo_radius)
 
     save_netcdf(result, args.output_filepath)
 
