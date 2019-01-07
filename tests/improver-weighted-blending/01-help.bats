@@ -100,7 +100,7 @@ optional arguments:
   --spatial_weights_from_mask
                         If set this option will result in the generation of
                         spatially varying weights based on the masks of the
-                        data we are blending. The one dimension weights are
+                        data we are blending. The one dimensional weights are
                         first calculated using the chosen weights calculation
                         method, but the weights will then be adjusted
                         spatially based on where there is masked data in the

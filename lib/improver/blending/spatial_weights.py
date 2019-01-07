@@ -289,7 +289,7 @@ class SpatiallyVaryingWeightsFromMask(object):
         # Takes slices over x, y coord_to_collapse
         # Find blend dim coord associated with blend coord, sometimes we name a
         # blend_coord that is a aux_coord associated with a dim coord rather
-        # than using name of the dim_coord itself.
+        # than using the name of the dim_coord itself.
         # Here we reset blend_coord to the name of the dim_coord to catch the
         # case where blend_coord is an aux_coord.
         blend_dim = cube_to_collapse.coord_dims(blend_coord)
@@ -340,8 +340,8 @@ class SpatiallyVaryingWeightsFromMask(object):
             cube_to_collapse (iris.cube.Cube):
                 The cube that will be collapsed along the blend_coord
                 using the spatial weights generated using this plugin. Must
-                be masked where there is invalid data. The mask must only
-                vary along the blend_coord, an not along any other dimensions
+                be masked where there is invalid data. The mask may only
+                vary along the blend_coord, and not along any other dimensions
                 on the cube.
             one_dimensional_weights_cube (iris.cube.Cube):
                 A cube containing a single dimension coordinate with the same

@@ -31,12 +31,11 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending model blending" {
+@test "weighted-blending nowcast spatial blending" {
   improver_check_skip_acceptance
   KGO="weighted_blending/spatial_weights/nowcast_blending/kgo_cycle_no_fuzzy.nc"
 
-  # Run weighted blending with linear weights for two input files and check it
-  # passes.
+  # Run weighted blending between different nowcast files using spatial weights
   run improver weighted-blending 'forecast_reference_time' 'weighted_mean' \
       --ynval 1 --y0val 1 --spatial_weights_from_mask --fuzzy_length 1\
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/spatial_weights/nowcast_data/20181129T1000Z-PT0002H00M-lwe_precipitation_rate.nc" \

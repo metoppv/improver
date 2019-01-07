@@ -177,7 +177,7 @@ def main():
                         help='If set this option will result in the generation'
                              ' of spatially varying weights based on the'
                              ' masks of the data we are blending. The'
-                             ' one dimension weights are first calculated '
+                             ' one dimensional weights are first calculated '
                              ' using the chosen weights calculation method,'
                              ' but the weights will then be adjusted spatially'
                              ' based on where there is masked data in the data'
