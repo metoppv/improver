@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Unit tests for the function "cube_manipulation.equalise_cubes".
+Unit tests for the function "cube_manipulation._equalise_cubes".
 """
 
 import unittest
@@ -38,7 +38,7 @@ import iris
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.utilities.cube_manipulation import equalise_cubes
+from improver.utilities.cube_manipulation import _equalise_cubes
 
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import (
@@ -48,9 +48,9 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
 from improver.utilities.warnings_handler import ManageWarnings
 
 
-class Test_equalise_cubes(IrisTest):
+class Test__equalise_cubes(IrisTest):
 
-    """Test the_equalise_cubes utility."""
+    """Test the _equalise_cubes utility."""
 
     def setUp(self):
         """Use temperature cube to test with."""
@@ -80,7 +80,7 @@ class Test_equalise_cubes(IrisTest):
         cubes = self.cube
         if isinstance(cubes, iris.cube.Cube):
             cubes = iris.cube.CubeList([cubes])
-        result = equalise_cubes(cubes)
+        result = _equalise_cubes(cubes)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         warning_msg = "Only a single cube "
@@ -91,7 +91,7 @@ class Test_equalise_cubes(IrisTest):
     def test_equalise_attributes(self):
         """Test that the utility equalises the attributes as expected"""
         cubelist = iris.cube.CubeList([self.cube_ukv, self.cube])
-        result = equalise_cubes(
+        result = _equalise_cubes(
             cubelist, model_id_attr="mosg__model_configuration")
         self.assertArrayAlmostEqual(result[0].coord("model_id").points,
                                     np.array([0]))
@@ -122,21 +122,21 @@ class Test_equalise_cubes(IrisTest):
         cube1.coord("time").var_name = "time_0"
         cube2.coord("time").var_name = "time_1"
         cubelist = iris.cube.CubeList([cube1, cube2])
-        result = equalise_cubes(cubelist)
+        result = _equalise_cubes(cubelist)
         self.assertIsNone(result[0].coord("time").var_name)
         self.assertIsNone(result[1].coord("time").var_name)
 
     def test_coords_not_equalised_if_not_merging(self):
         """Test that the coords are not equalised if not merging"""
         cubelist = iris.cube.CubeList([self.cube_ukv, self.cube])
-        result = equalise_cubes(cubelist, merging=False)
+        result = _equalise_cubes(cubelist, merging=False)
         self.assertEqual(len(result),
                          len(cubelist))
 
     def test_coords_are_equalised_if_merging(self):
         """Test that the coords are equalised if merging"""
         cubelist = iris.cube.CubeList([self.cube_ukv, self.cube])
-        result = equalise_cubes(
+        result = _equalise_cubes(
             cubelist, model_id_attr="mosg__model_configuration")
         self.assertEqual(len(result), 4)
         self.assertAlmostEqual(result[3].coord('model_realization').points,

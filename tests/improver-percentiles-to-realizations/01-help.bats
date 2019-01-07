@@ -37,6 +37,7 @@ usage: improver-percentiles-to-realizations [-h] [--profile]
                                             [--profile_file PROFILE_FILE]
                                             [--no_of_percentiles NUMBER_OF_PERCENTILES]
                                             [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
+                                            [--ecc_bounds_warning]
                                             (--reordering | --rebadging)
                                             [--raw_forecast_filepath RAW_FORECAST_FILE]
                                             [--random_ordering]
@@ -69,6 +70,10 @@ optional arguments:
                         option produces equally spaced percentiles which is
                         the preferred option for full Ensemble Copula Coupling
                         with reordering enabled.
+  --ecc_bounds_warning  If True, where percentiles (calculated as an
+                        intermediate output before realizations) exceed the
+                        ECC bounds range, raise a warning rather than an
+                        exception.
   --reordering          The option used to create ensemble realizations from
                         percentiles by reordering the input percentiles based
                         on the order of the raw ensemble forecast.

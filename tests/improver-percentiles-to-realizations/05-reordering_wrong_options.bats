@@ -45,6 +45,7 @@ usage: improver-percentiles-to-realizations [-h] [--profile]
                                             [--profile_file PROFILE_FILE]
                                             [--no_of_percentiles NUMBER_OF_PERCENTILES]
                                             [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
+                                            [--ecc_bounds_warning]
                                             (--reordering | --rebadging)
                                             [--raw_forecast_filepath RAW_FORECAST_FILE]
                                             [--random_ordering]

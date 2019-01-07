@@ -47,14 +47,14 @@ def main():
         (['--no_of_realizations'],
          {'metavar': 'NUMBER_OF_REALIZATIONS', 'default': None, 'type': int,
           'help': (
-            "Optional definition of the number of ensemble realizations to be "
-            "generated. These are generated through an intermediate "
-            "percentile representation. These percentiles will be distributed "
-            "regularly with the aim of dividing into blocks of equal "
-            "probability. If the reordering option is specified and the "
-            "number of realizations is not given then the number of "
-            "realizations is taken from the number of realizations in the "
-            "raw forecast NetCDF file.")
+              "Optional definition of the number of ensemble realizations to "
+              "be generated. These are generated through an intermediate "
+              "percentile representation. These percentiles will be "
+              "distributed regularly with the aim of dividing into blocks of "
+              "equal probability. If the reordering option is specified and "
+              "the number of realizations is not given then the number of "
+              "realizations is taken from the number of realizations in the "
+              "raw forecast NetCDF file.")
           })]
 
     cli_definition = {'central_arguments': ('input_file', 'output_file'),
@@ -138,14 +138,15 @@ def main():
         if args.no_of_realizations is None:
             no_of_realizations = len(raw_forecast.coord("realization").points)
 
-        cube = GeneratePercentilesFromProbabilities().process(
-            cube, no_of_percentiles=no_of_realizations,
-            ecc_bounds_warning=args.ecc_bounds_warning)
+        cube = GeneratePercentilesFromProbabilities(
+            ecc_bounds_warning=args.ecc_bounds_warning).process(
+                cube, no_of_percentiles=no_of_realizations)
         cube = EnsembleReordering().process(
             cube, raw_forecast, random_ordering=False,
             random_seed=args.random_seed)
     elif args.rebadging:
-        cube = GeneratePercentilesFromProbabilities().process(
+        cube = GeneratePercentilesFromProbabilities(
+            ecc_bounds_warning=args.ecc_bounds_warning).process(
                 cube, no_of_percentiles=args.no_of_realizations)
         cube = RebadgePercentilesAsRealizations().process(cube)
 

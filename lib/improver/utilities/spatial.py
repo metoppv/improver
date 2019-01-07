@@ -85,7 +85,7 @@ def check_if_grid_is_equal_area(cube):
 
 
 def convert_distance_into_number_of_grid_cells(
-        cube, distance, max_distance_in_grid_cells):
+        cube, distance, max_distance_in_grid_cells=None):
     """
     Return the number of grid cells in the x and y direction based on the
     input distance in metres.
@@ -97,8 +97,11 @@ def convert_distance_into_number_of_grid_cells(
             which equates to the requested distance in the x and y direction.
         distance (Float):
             Distance in metres.
-        max_distance_in_grid_cells (int):
-            Maximum distance in grid cells.
+
+    Kwargs:
+        max_distance_in_grid_cells (int or None):
+            Maximum distance in grid cells.  Defaults to None, which bypasses
+            the check.
 
     Returns:
         (tuple) : tuple containing:
@@ -109,6 +112,23 @@ def convert_distance_into_number_of_grid_cells(
                 Number of grid cells in the y direction based on the requested
                 distance in metres.
 
+    Raises:
+        ValueError:
+            If the projection is not "equal area" (proxied by projection_x/y
+            spatial coordinate names).
+        ValueError:
+            If the distance in grid cells is larger than the maximum dimension
+            of the rectangular domain (measured across the diagonal).  Needed
+            for neighbourhood processing.
+        ValueError:
+            If the distance in grid cells is zero.
+        ValueError:
+            If the distance in grid cells is negative.  (Assuming the distance
+            argument is positive, this indicates one or more spatial axes are
+            not correctly ordered.)
+        Value Error:
+            If max_distance_in_grid_cells is set and the distance in grid cells
+            exceeds this value.  Needed for neighbourhood processing.
     """
     try:
         x_coord = cube.coord("projection_x_coordinate").copy()
@@ -133,13 +153,14 @@ def convert_distance_into_number_of_grid_cells(
             "Distance of {0}m gives zero cell extent".format(distance))
     elif grid_cells_x < 0 or grid_cells_y < 0:
         raise ValueError(
-            "Neighbourhood processing distance of {0}m "
-            "gives a negative cell extent".format(distance))
-    if (grid_cells_x > max_distance_in_grid_cells or
-            grid_cells_y > max_distance_in_grid_cells):
-        raise ValueError(
-            "Neighbourhood processing distance of {0}m "
-            "exceeds maximum grid cell extent".format(distance))
+            "Distance of {0}m gives a negative cell extent - "
+            "check coordinate ordering".format(distance))
+    if max_distance_in_grid_cells is not None:
+        if (grid_cells_x > max_distance_in_grid_cells or
+                grid_cells_y > max_distance_in_grid_cells):
+            raise ValueError(
+                "Distance of {0}m exceeds maximum permitted "
+                "grid cell extent".format(distance))
     return grid_cells_x, grid_cells_y
 
 

@@ -31,8 +31,8 @@
 """
 Unit tests for the `ensemble_copula_coupling.ResamplePercentiles` class.
 """
-import numpy as np
 import unittest
+import numpy as np
 
 from iris.cube import Cube
 from iris.tests import IrisTest
@@ -127,10 +127,48 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         percentiles = np.array([5, 70, 95])
         bounds_pairing = (-40, 50)
         plugin = Plugin()
-        msg = "The end points added to the forecast at percentiles"
+        msg = "The end points added to the forecast at percentile"
         with self.assertRaisesRegex(ValueError, msg):
             plugin._add_bounds_to_percentiles_and_forecast_at_percentiles(
                 percentiles, forecast_at_percentiles, bounds_pairing)
+
+    @ManageWarnings(record=True)
+    def test_endpoints_of_distribution_exceeded_warning(
+            self, warning_list=None):
+        """
+        Test that the plugin raises a warning message when the constant
+        end points of the distribution are exceeded by a percentile value
+        used in the forecast and the ecc_bounds_warning keyword argument
+        has been specified.
+        """
+        forecast_at_percentiles = np.array([[8, 10, 60]])
+        percentiles = np.array([5, 70, 95])
+        bounds_pairing = (-40, 50)
+        plugin = Plugin(ecc_bounds_warning=True)
+        warning_msg = "The end points added to the forecast at percentile "
+        plugin._add_bounds_to_percentiles_and_forecast_at_percentiles(
+            percentiles, forecast_at_percentiles, bounds_pairing)
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
+
+    @ManageWarnings(
+        ignored_messages=["The end points added to the forecast at"])
+    def test_new_endpoints_generation(self):
+        """Test that the plugin re-applies the percentile bounds using the
+        maximum and minimum percentile values when the original bounds have
+        been exceeded and ecc_bounds_warning has been set."""
+        forecast_at_percentiles = np.array([[8, 10, 60]])
+        percentiles = np.array([5, 70, 95])
+        bounds_pairing = (-40, 50)
+        plugin = Plugin(ecc_bounds_warning=True)
+        result = plugin._add_bounds_to_percentiles_and_forecast_at_percentiles(
+            percentiles, forecast_at_percentiles, bounds_pairing)
+        self.assertEqual(
+            np.max(result[1]),
+            max([forecast_at_percentiles.max(), max(bounds_pairing)]))
+        self.assertEqual(
+            np.min(result[1]),
+            min([forecast_at_percentiles.min(), min(bounds_pairing)]))
 
     def test_percentiles_not_ascending(self):
         """

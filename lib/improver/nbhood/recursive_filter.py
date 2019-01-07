@@ -35,6 +35,8 @@ import numpy as np
 
 from improver.nbhood.square_kernel import SquareNeighbourhood
 from improver.utilities.cube_checker import check_cube_coordinates
+from improver.utilities.pad_spatial import (
+    pad_cube_with_halo, remove_halo_from_cube)
 
 
 class RecursiveFilter(object):
@@ -60,8 +62,8 @@ class RecursiveFilter(object):
             iterations (integer or None):
                 The number of iterations of the recursive filter.
             edge_width (integer):
-                The width of the padding applied to the grid cells
-                when adding the SquareNeighbourhood halo.
+                Half the width of the padding halo applied before
+                recursive filtering.
             re_mask (boolean):
                 If re_mask is True, the original un-recursively filtered
                 mask is applied to mask out the recursively filtered cube.
@@ -274,8 +276,8 @@ class RecursiveFilter(object):
                 raise ValueError(emsg.format(alphas_cube.data.shape,
                                              cube.data.shape))
 
-        alphas_cube = SquareNeighbourhood().pad_cube_with_halo(
-            alphas_cube, self.edge_width, self.edge_width)
+        alphas_cube = pad_cube_with_halo(
+            alphas_cube, 2*self.edge_width, 2*self.edge_width)
         return alphas_cube
 
     def process(self, cube, alphas_x=None, alphas_y=None, mask_cube=None):
@@ -337,13 +339,13 @@ class RecursiveFilter(object):
                     output, mask_cube))
             mask = mask.data.squeeze()
 
-            padded_cube = SquareNeighbourhood().pad_cube_with_halo(
-                output, self.edge_width, self.edge_width)
+            padded_cube = pad_cube_with_halo(
+                output, 2*self.edge_width, 2*self.edge_width)
 
             new_cube = self._run_recursion(padded_cube, alphas_x, alphas_y,
                                            self.iterations)
-            new_cube = SquareNeighbourhood().remove_halo_from_cube(
-                new_cube, self.edge_width, self.edge_width)
+            new_cube = remove_halo_from_cube(
+                new_cube, 2*self.edge_width, 2*self.edge_width)
             if self.re_mask:
                 new_cube.data[nan_array.astype(bool)] = np.nan
                 new_cube.data = np.ma.masked_array(new_cube.data,
