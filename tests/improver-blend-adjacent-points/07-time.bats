@@ -29,18 +29,19 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "blend-adjacent-points no arguments" {
-  run improver blend-adjacent-points
-  [[ "$status" -eq 2 ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "weighted-blending time" {
+  improver_check_skip_acceptance
+
+  # Run triangular time blending and see what happens...
+  run improver blend-adjacent-points 'time' '1536908400' --units 'seconds since 1970-01-01 00:00:00' \
+      --width 7200 'weighted_mean' \
+      "$IMPROVER_ACC_TEST_DIR/blend-adjacent-points/time_bounds/*wind_gust*.nc" \
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-blend-adjacent-points [-h] [--profile]
-                                      [--profile_file PROFILE_FILE] --units
-                                      UNIT_STRING [--calendar CALENDAR]
-                                      --width TRIANGLE_WIDTH
-                                      [--blend_time_using_forecast_period]
-                                      COORDINATE_TO_BLEND_OVER CENTRAL_POINT
-                                      WEIGHTED_BLEND_MODE INPUT_FILES
-                                      [INPUT_FILES ...] OUTPUT_FILE
+ValueError: Cannot blend over time coordinate (points encoded as datetime objects)
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

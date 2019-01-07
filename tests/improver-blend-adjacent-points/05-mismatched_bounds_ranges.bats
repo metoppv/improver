@@ -29,18 +29,19 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "blend-adjacent-points no arguments" {
-  run improver blend-adjacent-points
-  [[ "$status" -eq 2 ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "weighted-blending mismatched bounds ranges" {
+  improver_check_skip_acceptance
+
+  # Run triangular time blending with mismatched time bounds ranges and check it fails
+  run improver blend-adjacent-points 'forecast_period' '2' --units 'hours' \
+      --width 3.0 'weighted_mean' --blend_time_using_forecast_period \
+      "$IMPROVER_ACC_TEST_DIR/blend-adjacent-points/basic_mean/multiple_probabilities_rain_*H.nc" \
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-blend-adjacent-points [-h] [--profile]
-                                      [--profile_file PROFILE_FILE] --units
-                                      UNIT_STRING [--calendar CALENDAR]
-                                      --width TRIANGLE_WIDTH
-                                      [--blend_time_using_forecast_period]
-                                      COORDINATE_TO_BLEND_OVER CENTRAL_POINT
-                                      WEIGHTED_BLEND_MODE INPUT_FILES
-                                      [INPUT_FILES ...] OUTPUT_FILE
+ValueError: Cube with mismatching time bounds ranges cannot be blended
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

@@ -129,15 +129,19 @@ def construct_scalar_time_coords(time, time_bounds, frt):
             raise ValueError(
                 'Time point {} not within bounds {}-{}'.format(
                     time, time_bounds[0], time_bounds[1]))
+        fp_bounds = (bounds[0] - frt_point_seconds,
+                     bounds[1] - frt_point_seconds)
     else:
         bounds = None
+        fp_bounds = None
 
     # create coordinates
     time_coord = DimCoord(
         time_point_seconds, "time", units=TIME_UNIT, bounds=bounds)
     frt_coord = DimCoord(
         frt_point_seconds, "forecast_reference_time", units=TIME_UNIT)
-    fp_coord = DimCoord(fp_point_seconds, "forecast_period", units="seconds")
+    fp_coord = DimCoord(
+        fp_point_seconds, "forecast_period", units="seconds", bounds=fp_bounds)
 
     coord_dims = [(time_coord, None), (frt_coord, None), (fp_coord, None)]
     return coord_dims
@@ -357,7 +361,8 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
         name = 'probability_of_{}'.format(variable_name)
     cube = set_up_variable_cube(
         data, name=name, units='1', spatial_grid=spatial_grid,
-        time=time, frt=frt, realizations=thresholds, attributes=attributes,
+        time=time, frt=frt, time_bounds=time_bounds,
+        realizations=thresholds, attributes=attributes,
         include_scalar_coords=include_scalar_coords,
         standard_grid_metadata=standard_grid_metadata)
     cube.coord("realization").rename("threshold")

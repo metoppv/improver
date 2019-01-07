@@ -33,6 +33,7 @@ Unit tests for the function "cube_manipulation.merge_cubes".
 """
 
 import unittest
+from datetime import datetime as dt
 
 import iris
 from iris.cube import Cube
@@ -49,7 +50,8 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
         add_forecast_reference_time_and_forecast_period)
 
 from improver.utilities.warnings_handler import ManageWarnings
-from improver.tests.set_up_test_cubes import set_up_variable_cube
+from improver.tests.set_up_test_cubes import (
+    set_up_variable_cube, set_up_probability_cube)
 
 
 class Test_merge_cubes(IrisTest):
@@ -222,6 +224,29 @@ class Test_merge_cubes(IrisTest):
         self.assertEqual(ukv_prob.data.shape, (1, 1, 3, 3))
         self.assertEqual(enuk_prob.data.shape, (1, 3, 3))
         self.assertEqual(result.data.shape, (2, 3, 3))
+
+    def test_mismatched_time_bounds_ranges(self):
+        """Test for mismatched bounds ranges error."""
+        frt = dt(2017, 11, 9, 21, 0)
+        times = [dt(2017, 11, 10, 3, 0),
+                 dt(2017, 11, 10, 4, 0),
+                 dt(2017, 11, 10, 5, 0)]
+        time_bounds = np.array([
+            [dt(2017, 11, 10, 2, 0), dt(2017, 11, 10, 3, 0)],
+            [dt(2017, 11, 10, 3, 0), dt(2017, 11, 10, 4, 0)],
+            [dt(2017, 11, 10, 2, 0), dt(2017, 11, 10, 5, 0)]])
+
+        cubelist = iris.cube.CubeList([])
+        for tpoint, tbounds in zip(times, time_bounds):
+            cube = set_up_probability_cube(
+                0.6*np.ones((2, 3, 3), dtype=np.float32),
+                np.array([278., 280.], dtype=np.float32),
+                time=tpoint, frt=frt, time_bounds=tbounds)
+            cubelist.append(cube)
+
+        msg = "Cube with mismatching time bounds ranges"
+        with self.assertRaisesRegex(ValueError, msg):
+            merge_cubes(cubelist, blend_coord="time")
 
 
 if __name__ == '__main__':
