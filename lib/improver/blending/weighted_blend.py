@@ -560,12 +560,6 @@ class WeightedBlendAcrossWholeDimension:
         cube_dims = [crd.name() for crd in cube.coords(dim_coords=True)]
         if set(weight_dims) == set(cube_dims):
             enforce_coordinate_ordering(weights, cube_dims)
-
-        msg = ("Weights cube is not a compatible shape with the data cube. "
-               "Weights: {}, Diagnostic: {}".format(weights.shape, cube.shape))
-
-        if weights.shape == cube.shape:
-            # Multi-dimensional weights array provided that matches cube.
             weights_array = weights.data.astype(np.float32)
         else:
             # Map array of weights to shape of cube to collapse.
@@ -574,12 +568,22 @@ class WeightedBlendAcrossWholeDimension:
             # Loop through dim coords in weights cube and find the dim the
             # coord relates to in the cube we are collapsing.
             for dim_coord in dim_coords:
-                dim_map.append(cube.coord_dims(dim_coord)[0])
+                try:
+                    dim_map.append(cube.coord_dims(dim_coord)[0])
+                except CoordinateNotFoundError as E:
+                    message = (
+                        "{} is a coordinate on the weights cube but it is not "
+                        "found on the cube we are trying to collapse.")
+                    raise ValueError(message.format(dim_coord))
             try:
                 weights_array = iris.util.broadcast_to_shape(
                     np.array(weights.data, dtype=np.float32),
                     cube.shape, tuple(dim_map))
             except ValueError:
+                msg = (
+                    "Weights cube is not a compatible shape with the"
+                    " data cube. Weights: {}, Diagnostic: {}".format(
+                        weights.shape, cube.shape))
                 raise ValueError(msg)
 
         return weights_array
