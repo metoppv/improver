@@ -652,7 +652,7 @@ class Test_create_template_slice(IrisTest):
     def test_varying_mask_fail(self):
         """Test error is raised when mask varies along collapsing dim"""
         # Check fails when blending along threshold coordinate, as mask
-        # varies along this coodinate.
+        # varies along this coordinate.
         message = (
             "The mask on the input cube can only vary along the blend_coord")
         with self.assertRaisesRegex(ValueError, message):
