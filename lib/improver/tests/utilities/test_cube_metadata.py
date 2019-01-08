@@ -518,7 +518,8 @@ class Test_amend_metadata(IrisTest):
 
     def test_basic(self):
         """Test that the function returns a Cube. """
-        result = amend_metadata(self.cube, name='new_cube_name', data_type=np.dtype)
+        result = amend_metadata(
+            self.cube, name='new_cube_name', data_type=np.dtype)
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), 'new_cube_name')
 

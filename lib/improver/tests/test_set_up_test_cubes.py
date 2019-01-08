@@ -193,7 +193,7 @@ class test_set_up_variable_cube(IrisTest):
         """Test non CF standard cube naming"""
         result = set_up_variable_cube(self.data, name="temp_in_the_air")
         self.assertEqual(result.name(), "temp_in_the_air")
-       
+
     def test_var_name(self):
         """Test ability to set data name and units"""
         result = set_up_variable_cube(

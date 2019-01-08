@@ -564,7 +564,8 @@ class Test__calculate_weights(IrisTest):
 
         # set up common attributes
         model_id_coord = AuxCoord([1000], long_name="model_id")
-        model_config_coord = AuxCoord(["uk_det"], long_name="model_configuration")
+        model_config_coord = AuxCoord(
+            ["uk_det"], long_name="model_configuration")
         frt_common = dt(2017, 1, 10, 3, 0)
 
         # set up data and weights cubes with suitable forecast periods
@@ -702,7 +703,8 @@ class Test_process(IrisTest):
             frt=dt(2017, 1, 10, 3), time_points=time_points, set_data=False)
         self.weights_cube_uk_ens.data[:, 1:3] = np.ones([1, 2, 2, 2])
         self.weights_cube_uk_ens.coord("model_id").points = [2000]
-        self.weights_cube_uk_ens.coord("model_configuration").points = ["uk_ens"]
+        self.weights_cube_uk_ens.coord("model_configuration").points = (
+            ["uk_ens"])
 
     def test_error_incorrect_args(self):
         """Test error is raised if both config_dict and weights_cubes are set
@@ -875,14 +877,13 @@ class Test_process(IrisTest):
         """Test when height is the weighting_coord_name and realization is the
         config_coord_name. This demonstrates blending in one member and
         blending out another member with height."""
-        
         cube = set_up_variable_cube(274.*np.ones((2, 2, 2), dtype=np.float32))
         cube = add_coordinate(cube, [10., 20.], "height", coord_units="m")
         cubes = iris.cube.CubeList([])
         for cube_slice in cube.slices_over("realization"):
             cubes.append(cube_slice)
 
-        data = np.zeros((1, 2, 2), dtype=np.float32)  
+        data = np.zeros((1, 2, 2), dtype=np.float32)
         weights_cubes = iris.cube.CubeList()
         for i, model in enumerate(["uk_det", "uk_ens"]):
             model_id_coord = AuxCoord([1000*(i+1)], long_name="model_id")

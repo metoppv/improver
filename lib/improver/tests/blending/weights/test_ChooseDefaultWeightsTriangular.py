@@ -266,8 +266,9 @@ class Test_process(IrisTest):
         width = 7200
         weights_instance = ChooseDefaultWeightsTriangular(width, units="m")
         midpoint = 3600
-        message = (r"Unable to convert from 'Unit\('m'\)' to "
-                   "'Unit\('{}'\)'".format(self.units))
+        message = (
+            r"Unable to convert from 'Unit\('m'\)' to 'Unit\('{}'\)'".format(
+                self.units))
         with self.assertRaisesRegex(ValueError, message):
             weights_instance.process(self.cube, self.coord_name, midpoint)
 
