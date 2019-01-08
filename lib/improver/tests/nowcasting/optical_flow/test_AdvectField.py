@@ -425,6 +425,27 @@ class Test_process(IrisTest):
         self.assertEqual(
             result.coord("forecast_reference_time").dtype, np.int64)
 
+    def test_time_unit_conversion(self):
+        """Test that the output cube contains the desired units and datatypes
+        for the time, forecast_reference_time and forecast_period coordinate,
+        where a unit conversion has been required."""
+        self.cube.coord("time").convert_units("hours since 1970-01-01 00:00")
+        result = self.plugin.process(self.cube, self.timestep)
+        self.assertEqual(result.coord("forecast_period").points, 600)
+        # 2017-11-10 04:10:00
+        self.assertEqual(result.coord("time").points, 1510287000)
+        self.assertEqual(
+            result.coord("forecast_reference_time").points, 1510286400)
+        self.assertEqual(result.coord("forecast_period").units, "seconds")
+        self.assertEqual(result.coord("time").units,
+                         "seconds since 1970-01-01 00:00:00")
+        self.assertEqual(result.coord("forecast_reference_time").units,
+                         "seconds since 1970-01-01 00:00:00")
+        self.assertEqual(result.coord("forecast_period").dtype, np.int32)
+        self.assertEqual(result.coord("time").dtype, np.int64)
+        self.assertEqual(
+            result.coord("forecast_reference_time").dtype, np.int64)
+
 
 if __name__ == '__main__':
     unittest.main()

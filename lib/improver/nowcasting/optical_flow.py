@@ -321,17 +321,18 @@ class AdvectField(object):
         original_datetime, = \
             (cube.coord("time").units).num2date(cube.coord("time").points)
         new_datetime = original_datetime + timestep
+
         new_time = (cube.coord("time").units).date2num(new_datetime)
 
+        advected_cube.coord("time").points = new_time
         advected_cube.coord("time").convert_units(
             "seconds since 1970-01-01 00:00:00")
+        advected_cube.coord("time").points = (
+            np.around(advected_cube.coord("time").points).astype(np.int64))
+
         advected_cube.coord("forecast_reference_time").convert_units(
             "seconds since 1970-01-01 00:00:00")
-
-        new_time = np.around(new_time)
-        advected_cube.coord("time").points = new_time.astype(np.int64)
         frt_coord = cube.coord("forecast_reference_time")
-        frt_coord.points = np.around(frt_coord.points)
         advected_cube.coord("forecast_reference_time").points = (
             frt_coord.points.astype(np.int64))
 
