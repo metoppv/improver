@@ -361,21 +361,27 @@ class Test_remove_cube_halo(IrisTest):
     def setUp(self):
         """Set up a realistic input cube with lots of metadata.  Input cube
         grid is 1000x1000 km with points spaced 100 km apart."""
-
+        self.attrs = {'history': '2018-12-10Z: StaGE Decoupler',
+                      'title': 'Temperature on UK 2 km Standard Grid',
+                      'source': 'Met Office Unified Model'}
         self.cube = set_up_variable_cube(
             np.ones((3, 11, 11), dtype=np.float32), spatial_grid='equalarea',
-            standard_grid_metadata='uk_det')
+            standard_grid_metadata='uk_det', attributes=self.attrs)
 
         self.cube_1d = set_up_variable_cube(
             np.ones((1, 11, 11), dtype=np.float32), spatial_grid='equalarea',
-            standard_grid_metadata='uk_det')
+            standard_grid_metadata='uk_det', attributes=self.attrs)
         self.grid_spacing = 100000
 
     def test_basic(self):
-        """Test function returns a cube with expected shape"""
+        """Test function returns a cube with expected attributes and shape"""
         halo_size_km = 162.
         result = remove_cube_halo(self.cube, 1000.*halo_size_km)
         self.assertIsInstance(result, iris.cube.Cube)
+        self.assertEqual(result.attributes['history'],
+                         self.attrs['history'])
+        self.assertEqual(result.attributes['title'], self.attrs['title'])
+        self.assertEqual(result.attributes['source'], self.attrs['source'])
         self.assertSequenceEqual(result.data.shape, (3, 9, 9))
 
     def test_values(self):
