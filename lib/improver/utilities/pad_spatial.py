@@ -128,44 +128,6 @@ def create_cube_with_halo(cube, halo_radius):
     return halo_cube
 
 
-def remove_cube_halo(cube, halo_radius):
-    """
-    Remove halo of halo_radius from a cube.
-
-    Args:
-        cube (iris.cube.Cube):
-            Cube on extended grid
-        halo_radius (float):
-            Size of border to remove, in metres
-
-    Returns:
-        result (iris.cube.Cube):
-            New cube with the halo removed.
-    """
-    halo_size_x, halo_size_y = convert_distance_into_number_of_grid_cells(
-        cube, halo_radius)
-
-    original_attributes = cube.attributes
-    original_methods = cube.cell_methods
-    result_slices = iris.cube.CubeList()
-    for cube_slice in cube.slices([cube.coord(axis='y'),
-                                   cube.coord(axis='x')]):
-        cube_halo = remove_halo_from_cube(cube_slice,
-                                          halo_size_x,
-                                          halo_size_y)
-        result_slices.append(cube_halo)
-    result = result_slices.merge_cube()
-
-    result.cell_methods = original_methods
-    result.attributes = original_attributes
-    req_coords = []
-    for coord in cube.coords(dim_coords=True):
-        req_coords.append(coord.name())
-    result = enforce_coordinate_ordering(
-        result, req_coords, promote_scalar=True)
-    return result
-
-
 def _create_cube_with_padded_data(source_cube, data, coord_x, coord_y):
     """
     Create a cube with newly created data where the metadata is copied from
@@ -271,6 +233,47 @@ def pad_cube_with_halo(cube, width_x, width_y, halo_mean_data=True):
         cube, padded_data, padded_x_coord, padded_y_coord)
 
     return padded_cube
+
+
+def remove_cube_halo(cube, halo_radius):
+    """
+    Remove halo of halo_radius from a cube.
+
+    This function converts the halo radius into
+    the number of grid points in the x and y coordinate
+    that need to be removed. It then calls remove_halo_from_cube
+    which only acts on a cube with x and y coordinates so we
+    need to slice the cube and them merge the cube back together
+    ensuring the resulting cube has the same dimension coordinates.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube on extended grid
+        halo_radius (float):
+            Size of border to remove, in metres
+
+    Returns:
+        result (iris.cube.Cube):
+            New cube with the halo removed.
+    """
+    halo_size_x, halo_size_y = convert_distance_into_number_of_grid_cells(
+        cube, halo_radius)
+
+    result_slices = iris.cube.CubeList()
+    for cube_slice in cube.slices([cube.coord(axis='y'),
+                                   cube.coord(axis='x')]):
+        cube_halo = remove_halo_from_cube(cube_slice,
+                                          halo_size_x,
+                                          halo_size_y)
+        result_slices.append(cube_halo)
+    result = result_slices.merge_cube()
+
+    req_coords = []
+    for coord in cube.coords(dim_coords=True):
+        req_coords.append(coord.name())
+    result = enforce_coordinate_ordering(
+        result, req_coords, promote_scalar=True)
+    return result
 
 
 def remove_halo_from_cube(cube, width_x, width_y):

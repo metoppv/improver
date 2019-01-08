@@ -174,45 +174,6 @@ class Test_create_cube_with_halo(IrisTest):
                                     self.cube.coord(axis='y').points)
 
 
-class Test_remove_cube_halo(IrisTest):
-    """Tests for the create_cube_with_halo function"""
-
-    def setUp(self):
-        """Set up a realistic input cube with lots of metadata.  Input cube
-        grid is 1000x1000 km with points spaced 100 km apart."""
-        attrs = {'history': '2018-12-10Z: StaGE Decoupler',
-                 'title': 'Temperature on UK 2 km Standard Grid',
-                 'source': 'Met Office Unified Model'}
-
-        self.cube = set_up_variable_cube(
-            np.ones((3, 11, 11), dtype=np.float32), spatial_grid='equalarea',
-            standard_grid_metadata='uk_det', attributes=attrs)
-
-        self.cube_1d = set_up_variable_cube(
-            np.ones((1, 11, 11), dtype=np.float32), spatial_grid='equalarea',
-            standard_grid_metadata='uk_det', attributes=attrs)
-        self.grid_spacing = 100000
-
-    def test_basic(self):
-        """Test function returns a cube with expected metadata and shape"""
-        halo_size_km = 162.
-        result = remove_cube_halo(self.cube, 1000.*halo_size_km)
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertTrue(result.attributes)
-        self.assertSequenceEqual(result.data.shape, (3, 9, 9))
-
-    def test_oned(self):
-        """Test function returns a cube with expected shape and data"""
-        halo_size_km = 162.
-        self.cube_1d.data[0, 2, :] = np.arange(0, 11)
-        self.cube_1d.data[0, :, 2] = np.arange(0, 11)
-        result = remove_cube_halo(self.cube_1d, 1000.*halo_size_km)
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertSequenceEqual(result.data.shape, (1, 9, 9))
-        self.assertArrayEqual(result.data[0, 1, :], np.arange(1, 10))
-        self.assertArrayEqual(result.data[0, :, 1], np.arange(1, 10))
-
-
 class Test__create_cube_with_padded_data(IrisTest):
 
     """Test creating a new cube using a template cube."""
@@ -392,6 +353,41 @@ class Test_pad_cube_with_halo(IrisTest):
 
         padded_cube = pad_cube_with_halo(self.cube, 2, 2)
         self.assertArrayAlmostEqual(padded_cube.data, expected_data)
+
+
+class Test_remove_cube_halo(IrisTest):
+    """Tests for the  remove_cube_halo function"""
+
+    def setUp(self):
+        """Set up a realistic input cube with lots of metadata.  Input cube
+        grid is 1000x1000 km with points spaced 100 km apart."""
+
+        self.cube = set_up_variable_cube(
+            np.ones((3, 11, 11), dtype=np.float32), spatial_grid='equalarea',
+            standard_grid_metadata='uk_det')
+
+        self.cube_1d = set_up_variable_cube(
+            np.ones((1, 11, 11), dtype=np.float32), spatial_grid='equalarea',
+            standard_grid_metadata='uk_det')
+        self.grid_spacing = 100000
+
+    def test_basic(self):
+        """Test function returns a cube with expected shape"""
+        halo_size_km = 162.
+        result = remove_cube_halo(self.cube, 1000.*halo_size_km)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertSequenceEqual(result.data.shape, (3, 9, 9))
+
+    def test_values(self):
+        """Test function returns a cube with expected shape and data"""
+        halo_size_km = 162.
+        self.cube_1d.data[0, 2, :] = np.arange(0, 11)
+        self.cube_1d.data[0, :, 2] = np.arange(0, 11)
+        result = remove_cube_halo(self.cube_1d, 1000.*halo_size_km)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertSequenceEqual(result.data.shape, (1, 9, 9))
+        self.assertArrayEqual(result.data[0, 1, :], np.arange(1, 10))
+        self.assertArrayEqual(result.data[0, :, 1], np.arange(1, 10))
 
 
 class Test_remove_halo_from_cube(IrisTest):
