@@ -33,7 +33,7 @@
 
 @test "weighted-blending percentile blending with spatial weights" {
   improver_check_skip_acceptance
-  KGO="weighted_blending/spatial_weights/nowcast_blending/kgo_percentile.nc"
+  KGO="weighted_blending/spatial_weights/kgo/kgo_percentile.nc"
 
   # Run weighted blending with percentile nowcast data with spatial weights
   run improver weighted-blending 'forecast_reference_time' 'weighted_mean' \

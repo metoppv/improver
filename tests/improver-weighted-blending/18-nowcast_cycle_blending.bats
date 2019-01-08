@@ -33,7 +33,7 @@
 
 @test "weighted-blending model blending" {
   improver_check_skip_acceptance
-  KGO="weighted_blending/spatial_weights/nowcast_blending/kgo.nc"
+  KGO="weighted_blending/spatial_weights/kgo/kgo_cycle.nc"
 
   # Run weighted blending with linear weights for two input files and check it
   # passes.

@@ -33,7 +33,7 @@
 
 @test "weighted-blending nowcast spatial blending" {
   improver_check_skip_acceptance
-  KGO="weighted_blending/spatial_weights/nowcast_blending/kgo_cycle_no_fuzzy.nc"
+  KGO="weighted_blending/spatial_weights/kgo/kgo_cycle_no_fuzzy.nc"
 
   # Run weighted blending between different nowcast files using spatial weights
   run improver weighted-blending 'forecast_reference_time' 'weighted_mean' \
