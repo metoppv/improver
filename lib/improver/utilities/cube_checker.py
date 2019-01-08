@@ -67,9 +67,11 @@ def check_cube_datatypes(cube, fix=False):
         if coord.name() in ["time", "forecast_reference_time"]:
             coord.convert_units("seconds since 1970-01-01 00:00:00")
             check_coord_datatypes(coord, np.int64, fix=True, rounding=True)
-        elif coord.name() in ["forecast_period", "realization", "spot_index"]:
+        elif coord.name() in ["forecast_period", "realization", "spot_index",
+                              "neighbour_selection_method", "grid_attributes",
+                              "wmo_id"]:
             check_coord_datatypes(coord, np.int32, fix=True)
-        elif coord.name() in ["wmo_id", "neighbour_selection_method_name",
+        elif coord.name() in ["neighbour_selection_method_name",
                               "grid_attributes_key", "model_configuration"]:
             check_coord_datatypes(coord, str, fix=True)
         else:

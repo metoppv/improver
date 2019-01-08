@@ -116,7 +116,8 @@ def build_spotdata_cube(data, name, units,
             np.arange(len(neighbour_methods)),
             long_name='neighbour_selection_method', units='1')
         neighbour_methods_key = AuxCoord(
-            neighbour_methods, long_name='neighbour_selection_method_name')
+            neighbour_methods, long_name='neighbour_selection_method_name',
+            units='no_unit')
 
         dim_coords_and_dims.append((neighbour_methods_coord,
                                     neighbour_methods_dim))
@@ -128,7 +129,7 @@ def build_spotdata_cube(data, name, units,
             np.arange(len(grid_attributes)),
             long_name='grid_attributes', units='1')
         grid_attributes_key = AuxCoord(
-            grid_attributes, long_name='grid_attributes_key')
+            grid_attributes, long_name='grid_attributes_key', units='no_unit')
 
         dim_coords_and_dims.append((grid_attributes_coord,
                                     grid_attributes_dim))
