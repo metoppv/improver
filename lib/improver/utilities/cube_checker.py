@@ -65,14 +65,15 @@ def check_cube_datatypes(cube, fix=False):
             raise TypeError(msg)
     for coord in cube.coords():
         if coord.name() in ["time", "forecast_reference_time"]:
-            check_coord_datatypes(coord, np.int64, fix=fix, rounding=True)
+            coord.convert_units("seconds since 1970-01-01 00:00:00")
+            check_coord_datatypes(coord, np.int64, fix=True, rounding=True)
         elif coord.name() in ["forecast_period", "realization", "spot_index"]:
-            check_coord_datatypes(coord, np.int32, fix=fix)
+            check_coord_datatypes(coord, np.int32, fix=True)
         elif coord.name() in ["wmo_id", "neighbour_selection_method_name",
                               "grid_attributes_key", "model_configuration"]:
-            check_coord_datatypes(coord, str, fix=fix)
+            check_coord_datatypes(coord, str, fix=True)
         else:
-            check_coord_datatypes(coord, np.float32, fix=fix)
+            check_coord_datatypes(coord, np.float32, fix=True)
 
 
 def check_coord_datatypes(coord, datatype, fix=False, rounding=False):
