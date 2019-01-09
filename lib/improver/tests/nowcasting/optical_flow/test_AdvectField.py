@@ -430,6 +430,8 @@ class Test_process(IrisTest):
         for the time, forecast_reference_time and forecast_period coordinate,
         where a unit conversion has been required."""
         self.cube.coord("time").convert_units("hours since 1970-01-01 00:00")
+        self.cube.coord("forecast_reference_time").convert_units(
+            "hours since 1970-01-01 00:00")
         result = self.plugin.process(self.cube, self.timestep)
         self.assertEqual(result.coord("forecast_period").points, 600)
         # 2017-11-10 04:10:00

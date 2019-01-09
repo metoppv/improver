@@ -330,11 +330,14 @@ class AdvectField(object):
         advected_cube.coord("time").points = (
             np.around(advected_cube.coord("time").points).astype(np.int64))
 
-        advected_cube.coord("forecast_reference_time").convert_units(
-            "seconds since 1970-01-01 00:00:00")
         frt_coord = cube.coord("forecast_reference_time")
         advected_cube.coord("forecast_reference_time").points = (
-            frt_coord.points.astype(np.int64))
+            frt_coord.points)
+        advected_cube.coord("forecast_reference_time").convert_units(
+            "seconds since 1970-01-01 00:00:00")
+        frt_coord = advected_cube.coord("forecast_reference_time")
+        advected_cube.coord("forecast_reference_time").points = (
+            np.around(frt_coord.points).astype(np.int64))
 
         forecast_period_seconds = timestep.total_seconds()
         forecast_period_seconds = np.int32(forecast_period_seconds)
