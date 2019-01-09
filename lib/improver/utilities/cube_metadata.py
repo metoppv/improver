@@ -95,43 +95,6 @@ def update_stage_v110_metadata(cube):
     return True
 
 
-def update_units(item, changes):
-    """Update the units on the item supplied. Options are to either
-    'set' or 'convert' the units
-
-    Args:
-        item (iris.cube.Cube, iris.coords.DimCoord or iris.coords.AuxCoord):
-            Item that will have its units modified.
-        changes (dict):
-            Dictionary of the formats shown below for specifying whether the
-            units will be set or converted::
-            "units": {
-                "action": "set",
-                "units": "K"
-            }
-            "units": {
-                "action": "convert",
-                "units": "seconds since 1970-01-01 00:00:00"
-            }
-
-    Return:
-        item (iris.cube.Cube, iris.coords.DimCoord or iris.coords.AuxCoord):
-            Item that has had its units modified.
-    """
-
-    if changes["units"]["action"] == "set":
-        item.units = changes['units']["units"]
-    elif changes["units"]["action"] == "convert":
-        item.convert_units(changes["units"]["units"])
-    else:
-        msg = ("The specified action is not known. "
-               "The specified action was '{}'. "
-               "Possible actions are: 'set' or 'convert'.").format(
-                   changes["units"]["action"])
-        raise KeyError(msg)
-    return item
-
-
 def add_coord(cube, coord_name, changes, warnings_on=False):
     """Add coord to the cube.
 
@@ -182,7 +145,7 @@ def add_coord(cube, coord_name, changes, warnings_on=False):
         bounds = changes['bounds']
     units = None
     if 'units' in changes:
-        units = changes["units"]["units"]
+        units = changes["units"]
     new_coord = new_coord_method(long_name=coord_name,
                                  points=points,
                                  bounds=bounds,
@@ -244,6 +207,11 @@ def update_coord(cube, coord_name, changes, warnings_on=False):
                    "{}".format(coord_name))
             warnings.warn(msg)
     else:
+        # Unit conversion must take place prior to potentially setting
+        # points and bounds, so that unit conversion does not conflict with
+        # setting points and bounds.
+        if 'units' in changes:
+            new_coord.convert_units(changes["units"])
         if 'points' in changes:
             new_points = np.array(changes['points'])
             if new_points.dtype == np.float64:
@@ -279,8 +247,6 @@ def update_coord(cube, coord_name, changes, warnings_on=False):
                            " be points.shape + (n_bounds,)"
                            "for coord= {}".format(coord_name))
                     raise ValueError(msg)
-        if 'units' in changes:
-            new_coord = update_units(new_coord, changes)
         if warnings_on:
             msg = ("Updated coordinate "
                    "{}".format(coord_name) +
@@ -528,7 +494,7 @@ def amend_metadata(cube,
             update_cell_methods(result, cell_methods[key])
 
     if units is not None:
-        result = update_units(result, units)
+        result.convert_units(units)
 
     return result
 
@@ -571,10 +537,7 @@ def resolve_metadata_diff(cube1, cube2, warnings_on=False):
                     coord_dict = dict()
                     coord_dict['points'] = result1.coord(coord).points
                     coord_dict['bounds'] = result1.coord(coord).bounds
-                    coord_dict['units'] = {
-                        'action': 'set',
-                        'units': result1.coord(coord).units
-                    }
+                    coord_dict['units'] = result1.coord(coord).units
                     coord_dict['metatype'] = 'DimCoord'
                     result2 = add_coord(result2, coord, coord_dict,
                                         warnings_on=warnings_on)

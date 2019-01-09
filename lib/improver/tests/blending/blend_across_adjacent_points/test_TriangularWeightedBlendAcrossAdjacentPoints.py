@@ -239,7 +239,7 @@ class Test_process(IrisTest):
         """Test that the plugin does not change the origonal input cube."""
 
         # Add threshold axis to standard input cube.
-        changes = {'points': [0.5], 'units': {'action': 'set', 'units': '1'}}
+        changes = {'points': [0.5], 'units': '1'}
         cube_with_thresh = add_coord(self.cube.copy(), 'threshold', changes)
         original_cube = cube_with_thresh.copy()
 
@@ -266,7 +266,7 @@ class Test_process(IrisTest):
         expected_cube = self.cube[0].copy(data.astype(np.float32))
 
         # Add threshold axis to expected output cube.
-        changes = {'points': [0.5], 'units': {'action': 'set', 'units': '1'}}
+        changes = {'points': [0.5], 'units': '1'}
         expected_cube = add_coord(expected_cube, 'threshold', changes)
 
         # Add threshold axis to standard input cube.
@@ -295,13 +295,13 @@ class Test_process(IrisTest):
         thresh_cube = self.cube.copy()
         thresh_cube.remove_coord("forecast_reference_time")
 
-        changes = {'points': [0.25], 'units': {'action': 'set', 'units': '1'}}
+        changes = {'points': [0.25], 'units': '1'}
         cube_with_thresh1 = add_coord(thresh_cube.copy(), 'threshold', changes)
 
-        changes = {'points': [0.5], 'units': {'action': 'set', 'units': '1'}}
+        changes = {'points': [0.5], 'units': '1'}
         cube_with_thresh2 = add_coord(thresh_cube.copy(), 'threshold', changes)
 
-        changes = {'points': [0.75], 'units': {'action': 'set', 'units': '1'}}
+        changes = {'points': [0.75], 'units': '1'}
         cube_with_thresh3 = add_coord(thresh_cube.copy(), 'threshold', changes)
 
         cubelist = iris.cube.CubeList([cube_with_thresh1, cube_with_thresh2,
