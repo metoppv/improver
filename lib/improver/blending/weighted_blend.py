@@ -570,7 +570,7 @@ class WeightedBlendAcrossWholeDimension:
             for dim_coord in dim_coords:
                 try:
                     dim_map.append(cube.coord_dims(dim_coord)[0])
-                except CoordinateNotFoundError as E:
+                except CoordinateNotFoundError:
                     message = (
                         "{} is a coordinate on the weights cube but it is not "
                         "found on the cube we are trying to collapse.")
