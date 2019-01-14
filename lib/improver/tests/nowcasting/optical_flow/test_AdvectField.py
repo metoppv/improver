@@ -248,23 +248,15 @@ class Test_process(IrisTest):
                          [1., 2., 3.],
                          [0., 1., 2.],
                          [0., 0., 1.]], dtype=np.float32)
-        self.cube = set_up_variable_cube(
-            data, name="rainfall_rate", units="mm h-1",
-            spatial_grid="equalarea",
-            time=datetime.datetime(2017, 11, 10, 4, 0),
-            frt=datetime.datetime(2017, 11, 10, 4, 0))
-        self.cube.coord("projection_y_coordinate").points = (
-            self.plugin.y_coord.points)
-        self.cube.coord("projection_y_coordinate").bounds = (
-            self.plugin.y_coord.bounds)
-        self.cube.coord("projection_x_coordinate").points = (
-            self.plugin.x_coord.points)
-        self.cube.coord("projection_x_coordinate").bounds = (
-            self.plugin.x_coord.bounds)
+        self.cube = iris.cube.Cube(
+            data, standard_name='rainfall_rate', units='mm h-1',
+            dim_coords_and_dims=[(self.plugin.y_coord, 0),
+                                 (self.plugin.x_coord, 1)])
 
         # input time: [datetime.datetime(2018, 2, 20, 4, 0)]
         self.time_coord = DimCoord(1519099200, standard_name="time",
                                    units='seconds since 1970-01-01 00:00:00')
+        self.cube.add_aux_coord(self.time_coord)
 
         self.timestep = datetime.timedelta(seconds=600)
 
@@ -390,11 +382,11 @@ class Test_process(IrisTest):
         result = self.plugin.process(self.cube, self.timestep)
         output_cube_time, = \
             (result.coord("time").units).num2date(result.coord("time").points)
-        self.assertEqual(output_cube_time.year, 2017)
-        self.assertEqual(output_cube_time.month, 11)
-        self.assertEqual(output_cube_time.day, 10)
+        self.assertEqual(output_cube_time.year, 2018)
+        self.assertEqual(output_cube_time.month, 2)
+        self.assertEqual(output_cube_time.day, 20)
         self.assertEqual(output_cube_time.hour, 4)
-        self.assertEqual(output_cube_time.minute, 10)
+        self.assertEqual(output_cube_time.minute, 0)
 
     def test_lead_time(self):
         """Test output cube has a forecast_period coordinate with the correct
@@ -412,7 +404,7 @@ class Test_process(IrisTest):
         result = self.plugin.process(self.cube, self.timestep)
         self.assertEqual(result.coord("forecast_period").points, 600)
         # 2017-11-10 04:10:00
-        self.assertEqual(result.coord("time").points, 1510287000)
+        self.assertEqual(result.coord("time").points, 1519099800)
         self.assertEqual(
             result.coord("forecast_reference_time").points, 1510286400)
         self.assertEqual(result.coord("forecast_period").units, "seconds")
