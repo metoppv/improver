@@ -386,7 +386,7 @@ class Test_process(IrisTest):
         self.assertEqual(output_cube_time.month, 2)
         self.assertEqual(output_cube_time.day, 20)
         self.assertEqual(output_cube_time.hour, 4)
-        self.assertEqual(output_cube_time.minute, 0)
+        self.assertEqual(output_cube_time.minute, 10)
 
     def test_lead_time(self):
         """Test output cube has a forecast_period coordinate with the correct
@@ -400,13 +400,15 @@ class Test_process(IrisTest):
     def test_units_and_datatypes_for_time_coordinates(self):
         """Test that the output cube contains the desired units and datatypes
         for the time, forecast_reference_time and forecast_period coordinate.
+        In this instance, no forecast_reference_time coordinate is present on
+        the input cube.
         """
         result = self.plugin.process(self.cube, self.timestep)
         self.assertEqual(result.coord("forecast_period").points, 600)
         # 2017-11-10 04:10:00
         self.assertEqual(result.coord("time").points, 1519099800)
         self.assertEqual(
-            result.coord("forecast_reference_time").points, 1510286400)
+            result.coord("forecast_reference_time").points, 1519099200)
         self.assertEqual(result.coord("forecast_period").units, "seconds")
         self.assertEqual(result.coord("time").units,
                          "seconds since 1970-01-01 00:00:00")
@@ -420,16 +422,22 @@ class Test_process(IrisTest):
     def test_time_unit_conversion(self):
         """Test that the output cube contains the desired units and datatypes
         for the time, forecast_reference_time and forecast_period coordinate,
-        where a unit conversion has been required."""
+        where a unit conversion has been required for the time and forecast
+        reference time coordinates."""
         self.cube.coord("time").convert_units("hours since 1970-01-01 00:00")
+        self.frt_coord = (
+            DimCoord(1519099200, standard_name="forecast_reference_time",
+                     units='seconds since 1970-01-01 00:00:00'))
+        self.frt_coord.convert_units("hours since 1970-01-01 00:00")
+        self.cube.add_aux_coord(self.frt_coord)
         self.cube.coord("forecast_reference_time").convert_units(
             "hours since 1970-01-01 00:00")
         result = self.plugin.process(self.cube, self.timestep)
         self.assertEqual(result.coord("forecast_period").points, 600)
         # 2017-11-10 04:10:00
-        self.assertEqual(result.coord("time").points, 1510287000)
+        self.assertEqual(result.coord("time").points, 1519099800)
         self.assertEqual(
-            result.coord("forecast_reference_time").points, 1510286400)
+            result.coord("forecast_reference_time").points, 1519099200)
         self.assertEqual(result.coord("forecast_period").units, "seconds")
         self.assertEqual(result.coord("time").units,
                          "seconds since 1970-01-01 00:00:00")
