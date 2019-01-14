@@ -51,6 +51,22 @@ from improver.utilities.cube_manipulation import concatenate_cubes
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
+def set_up_cubes_for_process_tests():
+    """Set up some cubes with data for testing the "process" and
+    "find_central_point" functions"""
+    central_cube = set_up_variable_cube(
+        np.array([[1., 1.], [1., 1.]], dtype=np.float32),
+        name='lwe_thickness_of_precipitation_amount', units='m',
+        time=dt(2017, 1, 10, 3, 0), frt=dt(2017, 1, 10, 3, 0))
+    another_cube = set_up_variable_cube(
+        np.array([[2., 2.], [2., 2.]], dtype=np.float32),
+        name='lwe_thickness_of_precipitation_amount', units='m',
+        time=dt(2017, 1, 10, 4, 0), frt=dt(2017, 1, 10, 3, 0))
+    cube = iris.cube.CubeList(
+        [central_cube, another_cube]).merge_cube()
+    return central_cube, cube
+
+
 class Test__repr__(IrisTest):
 
     """Test the __repr__ method."""
@@ -98,17 +114,7 @@ class Test__find_central_point(IrisTest):
 
     def setUp(self):
         """Set up a test cubes."""
-        self.central_cube = set_up_variable_cube(
-            np.array([[1., 1.], [1., 1.]], dtype=np.float32),
-            name='lwe_thickness_of_precipitation_amount', units='m',
-            time=dt(2017, 1, 10, 3, 0), frt=dt(2017, 1, 10, 3, 0))
-        another_cube = set_up_variable_cube(
-            np.array([[2., 2.], [2., 2.]], dtype=np.float32),
-            name='lwe_thickness_of_precipitation_amount', units='m',
-            time=dt(2017, 1, 10, 4, 0), frt=dt(2017, 1, 10, 3, 0))
-        self.cube = iris.cube.CubeList(
-            [self.central_cube, another_cube]).merge_cube()
-
+        self.central_cube, self.cube = set_up_cubes_for_process_tests()
         self.forecast_period = self.central_cube.coord(
             "forecast_period").points[0]
         self.width = 1.0
@@ -142,17 +148,7 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up test cubes."""
-        self.central_cube = set_up_variable_cube(
-            np.array([[1., 1.], [1., 1.]], dtype=np.float32),
-            name='lwe_thickness_of_precipitation_amount', units='m',
-            time=dt(2017, 1, 10, 3, 0), frt=dt(2017, 1, 10, 3, 0))
-        another_cube = set_up_variable_cube(
-            np.array([[2., 2.], [2., 2.]], dtype=np.float32),
-            name='lwe_thickness_of_precipitation_amount', units='m',
-            time=dt(2017, 1, 10, 4, 0), frt=dt(2017, 1, 10, 3, 0))
-        self.cube = iris.cube.CubeList(
-            [self.central_cube, another_cube]).merge_cube()
-
+        self.central_cube, self.cube = set_up_cubes_for_process_tests()
         self.forecast_period = self.central_cube.coord(
             "forecast_period").points[0]
 

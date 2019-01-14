@@ -42,7 +42,7 @@ from datetime import datetime as dt
 from improver.blending.weights import ChooseWeightsLinear
 from improver.utilities.temporal import forecast_period_coord
 from improver.tests.set_up_test_cubes import (
-    set_up_variable_cube, set_up_probability_cube, add_coordinate)
+    set_up_variable_cube, add_coordinate)
 
 
 CONFIG_DICT_UKV = {"uk_det": {"forecast_period": [7, 12, 48, 54],

@@ -40,6 +40,7 @@ from iris.tests import IrisTest
 from iris.coords import AuxCoord, DimCoord
 
 from improver.utilities.cube_manipulation import merge_cubes
+from improver.utilities.warnings_handler import ManageWarnings
 from improver.blending.weighted_blend import rationalise_blend_time_coords
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 
@@ -92,6 +93,9 @@ class Test_rationalise_blend_time_coords(IrisTest):
         rationalise_blend_time_coords(self.cubelist, "model")
         self.assertEqual(self.cubelist, reference_cubelist)
 
+    @ManageWarnings(
+        ignored_messages=[
+            "Do not know what to do with mosg__model_configuration"])
     def test_remove_fp(self):
         """Test function removes forecast_period coord if blending over
         forecast_reference_time"""
