@@ -29,23 +29,22 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "nbhood no arguments" {
-  run improver nbhood
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-nbhood [-h] [--profile] [--profile_file PROFILE_FILE]
-                       [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
-                       [--degrees_as_complex] [--weighted_mode]
-                       [--sum_or_fraction {sum,fraction}] [--re_mask]
-                       [--percentiles PERCENTILES [PERCENTILES ...]]
-                       [--input_mask_filepath INPUT_MASK_FILE]
-                       [--halo_radius HALO_RADIUS] [--apply-recursive-filter]
-                       [--input_filepath_alphas_x_cube ALPHAS_X_FILE]
-                       [--input_filepath_alphas_y_cube ALPHAS_Y_FILE]
-                       [--alpha_x ALPHA_X] [--alpha_y ALPHA_Y]
-                       [--iterations ITERATIONS]
-                       NEIGHBOURHOOD_OUTPUT NEIGHBOURHOOD_SHAPE INPUT_FILE
-                       OUTPUT_FILE
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "nbhood 'square' --radius=20000 --halo_radius=162000 input output" {
+  improver_check_skip_acceptance
+  KGO="nbhood/halo/kgo.nc"
+
+  # Run square neighbourhood processing and check it passes.
+  run improver nbhood 'probabilities' 'square' --radius=20000 --weighted_mode\
+      --halo_radius=162000 \
+      "$IMPROVER_ACC_TEST_DIR/nbhood/halo/input.nc" \
+      "$TEST_DIR/output_halo.nc"
+  [[ "$status" -eq 0 ]]
+
+  improver_check_recreate_kgo "output_square.nc" $KGO
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output_halo.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }
