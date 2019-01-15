@@ -118,7 +118,11 @@ Spatial weights from mask options:
                         are masked have lower weights than those further away.
                         This fuzzy length controls the scale over which the
                         weights are smoothed. The fuzzy length is in terms of
-                        the number of grid points, default is 10. See
+                        m, the default is 20km. This distance is then
+                        converted into a number of grid squares, which does
+                        not have to be an integer. Assumes the grid spacing is
+                        the same in the x and y directions, and raises an
+                        error if this is not true. See
                         SpatiallyVaryingWeightsFromMask for more detail.
 
 linear weights options:
@@ -158,7 +162,6 @@ dict weights options:
                         Name of coordinate over which linear weights should be
                         scaled. This coordinate must be avilable in the
                         weights dictionary.
-
 __HELP__
   [[ "$output" == "$expected" ]]
 }

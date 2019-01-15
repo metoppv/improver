@@ -85,7 +85,7 @@ def check_if_grid_is_equal_area(cube):
 
 
 def convert_distance_into_number_of_grid_cells(
-        cube, distance, max_distance_in_grid_cells=None):
+        cube, distance, max_distance_in_grid_cells=None, int_grid_cells=True):
     """
     Return the number of grid cells in the x and y direction based on the
     input distance in metres.
@@ -102,6 +102,9 @@ def convert_distance_into_number_of_grid_cells(
         max_distance_in_grid_cells (int or None):
             Maximum distance in grid cells.  Defaults to None, which bypasses
             the check.
+        int_grid_cells (boolean):
+            If true only integer number of grid_cells are returned, rounded
+            down. If false the number of grid_cells returned will be a float.
 
     Returns:
         (tuple) : tuple containing:
@@ -146,8 +149,11 @@ def convert_distance_into_number_of_grid_cells(
              " distance of {1}m".format(distance, max_distance_of_domain)))
     d_north_metres = y_coord.points[1] - y_coord.points[0]
     d_east_metres = x_coord.points[1] - x_coord.points[0]
-    grid_cells_y = int(distance / abs(d_north_metres))
-    grid_cells_x = int(distance / abs(d_east_metres))
+    grid_cells_y = distance / abs(d_north_metres)
+    grid_cells_x = distance / abs(d_east_metres)
+    if int_grid_cells:
+        grid_cells_y = int(grid_cells_y)
+        grid_cells_x = int(grid_cells_x)
     if grid_cells_x == 0 or grid_cells_y == 0:
         raise ValueError(
             "Distance of {0}m gives zero cell extent".format(distance))

@@ -312,7 +312,6 @@ class Test_build_weights_cube(IrisTest):
         coord_names = [coord.name() for coord in result.coords()]
         self.assertIn("forecast_period", coord_names)
 
-
     def test_weights_scalar_coord(self):
         """Test building a cube of weights where the blending coordinate is a
         scalar."""

@@ -43,6 +43,8 @@ from improver.utilities.load import load_cubelist
 from improver.utilities.save import save_netcdf
 from improver.utilities.cube_manipulation import (
     merge_cubes, sort_coord_in_cube)
+from improver.utilities.spatial import (
+    check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells)
 
 from improver.blending.weights import (
     ChooseWeightsLinear, ChooseDefaultWeightsLinear,
@@ -204,16 +206,20 @@ def main():
         'Options for calculating the spatial weights using the '
         'SpatiallyVaryingWeightsFromMask plugin.')
     spatial.add_argument('--fuzzy_length', metavar='FUZZY_LENGTH', type=float,
-                         default=10,
+                         default=20000,
                          help='When calculating spatially varying weights we'
                               ' can smooth the weights so that areas close to'
                               ' areas that are masked have lower weights than'
                               ' those further away. This fuzzy length controls'
                               ' the scale over which the weights are smoothed.'
-                              ' The fuzzy length is in terms of the number of'
-                              ' grid points, default is 10. See'
-                              ' SpatiallyVaryingWeightsFromMask for more'
-                              ' detail.')
+                              ' The fuzzy length is in terms of m, the'
+                              ' default is 20km. This distance is then'
+                              ' converted into a number of grid squares,'
+                              ' which does not have to be an integer. Assumes'
+                              ' the grid spacing is the same in the x and y'
+                              ' directions, and raises an error if this is not'
+                              ' true. See SpatiallyVaryingWeightsFromMask for'
+                              ' more detail.')
 
     linear = parser.add_argument_group('linear weights options',
                                        'Options for the linear weights '
@@ -316,8 +322,11 @@ def main():
             cval=args.cval)
 
         if args.spatial_weights_from_mask:
+            check_if_grid_is_equal_area(cube)
+            grid_cells_x, _ = convert_distance_into_number_of_grid_cells(
+                cube, args.fuzzy_length, int_grid_cells=False)
             SpatialWeightsPlugin = SpatiallyVaryingWeightsFromMask(
-                args.fuzzy_length)
+                grid_cells_x)
             weights = SpatialWeightsPlugin.process(
                 cube, weights, args.coordinate)
         # blend across specified dimension
