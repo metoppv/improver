@@ -200,12 +200,12 @@ class Test_update_coord(IrisTest):
     """Test the update_coord method."""
 
     def test_basic(self):
-        """Test update_coord returns a Cube and updates coord correctly. """
+        """Test update_coord returns a Cube and updates coordinate points and
+        bounds correctly. """
         cube = create_cube_with_threshold()
         changes = {
             'points': [2.0],
             'bounds': [0.1, 2.0],
-            'units': 'km s-1'
              }
         result = update_coord(cube, 'threshold', changes)
         self.assertIsInstance(result, Cube)
@@ -213,8 +213,14 @@ class Test_update_coord(IrisTest):
                                     np.array([2.0], dtype=np.float32))
         self.assertArrayAlmostEqual(result.coord('threshold').bounds,
                                     np.array([[0.1, 2.0]], dtype=np.float32))
-        self.assertEqual(str(result.coord('threshold').units),
-                         'km s-1')
+
+    def test_update_units(self):
+        """Test update_coord returns a Cube and updates units correctly. """
+        cube = create_cube_with_threshold()
+        changes = {'units': 'km s-1'}
+        result = update_coord(cube, 'threshold', changes)
+        self.assertIsInstance(result, Cube)
+        self.assertEqual(str(result.coord('threshold').units), 'km s-1')
 
     def test_coords_deleted(self):
         """Test update_coord deletes coordinate. """
@@ -289,7 +295,6 @@ class Test_update_coord(IrisTest):
         changes = {
             'points': [2.0],
             'bounds': [0.1, 2.0],
-            'units': 'mm/hr'
             }
         warning_msg = "Updated coordinate"
         update_coord(cube, coord_name, changes, warnings_on=True)
@@ -297,6 +302,24 @@ class Test_update_coord(IrisTest):
                             for item in warning_list))
         self.assertTrue(any(warning_msg in str(item)
                             for item in warning_list))
+
+    def test_incompatible_changes_requested(self):
+        """Test that update_coord raises an exception if 'points' and 'units'
+        are requested to be changed."""
+        cube = create_cube_with_threshold()
+        changes = {'points': [2.0, 3.0], 'units': 'mm/hr'}
+        msg = "When updating a coordinate"
+        with self.assertRaisesRegex(ValueError, msg):
+            update_coord(cube, 'threshold', changes)
+
+    def test_alternative_incompatible_changes_requested(self):
+        """Test that update_coord raises an exception if 'bounds' and 'units'
+        are requested to be changed."""
+        cube = create_cube_with_threshold()
+        changes = {'bounds': [0.1, 2.0], 'units': 'mm/hr'}
+        msg = "When updating a coordinate"
+        with self.assertRaisesRegex(ValueError, msg):
+            update_coord(cube, 'threshold', changes)
 
 
 class Test_update_attribute(IrisTest):

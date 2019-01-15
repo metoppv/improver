@@ -207,11 +207,11 @@ def update_coord(cube, coord_name, changes, warnings_on=False):
                    "{}".format(coord_name))
             warnings.warn(msg)
     else:
-        # Unit conversion must take place prior to potentially setting
-        # points and bounds, so that unit conversion does not conflict with
-        # setting points and bounds.
-        if 'units' in changes:
-            new_coord.convert_units(changes["units"])
+        if 'units' in changes and ('points' in changes or 'bounds' in changes):
+            msg = ("When updating a coordinate, the 'units' and "
+                   "'points'/'bounds' can only be updated independently. "
+                   "The changes requested were {}".format(changes))
+            raise ValueError(msg)
         if 'points' in changes:
             new_points = np.array(changes['points'])
             if new_points.dtype == np.float64:
@@ -247,6 +247,8 @@ def update_coord(cube, coord_name, changes, warnings_on=False):
                            " be points.shape + (n_bounds,)"
                            "for coord= {}".format(coord_name))
                     raise ValueError(msg)
+        if 'units' in changes:
+            new_coord.convert_units(changes["units"])
         if warnings_on:
             msg = ("Updated coordinate "
                    "{}".format(coord_name) +
