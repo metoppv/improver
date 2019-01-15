@@ -214,12 +214,13 @@ class Test_update_coord(IrisTest):
         self.assertArrayAlmostEqual(result.coord('threshold').bounds,
                                     np.array([[0.1, 2.0]], dtype=np.float32))
 
-    def test_update_units(self):
-        """Test update_coord returns a Cube and updates units correctly. """
+    def test_convert_units(self):
+        """Test update_coord returns a Cube and converts units correctly. """
         cube = create_cube_with_threshold()
         changes = {'units': 'km s-1'}
         result = update_coord(cube, 'threshold', changes)
         self.assertIsInstance(result, Cube)
+        self.assertEqual(result.coord('threshold').points, np.array([0.001]))
         self.assertEqual(str(result.coord('threshold').units), 'km s-1')
 
     def test_coords_deleted(self):
