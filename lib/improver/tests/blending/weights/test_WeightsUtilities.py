@@ -278,12 +278,30 @@ class Test_build_weights_cube(IrisTest):
         """Test building a cube with weights along the blending coordinate."""
 
         weights = np.array([0.4, 0.6])
-        blending_coord = 'forecast_period'
+        blending_coord = 'time'
 
         plugin = WeightsUtilities.build_weights_cube
         result = plugin(self.cube, weights, blending_coord)
-        expected_coord_names = ["time", "forecast_reference_time",
-                                "forecast_period"]
+
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertEqual(result.name(), 'weights')
+        self.assertFalse(result.attributes)
+        self.assertArrayEqual(result.data, weights)
+        self.assertEqual(result.coords(dim_coords=True)[0].name(),
+                         blending_coord)
+        self.assertEqual(len(result.coords(dim_coords=True)), 1)
+
+    def test_aux_coord_for_blending_coord(self):
+        """Test building a cube with weights along the blending coordinate,
+        when the blending coordinate is an auxillary coordinate. In this case
+        we expect the associated dim_coord (time) to be on the output cube as
+        well as the blending coordinate (forecast_period) as an auxillary
+        coordinate."""
+
+        weights = np.array([0.4, 0.6])
+        blending_coord = 'forecast_period'
+        plugin = WeightsUtilities.build_weights_cube
+        result = plugin(self.cube, weights, blending_coord)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), 'weights')
         self.assertFalse(result.attributes)
@@ -291,8 +309,9 @@ class Test_build_weights_cube(IrisTest):
         self.assertEqual(result.coords(dim_coords=True)[0].name(),
                          "time")
         self.assertEqual(len(result.coords(dim_coords=True)), 1)
-        result_coord_names = [coord.name() for coord in result.coords()]
-        self.assertEqual(result_coord_names, expected_coord_names)
+        coord_names = [coord.name() for coord in result.coords()]
+        self.assertIn("forecast_period", coord_names)
+
 
     def test_weights_scalar_coord(self):
         """Test building a cube of weights where the blending coordinate is a
