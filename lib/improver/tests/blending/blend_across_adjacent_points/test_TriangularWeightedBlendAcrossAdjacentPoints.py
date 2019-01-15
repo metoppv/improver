@@ -138,7 +138,7 @@ class Test__find_central_point(IrisTest):
         plugin = TriangularWeightedBlendAcrossAdjacentPoints(
             'forecast_period', forecast_period, 'hours', self.width,
             'weighted_mean')
-        msg = 'The central point'
+        msg = 'The central point 2 in units of hours'
         with self.assertRaisesRegex(ValueError, msg):
             plugin._find_central_point(self.cube)
 
@@ -228,7 +228,7 @@ class Test_process(IrisTest):
         plugin = TriangularWeightedBlendAcrossAdjacentPoints(
             'forecast_period', forecast_period, 'hours', width,
             'weighted_mean')
-        msg = "The central point"
+        msg = "The central point 2 in units of hours"
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(self.cube)
 

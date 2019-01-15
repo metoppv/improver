@@ -139,13 +139,9 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
             coord_values={self.coord: central_point})
         central_point_cube = cube.extract(constr)
         if central_point_cube is None:
-            if self.parameter_units is None:
-                parameter_units = central_point_cube.coord(self.coord).units
-            else:
-                parameter_units = self.parameter_units
             msg = ("The central point {} in units of {} not available "
                    "within input cube coordinate points: {}.".format(
-                       central_point, parameter_units,
+                       self.central_point, self.parameter_units,
                        cube.coord(self.coord).points))
             raise ValueError(msg)
         return central_point_cube
