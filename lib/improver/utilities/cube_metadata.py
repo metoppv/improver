@@ -72,22 +72,9 @@ GRID_ID_LOOKUP = {'enukx_standard_v1': 'uk_ens',
 
 
 def update_stage_v110_metadata(cube):
-    """Translates meta-data relating to the grid_id attribute from StaGE
-    version 1.1.0 to later StaGE versions.
-    Cubes that have no "grid_id" attribute are not recognised as v1.1.0 and
-    are ignored.
-
-    Args:
-        cube (iris.cube.Cube):
-            Cube to modify meta-data in (modified in place)
-
-    Returns:
-        boolean (bool):
-            True if meta-data have been changed by this function.
-    """
     try:
         grid_id = cube.attributes.pop('grid_id')
-    except KeyError:
+    except:
         # Not a version 1.1.0 grid, so exit.
         return False
     cube.attributes.update(MOSG_GRID_DEFINITION[GRID_ID_LOOKUP[grid_id]])
