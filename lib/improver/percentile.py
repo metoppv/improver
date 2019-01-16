@@ -35,6 +35,7 @@ import iris
 from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 import warnings
+import scipy
 
 from improver.constants import DEFAULT_PERCENTILES
 
