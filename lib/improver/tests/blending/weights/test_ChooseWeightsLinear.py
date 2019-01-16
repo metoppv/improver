@@ -52,8 +52,14 @@ CONFIG_DICT_UKV = {"uk_det": {"forecast_period": [7, 12, 48, 54],
 
 def set_up_basic_model_config_cube(frt=None, time_points=None):
     """Set up cube with dimensions of realization x time x lat x lon, plus
-     model id and configuration scalar coords"""
+     model id and configuration scalar coords
 
+    Kwargs:
+        frt (datetime):
+            Forecast reference time point
+        time_points (list):
+            List of times as datetime instances to create a dim coord
+    """
     if frt is None:
         frt = dt(2017, 1, 10, 3, 0)
     if time_points is None:
@@ -75,7 +81,19 @@ def set_up_basic_model_config_cube(frt=None, time_points=None):
 
 def set_up_basic_weights_cube(set_data=True, frt=None, time_points=None):
     """Set up weights cube with dimensions of realization x time x lat x lon,
-    plus model id and configuration scalar coords"""
+    plus model id and configuration scalar coords
+
+    Kwargs:
+        set_data (bool):
+            If True, update the np.zeros array in the weights cube to a
+            specific data array which is used in several of the unit tests
+            below.  Note this will cause an error if the cube dimensions do
+            not match this array (shape (1, 4, 2, 2)).
+        frt (datetime):
+            Forecast reference time point
+        time_points (list):
+            List of times as datetime instances to create a dim coord
+    """
 
     if frt is None:
         frt = dt(2017, 1, 10, 3, 0)

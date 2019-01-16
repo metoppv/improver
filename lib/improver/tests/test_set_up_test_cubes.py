@@ -422,7 +422,19 @@ class test_add_coordinate(IrisTest):
         self.assertEqual(len(result.coord("time").points), 2)
         # check forecast period has been updated
         expected_fp_points = 3600*np.array([6, 7], dtype=np.int64)
-        print(result.coord("forecast_period").points)
+        self.assertArrayAlmostEqual(
+            result.coord("forecast_period").points, expected_fp_points)
+
+    def test_datetime_no_fp(self):
+        """Test a leading time coordinate can be added successfully when there
+        is no forecast period on the input cube"""
+        self.input_cube.remove_coord("forecast_period")
+        datetime_points = [
+            datetime(2017, 10, 10, 3, 0), datetime(2017, 10, 10, 4, 0)]
+        result = add_coordinate(
+            self.input_cube, datetime_points, "time", is_datetime=True)
+        # check a forecast period coordinate has been added
+        expected_fp_points = 3600*np.array([6, 7], dtype=np.int64)
         self.assertArrayAlmostEqual(
             result.coord("forecast_period").points, expected_fp_points)
 
