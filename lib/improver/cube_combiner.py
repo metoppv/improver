@@ -136,8 +136,15 @@ class CubeCombiner(object):
             result_coord.bounds = result_coord.bounds.astype(np.float32)
 
         if point == 'mid':
-            result_coord.points = [((new_top_bound - new_low_bound) / 2.) +
-                                   new_low_bound]
+            if 'seconds' in str(result_coord.units):
+                # integer division of seconds required to retain floating
+                # point precision
+                result_coord.points = [
+                    (new_top_bound - new_low_bound) // 2 + new_low_bound]
+            else:
+                # float division of hours required for accuracy
+                result_coord.points = [
+                    (new_top_bound - new_low_bound) / 2. + new_low_bound]
         elif point == 'upper':
             result_coord.points = [new_top_bound]
 
