@@ -128,6 +128,10 @@ function improver_test_unit {
             # Report coverage to Codacy if possible.
             python-codacy-coverage -r coverage.xml
         fi
+        if [[ -n "${CODECOV_TOKEN:-}" ]]; then
+            # Report coverage to CodeCov if possible.
+            codecov
+        fi
     else
         python -m unittest discover ${VERBOSE_OPT:-}
     fi
