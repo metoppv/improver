@@ -49,6 +49,7 @@ from iris.time import PartialDateTime
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.cube_manipulation import build_coordinate
+from improver.utilities.cube_checker import check_cube_not_float64
 
 
 def cycletime_to_datetime(cycletime, cycletime_format="%Y%m%dT%H%MZ"):
@@ -628,6 +629,7 @@ class TemporalInterpolation(object):
         interpolated_cube = cube.interpolate(time_list, iris.analysis.Linear())
         interpolated_cubes = iris.cube.CubeList()
         for single_time in interpolated_cube.slices_over('time'):
+            check_cube_not_float64(single_time, fix=True)
             interpolated_cubes.append(single_time)
 
         return interpolated_cubes
