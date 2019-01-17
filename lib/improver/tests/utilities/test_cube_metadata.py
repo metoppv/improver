@@ -199,7 +199,7 @@ class Test_update_coord(IrisTest):
 
     def test_basic(self):
         """Test update_coord returns a Cube and updates coord correctly. """
-        changes = {'points': [2.0], 'bounds': [0.1, 2.0], 'units': 'mm'}
+        changes = {'points': [2.0], 'bounds': [0.1, 2.0]}
         result = update_coord(self.cube, 'threshold', changes)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.coord('threshold').points,
@@ -213,7 +213,8 @@ class Test_update_coord(IrisTest):
         changes = {'units': 'km s-1'}
         result = update_coord(cube, 'threshold', changes)
         self.assertIsInstance(result, Cube)
-        self.assertEqual(result.coord('threshold').points, np.array([0.001]))
+        self.assertEqual(result.coord('threshold').points,
+                         np.array([0.001], dtype=np.float32))
         self.assertEqual(str(result.coord('threshold').units), 'km s-1')
 
     def test_coords_deleted(self):
@@ -281,7 +282,7 @@ class Test_update_coord(IrisTest):
     def test_warning_messages_with_update(self, warning_list=None):
         """Test warning message is raised correctly when updating coord. """
         coord_name = 'threshold'
-        changes = {'points': [2.0], 'bounds': [0.1, 2.0], 'units': 'mm'}
+        changes = {'points': [2.0], 'bounds': [0.1, 2.0]}
         warning_msg = "Updated coordinate"
         update_coord(self.cube, coord_name, changes, warnings_on=True)
         self.assertTrue(any(item.category == UserWarning
