@@ -46,10 +46,10 @@ from improver.utilities.cube_metadata import (
     amend_metadata,
     delete_attributes,
     resolve_metadata_diff,
-    update_stage_v110_metadata,
+    update_attribute,
     update_cell_methods,
     update_coord,
-    update_attribute)
+    update_stage_v110_metadata)
 from improver.utilities.warnings_handler import ManageWarnings
 from improver.utilities.temporal import forecast_period_coord
 
@@ -133,14 +133,21 @@ class Test_add_coord(IrisTest):
 
     """Test the add_coord method."""
 
+    def setUp(self):
+        """Set up information for testing."""
+        self.cube = create_cube_with_threshold()
+        self.changes = {
+            'points': [2.0],
+            'bounds': [0.1, 2.0],
+            'units': 'mm'
+            }
+
     def test_basic(self):
         """Test that add_coord returns a Cube and adds coord correctly. """
         coord_name = 'threshold'
-        cube = create_cube_with_threshold()
-        cube.remove_coord(coord_name)
-        cube = iris.util.squeeze(cube)
-        changes = {'points': [2.0], 'bounds': [0.1, 2.0], 'units': 'mm'}
-        result = add_coord(cube, coord_name, changes)
+        self.cube.remove_coord(coord_name)
+        cube = iris.util.squeeze(self.cube)
+        result = add_coord(cube, coord_name, self.changes)
         self.assertIsInstance(result, Cube)
         self.assertArrayEqual(result.coord(coord_name).points,
                               np.array([2.0]))
@@ -152,10 +159,12 @@ class Test_add_coord(IrisTest):
     def test_fails_no_points(self):
         """Test that add_coord fails if points not included in metadata """
         coord_name = 'threshold'
-        cube = create_cube_with_threshold()
-        cube.remove_coord(coord_name)
-        cube = iris.util.squeeze(cube)
-        changes = {'bounds': [0.1, 2.0], 'units': 'mm'}
+        self.cube.remove_coord(coord_name)
+        cube = iris.util.squeeze(self.cube)
+        changes = {
+            'bounds': [0.1, 2.0],
+            'units':  'mm'
+            }
         msg = 'Trying to add new coord but no points defined'
         with self.assertRaisesRegex(ValueError, msg):
             add_coord(cube, coord_name, changes)
@@ -163,10 +172,11 @@ class Test_add_coord(IrisTest):
     def test_fails_points_greater_than_1(self):
         """Test that add_coord fails if points greater than 1 """
         coord_name = 'threshold'
-        cube = create_cube_with_threshold()
-        cube.remove_coord(coord_name)
-        cube = iris.util.squeeze(cube)
-        changes = {'points': [0.1, 2.0]}
+        self.cube.remove_coord(coord_name)
+        cube = iris.util.squeeze(self.cube)
+        changes = {
+            'points': [0.1, 2.0]
+            }
         msg = 'Can not add a coordinate of length > 1'
         with self.assertRaisesRegex(ValueError, msg):
             add_coord(cube, coord_name, changes)
@@ -175,12 +185,10 @@ class Test_add_coord(IrisTest):
     def test_warning_messages(self, warning_list=None):
         """Test that warning messages is raised correctly. """
         coord_name = 'threshold'
-        cube = create_cube_with_threshold()
-        cube.remove_coord(coord_name)
-        cube = iris.util.squeeze(cube)
-        changes = {'points': [2.0], 'bounds': [0.1, 2.0], 'units': 'mm'}
+        self.cube.remove_coord(coord_name)
+        cube = iris.util.squeeze(self.cube)
         warning_msg = "Adding new coordinate"
-        add_coord(cube, coord_name, changes, warnings_on=True)
+        add_coord(cube, coord_name, self.changes, warnings_on=True)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         self.assertTrue(any(warning_msg in str(item)
@@ -192,17 +200,28 @@ class Test_update_coord(IrisTest):
     """Test the update_coord method."""
 
     def test_basic(self):
-        """Test update_coord returns a Cube and updates coord correctly. """
+        """Test update_coord returns a Cube and updates coordinate points and
+        bounds correctly. """
         cube = create_cube_with_threshold()
-        changes = {'points': [2.0], 'bounds': [0.1, 2.0], 'units': 'mm'}
+        changes = {
+            'points': [2.0],
+            'bounds': [0.1, 2.0],
+            }
         result = update_coord(cube, 'threshold', changes)
         self.assertIsInstance(result, Cube)
-        self.assertArrayEqual(result.coord('threshold').points,
-                              np.array([2.0], dtype=np.float32))
-        self.assertArrayEqual(result.coord('threshold').bounds,
-                              np.array([[0.1, 2.0]], dtype=np.float32))
-        self.assertEqual(str(result.coord('threshold').units),
-                         'mm')
+        self.assertArrayAlmostEqual(result.coord('threshold').points,
+                                    np.array([2.0], dtype=np.float32))
+        self.assertArrayAlmostEqual(result.coord('threshold').bounds,
+                                    np.array([[0.1, 2.0]], dtype=np.float32))
+
+    def test_convert_units(self):
+        """Test update_coord returns a Cube and converts units correctly. """
+        cube = create_cube_with_threshold()
+        changes = {'units': 'km s-1'}
+        result = update_coord(cube, 'threshold', changes)
+        self.assertIsInstance(result, Cube)
+        self.assertEqual(result.coord('threshold').points, np.array([0.001]))
+        self.assertEqual(str(result.coord('threshold').units), 'km s-1')
 
     def test_coords_deleted(self):
         """Test update_coord deletes coordinate. """
@@ -274,13 +293,34 @@ class Test_update_coord(IrisTest):
         """Test warning message is raised correctly when updating coord. """
         coord_name = 'threshold'
         cube = create_cube_with_threshold()
-        changes = {'points': [2.0], 'bounds': [0.1, 2.0], 'units': 'mm'}
+        changes = {
+            'points': [2.0],
+            'bounds': [0.1, 2.0],
+            }
         warning_msg = "Updated coordinate"
         update_coord(cube, coord_name, changes, warnings_on=True)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         self.assertTrue(any(warning_msg in str(item)
                             for item in warning_list))
+
+    def test_incompatible_changes_requested(self):
+        """Test that update_coord raises an exception if 'points' and 'units'
+        are requested to be changed."""
+        cube = create_cube_with_threshold()
+        changes = {'points': [2.0, 3.0], 'units': 'mm/hr'}
+        msg = "When updating a coordinate"
+        with self.assertRaisesRegex(ValueError, msg):
+            update_coord(cube, 'threshold', changes)
+
+    def test_alternative_incompatible_changes_requested(self):
+        """Test that update_coord raises an exception if 'bounds' and 'units'
+        are requested to be changed."""
+        cube = create_cube_with_threshold()
+        changes = {'bounds': [0.1, 2.0], 'units': 'mm/hr'}
+        msg = "When updating a coordinate"
+        with self.assertRaisesRegex(ValueError, msg):
+            update_coord(cube, 'threshold', changes)
 
 
 class Test_update_attribute(IrisTest):
@@ -575,9 +615,10 @@ class Test_amend_metadata(IrisTest):
 
     def test_convert_units(self):
         """Test amend_metadata updates attributes OK. """
+        changes = "Celsius"
         cube = set_up_variable_cube(
             np.ones((3, 3), dtype=np.float32), units='K')
-        result = amend_metadata(cube, units="Celsius")
+        result = amend_metadata(cube, units=changes)
         self.assertEqual(result.units, "Celsius")
 
     @ManageWarnings(record=True)
