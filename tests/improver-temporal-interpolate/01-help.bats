@@ -65,7 +65,9 @@ optional arguments:
                         timecan be provided separated by a space but if times
                         are set interval_in_mins can not be set
   --output_files OUTPUT_FILES [OUTPUT_FILES ...]
-                        List of output files.
+                        List of output files. The interpolated files will
+                        always be in the chronological order of earliest to
+                        latest regardless of the order of the infiles.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

@@ -81,7 +81,11 @@ def main():
 
     parser.add_argument("--output_files", metavar="OUTPUT_FILES",
                         required=True, nargs="+",
-                        help="List of output files.")
+                        help="List of output files."
+                        " The interpolated files will always be"
+                        " in the chronological order of"
+                        " earliest to latest "
+                        " regardless of the order of the infiles.")
 
     args = parser.parse_args()
 
