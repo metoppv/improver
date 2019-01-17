@@ -38,8 +38,8 @@ usage: improver-temporal-interpolate [-h] [--profile]
                                      (--interval_in_mins INTERVAL_IN_MINS | --times TIMES [TIMES ...])
                                      --output_files OUTPUT_FILES
                                      [OUTPUT_FILES ...]
-                                     DATA_T0 DATA_T1
-improver-temporal-interpolate: error: the following arguments are required: DATA_T0, DATA_T1, --output_files
+                                     INFILES INFILES
+improver-temporal-interpolate: error: the following arguments are required: INFILES, --output_files
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

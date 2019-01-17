@@ -37,7 +37,7 @@ from improver.argparser import ArgParser
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.utilities.temporal import (
-    cycletime_to_datetime, TemporalInterpolation)
+    cycletime_to_datetime, TemporalInterpolation, iris_time_to_datetime)
 
 
 def main():
@@ -50,13 +50,9 @@ def main():
     parser = ArgParser(
         description='Interpolate data between validity times ')
 
-    parser.add_argument('data_t0', metavar='DATA_T0',
-                        help='Cube contain the data at the beginning'
-                        ' of the period')
-
-    parser.add_argument('data_t1', metavar='DATA_T1',
-                        help='Cube contain the data at the end'
-                        ' of the period')
+    parser.add_argument('infiles', metavar='INFILES', nargs=2,
+                        help='Files contain the data at the beginning'
+                        ' and end of the period (2 files required).')
 
     group = parser.add_mutually_exclusive_group(required=True)
 
@@ -89,8 +85,16 @@ def main():
 
     args = parser.parse_args()
 
-    cube_t0 = load_cube(args.data_t0)
-    cube_t1 = load_cube(args.data_t1)
+    cube_0 = load_cube(args.infiles[0])
+    cube_1 = load_cube(args.infiles[1])
+    time_0, = iris_time_to_datetime(cube_0.coord('time'))
+    time_1, = iris_time_to_datetime(cube_1.coord('time'))
+    if time_0 < time_1:
+        cube_start = cube_0
+        cube_end = cube_1
+    else:
+        cube_start = cube_1
+        cube_end = cube_0
 
     interval = args.interval_in_mins
     if args.times is None:
@@ -102,8 +106,8 @@ def main():
 
     interpolated_cubes = (
         TemporalInterpolation(interval_in_minutes=interval,
-                              times=times).process(cube_t0,
-                                                   cube_t1))
+                              times=times).process(cube_start,
+                                                   cube_end))
 
     len_files = len(args.output_files)
     len_cubes = len(interpolated_cubes)
