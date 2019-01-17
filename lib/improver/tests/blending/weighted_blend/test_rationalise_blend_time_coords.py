@@ -31,13 +31,11 @@
 """Module to test the rationalise_blend_time_coords function."""
 
 import unittest
-from cf_units import date2num, Unit
-from datetime import datetime
 import numpy as np
+from datetime import datetime
 
 import iris
 from iris.tests import IrisTest
-from iris.coords import AuxCoord, DimCoord
 
 from improver.utilities.cube_manipulation import merge_cubes
 from improver.utilities.warnings_handler import ManageWarnings

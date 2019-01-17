@@ -32,11 +32,10 @@
 
 
 import unittest
-import cf_units
-from datetime import datetime as dt
 import numpy as np
+from cf_units import Unit
+from datetime import datetime as dt
 
-from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
 from improver.blending.weights import ChooseDefaultWeightsTriangular
@@ -194,7 +193,7 @@ class Test___init__(IrisTest):
 
     def test_cf_unit_input(self):
         """Test the case where an instance of cf_units.Unit is passed in"""
-        units = cf_units.Unit("hour")
+        units = Unit("hour")
         width = 5
         weights_instance = ChooseDefaultWeightsTriangular(width, units=units)
         expected_width = 5
@@ -204,12 +203,12 @@ class Test___init__(IrisTest):
 
     def test_string_input(self):
         """Test the case where a string is passed and gets converted to a
-           cf_units.Unit instance"""
+           Unit instance"""
         units = "hour"
         width = 5
         weights_instance = ChooseDefaultWeightsTriangular(width, units=units)
         expected_width = 5
-        expected_unit = cf_units.Unit("hour")
+        expected_unit = Unit("hour")
         self.assertEqual(weights_instance.width, expected_width)
         self.assertEqual(weights_instance.parameters_units, expected_unit)
 
@@ -230,7 +229,7 @@ class Test_process(IrisTest):
                          [[2., 2.], [2., 2.]]], dtype=np.float32)
         self.cube.data = data
         self.coord_name = "forecast_period"
-        self.units = cf_units.Unit("seconds")
+        self.units = Unit("seconds")
 
     def test_same_units(self):
         """Test plugin produces the correct weights when the parameters for

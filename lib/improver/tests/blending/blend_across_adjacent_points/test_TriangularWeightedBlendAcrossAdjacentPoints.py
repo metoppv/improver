@@ -32,16 +32,11 @@
    weighted_blend.TriangularWeightedBlendAcrossAdjacentPoints plugin."""
 
 import unittest
-
-from cf_units import Unit
 import numpy as np
 from datetime import datetime as dt
 
 import iris
-from iris.coords import DimCoord
-from iris.cube import Cube
 from iris.tests import IrisTest
-from iris.exceptions import CoordinateNotFoundError
 
 from improver.blending.blend_across_adjacent_points import \
     TriangularWeightedBlendAcrossAdjacentPoints

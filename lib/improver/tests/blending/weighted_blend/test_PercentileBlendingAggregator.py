@@ -32,10 +32,9 @@
 
 
 import unittest
-
-from cf_units import Unit
-from iris.tests import IrisTest
 import numpy as np
+
+from iris.tests import IrisTest
 
 from improver.blending.weighted_blend import PercentileBlendingAggregator
 

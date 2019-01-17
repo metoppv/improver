@@ -29,17 +29,15 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the cube_metadata utilities."""
-import unittest
 
+import unittest
 import numpy as np
+from copy import copy, deepcopy
+from datetime import datetime as dt
 
 import iris
-from copy import copy, deepcopy
-from iris.tests import IrisTest
 from iris.cube import Cube
-from iris.coords import DimCoord, AuxCoord
-from cf_units import Unit
-from datetime import datetime as dt
+from iris.tests import IrisTest
 
 from improver.utilities.cube_metadata import (
     add_coord,
@@ -52,7 +50,6 @@ from improver.utilities.cube_metadata import (
     update_coord,
     update_stage_v110_metadata)
 from improver.utilities.warnings_handler import ManageWarnings
-from improver.utilities.temporal import forecast_period_coord
 
 from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, set_up_probability_cube, add_coordinate)
