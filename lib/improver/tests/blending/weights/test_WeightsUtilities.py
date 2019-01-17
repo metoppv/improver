@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2018 Met Office.
+# (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,13 +34,14 @@
 import unittest
 
 import numpy as np
+from datetime import datetime as dt
 
 import iris
 from iris.tests import IrisTest
 
 from improver.blending.weights import WeightsUtilities
-from improver.tests.blending.weights.helper_functions import (
-    set_up_precipitation_cube)
+from improver.tests.set_up_test_cubes import (
+    set_up_variable_cube, add_coordinate)
 from improver.tests.utilities.test_cube_metadata import (
     create_cube_with_threshold)
 
@@ -203,14 +204,22 @@ class Test_process_coord(IrisTest):
 
     def setUp(self):
         """Setup for testing process coord"""
-        self.cube = set_up_precipitation_cube()
+        cube = set_up_variable_cube(
+            np.ones((2, 2), dtype=np.float32),
+            name="lwe_thickness_of_precipitation_amount", units="m",
+            time=dt(2017, 1, 10, 5, 0), frt=dt(2017, 1, 10, 3, 0))
+        self.cube = add_coordinate(
+            cube, [dt(2017, 1, 10, 5, 0), dt(2017, 1, 10, 6, 0)],
+            "time", is_datetime=True)
+        self.cube.data[1, :] = [[2, 2], [2, 2]]
         self.cube_coord = self.cube.coord("time")
         self.coordinate = self.cube_coord.name()
         self.exp_coord_vals = ','.join(
             [str(x) for x in self.cube_coord.points])
+        self.wrong_coord_vals = ','.join(['1484020800', self.exp_coord_vals])
 
     def test_basic(self):
-        """Test process_cord returns num and array of missing_weights. """
+        """Test process_coord returns num and array of missing_weights. """
         (result_num_of_weights,
          result_missing) = WeightsUtilities.process_coord(self.cube,
                                                           self.coordinate,
@@ -247,11 +256,10 @@ class Test_process_coord(IrisTest):
     def test_fails_if_can_not_convert_units(self):
         """Test fails if it can not convert units """
         units = 'mm'
-        exp_coord_vals = '412226, 412227, 412228'
         msg = ('Failed to convert coord units ')
         with self.assertRaisesRegex(ValueError, msg):
             WeightsUtilities.process_coord(
-                self.cube, self.coordinate, exp_coord_vals, units)
+                self.cube, self.coordinate, self.wrong_coord_vals, units)
 
     def test_finds_missing_points(self):
         """Test correct values are returned for case where not all expected
@@ -259,10 +267,9 @@ class Test_process_coord(IrisTest):
         expected_num = 3
         expected_array = np.ones(expected_num)
         expected_array[0] = 0.0
-        exp_coord_vals = '412226, 412227, 412228'
         (result_num_of_weights,
          result_missing) = WeightsUtilities.process_coord(
-             self.cube, self.coordinate, exp_coord_vals)
+             self.cube, self.coordinate, self.wrong_coord_vals)
         self.assertAlmostEqual(result_num_of_weights, expected_num)
         self.assertArrayAlmostEqual(result_missing, expected_array)
 

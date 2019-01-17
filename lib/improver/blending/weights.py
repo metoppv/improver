@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2018 Met Office.
+# (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -1127,7 +1127,9 @@ class ChooseDefaultWeightsTriangular:
                 coord_name (string):
                     Name of coordinate in the cube to be blended.
                 midpoint (float):
-                    The centre point of the triangular function.
+                    The centre point of the triangular function.  This is
+                    assumed to be provided in the same units as "self.width",
+                    ie "self.parameter_units" as initialised.
 
             Returns:
                 weights (numpy.array):
@@ -1151,6 +1153,8 @@ class ChooseDefaultWeightsTriangular:
         if coord_units != self.parameters_units:
             width_in_coord_units = (
                 self.parameters_units.convert(self.width, coord_units))
+            midpoint = (
+                self.parameters_units.convert(midpoint, coord_units))
         else:
             width_in_coord_units = copy.deepcopy(self.width)
 

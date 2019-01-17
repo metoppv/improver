@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2018 Met Office.
+# (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -75,9 +75,11 @@ class Test_check_input_coords(IrisTest):
 
     def test_time(self):
         """Test rejects cube without time coord"""
+        cube = self.valid.copy()
+        cube.remove_coord("time")
         msg = "Input cube has no time coordinate"
         with self.assertRaisesRegexp(InvalidCubeError, msg):
-            check_input_coords(self.valid, require_time=True)
+            check_input_coords(cube, require_time=True)
 
 
 if __name__ == '__main__':

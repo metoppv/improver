@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2018 Met Office.
+# (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,7 @@ usage: improver-nbhood [-h] [--profile] [--profile_file PROFILE_FILE]
                        [--sum_or_fraction {sum,fraction}] [--re_mask]
                        [--percentiles PERCENTILES [PERCENTILES ...]]
                        [--input_mask_filepath INPUT_MASK_FILE]
-                       [--apply-recursive-filter]
+                       [--halo_radius HALO_RADIUS] [--apply-recursive-filter]
                        [--input_filepath_alphas_x_cube ALPHAS_X_FILE]
                        [--input_filepath_alphas_y_cube ALPHAS_Y_FILE]
                        [--alpha_x ALPHA_X] [--alpha_y ALPHA_Y]

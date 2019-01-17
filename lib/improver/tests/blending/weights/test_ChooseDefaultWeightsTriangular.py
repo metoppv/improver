@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2018 Met Office.
+# (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,15 +32,15 @@
 
 
 import unittest
-
-from iris.coords import AuxCoord
-from iris.tests import IrisTest
 import numpy as np
-import cf_units
+from cf_units import Unit
+from datetime import datetime as dt
+
+from iris.tests import IrisTest
 
 from improver.blending.weights import ChooseDefaultWeightsTriangular
-from improver.tests.blending.weights.helper_functions import (
-    set_up_precipitation_cube)
+from improver.tests.set_up_test_cubes import (
+    set_up_variable_cube, add_coordinate)
 
 
 class Test___repr__(IrisTest):
@@ -193,7 +193,7 @@ class Test___init__(IrisTest):
 
     def test_cf_unit_input(self):
         """Test the case where an instance of cf_units.Unit is passed in"""
-        units = cf_units.Unit("hour")
+        units = Unit("hour")
         width = 5
         weights_instance = ChooseDefaultWeightsTriangular(width, units=units)
         expected_width = 5
@@ -203,12 +203,12 @@ class Test___init__(IrisTest):
 
     def test_string_input(self):
         """Test the case where a string is passed and gets converted to a
-           cf_units.Unit instance"""
+           Unit instance"""
         units = "hour"
         width = 5
         weights_instance = ChooseDefaultWeightsTriangular(width, units=units)
         expected_width = 5
-        expected_unit = cf_units.Unit("hour")
+        expected_unit = Unit("hour")
         self.assertEqual(weights_instance.width, expected_width)
         self.assertEqual(weights_instance.parameters_units, expected_unit)
 
@@ -218,17 +218,26 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up cubes used in unit tests"""
-        self.cube = set_up_precipitation_cube()
+        cube = set_up_variable_cube(
+            np.zeros((2, 2), dtype=np.float32),
+            name="lwe_thickness_of_precipitation_amount", units="m",
+            time=dt(2017, 1, 10, 4, 0), frt=dt(2017, 1, 10, 3, 0))
+        self.cube = add_coordinate(
+            cube, [dt(2017, 1, 10, 3, 0), dt(2017, 1, 10, 4, 0)],
+            "time", is_datetime=True)
+        data = np.array([[[1., 1.], [1., 1.]],
+                         [[2., 2.], [2., 2.]]], dtype=np.float32)
+        self.cube.data = data
         self.coord_name = "forecast_period"
-        self.units = cf_units.Unit("hours")
+        self.units = Unit("seconds")
 
     def test_same_units(self):
         """Test plugin produces the correct weights when the parameters for
            the triangle are in the same units as the input cube's coordinate"""
-        width = 2
+        width = 7200
         weights_instance = ChooseDefaultWeightsTriangular(
             width, units=self.units)
-        midpoint = 1
+        midpoint = 3600
         weights = weights_instance.process(self.cube,
                                            self.coord_name,
                                            midpoint)
@@ -237,11 +246,11 @@ class Test_process(IrisTest):
 
     def test_different_units(self):
         """"Test plugin produces the correct weights when the parameters for
-            the triangle are in different units to the input cube's
-            coordinate"""
-        width = 7200
+            the triangle (width and midpoint are in different units to the
+            input cube's coordinate"""
+        width = 2
         weights_instance = ChooseDefaultWeightsTriangular(
-            width, units="seconds")
+            width, units="hours")
         midpoint = 1
         weights = weights_instance.process(self.cube,
                                            self.coord_name,
@@ -256,7 +265,9 @@ class Test_process(IrisTest):
         width = 7200
         weights_instance = ChooseDefaultWeightsTriangular(width, units="m")
         midpoint = 3600
-        message = r"Unable to convert from 'Unit\('m'\)' to 'Unit\('hours'\)'"
+        message = (
+            r"Unable to convert from 'Unit\('m'\)' to 'Unit\('{}'\)'".format(
+                self.units))
         with self.assertRaisesRegex(ValueError, message):
             weights_instance.process(self.cube, self.coord_name, midpoint)
 

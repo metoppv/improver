@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2018 Met Office.
+# (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,16 +32,17 @@
 
 
 import unittest
+import numpy as np
+from datetime import datetime as dt
 
 import iris
 from iris.coords import AuxCoord
 from iris.tests import IrisTest
-import numpy as np
 
 from improver.blending.weights import ChooseDefaultWeightsLinear \
     as LinearWeights
-from improver.tests.blending.weights.helper_functions import (
-    set_up_zero_cube, set_up_cube_with_scalar_coord, add_realizations)
+from improver.tests.set_up_test_cubes import (
+    set_up_variable_cube, add_coordinate)
 
 
 class Test__init__(IrisTest):
@@ -132,7 +133,14 @@ class Test_process(IrisTest):
     """Test the Default Linear Weights plugin. """
 
     def setUp(self):
-        self.cube = set_up_zero_cube()
+        """Set up for testing process method"""
+        cube = set_up_variable_cube(
+            np.zeros((2, 2), dtype=np.float32),
+            name="lwe_thickness_of_precipitation_amount", units="m",
+            time=dt(2017, 1, 10, 5, 0), frt=dt(2017, 1, 10, 3, 0))
+        self.cube = add_coordinate(
+            cube, [dt(2017, 1, 10, 5, 0), dt(2017, 1, 10, 6, 0)],
+            "time", is_datetime=True)
         self.coord_name = "time"
         self.coord_vals = ','.join(
             [str(x) for x in self.cube.coord("time").points])
@@ -178,7 +186,8 @@ class Test_process(IrisTest):
     def test_fails_weights_negative(self):
         """Test it raises a Value Error if weights become negative. """
         plugin = LinearWeights(y0val=10.0, slope=-5.0)
-        cubenew = add_realizations(self.cube, 6)
+        cubenew = add_coordinate(
+            self.cube, np.arange(6), "realization", dtype=np.int32)
         coord = cubenew.coord('realization')
         msg = 'Weights must be positive'
         with self.assertRaisesRegex(ValueError, msg):
@@ -186,10 +195,11 @@ class Test_process(IrisTest):
 
     def test_works_scalar_coord(self):
         """Test it works if scalar coordinate. """
-        cube = set_up_cube_with_scalar_coord()
-        coord = cube.coord("scalar_coord")
+        self.cube.add_aux_coord(
+            AuxCoord(1, long_name='scalar_coord', units='no_unit'))
+        coord = self.cube.coord("scalar_coord")
         plugin = LinearWeights()
-        result = plugin.process(cube, coord)
+        result = plugin.process(self.cube, coord)
         self.assertArrayAlmostEqual(result.data, np.array([1.0]))
 
     def test_works_defaults_used(self):
@@ -216,7 +226,8 @@ class Test_process(IrisTest):
     def test_works_with_larger_num(self):
         """Test it works with larger num_of_vals. """
         plugin = LinearWeights(y0val=10.0, ynval=5.0)
-        cubenew = add_realizations(self.cube, 6)
+        cubenew = add_coordinate(
+            self.cube, np.arange(6), "realization", dtype=np.int32)
         coord = cubenew.coord('realization')
         result = plugin.process(cubenew, coord)
         expected_result = np.array([0.22222222, 0.2,
@@ -227,7 +238,8 @@ class Test_process(IrisTest):
     def test_works_with_missing_coord(self):
         """Test it works with missing coord """
         plugin = LinearWeights(y0val=10.0, ynval=5.0)
-        cubenew = add_realizations(self.cube, 6)
+        cubenew = add_coordinate(
+            self.cube, np.arange(6), "realization", dtype=np.int32)
         coord_vals = '0, 1, 2, 3, 4, 5, 6'
         coord_name = 'realization'
         result = plugin.process(cubenew, coord_name, coord_vals)

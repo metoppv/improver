@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2018 Met Office.
+# (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -132,20 +132,16 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
         """
         # Convert central point into the units of the cube, so that a
         # central point can be extracted.
-        self.central_point = (
+        central_point = (
             Unit(self.parameter_units).convert(
                 self.central_point, cube.coord(self.coord).units))
         constr = iris.Constraint(
-            coord_values={self.coord: self.central_point})
+            coord_values={self.coord: central_point})
         central_point_cube = cube.extract(constr)
         if central_point_cube is None:
-            if self.parameter_units is None:
-                parameter_units = central_point_cube.coord(self.coord).units
-            else:
-                parameter_units = self.parameter_units
-            msg = ("The central point of {} in units of {} not available "
+            msg = ("The central point {} in units of {} not available "
                    "within input cube coordinate points: {}.".format(
-                       self.central_point, parameter_units,
+                       self.central_point, self.parameter_units,
                        cube.coord(self.coord).points))
             raise ValueError(msg)
         return central_point_cube

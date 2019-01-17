@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2018 Met Office.
+# (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -152,11 +152,11 @@ class Test_combine(IrisTest):
     def setUp(self):
         """ Set up cubes for testing. """
         self.cube1 = create_cube_with_threshold()
-        data = np.zeros((1, 2, 2, 2))
+        data = np.zeros((1, 2, 2, 2), dtype=np.float32)
         data[0, 0, :, :] = 0.1
         data[0, 1, :, :] = 0.4
         self.cube2 = create_cube_with_threshold(data=data)
-        data2 = np.zeros((1, 2, 2, 2))
+        data2 = np.zeros((1, 2, 2, 2), dtype=np.float32)
         data2[0, 0, :, :] = 0.1
         data2[0, 1, :, :] = 0.8
         self.cube3 = create_cube_with_threshold(data=data2)
@@ -237,11 +237,11 @@ class Test_process(IrisTest):
     def setUp(self):
         """ Set up cubes for testing. """
         self.cube1 = create_cube_with_threshold()
-        data = np.zeros((1, 2, 2, 2))
+        data = np.zeros((1, 2, 2, 2), dtype=np.float32)
         data[0, 0, :, :] = 0.1
         data[0, 1, :, :] = 0.4
         self.cube2 = create_cube_with_threshold(data=data)
-        data2 = np.zeros((1, 2, 2, 2))
+        data2 = np.zeros((1, 2, 2, 2), dtype=np.float32)
         data2[0, 0, :, :] = 0.9
         data2[0, 1, :, :] = 0.2
         self.cube3 = create_cube_with_threshold(data=data2)
