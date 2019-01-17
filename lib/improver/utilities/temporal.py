@@ -50,7 +50,6 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.cube_manipulation import (
     build_coordinate, merge_cubes)
-from improver.utilities.cube_checker import check_cube_not_float64
 
 
 def cycletime_to_datetime(cycletime, cycletime_format="%Y%m%dT%H%MZ"):
@@ -627,10 +626,20 @@ class TemporalInterpolation(object):
         time_list = self.construct_time_list(initial_time, final_time)
         cubes = iris.cube.CubeList([cube_t0, cube_t1])
         cube = merge_cubes(cubes)
+
         interpolated_cube = cube.interpolate(time_list, iris.analysis.Linear())
+
+        # iris.analysis.Linear() modifies the dtype of time and forecast_period
+        # coords so need to revert back
+        dtype_time = cube_t0.coord('time').points.dtype
+        dtype_fp = cube_t0.coord('forecast_period').points.dtype
+
         interpolated_cubes = iris.cube.CubeList()
         for single_time in interpolated_cube.slices_over('time'):
-            check_cube_not_float64(single_time, fix=True)
+            coord_time = single_time.coord('time')
+            coord_time.points = np.around(coord_time.points).astype(dtype_time)
+            coord_fp = single_time.coord('forecast_period')
+            coord_fp.points = np.around(coord_fp.points).astype(dtype_fp)
             interpolated_cubes.append(single_time)
 
         return interpolated_cubes
