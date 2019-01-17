@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2018 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,27 +29,24 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "weighted-blending no arguments" {
-  run improver weighted-blending
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-weighted-blending [-h] [--profile]
-                                  [--profile_file PROFILE_FILE]
-                                  [--wts_calc_method WEIGHTS_CALCULATION_METHOD]
-                                  [--coordinate_unit UNIT_STRING]
-                                  [--calendar CALENDAR]
-                                  [--cycletime CYCLETIME]
-                                  [--model_id_attr MODEL_ID_ATTR]
-                                  [--spatial_weights_from_mask]
-                                  [--fuzzy_length FUZZY_LENGTH]
-                                  [--y0val LINEAR_STARTING_POINT]
-                                  [--ynval LINEAR_END_POINT]
-                                  [--cval NON_LINEAR_FACTOR]
-                                  [--wts_dict WEIGHTS_DICTIONARY]
-                                  [--weighting_coord WEIGHTING_COORD]
-                                  COORDINATE_TO_AVERAGE_OVER
-                                  WEIGHTED_BLEND_MODE INPUT_FILES
-                                  [INPUT_FILES ...] OUTPUT_FILE
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "weighted-blending nowcast spatial blending" {
+  improver_check_skip_acceptance
+  KGO="weighted_blending/spatial_weights/kgo/cycle_no_fuzzy.nc"
+
+  # Run weighted blending between different nowcast files using spatial weights
+  run improver weighted-blending 'forecast_reference_time' 'weighted_mean' \
+      --ynval 1 --y0val 1 --spatial_weights_from_mask --fuzzy_length 1\
+      "$IMPROVER_ACC_TEST_DIR/weighted_blending/spatial_weights/nowcast_data/20181129T1000Z-PT0002H00M-lwe_precipitation_rate.nc" \
+      "$IMPROVER_ACC_TEST_DIR/weighted_blending/spatial_weights/nowcast_data/20181129T1000Z-PT0003H00M-lwe_precipitation_rate.nc" \
+      "$IMPROVER_ACC_TEST_DIR/weighted_blending/spatial_weights/nowcast_data/20181129T1000Z-PT0004H00M-lwe_precipitation_rate.nc" \
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 0 ]]
+
+  improver_check_recreate_kgo "output.nc" $KGO
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

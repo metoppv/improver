@@ -329,10 +329,30 @@ class Test_shape_weights(Test_weighted_blend):
 
         coord = "forecast_reference_time"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        expected = self.weights3d.copy().data
         self.weights3d.transpose([1, 0, 2])
         result = plugin.shape_weights(self.cube, self.weights3d)
-        self.assertEqual(self.cube.shape, result.shape)
-        self.assertArrayEqual(self.weights3d.data, result)
+        self.assertEqual(expected.shape, result.shape)
+        self.assertArrayEqual(expected.data, result)
+
+    def test_3D_weights_4D_cube_weighted_mean_wrong_order(self):
+        """Test a 4D cube of weights results in a 3D array of weights of the
+        same shape as the data cube. In this test the input cube has the
+        same coordinates but slightly differently ordered. The weights cube
+        should be reordered to match the cube."""
+        # Add a new axis to input cube to make it 4D
+        coord = "forecast_reference_time"
+        cube = iris.util.new_axis(self.cube, scalar_coord="time")
+        cube.transpose([3, 2, 0, 1])
+        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        # Create an expected array which has been transposed to match
+        # input cube with the extra axis added.
+        expected = self.weights3d.copy()
+        expected.transpose([2, 1, 0])
+        expected = np.expand_dims(expected.data, axis=2)
+        result = plugin.shape_weights(cube, self.weights3d)
+        self.assertEqual(expected.shape, result.shape)
+        self.assertArrayEqual(expected, result)
 
     def test_3D_weights_3D_cube_weighted_mean_unmatched_coordinate(self):
         """Test a 3D cube of weights results in a 3D array of weights of the
@@ -344,19 +364,21 @@ class Test_shape_weights(Test_weighted_blend):
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
         weights = self.weights3d.copy()
         weights.coord('longitude').rename('projection_x_coordinate')
-        msg = "Multidimensional weights cube does not contain the same"
-
+        msg = (
+            "projection_x_coordinate is a coordinate on the weights cube "
+            "but it is not found on the cube we are trying to collapse.")
         with self.assertRaisesRegex(ValueError, msg):
             plugin.shape_weights(self.cube, weights)
 
     def test_incompatible_weights_and_data_cubes(self):
         """Test an exception is raised if the weights cube and the data cube
-        are of incompatible shapes."""
+        have incompatible coordinates."""
 
         coord = "forecast_reference_time"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
-        msg = "Weights cube is not a compatible shape with the data cube"
-
+        msg = (
+            "threshold is a coordinate on the weights cube but it is not"
+            " found on the cube we are trying to collapse.")
         with self.assertRaisesRegex(ValueError, msg):
             plugin.shape_weights(self.cube, self.weights_threshold)
 

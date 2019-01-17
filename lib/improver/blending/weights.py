@@ -285,13 +285,14 @@ class WeightsUtilities:
         except ValueError:
             weights_cube = iris.util.new_axis(cube, blending_coord)
             weights_cube = next(weights_cube.slices(blending_coord))
-
         weights_cube.attributes = None
+        # Find dim associated with blending_coord and don't remove any coords
+        # associated with this dimension.
+        blending_dim = cube.coord_dims(blending_coord)
         defunct_coords = [crd.name() for crd in cube.coords(dim_coords=True)
-                          if not crd.name() == blending_coord]
+                          if not cube.coord_dims(crd) == blending_dim]
         for crd in defunct_coords:
             weights_cube.remove_coord(crd)
-
         weights_cube.data = weights
         weights_cube.rename('weights')
         weights_cube.units = 1

@@ -44,16 +44,18 @@ usage: improver-weighted-blending [-h] [--profile]
                                   [--calendar CALENDAR]
                                   [--cycletime CYCLETIME]
                                   [--model_id_attr MODEL_ID_ATTR]
+                                  [--spatial_weights_from_mask]
+                                  [--fuzzy_length FUZZY_LENGTH]
                                   [--y0val LINEAR_STARTING_POINT]
                                   [--ynval LINEAR_END_POINT]
                                   [--cval NON_LINEAR_FACTOR]
                                   [--wts_dict WEIGHTS_DICTIONARY]
                                   [--weighting_coord WEIGHTING_COORD]
-                                  [--wts_mask_constraint WEIGHTS_MASK_CONSTRAINT]
                                   COORDINATE_TO_AVERAGE_OVER
                                   WEIGHTED_BLEND_MODE INPUT_FILES
                                   [INPUT_FILES ...] OUTPUT_FILE
 improver-weighted-blending: error: argument --wts_calc_method: invalid choice: 'linear nonlinear' (choose from 'linear', 'nonlinear', 'dict')
+
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }
