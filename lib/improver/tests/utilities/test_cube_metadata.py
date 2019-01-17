@@ -140,7 +140,7 @@ class Test_add_coord(IrisTest):
             'points': [2.0],
             'bounds': [0.1, 2.0],
             'units': 'mm'
-             }
+            }
 
     def test_basic(self):
         """Test that add_coord returns a Cube and adds coord correctly. """
@@ -206,7 +206,7 @@ class Test_update_coord(IrisTest):
         changes = {
             'points': [2.0],
             'bounds': [0.1, 2.0],
-             }
+            }
         result = update_coord(cube, 'threshold', changes)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.coord('threshold').points,
