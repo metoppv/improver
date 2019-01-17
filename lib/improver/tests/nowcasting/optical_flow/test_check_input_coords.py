@@ -75,9 +75,11 @@ class Test_check_input_coords(IrisTest):
 
     def test_time(self):
         """Test rejects cube without time coord"""
+        cube = self.valid.copy()
+        cube.remove_coord("time")
         msg = "Input cube has no time coordinate"
         with self.assertRaisesRegexp(InvalidCubeError, msg):
-            check_input_coords(self.valid, require_time=True)
+            check_input_coords(cube, require_time=True)
 
 
 if __name__ == '__main__':

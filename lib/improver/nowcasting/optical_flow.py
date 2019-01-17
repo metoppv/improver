@@ -321,23 +321,34 @@ class AdvectField(object):
         original_datetime, = \
             (cube.coord("time").units).num2date(cube.coord("time").points)
         new_datetime = original_datetime + timestep
+
         new_time = (cube.coord("time").units).date2num(new_datetime)
 
-        if np.int64(new_time) == new_time:
-            new_time = np.int64(new_time)
-        else:
-            new_time = np.float64(new_time)
-
         advected_cube.coord("time").points = new_time
+        advected_cube.coord("time").convert_units(
+            "seconds since 1970-01-01 00:00:00")
+        advected_cube.coord("time").points = (
+            np.around(advected_cube.coord("time").points).astype(np.int64))
 
-        forecast_period_seconds = timestep.total_seconds()
+        try:
+            advected_cube.coord("forecast_reference_time").convert_units(
+                "seconds since 1970-01-01 00:00:00")
+        except CoordinateNotFoundError:
+            frt_coord = cube.coord("time").copy()
+            frt_coord.rename("forecast_reference_time")
+            advected_cube.add_aux_coord(frt_coord)
+            advected_cube.coord("forecast_reference_time").convert_units(
+                "seconds since 1970-01-01 00:00:00")
 
-        forecast_period_seconds = np.float32(forecast_period_seconds)
+        frt_points = np.around(
+            advected_cube.coord("forecast_reference_time").points
+            ).astype(np.int64)
+        advected_cube.coord("forecast_reference_time").points = frt_points
 
+        forecast_period_seconds = np.int32(timestep.total_seconds())
         forecast_period_coord = AuxCoord(forecast_period_seconds,
                                          standard_name="forecast_period",
                                          units="s")
-
         try:
             advected_cube.remove_coord("forecast_period")
         except CoordinateNotFoundError:
