@@ -118,6 +118,19 @@ class Test_expand_bounds(IrisTest):
         result = CubeCombiner.expand_bounds(
             self.cubelist[0], self.cubelist, 'time', 'mid')
         self.assertEqual(result.coord('time'), expected_result)
+        self.assertEqual(result.coord('time').dtype, np.int64)
+
+    def test_time_mid_data_precision(self):
+        """Test that expand_bound does not escalate precision when input is
+        of dtype int32"""
+        expected_result = iris.coords.DimCoord(
+            np.array([5400], dtype=np.int32),
+            bounds=np.array([0, 10800], dtype=np.int32),
+            standard_name='forecast_period', units='seconds')
+        result = CubeCombiner.expand_bounds(
+            self.cubelist[0], self.cubelist, 'forecast_period', 'mid')
+        self.assertEqual(result.coord('forecast_period'), expected_result)
+        self.assertEqual(result.coord('forecast_period').dtype, np.int32)
 
     def test_float_time_mid(self):
         """Test that expand_bound produces sensible bounds
