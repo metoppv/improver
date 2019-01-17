@@ -125,11 +125,7 @@ class Test_update_stage_v110_metadata(IrisTest):
 
 
 class Test_add_coord(IrisTest):
-
     """Test the add_coord method."""
-    def setUp(self):
-        """Set up a test cube"""
-        self.cube = create_cube_with_threshold()
 
     def setUp(self):
         """Set up information for testing."""
@@ -189,7 +185,6 @@ class Test_add_coord(IrisTest):
 
 
 class Test_update_coord(IrisTest):
-
     """Test the update_coord method."""
 
     def setUp(self):
@@ -310,7 +305,6 @@ class Test_update_coord(IrisTest):
 
 
 class Test_update_attribute(IrisTest):
-
     """Test the update_attribute method."""
 
     def setUp(self):
@@ -395,7 +389,6 @@ class Test_update_attribute(IrisTest):
 
 
 class Test_update_cell_methods(IrisTest):
-
     """Test that the cell methods are updated."""
 
     def setUp(self):
@@ -510,7 +503,6 @@ class Test_update_cell_methods(IrisTest):
 
 
 class Test_amend_metadata(IrisTest):
-
     """Test the amend_metadata method."""
 
     def setUp(self):
@@ -625,7 +617,6 @@ class Test_amend_metadata(IrisTest):
 
 
 class Test_resolve_metadata_diff(IrisTest):
-
     """Test the resolve_metadata_diff method."""
 
     def setUp(self):
@@ -724,7 +715,6 @@ class Test_resolve_metadata_diff(IrisTest):
 
 
 class Test_delete_attributes(IrisTest):
-
     """Test the delete_attributes method."""
 
     def setUp(self):
@@ -779,7 +769,6 @@ class Test_delete_attributes(IrisTest):
 
 
 class Test_add_history_attribute(IrisTest):
-
     """Test the add_history_attribute function."""
 
     def test_add_history(self):
