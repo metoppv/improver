@@ -33,7 +33,7 @@
 
 @test "weighted-blending model blending" {
   improver_check_skip_acceptance
-  KGO="weighted_blending/spatial_weights/kgo/model_kgo.nc"
+  KGO="weighted_blending/spatial_weights/kgo/model.nc"
 
   # Run weighted blending with ukvx and nowcast data using spatial weights
   run improver weighted-blending 'model_configuration' 'weighted_mean' \

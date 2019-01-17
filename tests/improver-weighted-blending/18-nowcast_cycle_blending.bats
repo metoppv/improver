@@ -33,10 +33,10 @@
 
 @test "weighted-blending model blending" {
   improver_check_skip_acceptance
-  KGO="weighted_blending/spatial_weights/kgo/kgo_cycle.nc"
+  KGO="weighted_blending/spatial_weights/kgo/cycle.nc"
 
-  # Run weighted blending with linear weights for two input files and check it
-  # passes.
+  # Run weighted blending with linear weights for three input files and check
+  # it passes.
   run improver weighted-blending 'forecast_reference_time' 'weighted_mean' \
       --ynval 1 --y0val 1 --spatial_weights_from_mask \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/spatial_weights/nowcast_data/20181129T1000Z-PT0002H00M-lwe_precipitation_rate.nc" \

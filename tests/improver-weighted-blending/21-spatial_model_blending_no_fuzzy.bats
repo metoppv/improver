@@ -33,7 +33,7 @@
 
 @test "weighted-blending ukvx nowcast model blending with no fuzziness" {
   improver_check_skip_acceptance
-  KGO="weighted_blending/spatial_weights/kgo/model_kgo_no_fuzzy.nc"
+  KGO="weighted_blending/spatial_weights/kgo/model_no_fuzzy.nc"
 
   # Run weighted blending with ukvx and nowcast data using spatial weights and no spatial fuzziness
   run improver weighted-blending 'model_configuration' 'weighted_mean' \
