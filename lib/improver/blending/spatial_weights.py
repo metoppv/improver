@@ -37,7 +37,6 @@ import numpy as np
 from scipy.ndimage.morphology import distance_transform_edt
 
 from improver.utilities.rescale import rescale
-from improver.utilities.cube_checker import check_cube_coordinates
 
 
 class SpatiallyVaryingWeightsFromMask(object):
