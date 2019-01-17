@@ -32,15 +32,17 @@
 
 
 import unittest
+from datetime import datetime as dt
+import numpy as np
 
 import iris
+from iris.coords import AuxCoord
 from iris.tests import IrisTest
-import numpy as np
 
 from improver.blending.weights import ChooseDefaultWeightsNonLinear \
     as NonLinearWeights
-from improver.tests.blending.weights.helper_functions import (
-    set_up_zero_cube, set_up_cube_with_scalar_coord, add_realizations)
+from improver.tests.set_up_test_cubes import (
+    set_up_variable_cube, add_coordinate)
 
 
 class Test_nonlinear_weights(IrisTest):
@@ -72,7 +74,14 @@ class Test_process(IrisTest):
     """Test the Default non-Linear Weights plugin. """
 
     def setUp(self):
-        self.cube = set_up_zero_cube()
+        """Set up test cube and coordinate"""
+        cube = set_up_variable_cube(
+            np.zeros((2, 2), dtype=np.float32),
+            name="lwe_thickness_of_precipitation_amount", units="m",
+            time=dt(2017, 1, 10, 5, 0), frt=dt(2017, 1, 10, 3, 0))
+        self.cube = add_coordinate(
+            cube, [dt(2017, 1, 10, 5, 0), dt(2017, 1, 10, 6, 0)],
+            "time", is_datetime=True)
         self.coord_name = "time"
         self.coord_vals = ','.join(
             [str(x) for x in self.cube.coord("time").points])
@@ -123,10 +132,11 @@ class Test_process(IrisTest):
 
     def test_works_if_scalar_coord(self):
         """Test it works if scalar coordinate. """
-        cube = set_up_cube_with_scalar_coord()
-        coord = cube.coord("scalar_coord")
+        self.cube.add_aux_coord(
+            AuxCoord(1, long_name='scalar_coord', units='no_unit'))
+        coord = self.cube.coord("scalar_coord")
         plugin = NonLinearWeights()
-        result = plugin.process(cube, coord)
+        result = plugin.process(self.cube, coord)
         self.assertArrayAlmostEqual(result.data, np.array([1.0]))
 
     def test_works_with_default_cval(self):
@@ -146,7 +156,8 @@ class Test_process(IrisTest):
     def test_works_with_larger_num(self):
         """Test it works with larger num_of_vals. """
         plugin = NonLinearWeights(cval=0.5)
-        cubenew = add_realizations(self.cube, 6)
+        cubenew = add_coordinate(
+            self.cube, np.arange(6), 'realization', dtype=np.int32)
         coord_name = 'realization'
         coord_vals = ','.join(
             [str(x) for x in cubenew.coord('realization').points])
@@ -159,7 +170,8 @@ class Test_process(IrisTest):
     def test_works_with_missing_coord(self):
         """Test it works with missing coord """
         plugin = NonLinearWeights(cval=0.6)
-        cubenew = add_realizations(self.cube, 6)
+        cubenew = add_coordinate(
+            self.cube, np.arange(6), 'realization', dtype=np.int32)
         coord_vals = '0, 1, 2, 3, 4, 5, 6'
         coord_name = 'realization'
         result = plugin.process(cubenew, coord_name, coord_vals)
