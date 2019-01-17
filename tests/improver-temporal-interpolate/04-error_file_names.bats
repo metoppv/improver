@@ -31,20 +31,18 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "temporal-interpolate t0 t3 --times t1 --output_files out_t1" {
+@test "temporal-interpolate t0 t3 --times t1 t2 --output_files out_t1" {
   improver_check_skip_acceptance
-  KGO="temporal-interpolate/basic/kgo_t1.nc"
-  # Run temporal-interpolation for a time and check the result.
+
+  # Check temporal-interpolation error message for insufficient out files.
   run improver temporal-interpolate \
       "$IMPROVER_ACC_TEST_DIR/temporal-interpolate/basic/20190116T0900Z-PT0033H00M-temperature_at_screen_level.nc" \
       "$IMPROVER_ACC_TEST_DIR/temporal-interpolate/basic/20190116T1200Z-PT0036H00M-temperature_at_screen_level.nc" \
-      --times 20190116T1000Z \
+      --times 20190116T1000Z 20190116T1100Z \
       --output_files "$TEST_DIR/output_t1.nc"
-  [[ "$status" -eq 0 ]]
-
-  improver_check_recreate_kgo "output.nc" $KGO
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output_t1.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
+  [[ "$status" -eq 1 ]]
+  read -d '' expected <<'__TEXT__' || true
+ValueError: Output_files do not match cubes created. 1 files given but 2 required.
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
 }

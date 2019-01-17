@@ -48,7 +48,8 @@ from iris import Constraint
 from iris.time import PartialDateTime
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.utilities.cube_manipulation import build_coordinate
+from improver.utilities.cube_manipulation import (
+    build_coordinate, merge_cubes)
 from improver.utilities.cube_checker import check_cube_not_float64
 
 
@@ -625,7 +626,7 @@ class TemporalInterpolation(object):
 
         time_list = self.construct_time_list(initial_time, final_time)
         cubes = iris.cube.CubeList([cube_t0, cube_t1])
-        cube = cubes.merge_cube()
+        cube = merge_cubes(cubes)
         interpolated_cube = cube.interpolate(time_list, iris.analysis.Linear())
         interpolated_cubes = iris.cube.CubeList()
         for single_time in interpolated_cube.slices_over('time'):

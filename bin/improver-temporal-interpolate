@@ -111,9 +111,10 @@ def main():
         for i, cube_out in enumerate(interpolated_cubes):
             save_netcdf(cube_out, args.output_files[i])
     else:
-        raise parser.error("--output_files do not match cubes created, "
-                           "{} files but {} required.".format(len_files,
-                                                              len_cubes))
+        msg = ("Output_files do not match cubes created. "
+               "{} files given but {} required.".format(len_files,
+                                                        len_cubes))
+        raise ValueError(msg)
 
 
 if __name__ == "__main__":

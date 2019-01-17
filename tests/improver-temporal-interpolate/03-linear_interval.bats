@@ -37,8 +37,8 @@
   KGO2="temporal-interpolate/basic/kgo_t2.nc"
   # Run temporal-interpolation with interval_in_mins option and check the result.
   run improver temporal-interpolate \
-      "$IMPROVER_ACC_TEST_DIR/temporal-interpolate/basic/20181220T0900Z-PT0021H00M-uv_index.nc" \
-      "$IMPROVER_ACC_TEST_DIR/temporal-interpolate/basic/20181220T1200Z-PT0024H00M-uv_index.nc" \
+      "$IMPROVER_ACC_TEST_DIR/temporal-interpolate/basic/20190116T0900Z-PT0033H00M-temperature_at_screen_level.nc" \
+      "$IMPROVER_ACC_TEST_DIR/temporal-interpolate/basic/20190116T1200Z-PT0036H00M-temperature_at_screen_level.nc" \
       --interval_in_mins=60 \
       --output_files "$TEST_DIR/output_t1.nc" "$TEST_DIR/output_t2.nc"
   [[ "$status" -eq 0 ]]
