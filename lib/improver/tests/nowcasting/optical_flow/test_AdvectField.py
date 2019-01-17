@@ -425,11 +425,11 @@ class Test_process(IrisTest):
         where a unit conversion has been required for the time and forecast
         reference time coordinates."""
         self.cube.coord("time").convert_units("hours since 1970-01-01 00:00")
-        self.frt_coord = (
+        frt_coord = (
             DimCoord(1519099200, standard_name="forecast_reference_time",
                      units='seconds since 1970-01-01 00:00:00'))
-        self.frt_coord.convert_units("hours since 1970-01-01 00:00")
-        self.cube.add_aux_coord(self.frt_coord)
+        frt_coord.convert_units("hours since 1970-01-01 00:00")
+        self.cube.add_aux_coord(frt_coord)
         self.cube.coord("forecast_reference_time").convert_units(
             "hours since 1970-01-01 00:00")
         result = self.plugin.process(self.cube, self.timestep)
@@ -454,10 +454,10 @@ class Test_process(IrisTest):
         where a time and forecast_reference_time are input as floating point
         values, so that the impact of the rounding is clearer."""
         self.cube.coord("time").points = 1519099199.7
-        self.frt_coord = (
+        frt_coord = (
             DimCoord(1519099199.7, standard_name="forecast_reference_time",
                      units='seconds since 1970-01-01 00:00:00'))
-        self.cube.add_aux_coord(self.frt_coord)
+        self.cube.add_aux_coord(frt_coord)
         result = self.plugin.process(self.cube, self.timestep)
         self.assertEqual(result.coord("forecast_period").points, 600)
         # 2017-11-10 04:10:00
