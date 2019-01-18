@@ -32,7 +32,7 @@
 import unittest
 
 import numpy as np
-from cf_units import Unit, date2num
+from cf_units import date2num
 from datetime import datetime as dt
 
 import iris
@@ -152,8 +152,7 @@ class Test_expand_bounds(IrisTest):
         time_point = np.around(date2num(dt(2015, 11, 19, 3), TIME_UNIT,
                                         CALENDAR)).astype(np.int64)
         expected_result = iris.coords.DimCoord(
-            [date2num(dt(2015, 11, 19, 3), TIME_UNIT, CALENDAR)],
-            bounds=self.expected_bounds_seconds,
+            [time_point], bounds=self.expected_bounds_seconds,
             standard_name='time', units=TIME_UNIT)
         result = CubeCombiner.expand_bounds(
             self.cubelist[0], self.cubelist, 'time', 'upper')
