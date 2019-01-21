@@ -163,20 +163,20 @@ class Test_solar_interpolation(IrisTest):
                               dtype=np.float32) * 7
         cube_time_0 = set_up_variable_cube(data_time_0,
                                            time=self.time_0,
-                                            frt=self.time_0)
+                                           frt=self.time_0)
         cube_time_1 = set_up_variable_cube(data_time_1,
                                            time=self.time_1,
                                            frt=self.time_0)
         cubes = iris.cube.CubeList([cube_time_0, cube_time_1])
         self.cube = cubes.merge_cube()
-        self.time_list=[('time',[self.time_mid])]
+        self.time_list = [('time', [self.time_mid])]
 
     def test_return_type(self):
         """Test that an iris cubelist is returned."""
 
         plugin = TemporalInterpolation(interpolation_method='solar',
                                        times=[self.time_mid])
-        result = plugin.solar_interpolate(self.cube,self.time_list)
+        result = plugin.solar_interpolate(self.cube, self.time_list)
         self.assertIsInstance(result, iris.cube.CubeList)
 
     def test_valid_single_interpolation(self):
@@ -189,7 +189,7 @@ class Test_solar_interpolation(IrisTest):
         expected_fp = 3 * 3600
         plugin = TemporalInterpolation(interpolation_method='solar',
                                        times=[self.time_mid])
-        result, = plugin.solar_interpolate(self.cube,self.time_list)
+        result, = plugin.solar_interpolate(self.cube, self.time_list)
         self.assertArrayAlmostEqual(expected_data, result.data)
         self.assertArrayAlmostEqual(result.coord('time').points, expected_time)
         self.assertAlmostEqual(result.coord('forecast_period').points[0],
