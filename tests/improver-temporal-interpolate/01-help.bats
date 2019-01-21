@@ -36,6 +36,7 @@
 usage: improver-temporal-interpolate [-h] [--profile]
                                      [--profile_file PROFILE_FILE]
                                      (--interval_in_mins INTERVAL_IN_MINS | --times TIMES [TIMES ...])
+                                     [--interpolation_method INTERPOLATION_METHOD]
                                      --output_files OUTPUT_FILES
                                      [OUTPUT_FILES ...]
                                      INFILES INFILES
@@ -64,6 +65,8 @@ optional arguments:
                         is hour and minutes e.g 20180116T0100Z. More than one
                         timecan be provided separated by a space but if times
                         are set interval_in_mins can not be set
+  --interpolation_method INTERPOLATION_METHOD
+                        Specifies the interpolation method. Default is linear.
   --output_files OUTPUT_FILES [OUTPUT_FILES ...]
                         List of output files. The interpolated files will
                         always be in the chronological order of earliest to

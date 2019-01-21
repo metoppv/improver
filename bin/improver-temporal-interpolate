@@ -37,7 +37,8 @@ from improver.argparser import ArgParser
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.utilities.temporal import (
-    cycletime_to_datetime, TemporalInterpolation, iris_time_to_datetime)
+    cycletime_to_datetime, iris_time_to_datetime)
+from improver.utilities.temporal_interpolation import TemporalInterpolation
 
 
 def main():
@@ -79,6 +80,12 @@ def main():
                        "but if times are set interval_in_mins "
                        "can not be set")
 
+    parser.add_argument("--interpolation_method",
+                        metavar="INTERPOLATION_METHOD",
+                        default="linear",
+                        help="Specifies the interpolation method. "
+                        "Default is linear.")
+
     parser.add_argument("--output_files", metavar="OUTPUT_FILES",
                         required=True, nargs="+",
                         help="List of output files."
@@ -101,6 +108,7 @@ def main():
         cube_end = cube_0
 
     interval = args.interval_in_mins
+    method = args.interpolation_method
     if args.times is None:
         times = args.times
     else:
@@ -110,8 +118,9 @@ def main():
 
     interpolated_cubes = (
         TemporalInterpolation(interval_in_minutes=interval,
-                              times=times).process(cube_start,
-                                                   cube_end))
+                              times=times,
+                              interpolation_method=method).process(cube_start,
+                                                                   cube_end))
 
     len_files = len(args.output_files)
     len_cubes = len(interpolated_cubes)
