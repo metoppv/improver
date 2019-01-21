@@ -88,12 +88,15 @@ Temperature lapse rate adjustment:
 
 Metadata:
   --grid_metadata_identifier GRID_METADATA_IDENTIFIER
-                        A string to identify attributes from the input netCDF
-                        files that should be compared to ensure that the data
-                        is compatible. Spot data works using grid indices, so
-                        it is important that the grids are matching or the
-                        data extracted may not match the location of the spot
-                        data sites. The default is 'mosg__grid'.
+                        A string (or None) to identify attributes from the
+                        input netCDF files that should be compared to ensure
+                        that the data is compatible. Spot data works using
+                        grid indices, so it is important that the grids are
+                        matching or the data extracted may not match the
+                        location of the spot data sites. The default is
+                        'mosg__grid'. If set to None no check is made; this
+                        can be used if the cubes are known to be appropriate
+                        but lack relevant metadata.
   --json_file JSON_FILE
                         If provided, this JSON file can be used to modify the
                         metadata of the returned netCDF file. Defaults to
