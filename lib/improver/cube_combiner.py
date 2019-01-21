@@ -106,13 +106,8 @@ class CubeCombiner(object):
 
                 n.b. If argument point == 'mid' then python will convert
                 result.coord('coord').points[0] to a float UNLESS the coord
-                units contain 'seconds'.
-
-                This is to ensure that midpoints are not accidentally
-                rounded down by Python's default integer divide behavour:
-                For example if you combined cubes for accumulation for three
-                hours the midpoint should be 1.5 hours into the period.
-                Integer behaviour would give 3 / 2 = 1
+                units contain 'seconds'.  This is to ensure that midpoints are
+                not rounded down, for example when times are in hours.
         """
         if len(result_cube.coord(coord).points) != 1:
             emsg = ('the expand bounds function should only be used on a'

@@ -145,6 +145,7 @@ class Test_expand_bounds(IrisTest):
         result = CubeCombiner.expand_bounds(
             self.cubelist[0], self.cubelist, 'time', 'mid')
         self.assertEqual(result.coord('time'), expected_result)
+        self.assertEqual(result.coord('time').dtype, np.float32)
 
     def test_basic_time_upper(self):
         """Test that expand_bound produces sensible bounds
