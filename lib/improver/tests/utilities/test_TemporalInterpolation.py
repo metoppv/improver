@@ -42,7 +42,8 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 from iris.cube import Cube
 
-from improver.utilities.temporal import TemporalInterpolation
+from improver.utilities.temporal_interpolation import TemporalInterpolation
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
 class Test__init__(IrisTest):
@@ -55,6 +56,13 @@ class Test__init__(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             TemporalInterpolation()
 
+    def test_unknown_method(self):
+        """Test __init__ raises a ValueError if method unknown."""
+        msg = "TemporalInterpolation: Unknown interpolation method"
+        with self.assertRaisesRegex(ValueError, msg):
+            TemporalInterpolation(interval_in_minutes=60,
+                                  interpolation_method='invalid')
+
 
 class Test__repr__(IrisTest):
 
@@ -63,7 +71,18 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(TemporalInterpolation(interval_in_minutes=60))
-        msg = '<TemporalInterpolation: interval_in_minutes: 60, times: None>'
+        msg = ('<TemporalInterpolation: interval_in_minutes: 60,'
+               ' times: None,'
+               ' method: linear>')
+        self.assertEqual(result, msg)
+
+    def test_solar(self):
+        """Test that the __repr__ returns the expected string for solar."""
+        result = str(TemporalInterpolation(interval_in_minutes=60,
+                                           interpolation_method='solar'))
+        msg = ('<TemporalInterpolation: interval_in_minutes: 60,'
+               ' times: None,'
+               ' method: solar>')
         self.assertEqual(result, msg)
 
 
@@ -129,6 +148,54 @@ class Test_construct_time_list(IrisTest):
                 self.time_0, self.time_1)
 
 
+class Test_solar_interpolation(IrisTest):
+
+    """Test solar interpolation."""
+
+    def setUp(self):
+        """Set up the test inputs."""
+        self.time_0 = datetime.datetime(2017, 11, 1, 3)
+        self.time_mid = datetime.datetime(2017, 11, 1, 6)
+        self.time_1 = datetime.datetime(2017, 11, 1, 9)
+        self.npoints = 10
+        data_time_0 = np.ones((self.npoints, self.npoints), dtype=np.float32)
+        data_time_1 = np.ones((self.npoints, self.npoints),
+                              dtype=np.float32) * 7
+        cube_time_0 = set_up_variable_cube(data_time_0,
+                                           time=self.time_0,
+                                            frt=self.time_0)
+        cube_time_1 = set_up_variable_cube(data_time_1,
+                                           time=self.time_1,
+                                           frt=self.time_0)
+        cubes = iris.cube.CubeList([cube_time_0, cube_time_1])
+        self.cube = cubes.merge_cube()
+        self.time_list=[('time',[self.time_mid])]
+
+    def test_return_type(self):
+        """Test that an iris cubelist is returned."""
+
+        plugin = TemporalInterpolation(interpolation_method='solar',
+                                       times=[self.time_mid])
+        result = plugin.solar_interpolate(self.cube,self.time_list)
+        self.assertIsInstance(result, iris.cube.CubeList)
+
+    def test_valid_single_interpolation(self):
+        """Test interpolating to the mid point of the time range. Expect the
+        data to be half way between, and the time coordinate should be at
+        06Z November 11th 2017."""
+
+        expected_data = np.ones((self.npoints, self.npoints)) * 4
+        expected_time = (self.time_0 + timedelta(hours=3)).timestamp()
+        expected_fp = 3 * 3600
+        plugin = TemporalInterpolation(interpolation_method='solar',
+                                       times=[self.time_mid])
+        result, = plugin.solar_interpolate(self.cube,self.time_list)
+        self.assertArrayAlmostEqual(expected_data, result.data)
+        self.assertArrayAlmostEqual(result.coord('time').points, expected_time)
+        self.assertAlmostEqual(result.coord('forecast_period').points[0],
+                               expected_fp)
+
+
 class Test_process(IrisTest):
 
     """Test interpolation of cubes to intermediate times using the plugin."""
@@ -139,30 +206,15 @@ class Test_process(IrisTest):
         self.time_extra = datetime.datetime(2017, 11, 1, 6)
         self.time_1 = datetime.datetime(2017, 11, 1, 9)
         self.npoints = 10
-        data_time_0 = np.ones((self.npoints, self.npoints))
-        data_time_1 = np.ones((self.npoints, self.npoints)) * 7
-
-        cube_template = Cube(data_time_0, 'air_temperature', 'K')
-        cube_template.add_dim_coord(
-            DimCoord(np.linspace(-45.0, 45.0, self.npoints),
-                     'latitude', units='degrees'), 0)
-        cube_template.add_dim_coord(
-            DimCoord(np.linspace(120, 180, self.npoints),
-                     'longitude', units='degrees'), 1)
-        time_origin = "seconds since 1970-01-01 00:00:00"
-        calendar = "gregorian"
-        tunit = Unit(time_origin, calendar)
-
-        self.cube_time_0 = cube_template
-        self.cube_time_1 = cube_template.copy(data=data_time_1)
-        self.cube_time_0.add_aux_coord(DimCoord(self.time_0.timestamp(),
-                                                "time", units=tunit))
-        self.cube_time_0.add_aux_coord(DimCoord(0, "forecast_period",
-                                                units="hours"))
-        self.cube_time_1.add_aux_coord(DimCoord(self.time_1.timestamp(),
-                                                "time", units=tunit))
-        self.cube_time_1.add_aux_coord(DimCoord(6, "forecast_period",
-                                                units="hours"))
+        data_time_0 = np.ones((self.npoints, self.npoints), dtype=np.float32)
+        data_time_1 = np.ones((self.npoints, self.npoints),
+                              dtype=np.float32) * 7
+        self.cube_time_0 = set_up_variable_cube(data_time_0,
+                                                time=self.time_0,
+                                                frt=self.time_0)
+        self.cube_time_1 = set_up_variable_cube(data_time_1,
+                                                time=self.time_1,
+                                                frt=self.time_0)
 
     def test_return_type(self):
         """Test that an iris cubelist is returned."""
@@ -178,7 +230,7 @@ class Test_process(IrisTest):
 
         expected_data = np.ones((self.npoints, self.npoints)) * 4
         expected_time = (self.time_0 + timedelta(hours=3)).timestamp()
-        expected_fp = 3
+        expected_fp = 3 * 3600
         result, = TemporalInterpolation(interval_in_minutes=180).process(
             self.cube_time_0, self.cube_time_1)
 
@@ -205,7 +257,7 @@ class Test_process(IrisTest):
             self.assertArrayAlmostEqual(
                 cube.coord('time').points, expected_time, decimal=5)
             self.assertAlmostEqual(cube.coord('forecast_period').points[0],
-                                   i+1)
+                                   (i+1)*3600)
 
     def test_valid_interpolation_from_given_list(self):
         """Test interpolating to a point defined in a list between the two
@@ -219,7 +271,7 @@ class Test_process(IrisTest):
             self.cube_time_0, self.cube_time_1)
         expected_data = np.ones((self.npoints, self.npoints)) * 4
         expected_time = self.time_extra.timestamp()
-        expected_fp = 3
+        expected_fp = 3 * 3600
 
         self.assertArrayAlmostEqual(expected_data, result.data)
         self.assertArrayAlmostEqual(
