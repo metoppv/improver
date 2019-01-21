@@ -35,7 +35,7 @@ import numpy as np
 
 from iris.tests import IrisTest
 
-from improver.spotdata_new.spot_extraction import check_grid_match
+from improver.spotdata.spot_extraction import check_grid_match
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 

@@ -38,7 +38,7 @@ import iris
 from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
-from improver.spotdata_new.build_spotdata_cube import build_spotdata_cube
+from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 
 
 class Test_build_spotdata_cube(IrisTest):

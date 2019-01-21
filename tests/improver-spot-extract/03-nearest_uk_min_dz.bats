@@ -31,26 +31,21 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "spot-extract args kwargs" {
+@test "spot-extract nearest minimum_dz temperatures" {
   improver_check_skip_acceptance
-  KGO="spot-extract/basic/model_level_kgo.nc"
+  KGO="spot-extract/outputs/mindz_uk_temperatures.nc"
 
-  # Run spot-extract framework and check it passes. Using model-level derived
-  # temperature lapse rate.
+  # Run spot extract processing and check it passes.
   run improver spot-extract \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract/basic/model_level_diagnostics.json" \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract/basic/temperature_at_screen_level.nc" \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract/basic" \
-      $TEST_DIR \
-      --diagnostics temperature \
-      --latitudes 51 52 53 54 55 \
-      --longitudes -2 -2 -2 -2 -2 \
-      --altitudes 10 20 30 40 50
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/all_methods_uk.nc" \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_temperature.nc" \
+      --minimum_dz \
+      "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
-  improver_check_recreate_kgo "temperature_at_screen_level.nc" $KGO
+  improver_check_recreate_kgo "output.nc" $KGO
 
   # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/temperature_at_screen_level.nc" \
-                          "$IMPROVER_ACC_TEST_DIR/$KGO"
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

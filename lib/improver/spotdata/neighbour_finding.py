@@ -31,289 +31,513 @@
 
 """Neighbour finding for the Improver site specific process chain."""
 
+import warnings
 import numpy as np
-from improver.utilities.spatial import (
-    get_nearest_coords, lat_lon_determine, lat_lon_transform)
-from improver.spotdata.common_functions import (
-    ConditionalListExtract, nearest_n_neighbours,
-    index_of_minimum_difference, list_entry_from_index, node_edge_check,
-    apply_bias)
+from scipy.spatial import cKDTree
+
+import cartopy.crs as ccrs
+
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 
 
-class PointSelection(object):
+class NeighbourSelection(object):
     """
-    For the selection of source data from a grid for use in deriving
-    conditions at an arbitrary coordinate.
+    For the selection of a grid point near an arbitrary coordinate, where the
+    selection may be the nearest point, or a point that fulfils other
+    imposed constraints.
 
-    Methods available for determining the neighbours are:
+    Constraints available for determining the neighbours are:
 
-        fast_nearest_neighbour: Closest neighbouring grid point to spot site
-                                calculated on a 2D plane (lat/lon).
-
-        minimum_height_error_neighbour
-                              : This method uses the nearest neighbour as a
-                                starting point but then loosens this constraint
-                                to minimise the vertical displacement between
-                                the spot site and grid points.
-
+    1. land_constraint which requires the selected point to be on land.
+    2. minimum_dz which minimises the vertical displacement between the
+       given coordinate (when an altitude is provided) and the grid point
+       where its altitude is provided by the relevant model or high resolution
+       orography. Note that spot coordinates provided without an altitude are
+       given the altitude of the nearest grid point taken from the orography
+       cube.
+    3. A combination of the above, where the land constraint is primary and out
+       of available land points, the one with the minimal vertical displacement
+       is chosen.
     """
 
-    def __init__(self, method='fast_nearest_neighbour',
-                 vertical_bias=None, land_constraint=False):
+    def __init__(self, land_constraint=False, minimum_dz=False,
+                 search_radius=1.0E4,
+                 site_coordinate_system=ccrs.PlateCarree(),
+                 site_x_coordinate='longitude', site_y_coordinate='latitude',
+                 grid_metadata_identifier='mosg', node_limit=36):
         """
-        The class is called with the desired method to be used in determining
-        the grid points closest to sites of interest.
+        Args:
+            land_constraint (bool):
+                If True the selected neighbouring grid point must be on land,
+                where this is determined using a land_mask.
+            minimum_dz (bool):
+                If True the selected neighbouring grid point must be chosen to
+                minimise the vertical displacement compared to the site
+                altitude.
+            search_radius (float):
+                The radius in metres from a spot site within which to search
+                for a grid point neighbour.
+            site_coordinate_system (cartopy coordinate system):
+                The coordinate system of the sitelist coordinates that will be
+                provided. This defaults to be a latitude/longitude grid, a
+                PlateCarree projection.
+            site_x_coordinate (str):
+                The key that identifies site x coordinates in the provided site
+                dictionary. Defaults to longitude.
+            site_y_coordinate (str):
+                The key that identifies site y coordinates in the provided site
+                dictionary. Defaults to latitude.
+            grid_metadata_identifier (str):
+                A string to search for in the input cube attributes that
+                identifies the grid for which neighbours are being found. For
+                example, the default 'mosg' will return the Met Office grid
+                attributes mosg__grid_domain, mosg__grid_type, etc.
+            node_limit (int):
+                The upper limit for the number of nearest neighbours to return
+                when querying the tree for a selection of neighbours from which
+                one matching the minimum_dz constraint will be picked.
+        """
+        self.minimum_dz = minimum_dz
+        self.land_constraint = land_constraint
+        self.search_radius = search_radius
+        self.site_coordinate_system = site_coordinate_system
+        self.site_x_coordinate = site_x_coordinate
+        self.site_y_coordinate = site_y_coordinate
+        self.site_altitude = 'altitude'
+        self.grid_metadata_identifier = grid_metadata_identifier
+        self.node_limit = node_limit
+        # This is a global flag that will be set to True if the input cubes are
+        # geodetic, which here means they are global grids.
+        self.geodetic_coordinate_system = False
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        return ('<NeighbourSelection: land_constraint: {}, ' +
+                'minimum_dz: {}, search_radius: {}, site_coordinate_system'
+                ': {}, site_x_coordinate:{}, site_y_coordinate: {}, '
+                'grid_metadata_identifier: {}, node_limit: {}>').format(
+                    self.land_constraint, self.minimum_dz, self.search_radius,
+                    self.site_coordinate_system.__class__,
+                    self.site_x_coordinate, self.site_y_coordinate,
+                    self.grid_metadata_identifier, self.node_limit)
+
+    def neighbour_finding_method_name(self):
+        """
+        Create a name to describe the neighbour method based on the constraints
+        provided.
+
+        Returns:
+            method_name (string):
+                A string that describes the neighbour finding method employed.
+                This is essentially a concatentation of the options.
+        """
+        method_name = '{}{}{}'.format('nearest',
+                                      '_land' if self.land_constraint else '',
+                                      '_minimum_dz' if self.minimum_dz else '')
+        return method_name
+
+    def _transform_sites_coordinate_system(self, x_points, y_points, cube):
+        """
+        Function to convert coordinate pairs that specify spot sites into the
+        coordinate system of the model from which data will be extracted. Note
+        that the cartopy functionality returns a z-coordinate which we do not
+        want in this case, as such only the first two columns are returned.
 
         Args:
-            method (string):
-                Name of the method of neighbour finding to be used.
-
-            vertical_bias (string or None):
-                Sets the preferred vertical displacement bias of the grid point
-                relative to the site; above/below/None. If this criteria cannot
-                be met (e.g. bias below, but all grid points above site) the
-                smallest vertical displacment neighbour will be returned.
-
-            land_constraint (boolean):
-                If True spot data sites on land should only select neighbouring
-                grid points also over land.
-
+            x_points (np.array):
+                An array of x coordinates to be transformed in conjunction
+                with the corresponding y coordinates.
+            y_points (np.array):
+                An array of y coordinates to be transformed in conjunction
+                with the corresponding x coordinates.
+            cube (iris.cube.Cube):
+                A cube from the model from which data will be extracted. This
+                provides the coordinate system onto which the spot site's
+                coordinates should be remapped.
+        Returns:
+            np.array:
+                An array containing the x and y coordinates of the spot sites
+                in the target coordinate system, shaped as (n_sites, 2). The
+                z coordinate column is excluded from the return.
         """
-        self.method = method
-        self.vertical_bias = vertical_bias
-        self.land_constraint = land_constraint
+        target_coordinate_system = cube.coord_system().as_cartopy_crs()
 
-    def process(self, cube, sites, ancillary_data,
-                default_neighbours=None, no_neighbours=9):
+        return target_coordinate_system.transform_points(
+            self.site_coordinate_system, x_points, y_points)[:, 0:2]
+
+    @staticmethod
+    def check_sites_are_within_domain(sites, site_coords, site_x_coords,
+                                      site_y_coords, cube):
         """
-        Call the selected method for determining neighbouring grid points
-        after preparing the necessary diagnostics to be passed in.
+        A function to remove sites from consideration if they fall outside the
+        domain of the provided model cube. A warning is raised and the details
+        of each rejected site are printed.
+
+        Args:
+            sites (list of dicts):
+                A list of dictionaries defining the spot sites for which
+                neighbours are to be found. e.g.:
+
+                   [{'altitude': 11.0, 'latitude': 57.867000579833984,
+                    'longitude': -5.632999897003174, 'wmo_id': 3034}]
+
+            site_coords (np.array):
+                An array of shape (n_sites, 2) that contains the spot site
+                coordinates in the coordinate system of the model cube.
+            site_x_coords (np.array):
+                The x coordinates of the spot sites in their original
+                coordinate system, from which invalid sites must be removed.
+            site_y_coords (np.array):
+                The y coordinates of the spot sites in their original
+                coordinate system, from which invalid sites must be removed.
+            cube (iris.cube.Cube):
+                A cube that is representative of the model/grid from which spot
+                data will be extracted.
+        Returns:
+           sites, site_coords, site_x_coords, site_y_coords (as above):
+               The inputs modified to filter out the sites falling outside the
+               grid domain of the cube.
+        """
+        # Get the grid domain limits
+        x_min = cube.coord(axis='x').bounds.min()
+        x_max = cube.coord(axis='x').bounds.max()
+        y_min = cube.coord(axis='y').bounds.min()
+        y_max = cube.coord(axis='y').bounds.max()
+
+        domain_valid = np.where(
+            (site_coords[:, 0] >= x_min) & (site_coords[:, 0] <= x_max) &
+            (site_coords[:, 1] >= y_min) & (site_coords[:, 1] <= y_max))
+
+        domain_invalid = np.where(
+            (site_coords[:, 0] < x_min) | (site_coords[:, 0] > x_max) |
+            (site_coords[:, 1] < y_min) | (site_coords[:, 1] > y_max))
+
+        num_invalid = len(domain_invalid[0])
+        if num_invalid > 0:
+            msg = ("{} spot sites fall outside the grid domain and will not be"
+                   " processed. These sites are:\n".format(num_invalid))
+            dyn_msg = '{}\n'
+            for site in np.array(sites)[domain_invalid]:
+                msg = msg + dyn_msg.format(site)
+            warnings.warn(msg)
+
+        sites = np.array(sites)[domain_valid]
+        site_coords = site_coords[domain_valid]
+        site_x_coords = site_x_coords[domain_valid]
+        site_y_coords = site_y_coords[domain_valid]
+        return sites, site_coords, site_x_coords, site_y_coords
+
+    @staticmethod
+    def get_nearest_indices(site_coords, cube):
+        """
+        Uses the iris cube method nearest_neighbour_index to find the nearest
+        grid points to a site.
+
+        Args:
+            site_coords (np.array):
+                An array of shape (n_sites, 2) that contains the x and y
+                coordinates of the sites.
+            cube (iris.cube.Cube):
+                Cube containing a representative grid.
+        Returns:
+            nearest_indices (np.array):
+                A list of shape (n_sites, 2) that contains the x and y indices
+                of the nearest grid points to the sites.
+        """
+        nearest_indices = np.zeros((len(site_coords), 2)).astype(np.int)
+        for index, (x_point, y_point) in enumerate(site_coords):
+            nearest_indices[index, 0] = (
+                cube.coord(axis='x').nearest_neighbour_index(x_point))
+            nearest_indices[index, 1] = (
+                cube.coord(axis='y').nearest_neighbour_index(y_point))
+        return nearest_indices
+
+    @staticmethod
+    def geocentric_cartesian(cube, x_coords, y_coords):
+        """
+        A function to convert a geodetic (lat/lon) coordinate system into a
+        geocentric (3D trignonometric) system. This function ignores orographic
+        height differences between coordinates, giving a 2D projected
+        neighbourhood akin to selecting a neighbourhood of grid points about a
+        point without considering their vertical displacement.
 
         Args:
             cube (iris.cube.Cube):
-                Cube of gridded data of a diagnostic; the diagnostic is
-                unimportant as long as the grid is structured in the same way
-                as those from which data will be extracted using the neighbour
-                list.
-            sites (OrderedDict):
-                Site data, including latitude/longitude and altitude
-                information.
-                e.g.::
-
-                  {<site_id>: {'latitude': 50, 'longitude': 0,
-                               'altitude': 10}}
-            ancillary_data (dict):
-                Dictionary of ancillary (time invariant) model data that is
-                needed.
-                e.g.::
-
-                  {'orography': <cube of orography>}
-            default_neighbours/no_neighbours :
-                see minimum_height_error_neighbour() below.
-
+                A cube from which is taken the globe for which the geocentric
+                coordinates are being calculated.
+            x_coords (np.array):
+                An array of x coordinates that will represent one axis of the
+                mesh of coordinates to be transformed.
+            y_coords (np.array):
+                An array of y coordinates that will represent one axis of the
+                mesh of coordinates to be transformed.
         Returns:
-            neighbours (numpy.dtype):
-                Array of grid i,j coordinates that are nearest to each site
-                coordinate given. Includes vertical displacement between site
-                and returned grid point if orography is provided. Edgepoint is
-                a boolean that indicates if the chosen grid point neighbour is
-                on the edge of the domain for a circular (e.g. global
-                cylindrical) grid; (fields: i, j, dz, edgepoint).
-
+            cartesian_nodes (np.array):
+                An array of all the xyz combinations that describe the nodes of
+                the grid, now in 3D geocentric cartesian coordinates. The shape
+                of the array is (n_nodes, 3), order x[:, 0], y[:, 1], z[:, 2].
         """
-        if self.method == 'fast_nearest_neighbour':
-            if 'orography' in ancillary_data.keys():
-                orography = ancillary_data['orography'].data
-            else:
-                orography = None
-            return self.fast_nearest_neighbour(cube, sites,
-                                               orography=orography)
-        elif self.method == 'minimum_height_error_neighbour':
-            orography = ancillary_data['orography'].data
+        coordinate_system = cube.coord_system().as_cartopy_crs()
+        cartesian_calculator = coordinate_system.as_geocentric()
+        z_coords = np.zeros_like(x_coords)
+        cartesian_nodes = cartesian_calculator.transform_points(
+            coordinate_system, x_coords, y_coords, z_coords)
+        return cartesian_nodes
 
-            land_mask = None
-            if self.land_constraint:
-                land_mask = ancillary_data['land_mask'].data
-
-            return self.minimum_height_error_neighbour(
-                cube, sites, orography, land_mask=land_mask,
-                default_neighbours=default_neighbours,
-                no_neighbours=no_neighbours)
-        else:
-            # Should not make it here unless an unknown method is passed in.
-            raise AttributeError('Unknown method "{}" passed to {}.'.format(
-                self.method, self.__class__.__name__))
-
-    @staticmethod
-    def fast_nearest_neighbour(cube, sites, orography=None):
+    def build_KDTree(self, land_mask):
         """
-        Use iris coord.nearest_neighbour_index function to locate the nearest
-        grid point to the given latitude/longitude pair.
-
-        Performed on a 2D-surface; consider using the much slower
-        iris.analysis.trajectory.interpolate method for a more correct nearest
-        neighbour search with projection onto a spherical surface; this is
-        typically much slower.
-
+        Build a KDTree for extracting the nearest point or points to a site.
+        The tree can be built with a constrained set of grid points, e.g. only
+        land points, if required.
 
         Args:
-            cube/sites : See process() above.
-
-            orography (numpy.array):
-                Array of orography data extracted from an iris.cube.Cube that
-                corresponds to the grids on which all other input diagnostics
-                will be provided (iris.cube.Cube.data).
-
+            land_mask (iris.cube.Cube):
+                A land mask cube for the model/grid from which grid point
+                neighbours are being selected.
         Returns:
-            neighbours (numpy.array):
-                See process() above.
-
+            (tuple): tuple containing:
+                scipy.spatial.ckdtree.cKDTree:
+                    A KDTree containing the required nodes, built using the
+                    scipy cKDTree method.
+                index_nodes (np.array):
+                    An array of shape (n_nodes, 2) that contains the x and y
+                    indices that correspond to the selected node,
+                    e.g. node=100 -->  x_coord_index=10, y_coord_index=300,
+                    index_nodes[100] = [10, 300]
         """
-        neighbours = np.empty(len(sites), dtype=[('i', 'i8'),
-                                                 ('j', 'i8'),
-                                                 ('dz', 'f8'),
-                                                 ('edgepoint', 'bool_')])
+        if self.land_constraint:
+            included_points = np.nonzero(land_mask.data)
+        else:
+            included_points = np.where(np.isfinite(land_mask.data.data))
 
-        # Check cube coords are lat/lon, else transform lookup coordinates.
-        trg_crs = lat_lon_determine(cube)
+        x_indices = included_points[0]
+        y_indices = included_points[1]
+        x_coords = land_mask.coord(axis='x').points[x_indices]
+        y_coords = land_mask.coord(axis='y').points[y_indices]
 
-        imax = cube.coord(axis='y').shape[0]
-        jmax = cube.coord(axis='x').shape[0]
-        iname = cube.coord(axis='y').name()
-        jname = cube.coord(axis='x').name()
+        if self.geodetic_coordinate_system:
+            nodes = self.geocentric_cartesian(land_mask, x_coords, y_coords)
+        else:
+            nodes = list(zip(x_coords, y_coords))
 
-        for i_site, site in enumerate(sites.values()):
-            latitude, longitude, altitude = (site['latitude'],
-                                             site['longitude'],
-                                             site['altitude'])
+        index_nodes = np.array(list(zip(x_indices, y_indices)))
 
-            longitude, latitude = lat_lon_transform(trg_crs,
-                                                    latitude, longitude)
-            i_latitude, j_longitude = get_nearest_coords(
-                cube, latitude, longitude, iname, jname)
-            dz_site_grid = 0.
+        return cKDTree(nodes), index_nodes
 
-            # Calculate SpotData site vertical displacement from model
-            # orography. If site altitude set with np.nan or orography data
-            # is unavailable, assume site is at equivalent altitude to nearest
-            # neighbour.
-            if orography is not None and altitude != np.nan:
-                dz_site_grid = altitude - orography[i_latitude, j_longitude]
-            else:
-                dz_site_grid = 0.
-
-            neighbours[i_site] = (int(i_latitude), int(j_longitude),
-                                  dz_site_grid,
-                                  (i_latitude == imax or j_longitude == jmax))
-
-        return neighbours
-
-    def minimum_height_error_neighbour(self, cube, sites, orography,
-                                       land_mask=None,
-                                       default_neighbours=None,
-                                       no_neighbours=9):
+    def select_minimum_dz(self, orography, site_altitude, index_nodes,
+                          distance, indices):
         """
-        Find the horizontally nearest neighbour, then relax the conditions
-        to find the neighbouring point in the "no_neighbours" nearest nodes to
-        the input coordinate that minimises the height difference. This is
-        typically used for temperature, where vertical displacement can be much
-        more important that horizontal displacement in determining the
-        conditions.
-
-        A vertical displacement bias may be applied with the vertical_bias
-        keyword; whether to prefer grid points above or below the site, or
-        neither.
-
-        A land constraint may be applied that requires a land grid point be
-        selected for a site that is over land. Currently this is established
-        by checking that the nearest grid point barring any other conditions
-        is a land point. If a site is a sea point it will use the nearest
-        neighbour as there should be no vertical displacement difference with
-        other sea points.
+        Given a selection of nearest neighbours to a given site, this function
+        calculates the absolute vertical displacement between the site and the
+        neighbours. It then returns grid indices of the neighbour with the
+        minimum vertical displacement (i.e. at the most similar altitude). The
+        number of neighbours to consider is a maximum of node_limit, but these
+        may be limited by the imposed search_radius, or this limit may be
+        insufficient to reach the search radius, in which case a warning is
+        raised.
 
         Args:
-            cube/sites : See process() above.
-
-            default_neighbours (numpy.array):
-                An existing list of neighbours from which variations are made
-                using specified options (e.g. land_constraint). If unset the
-                fast_nearest_neighbour method will be used to build this list.
-
-            orography (numpy.array):
-                Array of orography data extracted from an iris.cube.Cube that
-                corresponds to the grids on which all other input diagnostics
-                will be provided.
-
-            land_mask (numpy.array):
-                Array of land_mask data extracted from an iris.cube.Cube that
-                corresponds to the grids on which all other input diagnostics
-                will be provided.
-
-            no_neighbours (int):
-                Number of grid points about the site to consider when relaxing
-                the nearest neighbour condition. If unset this defaults to 9.
-                e.g. consider a 5x5 grid of points -> no_neighbours = 25.
-
+            orography (iris.cube.Cube):
+                A cube of orography, used to obtain the grid point altitudes.
+            site_altitude (float):
+                The altitude of the spot site being considered.
+            index_nodes (np.array):
+                An array of shape (n_nodes, 2) that contains the x and y
+                indices that correspond to the selected node,
+            distance (np.array):
+                An array that contains the distances from the spot site to each
+                grid point neighbour being considered. The number maybe np.inf
+                if the site is beyond the search_radius.
+            indices (np.array):
+                An array of tree node indices identifying the neigbouring grid
+                points, the list corresponding to the array of distances.
         Returns:
-            neighbours (numpy.array):
-                See process() above.
-
+            grid_point (np.array or None):
+                A 2-element array giving the x and y indices of the chosen grid
+                point neighbour. Returns None if no valid neighbours were found
+                in the tree query.
         """
+        # Values beyond the imposed search radius are set to inf,
+        # these need to be excluded.
+        valid_indices = np.where(np.isfinite(distance))
 
-        # Use the default nearest neighbour list as a starting point, and
-        # if for some reason it is missing, recreate the list using the fast
-        # method.
-        if default_neighbours is None:
-            neighbours = self.fast_nearest_neighbour(cube, sites,
-                                                     orography=orography)
-        else:
-            neighbours = default_neighbours
+        # If no valid neighbours are available in the tree, return None.
+        if valid_indices[0].shape[0] == 0:
+            return None
 
-        for i_site, site in enumerate(sites.values()):
+        # If the last distance is finite the number of tree nodes may not be
+        # sufficient to fill the search radius, raise a warning.
+        if np.isfinite(distance[-1]):
+            msg = ('Limit on number of nearest neighbours to return, {}, may '
+                   'not be sufficiently large to fill search_radius {}'.format(
+                       self.node_limit, self.search_radius))
+            warnings.warn(msg)
 
-            altitude = site['altitude']
+        distance = distance[valid_indices]
+        indices = indices[valid_indices]
 
-            # If site altitude is set with np.nan this method cannot be used.
-            if altitude == np.nan:
-                continue
+        # Calculate the difference in height between the spot site
+        # and grid point.
+        grid_point_altitudes = orography.data[tuple(index_nodes[indices].T)]
+        vertical_displacements = abs(grid_point_altitudes - site_altitude)
 
-            i, j, dz_nearest = (neighbours['i'][i_site],
-                                neighbours['j'][i_site],
-                                neighbours['dz'][i_site])
-            edgepoint = neighbours['edgepoint'][i_site]
+        # The tree returns an ordered array, the first element
+        # being the closest. We search the array for the first
+        # element that matches the minimum vertical displacement
+        # found, giving us the nearest such point.
+        index_of_minimum = (
+            np.argmax(vertical_displacements ==
+                      vertical_displacements.min()))
+        grid_point = index_nodes[indices][index_of_minimum]
 
-            node_list = nearest_n_neighbours(i, j, no_neighbours)
-            if edgepoint:
-                node_list = node_edge_check(node_list, cube)
+        return grid_point
 
-            if self.land_constraint:
-                # Check that we are considering a land point and that at least
-                # one neighbouring point is also land. If not no modification
-                # is made to the nearest neighbour coordinates.
+    def process(self, sites, orography, land_mask):
+        """
+        Using the constraints provided, find the nearest grid point neighbours
+        to the given spot sites for the model/grid given by the input cubes.
+        Returned is a cube that contains the defining characteristics of the
+        spot sites (e.g. x coordinate, y coordinate, altitude) and the indices
+        of the selected grid point neighbour.
 
-                neighbour_nodes = nearest_n_neighbours(i, j, no_neighbours,
-                                                       exclude_self=True)
-                if edgepoint:
-                    neighbour_nodes = node_edge_check(neighbour_nodes, cube)
-                if not land_mask[i, j] or not any(land_mask[neighbour_nodes]):
-                    continue
+        Args:
+            sites (list of dicts):
+                A list of dictionaries defining the spot sites for which
+                neighbours are to be found. e.g.:
 
-                # Filter the node_list to keep only land points
-                # (land_mask == 1).
-                node_list = ConditionalListExtract('not_equal_to').process(
-                    land_mask, node_list, 0)
+                   [{'altitude': 11.0, 'latitude': 57.867000579833984,
+                    'longitude': -5.632999897003174, 'wmo_id': 3034}]
 
-            dzs = altitude - orography[node_list]
-            dz_subset = apply_bias(self.vertical_bias, dzs)
+            orography (iris.cube.Cube):
+                A cube of orography, used to obtain the grid point altitudes.
+            land_mask (iris.cube.Cube):
+                A land mask cube for the model/grid from which grid point
+                neighbours are being selected.
+        Returns:
+            neighbour_cube (iris.cube.Cube):
+                A cube containing both the spot site information and for each
+                the grid point indices of its nearest neighbour as per the
+                imposed constraints.
+        """
+        index_nodes = []
+        # Check if we are dealing with a global grid.
+        self.geodetic_coordinate_system = (
+            orography.coord_system().as_cartopy_crs().is_geodetic())
 
-            ij_min = index_of_minimum_difference(dzs, subset_list=dz_subset)
-            i_min, j_min = list_entry_from_index(node_list, ij_min)
-            dz_min = abs(altitude - orography[i_min, j_min])
+        # Exclude regional grids with spatial dimensions other than metres.
+        if not self.geodetic_coordinate_system:
+            if not orography.coord(axis='x').units == 'metres':
+                msg = ('Cube spatial coordinates for regional grids must be'
+                       'in metres to match the defined search_radius.')
+                raise ValueError(msg)
 
-            # Test to ensure that if multiple vertical displacements are the
-            # same we don't select a more distant point because of array
-            # ordering.
-            if not np.isclose(dz_min, abs(dz_nearest)):
-                neighbours[i_site] = i_min, j_min, dzs[ij_min], edgepoint
+        # Ensure land_mask and orography are on the same grid.
+        if not orography.dim_coords == land_mask.dim_coords:
+            msg = ('Orography and land_mask cubes are not on the same '
+                   'grid.')
+            raise ValueError(msg)
 
-        return neighbours
+        # Enforce x-y coordinate order for input cubes.
+        orography = enforce_coordinate_ordering(
+            orography, [orography.coord(axis='x').name(),
+                        orography.coord(axis='y').name()])
+        land_mask = enforce_coordinate_ordering(
+            land_mask, [land_mask.coord(axis='x').name(),
+                        land_mask.coord(axis='y').name()])
+
+        # Remap site coordinates on to coordinate system of the model grid.
+        site_x_coords = np.array([site[self.site_x_coordinate]
+                                  for site in sites])
+        site_y_coords = np.array([site[self.site_y_coordinate]
+                                  for site in sites])
+        site_coords = self._transform_sites_coordinate_system(
+            site_x_coords, site_y_coords, orography)
+
+        # Exclude any sites falling outside the domain given by the cube and
+        # notify the user.
+        sites, site_coords, site_x_coords, site_y_coords = (
+            self.check_sites_are_within_domain(
+                sites, site_coords, site_x_coords, site_y_coords, orography))
+
+        # Find nearest neighbour point using quick iris method.
+        nearest_indices = self.get_nearest_indices(site_coords, orography)
+
+        # Create an array containing site altitudes, using the nearest point
+        # orography height for any that are unset.
+        site_altitudes = np.array([site.get(self.site_altitude, None)
+                                   for site in sites])
+        site_altitudes = np.where(np.isnan(site_altitudes.astype(float)),
+                                  orography.data[tuple(nearest_indices.T)],
+                                  site_altitudes)
+
+        # If further constraints are being applied, build a KD Tree which
+        # includes points filtered by constraint.
+        if self.land_constraint or self.minimum_dz:
+            # Build the KDTree, an internal test for the land_constraint checks
+            # whether to exclude sea points from the tree.
+            tree, index_nodes = self.build_KDTree(land_mask)
+
+            # Site coordinates made cartesian for global coordinate system
+            if self.geodetic_coordinate_system:
+                site_coords = self.geocentric_cartesian(
+                    orography, site_coords[:, 0], site_coords[:, 1])
+
+            if not self.minimum_dz:
+                # Query the tree for the nearest neighbour, in this case a land
+                # neighbour is returned along with the distance to it.
+                distances, node_indices = tree.query([site_coords])
+                # Look up the grid coordinates that correspond to the tree node
+                land_neighbour_indices, = index_nodes[node_indices]
+                # Use the found land neighbour if it is within the
+                # search_radius, otherwise use the nearest neighbour.
+                distances = np.array([distances[0], distances[0]]).T
+                nearest_indices = np.where(distances < self.search_radius,
+                                           land_neighbour_indices,
+                                           nearest_indices)
+            else:
+                # Query the tree for self.node_limit nearby neighbours.
+                distances, node_indices = tree.query(
+                    [site_coords], distance_upper_bound=self.search_radius,
+                    k=self.node_limit)
+                # Loop over the sites and for each choose the returned
+                # neighbour with the minimum vertical displacement.
+                for index, (distance, indices) in enumerate(zip(
+                        distances[0], node_indices[0])):
+                    grid_point = self.select_minimum_dz(
+                        orography, site_altitudes[index], index_nodes,
+                        distance, indices)
+                    # None is returned if the tree query returned no neighbours
+                    # within the search radius.
+                    if grid_point is not None:
+                        nearest_indices[index] = grid_point
+
+        # Calculate the vertical displacements between the chosen grid point
+        # and the spot site.
+        vertical_displacements = (site_altitudes -
+                                  orography.data[tuple(nearest_indices.T)])
+
+        # Create a list of WMO IDs if available.
+        wmo_ids = [site.get('wmo_id', None) for site in sites]
+
+        # Construct a name to describe the neighbour finding method employed
+        method_name = self.neighbour_finding_method_name()
+
+        # Create an array of indices and displacements to return
+        data = np.stack((nearest_indices[:, 0], nearest_indices[:, 1],
+                         vertical_displacements), axis=1)
+        data = np.expand_dims(data, 1).astype(np.float32)
+
+        # Create a cube of neighbours
+        neighbour_cube = build_spotdata_cube(
+            data, 'grid_neighbours', 1, site_altitudes.astype(np.float32),
+            site_y_coords.astype(np.float32), site_x_coords.astype(np.float32),
+            wmo_ids, neighbour_methods=[method_name],
+            grid_attributes=['x_index', 'y_index', 'vertical_displacement'])
+
+        # Apply the grid identifiers from the input cubes to the output cube.
+        neighbour_cube.attributes = {
+            k: v for (k, v) in orography.attributes.items()
+            if self.grid_metadata_identifier in k}
+
+        return neighbour_cube

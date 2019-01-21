@@ -31,21 +31,18 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "spot-extract nearest minimum_dz temperatures" {
+@test "spot-extract required metadata does not match" {
   improver_check_skip_acceptance
-  KGO="spot-extract-new/outputs/mindz_uk_temperatures.nc"
 
   # Run spot extract processing and check it passes.
-  run improver spot-extract-new \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract-new/inputs/all_methods_uk.nc" \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract-new/inputs/ukvx_temperature.nc" \
-      --minimum_dz \
+  run improver spot-extract \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/all_methods_uk.nc" \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_temperature_alternate_metadata.nc" \
       "$TEST_DIR/output.nc"
-  [[ "$status" -eq 0 ]]
-
-  improver_check_recreate_kgo "output.nc" $KGO
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
+  echo "status = ${status}"
+  [[ "$status" -eq 1 ]]
+  read -d '' expected <<'__TEXT__' || true
+ValueError: Cubes do not share the metadata identified by the grid_metadata_identifier (mosg__grid)
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
 }

@@ -36,8 +36,8 @@ import numpy as np
 import iris
 from iris.tests import IrisTest
 
-from improver.spotdata_new.spot_extraction import SpotExtraction
-from improver.spotdata_new.build_spotdata_cube import build_spotdata_cube
+from improver.spotdata.spot_extraction import SpotExtraction
+from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 
 
 class Test_SpotExtraction(IrisTest):

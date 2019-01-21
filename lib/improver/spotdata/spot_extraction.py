@@ -36,7 +36,7 @@ import numpy as np
 import iris
 from improver.utilities.cube_manipulation import (enforce_coordinate_ordering,
                                                   compare_attributes)
-from improver.spotdata_new.build_spotdata_cube import build_spotdata_cube
+from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 
 
 class SpotExtraction():

@@ -31,18 +31,19 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "spot-extract required metadata does not match" {
+@test "spot-extract unavailable neighbour method requested" {
   improver_check_skip_acceptance
 
   # Run spot extract processing and check it passes.
-  run improver spot-extract-new \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract-new/inputs/all_methods_uk.nc" \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract-new/inputs/ukvx_temperature_alternate_metadata.nc" \
+  run improver spot-extract \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/nearest_uk.nc" \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_temperature.nc" \
+      --minimum_dz \
       "$TEST_DIR/output.nc"
   echo "status = ${status}"
   [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-ValueError: Cubes do not share the metadata identified by the grid_metadata_identifier (mosg__grid)
+ValueError: The requested neighbour_selection_method "nearest_minimum_dz" is not available
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

@@ -30,253 +30,139 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run spotdata extraction."""
-from improver.argparser import ArgParser
-import argparse
-import glob
+
 import json
-import os
+import warnings
+import numpy as np
 
-from improver.spotdata.ancillaries import get_ancillary_data
-from improver.spotdata.main import run_spotdata
-from improver.spotdata.read_input import get_method_prerequisites
-from improver.spotdata.site_data import ImportSiteData
-from improver.spotdata.write_output import WriteOutput
-from improver.utilities.load import load_cubelist
+from iris.exceptions import CoordinateNotFoundError
 
-
-def valid_latitude(value):
-    """
-    Ensures latitude values fall in allowed range.
-
-    Args:
-    -----
-    value : int/float
-        The latitude value to be checked.
-
-    Returns:
-    --------
-    value : int/float
-        The checked latitude value.
-
-    Raises:
-    -------
-    ArgumentTypeError if latitude is not in valid range.
-
-    """
-    value = float(value)
-    if value < -90 or value > 90:
-        raise argparse.ArgumentTypeError(
-            "{} not in range [-90,90]".format(value))
-    return value
-
-
-def valid_longitude(value):
-    """
-    Ensures longitude values fall in allowed range.
-
-    Args:
-    -----
-    value : int/float
-        The longitude value to be checked.
-
-    Returns:
-    --------
-    value : int/float
-        The checked longitude value.
-
-    Raises:
-    -------
-    ArgumentTypeError if longitude is not in valid range.
-
-    """
-    value = float(value)
-    if value < -180 or value > 180:
-        raise argparse.ArgumentTypeError(
-            "{} not in range [-180,180]".format(value))
-    return value
-
-
-def site_dictionary(latitudes, longitudes, altitudes):
-    """
-    Format lists of latitudes, latitude and altitudes into site by site
-    dictionary entries.
-
-    Args:
-    -----
-    latitude/longitudes/altitudes : Lists of ints/floats
-        Lists of latitudes, longitudes, and altitudes that define the spotdata
-        sites.
-
-    Returns:
-    --------
-    site_properties : dict
-        A dictionary of sites, with a latitude, longitude and altitude defined
-        for each site.
-
-    """
-    if len(latitudes) != len(longitudes):
-        raise ValueError('Unequal no. of latitudes and longitudes provided.')
-
-    if altitudes is None:
-        altitudes = [None] * len(latitudes)
-
-    if len(latitudes) != len(altitudes):
-        raise ValueError('No. of altitudes does not match no. of latitudes/'
-                         ' longitudes.')
-
-    site_properties = []
-    for site, _ in enumerate(latitudes):
-        site_properties.append({
-            'latitude': latitudes[site],
-            'longitude': longitudes[site],
-            'altitude': altitudes[site]
-            })
-
-    return site_properties
+from improver.argparser import ArgParser
+from improver.spotdata.apply_lapse_rate import SpotLapseRateAdjust
+from improver.spotdata.spot_extraction import SpotExtraction
+from improver.spotdata.neighbour_finding import NeighbourSelection
+from improver.utilities.cube_metadata import amend_metadata
+from improver.utilities.load import load_cube
+from improver.utilities.save import save_netcdf
 
 
 def main():
-    """Load in arguments and start spotdata process."""
+    """Load in arguments and start spotdata extraction process."""
     parser = ArgParser(
-        description='SpotData : A configurable tool to extract spot-data '
-                    'from gridded diagnostics. The method of interpolating '
-                    'and adjusting the resulting data can be set by defining '
-                    'suitable diagnostics configurations.')
+        description="Extract diagnostic data from gridded fields for spot data"
+        " sites. It is possible to apply a temperature lapse rate adjustment"
+        " to temperature data that helps to account for differences between"
+        " the spot sites real altitude and that of the grid point from which"
+        " the temperature data is extracted.")
 
     # Input and output files required.
-    parser.add_argument('config_file_path',
-                        help='Path to a json file defining the recipes for '
-                        'extracting diagnostics at SpotData sites from '
-                        'gridded data.')
-    parser.add_argument('data_path', type=str,
-                        help='Path to a file containing the diagnostic '
-                             'to be processed.')
-    parser.add_argument('ancillary_path', type=str,
-                        help='Path to ancillary (time invariant) data files.')
-    parser.add_argument('output_path', type=str,
-                        help='Path to which output files should be written.')
+    parser.add_argument("neighbour_filepath", metavar="NEIGHBOUR_FILEPATH",
+                        help="Path to a NetCDF file of spot-data neighbours. "
+                        "This file also contains the spot site information.")
+    parser.add_argument("diagnostic_filepath", metavar="DIAGNOSTIC_FILEPATH",
+                        help="Path to a NetCDF file containing the diagnostic "
+                             "data to be extracted.")
+    parser.add_argument("output_filepath", metavar="OUTPUT_FILEPATH",
+                        help="The output path for the resulting NetCDF")
 
-    # The diagnostic to be processed.
-    parser.add_argument('--diagnostics', type=str, nargs='+', default=None,
-                        help='A list of diagnostics that are to be processed. '
-                             'If unset, all diagnostics defined in the '
-                             'config_file will be produced; e.g. '
-                             'temperature wind_speed')
+    method_group = parser.add_argument_group(
+        title="Neighbour finding method",
+        description="If none of these options are set, the nearest grid point "
+        "to a spot site will be used without any other constraints.")
+    method_group.add_argument(
+        "--land_constraint", default=False, action='store_true',
+        help="If set the neighbour cube will be interrogated for grid point"
+        " neighbours that were identified using a land constraint. This means"
+        " that the grid points should be land points except for sites where"
+        " none were found within the search radius when the neighbour cube was"
+        " created. May be used with minimum_dz.")
+    method_group.add_argument(
+        "--minimum_dz", default=False, action='store_true',
+        help="If set the neighbour cube will be interrogated for grid point"
+        " neighbours that were identified using a minimum height difference"
+        " constraint. These are grid points that were found to be the closest"
+        " in altitude to the spot site within the search radius defined when"
+        " the neighbour cube was created. May be used with land_constraint.")
 
-    # File based site definitions.
-    parser.add_argument('--site_path', type=str,
-                        help='Path to site data file if this is being used '
-                             'to choose sites.')
-    parser.add_argument('--constants_path', type=str,
-                        help='Path to json file containing constants to use '
-                             'in SpotData methods.')
+    lapse_group = parser.add_argument_group(
+        "Temperature lapse rate adjustment")
+    lapse_group.add_argument(
+        "--temperature_lapse_rate_filepath",
+        help="Filepath to a NetCDF file containing temperature lapse rates. "
+        "If this cube is provided, and a screen temperature cube is being "
+        "processed, the lapse rates will be used to adjust the temperatures "
+        "to better represent each spot's site-altitude.")
 
-    # Run time site definition options.
-    parser.add_argument('--latitudes', type=valid_latitude, metavar='(-90,90)',
-                        nargs='+',
-                        help='List of latitudes of sites of interest.')
-    parser.add_argument('--longitudes', type=valid_longitude,
-                        metavar='(-180,180)', nargs='+',
-                        help='List of longitudes of sites of interest.')
-    parser.add_argument('--altitudes', type=float, nargs='+',
-                        help='List of altitudes of sites of interest.')
+    meta_group = parser.add_argument_group("Metadata")
+    meta_group.add_argument(
+        "--grid_metadata_identifier", default="mosg__grid",
+        help="A string to identify attributes from the input netCDF files that"
+        " should be compared to ensure that the data is compatible. Spot"
+        " data works using grid indices, so it is important that the grids"
+        " are matching or the data extracted may not match the location of the"
+        " spot data sites. The default is 'mosg__grid'.")
 
-    # Options for speeding up processing.
-    parser.add_argument('--multiprocess', action="store_true",
-                        help='Process diagnostics using multiprocessing.')
+    meta_group.add_argument(
+        "--json_file", metavar="JSON_FILE", default=None,
+        help="If provided, this JSON file can be used to modify the metadata "
+        "of the returned netCDF file. Defaults to None.")
 
     args = parser.parse_args()
+    neighbour_cube = load_cube(args.neighbour_filepath)
+    diagnostic_cube = load_cube(args.diagnostic_filepath)
 
-    site_properties = []
-    if args.latitudes is not None:
-        site_properties = site_dictionary(args.latitudes, args.longitudes,
-                                          args.altitudes)
+    neighbour_selection_method = NeighbourSelection(
+        land_constraint=args.land_constraint,
+        minimum_dz=args.minimum_dz).neighbour_finding_method_name()
 
-    # Check site data has been provided.
-    if args.site_path is None and not site_properties:
-        raise ValueError("No SpotData site information has been provided "
-                         "from a file or defined at runtime.")
+    plugin = SpotExtraction(
+        neighbour_selection_method=neighbour_selection_method,
+        grid_metadata_identifier=args.grid_metadata_identifier)
+    result = plugin.process(neighbour_cube, diagnostic_cube)
 
-    # If using locations set at command line, set optional information such
-    # as site altitude and site_id. If a site definition file is provided it
-    # will take precedence.
-    if args.site_path is None:
-        sites = ImportSiteData('runtime_list').process(site_properties)
-    else:
-        sites = ImportSiteData('from_file').process(args.site_path)
+    # Check whether a lapse rate cube has been provided and we are dealing with
+    # temperature data.
+    if (args.temperature_lapse_rate_filepath and
+            diagnostic_cube.name() == "air_temperature"):
 
-    # Read in extraction recipes for all diagnostics.
-    with open(args.config_file_path, 'r') as input_file:
-        diagnostics_from_file = json.load(input_file)
+        lapse_rate_cube = load_cube(args.temperature_lapse_rate_filepath)
+        try:
+            lapse_rate_height_coord = lapse_rate_cube.coord("height")
+            lapse_rate_height, = lapse_rate_height_coord.points
+        except (ValueError, CoordinateNotFoundError):
+            msg = ("Lapse rate cube does not contain a single valued height "
+                   "coordinate. This is required to ensure it is applied to "
+                   "equivalent temperature data.")
+            raise ValueError(msg)
 
-    # Extract only the requested keys from all the available diagnostics
-    # that could be processed, as stored within the JSON file.
-    if args.diagnostics:
-        diagnostics = (
-            {key: diagnostics_from_file[key] for key in args.diagnostics})
-    else:
-        diagnostics = diagnostics_from_file
+        # Check the height of the temperature data matches that used to
+        # calculate the lapse rates. If so, adjust temperatures using the lapse
+        # rate values.
+        if diagnostic_cube.coord("height") == lapse_rate_height_coord:
+            plugin = SpotLapseRateAdjust(
+                args.grid_metadata_identifier,
+                neighbour_selection_method=neighbour_selection_method)
+            result = plugin.process(result, neighbour_cube, lapse_rate_cube)
+        else:
+            msg = ("A lapse rate cube was provided, but the height of "
+                   "the temperature data does not match that of the data used "
+                   "to calculate the lapse rates. As such the temperatures "
+                   "were not adjusted with the lapse rates.")
+            warnings.warn(msg)
+    elif args.temperature_lapse_rate_filepath:
+        msg = ("A lapse rate cube was provided, but the diagnostic being "
+               "processed is not air temperature. The lapse rate cube was "
+               "not used.")
+        warnings.warn(msg)
 
-    # Load ancillary data files; fields that don't vary in time.
-    ancillary_data = get_ancillary_data(diagnostics, args.ancillary_path)
+    # Modify final metadata as described by provided JSON file.
+    if args.json_file:
+        with open(args.json_file, 'r') as input_file:
+            metadata_dict = json.load(input_file)
+        result = amend_metadata(result, **metadata_dict)
 
-    config_constants = None
-    if args.constants_path is not None:
-        with open(args.constants_path, 'r') as input_file:
-            config_constants = json.load(input_file)
-
-    # Create a list of files that will need to be read.
-    all_available_files = glob.glob(args.data_path)
-
-    if not all_available_files:
-        raise IOError('No data files found in {}.'.format(args.data_path))
-
-    # Loop through the requested diagnostics and load data the essential data
-    # and any additional data that is required.
-    for diagnostic_key in diagnostics.keys():
-        diagnostic_name_in_filename = (
-            diagnostics[diagnostic_key]["name_in_filename"])
-        files_to_read = (
-            [filename for filename in all_available_files
-             if diagnostic_name_in_filename in filename])
-        if not files_to_read:
-            raise IOError('No relevant data files found in {} for {}.'.format(
-                args.data_path, diagnostic_name_in_filename))
-        # Load cubes into an iris.cube.CubeList.
-        diagnostics[diagnostic_key]["data"] = load_cubelist(files_to_read)
-        # Check if additional diagnostics are needed (e.g. multi-level data).
-        # If required, load into the additional_diagnostics dictionary.
-        diagnostics[diagnostic_key]["additional_data"] = (
-            get_method_prerequisites(
-                diagnostics[diagnostic_key]["interpolation_method"],
-                os.path.dirname(args.data_path)))
-
-    resulting_cubes, extrema_cubes = (
-        run_spotdata(
-            diagnostics, ancillary_data, sites, config_constants,
-            use_multiprocessing=args.multiprocess))
-
-    filename = os.path.splitext(os.path.basename(all_available_files[0]))[0]
-
-    if resulting_cubes:
-        # Concatenate CubeList into Cube, creating a time DimCoord,
-        # and write out.
-        cube_out = resulting_cubes.concatenate_cube()
-        WriteOutput(
-            'as_netcdf', dir_path=args.output_path,
-            filename=filename).process(cube_out)
-
-    # If set in the configuration, extract the diagnostic maxima and minima
-    # values.
-    filepath = all_available_files[0]
-    base_filename = os.path.splitext(os.path.basename(filepath))[0]
-    for extrema_cubelist in extrema_cubes:
-        if extrema_cubelist:
-            for extrema_cube in extrema_cubelist:
-                filename = "{}_{}".format(base_filename, extrema_cube.name())
-                WriteOutput(
-                    'as_netcdf', dir_path=args.output_path,
-                    filename=filename).process(extrema_cube)
+    # Save the spot data cube
+    save_netcdf(result, args.output_filepath)
 
 
 if __name__ == "__main__":
