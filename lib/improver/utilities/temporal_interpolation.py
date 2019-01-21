@@ -40,6 +40,7 @@ from iris.exceptions import CoordinateNotFoundError
 from improver.utilities.temporal import iris_time_to_datetime
 from improver.utilities.solar import DayNightMask, calc_solar_elevation
 from improver.utilities.cube_manipulation import merge_cubes
+from improver.utilities.cube_checker import check_coord_datatypes
 
 
 class TemporalInterpolation(object):
@@ -147,6 +148,66 @@ class TemporalInterpolation(object):
 
         return [('time', time_list)]
 
+    @staticmethod
+    def check_cube_coords_dtype(cube, new_cube, dim_coords=None):
+        """
+        Update the data type of the coords within the new_cube
+        to those in the original cube. This can be limited to a list of
+        dimension coordinates and associated auxillary coordinates if required.
+
+        Args:
+        cube (iris.cube.Cube):
+            The original cube that will be used to checked against for the
+            required data type of that coordinate in the new_cube.
+        new_cube (iris.cube.Cube):
+            The cube that must be checked and adjusted using the coordinates
+            from the original cube.
+        dim_coords (list):
+            List of dimension coordinate names. This list will be used to
+            limit the correction of the coordinate data type
+            to these coordinates and associated auxillary coordinates.
+            Default is None.
+
+        Returns:
+        new_cube (iris.cube.Cube):
+            Modified cube with the relevant coordinates datatypes
+            set to the same as on the original cube.
+
+        Raises:
+            CoordinateNotFoundError : If original cube does not have the
+                coordinate in dim_coords.
+            CoordinateNotFoundError : If coordinate in original cube is
+                not in new_cube.
+        """
+        if dim_coords is None:
+            coord_list = [coord.name() for coord in cube.coords()]
+        else:
+            coord_list = []
+            for coord_name in dim_coords:
+                try:
+                    req_dim = cube.coord_dims(coord_name)
+                    associated_coords = [crd.name() for crd in cube.coords()
+                                         if cube.coord_dims(crd) == req_dim
+                                         and crd.name() is not coord_name]
+                    coord_list.append(coord_name)
+                    for val in associated_coords:
+                        coord_list.append(val)
+                except CoordinateNotFoundError:
+                    msg = ('Original cube does not have the coordinate in'
+                           ' dim_coords {}'.format(coord_name))
+                    raise CoordinateNotFoundError(msg)
+        for coord_name in coord_list:
+            dtype_orig = cube.coord(coord_name).points.dtype
+            try:
+                new_coord = new_cube.coord(coord_name)
+                check_coord_datatypes(new_coord, dtype_orig, fix=True,
+                                      rounding=True)
+            except CoordinateNotFoundError:
+                msg = ('new_cube does not have the coordinate in'
+                       ' the original cube {}'.format(coord_name))
+                raise CoordinateNotFoundError(msg)
+        return new_cube
+
     def solar_interpolate(self, cube, time_list):
         """
         Interpolate solar radiation parameter which are zero if the
@@ -167,13 +228,12 @@ class TemporalInterpolation(object):
                 A list of cubes interpolated to the desired times.
 
         """
-        # iris.analysis.Linear() modifies the dtype of time and forecast_period
-        # coords so need to revert back
-        dtype_time = cube.coord('time').points.dtype
-        dtype_fp = cube.coord('forecast_period').points.dtype
-
         interpolated_cube = (
             cube.interpolate(time_list, iris.analysis.Linear()))
+        self.check_cube_coords_dtype(cube,
+                                     interpolated_cube,
+                                     dim_coords=['time'])
+
         interpolated_cubes = iris.cube.CubeList()
         daynightplugin = DayNightMask()
         daynight_mask = daynightplugin.process(interpolated_cube)
@@ -184,10 +244,6 @@ class TemporalInterpolation(object):
                 single_time.data[::, index[0], index[1]] = 0.0
             else:
                 single_time.data[index[0], index[1]] = 0.0
-            coord_time = single_time.coord('time')
-            coord_time.points = np.around(coord_time.points).astype(dtype_time)
-            coord_fp = single_time.coord('forecast_period')
-            coord_fp.points = np.around(coord_fp.points).astype(dtype_fp)
             interpolated_cubes.append(single_time)
 
         return interpolated_cubes
@@ -248,20 +304,11 @@ class TemporalInterpolation(object):
         else:
             interpolated_cube = cube.interpolate(time_list,
                                                  iris.analysis.Linear())
-
-            # iris.analysis.Linear() modifies the dtype of
-            # time and forecast_period coords so need to revert back
-
-            dtype_time = cube_t0.coord('time').points.dtype
-            dtype_fp = cube_t0.coord('forecast_period').points.dtype
-
+            self.check_cube_coords_dtype(cube_t0,
+                                         interpolated_cube,
+                                         dim_coords=['time'])
             interpolated_cubes = iris.cube.CubeList()
             for single_time in interpolated_cube.slices_over('time'):
-                coord_time = single_time.coord('time')
-                coord_time.points = (
-                    np.around(coord_time.points).astype(dtype_time))
-                coord_fp = single_time.coord('forecast_period')
-                coord_fp.points = np.around(coord_fp.points).astype(dtype_fp)
                 interpolated_cubes.append(single_time)
 
         return interpolated_cubes
