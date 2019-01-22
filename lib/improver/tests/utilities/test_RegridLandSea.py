@@ -35,7 +35,7 @@ import numpy as np
 
 import iris
 from iris.tests import IrisTest
-from iris.coords import DimCoord, AuxCoord
+from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.util import squeeze
 
