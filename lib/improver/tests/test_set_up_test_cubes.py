@@ -85,7 +85,6 @@ class test_construct_scalar_time_coords(IrisTest):
 
         for crd in time_coords:
             self.assertIsInstance(crd, iris.coords.DimCoord)
-            self.assertEqual(crd.dtype, np.int64)
 
         self.assertEqual(time_coords[0].name(), "time")
         self.assertEqual(iris_time_to_datetime(time_coords[0])[0],
@@ -97,9 +96,11 @@ class test_construct_scalar_time_coords(IrisTest):
         self.assertEqual(time_coords[2].points[0], 3600*5)
 
         for crd in time_coords[:2]:
+            self.assertEqual(crd.dtype, np.int64)
             self.assertEqual(
                 crd.units, "seconds since 1970-01-01 00:00:00")
         self.assertEqual(time_coords[2].units, "seconds")
+        self.assertEqual(time_coords[2].dtype, np.int32)
 
     def test_error_negative_fp(self):
         """Test an error is raised if the calculated forecast period is
@@ -173,9 +174,9 @@ class test_set_up_variable_cube(IrisTest):
         self.assertEqual(result.coord_dims("longitude"), (1,))
 
         # check scalar time coordinates
-        for time_coord in ["time", "forecast_reference_time",
-                           "forecast_period"]:
+        for time_coord in ["time", "forecast_reference_time"]:
             self.assertEqual(result.coord(time_coord).dtype, np.int64)
+        self.assertEqual(result.coord("forecast_period").dtype, np.int32)
 
         expected_time = datetime(2017, 11, 10, 4, 0)
         time_point = iris_time_to_datetime(result.coord("time"))[0]
