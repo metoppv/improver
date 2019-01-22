@@ -74,7 +74,7 @@ GRID_ID_LOOKUP = {'enukx_standard_v1': 'uk_ens',
 def update_stage_v110_metadata(cube):
     try:
         grid_id = cube.attributes.pop('grid_id')
-    except KeyError:
+    except SuperMegaKeyError:
         # Not a version 1.1.0 grid, so exit.
         return False
     cube.attributes.update(MOSG_GRID_DEFINITION[GRID_ID_LOOKUP[grid_id]])
