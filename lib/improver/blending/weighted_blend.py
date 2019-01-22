@@ -80,8 +80,9 @@ def rationalise_blend_time_coords(
 
     # if blending models using weights by forecast period, set forecast
     # reference times to current cycle time
-    if ("model" in blend_coord and weighting_coord is not None
-            and "forecast_period" in weighting_coord):
+    if ("model" in blend_coord and
+            weighting_coord is not None and
+            "forecast_period" in weighting_coord):
         if cycletime is None:
             cycletime = find_latest_cycletime(cubelist)
         else:
