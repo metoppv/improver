@@ -138,8 +138,8 @@ def main():
         if args.realization_numbers is not None:
             parser.wrong_args_error('realization_numbers', 'reordering')
     if args.rebadging:
-        if ((args.raw_forecast_filepath is not None)
-                or (args.random_ordering is not False)):
+        if ((args.raw_forecast_filepath is not None) or
+                (args.random_ordering is not False)):
             parser.wrong_args_error(
                 'raw_forecast_filepath, random_ordering', 'rebadging')
 

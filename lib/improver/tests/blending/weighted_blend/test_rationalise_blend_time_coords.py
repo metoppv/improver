@@ -120,8 +120,10 @@ class Test_rationalise_blend_time_coords(IrisTest):
 
     def test_cycletime(self):
         """Test function sets different cycle time if passed in as argument"""
-        expected_frt, = (self.enuk_cube.coord("forecast_reference_time").points
-                         - (3 * 3600))
+        expected_frt, = (
+            self.enuk_cube.coord("forecast_reference_time").points -
+            (3 * 3600)
+        )
         expected_fp = 6 * 3600
         rationalise_blend_time_coords(
             self.cubelist, "model", weighting_coord="forecast_period",
