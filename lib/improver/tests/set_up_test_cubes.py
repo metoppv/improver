@@ -116,7 +116,8 @@ def construct_scalar_time_coords(time, time_bounds, frt):
 
     if time_point_seconds < frt_point_seconds:
         raise ValueError('Cannot set up cube with negative forecast period')
-    fp_point_seconds = time_point_seconds - frt_point_seconds
+    fp_point_seconds = (
+        time_point_seconds - frt_point_seconds).astype(np.int32)
 
     # parse bounds if required
     if time_bounds is not None:
@@ -130,8 +131,9 @@ def construct_scalar_time_coords(time, time_bounds, frt):
             raise ValueError(
                 'Time point {} not within bounds {}-{}'.format(
                     time, time_bounds[0], time_bounds[1]))
-        fp_bounds = (bounds[0] - frt_point_seconds,
-                     bounds[1] - frt_point_seconds)
+        fp_bounds = np.array([
+            [bounds[0] - frt_point_seconds,
+             bounds[1] - frt_point_seconds]]).astype(np.int32)
     else:
         bounds = None
         fp_bounds = None

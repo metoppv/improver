@@ -55,10 +55,12 @@ class SpotExtraction():
                 coordinates that match a spot site. These are determined by
                 the neighbour finding method employed. This keyword is used to
                 extract the desired set of coordinates from the neighbour cube.
-            grid_metadata_identifier (str):
+            grid_metadata_identifier (str or None):
                 A string to search for in the input cube attributes that
                 can be used to ensure that the neighbour cube being used has
-                been created for the model/grid of the diagnostic cube.
+                been created for the model/grid of the diagnostic cube. If set
+                to None, no such check is made and the cubes are assumed to be
+                suitable for use with one another.
         """
         self.neighbour_selection_method = neighbour_selection_method
         self.grid_metadata_identifier = grid_metadata_identifier
@@ -217,9 +219,11 @@ def check_grid_match(grid_metadata_identifier, cubes):
     identified should match for the cubes to be deemed compatible.
 
     Args:
-        grid_metadata_identifier (str):
+        grid_metadata_identifier (str or None):
             A partial or complete attribute name. Attributes matching this are
-            compared between the two cubes.
+            compared between the two cubes. If set to None, no such check is
+            made and the cubes are assumed to be suitable for use with one
+            another.
         cubes (list of iris.cube.Cube items):
             List of cubes for which the attributes should be tested.
     Raises:

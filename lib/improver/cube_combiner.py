@@ -105,13 +105,9 @@ class CubeCombiner(object):
                 Cube with coord expanded.
 
                 n.b. If argument point == 'mid' then python will convert
-                result.coord('coord').points[0] to a float.
-
-                This is to ensure that midpoints are not accidentally
-                rounded down by Python's default integer divide behavour:
-                For example if you combined cubes for accumulation for three
-                hours the midpoint should be 1.5 hours into the period.
-                Integer behaviour would give 3 / 2 = 1
+                result.coord('coord').points[0] to a float UNLESS the coord
+                units contain 'seconds'.  This is to ensure that midpoints are
+                not rounded down, for example when times are in hours.
         """
         if len(result_cube.coord(coord).points) != 1:
             emsg = ('the expand bounds function should only be used on a'
@@ -136,8 +132,17 @@ class CubeCombiner(object):
             result_coord.bounds = result_coord.bounds.astype(np.float32)
 
         if point == 'mid':
-            result_coord.points = [((new_top_bound - new_low_bound) / 2.) +
-                                   new_low_bound]
+            if 'seconds' in str(result_coord.units):
+                # integer division of seconds required to retain precision
+                dtype_orig = result_coord.dtype
+                result_coord.points = [
+                    (new_top_bound - new_low_bound) // 2 + new_low_bound]
+                # re-cast to original precision to avoid escalating int32s
+                result_coord.points = result_coord.points.astype(dtype_orig)
+            else:
+                # float division of hours required for accuracy
+                result_coord.points = [
+                    (new_top_bound - new_low_bound) / 2. + new_low_bound]
         elif point == 'upper':
             result_coord.points = [new_top_bound]
 

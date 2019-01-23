@@ -59,8 +59,8 @@ class Test__init__(IrisTest):
                             'output_cube': None}
         result = RegridLandSea()
         members = {attr: getattr(result, attr) for attr in dir(result)
-                   if not callable(getattr(result, attr))
-                   and not attr.startswith("__")}
+                   if not callable(getattr(result, attr)) and
+                   not attr.startswith("__")}
         regridder = members.pop('regridder')
         vicinity = members.pop('vicinity')
         self.assertDictEqual(members, expected_members)
