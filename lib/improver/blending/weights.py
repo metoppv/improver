@@ -474,55 +474,6 @@ class ChooseWeightsLinear:
         weights = f_out(target_points)
         return weights
 
-    @staticmethod
-    def _create_coord_and_dims_list(
-            base_cube, cube_with_exception_coord, coord_list,
-            exception_coord_name):
-        """Create a list of coordinates and their dimensions for use
-        when constructing an iris.cube.Cube.
-
-        Args:
-            base_cube (iris.cube.Cube):
-                Cube from which all the coordinates within the coord_list
-                will be copied, apart from the coordinate defined by the
-                exception_coord_name, which will be taken from the
-                cube_with_exception_coord.
-            cube_with_exception_coord (iris.cube.Cube):
-                Cube from which the exception coordinate will be taken.
-            coord_list (iterable):
-                List/tuple of coordinates.
-            exception_coord_name (str):
-                Name of the exception coordinate that will be taken from the
-                cube_with_exception_coord.
-
-        Returns:
-            new_coord_list (list):
-                List of tuples where each tuple is of the form
-                (coordinate, index_of_coord). This list, may include the
-                exception_coord_name taken from the cube_with_exception_coord.
-                If the coordinate does not have an associated dimension e.g.
-                the coordinate is a scalar coordinate, then the index of the
-                coordinate is set equal to None.
-        """
-        new_coord_list = []
-        for coord in coord_list:
-            if (coord.name() == exception_coord_name or
-                    base_cube.coord_dims(coord) ==
-                    base_cube.coord_dims(exception_coord_name)):
-                exception_coord = cube_with_exception_coord.coord(coord.name())
-                if cube_with_exception_coord.coord_dims(coord):
-                    index, = cube_with_exception_coord.coord_dims(coord)
-                    new_coord_list.append((exception_coord, index))
-                else:
-                    new_coord_list.append((exception_coord, None))
-            else:
-                if base_cube.coord_dims(coord):
-                    index, = base_cube.coord_dims(coord)
-                    new_coord_list.append((coord, index))
-                else:
-                    new_coord_list.append((coord, None))
-        return new_coord_list
-
     def _create_new_weights_cube(self, cube, weights):
         """Create a cube to contain the output of the interpolation.
         It is currently assumed that the output weights matches the size
