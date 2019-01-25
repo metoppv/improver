@@ -456,9 +456,11 @@ class NeighbourSelection(object):
 
         # Exclude any sites falling outside the domain given by the cube and
         # notify the user.
-        sites, site_coords, site_x_coords, site_y_coords = (
-            self.check_sites_are_within_domain(
-                sites, site_coords, site_x_coords, site_y_coords, orography))
+        if not self.geodetic_coordinate_system:
+            sites, site_coords, site_x_coords, site_y_coords = (
+                self.check_sites_are_within_domain(
+                    sites, site_coords, site_x_coords, site_y_coords,
+                    orography))
 
         # Find nearest neighbour point using quick iris method.
         nearest_indices = self.get_nearest_indices(site_coords, orography)
