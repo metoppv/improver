@@ -111,7 +111,7 @@ function improver_test_pylintE {
 function improver_test_doc {
     # Build documentation as test.
     cd $IMPROVER_DIR/doc
-    make html 1>/dev/null
+    make SPHINXBUILD=${SPHINXBUILD:-sphinx-build} html 1>/dev/null
     echo_ok "sphinx-build -b html"
     cd -
 }
