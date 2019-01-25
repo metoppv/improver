@@ -31,7 +31,6 @@
 """Class for Temporal Interpolation calculations."""
 
 from datetime import datetime, timedelta
-import warnings
 import numpy as np
 
 import iris

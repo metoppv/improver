@@ -60,7 +60,7 @@ class Test_check_cube_not_float64(IrisTest):
 
     def setUp(self):
         """Set up a cube to test."""
-        self.cube = set_up_variable_cube(np.ones((5,5), dtype=np.float32),
+        self.cube = set_up_variable_cube(np.ones((5, 5), dtype=np.float32),
                                          spatial_grid='equalarea')
 
     def test_float32_ok(self):
