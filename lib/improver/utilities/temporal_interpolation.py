@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Class for Temporal Interpolation calculations."""
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 import warnings
 import numpy as np
 
@@ -41,6 +41,8 @@ from improver.utilities.temporal import iris_time_to_datetime
 from improver.utilities.solar import DayNightMask, calc_solar_elevation
 from improver.utilities.cube_manipulation import merge_cubes
 from improver.utilities.cube_checker import check_coord_datatypes
+from improver.utilities.spatial import (
+    lat_lon_determine, transform_grid_to_lat_lon)
 
 
 class TemporalInterpolation(object):
@@ -83,7 +85,7 @@ class TemporalInterpolation(object):
 
         self.interval_in_minutes = interval_in_minutes
         self.times = times
-        known_interpolation_methods = ['linear', 'solar']
+        known_interpolation_methods = ['linear', 'solar', 'daynight']
         if interpolation_method not in known_interpolation_methods:
             raise ValueError("TemporalInterpolation: Unknown interpolation "
                              "method {}. ".format(interpolation_method))
@@ -208,7 +210,58 @@ class TemporalInterpolation(object):
                 raise CoordinateNotFoundError(msg)
         return new_cube
 
-    def solar_interpolate(self, cube, time_list):
+    @staticmethod
+    def calc_sin_phi(dtval, lats, lons):
+        """
+        Calculate sin of solar elevation
+
+        Args:
+            dtval (datetime.datetime):
+                Date and time.
+            lats (np.array):
+                Array 2d of latitudes for each point
+            lons (np.array):
+                Array 2d of longitudes for each point
+        Returns:
+            sin_phi (np.array):
+                Array of sine of solar elevation at each point
+
+        """
+        day_of_year = (dtval - datetime(dtval.year, 1, 1)).days
+        utc_hour = (dtval.hour * 60.0 + dtval.minute) / 60.0
+        sin_phi = calc_solar_elevation(lats, lons, day_of_year,
+                                       utc_hour, return_sine=True)
+        return sin_phi
+
+    @staticmethod
+    def calc_lats_lons(cube):
+        """
+        Calculate the lats and lons of each point for a given cube.
+
+        Args:
+            cube (iris.cube.Cube):
+                cube containing x and y axis
+        Returns:
+            (tuple) : tuple containing:
+                **lats** (np.array):
+                    2d Array of latitudes for each point.
+                **lons** (np.array):
+                    2d Array of longitudes for each point.
+
+        """
+        trg_crs = lat_lon_determine(cube)
+        if trg_crs is not None:
+            xycube = next(cube.slices([cube.coord(axis='y'),
+                                       cube.coord(axis='x')]))
+            lats, lons = transform_grid_to_lat_lon(xycube)
+        else:
+            lats_row = cube.coord('latitude').points
+            lons_col = cube.coord('longitude').points
+            lats = np.repeat(lats_row[:, np.newaxis], len(lons_col), axis=1)
+            lons = np.repeat(lons_col[np.newaxis, :], len(lats_row), axis=0)
+        return lats, lons
+
+    def solar_interpolate(self, cube, interpolated_cube):
         """
         Interpolate solar radiation parameter which are zero if the
         sun is below the horizon.
@@ -217,22 +270,70 @@ class TemporalInterpolation(object):
             cube (iris.cube.Cube):
                 cube containing diagnostic cube valid at the beginning
                 of the period and cube valid at the end of the period
-            time_list (list):
-                A list containing a tuple that specifies the coordinate and a
-                list of points along that coordinate to which to interpolate,
-                as required by the iris interpolation method:
-                    e.g. [('time', [<datetime object 0>,
-                                    <datetime object 1>])]
+            interpoldated_cube (iris.cube.Cube):
+                cube containing Linear interpolation of
+                cube at times in time_list.
         Returns:
             interpolated_cubes (iris.cube.CubeList):
                 A list of cubes interpolated to the desired times.
 
         """
-        interpolated_cube = (
-            cube.interpolate(time_list, iris.analysis.Linear()))
-        self.check_cube_coords_dtype(cube,
-                                     interpolated_cube,
-                                     dim_coords=['time'])
+
+        interpolated_cubes = iris.cube.CubeList()
+        (lats, lons) = self.calc_lats_lons(cube)
+        prev_data = cube[0].data
+        next_data = cube[1].data
+        dtvals = iris_time_to_datetime(cube.coord('time'))
+        dtval_prev = dtvals[0]
+        sin_phi_prev = self.calc_sin_phi(dtval_prev, lats, lons)
+        dtval_next = dtvals[1]
+        sin_phi_next = self.calc_sin_phi(dtval_next, lats, lons)
+        diff_step = (dtval_next - dtval_prev).seconds
+
+        for i, single_time in enumerate(interpolated_cube.slices_over('time')):
+            # new_cubelist = iris.cube.CubeList()
+            dtval_interp = iris_time_to_datetime(single_time.coord('time'))[0]
+            sin_phi_interp = self.calc_sin_phi(dtval_interp, lats, lons)
+            diff_interp = (dtval_interp - dtval_prev).seconds
+            single_time.data[::] = 0.0
+            sun_up = np.where(sin_phi_interp > 0.0)
+            if len(single_time.shape) > 2:
+                prevv = (
+                    prev_data[::, sun_up[0], sun_up[1]]/sin_phi_prev[sun_up])
+                nextv = (
+                    next_data[::, sun_up[0], sun_up[1]]/sin_phi_next[sun_up])
+                single_time.data[::, sun_up[0], sun_up[1]] = (
+                    sin_phi_interp[sun_up] *
+                    (prevv + (nextv - prevv) * (diff_interp/diff_step)))
+            else:
+                prevv = prev_data[sun_up]/sin_phi_prev[sun_up]
+                nextv = next_data[sun_up]/sin_phi_next[sun_up]
+                single_time.data[sun_up] = (sin_phi_interp[sun_up] *
+                                            (prevv + (nextv - prevv)
+                                             * (diff_interp/diff_step)))
+
+            interpolated_cubes.append(single_time)
+        print(interpolated_cubes[0].data)
+        return interpolated_cubes
+
+    def daynight_interpolate(self, cube, interpolated_cube):
+        """
+        Interpolate solar radiation parameter which are zero if the
+        sun is below the horizon.
+
+        Args:
+            cube (iris.cube.Cube):
+                cube containing diagnostic cube valid at the beginning
+                of the period and cube valid at the end of the period
+            interpoldated_cube (iris.cube.Cube):
+                cube containing Linear interpolation of
+                cube at times in time_list.
+
+        Returns:
+            interpolated_cubes (iris.cube.CubeList):
+                A list of cubes interpolated to the desired times.
+
+        """
 
         interpolated_cubes = iris.cube.CubeList()
         daynightplugin = DayNightMask()
@@ -243,7 +344,7 @@ class TemporalInterpolation(object):
             if len(single_time.shape) > 2:
                 single_time.data[::, index[0], index[1]] = 0.0
             else:
-                single_time.data[index[0], index[1]] = 0.0
+                single_time.data[index] = 0.0
             interpolated_cubes.append(single_time)
 
         return interpolated_cubes
@@ -299,15 +400,20 @@ class TemporalInterpolation(object):
         cubes = iris.cube.CubeList([cube_t0, cube_t1])
         cube = merge_cubes(cubes)
 
+        interpolated_cube = cube.interpolate(time_list,
+                                             iris.analysis.Linear())
+        self.check_cube_coords_dtype(cube_t0,
+                                     interpolated_cube,
+                                     dim_coords=['time'])
+        interpolated_cubes = iris.cube.CubeList()
         if self.interpolation_method == 'solar':
-            interpolated_cubes = self.solar_interpolate(cube, time_list)
+                interpolated_cubes = self.solar_interpolate(cube,
+                                                            interpolated_cube)
+        elif self.interpolation_method == 'daynight':
+                interpolated_cubes = (
+                    self.daynight_interpolate(cube,
+                                              interpolated_cube))
         else:
-            interpolated_cube = cube.interpolate(time_list,
-                                                 iris.analysis.Linear())
-            self.check_cube_coords_dtype(cube_t0,
-                                         interpolated_cube,
-                                         dim_coords=['time'])
-            interpolated_cubes = iris.cube.CubeList()
             for single_time in interpolated_cube.slices_over('time'):
                 interpolated_cubes.append(single_time)
 

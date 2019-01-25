@@ -83,7 +83,12 @@ def main():
     parser.add_argument("--interpolation_method",
                         metavar="INTERPOLATION_METHOD",
                         default="linear",
-                        help="Specifies the interpolation method. "
+                        choices=["linear", "solar", "daynight"],
+                        help="Specifies the interpolation method; "
+                        "solar interpolates using the solar elevation, "
+                        "daynight uses linear interpolation but sets"
+                        " night time points to 0.0, "
+                        "linear is linear interpolation. "
                         "Default is linear.")
 
     parser.add_argument("--output_files", metavar="OUTPUT_FILES",

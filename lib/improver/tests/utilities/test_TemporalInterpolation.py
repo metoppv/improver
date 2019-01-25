@@ -43,7 +43,8 @@ from iris.tests import IrisTest
 from iris.cube import Cube
 
 from improver.utilities.temporal_interpolation import TemporalInterpolation
-from improver.tests.set_up_test_cubes import set_up_variable_cube
+from improver.tests.set_up_test_cubes import (
+    set_up_variable_cube, add_coordinate)
 
 
 class Test__init__(IrisTest):
@@ -83,6 +84,15 @@ class Test__repr__(IrisTest):
         msg = ('<TemporalInterpolation: interval_in_minutes: 60,'
                ' times: None,'
                ' method: solar>')
+        self.assertEqual(result, msg)
+
+    def test_daynight(self):
+        """Test that the __repr__ returns the expected string for daynight."""
+        result = str(TemporalInterpolation(interval_in_minutes=60,
+                                           interpolation_method='daynight'))
+        msg = ('<TemporalInterpolation: interval_in_minutes: 60,'
+               ' times: None,'
+               ' method: daynight>')
         self.assertEqual(result, msg)
 
 
@@ -148,19 +158,106 @@ class Test_construct_time_list(IrisTest):
                 self.time_0, self.time_1)
 
 
-class Test_solar_interpolation(IrisTest):
+class Test_check_cube_coords(IrisTest):
 
-    """Test solar interpolation."""
+    """Test construction of time lists suitable for iris interpolation using
+    this function."""
 
     def setUp(self):
         """Set up the test inputs."""
-        self.time_0 = datetime.datetime(2017, 11, 1, 3)
-        self.time_mid = datetime.datetime(2017, 11, 1, 6)
-        self.time_1 = datetime.datetime(2017, 11, 1, 9)
+        time_start = datetime.datetime(2017, 11, 1, 3)
+        time_mid = datetime.datetime(2017, 11, 1, 6)
+        time_end = datetime.datetime(2017, 11, 1, 9)
+        self.fp = np.array([0, 3, 6], dtype=np.int64)
+        self.extra_coord = np.array([1.0, 4.0, 7.0], dtype=np.float32)
+        self.bad_extra_coord = np.array([1.1, 4.3, 6.9], dtype=np.float64)
         self.npoints = 10
+        data_time_0 = np.ones((self.npoints, self.npoints), dtype=np.float32)
+        cube_time_0 = set_up_variable_cube(data_time_0,
+                                           time=time_start,
+                                           frt=time_start)
+        cube_times = add_coordinate(cube_time_0,
+                                    [time_start, time_mid, time_end],
+                                    'time', is_datetime=True)
+        self.cube = add_coordinate(cube_times, self.extra_coord,
+                                   'extra_coord')
+        self.bad_coords = self.cube.copy()
+        self.bad_coords.coord('time').points = (
+            self.bad_coords.coord('time').points.astype(np.float64))
+        self.bad_coords.coord('forecast_period').points = (
+            self.bad_coords.coord('forecast_period').points.astype(np.int32))
+        self.bad_coords.coord('extra_coord').points = (
+            self.bad_extra_coord)
+
+    def test_check_all_type(self):
+        """Test that a cube is returned.with the right types"""
+        plugin = TemporalInterpolation(interval_in_minutes=60)
+        result = plugin.check_cube_coords_dtype(self.cube,
+                                                self.bad_coords)
+        self.assertIsInstance(result, iris.cube.Cube)
+        # All coords reverted back to the dtypes of the
+        # original cube and points in extra_coord cube have been rounded
+        self.assertEqual(result.coord('time'),
+                         self.cube.coord('time'))
+        self.assertEqual(str(result.coord('time').points.dtype),
+                         'int64')
+        self.assertEqual(result.coord('forecast_period'),
+                         self.cube.coord('forecast_period'))
+        self.assertEqual(str(result.coord('forecast_period').points.dtype),
+                         'int64')
+        self.assertEqual(result.coord('extra_coord'),
+                         self.cube.coord('extra_coord'))
+        self.assertEqual(str(result.coord('extra_coord').points.dtype),
+                         'float32')
+
+    def test_time_types(self):
+        """Test that only the coords associated with time have been updated."""
+        plugin = TemporalInterpolation(interval_in_minutes=60)
+        result = plugin.check_cube_coords_dtype(self.cube,
+                                                self.bad_coords,
+                                                dim_coords=['time'])
+        # Time and forecast_period reverted back to original type
+        self.assertEqual(result.coord('time'),
+                         self.cube.coord('time'))
+        self.assertEqual(str(result.coord('time').points.dtype),
+                         'int64')
+        self.assertEqual(result.coord('forecast_period'),
+                         self.cube.coord('forecast_period'))
+        self.assertEqual(str(result.coord('forecast_period').points.dtype),
+                         'int64')
+        # Extra coordinate left as changed.
+        self.assertEqual(result.coord('extra_coord'),
+                         self.bad_coords.coord('extra_coord'))
+        self.assertEqual(str(result.coord('extra_coord').points.dtype),
+                         'float64')
+
+
+class Test_daynight_interpolation(IrisTest):
+
+    """Test daynight interpolation."""
+
+    def setUp(self):
+        """Set up the test inputs."""
+        self.time_0 = datetime.datetime(2017, 11, 1, 0)
+        self.time_mid = datetime.datetime(2017, 11, 1, 2)
+        self.time_1 = datetime.datetime(2017, 11, 1, 4)
+        self.npoints = 10
+        self.daynight_mask = np.array([[0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+                                       [0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+                                       [0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+                                       [0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+                                       [0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+                                       [0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+                                       [0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+                                       [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+                                       [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+                                       [0, 0, 0, 0, 0, 1, 1, 1, 1, 1]])
+
         data_time_0 = np.ones((self.npoints, self.npoints), dtype=np.float32)
         data_time_1 = np.ones((self.npoints, self.npoints),
                               dtype=np.float32) * 7
+        data_time_mid = np.ones((self.npoints, self.npoints),
+                                dtype=np.float32) * 4
         cube_time_0 = set_up_variable_cube(data_time_0,
                                            time=self.time_0,
                                            frt=self.time_0)
@@ -169,29 +266,35 @@ class Test_solar_interpolation(IrisTest):
                                            frt=self.time_0)
         cubes = iris.cube.CubeList([cube_time_0, cube_time_1])
         self.cube = cubes.merge_cube()
-        self.time_list = [('time', [self.time_mid])]
+        interp_cube = set_up_variable_cube(data_time_mid,
+                                           time=self.time_mid,
+                                           frt=self.time_0)
+        self.interpolated_cube = iris.util.new_axis(interp_cube, 'time')
 
     def test_return_type(self):
         """Test that an iris cubelist is returned."""
 
-        plugin = TemporalInterpolation(interpolation_method='solar',
+        plugin = TemporalInterpolation(interpolation_method='daynight',
                                        times=[self.time_mid])
-        result = plugin.solar_interpolate(self.cube, self.time_list)
+        result = plugin.daynight_interpolate(self.cube, self.interpolated_cube)
         self.assertIsInstance(result, iris.cube.CubeList)
 
-    def test_valid_single_interpolation(self):
-        """Test interpolating to the mid point of the time range. Expect the
-        data to be half way between, and the time coordinate should be at
-        06Z November 11th 2017."""
+    def test_daynight_interpolation(self):
+        """Test interpolating to the a point where the daynight
+           mask is not all zero."""
 
-        expected_data = np.ones((self.npoints, self.npoints)) * 4
-        expected_time = (self.time_0 + timedelta(hours=3)).timestamp()
-        expected_fp = 3 * 3600
-        plugin = TemporalInterpolation(interpolation_method='solar',
+        expected_data = np.ones((self.npoints, self.npoints))*4
+        index = np.where(self.daynight_mask == 0)
+        expected_data[index] = 0.0
+        expected_time = (self.time_0 + timedelta(hours=2)).timestamp()
+        expected_fp = 2 * 3600
+        plugin = TemporalInterpolation(interpolation_method='daynight',
                                        times=[self.time_mid])
-        result, = plugin.solar_interpolate(self.cube, self.time_list)
+        result, = plugin.daynight_interpolate(self.cube,
+                                              self.interpolated_cube)
         self.assertArrayAlmostEqual(expected_data, result.data)
-        self.assertArrayAlmostEqual(result.coord('time').points, expected_time)
+        self.assertArrayAlmostEqual(result.coord('time').points,
+                                    expected_time)
         self.assertAlmostEqual(result.coord('forecast_period').points[0],
                                expected_fp)
 
