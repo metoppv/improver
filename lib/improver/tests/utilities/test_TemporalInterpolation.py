@@ -231,6 +231,86 @@ class Test_check_cube_coords(IrisTest):
                          'float64')
 
 
+class Test_calc_sin_phi(IrisTest):
+
+    """Test Calculate sin of solar elevation."""
+
+    def test_sin_phi(self):
+        """Test that the function returns the values expected."""
+        latitudes = np.array([50.0, 50.0, 50.0])
+        longitudes = np.array([-5.0, 0.0, 5.0])
+        dtval = datetime.datetime(2017, 1, 11, 8)
+        expected_array = np.array([-0.05481607, -0.00803911, 0.03659632])
+        plugin = TemporalInterpolation(interval_in_minutes=60,
+                                       interpolation_method='solar')
+        result = plugin.calc_sin_phi(dtval,
+                                     latitudes,
+                                     longitudes)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, expected_array)
+
+
+class Test_calc_lats_lons(IrisTest):
+
+    """Test Calculate lats and lons."""
+
+    def setUp(self):
+        time_start = datetime.datetime(2017, 11, 1, 3)
+        time_mid = datetime.datetime(2017, 11, 1, 6)
+        time_end = datetime.datetime(2017, 11, 1, 9)
+        self.npoints = 3
+        data_time_0 = np.ones((self.npoints, self.npoints), dtype=np.float32)
+        cube_time_0 = set_up_variable_cube(data_time_0,
+                                           time=time_start,
+                                           frt=time_start)
+        self.cube = add_coordinate(cube_time_0,
+                                   [time_start, time_mid, time_end],
+                                   'time', is_datetime=True)
+        cube_time_0_equalarea = set_up_variable_cube(data_time_0,
+                                                     time=time_start,
+                                                     frt=time_start,
+                                                     spatial_grid='equalarea')
+        self.cube_equalarea = add_coordinate(cube_time_0_equalarea,
+                                             [time_start, time_mid, time_end],
+                                             'time', is_datetime=True)
+
+    def test_lat_lon(self):
+        """Test that the function returns the lats and lons expected."""
+        expected_lats = np.array([[-20.0, -20.0, -20.0],
+                                  [0.0, 0.0, 0.0],
+                                  [20.0, 20.0, 20.0]])
+        expected_lons = np.array([[40.0, 60.0, 80.0],
+                                  [40.0, 60.0, 80.0],
+                                  [40.0, 60.0, 80.0]])
+        plugin = TemporalInterpolation(interval_in_minutes=60,
+                                       interpolation_method='solar')
+        result_lats, result_lons = plugin.calc_lats_lons(self.cube)
+        self.assertIsInstance(result_lats, np.ndarray)
+        self.assertEqual(result_lats.shape, (3, 3))
+        self.assertIsInstance(result_lons, np.ndarray)
+        self.assertEqual(result_lons.shape, (3, 3))
+        self.assertArrayAlmostEqual(result_lats, expected_lats)
+        self.assertArrayAlmostEqual(result_lons, expected_lons)
+
+    def test_x_y(self):
+        """Test that the function returns the lats and lons expected."""
+        expected_lats = np.array([[53.84618597, 53.99190127, 53.65267706],
+                                  [58.31587416, 58.48175941, 58.09588632],
+                                  [62.7807602, 62.97387785, 62.52520691]])
+        expected_lons = np.array([[-8.58580705, -0.97523083, 6.60246566],
+                                  [-9.33367416, -0.78656213, 7.7109328],
+                                  [-10.33495761, -0.53319364, 9.18915154]])
+        plugin = TemporalInterpolation(interval_in_minutes=60,
+                                       interpolation_method='solar')
+        result_lats, result_lons = plugin.calc_lats_lons(self.cube_equalarea)
+        self.assertIsInstance(result_lats, np.ndarray)
+        self.assertEqual(result_lats.shape, (3, 3))
+        self.assertIsInstance(result_lons, np.ndarray)
+        self.assertEqual(result_lons.shape, (3, 3))
+        self.assertArrayAlmostEqual(result_lats, expected_lats)
+        self.assertArrayAlmostEqual(result_lons, expected_lons)
+
+
 class Test_daynight_interpolation(IrisTest):
 
     """Test daynight interpolation."""
