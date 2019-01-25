@@ -168,7 +168,6 @@ class Test_check_cube_coords(IrisTest):
         time_start = datetime.datetime(2017, 11, 1, 3)
         time_mid = datetime.datetime(2017, 11, 1, 6)
         time_end = datetime.datetime(2017, 11, 1, 9)
-        self.fp = np.array([0, 3, 6], dtype=np.int64)
         self.extra_coord = np.array([1.0, 4.0, 7.0], dtype=np.float32)
         self.bad_extra_coord = np.array([1.1, 4.3, 6.9], dtype=np.float64)
         self.npoints = 10
@@ -185,7 +184,7 @@ class Test_check_cube_coords(IrisTest):
         self.bad_coords.coord('time').points = (
             self.bad_coords.coord('time').points.astype(np.float64))
         self.bad_coords.coord('forecast_period').points = (
-            self.bad_coords.coord('forecast_period').points.astype(np.int32))
+            self.bad_coords.coord('forecast_period').points.astype(np.int64))
         self.bad_coords.coord('extra_coord').points = (
             self.bad_extra_coord)
 
@@ -204,7 +203,7 @@ class Test_check_cube_coords(IrisTest):
         self.assertEqual(result.coord('forecast_period'),
                          self.cube.coord('forecast_period'))
         self.assertEqual(str(result.coord('forecast_period').points.dtype),
-                         'int64')
+                         'int32')
         self.assertEqual(result.coord('extra_coord'),
                          self.cube.coord('extra_coord'))
         self.assertEqual(str(result.coord('extra_coord').points.dtype),
@@ -224,7 +223,7 @@ class Test_check_cube_coords(IrisTest):
         self.assertEqual(result.coord('forecast_period'),
                          self.cube.coord('forecast_period'))
         self.assertEqual(str(result.coord('forecast_period').points.dtype),
-                         'int64')
+                         'int32')
         # Extra coordinate left as changed.
         self.assertEqual(result.coord('extra_coord'),
                          self.bad_coords.coord('extra_coord'))
