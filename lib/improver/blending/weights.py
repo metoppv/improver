@@ -477,9 +477,7 @@ class ChooseWeightsLinear:
     def _create_new_weights_cube(self, cube, weights):
         """Create a cube to contain the output of the interpolation.
         It is currently assumed that the output weights matches the size
-        of the input cube. This will be true if the only difference between
-        the cube and the weights cube is along the dimension of the
-        self.weighting_coord_name coordinate.
+        of the input cube.
 
         Args:
             cube (iris.cube.Cube):
@@ -490,10 +488,8 @@ class ChooseWeightsLinear:
 
         Returns:
             new_weights_cube (iris.cube.Cube):
-                Cube containing the output from the interpolation.  If a
-                configuration dictionary is not provided
-                (self.config_dict is None), this is based on "weights_cube",
-                otherwise on "cube".
+                Cube containing the output from the interpolation. This has
+                the same shape as "cube", without the x and y dimensions.
         """
         cubelist = iris.cube.CubeList([])
         for cube_slice, weight in (
