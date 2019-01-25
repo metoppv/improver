@@ -172,6 +172,16 @@ class Test_calc_solar_elevation(IrisTest):
             calc_solar_elevation(self.latitudes, self.longitudes,
                                  self.day_of_year, utc_hour)
 
+    def test_sine_solar_elevation(self):
+        """Test the solar elevation with return_sine equal true."""
+        expected_results = [-0.00803911,  0.11810263,  0.02403892,
+                            -0.11757863]
+        for i, hour in enumerate([8.0, 9.0, 16.0, 17.0]):
+            result = calc_solar_elevation(50.0, 0.0, 10, hour,
+                                          return_sine=True)
+            self.assertIsInstance(result, float)
+            self.assertAlmostEqual(result, expected_results[i])
+
 
 class Test_daynight_terminator(IrisTest):
 

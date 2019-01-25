@@ -106,7 +106,8 @@ def calc_solar_hour_angle(longitudes, day_of_year, utc_hour):
     return solar_hour_angle
 
 
-def calc_solar_elevation(latitudes, longitudes, day_of_year, utc_hour):
+def calc_solar_elevation(latitudes, longitudes, day_of_year, utc_hour,
+                         return_sine=False):
     """
     Calculate the Solar elevation.
 
@@ -121,6 +122,9 @@ def calc_solar_elevation(latitudes, longitudes, day_of_year, utc_hour):
             Day of the year 0 to 365, 0 = 1st January
         utc_hour (float):
             Hour of the day in UTC in hours
+        return_sine (bool):
+            If True return sine of solar elevation.
+            Default False.
 
     Returns:
         solar_elevation (float or numpy.array):
@@ -142,11 +146,11 @@ def calc_solar_elevation(latitudes, longitudes, day_of_year, utc_hour):
     lats = np.radians(latitudes)
     # Calculate solar position:
 
-    solar_elevation = (np.arcsin(np.sin(decl) * np.sin(lats) +
-                                 np.cos(decl) * np.cos(lats) *
-                                 np.cos(rad_hours)))
-
-    solar_elevation = np.degrees(solar_elevation)
+    solar_elevation = ((np.sin(decl) * np.sin(lats) +
+                        np.cos(decl) * np.cos(lats) *
+                        np.cos(rad_hours)))
+    if not return_sine:
+        solar_elevation = np.degrees(np.arcsin(solar_elevation))
 
     return solar_elevation
 

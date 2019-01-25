@@ -66,7 +66,10 @@ optional arguments:
                         timecan be provided separated by a space but if times
                         are set interval_in_mins can not be set
   --interpolation_method INTERPOLATION_METHOD
-                        Specifies the interpolation method. Default is linear.
+                        Specifies the interpolation method; solar interpolates
+                        using the solar elevation, daynight uses linear
+                        interpolation but sets night time points to 0.0,
+                        linear is linear interpolation. Default is linear.
   --output_files OUTPUT_FILES [OUTPUT_FILES ...]
                         List of output files. The interpolated files will
                         always be in the chronological order of earliest to
