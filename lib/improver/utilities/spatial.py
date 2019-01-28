@@ -680,14 +680,22 @@ class RegridLandSea():
         # Regrid input_land to output_land grid.
         self.input_land = input_land.regrid(self.output_land, self.regridder)
 
-        # Store and copy cube ready for the output data
-        self.nearest_cube = cube
-        self.output_cube = self.nearest_cube.copy()
+        # Slice over x-y grids for multi-realization data.
+        result = iris.cube.CubeList()
+        for xyslice in cube.slices(
+                [cube.coord(axis='y'), cube.coord(axis='x')]):
 
-        # Update sea points that were incorrectly sourced from land points
-        self.correct_where_input_true(0)
+            # Store and copy cube ready for the output data
+            self.nearest_cube = xyslice
+            self.output_cube = self.nearest_cube.copy()
 
-        # Update land points that were incorrectly sourced from sea points
-        self.correct_where_input_true(1)
+            # Update sea points that were incorrectly sourced from land points
+            self.correct_where_input_true(0)
 
-        return self.output_cube
+            # Update land points that were incorrectly sourced from sea points
+            self.correct_where_input_true(1)
+
+            result.append(self.output_cube)
+
+        result = result.merge_cube()
+        return result
