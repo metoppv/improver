@@ -566,6 +566,7 @@ class WeightedBlendAcrossWholeDimension:
             # Map array of weights to shape of cube to collapse.
             dim_map = []
             dim_coords = [coord.name() for coord in weights.dim_coords]
+            print("dim_coords = ", dim_coords)
             # Loop through dim coords in weights cube and find the dim the
             # coord relates to in the cube we are collapsing.
             for dim_coord in dim_coords:
@@ -577,6 +578,9 @@ class WeightedBlendAcrossWholeDimension:
                         "found on the cube we are trying to collapse.")
                     raise ValueError(message.format(dim_coord))
             try:
+                print("weights = ", weights)
+                print("cube = ", cube)
+                print("tuple(dim_map) = ", tuple(dim_map))
                 weights_array = iris.util.broadcast_to_shape(
                     np.array(weights.data, dtype=np.float32),
                     cube.shape, tuple(dim_map))

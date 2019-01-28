@@ -801,7 +801,11 @@ def sort_coord_in_cube(cube, coord, order="ascending"):
         Warning if the coordinate being processed is a circular coordinate.
 
     """
+    iris.save(cube, "/home/h06/gevans/improver/bin/model_id_cube.nc")
+    print("cube in sort_coord_in_cube = ", cube)
+    print("coord = ", coord)
     coord_to_sort = cube.coord(coord)
+    print("coord_to_sort = ", coord_to_sort)
     if isinstance(coord_to_sort, DimCoord):
         if coord_to_sort.circular:
             msg = ("The {} coordinate is circular. If the values in the "
@@ -809,15 +813,38 @@ def sort_coord_in_cube(cube, coord, order="ascending"):
                    "an undesirable result.".format(coord_to_sort.name()))
             warnings.warn(msg)
     dim, = cube.coord_dims(coord_to_sort)
+    print("dim = ", dim)
     index = [slice(None)] * cube.ndim
+    print("index = ", index)
     index[dim] = np.argsort(coord_to_sort.points)
+    print("index = ", index)
     if order == "descending":
         index[dim] = index[dim][::-1]
     if coord in ["height"] and order == "ascending":
         cube.coord(coord).attributes["positive"] = "up"
     elif coord in ["height"] and order == "descending":
         cube.coord(coord).attributes["positive"] = "down"
-    return cube[tuple(index)]
+    print("cube before indexing = ", cube)
+    sorted_cube = cube[tuple(index)]
+    print("cube after indexing = ", sorted_cube)
+
+    sorted_coord = sorted_cube.coord(coord)
+    dims = cube.coord_dims(sorted_coord)
+    # Find dimension coordinate with a coord_dim of dims.
+    for dim_coord in cube.dim_coords:
+        if dims == sorted_cube.coord_dims(dim_coord):
+            sorted_coord = dim_coord
+            # Check either monotonically increasing or decreasing.
+            if np.all(np.diff(sorted_coord.points) > 0) or np.all(np.diff(sorted_coord.points) < 0):
+            #if sorted_coord.name() == "model_id":
+                sorted_coord.points = sorted(sorted_coord.points)
+    print("sorted_coord = ", sorted_coord)
+    dim_coord = iris.coords.DimCoord.from_coord(sorted_coord)
+    sorted_cube.remove_coord(sorted_coord)
+    sorted_cube.add_dim_coord(dim_coord, dims)
+    print("sorted_cube = ", sorted_cube)
+    print("sorted_cube coord = ", sorted_cube.coord(coord))
+    return sorted_cube
 
 
 def enforce_coordinate_ordering(
