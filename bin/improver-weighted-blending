@@ -107,7 +107,6 @@ def calculate_blending_weights(cube, blend_coord, method, wts_dict=None,
         weights_cube = ChooseWeightsLinear(
             weighting_coord, config_coord_name=blend_coord,
             config_dict=weights_dict).process(cube)
-        print("weights_cube = ", weights_cube)
 
         # sort weights cube by blending coordinate
         weights = sort_coord_in_cube(
@@ -321,6 +320,7 @@ def main():
             wts_dict=args.wts_dict, weighting_coord=args.weighting_coord,
             coord_unit=coord_unit, y0val=args.y0val, ynval=args.ynval,
             cval=args.cval)
+
         if args.spatial_weights_from_mask:
             check_if_grid_is_equal_area(cube)
             grid_cells_x, _ = convert_distance_into_number_of_grid_cells(
@@ -329,6 +329,7 @@ def main():
                 grid_cells_x)
             weights = SpatialWeightsPlugin.process(
                 cube, weights, args.coordinate)
+
         # blend across specified dimension
         BlendingPlugin = WeightedBlendAcrossWholeDimension(
             args.coordinate, args.weighting_mode,
