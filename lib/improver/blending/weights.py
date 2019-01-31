@@ -616,7 +616,7 @@ class ChooseWeightsLinear:
                 sub_slice = cube_slice[..., 0, 0]
                 sub_slice.remove_coord(sub_slice.coord(axis='x'))
                 sub_slice.remove_coord(sub_slice.coord(axis='y'))
-                sub_slice.data = np.full_like(sub_slice.data, weight)
+                sub_slice.data = np.ones(sub_slice.data.shape)*weight
                 cubelist.append(sub_slice)
             new_weights_cube = (
                 check_cube_coordinates(cube[..., 0, 0], cubelist.merge_cube()))
