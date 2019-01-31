@@ -30,10 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the percentile.PercentileConverter plugin."""
 
-
+from datetime import datetime
+import numpy as np
 import unittest
 
 from cf_units import Unit
+import iris
 from iris.cube import Cube
 from iris.coords import DimCoord
 from iris.tests import IrisTest
@@ -42,6 +44,8 @@ import numpy as np
 
 from improver.percentile import PercentileConverter
 from improver.utilities.warnings_handler import ManageWarnings
+
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
 class Test_process(IrisTest):
@@ -60,28 +64,9 @@ class Test_process(IrisTest):
 
         """
         data = [[list(range(0, 11, 1))]*11]*3
-        data = np.array(data).astype('float32')
-        data.resize(3, 1, 11, 11)
-
-        realization = DimCoord([0, 1, 2], 'realization', units=1)
-        time = DimCoord([402192.5], standard_name='time',
-                        units=Unit('hours since 1970-01-01 00:00:00',
-                                   calendar='gregorian'))
-        latitude = DimCoord(np.linspace(-90, 90, 11),
-                            standard_name='latitude', units='degrees')
-        longitude = DimCoord(np.linspace(-180, 180, 11),
-                             standard_name='longitude', units='degrees')
-
-        cube = Cube(data, standard_name="air_temperature",
-                    dim_coords_and_dims=[(realization, 0),
-                                         (time, 1),
-                                         (latitude, 2),
-                                         (longitude, 3)],
-                    units="K")
-
-        self.cube = cube
-        self.longitude = longitude
-        self.latitude = latitude
+        data = np.array(data).astype(np.float32)
+        data.resize(3, 11, 11)
+        self.cube = set_up_variable_cube(data, realizations=[0, 1, 2])
         self.default_percentiles = np.array([0, 5, 10, 20, 25, 30, 40, 50,
                                              60, 70, 75, 80, 90, 95, 100])
 
@@ -97,7 +82,7 @@ class Test_process(IrisTest):
         result = plugin.process(self.cube)
 
         # Check percentile values.
-        self.assertArrayAlmostEqual(result.data[:, 0, 0, 0],
+        self.assertArrayAlmostEqual(result.data[:, 0, 0],
                                     self.default_percentiles*0.1)
         # Check coordinate name.
         self.assertEqual(result.coords()[0].name(),
@@ -107,7 +92,38 @@ class Test_process(IrisTest):
             result.coord('percentile_over_longitude').points,
             [0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100])
         # Check resulting data shape.
-        self.assertEqual(result.data.shape, (15, 3, 1, 11))
+        self.assertEqual(result.data.shape, (15, 3, 11))
+
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_valid_single_coord_string_for_time(self):
+        """Test that the plugin handles time being the collapse_coord that is
+        passed in as a string."""
+        data = [[list(range(1, 12, 1))]*11]*3
+        data = np.array(data).astype(np.float32)
+        data.resize(3, 11, 11)
+        new_cube = set_up_variable_cube(
+            data, time=datetime(2017, 11, 11, 4, 0),
+            frt=datetime(2017, 11, 11, 0, 0), realizations=[0, 1, 2])
+        cube = iris.cube.CubeList([self.cube, new_cube]).merge_cube()
+
+        collapse_coord = 'time'
+
+        plugin = PercentileConverter(collapse_coord)
+        result = plugin.process(cube)
+
+        # Check percentile values.
+        self.assertArrayAlmostEqual(result.data[:, 0, 0, 0],
+                                    self.default_percentiles*0.01)
+        # Check coordinate name.
+        self.assertEqual(result.coords()[0].name(),
+                         'percentile_over_time')
+        # Check coordinate points.
+        self.assertArrayEqual(
+            result.coord('percentile_over_time').points,
+            [0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100])
+        # Check resulting data shape.
+        self.assertEqual(result.data.shape, (15, 3, 11, 11))
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -122,8 +138,8 @@ class Test_process(IrisTest):
 
         # Check percentile values.
         self.assertArrayAlmostEqual(
-            result.data[:, 0, 0], [0., 0., 1., 2., 2., 3., 4., 5., 6., 7., 8.,
-                                   8., 9., 10., 10.])
+            result.data[:, 0], [0., 0., 1., 2., 2., 3., 4., 5., 6., 7., 8.,
+                                8., 9., 10., 10.])
         # Check coordinate name.
         self.assertEqual(result.coords()[0].name(),
                          'percentile_over_latitude_longitude')
@@ -132,7 +148,7 @@ class Test_process(IrisTest):
             result.coord('percentile_over_latitude_longitude').points,
             [0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100])
         # Check resulting data shape.
-        self.assertEqual(result.data.shape, (15, 3, 1))
+        self.assertEqual(result.data.shape, (15, 3))
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -140,8 +156,8 @@ class Test_process(IrisTest):
         """Test that the plugin handles masked data, this requiring the option
         fast_percentile_method=False."""
 
-        mask = np.zeros((3, 1, 11, 11))
-        mask[:, :, :, 1:-1:2] = 1
+        mask = np.zeros((3, 11, 11))
+        mask[:, :, 1:-1:2] = 1
         masked_data = np.ma.array(self.cube.data, mask=mask)
         cube = self.cube.copy(data=masked_data)
         collapse_coord = 'longitude'
@@ -151,7 +167,7 @@ class Test_process(IrisTest):
         result = plugin.process(cube)
 
         # Check percentile values.
-        self.assertArrayAlmostEqual(result.data[:, 0, 0, 0],
+        self.assertArrayAlmostEqual(result.data[:, 0, 0],
                                     self.default_percentiles*0.1)
         # Check coordinate name.
         self.assertEqual(result.coords()[0].name(),
@@ -161,7 +177,7 @@ class Test_process(IrisTest):
             result.coord('percentile_over_longitude').points,
             [0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100])
         # Check resulting data shape.
-        self.assertEqual(result.data.shape, (15, 3, 1, 11))
+        self.assertEqual(result.data.shape, (15, 3, 11))
 
     def test_unavailable_collapse_coord(self):
         """Test that the plugin handles a collapse_coord that is not
