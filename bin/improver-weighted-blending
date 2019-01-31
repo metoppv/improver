@@ -283,6 +283,21 @@ def main():
     else:
         coord_unit = 'no_unit'
 
+    # For blending across models, only blending across "model_id" is directly
+    # supported. This is because the blending coordinate must be sortable, in
+    # order to ensure that the data cube and the weights cube have coordinates
+    # in the same order for blending. Whilst the model_configuration is
+    # sortable itself, as it is associated with model_id, which is the
+    # dimension coordinate, sorting the model_configuration coordinate can
+    # result in the model_id coordinate becoming non-monotonic. As dimension
+    # coordinates must be monotonic, this leads to the model_id coordinate
+    # being demoted to an auxiliary coordinate. Therefore, for simplicity
+    # model_id is used as the blending coordinate, instead of
+    # model_configuration.
+    # TODO: Support model_configuration as a blending coordinate directly.
+    if args.coordinate == "model_configuration":
+        args.coordinate = "model_id"
+
     # load cubes to be blended
     cubelist = load_cubelist(args.input_filepaths)
 

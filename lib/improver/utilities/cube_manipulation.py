@@ -817,21 +817,7 @@ def sort_coord_in_cube(cube, coord, order="ascending"):
         cube.coord(coord).attributes["positive"] = "up"
     elif coord in ["height"] and order == "descending":
         cube.coord(coord).attributes["positive"] = "down"
-    sorted_cube = cube[tuple(index)]
-
-    dims = cube.coord_dims(coord)
-    # Find dimension coordinate with a coord_dim of dims.
-    for dim_coord in cube.dim_coords:
-        if dims == sorted_cube.coord_dims(dim_coord):
-            # Check either monotonically increasing or decreasing.
-            if (np.all(np.diff(dim_coord.points) > 0) or
-                    np.all(np.diff(dim_coord.points) < 0)):
-                monotonic_coord = dim_coord.copy()
-                monotonic_coord.points = sorted(dim_coord.points)
-    monotonic_dim_coord = iris.coords.DimCoord.from_coord(monotonic_coord)
-    sorted_cube.remove_coord(monotonic_coord)
-    sorted_cube.add_dim_coord(monotonic_dim_coord, dims)
-    return sorted_cube
+    return cube[tuple(index)]
 
 
 def enforce_coordinate_ordering(
