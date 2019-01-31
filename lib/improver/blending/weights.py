@@ -302,10 +302,10 @@ class WeightsUtilities:
 
 class ChooseWeightsLinear:
     """Plugin to interpolate weights linearly to the required points, where
-    original weights are provided as a cube or configuration dictionary"""
+    original weights are provided as a configuration dictionary"""
 
-    def __init__(self, weighting_coord_name,
-                 config_coord_name="model_configuration", config_dict=None):
+    def __init__(self, weighting_coord_name, config_dict,
+                 config_coord_name="model_configuration"):
         """
         Set up for calculating linear weights from a dictionary or input cube
 
@@ -314,9 +314,13 @@ class ChooseWeightsLinear:
                 Standard name of the coordinate along which the weights will be
                 interpolated. For example, if the intention is to provide
                 weights varying with forecast period, then this argument would
-                be "forecast_period".  If a configuration dictionary is
-                provided, then this coordinate must be included within the
-                configuration dictionary.
+                be "forecast_period". This coordinate must be included within
+                the configuration dictionary.
+            config_dict (dict):
+                Dictionary containing the configuration information, namely
+                an initial set of weights and information regarding the
+                points along the specified coordinate at which the weights are
+                valid. An example dictionary is shown below.
 
         Keyword Args:
             config_coord_name (str):
@@ -324,11 +328,6 @@ class ChooseWeightsLinear:
                 For example, if the intention is to create weights that scale
                 differently with the weighting_coord for different models, then
                 "model_configuration" would be the config_coord.
-            config_dict (dict):
-                Dictionary containing the configuration information, namely
-                an initial set of weights and information regarding the
-                points along the specified coordinate at which the weights are
-                valid. An example dictionary is shown below.
 
         Dictionary of format::
 
@@ -350,8 +349,7 @@ class ChooseWeightsLinear:
         self.config_coord_name = config_coord_name
         self.config_dict = config_dict
         self.weights_key_name = "weights"
-        if self.config_dict:
-            self._check_config_dict()
+        self._check_config_dict()
 
     def __repr__(self):
         """Represent the plugin instance as a string"""
