@@ -59,7 +59,7 @@ from improver.blending.weighted_blend import (
 def calculate_blending_weights(cube, blend_coord, method, wts_dict=None,
                                weighting_coord=None, coord_unit=None,
                                y0val=None, ynval=None, cval=None,
-                               dict_coordinate=None):
+                               dict_coord=None):
     """
     Wrapper for plugins to calculate blending weights using the command line
     options specified.
@@ -88,7 +88,7 @@ def calculate_blending_weights(cube, blend_coord, method, wts_dict=None,
             Gradient parameter for default linear weights plugin
         cval (float):
             Parameter for default non-linear weights plugin
-        dict_coordinate (str):
+        dict_coord (str):
             The coordinate that will be used when accessing the weights from
             the weights dictionary.
 
@@ -109,7 +109,7 @@ def calculate_blending_weights(cube, blend_coord, method, wts_dict=None,
         with open(wts_dict, 'r') as wts:
             weights_dict = json.load(wts)
         weights_cube = ChooseWeightsLinear(
-            weighting_coord, config_coord_name=dict_coordinate,
+            weighting_coord, config_coord_name=dict_coord,
             config_dict=weights_dict).process(cube)
 
         # sort weights cube by blending coordinate
@@ -301,9 +301,9 @@ def main():
     # TODO: Support model_configuration as a blending coordinate directly.
     if args.coordinate == "model_configuration":
         args.coordinate = "model_id"
-        dict_coordinate = "model_configuration"
+        dict_coord = "model_configuration"
     else:
-        dict_coordinate = args.coordinate
+        dict_coord = args.coordinate
 
     # load cubes to be blended
     cubelist = load_cubelist(args.input_filepaths)
@@ -341,7 +341,7 @@ def main():
             cube, args.coordinate, args.wts_calc_method,
             wts_dict=args.wts_dict, weighting_coord=args.weighting_coord,
             coord_unit=coord_unit, y0val=args.y0val, ynval=args.ynval,
-            cval=args.cval, dict_coordinate=dict_coordinate)
+            cval=args.cval, dict_coord=dict_coord)
 
         if args.spatial_weights_from_mask:
             check_if_grid_is_equal_area(cube)
