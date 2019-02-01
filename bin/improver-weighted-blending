@@ -105,8 +105,8 @@ def calculate_blending_weights(cube, blend_coord, method, wts_dict=None,
         with open(wts_dict, 'r') as wts:
             weights_dict = json.load(wts)
         weights_cube = ChooseWeightsLinear(
-            weighting_coord, config_coord_name=blend_coord,
-            config_dict=weights_dict).process(cube)
+            weighting_coord, weights_dict,
+            config_coord_name=blend_coord).process(cube)
 
         # sort weights cube by blending coordinate
         weights = sort_coord_in_cube(
