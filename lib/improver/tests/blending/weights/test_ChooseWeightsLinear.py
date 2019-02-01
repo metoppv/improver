@@ -328,6 +328,19 @@ class Test__create_new_weights_cube(IrisTest):
                                     self.expected_weights[..., 0, 0])
         self.assertEqual(new_weights_cube.name(), "weights")
 
+    def test_with_dict_masked_input_cube(self):
+        """Test a new weights cube is created as intended when we have a masked
+        input cube."""
+        self.cube.data = np.ma.masked_array(
+            self.cube.data, np.ones(self.cube.data.shape)*True)
+        plugin = ChooseWeightsLinear(
+            self.weighting_coord_name, config_dict=self.config_dict)
+        new_weights_cube = plugin._create_new_weights_cube(
+            self.cube, self.weights)
+        self.assertEqual(np.ma.is_masked(new_weights_cube.data), False)
+        self.assertArrayAlmostEqual(new_weights_cube.data,
+                                    self.expected_weights[..., 0, 0])
+
 
 class Test__calculate_weights(IrisTest):
     """Test the _calculate_weights method"""
