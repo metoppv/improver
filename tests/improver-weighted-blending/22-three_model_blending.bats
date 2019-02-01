@@ -37,7 +37,7 @@
 
   # Run weighted blending with ukvx and nowcast data using spatial weights
   run improver weighted-blending 'model_configuration' 'weighted_mean' \
-      --spatial_weights_from_mask \
+      --spatial_weights_from_mask \ --wts_calc_method 'dict' \
       --weighting_coord forecast_period --cycletime 20190101T0300Z \
       --wts_dict $IMPROVER_ACC_TEST_DIR/weighted_blending/three_models/blending-weights-preciprate.json \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/three_models/enukxhrly/20190101T0400Z-PT0004H00M-precip_rate.nc" \

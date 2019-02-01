@@ -128,7 +128,7 @@ def calculate_blending_weights(cube, blend_coord, method, wts_dict=None,
         weights = ChooseDefaultWeightsNonLinear(cvalue).process(
             cube, blend_coord, coord_unit=coord_unit)
 
-    return cube, weights
+    return weights
 
 
 def main():
@@ -337,7 +337,7 @@ def main():
 
     # otherwise, calculate weights and blend across specified dimension
     else:
-        cube, weights = calculate_blending_weights(
+        weights = calculate_blending_weights(
             cube, args.coordinate, args.wts_calc_method,
             wts_dict=args.wts_dict, weighting_coord=args.weighting_coord,
             coord_unit=coord_unit, y0val=args.y0val, ynval=args.ynval,
