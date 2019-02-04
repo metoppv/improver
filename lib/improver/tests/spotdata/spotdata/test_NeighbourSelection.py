@@ -342,8 +342,7 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
 
-    @ManageWarnings(record=True)
-    def test_global_circular_valid(self, warning_list=None):
+    def test_global_circular_valid(self):
         """Test case with a site defined using a longitide exceeding 180
         degrees (e.g. with longitudes that run 0 to 360) is still included
         as the circular x-coordinate means it will still be used correctly."""

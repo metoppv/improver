@@ -41,7 +41,7 @@ from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 
 
-class NeighbourSelection(object):
+class NeighbourSelection:
     """
     For the selection of a grid point near an arbitrary coordinate, where the
     selection may be the nearest point, or a point that fulfils other
