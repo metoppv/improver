@@ -310,6 +310,63 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
 
+    @ManageWarnings(record=True)
+    def test_global_invalid(self, warning_list=None):
+        """Test case with some sites falling outside the global domain."""
+        plugin = NeighbourSelection()
+        sites = [
+            {'latitude': 0.0, 'longitude': 0.0},
+            {'latitude': 50.0, 'longitude': 0.0},
+            {'latitude': 100.0, 'longitude': 0.0}]
+
+        x_points = np.array(
+            [site['longitude'] for site in sites])
+        y_points = np.array(
+            [site['latitude'] for site in sites])
+        site_coords = np.stack((x_points, y_points), axis=1)
+
+        sites_out, site_coords_out, out_x, out_y = (
+            plugin.check_sites_are_within_domain(
+                sites, site_coords, x_points, y_points,
+                self.global_orography, global_grid=True))
+
+        self.assertArrayEqual(sites_out, sites[0:2])
+        self.assertArrayEqual(site_coords_out[0:2], site_coords[0:2])
+        self.assertArrayEqual(out_x, x_points[0:2])
+        self.assertArrayEqual(out_y, y_points[0:2])
+
+        msg = "1 spot sites fall outside the grid"
+        self.assertTrue(any([msg in str(warning) for warning in warning_list]))
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+
+    @ManageWarnings(record=True)
+    def test_global_circular_valid(self, warning_list=None):
+        """Test case with a site defined using a longitide exceeding 180
+        degrees (e.g. with longitudes that run 0 to 360) is still included
+        as the circular x-coordinate means it will still be used correctly."""
+        plugin = NeighbourSelection()
+        sites = [
+            {'latitude': 0.0, 'longitude': 100.0},
+            {'latitude': 30.0, 'longitude': 200.0},
+            {'latitude': 60.0, 'longitude': 300.0}]
+
+        x_points = np.array(
+            [site['longitude'] for site in sites])
+        y_points = np.array(
+            [site['latitude'] for site in sites])
+        site_coords = np.stack((x_points, y_points), axis=1)
+
+        sites_out, site_coords_out, out_x, out_y = (
+            plugin.check_sites_are_within_domain(
+                sites, site_coords, x_points, y_points,
+                self.global_orography, global_grid=True))
+
+        self.assertArrayEqual(sites_out, sites)
+        self.assertArrayEqual(site_coords_out, site_coords)
+        self.assertArrayEqual(out_x, x_points)
+        self.assertArrayEqual(out_y, y_points)
+
 
 class Test_get_nearest_indices(Test_NeighbourSelection):
 

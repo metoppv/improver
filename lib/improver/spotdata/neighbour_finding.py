@@ -107,9 +107,7 @@ class NeighbourSelection(object):
         self.site_altitude = 'altitude'
         self.grid_metadata_identifier = grid_metadata_identifier
         self.node_limit = node_limit
-        # This is a global flag that will be set to True if the input cubes are
-        # geodetic, which here means they are global grids.
-        self.geodetic_coordinate_system = False
+        self.global_coordinate_system = False
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -168,7 +166,7 @@ class NeighbourSelection(object):
 
     @staticmethod
     def check_sites_are_within_domain(sites, site_coords, site_x_coords,
-                                      site_y_coords, cube):
+                                      site_y_coords, cube, global_grid=False):
         """
         A function to remove sites from consideration if they fall outside the
         domain of the provided model cube. A warning is raised and the details
@@ -194,6 +192,10 @@ class NeighbourSelection(object):
             cube (iris.cube.Cube):
                 A cube that is representative of the model/grid from which spot
                 data will be extracted.
+            global_grid (bool):
+                If true the x-axis is circular, meaning only the y-axis needs
+                to be checked for outliers (points with latitudes outside of
+                -90 to +90).
         Returns:
            sites, site_coords, site_x_coords, site_y_coords (as above):
                The inputs modified to filter out the sites falling outside the
@@ -205,13 +207,20 @@ class NeighbourSelection(object):
         y_min = cube.coord(axis='y').bounds.min()
         y_max = cube.coord(axis='y').bounds.max()
 
-        domain_valid = np.where(
-            (site_coords[:, 0] >= x_min) & (site_coords[:, 0] <= x_max) &
-            (site_coords[:, 1] >= y_min) & (site_coords[:, 1] <= y_max))
+        if global_grid:
+            domain_valid = np.where(
+                (site_coords[:, 1] >= y_min) & (site_coords[:, 1] <= y_max))
 
-        domain_invalid = np.where(
-            (site_coords[:, 0] < x_min) | (site_coords[:, 0] > x_max) |
-            (site_coords[:, 1] < y_min) | (site_coords[:, 1] > y_max))
+            domain_invalid = np.where(
+                (site_coords[:, 1] < y_min) | (site_coords[:, 1] > y_max))
+        else:
+            domain_valid = np.where(
+                (site_coords[:, 0] >= x_min) & (site_coords[:, 0] <= x_max) &
+                (site_coords[:, 1] >= y_min) & (site_coords[:, 1] <= y_max))
+
+            domain_invalid = np.where(
+                (site_coords[:, 0] < x_min) | (site_coords[:, 0] > x_max) |
+                (site_coords[:, 1] < y_min) | (site_coords[:, 1] > y_max))
 
         num_invalid = len(domain_invalid[0])
         if num_invalid > 0:
@@ -256,7 +265,7 @@ class NeighbourSelection(object):
     @staticmethod
     def geocentric_cartesian(cube, x_coords, y_coords):
         """
-        A function to convert a geodetic (lat/lon) coordinate system into a
+        A function to convert a global (lat/lon) coordinate system into a
         geocentric (3D trignonometric) system. This function ignores orographic
         height differences between coordinates, giving a 2D projected
         neighbourhood akin to selecting a neighbourhood of grid points about a
@@ -316,7 +325,7 @@ class NeighbourSelection(object):
         x_coords = land_mask.coord(axis='x').points[x_indices]
         y_coords = land_mask.coord(axis='y').points[y_indices]
 
-        if self.geodetic_coordinate_system:
+        if self.global_coordinate_system:
             nodes = self.geocentric_cartesian(land_mask, x_coords, y_coords)
         else:
             nodes = list(zip(x_coords, y_coords))
@@ -422,11 +431,10 @@ class NeighbourSelection(object):
         """
         index_nodes = []
         # Check if we are dealing with a global grid.
-        self.geodetic_coordinate_system = (
-            orography.coord_system().as_cartopy_crs().is_geodetic())
+        self.global_coordinate_system = orography.coord(axis='x').circular
 
         # Exclude regional grids with spatial dimensions other than metres.
-        if not self.geodetic_coordinate_system:
+        if not self.global_coordinate_system:
             if not orography.coord(axis='x').units == 'metres':
                 msg = ('Cube spatial coordinates for regional grids must be'
                        'in metres to match the defined search_radius.')
@@ -456,11 +464,10 @@ class NeighbourSelection(object):
 
         # Exclude any sites falling outside the domain given by the cube and
         # notify the user.
-        if not self.geodetic_coordinate_system:
-            sites, site_coords, site_x_coords, site_y_coords = (
-                self.check_sites_are_within_domain(
-                    sites, site_coords, site_x_coords, site_y_coords,
-                    orography))
+        sites, site_coords, site_x_coords, site_y_coords = (
+            self.check_sites_are_within_domain(
+                sites, site_coords, site_x_coords, site_y_coords,
+                orography, global_grid=self.global_coordinate_system))
 
         # Find nearest neighbour point using quick iris method.
         nearest_indices = self.get_nearest_indices(site_coords, orography)
@@ -481,7 +488,7 @@ class NeighbourSelection(object):
             tree, index_nodes = self.build_KDTree(land_mask)
 
             # Site coordinates made cartesian for global coordinate system
-            if self.geodetic_coordinate_system:
+            if self.global_coordinate_system:
                 site_coords = self.geocentric_cartesian(
                     orography, site_coords[:, 0], site_coords[:, 1])
 
