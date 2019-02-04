@@ -325,10 +325,12 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
             [site['latitude'] for site in sites])
         site_coords = np.stack((x_points, y_points), axis=1)
 
+        plugin.global_coordinate_system = True
+
         sites_out, site_coords_out, out_x, out_y = (
             plugin.check_sites_are_within_domain(
                 sites, site_coords, x_points, y_points,
-                self.global_orography, global_grid=True))
+                self.global_orography))
 
         self.assertArrayEqual(sites_out, sites[0:2])
         self.assertArrayEqual(site_coords_out[0:2], site_coords[0:2])
@@ -357,10 +359,12 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
             [site['latitude'] for site in sites])
         site_coords = np.stack((x_points, y_points), axis=1)
 
+        plugin.global_coordinate_system = True
+
         sites_out, site_coords_out, out_x, out_y = (
             plugin.check_sites_are_within_domain(
                 sites, site_coords, x_points, y_points,
-                self.global_orography, global_grid=True))
+                self.global_orography))
 
         self.assertArrayEqual(sites_out, sites)
         self.assertArrayEqual(site_coords_out, site_coords)

@@ -164,9 +164,8 @@ class NeighbourSelection(object):
         return target_coordinate_system.transform_points(
             self.site_coordinate_system, x_points, y_points)[:, 0:2]
 
-    @staticmethod
-    def check_sites_are_within_domain(sites, site_coords, site_x_coords,
-                                      site_y_coords, cube, global_grid=False):
+    def check_sites_are_within_domain(self, sites, site_coords, site_x_coords,
+                                      site_y_coords, cube):
         """
         A function to remove sites from consideration if they fall outside the
         domain of the provided model cube. A warning is raised and the details
@@ -192,10 +191,6 @@ class NeighbourSelection(object):
             cube (iris.cube.Cube):
                 A cube that is representative of the model/grid from which spot
                 data will be extracted.
-            global_grid (bool):
-                If true the x-axis is circular, meaning only the y-axis needs
-                to be checked for outliers (points with latitudes outside of
-                -90 to +90).
         Returns:
            sites, site_coords, site_x_coords, site_y_coords (as above):
                The inputs modified to filter out the sites falling outside the
@@ -207,7 +202,7 @@ class NeighbourSelection(object):
         y_min = cube.coord(axis='y').bounds.min()
         y_max = cube.coord(axis='y').bounds.max()
 
-        if global_grid:
+        if self.global_coordinate_system:
             domain_valid = np.where(
                 (site_coords[:, 1] >= y_min) & (site_coords[:, 1] <= y_max))
 
@@ -467,7 +462,7 @@ class NeighbourSelection(object):
         sites, site_coords, site_x_coords, site_y_coords = (
             self.check_sites_are_within_domain(
                 sites, site_coords, site_x_coords, site_y_coords,
-                orography, global_grid=self.global_coordinate_system))
+                orography))
 
         # Find nearest neighbour point using quick iris method.
         nearest_indices = self.get_nearest_indices(site_coords, orography)
