@@ -133,6 +133,8 @@ def main():
             for key in thresholds_from_file.keys():
                 thresholds.append(float(key))
                 if is_fuzzy:
+                    # If the first threshold has no bounds, fuzzy_bounds is
+                    # set to None and subsequent bounds checks are skipped
                     if thresholds_from_file[key] == "None":
                         is_fuzzy = False
                         fuzzy_bounds = None
