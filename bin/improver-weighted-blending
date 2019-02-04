@@ -300,9 +300,10 @@ def main():
     # model_configuration.
     # TODO: Support model_configuration as a blending coordinate directly.
     if args.coordinate == "model_configuration":
-        args.coordinate = "model_id"
+        blend_coord = "model_id"
         dict_coord = "model_configuration"
     else:
+        blend_coord = args.coordinate
         dict_coord = args.coordinate
 
     # load cubes to be blended
@@ -315,7 +316,7 @@ def main():
 
     # ensure time coordinates are blendable
     rationalise_blend_time_coords(
-        cubelist, args.coordinate, cycletime=args.cycletime,
+        cubelist, blend_coord, cycletime=args.cycletime,
         weighting_coord=weighting_coord)
 
     # merge cube list
@@ -324,21 +325,21 @@ def main():
     # if the coord for blending does not exist or has only one value,
     # update metadata only
     coord_names = [coord.name() for coord in cube.coords()]
-    if (args.coordinate not in coord_names) or (
-            len(cube.coord(args.coordinate).points) == 1):
+    if (blend_coord not in coord_names) or (
+            len(cube.coord(blend_coord).points) == 1):
         result = cube.copy()
         conform_metadata(
-            result, cube, args.coordinate, cycletime=args.cycletime)
+            result, cube, blend_coord, cycletime=args.cycletime)
         # raise a warning if this happened because the blend coordinate
         # doesn't exist
-        if args.coordinate not in coord_names:
+        if blend_coord not in coord_names:
             warnings.warn('Blend coordinate {} is not present on input '
-                          'data'.format(args.coordinate))
+                          'data'.format(blend_coord))
 
     # otherwise, calculate weights and blend across specified dimension
     else:
         weights = calculate_blending_weights(
-            cube, args.coordinate, args.wts_calc_method,
+            cube, blend_coord, args.wts_calc_method,
             wts_dict=args.wts_dict, weighting_coord=args.weighting_coord,
             coord_unit=coord_unit, y0val=args.y0val, ynval=args.ynval,
             cval=args.cval, dict_coord=dict_coord)
@@ -350,11 +351,11 @@ def main():
             SpatialWeightsPlugin = SpatiallyVaryingWeightsFromMask(
                 grid_cells_x)
             weights = SpatialWeightsPlugin.process(
-                cube, weights, args.coordinate)
+                cube, weights, blend_coord)
 
         # blend across specified dimension
         BlendingPlugin = WeightedBlendAcrossWholeDimension(
-            args.coordinate, args.weighting_mode,
+            blend_coord, args.weighting_mode,
             cycletime=args.cycletime)
         result = BlendingPlugin.process(cube, weights=weights)
 
