@@ -41,13 +41,12 @@ Bounds = namedtuple("bounds", "value units")
 # the following dictionary specifies the end points of the distribution,
 # as a first approximation of likely climatological lower and upper bounds.
 # The units for the end points of the distribution are specified for each
-# phenomenon. SI units are used exclusively.
+# phenomenon. SI units are used throughout with the exception of precipitation
+# rates, where mm/h provides more human-readable values.
 # Scientific Reference:
 # Flowerdew, J., 2014.
 # Calibrated ensemble reliability whilst preserving spatial structure.
 # Tellus Series A, Dynamic Meteorology and Oceanography, 66, 22662.
-
-# 0.00003 ms-1 ~ 100 mm hr-1 for rainfall. Divided by 3 as a guess for snow!
 
 BOUNDS_FOR_ECDF = {
     "air_temperature": (
@@ -63,15 +62,15 @@ BOUNDS_FOR_ECDF = {
     ("cloud_area_fraction_assuming_only_consider_surface_to_1000_" +
      "feet_asl"): Bounds((0, 1.0), "1"),
     "low_type_cloud_area_fraction": Bounds((0, 1.0), "1"),
-    "precipitation_rate": Bounds((0, 0.00003), "m s-1"),
-    "rainfall_rate": Bounds((0, 0.00003), "m s-1"),
-    "rainfall_rate_in_vicinity": Bounds((0, 0.00003), "m s-1"),
+    "precipitation_rate": Bounds((0, 128.0), "mm h-1"),
+    "rainfall_rate": Bounds((0, 128.0), "mm h-1"),
+    "rainfall_rate_in_vicinity": Bounds((0, 128.0), "mm h-1"),
     "relative_humidity": Bounds((0, 1.2), "1"),
     "lwe_thickness_of_precipitation_amount": Bounds((0, 0.2), "m"),
     "lwe_thickness_of_precipitation_amount_in_vicinity": Bounds((0, 0.2), "m"),
     "lwe_thickness_of_snowfall_amount": Bounds((0, 0.2), "m"),
-    "lwe_snowfall_rate": Bounds((0, 0.00001), "m s-1"),
-    "lwe_snowfall_rate_in_vicinity": Bounds((0, 0.00001), "m s-1"),
+    "lwe_snowfall_rate": Bounds((0, 128.0), "mm h-1"),
+    "lwe_snowfall_rate_in_vicinity": Bounds((0, 128.0), "mm h-1"),
     "visibility_in_air": Bounds((0, 100000), "m"),
     "temperature_at_screen_level_nighttime_min": (
         Bounds((-100-ABSOLUTE_ZERO, 60-ABSOLUTE_ZERO), "Kelvin")),
