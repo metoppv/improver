@@ -500,7 +500,6 @@ class ChooseWeightsLinear:
         new_weights_cube = (
             check_cube_coordinates(cube[..., 0, 0], cubelist.merge_cube()))
         new_weights_cube.rename(self.weights_key_name)
-
         return new_weights_cube
 
     def _calculate_weights(self, cube):
