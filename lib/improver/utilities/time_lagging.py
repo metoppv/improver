@@ -71,13 +71,40 @@ class GenerateTimeLaggedEnsemble(object):
                the input cubes.
             2. Update the forecast periods in each input cube to be relative
                to the new cycletime.
-            3. Merge cubes into one cube, removing any metadata that doesn't
-               match.
+            3. Checks if there are duplicate realization numbers. If a
+               duplicate is found, renumbers all of the realizations to remove
+               any duplicates.
+            4. Merge cubes into one cube, removing any metadata that
+               doesn't match.
         """
         if self.cycletime is None:
             cycletime = find_latest_cycletime(cubelist)
         else:
             cycletime = cycletime_to_datetime(self.cycletime)
         cubelist = unify_forecast_reference_time(cubelist, cycletime)
+
+        duplicates=[]
+
+        for cube in cubelist[1:]:
+            for item in cube.coord("realization").points:
+                if item in cubelist[0].coord("realization").points:
+                    duplicates.append(item)
+
+        if len(duplicates) > 0:
+            duplicates_exist = True
+        else:
+            duplicates_exist = False
+
+        if duplicates_exist:
+            first_realization = 0
+            for cube in cubelist:
+                n_realization = len(cube.coord("realization").points)
+                new_realization = []
+
+                for i in range(first_realization,first_realization+n_realization):
+                    new_realization.append(i)
+                cube.coord("realization").points=new_realization
+                first_realization = len(new_realization)
+
         lagged_ensemble = merge_cubes(cubelist)
         return lagged_ensemble

@@ -138,6 +138,24 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(
             result.coord("realization").points, expected_realizations)
 
+    def test_duplicate_realizations(self):
+        """Test that the expected metadata is correct with different
+           realizations and that realizations are renumbered if a
+           duplicate is found"""
+        self.input_cube2.coord("realization").points = np.array([0, 7, 8])
+        result = GenerateTimeLaggedEnsemble().process(
+            self.input_cubelist)
+        expected_forecast_period = np.array(3)
+        expected_forecast_ref_time = np.array([402292.])
+        expected_realizations = np.array([0, 1, 2, 3, 4, 5])
+        self.assertArrayAlmostEqual(
+            result.coord("forecast_period").points, expected_forecast_period)
+        self.assertArrayAlmostEqual(
+            result.coord("forecast_reference_time").points,
+            expected_forecast_ref_time)
+        self.assertArrayAlmostEqual(
+            result.coord("realization").points, expected_realizations)
+
     def test_attributes(self):
         """Test what happens if input cubes have different attributes"""
         self.input_cube.attributes = {'institution': 'Met Office',
