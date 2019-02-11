@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Provide support utilities for time lagging ensembles"""
 
+import numpy as np
+
 from improver.utilities.temporal import (
     unify_forecast_reference_time, cycletime_to_datetime,
     find_latest_cycletime)
@@ -71,13 +73,35 @@ class GenerateTimeLaggedEnsemble(object):
                the input cubes.
             2. Update the forecast periods in each input cube to be relative
                to the new cycletime.
-            3. Merge cubes into one cube, removing any metadata that doesn't
-               match.
+            3. Checks if there are duplicate realization numbers. If a
+               duplicate is found, renumbers all of the realizations to remove
+               any duplicates.
+            4. Merge cubes into one cube, removing any metadata that
+               doesn't match.
         """
         if self.cycletime is None:
             cycletime = find_latest_cycletime(cubelist)
         else:
             cycletime = cycletime_to_datetime(self.cycletime)
         cubelist = unify_forecast_reference_time(cubelist, cycletime)
+
+        # Take all the realizations from all the input cube and
+        # put in one array
+        all_realizations = [
+            cube.coord("realization").points for cube in cubelist]
+        all_realizations = np.concatenate(all_realizations)
+        # Find unique realiations
+        unique_realizations = np.unique(all_realizations)
+
+        # If we have fewer unique realizations than total realizations we have
+        # duplicate realizations so we rebadge all realizations in the cubelist
+        if len(unique_realizations) < len(all_realizations):
+            first_realization = 0
+            for cube in cubelist:
+                n_realization = len(cube.coord("realization").points)
+                cube.coord("realization").points = np.arange(
+                    first_realization, first_realization + n_realization)
+                first_realization = first_realization + n_realization
+
         lagged_ensemble = merge_cubes(cubelist)
         return lagged_ensemble
