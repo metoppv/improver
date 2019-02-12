@@ -527,10 +527,9 @@ class Test_process(IrisTest):
         the time coordinates are also set correctly."""
 
         plugin = TemporalInterpolation(times=[self.time_extra],
-                                       interpolation_method='daynight')
+                                       interpolation_method='solar')
         result, = plugin.process(self.cube_time_0,
                                  self.cube_time_1)
-        expected_data = np.ones((self.npoints, self.npoints)) * 4
         expected_time = self.time_extra.timestamp()
         expected_fp = 3 * 3600
 
