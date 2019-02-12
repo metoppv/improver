@@ -312,7 +312,6 @@ class TemporalInterpolation(object):
                                              * (diff_interp/diff_step)))
 
             interpolated_cubes.append(single_time)
-        print(interpolated_cubes[0].data)
         return interpolated_cubes
 
     def daynight_interpolate(self, cube, interpolated_cube):

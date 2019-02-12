@@ -171,10 +171,11 @@ class Test_check_coord_datatypes(IrisTest):
         expected_coord.points = self.fp_coord.points.astype(np.int32)
         check_coord_datatypes(self.fp_coord, np.int32, fix=True)
         self.assertEqual(self.fp_coord, expected_coord)
+        self.assertEqual(str(self.fp_coord.points.dtype), 'int32')
 
     def test_forecast_period_coord_points_error(self):
         """Test an example forecast period coordinate raises an error if it
-        is not of in32 datatype."""
+        is not of int32 datatype."""
         self.fp_coord.points = self.fp_coord.points.astype(np.float64)
         expected_coord = self.fp_coord.copy()
         expected_coord.points = self.fp_coord.points.astype(np.int32)
@@ -190,10 +191,11 @@ class Test_check_coord_datatypes(IrisTest):
         expected_coord.bounds = self.time_coord.bounds.astype(np.int64)
         check_coord_datatypes(self.time_coord, np.int64, fix=True)
         self.assertEqual(self.time_coord, expected_coord)
+        self.assertEqual(str(self.time_coord.points.dtype), 'int64')
 
     def test_time_coord_bounds_error(self):
         """Test an example time coordinate raises an error if it
-        is not of in364 datatype."""
+        is not of int64 datatype."""
         self.time_coord.bounds = self.time_coord.bounds.astype(np.float64)
         expected_coord = self.time_coord.copy()
         expected_coord.bounds = self.time_coord.bounds.astype(np.int64)
@@ -212,6 +214,8 @@ class Test_check_coord_datatypes(IrisTest):
         check_coord_datatypes(
             self.time_coord, np.int64, fix=True, rounding=True)
         self.assertEqual(self.time_coord, expected_coord)
+        self.assertEqual(str(self.time_coord.points.dtype), 'int64')
+        self.assertEqual(str(self.time_coord.bounds.dtype), 'int64')
 
 
 class Test_check_for_x_and_y_axes(IrisTest):
