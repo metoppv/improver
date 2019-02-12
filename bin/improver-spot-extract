@@ -38,10 +38,14 @@ import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.argparser import ArgParser
+from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
+    GeneratePercentilesFromProbabilities
 from improver.spotdata.apply_lapse_rate import SpotLapseRateAdjust
 from improver.spotdata.spot_extraction import SpotExtraction
 from improver.spotdata.neighbour_finding import NeighbourSelection
 from improver.utilities.cube_metadata import amend_metadata
+from improver.utilities.cube_checker import find_percentile_coordinate
+from improver.utilities.cube_extraction import extract_subcube
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
@@ -84,6 +88,22 @@ def main():
         " in altitude to the spot site within the search radius defined when"
         " the neighbour cube was created. May be used with land_constraint.")
 
+    percentile_group = parser.add_argument_group(
+        title="Extract a percentile",
+        description = "Extract a particular percentile from probabilistic "
+        "data.")
+    percentile_group.add_argument(
+        "--extract_percentile", default=None,
+        help="If set to a percentile value, data corresponding to that "
+        "percentile will be returned. For example setting "
+        "'--extract_percentile 50' will result in the 50th percentile "
+        "(median) values being returned from a cube of probabilities or "
+        "percentiles.")
+    parser.add_argument(
+        "--ecc_bounds_warning", default=False, action="store_true",
+        help="If True, where calculated percentiles are outside the ECC "
+        "bounds range, raise a warning rather than an exception.")
+
     lapse_group = parser.add_argument_group(
         "Temperature lapse rate adjustment")
     lapse_group.add_argument(
@@ -109,6 +129,13 @@ def main():
         help="If provided, this JSON file can be used to modify the metadata "
         "of the returned netCDF file. Defaults to None.")
 
+    output_group = parser.add_argument_group("Suppress Verbose output")
+    meta_group.add_argument(
+        "--quiet_mode", default=False, action="store_true",
+        help="Suppress warning output. This option should only be used if "
+        "it is known that warnings will be generated but they are not "
+        "required.")
+
     args = parser.parse_args()
     neighbour_cube = load_cube(args.neighbour_filepath)
     diagnostic_cube = load_cube(args.diagnostic_filepath)
@@ -116,6 +143,37 @@ def main():
     neighbour_selection_method = NeighbourSelection(
         land_constraint=args.land_constraint,
         minimum_dz=args.minimum_dz).neighbour_finding_method_name()
+
+    # If a probability or percentile diagnostic cube is provided, extract
+    # the given percentile if available.
+    if args.extract_percentile:
+        try:
+            perc_coordinate = find_percentile_coordinate(diagnostic_cube)
+        except CoordinateNotFoundError:
+            if 'probability_of_' in diagnostic_cube.name():
+                diagnostic_cube = GeneratePercentilesFromProbabilities(
+                    ecc_bounds_warning=args.ecc_bounds_warning).process(
+                    diagnostic_cube, percentiles=args.extract_percentile)
+            else:
+                msg = ('Diagnostic cube is not a known probabilistic type. '
+                       'The {} percentile could not be extracted. Extracting '
+                       'data from the cube including any leading '
+                       'dimensions.'.format(
+                        args.extract_percentile))
+                if not args.quiet_mode:
+                    warnings.warn(msg)
+        else:
+            constraint = ['{}={}'.format(perc_coordinate.name(),
+                                       args.extract_percentile)]
+            result = extract_subcube(diagnostic_cube, constraint)
+            if result is not None:
+                diagnostic_cube = result
+            else:
+                msg = ('The percentile diagnostic cube does not contain the '
+                       'requested percentile value. Requested {}, available '
+                       '{}'.format(args.extract_percentile,
+                                   perc_coordinate.points))
+                raise ValueError(msg)
 
     plugin = SpotExtraction(
         neighbour_selection_method=neighbour_selection_method,
@@ -150,12 +208,14 @@ def main():
                    "the temperature data does not match that of the data used "
                    "to calculate the lapse rates. As such the temperatures "
                    "were not adjusted with the lapse rates.")
-            warnings.warn(msg)
+            if not args.quiet_mode:
+                warnings.warn(msg)
     elif args.temperature_lapse_rate_filepath:
         msg = ("A lapse rate cube was provided, but the diagnostic being "
                "processed is not air temperature. The lapse rate cube was "
                "not used.")
-        warnings.warn(msg)
+        if not args.quiet_mode:
+            warnings.warn(msg)
 
     # Modify final metadata as described by provided JSON file.
     if args.json_file:
