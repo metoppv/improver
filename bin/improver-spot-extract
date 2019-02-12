@@ -144,16 +144,23 @@ def main():
         land_constraint=args.land_constraint,
         minimum_dz=args.minimum_dz).neighbour_finding_method_name()
 
+    plugin = SpotExtraction(
+        neighbour_selection_method=neighbour_selection_method,
+        grid_metadata_identifier=args.grid_metadata_identifier)
+    result = plugin.process(neighbour_cube, diagnostic_cube)
+
     # If a probability or percentile diagnostic cube is provided, extract
-    # the given percentile if available.
+    # the given percentile if available. This is done after the spot-extraction
+    # to minimise processing time; usually there are far fewer spot sites than
+    # grid points.
     if args.extract_percentile:
         try:
-            perc_coordinate = find_percentile_coordinate(diagnostic_cube)
+            perc_coordinate = find_percentile_coordinate(result)
         except CoordinateNotFoundError:
-            if 'probability_of_' in diagnostic_cube.name():
+            if 'probability_of_' in result.name():
                 diagnostic_cube = GeneratePercentilesFromProbabilities(
                     ecc_bounds_warning=args.ecc_bounds_warning).process(
-                    diagnostic_cube, percentiles=args.extract_percentile)
+                    result, percentiles=args.extract_percentile)
             else:
                 msg = ('Diagnostic cube is not a known probabilistic type. '
                        'The {} percentile could not be extracted. Extracting '
@@ -164,21 +171,16 @@ def main():
                     warnings.warn(msg)
         else:
             constraint = ['{}={}'.format(perc_coordinate.name(),
-                                       args.extract_percentile)]
-            result = extract_subcube(diagnostic_cube, constraint)
-            if result is not None:
-                diagnostic_cube = result
+                                         args.extract_percentile)]
+            perc_result = extract_subcube(result, constraint)
+            if perc_result is not None:
+                result = perc_result
             else:
                 msg = ('The percentile diagnostic cube does not contain the '
                        'requested percentile value. Requested {}, available '
                        '{}'.format(args.extract_percentile,
                                    perc_coordinate.points))
                 raise ValueError(msg)
-
-    plugin = SpotExtraction(
-        neighbour_selection_method=neighbour_selection_method,
-        grid_metadata_identifier=args.grid_metadata_identifier)
-    result = plugin.process(neighbour_cube, diagnostic_cube)
 
     # Check whether a lapse rate cube has been provided and we are dealing with
     # temperature data.
