@@ -35,6 +35,7 @@ import json
 import warnings
 import numpy as np
 
+import iris
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.argparser import ArgParser
@@ -158,9 +159,10 @@ def main():
             perc_coordinate = find_percentile_coordinate(result)
         except CoordinateNotFoundError:
             if 'probability_of_' in result.name():
-                diagnostic_cube = GeneratePercentilesFromProbabilities(
+                result = GeneratePercentilesFromProbabilities(
                     ecc_bounds_warning=args.ecc_bounds_warning).process(
                     result, percentiles=args.extract_percentile)
+                result = iris.util.squeeze(result)
             else:
                 msg = ('Diagnostic cube is not a known probabilistic type. '
                        'The {} percentile could not be extracted. Extracting '
