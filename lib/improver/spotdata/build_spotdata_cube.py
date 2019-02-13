@@ -140,5 +140,7 @@ def build_spotdata_cube(data, name, units,
         data, long_name=name, units=units,
         dim_coords_and_dims=dim_coords_and_dims,
         aux_coords_and_dims=aux_coords_and_dims)
+    # rename to force a standard name to be set if name is valid
+    spot_cube.rename(name)
 
     return spot_cube
