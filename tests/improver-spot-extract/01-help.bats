@@ -36,9 +36,11 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver-spot-extract [-h] [--profile] [--profile_file PROFILE_FILE]
                              [--land_constraint] [--minimum_dz]
+                             [--extract_percentile EXTRACT_PERCENTILE]
+                             [--ecc_bounds_warning]
                              [--temperature_lapse_rate_filepath TEMPERATURE_LAPSE_RATE_FILEPATH]
                              [--grid_metadata_identifier GRID_METADATA_IDENTIFIER]
-                             [--json_file JSON_FILE]
+                             [--json_file JSON_FILE] [--quiet_mode]
                              NEIGHBOUR_FILEPATH DIAGNOSTIC_FILEPATH
                              OUTPUT_FILEPATH
 
@@ -59,6 +61,9 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
+  --ecc_bounds_warning  If True, where calculated percentiles are outside the
+                        ECC bounds range, raise a warning rather than an
+                        exception.
 
 Neighbour finding method:
   If none of these options are set, the nearest grid point to a spot site
@@ -77,6 +82,16 @@ Neighbour finding method:
                         to the spot site within the search radius defined when
                         the neighbour cube was created. May be used with
                         land_constraint.
+
+Extract a percentile:
+  Extract a particular percentile from probabilistic data.
+
+  --extract_percentile EXTRACT_PERCENTILE
+                        If set to a percentile value, data corresponding to
+                        that percentile will be returned. For example setting
+                        '--extract_percentile 50' will result in the 50th
+                        percentile (median) values being returned from a cube
+                        of probabilities or percentiles.
 
 Temperature lapse rate adjustment:
   --temperature_lapse_rate_filepath TEMPERATURE_LAPSE_RATE_FILEPATH
@@ -101,6 +116,11 @@ Metadata:
                         If provided, this JSON file can be used to modify the
                         metadata of the returned netCDF file. Defaults to
                         None.
+
+Suppress Verbose output:
+  --quiet_mode          Suppress warning output. This option should only be
+                        used if it is known that warnings will be generated
+                        but they are not required.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

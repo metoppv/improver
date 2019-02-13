@@ -33,7 +33,6 @@
 
 import json
 import warnings
-import numpy as np
 
 import iris
 from iris.exceptions import CoordinateNotFoundError
@@ -91,7 +90,7 @@ def main():
 
     percentile_group = parser.add_argument_group(
         title="Extract a percentile",
-        description = "Extract a particular percentile from probabilistic "
+        description="Extract a particular percentile from probabilistic "
         "data.")
     percentile_group.add_argument(
         "--extract_percentile", default=None,
@@ -131,7 +130,7 @@ def main():
         "of the returned netCDF file. Defaults to None.")
 
     output_group = parser.add_argument_group("Suppress Verbose output")
-    meta_group.add_argument(
+    output_group.add_argument(
         "--quiet_mode", default=False, action="store_true",
         help="Suppress warning output. This option should only be used if "
         "it is known that warnings will be generated but they are not "
@@ -161,14 +160,14 @@ def main():
             if 'probability_of_' in result.name():
                 result = GeneratePercentilesFromProbabilities(
                     ecc_bounds_warning=args.ecc_bounds_warning).process(
-                    result, percentiles=args.extract_percentile)
+                        result, percentiles=args.extract_percentile)
                 result = iris.util.squeeze(result)
             else:
                 msg = ('Diagnostic cube is not a known probabilistic type. '
                        'The {} percentile could not be extracted. Extracting '
                        'data from the cube including any leading '
                        'dimensions.'.format(
-                        args.extract_percentile))
+                           args.extract_percentile))
                 if not args.quiet_mode:
                     warnings.warn(msg)
         else:
@@ -192,7 +191,6 @@ def main():
         lapse_rate_cube = load_cube(args.temperature_lapse_rate_filepath)
         try:
             lapse_rate_height_coord = lapse_rate_cube.coord("height")
-            lapse_rate_height, = lapse_rate_height_coord.points
         except (ValueError, CoordinateNotFoundError):
             msg = ("Lapse rate cube does not contain a single valued height "
                    "coordinate. This is required to ensure it is applied to "
