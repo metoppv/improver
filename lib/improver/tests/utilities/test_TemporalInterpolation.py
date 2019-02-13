@@ -255,6 +255,7 @@ class Test_calc_lats_lons(IrisTest):
     """Test Calculate lats and lons."""
 
     def setUp(self):
+        """Set up the test inputs."""
         time_start = datetime.datetime(2017, 11, 1, 3)
         time_mid = datetime.datetime(2017, 11, 1, 6)
         time_end = datetime.datetime(2017, 11, 1, 9)

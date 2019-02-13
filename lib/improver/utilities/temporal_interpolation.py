@@ -289,7 +289,7 @@ class TemporalInterpolation(object):
         sin_phi_next = self.calc_sin_phi(dtval_next, lats, lons)
         diff_step = (dtval_next - dtval_prev).seconds
 
-        for i, single_time in enumerate(interpolated_cube.slices_over('time')):
+        for single_time in interpolated_cube.slices_over('time'):
             # new_cubelist = iris.cube.CubeList()
             dtval_interp = iris_time_to_datetime(single_time.coord('time'))[0]
             sin_phi_interp = self.calc_sin_phi(dtval_interp, lats, lons)
@@ -314,7 +314,8 @@ class TemporalInterpolation(object):
             interpolated_cubes.append(single_time)
         return interpolated_cubes
 
-    def daynight_interpolate(self, cube, interpolated_cube):
+    @staticmethod
+    def daynight_interpolate(cube, interpolated_cube):
         """
         Interpolate solar radiation parameter which are zero if the
         sun is below the horizon.
