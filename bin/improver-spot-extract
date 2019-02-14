@@ -131,7 +131,7 @@ def main():
 
     output_group = parser.add_argument_group("Suppress Verbose output")
     output_group.add_argument(
-        "--quiet_mode", default=False, action="store_true",
+        "--suppress_warnings", default=False, action="store_true",
         help="Suppress warning output. This option should only be used if "
         "it is known that warnings will be generated but they are not "
         "required.")
@@ -168,7 +168,7 @@ def main():
                        'data from the cube including any leading '
                        'dimensions.'.format(
                            args.extract_percentile))
-                if not args.quiet_mode:
+                if not args.suppress_warnings:
                     warnings.warn(msg)
         else:
             constraint = ['{}={}'.format(perc_coordinate.name(),
@@ -210,13 +210,13 @@ def main():
                    "the temperature data does not match that of the data used "
                    "to calculate the lapse rates. As such the temperatures "
                    "were not adjusted with the lapse rates.")
-            if not args.quiet_mode:
+            if not args.suppress_warnings:
                 warnings.warn(msg)
     elif args.temperature_lapse_rate_filepath:
         msg = ("A lapse rate cube was provided, but the diagnostic being "
                "processed is not air temperature. The lapse rate cube was "
                "not used.")
-        if not args.quiet_mode:
+        if not args.suppress_warnings:
             warnings.warn(msg)
 
     # Modify final metadata as described by provided JSON file.

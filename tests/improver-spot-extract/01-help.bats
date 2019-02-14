@@ -40,7 +40,7 @@ usage: improver-spot-extract [-h] [--profile] [--profile_file PROFILE_FILE]
                              [--ecc_bounds_warning]
                              [--temperature_lapse_rate_filepath TEMPERATURE_LAPSE_RATE_FILEPATH]
                              [--grid_metadata_identifier GRID_METADATA_IDENTIFIER]
-                             [--json_file JSON_FILE] [--quiet_mode]
+                             [--json_file JSON_FILE] [--suppress_warnings]
                              NEIGHBOUR_FILEPATH DIAGNOSTIC_FILEPATH
                              OUTPUT_FILEPATH
 
@@ -118,7 +118,7 @@ Metadata:
                         None.
 
 Suppress Verbose output:
-  --quiet_mode          Suppress warning output. This option should only be
+  --suppress_warnings   Suppress warning output. This option should only be
                         used if it is known that warnings will be generated
                         but they are not required.
 __HELP__
