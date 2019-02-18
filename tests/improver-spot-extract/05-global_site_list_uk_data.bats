@@ -42,7 +42,7 @@
   echo "status = ${status}"
   [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-ValueError: Cubes do not share the metadata identified by the grid_metadata_identifier (mosg__grid)
+ValueError: Cubes do not share or originate from the same grid, so cannot be used together.
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

@@ -42,8 +42,9 @@ from improver.argparser import ArgParser, safe_eval
 from improver.spotdata.neighbour_finding import NeighbourSelection
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
-from improver.utilities.cube_manipulation import (
-    merge_cubes, enforce_coordinate_ordering)
+from improver.utilities.cube_metadata import amend_metadata
+from improver.utilities.cube_manipulation import (merge_cubes,
+                                                  enforce_coordinate_ordering)
 
 PROJECTION_LIST = [
     'AlbersEqualArea', 'AzimuthalEquidistant', 'EuroPP', 'Geocentric',
@@ -138,14 +139,11 @@ def main(argv=None):
         help="The y coordinate key within the JSON file. The plugin default is"
         " 'latitude', but can be changed using this option if required.")
 
-    m_group = parser.add_argument_group('Metadata')
-    m_group.add_argument(
-        "--grid_metadata_identifier", metavar="GRID_METADATA_IDENTIFIER",
-        help="A string to identify attributes from the netCDF files that"
-        " should be copied onto the output cube. Attributes are compared"
-        " for a partial match. The default is 'mosg' which corresponds"
-        " to Met Office Standard Grid attributes which should be copied"
-        " across.")
+    meta_group = parser.add_argument_group("Metadata")
+    meta_group.add_argument(
+        "--metadata_json", metavar="METADATA_JSON", default=None,
+        help="If provided, this JSON file can be used to modify the metadata "
+        "of the returned netCDF file. Defaults to None.")
 
     args = parser.parse_args(args=argv)
 
@@ -160,7 +158,7 @@ def main(argv=None):
     # This preserves the plugin defaults for unset options.
     kwarg_list = ['land_constraint', 'minimum_dz', 'search_radius',
                   'site_coordinate_system', 'site_x_coordinate', 'node_limit',
-                  'site_y_coordinate', 'grid_metadata_identifier']
+                  'site_y_coordinate']
     kwargs = {k: v for (k, v) in vars(args).items() if k in kwarg_list and
               v is not None}
 
@@ -203,6 +201,12 @@ def main(argv=None):
     result = enforce_coordinate_ordering(
         result,
         ['spot_index', 'neighbour_selection_method', 'grid_attributes'])
+
+    # Modify final metadata as described by provided JSON file.
+    if args.metadata_json:
+        with open(args.metadata_json, 'r') as input_file:
+            metadata_dict = json.load(input_file)
+        result = amend_metadata(result, **metadata_dict)
 
     # Save the neighbour cube
     save_netcdf(result, args.output_filepath)

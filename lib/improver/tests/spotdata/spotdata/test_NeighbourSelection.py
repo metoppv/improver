@@ -38,6 +38,7 @@ import iris
 from iris.tests import IrisTest
 import cartopy.crs as ccrs
 
+from improver.utilities.cube_metadata import create_coordinate_hash
 from improver.spotdata.neighbour_finding import NeighbourSelection
 from improver.utilities.warnings_handler import ManageWarnings
 
@@ -74,12 +75,7 @@ class Test_NeighbourSelection(IrisTest):
             dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)])
         global_orography = iris.cube.Cube(
             orography_data, standard_name="surface_altitude", units='m',
-            dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)],
-            attributes={
-                'mosg__grid_domain': 'global',
-                'mosg__grid_type': 'standard',
-                'mosg__grid_version': '1.2.0',
-                'mosg__model_configuration': 'gl_det'})
+            dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)])
 
         # Regional grid coordinates and cubes
         projection = iris.coord_systems.LambertAzimuthalEqualArea(
@@ -99,12 +95,7 @@ class Test_NeighbourSelection(IrisTest):
             dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)])
         region_orography = iris.cube.Cube(
             orography_data, standard_name="surface_altitude", units='m',
-            dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)],
-            attributes={
-                'mosg__grid_domain': 'region',
-                'mosg__grid_type': 'standard',
-                'mosg__grid_version': '1.2.0',
-                'mosg__model_configuration': 'region_det'})
+            dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)])
 
         # Create site lists
         self.global_sites = [
@@ -132,8 +123,7 @@ class Test__repr__(IrisTest):
         msg = ("<NeighbourSelection: land_constraint: False, minimum_dz: False"
                ", search_radius: 10000.0, site_coordinate_system: <class "
                "'cartopy.crs.PlateCarree'>, site_x_coordinate:longitude, "
-               "site_y_coordinate: latitude, grid_metadata_identifier: mosg, "
-               "node_limit: 36>")
+               "site_y_coordinate: latitude, node_limit: 36>")
         self.assertEqual(result, msg)
 
     def test_non_default(self):
@@ -143,14 +133,12 @@ class Test__repr__(IrisTest):
                                     site_coordinate_system=ccrs.Mercator(),
                                     site_x_coordinate='x_axis',
                                     site_y_coordinate='y_axis',
-                                    grid_metadata_identifier='mymodel',
                                     node_limit=100)
         result = str(plugin)
         msg = ("<NeighbourSelection: land_constraint: True, minimum_dz: True,"
                " search_radius: 1000, site_coordinate_system: <class "
                "'cartopy.crs.Mercator'>, site_x_coordinate:x_axis, "
-               "site_y_coordinate: y_axis, grid_metadata_identifier: mymodel,"
-               " node_limit: 100>")
+               "site_y_coordinate: y_axis, node_limit: 100>")
         self.assertEqual(result, msg)
 
 
@@ -634,20 +622,16 @@ class Test_process(Test_NeighbourSelection):
                            self.global_land_mask)
 
     def test_global_attribute(self):
-        """Test that a cube is returned with an attribute identifying the
-        grid domain."""
+        """Test that a cube is returned with a model_grid_hash that matches
+        that of the global input grids."""
 
+        expected = create_coordinate_hash(self.global_orography)
         plugin = NeighbourSelection()
         result = plugin.process(self.global_sites, self.global_orography,
                                 self.global_land_mask)
 
-        expected = {'mosg__grid_domain': 'global',
-                    'mosg__grid_type': 'standard',
-                    'mosg__grid_version': '1.2.0',
-                    'mosg__model_configuration': 'gl_det'}
-
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertDictEqual(result.attributes, expected)
+        self.assertEqual(result.attributes['model_grid_hash'], expected)
 
     def test_wmo_ids(self):
         """Test that the returned cube has the wmo_ids present when they are
@@ -726,9 +710,10 @@ class Test_process(Test_NeighbourSelection):
         self.assertArrayEqual(result.data, expected)
 
     def test_region_attribute(self):
-        """Test that a cube is returned with an attribute identifying the
-        grid domain."""
+        """Test that a cube is returned with a model_grid_hash that matches
+        that of the regional input grids."""
 
+        expected = create_coordinate_hash(self.region_orography)
         plugin = NeighbourSelection(
             site_coordinate_system=self.region_projection.as_cartopy_crs(),
             site_x_coordinate='projection_x_coordinate',
@@ -736,13 +721,8 @@ class Test_process(Test_NeighbourSelection):
         result = plugin.process(self.region_sites, self.region_orography,
                                 self.region_land_mask)
 
-        expected = {'mosg__grid_domain': 'region',
-                    'mosg__grid_type': 'standard',
-                    'mosg__grid_version': '1.2.0',
-                    'mosg__model_configuration': 'region_det'}
-
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertDictEqual(result.attributes, expected)
+        self.assertEqual(result.attributes['model_grid_hash'], expected)
 
     def test_region_nearest(self):
         """Test that a cube is returned, this time using the site list in
