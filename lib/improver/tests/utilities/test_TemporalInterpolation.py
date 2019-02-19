@@ -351,7 +351,7 @@ class Test_solar_interpolation(IrisTest):
 
         plugin = TemporalInterpolation(interpolation_method='solar',
                                        times=[self.time_mid])
-        result = plugin.daynight_interpolate(self.cube, self.interpolated_cube)
+        result = plugin.solar_interpolate(self.cube, self.interpolated_cube)
         self.assertIsInstance(result, iris.cube.CubeList)
 
     def test_solar_interpolation(self):
@@ -379,7 +379,6 @@ class Test_daynight_interpolation(IrisTest):
         """Set up the test inputs."""
         self.time_0 = datetime.datetime(2017, 11, 1, 0)
         self.time_mid = datetime.datetime(2017, 11, 1, 2)
-        self.time_1 = datetime.datetime(2017, 11, 1, 4)
         self.npoints = 10
         self.daynight_mask = np.array([[0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
                                        [0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
@@ -392,19 +391,9 @@ class Test_daynight_interpolation(IrisTest):
                                        [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
                                        [0, 0, 0, 0, 0, 1, 1, 1, 1, 1]])
 
-        data_time_0 = np.ones((self.npoints, self.npoints), dtype=np.float32)
-        data_time_1 = np.ones((self.npoints, self.npoints),
-                              dtype=np.float32) * 7
         data_time_mid = np.ones((self.npoints, self.npoints),
                                 dtype=np.float32) * 4
-        cube_time_0 = set_up_variable_cube(data_time_0,
-                                           time=self.time_0,
-                                           frt=self.time_0)
-        cube_time_1 = set_up_variable_cube(data_time_1,
-                                           time=self.time_1,
-                                           frt=self.time_0)
-        cubes = iris.cube.CubeList([cube_time_0, cube_time_1])
-        self.cube = cubes.merge_cube()
+
         interp_cube = set_up_variable_cube(data_time_mid,
                                            time=self.time_mid,
                                            frt=self.time_0)
@@ -415,7 +404,7 @@ class Test_daynight_interpolation(IrisTest):
 
         plugin = TemporalInterpolation(interpolation_method='daynight',
                                        times=[self.time_mid])
-        result = plugin.daynight_interpolate(self.cube, self.interpolated_cube)
+        result = plugin.daynight_interpolate(self.interpolated_cube)
         self.assertIsInstance(result, iris.cube.CubeList)
 
     def test_daynight_interpolation(self):
@@ -429,8 +418,7 @@ class Test_daynight_interpolation(IrisTest):
         expected_fp = 2 * 3600
         plugin = TemporalInterpolation(interpolation_method='daynight',
                                        times=[self.time_mid])
-        result, = plugin.daynight_interpolate(self.cube,
-                                              self.interpolated_cube)
+        result, = plugin.daynight_interpolate(self.interpolated_cube)
         self.assertArrayAlmostEqual(expected_data, result.data)
         self.assertArrayAlmostEqual(result.coord('time').points,
                                     expected_time)

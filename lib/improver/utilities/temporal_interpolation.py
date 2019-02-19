@@ -269,7 +269,7 @@ class TemporalInterpolation(object):
             cube (iris.cube.Cube):
                 cube containing diagnostic cube valid at the beginning
                 of the period and cube valid at the end of the period
-            interpoldated_cube (iris.cube.Cube):
+            interpolated_cube (iris.cube.Cube):
                 cube containing Linear interpolation of
                 cube at times in time_list.
         Returns:
@@ -283,19 +283,36 @@ class TemporalInterpolation(object):
         prev_data = cube[0].data
         next_data = cube[1].data
         dtvals = iris_time_to_datetime(cube.coord('time'))
+        # Calculate sine of solar elevation for cube valid at the
+        # beginning of the period.
         dtval_prev = dtvals[0]
         sin_phi_prev = self.calc_sin_phi(dtval_prev, lats, lons)
+        # Calculate sine of solar elevation for cube valid at the
+        # end of the period.
         dtval_next = dtvals[1]
         sin_phi_next = self.calc_sin_phi(dtval_next, lats, lons)
+        # Length of time between beginning and end in seconds
         diff_step = (dtval_next - dtval_prev).seconds
 
         for single_time in interpolated_cube.slices_over('time'):
-            # new_cubelist = iris.cube.CubeList()
+            # Calculate sine of solar elevation for cube at this
+            # interpolated time.
             dtval_interp = iris_time_to_datetime(single_time.coord('time'))[0]
             sin_phi_interp = self.calc_sin_phi(dtval_interp, lats, lons)
+            # Length of time between beginning and interpolated time in seconds
             diff_interp = (dtval_interp - dtval_prev).seconds
+            # Set all values to 0.0, to be replaced
+            # with values calculated through this solar method.
             single_time.data[::] = 0.0
             sun_up = np.where(sin_phi_interp > 0.0)
+            # Solar value is calculated only for points where the sun is up
+            # and is a weighted combination of the data using the sine of
+            # solar elevation and the data in the cube valid
+            # at the begining and end.
+
+            # If the cube containing cube valid at the beginning of the period
+            # and at the end of the period has more than x and y coordinates
+            # the calculation needs to adapted to accommodate this.
             if len(single_time.shape) > 2:
                 prevv = (
                     prev_data[::, sun_up[0], sun_up[1]]/sin_phi_prev[sun_up])
@@ -310,20 +327,17 @@ class TemporalInterpolation(object):
                 single_time.data[sun_up] = (sin_phi_interp[sun_up] *
                                             (prevv + (nextv - prevv)
                                              * (diff_interp/diff_step)))
-
+            # cube with new data added to interpolated_cubes cube List.
             interpolated_cubes.append(single_time)
         return interpolated_cubes
 
     @staticmethod
-    def daynight_interpolate(cube, interpolated_cube):
+    def daynight_interpolate(interpolated_cube):
         """
         Interpolate solar radiation parameter which are zero if the
         sun is below the horizon.
 
         Args:
-            cube (iris.cube.Cube):
-                cube containing diagnostic cube valid at the beginning
-                of the period and cube valid at the end of the period
             interpoldated_cube (iris.cube.Cube):
                 cube containing Linear interpolation of
                 cube at times in time_list.
@@ -410,8 +424,7 @@ class TemporalInterpolation(object):
                                                             interpolated_cube)
         elif self.interpolation_method == 'daynight':
                 interpolated_cubes = (
-                    self.daynight_interpolate(cube,
-                                              interpolated_cube))
+                    self.daynight_interpolate(interpolated_cube))
         else:
             for single_time in interpolated_cube.slices_over('time'):
                 interpolated_cubes.append(single_time)
