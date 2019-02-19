@@ -267,7 +267,7 @@ class Test_iris_time_to_datetime(IrisTest):
         self.cube.coord("time").points = (
             self.cube.coord("time").points.astype(np.int64))
         reference_coord = self.cube.coord("time").copy()
-        _ = iris_time_to_datetime(self.cube.coord("time"))
+        iris_time_to_datetime(self.cube.coord("time"))
         self.assertArrayEqual(self.cube.coord("time").points,
                               reference_coord.points)
         self.assertArrayEqual(self.cube.coord("time").units,
