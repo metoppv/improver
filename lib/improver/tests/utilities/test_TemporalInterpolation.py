@@ -330,9 +330,9 @@ class Test_solar_interpolation(IrisTest):
 
         data_time_0 = np.zeros((self.npoints, self.npoints), dtype=np.float32)
         data_time_1 = np.ones((self.npoints, self.npoints),
-                              dtype=np.float32) * 1
+                              dtype=np.float32)
         data_time_mid = np.ones((self.npoints, self.npoints),
-                                dtype=np.float32) * 1
+                                dtype=np.float32)
         cube_time_0 = set_up_variable_cube(data_time_0,
                                            time=self.time_0,
                                            frt=self.time_0)
@@ -508,6 +508,10 @@ class Test_process(IrisTest):
             result.coord('time').points, expected_time, decimal=5)
         self.assertAlmostEqual(result.coord('forecast_period').points[0],
                                expected_fp)
+        self.assertEqual(result.data.dtype, np.float32)
+        self.assertEqual(str(result.coord('time').points.dtype), 'int64')
+        self.assertEqual(str(result.coord('forecast_period').points.dtype),
+                         'int32')
 
     def test_solar_interpolation_from_given_list(self):
         """Test solar interpolating to a point defined in a list
@@ -526,6 +530,10 @@ class Test_process(IrisTest):
             result.coord('time').points, expected_time, decimal=5)
         self.assertAlmostEqual(result.coord('forecast_period').points[0],
                                expected_fp)
+        self.assertEqual(result.data.dtype, np.float32)
+        self.assertEqual(str(result.coord('time').points.dtype), 'int64')
+        self.assertEqual(str(result.coord('forecast_period').points.dtype),
+                         'int32')
 
     def test_daynight_interpolation_from_given_list(self):
         """Test daynight interpolating to a point defined in a list
@@ -545,6 +553,10 @@ class Test_process(IrisTest):
             result.coord('time').points, expected_time, decimal=5)
         self.assertAlmostEqual(result.coord('forecast_period').points[0],
                                expected_fp)
+        self.assertEqual(result.data.dtype, np.float32)
+        self.assertEqual(str(result.coord('time').points.dtype), 'int64')
+        self.assertEqual(str(result.coord('forecast_period').points.dtype),
+                         'int32')
 
     def test_input_cube_without_time_coordinate(self):
         """Test that an exception is raised if a cube is provided without a

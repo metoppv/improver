@@ -271,7 +271,7 @@ class TemporalInterpolation(object):
                 of the period and cube valid at the end of the period
             interpolated_cube (iris.cube.Cube):
                 cube containing Linear interpolation of
-                cube at times in time_list.
+                cube at interpolation times in time_list.
         Returns:
             interpolated_cubes (iris.cube.CubeList):
                 A list of cubes interpolated to the desired times.
@@ -340,7 +340,7 @@ class TemporalInterpolation(object):
         Args:
             interpoldated_cube (iris.cube.Cube):
                 cube containing Linear interpolation of
-                cube at times in time_list.
+                cube at interpolation times in time_list.
 
         Returns:
             interpolated_cubes (iris.cube.CubeList):
