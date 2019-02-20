@@ -224,8 +224,9 @@ def iris_time_to_datetime(time_coord):
         list of datetime.datetime objects
             The time element(s) recast as a python datetime object.
     """
-    time_coord.convert_units('seconds since 1970-01-01 00:00:00')
-    return [datetime.utcfromtimestamp(value) for value in time_coord.points]
+    coord = time_coord.copy()
+    coord.convert_units('seconds since 1970-01-01 00:00:00')
+    return [datetime.utcfromtimestamp(value) for value in coord.points]
 
 
 def datetime_to_iris_time(dt_in, time_units="hours"):
