@@ -452,7 +452,7 @@ def wxcode_decision_tree():
             'threshold_condition': '>=',
             'condition_combination': '',
             'diagnostic_fields':
-                ['probability_of_visibility_in_air_above_threshold'],
+                ['probability_of_visibility_in_air_below_threshold'],
             'diagnostic_thresholds': [AuxCoord(1000., units='m')],
             'diagnostic_conditions': ['below']},
     }

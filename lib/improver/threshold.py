@@ -274,7 +274,7 @@ class BasicThreshold(object):
             cube.attributes.update({'relative_to_threshold': 'below'})
         else:
             cube.attributes.update({'relative_to_threshold': 'above'})
-        cube.rename("probability_of_{}".format(cube.name()))
+        cube.rename("probability_of_{}_above_threshold".format(cube.name()))
         cube.units = Unit(1)
 
         cube = enforce_coordinate_ordering(
