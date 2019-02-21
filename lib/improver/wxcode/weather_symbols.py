@@ -196,7 +196,7 @@ class WeatherSymbols(object):
                 e.g.::
 
                   cubes.extract(Constraint(
-                          name='probability_of_rainfall_rate',
+                          name='probability_of_rainfall_rate_above_threshold',
                           coord_values={'threshold': 0.03})
                                 )[0].data < 0.5)
         """
@@ -248,11 +248,12 @@ class WeatherSymbols(object):
 
                   [
                     "(cubes.extract(Constraint(
-                          name='probability_of_rainfall_rate',
+                          name='probability_of_rainfall_rate_above_threshold',
                           coord_values={'threshold': 0.03})
                      )[0].data < 0.5) |
                      (cubes.extract(Constraint(
-                          name='probability_of_lwe_snowfall_rate',
+                          name=
+                          'probability_of_lwe_snowfall_rate_above_threshold',
                           coord_values={'threshold': 0.03})
                      )[0].data < 0.5)"
                   ]
