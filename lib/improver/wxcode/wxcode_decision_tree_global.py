@@ -299,7 +299,7 @@ def wxcode_decision_tree_global():
             'threshold_condition': '>=',
             'condition_combination': '',
             'diagnostic_fields':
-                [('probability_of_cloud_area_fraction__above_threshold_'
+                [('probability_of_cloud_area_fraction_above_threshold_'
                   'assuming_only_consider_surface_to_1000'
                   '_feet_asl')],
             'diagnostic_thresholds': [AuxCoord(0.85, units=1)],
