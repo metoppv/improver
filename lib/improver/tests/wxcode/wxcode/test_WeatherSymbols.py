@@ -34,7 +34,6 @@ import unittest
 
 import numpy as np
 
-
 import iris
 from iris.tests import IrisTest
 from iris.coords import AuxCoord
@@ -202,7 +201,6 @@ def set_up_wxcubes_global():
 
 
 class Test__repr__(IrisTest):
-
     """Test the repr method."""
 
     def test_basic(self):
@@ -219,7 +217,6 @@ class Test__repr__(IrisTest):
 
 
 class Test_check_input_cubes(IrisTest):
-
     """Test the check_input_cubes method."""
 
     def setUp(self):
@@ -274,7 +271,6 @@ class Test_check_input_cubes(IrisTest):
 
 
 class Test_invert_condition(IrisTest):
-
     """Test the invert condition method."""
 
     def test_basic(self):
@@ -311,19 +307,19 @@ class Test_invert_condition(IrisTest):
 
 
 class Test_construct_condition(IrisTest):
-
     """Test the construct condition method."""
 
     def test_basic(self):
         """Test that the construct_condition method returns a string."""
         plugin = WeatherSymbols()
-        constraint_value = iris.Constraint(name='probability_of_rainfall_rate',
-                                           coord_values={'threshold': 0.03})
+        constraint_value = iris.Constraint(
+            name='probability_of_rainfall_rate__above_threshold',
+            coord_values={'threshold': 0.03})
         condition = '<'
         prob_threshold = 0.5
         gamma = None
         expected = ("cubes.extract(Constraint(name="
-                    "'probability_of_rainfall_rate',"
+                    "'probability_of_rainfall_rate_above_threshold',"
                     " coord_values={'threshold': 0.03})"
                     ")[0].data < 0.5")
         result = plugin.construct_condition(constraint_value,
@@ -338,18 +334,20 @@ class Test_construct_condition(IrisTest):
         of Constraints. """
         plugin = WeatherSymbols()
         constraint_list = [
-            iris.Constraint(name='probability_of_lwe_snowfall_rate',
-                            coord_values={'threshold': 0.03}),
-            iris.Constraint(name='probability_of_rainfall_rate',
-                            coord_values={'threshold': 0.03})]
+            iris.Constraint(
+                name='probability_of_lwe_snowfall_rate_above_threshold',
+                coord_values={'threshold': 0.03}),
+            iris.Constraint(
+                name='probability_of_rainfall_rate_above_threshold',
+                coord_values={'threshold': 0.03})]
         condition = '<'
         prob_threshold = 0.5
         gamma = 0.7
         expected = ("(cubes.extract(Constraint(name="
-                    "'probability_of_lwe_snowfall_rate', "
+                    "'probability_of_lwe_snowfall_rate_above_threshold', "
                     "coord_values={'threshold': 0.03}))[0].data - "
                     "cubes.extract(Constraint(name="
-                    "'probability_of_rainfall_rate', "
+                    "'probability_of_rainfall_rate_above_threshold', "
                     "coord_values={'threshold': 0.03}))[0].data * 0.7) < 0.5")
         result = plugin.construct_condition(constraint_list,
                                             condition,
@@ -360,7 +358,6 @@ class Test_construct_condition(IrisTest):
 
 
 class Test_format_condition_chain(IrisTest):
-
     """Test the format_condition_chain method."""
 
     def test_basic(self):
@@ -384,7 +381,6 @@ class Test_format_condition_chain(IrisTest):
 
 
 class Test_create_condition_chain(IrisTest):
-
     """Test the create_condition_chain method."""
 
     def setUp(self):
@@ -396,12 +392,13 @@ class Test_create_condition_chain(IrisTest):
                 'probability_thresholds': [0.5, 0.5],
                 'threshold_condition': '>=',
                 'condition_combination': 'OR',
-                'diagnostic_fields': ['probability_of_rainfall_rate',
-                                      'probability_of_lwe_snowfall_rate'],
+                'diagnostic_fields':
+                    ['probability_of_rainfall_rate_above_threshold',
+                     'probability_of_lwe_snowfall_rate_above_threshold'],
                 'diagnostic_thresholds': [AuxCoord(0.03, units='mm hr-1'),
                                           AuxCoord(0.03, units='mm hr-1')],
                 'diagnostic_conditions': ['above', 'above']}
-            }
+        }
 
     def test_basic(self):
         """Test create_condition_chain returns a list of strings."""
@@ -409,34 +406,36 @@ class Test_create_condition_chain(IrisTest):
         test_condition = self.dummy_queries['significant_precipitation']
         result = plugin.create_condition_chain(test_condition)
         expected = ("(cubes.extract(iris.Constraint(name='probability_of_"
-                    "rainfall_rate', threshold=lambda cell: 0.03 * {t_min} < "
+                    "rainfall_rate_above_threshold', threshold=lambda cell: "
+                    "0.03 * {t_min} < "
                     "cell < 0.03 * {t_max}))[0].data >= 0.5) | (cubes.extract"
-                    "(iris.Constraint(name='probability_of_lwe_snowfall_rate',"
+                    "(iris.Constraint("
+                    "name='probability_of_lwe_snowfall_rate_above_threshold',"
                     " threshold=lambda cell: 0.03 * {t_min} < cell < 0.03 * "
                     "{t_max}))[0].data >= 0.5)".format(
-                        t_min=(1. - WeatherSymbols().float_tolerance),
-                        t_max=(1. + WeatherSymbols().float_tolerance)))
+            t_min=(1. - WeatherSymbols().float_tolerance),
+            t_max=(1. + WeatherSymbols().float_tolerance)))
         self.assertIsInstance(result, list)
         self.assertIsInstance(result[0], str)
         self.assertEqual(result[0], expected)
 
 
 class Test_construct_extract_constraint(IrisTest):
-
     """Test the construct_extract_constraint method ."""
 
     def test_basic(self):
         """Test construct_extract_constraint returns a iris.Constraint."""
         plugin = WeatherSymbols()
-        diagnostic = 'probability_of_rainfall_rate'
+        diagnostic = 'probability_of_rainfall_rate_above_threshold'
         threshold = AuxCoord(0.03, units='mm hr-1')
         result = plugin.construct_extract_constraint(diagnostic,
                                                      threshold)
-        expected = ("iris.Constraint(name='probability_of_rainfall_rate', "
+        expected = ("iris.Constraint("
+                    "name='probability_of_rainfall_rate'_above_threshold, "
                     "threshold=lambda cell: 0.03 * {t_min} < cell < 0.03 * "
                     "{t_max})".format(
-                        t_min=(1. - WeatherSymbols().float_tolerance),
-                        t_max=(1. + WeatherSymbols().float_tolerance)))
+            t_min=(1. - WeatherSymbols().float_tolerance),
+            t_max=(1. + WeatherSymbols().float_tolerance)))
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -444,18 +443,19 @@ class Test_construct_extract_constraint(IrisTest):
         """Test construct_extract_constraint returns a list
            of iris.Constraint."""
         plugin = WeatherSymbols()
-        diagnostics = ['probability_of_rainfall_rate',
-                       'probability_of_lwe_snowfall_rate']
+        diagnostics = ['probability_of_rainfall_rate_above_threshold',
+                       'probability_of_lwe_snowfall_rate_above_threshold']
         thresholds = [AuxCoord(0.03, units='mm hr-1'),
                       AuxCoord(0.03, units='mm hr-1')]
         result = plugin.construct_extract_constraint(diagnostics,
                                                      thresholds)
 
-        expected = ("iris.Constraint(name='probability_of_lwe_snowfall_rate', "
+        expected = ("iris.Constraint("
+                    "name='probability_of_lwe_snowfall_rate_above_threshold', "
                     "threshold=lambda cell: 0.03 * {t_min} < cell < 0.03 * "
                     "{t_max})".format(
-                        t_min=(1. - WeatherSymbols().float_tolerance),
-                        t_max=(1. + WeatherSymbols().float_tolerance)))
+            t_min=(1. - WeatherSymbols().float_tolerance),
+            t_max=(1. + WeatherSymbols().float_tolerance)))
         self.assertIsInstance(result, list)
         self.assertIsInstance(result[1], str)
         self.assertEqual(len(result), 2)
@@ -463,7 +463,6 @@ class Test_construct_extract_constraint(IrisTest):
 
 
 class Test_find_all_routes(IrisTest):
-
     """Test the find_all_routes method ."""
 
     def setUp(self):
@@ -506,7 +505,6 @@ class Test_find_all_routes(IrisTest):
 
 
 class Test_create_symbol_cube(IrisTest):
-
     """Test the create_symbol_cube method ."""
 
     def setUp(self):
@@ -534,8 +532,8 @@ class Test_create_symbol_cube(IrisTest):
 
 
 class Test_process(IrisTest):
-
     """Test the find_all_routes method ."""
+
     def setUp(self):
         """ Set up wxcubes for testing. """
         self.cubes = set_up_wxcubes()
