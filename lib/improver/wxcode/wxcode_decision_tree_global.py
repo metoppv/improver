@@ -274,9 +274,9 @@ def wxcode_decision_tree_global():
             'condition_combination': 'AND',
             'diagnostic_fields':
                 ['probability_of_rainfall_rate_above_threshold',
-                 ('probability_of_cloud_area_fraction_above_threshold_'
+                 ('probability_of_cloud_area_fraction_'
                   'assuming_only_consider_surface_to_1000'
-                  '_feet_asl')],
+                  '_feet_asl_above_threshold')],
             'diagnostic_thresholds': [AuxCoord(0.03, units='mm hr-1'),
                                       AuxCoord(0.85, units=1)],
             'diagnostic_conditions': ['above', 'above']},
@@ -299,9 +299,9 @@ def wxcode_decision_tree_global():
             'threshold_condition': '>=',
             'condition_combination': '',
             'diagnostic_fields':
-                [('probability_of_cloud_area_fraction_above_threshold_'
+                [('probability_of_cloud_area_fraction_'
                   'assuming_only_consider_surface_to_1000'
-                  '_feet_asl')],
+                  '_feet_asl_above_threshold')],
             'diagnostic_thresholds': [AuxCoord(0.85, units=1)],
             'diagnostic_conditions': ['above']},
 
