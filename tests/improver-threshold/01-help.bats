@@ -95,6 +95,7 @@ optional arguments:
                         collapse over. The default is set to None.
   --vicinity VICINITY   If set, distance in metres used to define the vicinity
                         within which to search for an occurrence.
+
 __HELP__
   [[ "$output" == "$expected" ]]
 }

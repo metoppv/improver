@@ -34,6 +34,7 @@ import unittest
 
 import numpy as np
 
+
 import iris
 from iris.tests import IrisTest
 from iris.coords import AuxCoord
@@ -201,6 +202,7 @@ def set_up_wxcubes_global():
 
 
 class Test__repr__(IrisTest):
+
     """Test the repr method."""
 
     def test_basic(self):
@@ -217,6 +219,7 @@ class Test__repr__(IrisTest):
 
 
 class Test_check_input_cubes(IrisTest):
+
     """Test the check_input_cubes method."""
 
     def setUp(self):
@@ -271,6 +274,7 @@ class Test_check_input_cubes(IrisTest):
 
 
 class Test_invert_condition(IrisTest):
+
     """Test the invert condition method."""
 
     def test_basic(self):
@@ -307,6 +311,7 @@ class Test_invert_condition(IrisTest):
 
 
 class Test_construct_condition(IrisTest):
+
     """Test the construct condition method."""
 
     def test_basic(self):
@@ -358,6 +363,7 @@ class Test_construct_condition(IrisTest):
 
 
 class Test_format_condition_chain(IrisTest):
+
     """Test the format_condition_chain method."""
 
     def test_basic(self):
@@ -421,6 +427,7 @@ class Test_create_condition_chain(IrisTest):
 
 
 class Test_construct_extract_constraint(IrisTest):
+
     """Test the construct_extract_constraint method ."""
 
     def test_basic(self):
@@ -463,6 +470,7 @@ class Test_construct_extract_constraint(IrisTest):
 
 
 class Test_find_all_routes(IrisTest):
+
     """Test the find_all_routes method ."""
 
     def setUp(self):
@@ -505,6 +513,7 @@ class Test_find_all_routes(IrisTest):
 
 
 class Test_create_symbol_cube(IrisTest):
+
     """Test the create_symbol_cube method ."""
 
     def setUp(self):
@@ -532,6 +541,7 @@ class Test_create_symbol_cube(IrisTest):
 
 
 class Test_process(IrisTest):
+
     """Test the find_all_routes method ."""
 
     def setUp(self):
