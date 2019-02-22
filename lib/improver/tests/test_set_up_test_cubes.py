@@ -337,7 +337,8 @@ class test_set_up_probability_cube(IrisTest):
         and metadata"""
         result = set_up_probability_cube(self.data, self.thresholds)
         thresh_coord = result.coord("threshold")
-        self.assertEqual(result.name(), 'probability_of_air_temperature')
+        self.assertEqual(
+            result.name(), 'probability_of_air_temperature_above_threshold')
         self.assertEqual(result.units, '1')
         self.assertArrayEqual(thresh_coord.points, self.thresholds)
         self.assertEqual(thresh_coord.units, 'K')
@@ -349,7 +350,8 @@ class test_set_up_probability_cube(IrisTest):
         result = set_up_probability_cube(
             self.data, self.thresholds,
             variable_name='probability_of_air_temperature')
-        self.assertEqual(result.name(), 'probability_of_air_temperature')
+        self.assertEqual(
+            result.name(), 'probability_of_air_temperature_above_threshold')
 
     def test_relative_to_threshold(self):
         """Test ability to reset the "relative_to_threshold" attribute"""
