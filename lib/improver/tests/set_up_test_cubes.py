@@ -366,9 +366,15 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
         attributes['relative_to_threshold'] = relative_to_threshold
 
     if variable_name.startswith('probability_of_'):
-        name = variable_name
+        name_prefix = ''
     else:
-        name = 'probability_of_{}'.format(variable_name)
+        name_prefix = 'probability_of_'
+
+    if relative_to_threshold == 'above':
+        name = name_prefix + '{}_above_threshold'.format(variable_name)
+    else:
+        name = name_prefix + '{}_below_threshold'.format(variable_name)
+
     cube = set_up_variable_cube(
         data, name=name, units='1', spatial_grid=spatial_grid,
         time=time, frt=frt, time_bounds=time_bounds,
