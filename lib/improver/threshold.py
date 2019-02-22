@@ -272,9 +272,12 @@ class BasicThreshold(object):
         # Force the metadata to temporary conventions
         if self.below_thresh_ok:
             cube.attributes.update({'relative_to_threshold': 'below'})
+            cube.rename(
+                "probability_of_{}_below_threshold".format(cube.name()))
         else:
             cube.attributes.update({'relative_to_threshold': 'above'})
-        cube.rename("probability_of_{}_above_threshold".format(cube.name()))
+            cube.rename(
+                "probability_of_{}_above_threshold".format(cube.name()))
         cube.units = Unit(1)
 
         cube = enforce_coordinate_ordering(
