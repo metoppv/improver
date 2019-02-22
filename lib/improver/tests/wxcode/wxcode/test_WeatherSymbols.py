@@ -419,8 +419,8 @@ class Test_create_condition_chain(IrisTest):
                     "name='probability_of_lwe_snowfall_rate_above_threshold',"
                     " threshold=lambda cell: 0.03 * {t_min} < cell < 0.03 * "
                     "{t_max}))[0].data >= 0.5)".format(
-            t_min=(1. - WeatherSymbols().float_tolerance),
-            t_max=(1. + WeatherSymbols().float_tolerance)))
+                        t_min=(1. - WeatherSymbols().float_tolerance),
+                        t_max=(1. + WeatherSymbols().float_tolerance)))
         self.assertIsInstance(result, list)
         self.assertIsInstance(result[0], str)
         self.assertEqual(result[0], expected)
@@ -441,8 +441,8 @@ class Test_construct_extract_constraint(IrisTest):
                     "name='probability_of_rainfall_rate_above_threshold', "
                     "threshold=lambda cell: 0.03 * {t_min} < cell < 0.03 * "
                     "{t_max})".format(
-            t_min=(1. - WeatherSymbols().float_tolerance),
-            t_max=(1. + WeatherSymbols().float_tolerance)))
+                        t_min=(1. - WeatherSymbols().float_tolerance),
+                        t_max=(1. + WeatherSymbols().float_tolerance)))
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -461,8 +461,8 @@ class Test_construct_extract_constraint(IrisTest):
                     "name='probability_of_lwe_snowfall_rate_above_threshold', "
                     "threshold=lambda cell: 0.03 * {t_min} < cell < 0.03 * "
                     "{t_max})".format(
-            t_min=(1. - WeatherSymbols().float_tolerance),
-            t_max=(1. + WeatherSymbols().float_tolerance)))
+                        t_min=(1. - WeatherSymbols().float_tolerance),
+                        t_max=(1. + WeatherSymbols().float_tolerance)))
         self.assertIsInstance(result, list)
         self.assertIsInstance(result[1], str)
         self.assertEqual(len(result), 2)
