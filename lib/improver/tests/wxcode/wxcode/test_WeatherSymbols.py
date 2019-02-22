@@ -114,8 +114,8 @@ def set_up_wxcubes():
     cloud_below_1000ft = (
         set_up_probability_above_threshold_cube(
             data_cld_1000ft,
-            'cloud_area_fraction_above_threshold_assuming_only'
-            '_consider_surface_to_1000_feet_asl',
+            'cloud_area_fraction_assuming_only'
+            '_consider_surface_to_1000_feet_asl_above_threshold',
             '1',
             forecast_thresholds=np.array([0.85])))
 
@@ -179,8 +179,8 @@ def set_up_wxcubes_global():
     cloud_below_1000ft = (
         set_up_probability_above_threshold_cube(
             data_cld_1000ft,
-            'cloud_area_fraction_above_threshold_assuming_only'
-            '_consider_surface_to_1000_feet_asl',
+            'cloud_area_fraction_assuming_only'
+            '_consider_surface_to_1000_feet_asl_above_threshold',
             '1',
             forecast_thresholds=np.array([0.85])))
 
