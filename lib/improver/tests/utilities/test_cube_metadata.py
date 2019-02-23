@@ -68,7 +68,7 @@ def create_cube_with_threshold(data=None, threshold_values=None):
         data[:, 0, :, :] = 0.5
         data[:, 1, :, :] = 0.6
 
-    long_name = "probability_of_rainfall_rate"
+    long_name = "probability_of_rainfall_rate_above_threshold"
     units = "m s^-1"
 
     cube = set_up_probability_cube(
@@ -717,7 +717,7 @@ class Test_delete_attributes(IrisTest):
     def setUp(self):
         """Create a cube with attributes to be deleted."""
         data = np.zeros((2, 2))
-        long_name = "probability_of_rainfall_rate"
+        long_name = "probability_of_rainfall_rate_above_threshold"
         units = "m s^-1"
         attributes = {'title': 'This is a cube',
                       'tithe': '10 percent',
