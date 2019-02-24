@@ -299,9 +299,8 @@ def wxcode_decision_tree():
             'threshold_condition': '>=',
             'condition_combination': '',
             'diagnostic_fields':
-                [('probability_of_cloud_area_fraction_assuming'
-                                   '_only_consider_surface_to_1000_feet_asl'
-                                   '_above_threshold')],
+                [('probability_of_cloud_area_fraction_assuming_only_consider_'
+                    'surface_to_1000_feet_asl_above_threshold')],
             'diagnostic_thresholds': [AuxCoord(0.85, units=1)],
             'diagnostic_conditions': ['above']},
 
