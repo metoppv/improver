@@ -141,7 +141,9 @@ def main(argv=None):
     if args.wxtree == 'global':
         required_number_of_inputs = n_files_global
     if len(cubes) != required_number_of_inputs:
-        msg = 'Incorrect number of inputs'
+        msg = ('Incorrect number of inputs: files {} gave {} cubes' +
+               ', {} required').format(args.input_filepaths, len(cubes),
+                                       required_number_of_inputs)
         raise argparse.ArgumentTypeError(msg)
 
     result = (WeatherSymbols(wxtree=args.wxtree).process(cubes))
