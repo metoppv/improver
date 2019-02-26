@@ -372,8 +372,12 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
 
     if relative_to_threshold == 'above':
         name = name_prefix + '{}_above_threshold'.format(variable_name)
-    else:
+    elif relative_to_threshold == 'below':
         name = name_prefix + '{}_below_threshold'.format(variable_name)
+    else:
+        msg = 'The relative_to_threshold attribute MUST be set for ' \
+              'IMPROVER probability cubes'
+        raise ValueError(msg)
 
     cube = set_up_variable_cube(
         data, name=name, units='1', spatial_grid=spatial_grid,

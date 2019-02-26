@@ -183,9 +183,9 @@ class Test_weighted_blend(IrisTest):
         data_threshold[1, 1, :, :] = 0.6
         data_threshold[1, 2, :, :] = 0.8
 
-        cube_threshold = Cube(data_threshold, long_name="probability_of_"
-                                                        "precipitation_amount"
-                                                        "_below_threshold")
+        cube_threshold = Cube(
+            data_threshold,
+            long_name="probability_of_precipitation_amount_below_threshold")
         cube_threshold.add_dim_coord(threshold, 0)
         cube_threshold.add_dim_coord(frt_coord, 1)
         cube_threshold.add_dim_coord(lat_coord, 2)

@@ -92,9 +92,8 @@ def interrogate_decision_tree(wxtree):
                                   return_index=True)
         output.append('{}; thresholds: {}'.format(
             requirement, ', '.join([
-                '{} {} ({})'.format(str(relation),
-                                    str(threshold.points.item()),
-                                    str(threshold.units))
+                '{} ({})'.format(str(threshold.points.item()),
+                                 str(threshold.units))
                 for threshold, relation in
                 zip(entries[thresholds], relations[thresholds])])))
     return output
