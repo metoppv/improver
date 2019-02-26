@@ -115,13 +115,12 @@ def set_up_wxcubes():
         spp__relative_to_threshold='above',
         forecast_thresholds=np.array([0.1875, 0.8125])))
 
-    data_cld_1000ft = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-                                0.0, 0.0, 0.0]).reshape(1, 1, 3, 3)
-    cloud_below_1000ft = (
+    data_cld_low = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+                             0.0, 0.0, 0.0]).reshape(1, 1, 3, 3)
+    cloud_low = (
         set_up_probability_threshold_cube(
-            data_cld_1000ft,
-            'cloud_area_fraction_assuming_only'
-            '_consider_surface_to_1000_feet_asl',
+            data_cld_low,
+            'low_type_cloud_area_fraction',
             '1',
             spp__relative_to_threshold='above',
             forecast_thresholds=np.array([0.85])))
@@ -140,7 +139,7 @@ def set_up_wxcubes():
 
     cubes = iris.cube.CubeList([snowfall_rate, rainfall_rate,
                                 snowfall_vicinity, rainfall_vicinity,
-                                cloud, cloud_below_1000ft,
+                                cloud, cloud_low,
                                 visibility])
     return cubes
 
@@ -185,13 +184,12 @@ def set_up_wxcubes_global():
         spp__relative_to_threshold='above',
         forecast_thresholds=np.array([0.1875, 0.8125])))
 
-    data_cld_1000ft = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-                                0.0, 0.0, 0.0]).reshape(1, 1, 3, 3)
-    cloud_below_1000ft = (
+    data_cld_low = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+                            0.0, 0.0, 0.0]).reshape(1, 1, 3, 3)
+    cloud_low = (
         set_up_probability_threshold_cube(
-            data_cld_1000ft,
-            'cloud_area_fraction_assuming_only'
-            '_consider_surface_to_1000_feet_asl',
+            data_cld_low,
+            'low_type_cloud_area_fraction',
             '1',
             spp__relative_to_threshold='above',
             forecast_thresholds=np.array([0.85])))
@@ -210,7 +208,7 @@ def set_up_wxcubes_global():
                      ).attributes['spp__relative_to_threshold'] = 'below'
 
     cubes = iris.cube.CubeList([snowfall_rate, rainfall_rate,
-                                cloud, cloud_below_1000ft,
+                                cloud, cloud_low,
                                 visibility])
     return cubes
 
@@ -651,8 +649,8 @@ class Test_process(IrisTest):
         data_cloud = np.array([0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0,
                                0.0, 1.0, 0.0, 1.0, 0.0, 1.0,
                                0.0, 1.0, 1.0]).reshape(2, 1, 3, 3)
-        data_cld_1000ft = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                    0.0, 0.0, 0.0]).reshape(1, 1, 3, 3)
+        data_cld_low = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                 0.0, 0.0, 0.0]).reshape(1, 1, 3, 3)
         data_vis = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                              0.0, 0.0, 0.0]).reshape(2, 1, 3, 3)
@@ -662,7 +660,7 @@ class Test_process(IrisTest):
         cubes[2].data = data_snowv
         cubes[3].data = data_rainv
         cubes[4].data = data_cloud
-        cubes[5].data = data_cld_1000ft
+        cubes[5].data = data_cld_low
         cubes[6].data = data_vis
         result = plugin.process(cubes)
         expected_wxcode = np.array([14, 15, 17,
@@ -701,8 +699,8 @@ class Test_process(IrisTest):
         data_cloud = np.array([0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0,
                                0.0, 1.0, 0.0, 1.0, 0.0, 1.0,
                                0.0, 1.0, 1.0]).reshape(2, 1, 3, 3)
-        data_cld_1000ft = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                    0.0, 0.0, 0.0]).reshape(1, 1, 3, 3)
+        data_cld_low = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                 0.0, 0.0, 0.0]).reshape(1, 1, 3, 3)
         data_vis = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                              0.0, 0.0, 0.0]).reshape(2, 1, 3, 3)
@@ -710,7 +708,7 @@ class Test_process(IrisTest):
         cubes[0].data = data_snow
         cubes[1].data = data_rain
         cubes[2].data = data_cloud
-        cubes[3].data = data_cld_1000ft
+        cubes[3].data = data_cld_low
         cubes[4].data = data_vis
         result = plugin.process(cubes)
         expected_wxcode = np.array([14, 15, 17,
