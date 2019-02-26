@@ -161,8 +161,7 @@ def set_up_cube(zero_point_indices=((0, 0, 7, 7),), num_time_points=1,
 
 def set_up_cube_with_no_realizations(zero_point_indices=((0, 7, 7),),
                                      num_time_points=1,
-                                     num_grid_points=16,
-                                     source_realizations=None):
+                                     num_grid_points=16):
     """Set up a cube with equal intervals along the x and y axis."""
 
     zero_point_indices = list(zero_point_indices)
@@ -181,11 +180,6 @@ def set_up_cube_with_no_realizations(zero_point_indices=((0, 7, 7),),
 
     cube = Cube(data, standard_name="precipitation_amount",
                 units="kg m^-2")
-
-    if source_realizations is not None:
-        if isinstance(source_realizations, list):
-            cube.attributes.update(
-                {'source_realizations': source_realizations})
 
     tunit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
     time_points = [402192.5 + _ for _ in range(num_time_points)]
@@ -408,24 +402,6 @@ class Test_process(IrisTest):
         radii = 5600
         neighbourhood_method = CircularNeighbourhood()
         result = NBHood(neighbourhood_method, radii).process(cube)
-        self.assertIsInstance(result, Cube)
-        expected = np.ones([1, 16, 16])
-        expected[0, 6:9, 6:9] = (
-            [0.91666667, 0.875, 0.91666667],
-            [0.875, 0.83333333, 0.875],
-            [0.91666667, 0.875, 0.91666667])
-        self.assertArrayAlmostEqual(result.data, expected)
-
-    def test_source_realizations(self):
-        """Test when the array has source_realization attribute."""
-        realization_list = [0, 1, 2, 3]
-        cube = (
-            set_up_cube_with_no_realizations(
-                source_realizations=realization_list))
-        radii = 5600
-        neighbourhood_method = CircularNeighbourhood()
-        plugin = NBHood(neighbourhood_method, radii)
-        result = plugin.process(cube)
         self.assertIsInstance(result, Cube)
         expected = np.ones([1, 16, 16])
         expected[0, 6:9, 6:9] = (

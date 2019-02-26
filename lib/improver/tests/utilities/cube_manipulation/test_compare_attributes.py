@@ -163,14 +163,14 @@ class Test_compare_attributes(IrisTest):
     def test_unhashable_types_list(self):
         """Test that the utility returns differences when unhashable attributes
         are present, e.g. a list."""
-        self.cube.attributes['source_realizations'] = [0, 1, 2]
+        self.cube.attributes['test_attribute'] = [0, 1, 2]
         cubelist = iris.cube.CubeList([self.cube, self.cube_ukv])
         result = compare_attributes(cubelist)
 
         expected = [
             {'mosg__model_configuration': 'uk_ens',
              'mosg__grid_version': '1.2.0',
-             'source_realizations': [0, 1, 2]},
+             'test_attribute': [0, 1, 2]},
             {'mosg__model_configuration': 'uk_det',
              'mosg__grid_version': '1.1.0'}]
 
@@ -179,14 +179,14 @@ class Test_compare_attributes(IrisTest):
     def test_unhashable_types_array(self):
         """Test that the utility returns differences when unhashable attributes
         are present, e.g. a numpy array."""
-        self.cube.attributes['source_realizations'] = np.array([0, 1, 2])
+        self.cube.attributes['test_attribute'] = np.array([0, 1, 2])
         cubelist = iris.cube.CubeList([self.cube, self.cube_ukv])
         result = compare_attributes(cubelist)
 
         expected = [
             {'mosg__model_configuration': 'uk_ens',
              'mosg__grid_version': '1.2.0',
-             'source_realizations': np.array([0, 1, 2])},
+             'test_attribute': np.array([0, 1, 2])},
             {'mosg__model_configuration': 'uk_det',
              'mosg__grid_version': '1.1.0'}]
 
@@ -197,8 +197,8 @@ class Test_compare_attributes(IrisTest):
                          expected[0]['mosg__model_configuration'])
         self.assertEqual(result[0]['mosg__grid_version'],
                          expected[0]['mosg__grid_version'])
-        self.assertArrayEqual(result[0]['source_realizations'],
-                              expected[0]['source_realizations'])
+        self.assertArrayEqual(result[0]['test_attribute'],
+                              expected[0]['test_attribute'])
 
 
 if __name__ == '__main__':

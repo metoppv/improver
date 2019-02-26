@@ -161,6 +161,8 @@ class BaseNeighbourhoodProcessing(object):
             slices_over_realization = [cube]
         else:
             slices_over_realization = cube.slices_over("realization")
+            # source_realizations should be used within improver but the
+            # following provides a check:
             if 'source_realizations' in cube.attributes:
                 msg = ("Realizations and attribute source_realizations "
                        "should not both be set in input cube")

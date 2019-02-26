@@ -56,7 +56,7 @@ def set_up_test_cube():
         273.15
     )
     cube = set_up_cube(data, 'air_temperature', 'K', realizations=([0]))
-    cube.attributes['source_realizations'] = np.arange(12)
+    cube.attributes['test_attribute'] = np.arange(12)
     # Desired attributes that will be global in netCDF file
     cube.attributes['um_version'] = '10.4'
     cube.attributes['mosg__grid_type'] = 'standard'
@@ -164,10 +164,10 @@ class Test_save_netcdf(IrisTest):
         # cast explicitly to dictionary, as pylint does not recognise
         # OrderedDict as subscriptable
         cf_data_dict = dict(Dataset(self.filepath, mode='r').variables)
-        self.assertTrue('source_realizations' in
+        self.assertTrue('test_attribute' in
                         cf_data_dict['air_temperature'].ncattrs())
         self.assertArrayEqual(
-            cf_data_dict['air_temperature'].getncattr('source_realizations'),
+            cf_data_dict['air_temperature'].getncattr('test_attribute'),
             np.arange(12))
 
     def test_cf_shared_attributes_list(self):
