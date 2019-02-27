@@ -323,7 +323,8 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
     - option to specify additional scalar coordinates
     - "relative_to_threshold" attribute (default "above")
     - default or configurable attributes
-    - configurable cube data, name conforms to "probability_of_X" convention
+    - configurable cube data, name conforms to
+    "probability_of_X_above(or below)_threshold" convention
 
     Args:
         data (np.ndarray):
