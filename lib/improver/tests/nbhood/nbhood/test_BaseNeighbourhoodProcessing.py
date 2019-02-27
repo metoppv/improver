@@ -373,15 +373,6 @@ class Test_process(IrisTest):
             neighbourhood_method = CircularNeighbourhood
             NBHood(neighbourhood_method, self.RADIUS).process(self.cube)
 
-    def test_realizations_and_source_realizations_fails(self):
-        """Raises error if realizations and source realizations both set."""
-        self.cube.attributes.update({'source_realizations': [0, 1, 2, 3]})
-        msg = ('Realizations and attribute source_realizations should not'
-               ' both be set')
-        with self.assertRaisesRegex(ValueError, msg):
-            neighbourhood_method = CircularNeighbourhood()
-            NBHood(neighbourhood_method, self.RADIUS).process(self.cube)
-
     def test_multiple_realizations(self):
         """Test when the cube has a realization dimension."""
         cube = set_up_cube(num_realization_points=4)
