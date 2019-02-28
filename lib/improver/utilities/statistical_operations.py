@@ -73,7 +73,7 @@ class ProbabilitiesFromPercentiles2D(object):
         each point in the orography field.
     """
 
-    def __init__(self, percentiles_cube, output_name=None):
+    def __init__(self, percentiles_cube, output_name):
         """
         Initialise class. Sets an inverse_ordering (bool) switch to true for
         cases where the percentiled data increases in the opposite sense to the
@@ -103,12 +103,7 @@ class ProbabilitiesFromPercentiles2D(object):
                    "values are provided.")
             raise ValueError(msg)
         self.percentiles_cube = percentiles_cube
-
-        if output_name is not None:
-            self.output_name = output_name
-        else:
-            self.output_name = "probability_of_{}".format(
-                percentiles_cube.name())
+        self.output_name = output_name
 
         # Set inverse_ordering switch
         percentile_slices = percentiles_cube.slices_over(

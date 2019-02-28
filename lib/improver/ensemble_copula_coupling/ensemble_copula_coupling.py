@@ -499,6 +499,10 @@ class GeneratePercentilesFromProbabilities(object):
                 threshold_coord.name()):
             template_cube.rename(
                 template_cube.name().replace("probability_of_", ""))
+            template_cube.rename(
+                template_cube.name().replace(
+                    "_above_threshold", "").replace("_below_threshold", ""))
+
             template_cube.remove_coord(threshold_coord.name())
             template_cube.attributes.pop('relative_to_threshold')
             break
@@ -559,7 +563,9 @@ class GeneratePercentilesFromProbabilities(object):
 
         threshold_coord = forecast_probabilities.coord("threshold")
         phenom_name = (
-            forecast_probabilities.name().replace("probability_of_", ""))
+            forecast_probabilities.name().replace(
+                "probability_of_", "").replace("_above_threshold", "").replace(
+                "_below_threshold", ""))
 
         if no_of_percentiles is None:
             no_of_percentiles = (

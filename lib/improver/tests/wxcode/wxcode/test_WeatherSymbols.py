@@ -43,7 +43,8 @@ from cf_units import Unit
 from improver.wxcode.weather_symbols import WeatherSymbols
 from improver.wxcode.wxcode_utilities import WX_DICT
 from improver.tests.ensemble_calibration.ensemble_calibration. \
-    helper_functions import set_up_probability_above_threshold_cube
+    helper_functions import set_up_probability_above_threshold_cube, \
+    set_up_probability_below_threshold_cube
 
 
 def set_up_wxcubes():
@@ -123,7 +124,7 @@ def set_up_wxcubes():
                          0.0, 0.0, 1.0, 1.0, 0.0, 0.0,
                          0.0, 1.0, 0.0]).reshape(2, 1, 3, 3)
     visibility = (
-        set_up_probability_above_threshold_cube(
+        set_up_probability_below_threshold_cube(
             data_vis,
             'visibility_in_air',
             'm',
@@ -188,7 +189,7 @@ def set_up_wxcubes_global():
                          0.0, 0.0, 1.0, 1.0, 0.0, 0.0,
                          0.0, 1.0, 0.0]).reshape(2, 1, 3, 3)
     visibility = (
-        set_up_probability_above_threshold_cube(
+        set_up_probability_below_threshold_cube(
             data_vis,
             'visibility_in_air',
             'm',

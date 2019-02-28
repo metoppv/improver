@@ -78,11 +78,8 @@ def main():
                         "calculated.")
     parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
                         help="The output path for the processed NetCDF")
-    parser.add_argument("--new_name", metavar="NEW_NAME", default=None,
-                        type=str,
-                        help="Name for data in output file.  Defaults to "
-                        "'probability_of_X', where X is the name of the "
-                        "percentiled diagnostic.")
+    parser.add_argument("new_name", metavar="NEW_NAME", type=str,
+                        help="Name for data in output file.")
     args = parser.parse_args()
 
     threshold_cube = load_cube(args.threshold_filepath)

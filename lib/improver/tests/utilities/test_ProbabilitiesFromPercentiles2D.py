@@ -103,17 +103,19 @@ class Test__init__(IrisTest):
                                                          self.new_name)
         self.assertEqual(plugin_instance.output_name, self.new_name)
 
-    def test_naming(self):
-        """ Test default naming """
-        plugin_instance = ProbabilitiesFromPercentiles2D(self.test_cube)
-        self.assertEqual(plugin_instance.output_name,
-                         "probability_of_{}".format(self.test_cube.name()))
+    # def test_naming(self):
+    #     """ Test default naming """
+    #     plugin_instance = ProbabilitiesFromPercentiles2D(self.test_cube)
+    #     self.assertEqual(
+    #         plugin_instance.output_name,
+    #         "probability_of_{}_above_threshold".format(self.test_cube.name()))
 
     def test_inverse_order_false(self):
         """ Test setting of inverse_order flag using percentiles_cube. In this
         case the flag should be false as the values associated with the
         percentiles increase in the same direction as the percentiles."""
-        plugin_instance = ProbabilitiesFromPercentiles2D(self.test_cube)
+        plugin_instance = ProbabilitiesFromPercentiles2D(
+            self.test_cube, 'new_name')
         self.assertFalse(plugin_instance.inverse_ordering)
 
     def test_inverse_order_true(self):
@@ -122,7 +124,8 @@ class Test__init__(IrisTest):
         percentiles increase in the opposite direction to the percentiles."""
         percentiles_cube = self.test_cube.copy(
             data=np.flipud(self.test_cube.data))
-        plugin_instance = ProbabilitiesFromPercentiles2D(percentiles_cube)
+        plugin_instance = ProbabilitiesFromPercentiles2D(
+            percentiles_cube, 'new_name')
         self.assertTrue(plugin_instance.inverse_ordering)
 
     def test_single_percentile(self):
@@ -132,14 +135,14 @@ class Test__init__(IrisTest):
         percentiles_cube = percentiles_cube[0]
         msg = "Percentile coordinate has only one value. Interpolation"
         with self.assertRaisesRegex(ValueError, msg):
-            ProbabilitiesFromPercentiles2D(percentiles_cube)
+            ProbabilitiesFromPercentiles2D(percentiles_cube, 'new_name')
 
 
 class Test__repr__(IrisTest):
     """ Test string representation """
     def test_basic(self):
         """ Compare __repr__ string with expectation """
-        new_name = "probability"
+        new_name = "probability_of_snowfall"
         test_cube = set_up_percentiles_cube()
         inverse_ordering = False
         expected = ('<ProbabilitiesFromPercentiles2D: percentiles_'
@@ -209,7 +212,7 @@ class Test_percentile_interpolation(IrisTest):
         expected = set_reference_probabilities()
 
         probability_cube = ProbabilitiesFromPercentiles2D(
-            self.percentiles_cube).percentile_interpolation(
+            self.percentiles_cube, 'new_name').percentile_interpolation(
                 self.orography_cube, self.percentiles_cube)
         self.assertArrayAlmostEqual(probability_cube.data, expected)
 
@@ -228,7 +231,7 @@ class Test_percentile_interpolation(IrisTest):
         expected = 1.0 - expected
 
         probability_cube = ProbabilitiesFromPercentiles2D(
-            self.percentiles_cube).percentile_interpolation(
+            self.percentiles_cube, 'new_name').percentile_interpolation(
                 self.orography_cube, self.percentiles_cube)
         self.assertArrayAlmostEqual(probability_cube.data, expected)
 
@@ -239,7 +242,7 @@ class Test_percentile_interpolation(IrisTest):
         expected = set_reference_probabilities()
         expected[np.where(expected < 0.25)] = 0.
         probability_cube = ProbabilitiesFromPercentiles2D(
-            self.percentiles_cube).percentile_interpolation(
+            self.percentiles_cube, 'new_name').percentile_interpolation(
                 self.orography_cube, self.percentiles_cube)
 
         self.assertArrayAlmostEqual(probability_cube.data, expected)
@@ -252,7 +255,7 @@ class Test_percentile_interpolation(IrisTest):
         expected[0:2, 0:2] = 0
         expected[2:, 0:2] = 1
         probability_cube = ProbabilitiesFromPercentiles2D(
-            self.percentiles_cube).percentile_interpolation(
+            self.percentiles_cube, 'new_name').percentile_interpolation(
                 self.orography_cube, self.percentiles_cube)
 
         self.assertArrayAlmostEqual(probability_cube.data, expected)
@@ -267,7 +270,7 @@ class Test_percentile_interpolation(IrisTest):
         expected[np.where(expected <= 0.25)] = 0.
         expected = 1.0 - expected
         probability_cube = ProbabilitiesFromPercentiles2D(
-            self.percentiles_cube).percentile_interpolation(
+            self.percentiles_cube, 'new_name').percentile_interpolation(
                 self.orography_cube, self.percentiles_cube)
         self.assertArrayAlmostEqual(probability_cube.data, expected)
 
@@ -280,7 +283,8 @@ class Test_process(IrisTest):
     def setUp(self):
         """ Set up class instance and orography cube """
         percentiles_cube = set_up_percentiles_cube()
-        self.plugin_instance = ProbabilitiesFromPercentiles2D(percentiles_cube)
+        self.plugin_instance = ProbabilitiesFromPercentiles2D(
+            percentiles_cube, 'new_name')
         self.reference_cube = percentiles_cube[0]
         self.orography_cube = set_up_threshold_cube()
 
@@ -329,7 +333,8 @@ class Test_process(IrisTest):
                                  (percentiles, 1),
                                  (grid_y, 2), (grid_x, 3)])
 
-        plugin_instance = ProbabilitiesFromPercentiles2D(input_cube)
+        plugin_instance = ProbabilitiesFromPercentiles2D(
+            input_cube, 'new_name')
         probability_cube = plugin_instance.process(self.orography_cube)
         self.assertEqual(input_cube.coords(dim_coords=True)[0],
                          probability_cube.coords(dim_coords=True)[0])
@@ -347,7 +352,8 @@ class Test_process(IrisTest):
         percentiles_cube.add_aux_coord(new_model_coord)
         percentiles_cube = iris.util.new_axis(percentiles_cube,
                                               scalar_coord='leading_coord')
-        plugin_instance = ProbabilitiesFromPercentiles2D(percentiles_cube)
+        plugin_instance = ProbabilitiesFromPercentiles2D(
+            percentiles_cube, 'new_name')
         probability_cube = plugin_instance.process(self.orography_cube)
         self.assertEqual(percentiles_cube.coords(dim_coords=True)[0],
                          probability_cube.coords(dim_coords=True)[0])
