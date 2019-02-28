@@ -62,8 +62,8 @@ def main():
         The orography heights are compared against the heights that correspond
         with percentile values to find the band in which they fall, then
         interpolated linearly to obtain a probability of snow level at / below
-        the ground surface."""
-
+        the ground surface.
+    """
     parser = ArgParser(
         description="Calculate probability from a percentiled field at a "
         "2D threshold level.  Eg for 2D percentile levels at different "
