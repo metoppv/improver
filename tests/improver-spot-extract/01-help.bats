@@ -36,7 +36,7 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver-spot-extract [-h] [--profile] [--profile_file PROFILE_FILE]
                              [--land_constraint] [--minimum_dz]
-                             [--extract_percentile EXTRACT_PERCENTILE]
+                             [--extract_percentile EXTRACT_PERCENTILE [EXTRACT_PERCENTILE ...]]
                              [--ecc_bounds_warning]
                              [--temperature_lapse_rate_filepath TEMPERATURE_LAPSE_RATE_FILEPATH]
                              [--grid_metadata_identifier GRID_METADATA_IDENTIFIER]
@@ -83,15 +83,16 @@ Neighbour finding method:
                         the neighbour cube was created. May be used with
                         land_constraint.
 
-Extract a percentile:
-  Extract a particular percentile from probabilistic data.
+Extract percentiles:
+  Extract particular percentiles from probabilistic data.
 
-  --extract_percentile EXTRACT_PERCENTILE
-                        If set to a percentile value, data corresponding to
-                        that percentile will be returned. For example setting
-                        '--extract_percentile 50' will result in the 50th
-                        percentile (median) values being returned from a cube
-                        of probabilities or percentiles.
+  --extract_percentile EXTRACT_PERCENTILE [EXTRACT_PERCENTILE ...]
+                        If set to a percentile value or a list of percentile
+                        values, data corresponding to those percentiles will
+                        be returned. For example setting '--extract_percentile
+                        50' will result in the 50th percentile (median) values
+                        being returned from a cube of probabilities or
+                        percentiles.
 
 Temperature lapse rate adjustment:
   --temperature_lapse_rate_filepath TEMPERATURE_LAPSE_RATE_FILEPATH

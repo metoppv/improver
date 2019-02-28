@@ -33,19 +33,14 @@
 
 @test "spot-extract nearest temperatures" {
   improver_check_skip_acceptance
-  KGO="spot-extract/outputs/nearest_uk_temperatures.nc"
+  KGO="spot-extract/outputs/extract_multiple_percentiles_kgo.nc"
 
   # Run spot extract processing and check it passes.
   run improver spot-extract \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/all_methods_uk.nc" \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_temperature.nc" \
-      "$TEST_DIR/output.nc" --extract_percentile 50
-  echo "status = ${status}"
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/enukx_temperature_thresholds.nc" \
+      "$TEST_DIR/output.nc" --extract_percentile 25 50 75
   [[ "$status" -eq 0 ]]
-  read -d '' expected <<'__TEXT__' || true
-UserWarning: Diagnostic cube is not a known probabilistic type. The [50] percentile could not be extracted. Extracting data from the cube including any leading dimensions.
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
 

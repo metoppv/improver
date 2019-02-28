@@ -39,7 +39,7 @@
   run improver spot-extract \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/all_methods_uk.nc" \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_temperature.nc" \
-      --extract_percentile 50 --suppress_warnings "$TEST_DIR/output.nc"
+      "$TEST_DIR/output.nc" --extract_percentile 50 --suppress_warnings 
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__TEXT__' || true
 __TEXT__
