@@ -221,7 +221,6 @@ class Test_percentile_interpolation(IrisTest):
         sensible when we use the inverse_ordering set to True. This is for
         situations in which the values associated with the percentiles increase
         in the opposite direction, e.g. 0 % = 100m, 20% = 50m, etc.
-
         In this situation we expect the lowest points to have a probability of
         1, and the highest points to have probabilities of 0. The probabilities
         between should be the inverse of what is found in the usual case."""

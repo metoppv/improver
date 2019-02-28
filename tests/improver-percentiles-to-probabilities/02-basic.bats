@@ -38,7 +38,7 @@
   run improver percentiles-to-probabilities \
       "$IMPROVER_ACC_TEST_DIR/percentiles-to-probabilities/snow_level.nc" \
       "$IMPROVER_ACC_TEST_DIR/percentiles-to-probabilities/enukx_orography.nc" \
-      "$TEST_DIR/output.nc"
+      "$TEST_DIR/output.nc" "snow_prob"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

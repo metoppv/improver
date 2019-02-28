@@ -62,8 +62,8 @@ def main():
         The orography heights are compared against the heights that correspond
         with percentile values to find the band in which they fall, then
         interpolated linearly to obtain a probability of snow level at / below
-        the ground surface.
-    """
+        the ground surface."""
+
     parser = ArgParser(
         description="Calculate probability from a percentiled field at a "
         "2D threshold level.  Eg for 2D percentile levels at different "
@@ -79,7 +79,8 @@ def main():
     parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
                         help="The output path for the processed NetCDF")
     parser.add_argument("new_name", metavar="NEW_NAME", type=str,
-                        help="Name for data in output file.")
+                        help="Name for data in output file e.g. "
+                             "probability_of_snowfall")
     args = parser.parse_args()
 
     threshold_cube = load_cube(args.threshold_filepath)

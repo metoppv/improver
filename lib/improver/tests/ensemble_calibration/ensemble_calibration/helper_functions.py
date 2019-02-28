@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """
 Functions for use within unit tests for `ensemble_calibration` plugins.
-
 """
 import datetime
 

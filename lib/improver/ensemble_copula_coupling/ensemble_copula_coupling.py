@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """
 This module defines the plugins required for Ensemble Copula Coupling.
-
 """
 import warnings
 import numpy as np
@@ -74,12 +73,10 @@ class RebadgePercentilesAsRealizations(object):
         Rebadge percentiles as ensemble realizations. The ensemble
         realization numbering will depend upon the number of percentiles in
         the input cube i.e. 0, 1, 2, 3, ..., n-1, if there are n percentiles.
-
         Args:
             cube (Iris.cube.Cube):
             Cube containing a percentile coordinate, which will be rebadged as
             ensemble realization.
-
         Raises:
             InvalidCubeError:
                 If the realization coordinate already exists on the cube.
@@ -117,16 +114,13 @@ class ResamplePercentiles(object):
     Class for resampling percentiles from an existing set of percentiles.
     In combination with the Ensemble Reordering plugin, this is a variant of
     Ensemble Copula Coupling.
-
     This class includes the ability to linearly interpolate from an
     input set of percentiles to a different output set of percentiles.
-
     """
 
     def __init__(self, ecc_bounds_warning=False):
         """
         Initialise the class.
-
         Keyword Args:
             ecc_bounds_warning (bool):
                 If true and ECC bounds are exceeded by the percentile values,
@@ -201,7 +195,6 @@ class ResamplePercentiles(object):
         set of percentiles to a new set of percentiles. This is constructed
         by linearly interpolating between the original set of percentiles
         to a new set of percentiles.
-
         Args:
             forecast_at_percentiles (Iris CubeList or Iris Cube):
                 Cube or CubeList expected to contain a percentile coordinate.
@@ -216,7 +209,6 @@ class ResamplePercentiles(object):
             percentile_cube (iris cube.Cube):
                 Cube containing values for the required diagnostic e.g.
                 air_temperature at the required percentiles.
-
         """
         original_percentiles = (
             forecast_at_percentiles.coord(
@@ -271,7 +263,6 @@ class ResamplePercentiles(object):
            in order to specify lower and upper bounds for the percentiles.
         3. Interpolate the percentile coordinate into an alternative
            set of percentiles using linear interpolation.
-
         Args:
             forecast_at_percentiles (Iris Cube):
                 Cube expected to contain a percentile coordinate.
@@ -283,9 +274,7 @@ class ResamplePercentiles(object):
             sampling (String):
                 Type of sampling of the distribution to produce a set of
                 percentiles e.g. quantile or random.
-
                 Accepted options for sampling are:
-
                 * Quantile: A regular set of equally-spaced percentiles aimed
                      at dividing a Cumulative Distribution Function into
                      blocks of equal probability.
@@ -294,7 +283,6 @@ class ResamplePercentiles(object):
             forecast_at_percentiles (iris.cube.Cube):
                 Cube with forecast values at the desired set of percentiles.
                 The percentile coordinate is always the zeroth dimension.
-
         """
         percentile_coord = (
             find_percentile_coordinate(forecast_at_percentiles).name())
@@ -323,22 +311,18 @@ class GeneratePercentilesFromProbabilities(object):
     Class for generating percentiles from probabilities.
     In combination with the Ensemble Reordering plugin, this is a variant
     Ensemble Copula Coupling.
-
     This class includes the ability to interpolate between probabilities
     specified using multiple thresholds in order to generate the percentiles,
     see Figure 1 from Flowerdew, 2014.
-
     Scientific Reference:
     Flowerdew, J., 2014.
     Calibrated ensemble reliability whilst preserving spatial structure.
     Tellus Series A, Dynamic Meteorology and Oceanography, 66, 22662.
-
     """
 
     def __init__(self, ecc_bounds_warning=False):
         """
         Initialise the class.
-
         Keyword Args:
             ecc_bounds_warning (bool):
                 If true and ECC bounds are exceeded by the percentile values,
@@ -353,7 +337,6 @@ class GeneratePercentilesFromProbabilities(object):
         Padding of the lower and upper bounds of the distribution for a
         given phenomenon for the threshold_points, and padding of
         probabilities of 0 and 1 to the forecast probabilities.
-
         Args:
             threshold_points (Numpy array):
                 Array of threshold values used to calculate the probabilities.
@@ -414,7 +397,6 @@ class GeneratePercentilesFromProbabilities(object):
         of an cumulative distribution function. This is effectively
         constructed by linear interpolation from the probabilities associated
         with each threshold to a set of percentiles.
-
         Args:
             forecast_probabilities (Iris cube):
                 Cube with a threshold coordinate.
@@ -428,7 +410,6 @@ class GeneratePercentilesFromProbabilities(object):
             percentile_cube (Iris cube):
                 Cube containing values for the required diagnostic e.g.
                 air_temperature at the required percentiles.
-
         """
         threshold_coord = forecast_probabilities.coord("threshold")
         threshold_unit = forecast_probabilities.coord("threshold").units
@@ -521,7 +502,6 @@ class GeneratePercentilesFromProbabilities(object):
         4. Convert the threshold coordinate into
            values at a set of percentiles using linear interpolation,
            see Figure 1 from Flowerdew, 2014.
-
         Args:
             forecast_probabilities (Iris CubeList or Iris Cube):
                 Cube or CubeList expected to contain a threshold coordinate.
@@ -537,19 +517,15 @@ class GeneratePercentilesFromProbabilities(object):
             sampling (String):
                 Type of sampling of the distribution to produce a set of
                 percentiles e.g. quantile or random.
-
                 Accepted options for sampling are:
-
                 * Quantile: A regular set of equally-spaced percentiles aimed
                           at dividing a Cumulative Distribution Function into
                           blocks of equal probability.
                 * Random: A random set of ordered percentiles.
-
         Returns:
             forecast_at_percentiles (Iris cube):
                 Cube with forecast values at the desired set of percentiles.
                 The threshold coordinate is always the zeroth dimension.
-
         """
         if no_of_percentiles is not None and percentiles is not None:
             raise ValueError(
@@ -624,7 +600,6 @@ class GeneratePercentilesFromMeanAndVariance(object):
         mean and variance. The percentiles are created by assuming a
         Gaussian distribution and calculating the value of the phenomenon at
         specific points within the distribution.
-
         Args:
             calibrated_forecast_predictor (cube):
                 Predictor for the calibrated forecast i.e. the mean.
@@ -633,12 +608,10 @@ class GeneratePercentilesFromMeanAndVariance(object):
             percentiles (List):
                 Percentiles at which to calculate the value of the phenomenon
                 at.
-
         Returns:
             percentile_cube (Iris cube):
                 Cube containing the values for the phenomenon at each of the
                 percentiles requested.
-
         """
         calibrated_forecast_predictor = (
             enforce_coordinate_ordering(
@@ -707,7 +680,6 @@ class GeneratePercentilesFromMeanAndVariance(object):
                 no_of_percentiles):
         """
         Generate ensemble percentiles from the mean and variance.
-
         Args:
             calibrated_forecast_predictor_and_variance (Iris CubeList):
                 CubeList containing the calibrated forecast predictor and
@@ -715,12 +687,10 @@ class GeneratePercentilesFromMeanAndVariance(object):
             raw_forecast (Iris Cube or CubeList):
                 Cube or CubeList that is expected to be the raw
                 (uncalibrated) forecast.
-
         Returns:
             calibrated_forecast_percentiles (iris.cube.Cube):
                 Cube for calibrated percentiles.
                 The percentile coordinate is always the zeroth dimension.
-
         """
         (calibrated_forecast_predictor, calibrated_forecast_variance) = (
             calibrated_forecast_predictor_and_variance)
@@ -765,7 +735,6 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
         followed by spatial (y/x) dimensions. This check raises an error if
         this is not the case. If the cube contains the expected dimensions,
         a threshold leading order is enforced.
-
         Args:
             cube (iris.cube.Cube):
                 A cube whose dimensions are checked to ensure they match what
@@ -794,7 +763,6 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
         to ensure this is the case, converting units of the means and variances
         if possible. This has been written specifically for this plugin as we
         are comparing squared units in the case of the variance.
-
         Args:
             mean_values (iris.cube.Cube):
                 Cube of mean values.
@@ -822,7 +790,6 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
         """
         Function returning probabilities relative to provided thresholds based
         on the supplied mean and variance. A Gaussian distribution is assumed.
-
         Args:
             mean_values (iris.cube.Cube):
                 Predictor for the calibrated forecast i.e. the mean.
@@ -832,7 +799,6 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
                 A probability cube that has the threshold coordinate, and
                 attribute relative_to_threshold, that match the desired output
                 cube format.
-
         Returns:
             probability_cube (iris.cube.Cube):
                 Cube containing the data expressed as probabilities relative to
@@ -862,7 +828,6 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
     def process(self, mean_values, variance_values, probability_cube_template):
         """
         Generate probabilties from the mean and variance of distribution.
-
         Args:
             mean_values (iris.cube.Cube):
                 Cube containing the distribution mean values of a diagnostic,
@@ -874,7 +839,6 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
                 A probability cube that has the threshold coordinate, and
                 attribute relative_to_threshold, that match the desired output
                 cube format.
-
         Returns:
             probability_cube (iris.cube.Cube):
                 A cube of diagnostic data expressed as probabilities relative
@@ -895,13 +859,11 @@ class EnsembleReordering(object):
     Plugin for applying the reordering step of Ensemble Copula Coupling,
     in order to generate ensemble realizations with multivariate structure
     from percentiles. The percentiles are assumed to be in ascending order.
-
     Reference:
     Schefzik, R., Thorarinsdottir, T.L. & Gneiting, T., 2013.
     Uncertainty Quantification in Complex Simulation Models Using Ensemble
     Copula Coupling.
     Statistical Science, 28(4), pp.616-640.
-
     """
     def __init__(self):
         """Initialise the class"""
@@ -920,7 +882,6 @@ class EnsembleReordering(object):
         that the raw ensemble realizations are exchangeable. If fewer
         percentiles are requested than ensemble realizations, then only the
         first n ensemble realizations are used.
-
         Args:
             post_processed_forecast_percentiles  (iris.cube.Cube):
                 Cube for post-processed percentiles.
@@ -930,7 +891,6 @@ class EnsembleReordering(object):
                 Cube containing the raw (not post-processed) forecasts.
             percentile_coord (String):
                 Name of required percentile coordinate.
-
         Returns:
             raw_forecast_realizations (iris cube.Cube):
                 Cube for the raw ensemble forecast, where the raw ensemble
@@ -981,7 +941,6 @@ class EnsembleReordering(object):
         Function to apply Ensemble Copula Coupling. This ranks the
         post-processed forecast realizations based on a ranking determined from
         the raw forecast realizations.
-
         Args:
             post_processed_forecast_percentiles (cube):
                 Cube for post-processed percentiles. The percentiles are
@@ -999,13 +958,11 @@ class EnsembleReordering(object):
                 the random seed.
                 If random_seed is None, no random seed is set, so the random
                 values generated are not reproducible.
-
         Returns:
             iris.cube.Cube:
                 Cube for post-processed realizations where at a particular grid
                 point, the ranking of the values within the ensemble matches
                 the ranking from the raw ensemble.
-
         """
         results = iris.cube.CubeList([])
         for rawfc, calfc in zip(
@@ -1045,7 +1002,6 @@ class EnsembleReordering(object):
         """
         Reorder post-processed forecast using the ordering of the
         raw ensemble.
-
         Args:
             post_processed_forecast (Iris Cube or CubeList):
                 The cube or cubelist containing the post-processed
@@ -1062,7 +1018,6 @@ class EnsembleReordering(object):
                 the random seed.
                 If random_seed is None, no random seed is set, so the random
                 values generated are not reproducible.
-
         Returns:
             post-processed_forecast_realizations (cube):
                 Cube containing the new ensemble realizations where all points
