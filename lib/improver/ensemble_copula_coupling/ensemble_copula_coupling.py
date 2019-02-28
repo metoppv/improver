@@ -219,7 +219,6 @@ class ResamplePercentiles(object):
                 air_temperature at the required percentiles.
 
         """
-
         original_percentiles = (
             forecast_at_percentiles.coord(
                 percentile_coord).points)
@@ -298,7 +297,6 @@ class ResamplePercentiles(object):
                 The percentile coordinate is always the zeroth dimension.
 
         """
-
         percentile_coord = (
             find_percentile_coordinate(forecast_at_percentiles).name())
 
@@ -841,7 +839,6 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
                 Cube containing the data expressed as probabilities relative to
                 the provided thresholds in the way described by
                 relative_to_threshold.
-
         """
         thresholds = probability_cube_template.coord('threshold').points
         relative_to_threshold = (
@@ -1072,7 +1069,6 @@ class EnsembleReordering(object):
                 Cube containing the new ensemble realizations where all points
                 within the dataset have been reordered in comparison to the
                 input percentiles.
-
         """
         if isinstance(post_processed_forecast, iris.cube.CubeList):
             percentile_coord = (
