@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """
 This module defines the plugins required for Ensemble Copula Coupling.
+
 """
 
 import warnings
@@ -216,6 +217,7 @@ class ResamplePercentiles(object):
             percentile_cube (iris cube.Cube):
                 Cube containing values for the required diagnostic e.g.
                 air_temperature at the required percentiles.
+
         """
 
         original_percentiles = (
@@ -283,6 +285,7 @@ class ResamplePercentiles(object):
             sampling (String):
                 Type of sampling of the distribution to produce a set of
                 percentiles e.g. quantile or random.
+
                 Accepted options for sampling are:
 
                 * Quantile: A regular set of equally-spaced percentiles aimed
@@ -293,6 +296,7 @@ class ResamplePercentiles(object):
             forecast_at_percentiles (iris.cube.Cube):
                 Cube with forecast values at the desired set of percentiles.
                 The percentile coordinate is always the zeroth dimension.
+
         """
 
         percentile_coord = (
@@ -548,6 +552,7 @@ class GeneratePercentilesFromProbabilities(object):
             forecast_at_percentiles (Iris cube):
                 Cube with forecast values at the desired set of percentiles.
                 The threshold coordinate is always the zeroth dimension.
+
         """
         if no_of_percentiles is not None and percentiles is not None:
             raise ValueError(
@@ -830,6 +835,7 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
                 A probability cube that has the threshold coordinate, and
                 attribute relative_to_threshold, that match the desired output
                 cube format.
+
         Returns:
             probability_cube (iris.cube.Cube):
                 Cube containing the data expressed as probabilities relative to
