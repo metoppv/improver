@@ -158,13 +158,6 @@ def main():
         fuzzy_bounds=fuzzy_bounds, threshold_units=args.threshold_units,
         below_thresh_ok=args.below_threshold).process(cube)
 
-    # if args.vicinity is not None:
-    #     # smooth thresholded occurrences over local vicinity
-    #     result_no_collapse_coord = OccurrenceWithinVicinity(
-    #         args.vicinity).process(result_no_collapse_coord)
-    #     result_no_collapse_coord.rename(
-    #         result_no_collapse_coord.name() + '_in_vicinity')
-
     if args.vicinity is not None:
         # smooth thresholded occurrences over local vicinity
         result_no_collapse_coord = OccurrenceWithinVicinity(
