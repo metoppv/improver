@@ -32,7 +32,6 @@
 This module defines the plugins required for Ensemble Copula Coupling.
 
 """
-
 import warnings
 import numpy as np
 from scipy.stats import norm
@@ -159,6 +158,7 @@ class ResamplePercentiles(object):
                 **forecast_at_percentiles** (Numpy array):
                     Array containing the underlying forecast values at each
                     percentile.
+
         """
         lower_bound, upper_bound = bounds_pairing
         percentiles = insert_lower_and_upper_endpoint_to_1d_array(
@@ -937,7 +937,6 @@ class EnsembleReordering(object):
                 realizations have either been recycled or constrained,
                 depending upon the number of percentiles present
                 in the post-processed forecast cube.
-
         """
         plen = len(
             post_processed_forecast_percentiles.coord(

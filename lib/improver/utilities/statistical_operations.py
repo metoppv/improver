@@ -331,7 +331,7 @@ class ProbabilitiesFromPercentiles2D(object):
             probabilities (iris.cube.Cube):
                 A 2-dimensional cube of probabilities obtained by interpolating
                 between percentile values.
-                
+
         """
         percentiles = self.percentile_coordinate.points
         probabilities = self.create_probability_cube(percentiles_cube,
