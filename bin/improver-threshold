@@ -158,12 +158,28 @@ def main():
         fuzzy_bounds=fuzzy_bounds, threshold_units=args.threshold_units,
         below_thresh_ok=args.below_threshold).process(cube)
 
+    # if args.vicinity is not None:
+    #     # smooth thresholded occurrences over local vicinity
+    #     result_no_collapse_coord = OccurrenceWithinVicinity(
+    #         args.vicinity).process(result_no_collapse_coord)
+    #     result_no_collapse_coord.rename(
+    #         result_no_collapse_coord.name() + '_in_vicinity')
+
     if args.vicinity is not None:
         # smooth thresholded occurrences over local vicinity
         result_no_collapse_coord = OccurrenceWithinVicinity(
             args.vicinity).process(result_no_collapse_coord)
-        result_no_collapse_coord.rename(
-            result_no_collapse_coord.name() + '_in_vicinity')
+        cube_name = result_no_collapse_coord.name()
+        relative_to_threshold_index = max(
+            cube_name.find('_above_threshold'),
+            cube_name.find('_below_threshold'))
+        if relative_to_threshold_index == -1:
+            new_cube_name = cube_name + '_in_vicinity'
+        else:
+            new_cube_name = (cube_name[:relative_to_threshold_index] +
+                             '_in_vicinity' +
+                             cube_name[relative_to_threshold_index:])
+        result_no_collapse_coord.rename(new_cube_name)
 
     if args.collapse_coord == "None":
         save_netcdf(result_no_collapse_coord, args.output_filepath)
