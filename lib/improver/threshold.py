@@ -198,10 +198,12 @@ class BasicThreshold(object):
                 a given threshold has been exceeded or not.
 
                 The cube meta-data will contain:
-                 * input_cube name prepended with `probability_of_`
-                 * threshold dimension coordinate with same units as input_cube
-                 * threshold attribute (above or below threshold)
-                 * cube units set to (1).
+                * Input_cube name prepended with
+                probability_of_X_above(or below)_threshold (where X is
+                the diagnostic under consideration)
+                * Threshold dimension coordinate with same units as input_cube
+                * Threshold attribute (above or below threshold)
+                * Cube units set to (1).
 
         Raises:
             ValueError: if a np.nan value is detected within the input cube.
@@ -272,9 +274,12 @@ class BasicThreshold(object):
         # Force the metadata to temporary conventions
         if self.below_thresh_ok:
             cube.attributes.update({'relative_to_threshold': 'below'})
+            cube.rename(
+                "probability_of_{}_below_threshold".format(cube.name()))
         else:
             cube.attributes.update({'relative_to_threshold': 'above'})
-        cube.rename("probability_of_{}".format(cube.name()))
+            cube.rename(
+                "probability_of_{}_above_threshold".format(cube.name()))
         cube.units = Unit(1)
 
         cube = enforce_coordinate_ordering(
