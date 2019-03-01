@@ -58,16 +58,15 @@ def set_up_precip_probability_cube():
                       [0.02, 0.02, 0.00],
                       [0.01, 0.00, 0.00]]])
 
-    MMH_TO_MS = 0.001 / 3600.
-    threshold = DimCoord(MMH_TO_MS * np.array([0.03, 0.1, 1.0]),
+    MMH_TO_MS = 0.001/3600.
+    threshold = DimCoord(MMH_TO_MS*np.array([0.03, 0.1, 1.0]),
                          long_name="threshold", units="m s-1")
     ycoord = DimCoord(np.arange(3), "projection_y_coordinate")
     xcoord = DimCoord(np.arange(3), "projection_x_coordinate")
 
-    cube = iris.cube.Cube(
-        data, long_name="probability_of_precipitation_rate_above_threshold",
-        dim_coords_and_dims=[(threshold, 0), (ycoord, 1),
-                             (xcoord, 2)], units="1")
+    cube = iris.cube.Cube(data, long_name="probability_of_precipitation",
+                          dim_coords_and_dims=[(threshold, 0), (ycoord, 1),
+                                               (xcoord, 2)], units="1")
     return cube
 
 
@@ -190,8 +189,7 @@ class Test_apply_extraction(IrisTest):
 
     def test_basic_no_units(self):
         """ Test cube extraction for single constraint without units """
-        constraint_dict = {
-            "name": "probability_of_precipitation_rate_above_threshold"}
+        constraint_dict = {"name": "probability_of_precipitation"}
         constr = iris.Constraint(**constraint_dict)
         cube = apply_extraction(self.precip_cube, constr)
         self.assertIsInstance(cube, iris.cube.Cube)
@@ -210,9 +208,8 @@ class Test_apply_extraction(IrisTest):
 
     def test_multiple_constraints_with_units(self):
         """ Test behaviour with a list of constraints and units """
-        constraint_dict = {
-            "name": "probability_of_precipitation_rate_above_threshold",
-                    "threshold": 0.03}
+        constraint_dict = {"name": "probability_of_precipitation",
+                           "threshold": 0.03}
         constr = iris.Constraint(**constraint_dict)
         cube = apply_extraction(self.precip_cube, constr, self.units_dict)
         self.assertIsInstance(cube, iris.cube.Cube)
@@ -222,8 +219,7 @@ class Test_apply_extraction(IrisTest):
     def test_error_non_coord_units(self):
         """ Test error raised if units are provided for a non-coordinate
         constraint """
-        constraint_dict = {
-            "name": "probability_of_precipitation_rate_above_threshold"}
+        constraint_dict = {"name": "probability_of_precipitation"}
         units_dict = {"name": "1"}
         with self.assertRaises(CoordinateNotFoundError):
             apply_extraction(self.precip_cube, constraint_dict, units_dict)
@@ -232,9 +228,8 @@ class Test_apply_extraction(IrisTest):
         """ Test function returns None rather than raising an error where
         no subcubes match the required constraints, when unit conversion is
         required """
-        constraint_dict = {
-            "name": "probability_of_precipitation_rate_above_threshold",
-                    "threshold": 5}
+        constraint_dict = {"name": "probability_of_precipitation",
+                           "threshold": 5}
         constr = iris.Constraint(**constraint_dict)
         cube = apply_extraction(self.precip_cube, constr, self.units_dict)
         self.assertFalse(cube)

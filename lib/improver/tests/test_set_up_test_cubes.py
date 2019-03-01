@@ -337,8 +337,7 @@ class test_set_up_probability_cube(IrisTest):
         and metadata"""
         result = set_up_probability_cube(self.data, self.thresholds)
         thresh_coord = result.coord("threshold")
-        self.assertEqual(
-            result.name(), 'probability_of_air_temperature_above_threshold')
+        self.assertEqual(result.name(), 'probability_of_air_temperature')
         self.assertEqual(result.units, '1')
         self.assertArrayEqual(thresh_coord.points, self.thresholds)
         self.assertEqual(thresh_coord.units, 'K')
@@ -350,8 +349,7 @@ class test_set_up_probability_cube(IrisTest):
         result = set_up_probability_cube(
             self.data, self.thresholds,
             variable_name='probability_of_air_temperature')
-        self.assertEqual(
-            result.name(), 'probability_of_air_temperature_above_threshold')
+        self.assertEqual(result.name(), 'probability_of_air_temperature')
 
     def test_relative_to_threshold(self):
         """Test ability to reset the "relative_to_threshold" attribute"""
@@ -360,14 +358,6 @@ class test_set_up_probability_cube(IrisTest):
                                          relative_to_threshold='below')
         self.assertEqual(len(result.attributes), 1)
         self.assertEqual(result.attributes['relative_to_threshold'], 'below')
-
-    def test_relative_to_threshold_set(self):
-        """Test that an error is raised if the "relative_to_threshold"
-        attribute has not been set when setting up a probability cube"""
-        msg = 'The relative_to_threshold attribute MUST be set'
-        with self.assertRaisesRegex(ValueError, msg):
-            set_up_probability_cube(self.data, self.thresholds,
-                                    relative_to_threshold=None)
 
     def test_standard_grid_metadata(self):
         """Test standard grid metadata"""

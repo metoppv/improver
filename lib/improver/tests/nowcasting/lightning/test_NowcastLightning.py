@@ -115,8 +115,7 @@ class Test__update_metadata(IrisTest):
         cell methods to be discarded."""
         result = self.plugin._update_metadata(self.cube)
         self.assertIsInstance(result, Cube)
-        self.assertEqual(
-            result.name(), "probability_of_lightning_rate_above_threshold")
+        self.assertEqual(result.name(), "probability_of_lightning")
         msg = ("Expected to find exactly 1 threshold coordinate, but found "
                "none.")
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
@@ -428,21 +427,21 @@ class Test_apply_precip(IrisTest):
         self.fg_cube:
             forecast_period (on time coord): 0.0 hours (simulates nowcast data)
             All points contain float(1.)
-            Cube name is "probability_of_lightning_rate_above_threshold".
+            Cube name is "probability_of_lightning".
         self.precip_cube:
             With extra coordinate of length(3) "threshold" containing
             points [0.5, 7., 35.] mm hr-1.
             All points contain float(1.) except the
             zero point [0, 0, 1, 1] which is float(0.)
             and [1:, 0, ...] which are float(0.)
-            Cube name is "probability_of_precipitation_rate_above_threshold".
+            Cube name is "probability_of_precipitation".
             Cube has added attribute {'relative_to_threshold': 'above'}
         """
         self.fg_cube = add_forecast_reference_time_and_forecast_period(
             set_up_cube_with_no_realizations(zero_point_indices=[],
                                              num_grid_points=3),
             fp_point=0.0)
-        self.fg_cube.rename("probability_of_lightning_rate_above_threshold")
+        self.fg_cube.rename("probability_of_lightning")
         self.precip_cube = (
             add_forecast_reference_time_and_forecast_period(
                 set_up_cube(num_realization_points=3,
@@ -452,8 +451,7 @@ class Test_apply_precip(IrisTest):
         threshold_coord.points = [0.5, 7.0, 35.0]
         threshold_coord.rename('threshold')
         threshold_coord.units = cf_units.Unit('mm hr-1')
-        self.precip_cube.rename(
-            "probability_of_precipitation_rate_above_threshold")
+        self.precip_cube.rename("probability_of_precipitation")
         self.precip_cube.attributes.update({'relative_to_threshold': 'above'})
         self.precip_cube.data[1:, 0, ...] = 0.
         self.plugin = Plugin()
@@ -600,20 +598,19 @@ class Test_apply_ice(IrisTest):
         Data:
         self.fg_cube:
             All points contain float(1.)
-            Cube name is "probability_of_lightning_rate_above_threshold".
+            Cube name is "probability_of_lightning".
         self.ice_cube:
             With extra coordinate of length(3) "threshold" containing
             points [0.5, 1., 2.] kg m^-2.
             Time and forecast_period dimensions "sqeezed" to be Scalar coords.
             All points contain float(0.)
-            Cube name is
-            "probability_of_vertical_integral_of_ice_above_threshold".
+            Cube name is "probability_of_vertical_integral_of_ice".
         """
         self.fg_cube = add_forecast_reference_time_and_forecast_period(
             set_up_cube_with_no_realizations(zero_point_indices=[],
                                              num_grid_points=3),
             fp_point=0.0)
-        self.fg_cube.rename("probability_of_lightning_rate_above_threshold")
+        self.fg_cube.rename("probability_of_lightning")
         self.ice_cube = squeeze(
             add_forecast_reference_time_and_forecast_period(
                 set_up_cube(num_realization_points=3,
@@ -625,8 +622,7 @@ class Test_apply_ice(IrisTest):
         threshold_coord.rename('threshold')
         threshold_coord.units = cf_units.Unit('kg m^-2')
         self.ice_cube.data = np.zeros_like(self.ice_cube.data)
-        self.ice_cube.rename(
-            "probability_of_vertical_integral_of_ice_above_threshold")
+        self.ice_cube.rename("probability_of_vertical_integral_of_ice")
         self.plugin = Plugin()
 
     def test_basic(self):
@@ -752,7 +748,7 @@ class Test_process(IrisTest):
         Data:
         self.fg_cube:
             All points contain float(1.)
-            Cube name is "probability_of_lightning_rate_above_threshold".
+            Cube name is "probability_of_lightning".
         self.ltng_cube:
             forecast_period (on time coord): 0.0 hours (simulates nowcast data)
             All points contain float(1.)
@@ -764,7 +760,7 @@ class Test_process(IrisTest):
             All points contain float(1.) except the
             zero point [0, 0, 7, 7] which is float(0.)
             and [1:, 0, ...] which are float(0.)
-            Cube name is "probability_of_precipitation_rate_above_threshold".
+            Cube name is "probability_of_precipitation".
             Cube has added attribute {'relative_to_threshold': 'above'}
         self.vii_cube:
             forecast_period (on time coord): 0.0 hours (simulates nowcast data)
@@ -773,12 +769,11 @@ class Test_process(IrisTest):
             forecast_period (on time coord): 0.0 hours (simulates nowcast data)
             Time and forecast_period dimensions "sqeezed" to be Scalar coords.
             All points contain float(0.)
-            Cube name is
-            "probability_of_vertical_integral_of_ice_above_threshold".
+            Cube name is "probability_of_vertical_integral_of_ice".
         """
         self.fg_cube = add_forecast_reference_time_and_forecast_period(
             set_up_cube_with_no_realizations(zero_point_indices=[]))
-        self.fg_cube.rename("probability_of_lightning_rate_above_threshold")
+        self.fg_cube.rename("probability_of_lightning")
         self.ltng_cube = add_forecast_reference_time_and_forecast_period(
             set_up_cube_with_no_realizations(zero_point_indices=[]),
             fp_point=0.0)
@@ -791,8 +786,7 @@ class Test_process(IrisTest):
         threshold_coord.points = [0.5, 7.0, 35.0]
         threshold_coord.rename('threshold')
         threshold_coord.units = cf_units.Unit('mm hr-1')
-        self.precip_cube.rename(
-            "probability_of_precipitation_rate_above_threshold")
+        self.precip_cube.rename("probability_of_precipitation")
         self.precip_cube.attributes.update({'relative_to_threshold': 'above'})
         self.precip_cube.data[1:, 0, ...] = 0.
         self.vii_cube = squeeze(
@@ -805,8 +799,7 @@ class Test_process(IrisTest):
         threshold_coord.rename('threshold')
         threshold_coord.units = cf_units.Unit('kg m^-2')
         self.vii_cube.data = np.zeros_like(self.vii_cube.data)
-        self.vii_cube.rename(
-            "probability_of_vertical_integral_of_ice_above_threshold")
+        self.vii_cube.rename("probability_of_vertical_integral_of_ice")
         self.plugin = Plugin()
 
     def set_up_vii_input_output(self):
@@ -867,8 +860,7 @@ class Test_process(IrisTest):
         # We expect the threshold coordinate to have been removed.
         self.assertCountEqual(find_dimension_coordinate_mismatch(
                 result, self.precip_cube), ['threshold'])
-        self.assertTrue(
-            result.name() == 'probability_of_lightning_rate_above_threshold')
+        self.assertTrue(result.name() == 'probability_of_lightning')
 
     def test_basic_with_vii(self):
         """Test that the method returns the expected cube type when vii is
@@ -882,14 +874,13 @@ class Test_process(IrisTest):
         # We expect the threshold coordinate to have been removed.
         self.assertCountEqual(find_dimension_coordinate_mismatch(
                 result, self.precip_cube), ['threshold'])
-        self.assertTrue(
-            result.name() == 'probability_of_lightning_rate_above_threshold')
+        self.assertTrue(result.name() == 'probability_of_lightning')
 
     def test_no_first_guess_cube(self):
         """Test that the method raises an error if the first_guess cube is
         omitted from the cubelist"""
         msg = (r"Got 0 cubes for constraint Constraint\(name=\'probability_of_"
-               r"lightning_rate_above_threshold\'\), expecting 1.")
+               r"lightning\'\), expecting 1.")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
             self.plugin.process(CubeList([
                 self.ltng_cube,
@@ -909,7 +900,7 @@ class Test_process(IrisTest):
         """Test that the method raises an error if the precip cube is
         omitted from the cubelist"""
         msg = (r"Got 0 cubes for constraint Constraint\(name=\'probability_of_"
-               r"precipitation_rate_above_threshold\'\), expecting 1.")
+               r"precipitation\'\), expecting 1.")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
             self.plugin.process(CubeList([
                 self.fg_cube,

@@ -54,16 +54,16 @@ class Test_rationalise_blend_time_coords(IrisTest):
         # coming from the UKV
         data = np.full((3, 3), 0.6, dtype=np.float32)
         self.ukv_cube = set_up_variable_cube(
-            data, name='probability_of_air_temperature_above_threshold',
-            units='1', time=datetime(2017, 1, 10, 3, 0),
-            frt=datetime(2017, 1, 9, 23, 0), standard_grid_metadata='uk_det')
+            data, name='probability_of_air_temperature', units='1',
+            time=datetime(2017, 1, 10, 3, 0), frt=datetime(2017, 1, 9, 23, 0),
+            standard_grid_metadata='uk_det')
 
         # make a cube labelled as coming from MOGREPS-UK, with a different
         # forecast reference time from the UKV cube
         self.enuk_cube = set_up_variable_cube(
-            data, name='probability_of_air_temperature_above_threshold',
-            units='1', time=datetime(2017, 1, 10, 3, 0),
-            frt=datetime(2017, 1, 10, 0, 0), standard_grid_metadata='uk_ens')
+            data, name='probability_of_air_temperature', units='1',
+            time=datetime(2017, 1, 10, 3, 0), frt=datetime(2017, 1, 10, 0, 0),
+            standard_grid_metadata='uk_ens')
 
         # make a cube list and merged cube containing the two model cubes, for
         # use in defining reference coordinates for tests below
