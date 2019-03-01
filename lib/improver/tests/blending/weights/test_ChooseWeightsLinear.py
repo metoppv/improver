@@ -66,9 +66,9 @@ def set_up_basic_model_config_cube(frt=None, time_points=None):
         time_points = [dt(2017, 1, 10, 9, 0), dt(2017, 1, 10, 10, 0),
                        dt(2017, 1, 10, 11, 0)]
 
-    model_id_coord = AuxCoord([1000], long_name="model_id")
+    model_id_coord = (
+        AuxCoord(np.array(1000, dtype=np.int32), long_name="model_id"))
     model_config_coord = AuxCoord(["uk_det"], long_name="model_configuration")
-
     data = np.full((1, 2, 2), 275.15, dtype=np.float32)
     cube = set_up_variable_cube(
         data, time=frt, frt=frt, include_scalar_coords=[model_id_coord,

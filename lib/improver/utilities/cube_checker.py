@@ -40,6 +40,13 @@ def check_cube_datatypes(cube, fix=False):
     Coordinates are also checked to ensure that they have the desired datatype.
     The cube can be modified in place, if the fix keyword is
     specified to be True.
+    Prior to converting datatypes, the following unit conversions occur to
+    ensure that any datatype conversion, and any associated rounding, uses the
+    most appropriate units:
+        * time converted to "seconds since 1970-01-01 00:00:00"
+        * forecast_reference_time converted to
+          "seconds since 1970-01-01 00:00:00"
+        * forecast_period converted to seconds
 
     Args:
         cube (iris.cube.Cube):
@@ -66,21 +73,25 @@ def check_cube_datatypes(cube, fix=False):
     for coord in cube.coords():
         if coord.name() in ["time", "forecast_reference_time"]:
             coord.convert_units("seconds since 1970-01-01 00:00:00")
-            check_coord_datatypes(coord, np.int64, fix=True, rounding=True)
+            _check_coord_datatypes(coord, np.int64, fix=fix, rounding=True)
         elif coord.name() in ["forecast_period", "realization", "spot_index",
                               "neighbour_selection_method", "grid_attributes",
-                              "wmo_id"]:
-            check_coord_datatypes(coord, np.int32, fix=True)
+                              "wmo_id", "model_id"]:
+            if coord.name() in ["forecast_period"]:
+                coord.convert_units("seconds")
+            _check_coord_datatypes(coord, np.int32, fix=fix)
         elif coord.name() in ["neighbour_selection_method_name",
                               "grid_attributes_key", "model_configuration"]:
-            check_coord_datatypes(coord, str, fix=True)
+            _check_coord_datatypes(coord, np.unicode_, fix=fix)
         else:
-            check_coord_datatypes(coord, np.float32, fix=True)
+            _check_coord_datatypes(coord, np.float32, fix=fix)
 
 
-def check_coord_datatypes(coord, datatype, fix=False, rounding=False):
+def _check_coord_datatypes(coord, datatype, fix=False, rounding=False):
     """Check that the coordinate is of the datatype specified. The coordinate
-    will be modified in place, if the fix keyword is set to True.
+    will be modified in place, if the fix keyword is set to True. This
+    function is intended to be called from check_cube_datatypes, so that the
+    appropriate unit conversions have already occurred.
 
     Args:
         coord (iris.coord.DimCoord, iris.coord.AuxCoord):
@@ -102,7 +113,13 @@ def check_coord_datatypes(coord, datatype, fix=False, rounding=False):
         TypeError: The coordinate points are not of the expected datatype.
         TypeError: The coordinate bounds are not of the expected datatype.
     """
-    if coord.points.dtype != datatype:
+    # Check to ensure that the dtype of the coordinate points is
+    # mismatched with the specifed datatype, and ensure that the dtype
+    # of the coordinate points is not a subtype of the specified datatype.
+    # The np.issubdtype check is primarily used for compared unicode dtypes
+    # with np.unicode_.
+    if (coord.points.dtype != datatype and
+            not np.issubdtype(coord.points.dtype, datatype)):
         if fix:
             if rounding:
                 coord.points = np.around(coord.points)
@@ -115,7 +132,8 @@ def check_coord_datatypes(coord, datatype, fix=False, rounding=False):
                        coord.name(), coord.points, datatype, coord.dtype)
             raise TypeError(msg)
     if (hasattr(coord, "bounds") and coord.bounds is not None and
-            coord.bounds.dtype != datatype):
+            coord.bounds.dtype != datatype and
+            not np.issubdtype(coord.bounds.dtype, datatype)):
         if fix:
             if rounding:
                 coord.bounds = np.around(coord.bounds)

@@ -40,7 +40,7 @@ from iris.tests import IrisTest
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.cube_checker import (
-    check_coord_datatypes,
+    _check_coord_datatypes,
     check_cube_datatypes,
     check_for_x_and_y_axes,
     check_cube_coordinates,
@@ -148,7 +148,7 @@ class Test_check_cube_datatypes(IrisTest):
         self.assertEqual(self.cube, expected_cube)
 
 
-class Test_check_coord_datatypes(IrisTest):
+class Test__check_coord_datatypes(IrisTest):
 
     """Test that the coordinate specified contains the desired datatype."""
 
@@ -168,7 +168,7 @@ class Test_check_coord_datatypes(IrisTest):
         self.fp_coord.points = self.fp_coord.points.astype(np.float64)
         expected_coord = self.fp_coord.copy()
         expected_coord.points = self.fp_coord.points.astype(np.int32)
-        check_coord_datatypes(self.fp_coord, np.int32, fix=True)
+        _check_coord_datatypes(self.fp_coord, np.int32, fix=True)
         self.assertEqual(self.fp_coord, expected_coord)
 
     def test_forecast_period_coord_points_error(self):
@@ -179,7 +179,7 @@ class Test_check_coord_datatypes(IrisTest):
         expected_coord.points = self.fp_coord.points.astype(np.int32)
         msg = "The coordinate points provided were of "
         with self.assertRaisesRegex(TypeError, msg):
-            check_coord_datatypes(self.fp_coord, np.int32)
+            _check_coord_datatypes(self.fp_coord, np.int32)
 
     def test_time_coord_bounds_fix(self):
         """Test an example time coordinate is fixed to have an
@@ -187,7 +187,7 @@ class Test_check_coord_datatypes(IrisTest):
         self.time_coord.bounds = self.time_coord.bounds.astype(np.float64)
         expected_coord = self.time_coord.copy()
         expected_coord.bounds = self.time_coord.bounds.astype(np.int64)
-        check_coord_datatypes(self.time_coord, np.int64, fix=True)
+        _check_coord_datatypes(self.time_coord, np.int64, fix=True)
         self.assertEqual(self.time_coord, expected_coord)
 
     def test_time_coord_bounds_error(self):
@@ -198,7 +198,7 @@ class Test_check_coord_datatypes(IrisTest):
         expected_coord.bounds = self.time_coord.bounds.astype(np.int64)
         msg = "The coordinate bounds provided were of "
         with self.assertRaisesRegex(TypeError, msg):
-            check_coord_datatypes(self.time_coord, np.int64)
+            _check_coord_datatypes(self.time_coord, np.int64)
 
     def test_time_coord_points_and_bounds_fix_with_rounding(self):
         """Test an example time coordinate is fixed to have an
@@ -208,7 +208,7 @@ class Test_check_coord_datatypes(IrisTest):
         expected_coord = self.time_coord.copy()
         expected_coord.points = (
             np.around(self.time_coord.points).astype(np.int64))
-        check_coord_datatypes(
+        _check_coord_datatypes(
             self.time_coord, np.int64, fix=True, rounding=True)
         self.assertEqual(self.time_coord, expected_coord)
 
