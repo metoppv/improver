@@ -37,13 +37,13 @@
 
   # Run wxcode processing and check it passes.
   run improver wxcode \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/native_units/probability_of_rainfall_rate_above_threshold.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/native_units/probability_of_rainfall_rate_in_vicinity_above_threshold.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/native_units/probability_of_lwe_snowfall_rate_above_threshold.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/native_units/probability_of_lwe_snowfall_rate_in_vicinity_above_threshold.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/native_units/probability_of_visibility_in_air_below_threshold.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/native_units/probability_of_cloud_area_fraction_above_threshold.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/native_units/probability_of_cloud_area_fraction_assuming_only_consider_surface_to_1000_feet_asl_above_threshold.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/native_units/probability_of_rainfall_rate.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/native_units/probability_of_rainfall_rate_in_vicinity.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/native_units/probability_of_lwe_snowfall_rate.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/native_units/probability_of_lwe_snowfall_rate_in_vicinity.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/native_units/probability_of_visibility_in_air.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/native_units/probability_of_cloud_area_fraction.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/native_units/probability_of_cloud_area_fraction_assuming_only_consider_surface_to_1000_feet_asl.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

@@ -323,8 +323,7 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
     - option to specify additional scalar coordinates
     - "relative_to_threshold" attribute (default "above")
     - default or configurable attributes
-    - configurable cube data, name conforms to
-    "probability_of_X_above(or below)_threshold" convention
+    - configurable cube data, name conforms to "probability_of_X" convention
 
     Args:
         data (np.ndarray):
@@ -367,19 +366,9 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
         attributes['relative_to_threshold'] = relative_to_threshold
 
     if variable_name.startswith('probability_of_'):
-        name_prefix = ''
+        name = variable_name
     else:
-        name_prefix = 'probability_of_'
-
-    if relative_to_threshold == 'above':
-        name = name_prefix + '{}_above_threshold'.format(variable_name)
-    elif relative_to_threshold == 'below':
-        name = name_prefix + '{}_below_threshold'.format(variable_name)
-    else:
-        msg = 'The relative_to_threshold attribute MUST be set for ' \
-              'IMPROVER probability cubes'
-        raise ValueError(msg)
-
+        name = 'probability_of_{}'.format(variable_name)
     cube = set_up_variable_cube(
         data, name=name, units='1', spatial_grid=spatial_grid,
         time=time, frt=frt, time_bounds=time_bounds,
