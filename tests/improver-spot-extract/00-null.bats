@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2018 Met Office.
+# (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,15 +34,12 @@
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
 usage: improver-spot-extract [-h] [--profile] [--profile_file PROFILE_FILE]
-                             [--diagnostics DIAGNOSTICS [DIAGNOSTICS ...]]
-                             [--site_path SITE_PATH]
-                             [--constants_path CONSTANTS_PATH]
-                             [--latitudes -90,90) [(-90,90) ...]]
-                             [--longitudes (-180,180) [(-180,180 ...]]
-                             [--altitudes ALTITUDES [ALTITUDES ...]]
-                             [--multiprocess]
-                             config_file_path data_path ancillary_path
-                             output_path
+                             [--land_constraint] [--minimum_dz]
+                             [--temperature_lapse_rate_filepath TEMPERATURE_LAPSE_RATE_FILEPATH]
+                             [--grid_metadata_identifier GRID_METADATA_IDENTIFIER]
+                             [--json_file JSON_FILE]
+                             NEIGHBOUR_FILEPATH DIAGNOSTIC_FILEPATH
+                             OUTPUT_FILEPATH
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

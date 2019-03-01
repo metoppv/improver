@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2018 Met Office.
+# (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -40,19 +40,20 @@ from iris.exceptions import InvalidCubeError
 from iris.tests import IrisTest
 
 from improver.nowcasting.optical_flow import AdvectField
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
 
-def set_up_xy_velocity_cube(name, coord_points_y=None, val_units='m s-1'):
+def set_up_xy_velocity_cube(name, coord_points_y=None, units='m s-1'):
     """Set up a 3x4 cube of simple velocities (no convergence / divergence)"""
-    data = np.ones(shape=(4, 3))
-    coord_points_x = 0.6*np.arange(3)
+    data = np.ones(shape=(4, 3), dtype=np.float32)
+    cube = set_up_variable_cube(
+        data, name=name, units=units, spatial_grid="equalarea",
+        time=datetime.datetime(2017, 11, 10, 4, 0),
+        frt=datetime.datetime(2017, 11, 10, 4, 0))
+    cube.coord("projection_x_coordinate").points = 600*np.arange(3)
     if coord_points_y is None:
-        coord_points_y = 0.6*np.arange(4)
-    x_coord = DimCoord(coord_points_x, 'projection_x_coordinate', units='km')
-    y_coord = DimCoord(coord_points_y, 'projection_y_coordinate', units='km')
-    cube = iris.cube.Cube(data, long_name=name, units=val_units,
-                          dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
+        cube.coord("projection_y_coordinate").points = 600*np.arange(4)
     return cube
 
 
@@ -70,7 +71,7 @@ class Test__init__(IrisTest):
     def test_units(self):
         """Test velocity fields are converted to m/s"""
         vel_x = set_up_xy_velocity_cube("advection_velocity_x",
-                                        val_units="km h-1")
+                                        units="km h-1")
         expected_vel_x = vel_x.data / 3.6
         plugin = AdvectField(vel_x, vel_x)
         self.assertArrayAlmostEqual(plugin.vel_x.data, expected_vel_x)
@@ -246,7 +247,7 @@ class Test_process(IrisTest):
         data = np.array([[2., 3., 4.],
                          [1., 2., 3.],
                          [0., 1., 2.],
-                         [0., 0., 1.]])
+                         [0., 0., 1.]], dtype=np.float32)
         self.cube = iris.cube.Cube(
             data, standard_name='rainfall_rate', units='mm h-1',
             dim_coords_and_dims=[(self.plugin.y_coord, 0),
@@ -395,6 +396,83 @@ class Test_process(IrisTest):
         lead_time = result.coord("forecast_period").points
         self.assertEqual(len(lead_time), 1)
         self.assertEqual(lead_time[0], self.timestep.total_seconds())
+
+    def test_units_and_datatypes_for_time_coordinates(self):
+        """Test that the output cube contains the desired units and datatypes
+        for the time, forecast_reference_time and forecast_period coordinate.
+        In this instance, no forecast_reference_time coordinate is present on
+        the input cube.
+        """
+        result = self.plugin.process(self.cube, self.timestep)
+        self.assertEqual(result.coord("forecast_period").points, 600)
+        # 2017-11-10 04:10:00
+        self.assertEqual(result.coord("time").points, 1519099800)
+        self.assertEqual(
+            result.coord("forecast_reference_time").points, 1519099200)
+        self.assertEqual(result.coord("forecast_period").units, "seconds")
+        self.assertEqual(result.coord("time").units,
+                         "seconds since 1970-01-01 00:00:00")
+        self.assertEqual(result.coord("forecast_reference_time").units,
+                         "seconds since 1970-01-01 00:00:00")
+        self.assertEqual(result.coord("forecast_period").dtype, np.int32)
+        self.assertEqual(result.coord("time").dtype, np.int64)
+        self.assertEqual(
+            result.coord("forecast_reference_time").dtype, np.int64)
+
+    def test_time_unit_conversion(self):
+        """Test that the output cube contains the desired units and datatypes
+        for the time, forecast_reference_time and forecast_period coordinate,
+        where a unit conversion has been required for the time and forecast
+        reference time coordinates."""
+        self.cube.coord("time").convert_units("hours since 1970-01-01 00:00")
+        frt_coord = (
+            DimCoord(1519099200, standard_name="forecast_reference_time",
+                     units='seconds since 1970-01-01 00:00:00'))
+        frt_coord.convert_units("hours since 1970-01-01 00:00")
+        self.cube.add_aux_coord(frt_coord)
+        self.cube.coord("forecast_reference_time").convert_units(
+            "hours since 1970-01-01 00:00")
+        result = self.plugin.process(self.cube, self.timestep)
+        self.assertEqual(result.coord("forecast_period").points, 600)
+        # 2017-11-10 04:10:00
+        self.assertEqual(result.coord("time").points, 1519099800)
+        self.assertEqual(
+            result.coord("forecast_reference_time").points, 1519099200)
+        self.assertEqual(result.coord("forecast_period").units, "seconds")
+        self.assertEqual(result.coord("time").units,
+                         "seconds since 1970-01-01 00:00:00")
+        self.assertEqual(result.coord("forecast_reference_time").units,
+                         "seconds since 1970-01-01 00:00:00")
+        self.assertEqual(result.coord("forecast_period").dtype, np.int32)
+        self.assertEqual(result.coord("time").dtype, np.int64)
+        self.assertEqual(
+            result.coord("forecast_reference_time").dtype, np.int64)
+
+    def test_floating_point_time_input(self):
+        """Test that the output cube contains the desired units and datatypes
+        for the time, forecast_reference_time and forecast_period coordinate,
+        where a time and forecast_reference_time are input as floating point
+        values, so that the impact of the rounding is clearer."""
+        self.cube.coord("time").points = 1519099199.7
+        frt_coord = (
+            DimCoord(1519099199.7, standard_name="forecast_reference_time",
+                     units='seconds since 1970-01-01 00:00:00'))
+        self.cube.add_aux_coord(frt_coord)
+        result = self.plugin.process(self.cube, self.timestep)
+        self.assertEqual(result.coord("forecast_period").points, 600)
+        # 2017-11-10 04:10:00
+        self.assertEqual(result.coord("time").points, 1519099800)
+        self.assertEqual(
+            result.coord("forecast_reference_time").points, 1519099200)
+        self.assertEqual(result.coord("forecast_period").units, "seconds")
+        self.assertEqual(result.coord("time").units,
+                         "seconds since 1970-01-01 00:00:00")
+        self.assertEqual(result.coord("forecast_reference_time").units,
+                         "seconds since 1970-01-01 00:00:00")
+        self.assertEqual(result.coord("forecast_period").dtype, np.int32)
+        self.assertEqual(result.coord("time").dtype, np.int64)
+        self.assertEqual(
+            result.coord("forecast_reference_time").dtype, np.int64)
 
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2018 Met Office.
+# (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -145,6 +145,7 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         self.assertTrue(any(warning_msg in str(item)
                             for item in warning_list))
 
+    @ManageWarnings(ignored_messages=['The calculated threshold values'])
     def test_new_endpoints_generation(self):
         """Test that the plugin re-applies the threshold bounds using the
         maximum and minimum threshold points values when the original bounds
@@ -558,6 +559,19 @@ class Test_process(IrisTest):
             add_forecast_reference_time_and_forecast_period(
                 set_up_probability_above_threshold_temperature_cube()))
 
+        self.percentile_25 = np.array(
+            [[[24., 8.75, 11.],
+              [8.33333333, 8.75, -46.],
+              [-46., -66.25, -73.]]], dtype=np.float32)
+        self.percentile_50 = np.array(
+            [[[36., 10., 12.],
+              [10., 10., 8.],
+              [8., -32.5, -46.]]], dtype=np.float32)
+        self.percentile_75 = np.array(
+            [[[48., 11.66666667, 36.],
+              [11.66666667, 11., 10.5],
+              [9.66666667, 1.25, -19.]]], dtype=np.float32)
+
     @ManageWarnings(
         ignored_messages=["Only a single cube so no differences"])
     def test_check_data_specifying_no_of_percentiles(self):
@@ -565,22 +579,12 @@ class Test_process(IrisTest):
         Test that the plugin returns an Iris.cube.Cube with the expected
         data values for a specific number of percentiles.
         """
-        data = np.array([[[[24., 8.75, 11.],
-                           [8.33333333, 8.75, -66.],
-                           [-66., -93.75, -103.]]],
-                         [[[36., 10., 12.],
-                           [10., 10., 8.],
-                           [8., -47.5, -66.]]],
-                         [[[48., 11.66666667, 36.],
-                           [11.66666667, 11., 10.5],
-                           [9.66666667, -1.25, -29.]]]])
-
+        expected_data = np.array(
+            [self.percentile_25, self.percentile_50, self.percentile_75])
         cube = self.current_temperature_forecast_cube
-        no_of_percentiles = 3
         plugin = Plugin()
-        result = plugin.process(
-            cube, no_of_percentiles=no_of_percentiles)
-        self.assertArrayAlmostEqual(result.data, data, decimal=5)
+        result = plugin.process(cube, no_of_percentiles=3)
+        self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
 
     @ManageWarnings(
         ignored_messages=["Only a single cube so no differences"])
@@ -590,16 +594,11 @@ class Test_process(IrisTest):
         data values for a specific percentile passes in as a single realization
         list.
         """
-        data = np.array([[[[24., 8.75, 11.],
-                           [8.33333333, 8.75, -66.],
-                           [-66., -93.75, -103.]]]])
-
+        expected_data = np.array([self.percentile_25])
         cube = self.current_temperature_forecast_cube
-        percentiles = [25]
         plugin = Plugin()
-        result = plugin.process(
-            cube, percentiles=percentiles)
-        self.assertArrayAlmostEqual(result.data, data, decimal=5)
+        result = plugin.process(cube, percentiles=[25])
+        self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
 
     @ManageWarnings(
         ignored_messages=["Only a single cube so no differences"])
@@ -608,16 +607,11 @@ class Test_process(IrisTest):
         Test that the plugin returns an Iris.cube.Cube with the expected
         data values for a specific percentile passed in as a value.
         """
-        data = np.array([[[[24., 8.75, 11.],
-                           [8.33333333, 8.75, -66.],
-                           [-66., -93.75, -103.]]]])
-
+        expected_data = np.array([self.percentile_25])
         cube = self.current_temperature_forecast_cube
-        percentiles = 25
         plugin = Plugin()
-        result = plugin.process(
-            cube, percentiles=percentiles)
-        self.assertArrayAlmostEqual(result.data, data, decimal=5)
+        result = plugin.process(cube, percentiles=25)
+        self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
 
     @ManageWarnings(
         ignored_messages=["Only a single cube so no differences"])
@@ -626,22 +620,14 @@ class Test_process(IrisTest):
         Test that the plugin returns an Iris.cube.Cube with the expected
         data values for a specific set of percentiles.
         """
-        data = np.array([[[[24., 8.75, 11.],
-                           [8.33333333, 8.75, -66.],
-                           [-66., -93.75, -103.]]],
-                         [[[36., 10., 12.],
-                           [10., 10., 8.],
-                           [8., -47.5, -66.]]],
-                         [[[48., 11.66666667, 36.],
-                           [11.66666667, 11., 10.5],
-                           [9.66666667, -1.25, -29.]]]])
-
+        expected_data = np.array(
+            [self.percentile_25, self.percentile_50, self.percentile_75])
         cube = self.current_temperature_forecast_cube
         percentiles = [25, 50, 75]
         plugin = Plugin()
         result = plugin.process(
             cube, percentiles=percentiles)
-        self.assertArrayAlmostEqual(result.data, data, decimal=5)
+        self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
 
     @ManageWarnings(
         ignored_messages=["Only a single cube so no differences"])
@@ -650,20 +636,12 @@ class Test_process(IrisTest):
         Test that the plugin returns an Iris.cube.Cube with the expected
         data values without specifying the number of percentiles.
         """
-        data = np.array([[[[24., 8.75, 11.],
-                           [8.33333333, 8.75, -66.],
-                           [-66., -93.75, -103.]]],
-                         [[[36., 10., 12.],
-                           [10., 10., 8.],
-                           [8., -47.5, -66.]]],
-                         [[[48., 11.66666667, 36.],
-                           [11.66666667, 11., 10.5],
-                           [9.66666667, -1.25, -29.]]]])
-
+        expected_data = np.array(
+            [self.percentile_25, self.percentile_50, self.percentile_75])
         cube = self.current_temperature_forecast_cube
         plugin = Plugin()
         result = plugin.process(cube)
-        self.assertArrayAlmostEqual(result.data, data, decimal=5)
+        self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
 
     def test_check_data_over_specifying_percentiles(self):
         """

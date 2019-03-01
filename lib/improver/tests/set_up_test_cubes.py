@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2018 Met Office.
+# (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,7 @@ from iris.exceptions import CoordinateNotFoundError
 from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
 from improver.utilities.cube_metadata import MOSG_GRID_DEFINITION
 from improver.utilities.cube_checker import check_cube_datatypes
+from improver.utilities.temporal import forecast_period_coord
 
 TIME_UNIT = "seconds since 1970-01-01 00:00:00"
 CALENDAR = "gregorian"
@@ -116,7 +117,7 @@ def construct_scalar_time_coords(time, time_bounds, frt):
     if time_point_seconds < frt_point_seconds:
         raise ValueError('Cannot set up cube with negative forecast period')
     fp_point_seconds = (
-        (time_point_seconds - frt_point_seconds).astype(np.int32))
+        time_point_seconds - frt_point_seconds).astype(np.int32)
 
     # parse bounds if required
     if time_bounds is not None:
@@ -130,8 +131,9 @@ def construct_scalar_time_coords(time, time_bounds, frt):
             raise ValueError(
                 'Time point {} not within bounds {}-{}'.format(
                     time, time_bounds[0], time_bounds[1]))
-        fp_bounds = np.array([bounds[0] - frt_point_seconds,
-                              bounds[1] - frt_point_seconds]).astype(np.int32)
+        fp_bounds = np.array([
+            [bounds[0] - frt_point_seconds,
+             bounds[1] - frt_point_seconds]]).astype(np.int32)
     else:
         bounds = None
         fp_bounds = None
@@ -230,10 +232,17 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
         cube_attrs.update(attributes)
 
     # create data cube
-    cube = iris.cube.Cube(data, long_name=name, units=units,
-                          dim_coords_and_dims=dim_coords,
-                          aux_coords_and_dims=scalar_coords,
-                          attributes=cube_attrs)
+    try:
+        cube = iris.cube.Cube(data, name, units=units,
+                              dim_coords_and_dims=dim_coords,
+                              aux_coords_and_dims=scalar_coords,
+                              attributes=cube_attrs)
+    except ValueError:
+        # if "name" is not a standard name, set long name instead
+        cube = iris.cube.Cube(data, long_name=name, units=units,
+                              dim_coords_and_dims=dim_coords,
+                              aux_coords_and_dims=scalar_coords,
+                              attributes=cube_attrs)
 
     # don't allow unit tests to set up invalid cubes
     check_cube_datatypes(cube)
@@ -377,7 +386,7 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
 
 
 def add_coordinate(incube, coord_points, coord_name, coord_units=None,
-                   dtype=np.float32, order=None):
+                   dtype=np.float32, order=None, is_datetime=False):
     """
     Function to duplicate a sample cube with an additional coordinate to create
     a cubelist. The cubelist is merged to create a single cube, which can be
@@ -402,6 +411,11 @@ def add_coordinate(incube, coord_points, coord_name, coord_units=None,
             be in position 1 on a 4D cube, use order=[1, 0, 2, 3] to swap the
             new coordinate position with that of the original leading
             coordinate.
+        is_datetime (bool):
+            If "true", the leading coordinate points have been given as a
+            list of datetime objects and need converting.  In this case the
+            "coord_units" argument is overridden and the time points provided
+            in seconds.  The "dtype" argument is overridden and set to int64.
 
     Returns:
         iris.cube.Cube:
@@ -414,12 +428,33 @@ def add_coordinate(incube, coord_points, coord_name, coord_units=None,
     except CoordinateNotFoundError:
         pass
 
+    # if new coordinate points are provided as datetimes, convert to seconds
+    if is_datetime:
+        coord_units = TIME_UNIT
+        dtype = np.int64
+        new_coord_points = []
+        for val in coord_points:
+            time_point_seconds = np.round(
+                date2num(val, TIME_UNIT, CALENDAR)).astype(np.int64)
+            new_coord_points.append(time_point_seconds)
+        coord_points = new_coord_points
+
     cubes = iris.cube.CubeList([])
     for val in coord_points:
         temp_cube = cube.copy()
         temp_cube.add_aux_coord(
             DimCoord(np.array([val], dtype=dtype), long_name=coord_name,
                      units=coord_units))
+
+        # recalculate forecast period if time or frt have been updated
+        if is_datetime and "time" in coord_name:
+            forecast_period = forecast_period_coord(
+                temp_cube, force_lead_time_calculation=True)
+            try:
+                temp_cube.replace_coord(forecast_period)
+            except CoordinateNotFoundError:
+                temp_cube.add_aux_coord(forecast_period)
+
         cubes.append(temp_cube)
 
     new_cube = cubes.merge_cube()

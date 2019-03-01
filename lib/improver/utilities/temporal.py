@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2018 Met Office.
+# (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,8 @@ from iris import Constraint
 from iris.time import PartialDateTime
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.utilities.cube_manipulation import build_coordinate
+from improver.utilities.cube_manipulation import (
+    build_coordinate, merge_cubes)
 
 
 def cycletime_to_datetime(cycletime, cycletime_format="%Y%m%dT%H%MZ"):
@@ -223,8 +224,9 @@ def iris_time_to_datetime(time_coord):
         list of datetime.datetime objects
             The time element(s) recast as a python datetime object.
     """
-    time_coord.convert_units('seconds since 1970-01-01 00:00:00')
-    return [datetime.utcfromtimestamp(value) for value in time_coord.points]
+    coord = time_coord.copy()
+    coord.convert_units('seconds since 1970-01-01 00:00:00')
+    return [datetime.utcfromtimestamp(value) for value in coord.points]
 
 
 def datetime_to_iris_time(dt_in, time_units="hours"):
@@ -624,10 +626,21 @@ class TemporalInterpolation(object):
 
         time_list = self.construct_time_list(initial_time, final_time)
         cubes = iris.cube.CubeList([cube_t0, cube_t1])
-        cube = cubes.merge_cube()
+        cube = merge_cubes(cubes)
+
         interpolated_cube = cube.interpolate(time_list, iris.analysis.Linear())
+
+        # iris.analysis.Linear() modifies the dtype of time and forecast_period
+        # coords so need to revert back
+        dtype_time = cube_t0.coord('time').points.dtype
+        dtype_fp = cube_t0.coord('forecast_period').points.dtype
+
         interpolated_cubes = iris.cube.CubeList()
         for single_time in interpolated_cube.slices_over('time'):
+            coord_time = single_time.coord('time')
+            coord_time.points = np.around(coord_time.points).astype(dtype_time)
+            coord_fp = single_time.coord('forecast_period')
+            coord_fp.points = np.around(coord_fp.points).astype(dtype_fp)
             interpolated_cubes.append(single_time)
 
         return interpolated_cubes

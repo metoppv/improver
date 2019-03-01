@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2018 Met Office.
+# (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -116,7 +116,7 @@ class PercentileConverter(object):
         data_type = cube.dtype
         # Test that collapse coords are present in cube before proceding.
         n_collapse_coords = len(self.collapse_coord)
-        n_valid_coords = sum([test_coord in coord.name()
+        n_valid_coords = sum([test_coord == coord.name()
                               for coord in cube.coords()
                               for test_coord in self.collapse_coord])
 

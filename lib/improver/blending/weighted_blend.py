@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2018 Met Office.
+# (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -80,8 +80,9 @@ def rationalise_blend_time_coords(
 
     # if blending models using weights by forecast period, set forecast
     # reference times to current cycle time
-    if ("model" in blend_coord and weighting_coord is not None
-            and "forecast_period" in weighting_coord):
+    if ("model" in blend_coord and
+            weighting_coord is not None and
+            "forecast_period" in weighting_coord):
         if cycletime is None:
             cycletime = find_latest_cycletime(cubelist)
         else:
@@ -560,26 +561,30 @@ class WeightedBlendAcrossWholeDimension:
         cube_dims = [crd.name() for crd in cube.coords(dim_coords=True)]
         if set(weight_dims) == set(cube_dims):
             enforce_coordinate_ordering(weights, cube_dims)
-        elif len(weight_dims) > 1:
-            msg = ("Multidimensional weights cube does not contain the same "
-                   "coordinates as the diagnostic cube. Weights: {}, "
-                   "Diagnostic: {}".format(weight_dims, cube_dims))
-            raise ValueError(msg)
-
-        msg = ("Weights cube is not a compatible shape with the data cube. "
-               "Weights: {}, Diagnostic: {}".format(weights.shape, cube.shape))
-
-        if weights.shape == cube.shape:
-            # Multi-dimensional weights array provided that matches cube.
             weights_array = weights.data.astype(np.float32)
         else:
-            # 1D array of weights across the blending coordinate.
-            coord_dim_thres = cube.coord_dims(self.coord)
+            # Map array of weights to shape of cube to collapse.
+            dim_map = []
+            dim_coords = [coord.name() for coord in weights.dim_coords]
+            # Loop through dim coords in weights cube and find the dim the
+            # coord relates to in the cube we are collapsing.
+            for dim_coord in dim_coords:
+                try:
+                    dim_map.append(cube.coord_dims(dim_coord)[0])
+                except CoordinateNotFoundError:
+                    message = (
+                        "{} is a coordinate on the weights cube but it is not "
+                        "found on the cube we are trying to collapse.")
+                    raise ValueError(message.format(dim_coord))
             try:
                 weights_array = iris.util.broadcast_to_shape(
                     np.array(weights.data, dtype=np.float32),
-                    cube.shape, coord_dim_thres)
+                    cube.shape, tuple(dim_map))
             except ValueError:
+                msg = (
+                    "Weights cube is not a compatible shape with the"
+                    " data cube. Weights: {}, Diagnostic: {}".format(
+                        weights.shape, cube.shape))
                 raise ValueError(msg)
 
         return weights_array
@@ -601,7 +606,8 @@ class WeightedBlendAcrossWholeDimension:
         sum_of_weights = np.sum(weights, axis=blend_dim)
         msg = ('Weights do not sum to 1 over the blending coordinate. Max sum '
                'of weights: {}'.format(sum_of_weights.max()))
-        if not (np.isclose(sum_of_weights, 1)).all():
+        sum_of_non_zero_weights = sum_of_weights[sum_of_weights > 0]
+        if not (np.isclose(sum_of_non_zero_weights, 1)).all():
             raise ValueError(msg)
 
     def non_percentile_weights(self, cube, weights, custom_aggregator=False):
@@ -870,51 +876,28 @@ class WeightedBlendAcrossWholeDimension:
         # Check to see if the data is percentile data
         perc_coord = self.check_percentile_coord(cube)
 
-        # Create slices over the threshold coordinate
-        try:
-            cube.coord('threshold')
-        except iris.exceptions.CoordinateNotFoundError:
-            slices_over_threshold = [cube]
-        else:
-            if self.coord == 'threshold':
-                slices_over_threshold = [cube]
-            else:
-                slices_over_threshold = cube.slices_over('threshold')
+        # Percentile aggregator
+        if perc_coord and self.mode == "weighted_mean":
+            cube_new = self.percentile_weighted_mean(cube, weights, perc_coord)
+        # Weighted mean
+        elif self.mode == "weighted_mean":
+            cube_new = self.weighted_mean(cube, weights)
 
-        cubelist = iris.cube.CubeList([])
-        # For each threshold slice, blend the cube across the blending coord.
-        for cube_thres in slices_over_threshold:
+        # Maximum probability aggregator.
+        elif self.mode == "weighted_maximum":
+            cube_new = self.weighted_maximum(cube, weights)
 
-            # A selection of blending modes are available:
-
-            # Percentile aggregator
-            if perc_coord and self.mode == "weighted_mean":
-                cube_new = self.percentile_weighted_mean(cube_thres, weights,
-                                                         perc_coord)
-            # Weighted mean
-            elif self.mode == "weighted_mean":
-                cube_new = self.weighted_mean(cube_thres, weights)
-
-            # Maximum probability aggregator.
-            elif self.mode == "weighted_maximum":
-                cube_new = self.weighted_maximum(cube_thres, weights)
-
-            # Modify the cube metadata and add to the cubelist.
-            cube_new = conform_metadata(
-                cube_new, cube_thres, coord=self.coord,
-                cycletime=self.cycletime)
-            cubelist.append(cube_new)
-
-        # Merge the cubelist to reform a cube that looks like the input but
-        # without the coordinate over which blending has occurred.
-        result = cubelist.merge_cube()
+        # Modify the cube metadata and add to the cubelist.
+        result = conform_metadata(
+            cube_new, cube, coord=self.coord,
+            cycletime=self.cycletime)
 
         # Add a source realizations attribute if collapsing realizations.
         if self.coord == "realization":
             result.attributes['source_realizations'] = (
                 cube.coord(self.coord).points)
 
-        if isinstance(cubelist[0].data, np.ma.core.MaskedArray):
+        if isinstance(cube.data, np.ma.core.MaskedArray):
             result.data = np.ma.array(result.data)
 
         return result

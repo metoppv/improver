@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2018 Met Office.
+# (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -61,14 +61,15 @@ optional arguments:
                         Dump profiling info to a file. Implies --profile.
   --threshold_config THRESHOLD_CONFIG
                         Threshold configuration JSON file containing
-                        thresholds and fuzzy bounds. Best used in combination
-                        with --threshold_units. It should contain a dictionary
-                        of strings that can be interpreted as floats with the
-                        structure: "THRESHOLD_VALUE": [LOWER_BOUND,
-                        UPPER_BOUND] e.g: {"280.0": [278.0, 282.0], "290.0":
-                        [288.0, 292.0]}. Repeated thresholds with different
-                        bounds are not handled well. Only the last duplicate
-                        will be used.
+                        thresholds and (optionally) fuzzy bounds. Best used in
+                        combination with --threshold_units. It should contain
+                        a dictionary of strings that can be interpreted as
+                        floats with the structure: "THRESHOLD_VALUE":
+                        [LOWER_BOUND, UPPER_BOUND] e.g: {"280.0": [278.0,
+                        282.0], "290.0": [288.0, 292.0]}, or with structure
+                        "THRESHOLD_VALUE": "None" (no fuzzy bounds). Repeated
+                        thresholds with different bounds are not handled well.
+                        Only the last duplicate will be used.
   --threshold_units THRESHOLD_UNITS
                         Units of the threshold values. If not provided the
                         units are assumed to be the same as those of the input

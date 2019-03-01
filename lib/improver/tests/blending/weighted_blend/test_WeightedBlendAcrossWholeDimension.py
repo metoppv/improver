@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2018 Met Office.
+# (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,9 @@
 
 import unittest
 
-from cf_units import Unit
+from cf_units import date2num
+from datetime import datetime
+
 import iris
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
@@ -44,11 +46,57 @@ import numpy as np
 
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
 from improver.tests.blending.weighted_blend.test_PercentileBlendingAggregator \
-    import (percentile_cube, BLENDED_PERCENTILE_DATA,
+    import (PERCENTILE_DATA, BLENDED_PERCENTILE_DATA,
             BLENDED_PERCENTILE_DATA_EQUAL_WEIGHTS,
             BLENDED_PERCENTILE_DATA_SPATIAL_WEIGHTS)
 from improver.utilities.warnings_handler import ManageWarnings
 from improver.utilities.cube_manipulation import merge_cubes
+
+
+def time_coords_for_test_cubes():
+    """Set up time coordinates in human-readable format"""
+    tunit = "seconds since 1970-01-01 00:00:00"
+    calendar = "gregorian"
+
+    time_point_seconds = np.round(
+        date2num(datetime(2015, 11, 19, 2), tunit, calendar)).astype(np.int64)
+
+    frt_points = []
+    for i in range(3):
+        frt_points.append(np.round(date2num(datetime(2015, 11, 19, i), tunit,
+                                            calendar)).astype(np.int64))
+
+    time_coord = AuxCoord([time_point_seconds], "time", units=tunit)
+    frt_coord = DimCoord(frt_points, "forecast_reference_time", units=tunit)
+    fp_coord = AuxCoord([7200, 3600, 0], "forecast_period", units="seconds")
+
+    return time_coord, frt_coord, fp_coord
+
+
+def percentile_cube():
+    """Create a percentile cube for testing."""
+    data = np.reshape(PERCENTILE_DATA, (6, 3, 2, 2))
+
+    # construct dim coords
+    perc_coord = DimCoord([0, 20, 40, 60, 80, 100],
+                          long_name="percentile_over_realization")
+    y_coord = DimCoord(np.linspace(-45.0, 45.0, 2).astype(np.float32),
+                       'latitude', units='degrees')
+    x_coord = DimCoord(np.linspace(120, 180, 2).astype(np.float32),
+                       'longitude', units='degrees')
+
+    # construct time coords
+    time_coord, frt_coord, fp_coord = time_coords_for_test_cubes()
+
+    # build cube
+    dim_coords = [(perc_coord, 0), (frt_coord, 1),
+                  (y_coord, 2), (x_coord, 3)]
+    aux_coords = [(fp_coord, 1), (time_coord, None)]
+
+    cube = Cube(data, standard_name="air_temperature", units="C",
+                dim_coords_and_dims=dim_coords, aux_coords_and_dims=aux_coords)
+
+    return cube
 
 
 class Test__init__(IrisTest):
@@ -92,18 +140,7 @@ class Test_weighted_blend(IrisTest):
 
     def setUp(self):
         """Create a cube with a single non-zero point."""
-
-        time_origin = "seconds since 1970-01-01 00:00:00"
-        calendar = "gregorian"
-        tunit = Unit(time_origin, calendar)
-
-        times = np.array([1447898400])
-
-        time_coord = AuxCoord(times, "time", units=tunit)
-        frt_coord = DimCoord([1447891200, 1447894800, 1447898400],
-                             "forecast_reference_time", units=tunit)
-        fp_coord = AuxCoord([7200, 3600, 0], "forecast_period",
-                            units='seconds')
+        time_coord, frt_coord, fp_coord = time_coords_for_test_cubes()
 
         lat_coord = DimCoord(np.linspace(-45.0, 45.0, 2), 'latitude',
                              units='degrees')
@@ -292,10 +329,30 @@ class Test_shape_weights(Test_weighted_blend):
 
         coord = "forecast_reference_time"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        expected = self.weights3d.copy().data
         self.weights3d.transpose([1, 0, 2])
         result = plugin.shape_weights(self.cube, self.weights3d)
-        self.assertEqual(self.cube.shape, result.shape)
-        self.assertArrayEqual(self.weights3d.data, result)
+        self.assertEqual(expected.shape, result.shape)
+        self.assertArrayEqual(expected.data, result)
+
+    def test_3D_weights_4D_cube_weighted_mean_wrong_order(self):
+        """Test a 4D cube of weights results in a 3D array of weights of the
+        same shape as the data cube. In this test the input cube has the
+        same coordinates but slightly differently ordered. The weights cube
+        should be reordered to match the cube."""
+        # Add a new axis to input cube to make it 4D
+        coord = "forecast_reference_time"
+        cube = iris.util.new_axis(self.cube, scalar_coord="time")
+        cube.transpose([3, 2, 0, 1])
+        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        # Create an expected array which has been transposed to match
+        # input cube with the extra axis added.
+        expected = self.weights3d.copy()
+        expected.transpose([2, 1, 0])
+        expected = np.expand_dims(expected.data, axis=2)
+        result = plugin.shape_weights(cube, self.weights3d)
+        self.assertEqual(expected.shape, result.shape)
+        self.assertArrayEqual(expected, result)
 
     def test_3D_weights_3D_cube_weighted_mean_unmatched_coordinate(self):
         """Test a 3D cube of weights results in a 3D array of weights of the
@@ -307,19 +364,21 @@ class Test_shape_weights(Test_weighted_blend):
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
         weights = self.weights3d.copy()
         weights.coord('longitude').rename('projection_x_coordinate')
-        msg = "Multidimensional weights cube does not contain the same"
-
+        msg = (
+            "projection_x_coordinate is a coordinate on the weights cube "
+            "but it is not found on the cube we are trying to collapse.")
         with self.assertRaisesRegex(ValueError, msg):
             plugin.shape_weights(self.cube, weights)
 
     def test_incompatible_weights_and_data_cubes(self):
         """Test an exception is raised if the weights cube and the data cube
-        are of incompatible shapes."""
+        have incompatible coordinates."""
 
         coord = "forecast_reference_time"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
-        msg = "Weights cube is not a compatible shape with the data cube"
-
+        msg = (
+            "threshold is a coordinate on the weights cube but it is not"
+            " found on the cube we are trying to collapse.")
         with self.assertRaisesRegex(ValueError, msg):
             plugin.shape_weights(self.cube, self.weights_threshold)
 

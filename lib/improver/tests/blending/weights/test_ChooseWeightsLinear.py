@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2018 Met Office.
+# (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,18 +37,56 @@ from iris.coords import AuxCoord
 from iris.tests import IrisTest
 import numpy as np
 from copy import deepcopy
+from datetime import datetime as dt
 
 from improver.blending.weights import ChooseWeightsLinear
-from improver.tests.blending.weights.helper_functions import (
-    set_up_temperature_cube, set_up_basic_model_config_cube,
-    set_up_weights_cube, set_up_basic_weights_cube,
-    add_model_id_and_model_configuration, add_height)
-from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
-    import add_forecast_reference_time_and_forecast_period
+from improver.utilities.temporal import forecast_period_coord
+from improver.tests.set_up_test_cubes import (
+    set_up_variable_cube, add_coordinate)
+
 
 CONFIG_DICT_UKV = {"uk_det": {"forecast_period": [7, 12, 48, 54],
                               "weights": [0, 1, 1, 0],
                               "units": "hours"}}
+
+
+def set_up_basic_model_config_cube(frt=None, time_points=None):
+    """Set up cube with dimensions of realization x time x lat x lon, plus
+     model id and configuration scalar coords
+
+    Kwargs:
+        frt (datetime):
+            Forecast reference time point
+        time_points (list):
+            List of times as datetime instances to create a dim coord
+    """
+    if frt is None:
+        frt = dt(2017, 1, 10, 3, 0)
+    if time_points is None:
+        time_points = [dt(2017, 1, 10, 9, 0), dt(2017, 1, 10, 10, 0),
+                       dt(2017, 1, 10, 11, 0)]
+
+    model_id_coord = AuxCoord([1000], long_name="model_id")
+    model_config_coord = AuxCoord(["uk_det"], long_name="model_configuration")
+
+    data = np.full((1, 2, 2), 275.15, dtype=np.float32)
+    cube = set_up_variable_cube(
+        data, time=frt, frt=frt, include_scalar_coords=[model_id_coord,
+                                                        model_config_coord])
+    cube = add_coordinate(
+        cube, time_points, "time", is_datetime=True, order=[1, 0, 2, 3])
+
+    return cube
+
+
+def update_time_and_forecast_period(cube, increment):
+    """Updates time and forecast period points on an existing cube by a given
+    increment (in units of time)"""
+    cube.coord("time").points = cube.coord("time").points + increment
+    forecast_period = forecast_period_coord(
+        cube, force_lead_time_calculation=True)
+    cube.replace_coord(forecast_period)
+    return cube
 
 
 class Test__init__(IrisTest):
@@ -61,17 +99,19 @@ class Test__init__(IrisTest):
         self.config_dict = CONFIG_DICT_UKV
 
     def test_basic(self):
-        """Test default initialisation from cubes"""
-        plugin = ChooseWeightsLinear(self.weighting_coord_name)
+        """Test default initialisations"""
+        plugin = ChooseWeightsLinear(self.weighting_coord_name,
+                                     self.config_dict)
         self.assertEqual(
             plugin.weighting_coord_name, self.weighting_coord_name)
         self.assertEqual(plugin.config_coord_name, self.config_coord_name)
-        self.assertIsNone(plugin.config_dict)
+        self.assertEqual(plugin.config_dict, self.config_dict)
         self.assertEqual(plugin.weights_key_name, "weights")
 
     def test_config_coord_name(self):
         """Test different config coord name"""
-        plugin = ChooseWeightsLinear(self.weighting_coord_name, "height")
+        plugin = ChooseWeightsLinear(
+            self.weighting_coord_name, self.config_dict, "height")
         self.assertEqual(
             plugin.weighting_coord_name, self.weighting_coord_name)
         self.assertEqual(plugin.config_coord_name, "height")
@@ -79,7 +119,7 @@ class Test__init__(IrisTest):
     def test_with_config_dict(self):
         """Test initialisation from dict"""
         plugin = ChooseWeightsLinear(
-            self.weighting_coord_name, config_dict=self.config_dict)
+            self.weighting_coord_name, self.config_dict)
         self.assertEqual(
             plugin.weighting_coord_name, self.weighting_coord_name)
         self.assertEqual(plugin.config_coord_name, self.config_coord_name)
@@ -90,21 +130,12 @@ class Test__init__(IrisTest):
 class Test__repr__(IrisTest):
     """Test the __repr__ method"""
 
-    def test_cubes(self):
-        """Test with default initialisation from cubes"""
-        weighting_coord_name = "forecast_period"
-        plugin = ChooseWeightsLinear(weighting_coord_name)
-        expected_result = (
-            "<ChooseWeightsLinear(): weighting_coord_name = forecast_period, "
-            "config_coord_name = model_configuration, config_dict = None>")
-        self.assertEqual(str(plugin), expected_result)
-
     def test_dict(self):
         """Test with configuration dictionary"""
         weighting_coord_name = "forecast_period"
         config_dict = CONFIG_DICT_UKV
         plugin = ChooseWeightsLinear(
-            weighting_coord_name, config_dict=config_dict)
+            weighting_coord_name, config_dict)
         expected_result = (
             "<ChooseWeightsLinear(): weighting_coord_name = forecast_period, "
             "config_coord_name = model_configuration, "
@@ -129,49 +160,13 @@ class Test__check_config_dict(IrisTest):
         msg = ('These items in the configuration dictionary')
         with self.assertRaisesRegex(ValueError, msg):
             _ = ChooseWeightsLinear(
-                self.weighting_coord_name, config_dict=self.config_dict)
+                self.weighting_coord_name, self.config_dict)
 
     def test_error_weighting_coord_not_in_dict(self):
         """Test that an exception is raised when the required weighting_coord
         is not in the configuration dictionary"""
         with self.assertRaises(KeyError):
-            ChooseWeightsLinear("height", config_dict=self.config_dict)
-
-
-class Test__get_interpolation_inputs_from_cube(IrisTest):
-    """Test the _get_interpolation_inputs_from_cube method."""
-
-    def test_basic(self):
-        """Test that the values for the source_points, target_points,
-        source_weights, axis and fill_value are as expected."""
-        expected_source_points = [7, 12, 48, 54]
-        expected_target_points = [6., 7., 8.]
-        expected_source_weights = np.array([[[[0., 0.],
-                                              [0., 0.]],
-                                             [[1., 1.],
-                                              [1., 1.]],
-                                             [[1., 1.],
-                                              [1., 1.]],
-                                             [[0., 0.],
-                                              [0., 0.]]]])
-        expected_axis = 1
-        expected_fill_value = (np.array([[[0., 0.],
-                                          [0., 0.]]]),
-                               np.array([[[0., 0.],
-                                          [0., 0.]]]))
-
-        cube = set_up_basic_model_config_cube()
-        weights_cube = set_up_basic_weights_cube()
-
-        plugin = ChooseWeightsLinear("forecast_period")
-        source_points, target_points, source_weights, axis, fill_value = (
-            plugin._get_interpolation_inputs_from_cube(cube, weights_cube))
-        self.assertArrayAlmostEqual(source_points, expected_source_points)
-        self.assertArrayAlmostEqual(target_points, expected_target_points)
-        self.assertArrayAlmostEqual(source_weights, expected_source_weights)
-        self.assertEqual(axis, expected_axis)
-        self.assertArrayAlmostEqual(fill_value[0], expected_fill_value[0])
-        self.assertArrayAlmostEqual(fill_value[1], expected_fill_value[1])
+            ChooseWeightsLinear("height", self.config_dict)
 
 
 class Test__get_interpolation_inputs_from_dict(IrisTest):
@@ -179,8 +174,8 @@ class Test__get_interpolation_inputs_from_dict(IrisTest):
 
     def setUp(self):
         """Set up some plugin inputs"""
-        self.expected_source_points = [7, 12, 48, 54]
-        self.expected_target_points = [6., 7., 8.]
+        self.expected_source_points = 3600*np.array([7, 12, 48, 54])
+        self.expected_target_points = 3600*np.array([6., 7., 8.])
         self.expected_source_weights = [0, 1, 1, 0]
         self.expected_fill_value = (0, 0)
 
@@ -193,7 +188,7 @@ class Test__get_interpolation_inputs_from_dict(IrisTest):
         config_dict = CONFIG_DICT_UKV
 
         plugin = ChooseWeightsLinear(
-            self.weighting_coord_name, config_dict=config_dict)
+            self.weighting_coord_name, config_dict)
 
         source_points, target_points, source_weights, fill_value = (
             plugin._get_interpolation_inputs_from_dict(self.cube))
@@ -214,7 +209,7 @@ class Test__get_interpolation_inputs_from_dict(IrisTest):
                                   "units": "minutes"}}
 
         plugin = ChooseWeightsLinear(
-            self.weighting_coord_name, config_dict=config_dict)
+            self.weighting_coord_name, config_dict)
 
         source_points, target_points, source_weights, fill_value = (
             plugin._get_interpolation_inputs_from_dict(self.cube))
@@ -232,7 +227,7 @@ class Test__interpolate_to_find_weights(IrisTest):
 
     def setUp(self):
         """Set up plugin instance"""
-        self.plugin = ChooseWeightsLinear("forecast_period")
+        self.plugin = ChooseWeightsLinear("forecast_period", CONFIG_DICT_UKV)
 
     def test_1d_array(self):
         """Test that the interpolation produces the expected result for a
@@ -309,46 +304,6 @@ class Test__interpolate_to_find_weights(IrisTest):
         self.assertArrayAlmostEqual(weights, expected_weights)
 
 
-class Test__create_coord_and_dims_list(IrisTest):
-    """Test the _create_coord_and_dims_list method."""
-
-    def setUp(self):
-        """Set up some plugin inputs"""
-        self.cube = set_up_basic_model_config_cube()
-        self.weights_cube = set_up_basic_weights_cube()
-        self.weighting_coord_name = "forecast_period"
-        self.plugin = ChooseWeightsLinear(self.weighting_coord_name)
-
-    def test_dim_coords(self):
-        """Test that the expected list of coordinates is returned when the
-        dimension coordinates are checked."""
-        expected_coord_list = [(self.weights_cube.coord("realization"), 0),
-                               (self.cube.coord("time"), 1),
-                               (self.weights_cube.coord("latitude"), 2),
-                               (self.weights_cube.coord("longitude"), 3)]
-
-        new_coord_list = self.plugin._create_coord_and_dims_list(
-            self.weights_cube, self.cube, self.weights_cube.dim_coords,
-            self.weighting_coord_name)
-
-        self.assertEqual(new_coord_list, expected_coord_list)
-
-    def test_aux_coords(self):
-        """Test that the expected list of coordinates is returned when the
-        dimension coordinates are checked."""
-        expected_coord_list = [
-            (self.weights_cube.coord("forecast_reference_time"), None),
-            (self.weights_cube.coord("model_configuration"), None),
-            (self.weights_cube.coord("model_id"), None),
-            (self.cube.coord("forecast_period"), 1)]
-
-        new_coord_list = self.plugin._create_coord_and_dims_list(
-            self.weights_cube, self.cube, self.weights_cube.aux_coords,
-            self.weighting_coord_name)
-
-        self.assertEqual(new_coord_list, expected_coord_list)
-
-
 class Test__create_new_weights_cube(IrisTest):
     """Test the _create_new_weights_cube function. """
 
@@ -362,34 +317,29 @@ class Test__create_new_weights_cube(IrisTest):
                                            [[0., 0.], [0., 0.]],
                                            [[0.2, 0.2], [0.2, 0.2]]]])
 
-    def test_with_weights_cube(self):
-        """Test that the the expected cube containg the new weights is
-        returned."""
-        weights_cube = set_up_basic_weights_cube()
-        weights = np.array([[[[0., 0.],
-                              [0., 0.]],
-                             [[0., 0.],
-                              [0., 0.]],
-                             [[0.2, 0.2],
-                              [0.2, 0.2]]]])
-        plugin = ChooseWeightsLinear(self.weighting_coord_name)
-        new_weights_cube = plugin._create_new_weights_cube(
-            self.cube, weights, weights_cube)
-        self.assertArrayAlmostEqual(new_weights_cube.data,
-                                    self.expected_weights)
-        self.assertAlmostEqual(new_weights_cube.metadata,
-                               weights_cube.metadata)
-
     def test_with_dict(self):
         """Test a new weights cube is created as intended, with the desired
         cube name."""
         plugin = ChooseWeightsLinear(
-            self.weighting_coord_name, config_dict=self.config_dict)
+            self.weighting_coord_name, self.config_dict)
         new_weights_cube = plugin._create_new_weights_cube(
             self.cube, self.weights)
         self.assertArrayAlmostEqual(new_weights_cube.data,
                                     self.expected_weights[..., 0, 0])
         self.assertEqual(new_weights_cube.name(), "weights")
+
+    def test_with_dict_masked_input_cube(self):
+        """Test a new weights cube is created as intended when we have a masked
+        input cube."""
+        self.cube.data = np.ma.masked_array(
+            self.cube.data, np.ones(self.cube.data.shape)*True)
+        plugin = ChooseWeightsLinear(
+            self.weighting_coord_name, config_dict=self.config_dict)
+        new_weights_cube = plugin._create_new_weights_cube(
+            self.cube, self.weights)
+        self.assertEqual(np.ma.is_masked(new_weights_cube.data), False)
+        self.assertArrayAlmostEqual(new_weights_cube.data,
+                                    self.expected_weights[..., 0, 0])
 
 
 class Test__calculate_weights(IrisTest):
@@ -397,18 +347,13 @@ class Test__calculate_weights(IrisTest):
 
     def setUp(self):
         """Set up some cubes and plugins to work with"""
-        self.temp_cube = add_model_id_and_model_configuration(
-            set_up_temperature_cube(timesteps=3), model_ids=[1000],
-            model_configurations=["uk_det"])
-
-        self.weights_cube = set_up_basic_weights_cube()
+        self.temp_cube = set_up_basic_model_config_cube()
 
         config_dict = CONFIG_DICT_UKV
         weighting_coord_name = "forecast_period"
 
-        self.plugin_cubes = ChooseWeightsLinear(weighting_coord_name)
         self.plugin_dict = ChooseWeightsLinear(
-            weighting_coord_name, config_dict=config_dict)
+            weighting_coord_name, config_dict)
 
         self.expected_weights_below_range = np.array(
             [[[[0., 0.], [0., 0.]],
@@ -425,20 +370,6 @@ class Test__calculate_weights(IrisTest):
               [[0., 0.], [0., 0.]],
               [[0., 0.], [0., 0.]]]])
 
-    def test_below_range_cubes(self):
-        """Test that interpolation works as intended when the forecast period
-        required for the interpolation output is below the range specified
-        within the inputs."""
-        cube = set_up_basic_model_config_cube()
-        new_weights_cube = (
-            self.plugin_cubes._calculate_weights(
-                cube, self.weights_cube))
-        self.assertIsInstance(new_weights_cube, iris.cube.Cube)
-        self.assertArrayAlmostEqual(new_weights_cube.data,
-                                    self.expected_weights_below_range)
-        self.assertAlmostEqual(new_weights_cube.metadata,
-                               self.weights_cube.metadata)
-
     def test_below_range_dict(self):
         """Test that interpolation works as intended when the forecast period
         required for the interpolation output is below the range specified
@@ -452,29 +383,11 @@ class Test__calculate_weights(IrisTest):
             self.expected_weights_below_range[..., 0, 0])
         self.assertEqual(new_weights_cube.name(), "weights")
 
-    def test_within_range_cubes(self):
-        """Test that interpolation works as intended when the forecast period
-        required for the interpolation output is within the range specified
-        within the inputs."""
-        cube = add_forecast_reference_time_and_forecast_period(
-            self.temp_cube, time_point=[402299.0, 402300.0, 402301.0],
-            fp_point=[11., 12., 13.])
-        new_weights_cube = (
-            self.plugin_cubes._calculate_weights(
-                cube, self.weights_cube))
-        self.assertIsInstance(new_weights_cube, iris.cube.Cube)
-        self.assertArrayAlmostEqual(new_weights_cube.data,
-                                    self.expected_weights_within_range)
-        self.assertAlmostEqual(new_weights_cube.metadata,
-                               self.weights_cube.metadata)
-
     def test_within_range_dict(self):
         """Test that interpolation works as intended when the forecast period
         required for the interpolation output is within the range specified
         within the inputs."""
-        cube = add_forecast_reference_time_and_forecast_period(
-            self.temp_cube, time_point=[402299.0, 402300.0, 402301.0],
-            fp_point=[11., 12., 13.])
+        cube = update_time_and_forecast_period(self.temp_cube, 3600*5)
         new_weights_cube = (
             self.plugin_dict._calculate_weights(cube))
         self.assertIsInstance(new_weights_cube, iris.cube.Cube)
@@ -483,29 +396,11 @@ class Test__calculate_weights(IrisTest):
             self.expected_weights_within_range[..., 0, 0])
         self.assertEqual(new_weights_cube.name(), "weights")
 
-    def test_above_range_cubes(self):
-        """Test that interpolation works as intended when the forecast period
-        required for the interpolation output is above the range specified
-        within the inputs."""
-        cube = add_forecast_reference_time_and_forecast_period(
-            self.temp_cube, time_point=[412280.0, 412281.0, 412282.0],
-            fp_point=[53., 54., 55.])
-        new_weights_cube = (
-            self.plugin_cubes._calculate_weights(
-                cube, self.weights_cube))
-        self.assertIsInstance(new_weights_cube, iris.cube.Cube)
-        self.assertArrayAlmostEqual(new_weights_cube.data,
-                                    self.expected_weights_above_range)
-        self.assertAlmostEqual(new_weights_cube.metadata,
-                               self.weights_cube.metadata)
-
     def test_above_range_dict(self):
         """Test that interpolation works as intended when the forecast period
         required for the interpolation output is above the range specified
         within the inputs."""
-        cube = add_forecast_reference_time_and_forecast_period(
-            self.temp_cube, time_point=[402294.0, 402295.0, 402296.0],
-            fp_point=[53., 54., 55.])
+        cube = update_time_and_forecast_period(self.temp_cube, 3600*47)
         new_weights_cube = (
             self.plugin_dict._calculate_weights(cube))
         self.assertIsInstance(new_weights_cube, iris.cube.Cube)
@@ -514,41 +409,6 @@ class Test__calculate_weights(IrisTest):
             self.expected_weights_above_range[..., 0, 0])
         self.assertEqual(new_weights_cube.name(), "weights")
 
-    def test_spatial_varying_weights(self):
-        """Test that interpolation works as intended when the weights vary
-        spatially within the input cube."""
-        cube = add_forecast_reference_time_and_forecast_period(
-            self.temp_cube, time_point=[412280.0, 412281.0, 412282.0],
-            fp_point=[9., 15., 21.])
-
-        expected_weights = np.array([[[[1., 0.],
-                                       [0.5, 0.5]],
-                                      [[0.5, 0.5],
-                                       [0.5, 1.]],
-                                      [[0., 0.5],
-                                       [0., 1.]]]])
-
-        weights_cube = set_up_weights_cube(timesteps=4)
-        weights_cube = add_forecast_reference_time_and_forecast_period(
-            weights_cube, time_point=[412233.0, 412239.0, 412245.0, 412251.0],
-            fp_point=[6., 12., 18., 24.])
-        weights_cube.data = np.array([[[[1., 0.],
-                                        [0., 0.]],
-                                       [[1., 0.],
-                                        [1., 1.]],
-                                       [[0., 1.],
-                                        [0., 1.]],
-                                       [[0., 0.],
-                                        [0., 1.]]]])
-
-        new_weights_cube = (
-            self.plugin_cubes._calculate_weights(
-                cube, weights_cube))
-        self.assertIsInstance(new_weights_cube, iris.cube.Cube)
-        self.assertArrayAlmostEqual(new_weights_cube.data, expected_weights)
-        self.assertAlmostEqual(new_weights_cube.metadata,
-                               weights_cube.metadata)
-
 
 class Test__slice_input_cubes(IrisTest):
     """Test the _slice_input_cubes method"""
@@ -556,24 +416,25 @@ class Test__slice_input_cubes(IrisTest):
     def setUp(self):
         """Set up plugin with suitable parameters (used for dict only)"""
         self.plugin = ChooseWeightsLinear(
-            "forecast_period", config_dict=CONFIG_DICT_UKV)
+            "forecast_period", CONFIG_DICT_UKV)
 
         # create a cube with unnecessary realization coordinate (dimensions:
-        # model_id: 2; realization: 1; time: 3; latitude: 2; longitude: 2)
-        cube = add_model_id_and_model_configuration(
-            set_up_temperature_cube(timesteps=3), promote_to_new_axis=True)
-        self.cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=[412235.0, 412247.0, 412278.0],
-            fp_point=[8., 20., 51.])
+        # model_id: 2; realization: 1; latitude: 2; longitude: 2)
+        cube = set_up_variable_cube(278.*np.ones((1, 2, 2), dtype=np.float32))
+        self.cube = add_coordinate(
+            cube, [1000, 2000], "model_id", dtype=np.int32)
+        self.cube.add_aux_coord(
+            AuxCoord(["uk_det", "uk_ens"], long_name="model_configuration"),
+            data_dims=0)
 
         # create a reference cube as above WITHOUT realization
-        new_data = self.cube.data[:, 0, :, :, :]
+        new_data = self.cube.data[:, 0, :, :]
         dim_coords = [(self.cube.coord("model_id"), 0),
-                      (self.cube.coord("time"), 1),
-                      (self.cube.coord("latitude"), 2),
-                      (self.cube.coord("longitude"), 3)]
+                      (self.cube.coord("latitude"), 1),
+                      (self.cube.coord("longitude"), 2)]
         aux_coords = [(self.cube.coord("model_configuration"), 0),
-                      (self.cube.coord("forecast_period"), 1),
+                      (self.cube.coord("time"), None),
+                      (self.cube.coord("forecast_period"), None),
                       (self.cube.coord("forecast_reference_time"), None)]
         self.reference_cube = iris.cube.Cube(
             new_data, "air_temperature", units="K",
@@ -618,7 +479,6 @@ class Test_process(IrisTest):
     def setUp(self):
         """Set up some cubes and plugin inputs"""
         self.weighting_coord_name = "forecast_period"
-        self.plugin = ChooseWeightsLinear(self.weighting_coord_name)
         self.config_dict_fp = {"uk_det": {"forecast_period": [7, 12],
                                           "weights": [1, 0],
                                           "units": "hours"},
@@ -626,181 +486,41 @@ class Test_process(IrisTest):
                                           "weights": [0, 1, 1, 0],
                                           "units": "hours"}}
 
-    def test_error_incorrect_args(self):
-        """Test error is raised if both config_dict and weights_cubes are set
-        """
-        plugin = ChooseWeightsLinear(
-            self.weighting_coord_name, config_dict=self.config_dict_fp)
-        cubes = set_up_temperature_cube(timesteps=3)
-        weights_cubes = set_up_weights_cube(timesteps=3)
-        msg = 'Cannot calculate weights from both dict and cube'
-        with self.assertRaisesRegex(ValueError, msg):
-            _ = plugin.process(cubes, weights_cubes)
-
-    def test_forecast_period_and_model_configuration_cubes(self):
-        """Test when forecast_period is the weighting_coord_name. This
-        demonstrates blending models whose relative weights differ with
-        forecast period."""
-        cube = add_model_id_and_model_configuration(
-            set_up_temperature_cube(timesteps=3), promote_to_new_axis=True)
-        cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=[412235.0, 412247.0, 412278.0],
-            fp_point=[8., 20., 51.])
-
-        cubes = iris.cube.CubeList([])
-        for cube_slice in cube.slices_over("model_id"):
-            cubes.append(cube_slice)
-
-        weights_cube_uk_det = set_up_weights_cube(timesteps=2)
-        weights_cube_uk_det = add_forecast_reference_time_and_forecast_period(
-            weights_cube_uk_det, time_point=[412234.0, 412239.0],
-            fp_point=[7., 12.])
-        weights_cube_uk_det.data[:, 0] = np.ones([1, 2, 2])
-        weights_cube_uk_det = add_model_id_and_model_configuration(
-            weights_cube_uk_det, model_ids=[1000],
-            model_configurations=["uk_det"])
-
-        weights_cube_uk_ens = set_up_weights_cube(timesteps=4)
-        weights_cube_uk_ens = add_forecast_reference_time_and_forecast_period(
-            weights_cube_uk_ens,
-            time_point=[412234.0, 412239.0, 412275.0, 412281.0],
-            fp_point=[7., 12., 48., 54.])
-        weights_cube_uk_ens.data[:, 1:3] = np.ones([1, 2, 2, 2])
-        weights_cube_uk_ens = add_model_id_and_model_configuration(
-            weights_cube_uk_ens, model_ids=[2000],
-            model_configurations=["uk_ens"])
-
-        weights_cubes = (
-            iris.cube.CubeList([weights_cube_uk_det, weights_cube_uk_ens]))
-
-        expected_weights = np.array([[[[[0.8, 0.8],
-                                        [0.8, 0.8]],
-                                       [[0., 0.],
-                                        [0., 0.]],
-                                       [[0., 0.],
-                                        [0., 0.]]]],
-                                     [[[[0.2, 0.2],
-                                        [0.2, 0.2]],
-                                       [[1., 1.],
-                                        [1., 1.]],
-                                       [[1., 1.],
-                                        [1., 1.]]]]])
-
-        result = self.plugin.process(cubes, weights_cubes)
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, expected_weights)
-        self.assertAlmostEqual(result.metadata,
-                               weights_cubes[0].metadata)
-
     def test_forecast_period_and_model_configuration_dict(self):
         """Test blending models over forecast_period with a configuration
         dictionary."""
-        cube = add_model_id_and_model_configuration(
-            set_up_temperature_cube(timesteps=3), promote_to_new_axis=True)
-        cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=[402294.0, 402295.0, 402296.0],
-            fp_point=[6., 7., 8.])
-
-        cubes = iris.cube.CubeList([])
-        for cube_slice in cube.slices_over("model_id"):
-            cubes.append(cube_slice)
+        # set up data cubes with forecast periods [ 6. 7. 8.] hours
+        time_points = [
+            dt(2017, 1, 10, 9), dt(2017, 1, 10, 10), dt(2017, 1, 10, 11)]
+        cube1 = set_up_basic_model_config_cube(
+            frt=dt(2017, 1, 10, 3), time_points=time_points)
+        cube2 = cube1.copy()
+        cube2.coord("model_id").points = [2000]
+        cube2.coord("model_configuration").points = ["uk_ens"]
+        cubes = iris.cube.CubeList([cube1, cube2])
 
         expected_weights = np.array([[1., 1., 0.8], [0., 0., 0.2]])
 
         plugin = ChooseWeightsLinear(
-            self.weighting_coord_name, config_dict=self.config_dict_fp)
+            self.weighting_coord_name, self.config_dict_fp)
         result = plugin.process(cubes)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected_weights)
         self.assertAlmostEqual(result.name(), "weights")
 
-    def test_forecast_period_and_model_configuration_three_models_cubes(self):
-        """Test blending three models with relative weights varying along the
-        forecast_period coordinate."""
-        cube = add_model_id_and_model_configuration(
-            set_up_temperature_cube(timesteps=3), model_ids=[1000, 2000, 3000],
-            model_configurations=["uk_det", "uk_ens", "gl_ens"],
-            promote_to_new_axis=True)
-        cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=[412235.0, 412247.0, 412278.0],
-            fp_point=[8., 20., 51.])
-
-        cubes = iris.cube.CubeList([])
-        for cube_slice in cube.slices_over("model_id"):
-            cubes.append(cube_slice)
-
-        weights_cube_uk_det = set_up_weights_cube(timesteps=2)
-        weights_cube_uk_det = add_forecast_reference_time_and_forecast_period(
-            weights_cube_uk_det, time_point=[412234.0, 412239.0],
-            fp_point=[7., 12.])
-        weights_cube_uk_det.data[:, 0] = np.ones([1, 2, 2])
-        weights_cube_uk_det = add_model_id_and_model_configuration(
-            weights_cube_uk_det, model_ids=[1000],
-            model_configurations=["uk_det"])
-
-        weights_cube_uk_ens = set_up_weights_cube(timesteps=4)
-        weights_cube_uk_ens = add_forecast_reference_time_and_forecast_period(
-            weights_cube_uk_ens,
-            time_point=[412234.0, 412239.0, 412275.0, 412281.0],
-            fp_point=[7., 12., 48., 54.])
-        weights_cube_uk_ens.data[:, 1:3] = np.ones([1, 2, 2, 2])
-        weights_cube_uk_ens = add_model_id_and_model_configuration(
-            weights_cube_uk_ens, model_ids=[2000],
-            model_configurations=["uk_ens"])
-
-        weights_cube_gl_ens = set_up_weights_cube(timesteps=2)
-        weights_cube_gl_ens = add_forecast_reference_time_and_forecast_period(
-            weights_cube_gl_ens,
-            time_point=[412275.0, 412281.0],
-            fp_point=[48., 54.])
-        weights_cube_gl_ens.data[:, 1] = np.ones([1, 2, 2])
-        weights_cube_gl_ens = add_model_id_and_model_configuration(
-            weights_cube_gl_ens, model_ids=[3000],
-            model_configurations=["gl_ens"])
-
-        weights_cubes = (
-            iris.cube.CubeList([weights_cube_uk_det, weights_cube_uk_ens,
-                                weights_cube_gl_ens]))
-
-        expected_weights = np.array([[[[[0.8, 0.8],
-                                        [0.8, 0.8]],
-                                       [[0., 0.],
-                                        [0., 0.]],
-                                       [[0., 0.],
-                                        [0., 0.]]]],
-                                     [[[[0.2, 0.2],
-                                        [0.2, 0.2]],
-                                       [[1., 1.],
-                                        [1., 1.]],
-                                       [[0.5, 0.5],
-                                        [0.5, 0.5]]]],
-                                     [[[[0., 0.],
-                                        [0., 0.]],
-                                       [[0., 0.],
-                                        [0., 0.]],
-                                       [[0.5, 0.5],
-                                        [0.5, 0.5]]]]])
-
-        result = self.plugin.process(cubes, weights_cubes)
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, expected_weights)
-        self.assertAlmostEqual(result.metadata,
-                               weights_cubes[0].metadata)
-
     def test_forecast_period_and_model_configuration_three_models_dict(self):
         """Test blending three models over forecast period with a
         configuration dictionary returns a sorted weights cube."""
-        cube = add_model_id_and_model_configuration(
-            set_up_temperature_cube(timesteps=3), model_ids=[1000, 3000, 2000],
-            model_configurations=["uk_det", "gl_ens", "uk_ens"],
-            promote_to_new_axis=True)
-        cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=[402294.0, 402295.0, 402296.0],
-            fp_point=[6., 7., 8.])
-
-        cubes = iris.cube.CubeList([])
-        for cube_slice in cube.slices_over("model_id"):
-            cubes.append(cube_slice)
+        time_points = [
+            dt(2017, 1, 10, 9), dt(2017, 1, 10, 10), dt(2017, 1, 10, 11)]
+        cube1 = set_up_basic_model_config_cube(
+            frt=dt(2017, 1, 10, 3), time_points=time_points)
+        cubes = iris.cube.CubeList([cube1])
+        for i, model in enumerate(["uk_ens", "gl_ens"]):
+            cube = cube1.copy()
+            cube.coord("model_id").points = [1000*(i+2)]
+            cube.coord("model_configuration").points = [model]
+            cubes.append(cube)
 
         expected_weights = np.array([[1., 1., 0.72],
                                      [0., 0., 0.18],
@@ -811,7 +531,7 @@ class Test_process(IrisTest):
                                          "units": "hours"}
 
         plugin = ChooseWeightsLinear(
-            self.weighting_coord_name, config_dict=self.config_dict_fp)
+            self.weighting_coord_name, self.config_dict_fp)
         result = plugin.process(cubes)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected_weights)
@@ -822,67 +542,10 @@ class Test_process(IrisTest):
             result.coord('model_configuration').points,
             ["uk_det", "uk_ens", "gl_ens"])
 
-    def test_height_and_realization_cubes(self):
-        """Test when height is the weighting_coord_name and realization is the
-        config_coord_name. This demonstrates blending in one member and
-        blending out another member with height."""
-        data = np.zeros([2, 1, 2, 2]) + 273.15
-        cube = set_up_temperature_cube(
-            data=data, timesteps=1, realizations=[0, 1])
-        heights = [10., 20.]
-        cube = add_height(cube, heights)
-
-        cubes = iris.cube.CubeList([])
-        for cube_slice in cube.slices_over("realization"):
-            cubes.append(cube_slice)
-
-        data = np.zeros([1, 1, 2, 2])
-        weights_cube_uk_det = (
-            set_up_weights_cube(data=data, timesteps=1, realizations=[0]))
-        heights = [15., 25.]
-        weights_cube_uk_det = add_height(weights_cube_uk_det, heights)
-        weights_cube_uk_det.data[0] = np.ones([1, 2, 2])
-        for cube_slice in weights_cube_uk_det.slices_over("realization"):
-            weights_cube_uk_det = cube_slice
-            break
-
-        weights_cube_uk_ens = (
-            set_up_weights_cube(data=data, timesteps=1, realizations=[1]))
-        heights = [15., 25.]
-        weights_cube_uk_ens = add_height(weights_cube_uk_ens, heights)
-        weights_cube_uk_ens.data[1] = np.ones([1, 2, 2])
-        for cube_slice in weights_cube_uk_ens.slices_over("realization"):
-            weights_cube_uk_ens = cube_slice
-            break
-
-        weights_cubes = (
-            iris.cube.CubeList([weights_cube_uk_det, weights_cube_uk_ens]))
-
-        expected_weights = np.array([[[[[1., 1.],
-                                        [1., 1.]]],
-                                      [[[0.5, 0.5],
-                                        [0.5, 0.5]]]],
-                                     [[[[0., 0.],
-                                        [0., 0.]]],
-                                      [[[0.5, 0.5],
-                                        [0.5, 0.5]]]]])
-
-        plugin = ChooseWeightsLinear("height", config_coord_name="realization")
-        result = plugin.process(cubes, weights_cubes)
-
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, expected_weights)
-        self.assertAlmostEqual(result.metadata,
-                               weights_cubes[0].metadata)
-
     def test_height_and_realization_dict(self):
         """Test blending members with a configuration dictionary."""
-        data = np.zeros([2, 1, 2, 2]) + 273.15
-        cube = set_up_temperature_cube(
-            data=data, timesteps=1, realizations=[0, 1])
-        heights = [10., 20.]
-        cube = add_height(cube, heights)
-
+        cube = set_up_variable_cube(274.*np.ones((2, 2, 2), dtype=np.float32))
+        cube = add_coordinate(cube, [10., 20.], "height", coord_units="m")
         cubes = iris.cube.CubeList([])
         for cube_slice in cube.slices_over("realization"):
             cubes.append(cube_slice)
@@ -897,23 +560,12 @@ class Test_process(IrisTest):
                            "weights": [0, 1],
                            "units": "m"}}
         plugin = ChooseWeightsLinear(
-            "height", config_coord_name="realization", config_dict=config_dict)
+            "height", config_dict, config_coord_name="realization")
         result = plugin.process(cubes)
 
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected_weights)
         self.assertAlmostEqual(result.name(), "weights")
-
-    def test_exception_if_weights_incorrect(self):
-        """Test that an exception is raised when the length of the
-        weights_cubes cubelist differs from the number of points along the
-        config_coord_name dimension within the input cube."""
-        cube = iris.cube.CubeList([set_up_basic_model_config_cube()])
-        weights_cubes = iris.cube.CubeList([])
-        plugin = ChooseWeightsLinear(self.weighting_coord_name)
-        msg = ('The number of cubes to be weighted')
-        with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(cube, weights_cubes)
 
 
 if __name__ == '__main__':

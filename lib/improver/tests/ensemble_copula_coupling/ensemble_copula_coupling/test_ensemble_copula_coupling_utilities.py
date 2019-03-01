@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2018 Met Office.
+# (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -352,7 +352,7 @@ class Test_get_bounds_of_distribution(IrisTest):
         """
         cube_name = "air_temperature"
         cube_units = Unit("degreesC")
-        bounds_pairing = (-140, 60)
+        bounds_pairing = (-100, 60)
         result = (
             get_bounds_of_distribution(cube_name, cube_units))
         self.assertArrayAlmostEqual(result, bounds_pairing)
@@ -365,7 +365,7 @@ class Test_get_bounds_of_distribution(IrisTest):
         """
         cube_name = "air_temperature"
         cube_units = Unit("fahrenheit")
-        bounds_pairing = (-220, 140)  # In fahrenheit
+        bounds_pairing = (-148, 140)  # In fahrenheit
         result = (
             get_bounds_of_distribution(cube_name, cube_units))
         self.assertArrayAlmostEqual(result, bounds_pairing)

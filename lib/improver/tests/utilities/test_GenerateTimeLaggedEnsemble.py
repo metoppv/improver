@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2018 Met Office.
+# (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -130,6 +130,50 @@ class Test_process(IrisTest):
         expected_forecast_period = np.array(3)
         expected_forecast_ref_time = np.array([402292.])
         expected_realizations = np.array([0, 1, 2, 6, 7, 8])
+        self.assertArrayAlmostEqual(
+            result.coord("forecast_period").points, expected_forecast_period)
+        self.assertArrayAlmostEqual(
+            result.coord("forecast_reference_time").points,
+            expected_forecast_ref_time)
+        self.assertArrayAlmostEqual(
+            result.coord("realization").points, expected_realizations)
+
+    def test_duplicate_realizations(self):
+        """Test that the expected metadata is correct with different
+           realizations and that realizations are renumbered if a
+           duplicate is found"""
+        self.input_cube2.coord("realization").points = np.array([0, 7, 8])
+        result = GenerateTimeLaggedEnsemble().process(
+            self.input_cubelist)
+        expected_forecast_period = np.array(3)
+        expected_forecast_ref_time = np.array([402292.])
+        expected_realizations = np.array([0, 1, 2, 3, 4, 5])
+        self.assertArrayAlmostEqual(
+            result.coord("forecast_period").points, expected_forecast_period)
+        self.assertArrayAlmostEqual(
+            result.coord("forecast_reference_time").points,
+            expected_forecast_ref_time)
+        self.assertArrayAlmostEqual(
+            result.coord("realization").points, expected_realizations)
+
+    def test_duplicate_realizations_more_input_cubes(self):
+        """Test that the expected metadata is correct with different
+           realizations and that realizations are renumbered if a
+           duplicate is found, with 3 input cubes."""
+        self.input_cube2.coord("realization").points = np.array([6, 7, 8])
+        input_cube3 = self.input_cube2.copy()
+        input_cube3.coord("forecast_reference_time").points = np.array(
+            input_cube3.coord("forecast_reference_time").points[0] + 1)
+        input_cube3.coord("forecast_period").points = np.array(
+            input_cube3.coord("forecast_period").points[0] - 1)
+        input_cube3.coord("realization").points = np.array([7, 8, 9])
+        input_cubelist = iris.cube.CubeList(
+            [self.input_cube, self.input_cube2, input_cube3])
+        result = GenerateTimeLaggedEnsemble().process(
+            input_cubelist)
+        expected_forecast_period = np.array(2)
+        expected_forecast_ref_time = np.array([402293.])
+        expected_realizations = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8])
         self.assertArrayAlmostEqual(
             result.coord("forecast_period").points, expected_forecast_period)
         self.assertArrayAlmostEqual(

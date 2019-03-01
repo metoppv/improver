@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2018 Met Office.
+# (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,11 +33,16 @@
 
 import unittest
 import numpy as np
+from datetime import datetime as dt
 
+import cf_units
 from iris.tests import IrisTest
+from iris import Constraint
 from iris.coords import AuxCoord, DimCoord
 from iris import coord_systems
-from iris.cube import Cube
+from iris.coord_systems import GeogCS
+from iris.time import PartialDateTime
+from iris.cube import Cube, CubeList
 import cartopy.crs as ccrs
 
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
@@ -47,8 +52,103 @@ from improver.utilities.spatial import (
     convert_number_of_grid_cells_into_distance,
     lat_lon_determine, lat_lon_transform, transform_grid_to_lat_lon,
     get_nearest_coords)
-from improver.tests.spotdata.spotdata.test_common_functions import (
-    Test_common_functions)
+
+
+class Test_common_functions(IrisTest):
+
+    """A class originally written for testing spot-data functionality that no
+    longer exists. It was also used in this set of tests, so upon deletion of
+    the old spot-data code, the class was moved here."""
+
+    def setUp(self):
+        """
+        Create a cube containing a regular lat-lon grid.
+
+        Data is striped horizontally,
+        e.g.
+              1 1 1 1 1 1
+              1 1 1 1 1 1
+              2 2 2 2 2 2
+              2 2 2 2 2 2
+              3 3 3 3 3 3
+              3 3 3 3 3 3
+        """
+        data = np.ones((12, 12))
+        data[0:4, :] = 1
+        data[4:8, :] = 2
+        data[8:, :] = 3
+
+        latitudes = np.linspace(-90, 90, 12)
+        longitudes = np.linspace(-180, 180, 12)
+        latitude = DimCoord(latitudes, standard_name='latitude',
+                            units='degrees', coord_system=GeogCS(6371229.0))
+        longitude = DimCoord(longitudes, standard_name='longitude',
+                             units='degrees', coord_system=GeogCS(6371229.0),
+                             circular=True)
+
+        # Use time of 2017-02-17 06:00:00
+        time = DimCoord(
+            [1487311200], standard_name='time',
+            units=cf_units.Unit('seconds since 1970-01-01 00:00:00',
+                                calendar='gregorian'))
+        long_time_coord = DimCoord(
+            list(range(1487311200, 1487397600, 3600)),
+            standard_name='time',
+            units=cf_units.Unit('seconds since 1970-01-01 00:00:00',
+                                calendar='gregorian'))
+
+        time_dt = dt(2017, 2, 17, 6, 0)
+        time_extract = Constraint(
+            time=lambda cell: cell.point == PartialDateTime(
+                time_dt.year, time_dt.month, time_dt.day, time_dt.hour))
+
+        cube = Cube(data.reshape((1, 12, 12)),
+                    long_name="air_temperature",
+                    dim_coords_and_dims=[(time, 0),
+                                         (latitude, 1),
+                                         (longitude, 2)],
+                    units="K")
+
+        long_cube = Cube(np.arange(3456).reshape(24, 12, 12),
+                         long_name="air_temperature",
+                         dim_coords_and_dims=[(long_time_coord, 0),
+                                              (latitude, 1),
+                                              (longitude, 2)],
+                         units="K")
+
+        orography = Cube(np.ones((12, 12)),
+                         long_name="surface_altitude",
+                         dim_coords_and_dims=[(latitude, 0),
+                                              (longitude, 1)],
+                         units="m")
+
+        # Western half of grid at altitude 0, eastern half at 10.
+        # Note that the pressure_on_height_levels data is left unchanged,
+        # so it is as if there is a sharp front running up the grid with
+        # differing pressures on either side at equivalent heights above
+        # the surface (e.g. east 1000hPa at 0m AMSL, west 1000hPa at 10m AMSL).
+        # So there is higher pressure in the west.
+        orography.data[0:10] = 0
+        orography.data[10:] = 10
+        ancillary_data = {}
+        ancillary_data['orography'] = orography
+
+        additional_data = {}
+        adlist = CubeList()
+        adlist.append(cube)
+        additional_data['air_temperature'] = adlist
+
+        data_indices = [list(data.nonzero()[0]),
+                        list(data.nonzero()[1])]
+
+        self.cube = cube
+        self.long_cube = long_cube
+        self.data = data
+        self.time_dt = time_dt
+        self.time_extract = time_extract
+        self.data_indices = data_indices
+        self.ancillary_data = ancillary_data
+        self.additional_data = additional_data
 
 
 class Test_convert_distance_into_number_of_grid_cells(IrisTest):
@@ -67,6 +167,14 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
             self.cube, self.DISTANCE,
             max_distance_in_grid_cells=self.MAX_DISTANCE_IN_GRID_CELLS)
         self.assertEqual(result, (3, 3))
+
+    def test_basic_distance_to_grid_cells_float(self):
+        """Test the distance in metres to grid cell conversion."""
+        result = convert_distance_into_number_of_grid_cells(
+            self.cube, self.DISTANCE,
+            max_distance_in_grid_cells=self.MAX_DISTANCE_IN_GRID_CELLS,
+            int_grid_cells=False)
+        self.assertEqual(result, (3.05, 3.05))
 
     def test_basic_no_limit(self):
         """Test the distance in metres to grid cell conversion still works when

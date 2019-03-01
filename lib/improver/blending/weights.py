@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2018 Met Office.
+# (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -285,13 +285,14 @@ class WeightsUtilities:
         except ValueError:
             weights_cube = iris.util.new_axis(cube, blending_coord)
             weights_cube = next(weights_cube.slices(blending_coord))
-
         weights_cube.attributes = None
+        # Find dim associated with blending_coord and don't remove any coords
+        # associated with this dimension.
+        blending_dim = cube.coord_dims(blending_coord)
         defunct_coords = [crd.name() for crd in cube.coords(dim_coords=True)
-                          if not crd.name() == blending_coord]
+                          if not cube.coord_dims(crd) == blending_dim]
         for crd in defunct_coords:
             weights_cube.remove_coord(crd)
-
         weights_cube.data = weights
         weights_cube.rename('weights')
         weights_cube.units = 1
@@ -301,10 +302,10 @@ class WeightsUtilities:
 
 class ChooseWeightsLinear:
     """Plugin to interpolate weights linearly to the required points, where
-    original weights are provided as a cube or configuration dictionary"""
+    original weights are provided as a configuration dictionary"""
 
-    def __init__(self, weighting_coord_name,
-                 config_coord_name="model_configuration", config_dict=None):
+    def __init__(self, weighting_coord_name, config_dict,
+                 config_coord_name="model_configuration"):
         """
         Set up for calculating linear weights from a dictionary or input cube
 
@@ -313,9 +314,13 @@ class ChooseWeightsLinear:
                 Standard name of the coordinate along which the weights will be
                 interpolated. For example, if the intention is to provide
                 weights varying with forecast period, then this argument would
-                be "forecast_period".  If a configuration dictionary is
-                provided, then this coordinate must be included within the
-                configuration dictionary.
+                be "forecast_period". This coordinate must be included within
+                the configuration dictionary.
+            config_dict (dict):
+                Dictionary containing the configuration information, namely
+                an initial set of weights and information regarding the
+                points along the specified coordinate at which the weights are
+                valid. An example dictionary is shown below.
 
         Keyword Args:
             config_coord_name (str):
@@ -323,11 +328,6 @@ class ChooseWeightsLinear:
                 For example, if the intention is to create weights that scale
                 differently with the weighting_coord for different models, then
                 "model_configuration" would be the config_coord.
-            config_dict (dict):
-                Dictionary containing the configuration information, namely
-                an initial set of weights and information regarding the
-                points along the specified coordinate at which the weights are
-                valid. An example dictionary is shown below.
 
         Dictionary of format::
 
@@ -349,8 +349,7 @@ class ChooseWeightsLinear:
         self.config_coord_name = config_coord_name
         self.config_dict = config_dict
         self.weights_key_name = "weights"
-        if self.config_dict:
-            self._check_config_dict()
+        self._check_config_dict()
 
     def __repr__(self):
         """Represent the plugin instance as a string"""
@@ -387,65 +386,6 @@ class ChooseWeightsLinear:
                            self.config_dict[key][self.weights_key_name],
                            weighting_len, weights_len))
                 raise ValueError(msg)
-
-    def _get_interpolation_inputs_from_cube(self, cube, weights_cube):
-        """
-        Generate inputs required for the linear interpolation.
-
-        Args:
-            cube (iris.cube.Cube):
-                Cube containing the coordinate information that will be used
-                for setting up the interpolation inputs.
-            weights_cube (iris.cube.Cube):
-                Cube containg the weights that will be interpolated to find
-                new weights at the specified points.
-
-        Returns:
-            (tuple): tuple containing
-
-                **source_points** (np.ndarray):
-                    Points within the configuration dictionary that will
-                    be used as the input to the interpolation.
-
-                **target_points** (np.ndarray):
-                    Points within the cube that will be the target points
-                    for the interpolation.
-
-                **source_weights** (np.ndarray):
-                    Weights from the configuration dictionary that will be
-                    used as the input to the interpolation.
-
-                **axis** (int):
-                    Axis of self.weighting_coord_name within the input cube.
-                    This will be used to define the axis of interpolation.
-
-                **fill_value** (tuple):
-                    Values that be used if extrapolation is required. The
-                    fill values will be used as constants that are extrapolated
-                    if the target_points are outside the source_points
-                    provided. These are equal to the weight associated with the
-                    first and last values along the weighting coord e.g.
-                    forecast_period.
-
-        """
-        source_points = weights_cube.coord(self.weighting_coord_name).points
-        target_points = cube.coord(self.weighting_coord_name).points
-        source_weights = weights_cube.core_data()
-        axis, = weights_cube.coord_dims(self.weighting_coord_name)
-
-        coord_values = (
-            {self.weighting_coord_name: lambda cell: cell == source_points[0]})
-        constr = iris.Constraint(coord_values=coord_values)
-        lower_fill_value = weights_cube.extract(constr).core_data()
-
-        coord_values = (
-            {self.weighting_coord_name:
-             lambda cell: cell == source_points[-1]})
-        constr = iris.Constraint(coord_values=coord_values)
-        upper_fill_value = weights_cube.extract(constr).core_data()
-
-        fill_value = (lower_fill_value, upper_fill_value)
-        return source_points, target_points, source_weights, axis, fill_value
 
     def _get_interpolation_inputs_from_dict(self, cube):
         """
@@ -532,61 +472,10 @@ class ChooseWeightsLinear:
         weights = f_out(target_points)
         return weights
 
-    @staticmethod
-    def _create_coord_and_dims_list(
-            base_cube, cube_with_exception_coord, coord_list,
-            exception_coord_name):
-        """Create a list of coordinates and their dimensions for use
-        when constructing an iris.cube.Cube.
-
-        Args:
-            base_cube (iris.cube.Cube):
-                Cube from which all the coordinates within the coord_list
-                will be copied, apart from the coordinate defined by the
-                exception_coord_name, which will be taken from the
-                cube_with_exception_coord.
-            cube_with_exception_coord (iris.cube.Cube):
-                Cube from which the exception coordinate will be taken.
-            coord_list (iterable):
-                List/tuple of coordinates.
-            exception_coord_name (str):
-                Name of the exception coordinate that will be taken from the
-                cube_with_exception_coord.
-
-        Returns:
-            new_coord_list (list):
-                List of tuples where each tuple is of the form
-                (coordinate, index_of_coord). This list, may include the
-                exception_coord_name taken from the cube_with_exception_coord.
-                If the coordinate does not have an associated dimension e.g.
-                the coordinate is a scalar coordinate, then the index of the
-                coordinate is set equal to None.
-        """
-        new_coord_list = []
-        for coord in coord_list:
-            if (coord.name() == exception_coord_name or
-                    base_cube.coord_dims(coord) ==
-                    base_cube.coord_dims(exception_coord_name)):
-                exception_coord = cube_with_exception_coord.coord(coord.name())
-                if cube_with_exception_coord.coord_dims(coord):
-                    index, = cube_with_exception_coord.coord_dims(coord)
-                    new_coord_list.append((exception_coord, index))
-                else:
-                    new_coord_list.append((exception_coord, None))
-            else:
-                if base_cube.coord_dims(coord):
-                    index, = base_cube.coord_dims(coord)
-                    new_coord_list.append((coord, index))
-                else:
-                    new_coord_list.append((coord, None))
-        return new_coord_list
-
-    def _create_new_weights_cube(self, cube, weights, weights_cube=None):
+    def _create_new_weights_cube(self, cube, weights):
         """Create a cube to contain the output of the interpolation.
         It is currently assumed that the output weights matches the size
-        of the input cube. This will be true if the only difference between
-        the cube and the weights cube is along the dimension of the
-        self.weighting_coord_name coordinate.
+        of the input cube.
 
         Args:
             cube (iris.cube.Cube):
@@ -595,53 +484,25 @@ class ChooseWeightsLinear:
             weights (np.ndarray):
                 Weights calculated following interpolation.
 
-        Kwargs:
-            weights_cube (iris.cube.Cube):
-                Cube containg the weights that will be interpolated to find
-                new weights at the specified points. Ignored if a
-                configuration dictionary (self.config_dict) is provided.
-
         Returns:
             new_weights_cube (iris.cube.Cube):
-                Cube containing the output from the interpolation.  If a
-                configuration dictionary is not provided
-                (self.config_dict is None), this is based on "weights_cube",
-                otherwise on "cube".
+                Cube containing the output from the interpolation. This has
+                the same shape as "cube", without the x and y dimensions.
         """
-        if self.config_dict:
-            cubelist = iris.cube.CubeList([])
-            for cube_slice, weight in (
-                    zip(cube.slices_over(self.weighting_coord_name), weights)):
-                sub_slice = cube_slice[..., 0, 0]
-                sub_slice.remove_coord(sub_slice.coord(axis='x'))
-                sub_slice.remove_coord(sub_slice.coord(axis='y'))
-                sub_slice.data = np.full_like(sub_slice.data, weight)
-                cubelist.append(sub_slice)
-            new_weights_cube = (
-                check_cube_coordinates(cube[..., 0, 0], cubelist.merge_cube()))
-            new_weights_cube.rename(self.weights_key_name)
-
-        else:
-            dim_coords_and_dims = (
-                self._create_coord_and_dims_list(
-                    weights_cube, cube, weights_cube.dim_coords,
-                    self.weighting_coord_name))
-            aux_coords_and_dims = (
-                self._create_coord_and_dims_list(
-                    weights_cube, cube, weights_cube.aux_coords,
-                    self.weighting_coord_name))
-
-            new_weights_cube = iris.cube.Cube(
-                weights, standard_name=weights_cube.standard_name,
-                long_name=weights_cube.long_name, units=weights_cube.units,
-                attributes=weights_cube.attributes,
-                cell_methods=weights_cube.cell_methods,
-                dim_coords_and_dims=dim_coords_and_dims,
-                aux_coords_and_dims=aux_coords_and_dims)
-
+        cubelist = iris.cube.CubeList([])
+        for cube_slice, weight in (
+                zip(cube.slices_over(self.weighting_coord_name), weights)):
+            sub_slice = cube_slice[..., 0, 0]
+            sub_slice.remove_coord(sub_slice.coord(axis='x'))
+            sub_slice.remove_coord(sub_slice.coord(axis='y'))
+            sub_slice.data = np.ones(sub_slice.data.shape)*weight
+            cubelist.append(sub_slice)
+        new_weights_cube = (
+            check_cube_coordinates(cube[..., 0, 0], cubelist.merge_cube()))
+        new_weights_cube.rename(self.weights_key_name)
         return new_weights_cube
 
-    def _calculate_weights(self, cube, weights_cube=None):
+    def _calculate_weights(self, cube):
         """Method to wrap the calls to other methods to support calculation
         of the weights by interpolation.
 
@@ -651,33 +512,22 @@ class ChooseWeightsLinear:
                 for setting up the interpolation and create the new weights
                 cube.
 
-        Kwargs:
-            weights_cube (iris.cube.Cube):
-                Cube containing the weights that will be interpolated to find
-                new weights at the specified points. Ignored if a
-                configuration dictionary (self.config_dict) is provided.
-
         Returns:
             new_weights_cube (iris.cube.Cube):
                 Cube containing the output from the interpolation. This
                 has been renamed using the self.weights_key_name but
                 otherwise matches the input cube.
         """
-        if self.config_dict:
-            source_points, target_points, source_weights, fill_value = (
-                self._get_interpolation_inputs_from_dict(cube))
-            axis = 0
-        else:
-            source_points, target_points, source_weights, axis, fill_value = (
-                self._get_interpolation_inputs_from_cube(
-                    cube, weights_cube=weights_cube))
+        source_points, target_points, source_weights, fill_value = (
+            self._get_interpolation_inputs_from_dict(cube))
+        axis = 0
 
         weights = self._interpolate_to_find_weights(
             source_points, target_points, source_weights, fill_value,
             axis=axis)
 
         new_weights_cube = self._create_new_weights_cube(
-            cube, weights, weights_cube=weights_cube)
+            cube, weights)
 
         return new_weights_cube
 
@@ -738,12 +588,8 @@ class ChooseWeightsLinear:
 
         return iris.cube.CubeList(cubelist)
 
-    def process(self, cubes, weights_cubes=None):
-        """Calculation of linear weights based on an input weights cube
-        or dictionary.  If self.config_dict == None, weights are calculated
-        individually for each point in self.config_coord_name using the
-        input weights_cubes, before being normalised across the
-        self.config_coord_name dimension.
+    def process(self, cubes):
+        """Calculation of linear weights based on an input dictionary.
 
         Args:
             cubes (iris.cube.Cube or iris.cube.CubeList):
@@ -753,58 +599,19 @@ class ChooseWeightsLinear:
                 a merged cube is passed in, the plugin will split this into a
                 list cubes.
 
-        Kwargs:
-            weights_cubes (iris.cube.CubeList):
-                CubeList where each cube should correspond to a point along
-                the self.config_coord_name dimension of the input cube.
-                For example, if self.config_coord_name is model_configuration,
-                then there should be a separate cube for each model
-                configuration.  Ignored a configuration dictionary is provided.
-
         Returns:
             new_weights_cube (iris.cube.Cube):
                 Cube containing the output from the interpolation.
-                This cube will only include spatial dimensions if using
-                weights_cubes instead of a weights dict.
                 DimCoords (such as model_id) will be in sorted-ascending order.
         """
-        # check for invalid arguments
-        if self.config_dict and weights_cubes is not None:
-            raise ValueError(
-                'Cannot calculate weights from both dict and cube')
-
-        if self.config_dict:
-            # create 2D cube lists with relevant dimensions only for dict
-            # processing
-            cubes = self._slice_input_cubes(cubes)
-        else:
-            if isinstance(cubes, iris.cube.Cube):
-                cubes = [cubes]
-            if isinstance(weights_cubes, iris.cube.Cube):
-                weights_cubes = iris.cube.CubeList([weights_cubes])
-
-            # check that the number of weights cubes matches the length of the
-            # cubes to be weighted.
-            if len(weights_cubes) != len(cubes):
-                msg = ("The number of cubes to be weighted needs to be "
-                       "the same as the number of weights cubes. "
-                       "\nnumber of input cubes is {} != "
-                       "number of weights cubes is {}")
-                raise ValueError(msg.format(len(cubes), len(weights_cubes)))
+        # create 2D cube lists with relevant dimensions only for dict
+        # processing
+        cubes = self._slice_input_cubes(cubes)
 
         # calculate weights
         cube_slices = iris.cube.CubeList([])
         for cube in cubes:
-            if self.config_dict:
-                new_weights_cube = self._calculate_weights(cube)
-            else:
-                coord_point, = cube.coord(self.config_coord_name).points
-                coord_values = (
-                    {self.config_coord_name: lambda cell: cell == coord_point})
-                constr = iris.Constraint(coord_values=coord_values)
-                weights_cube, = weights_cubes.extract(constr)
-                new_weights_cube = self._calculate_weights(
-                    cube, weights_cube=weights_cube)
+            new_weights_cube = self._calculate_weights(cube)
             cube_slices.append(new_weights_cube)
 
         # normalise weights
@@ -1126,7 +933,9 @@ class ChooseDefaultWeightsTriangular:
                 coord_name (string):
                     Name of coordinate in the cube to be blended.
                 midpoint (float):
-                    The centre point of the triangular function.
+                    The centre point of the triangular function.  This is
+                    assumed to be provided in the same units as "self.width",
+                    ie "self.parameter_units" as initialised.
 
             Returns:
                 weights (numpy.array):
@@ -1150,6 +959,8 @@ class ChooseDefaultWeightsTriangular:
         if coord_units != self.parameters_units:
             width_in_coord_units = (
                 self.parameters_units.convert(self.width, coord_units))
+            midpoint = (
+                self.parameters_units.convert(midpoint, coord_units))
         else:
             width_in_coord_units = copy.deepcopy(self.width)
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2018 Met Office.
+# (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -245,15 +245,34 @@ class Test_forecast_period_coord(IrisTest):
 
 class Test_iris_time_to_datetime(IrisTest):
     """ Test iris_time_to_datetime """
-    def test_basic(self):
-        """Test iris_time_to_datetime returns list of datetime """
-        cube = set_up_variable_cube(
+
+    def setUp(self):
+        """Set up an input cube"""
+        self.cube = set_up_variable_cube(
             np.ones((3, 3), dtype=np.float32),
             time=datetime.datetime(2017, 2, 17, 6, 0),
             frt=datetime.datetime(2017, 2, 17, 3, 0))
-        result = iris_time_to_datetime(cube.coord('time'))
+
+    def test_basic(self):
+        """Test iris_time_to_datetime returns list of datetime """
+        result = iris_time_to_datetime(self.cube.coord('time'))
         self.assertIsInstance(result, list)
         self.assertEqual(result[0], datetime.datetime(2017, 2, 17, 6, 0))
+
+    def test_input_cube_unmodified(self):
+        """Test that an input cube with unexpected coordinate units is not
+        modified"""
+        self.cube.coord("time").convert_units(
+            "hours since 1970-01-01 00:00:00")
+        self.cube.coord("time").points = (
+            self.cube.coord("time").points.astype(np.int64))
+        reference_coord = self.cube.coord("time").copy()
+        iris_time_to_datetime(self.cube.coord("time"))
+        self.assertArrayEqual(self.cube.coord("time").points,
+                              reference_coord.points)
+        self.assertArrayEqual(self.cube.coord("time").units,
+                              reference_coord.units)
+        self.assertEqual(self.cube.coord("time").dtype, np.int64)
 
 
 class Test_datetime_to_iris_time(IrisTest):

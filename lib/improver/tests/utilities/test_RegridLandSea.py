@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2018 Met Office.
+# (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -59,8 +59,8 @@ class Test__init__(IrisTest):
                             'output_cube': None}
         result = RegridLandSea()
         members = {attr: getattr(result, attr) for attr in dir(result)
-                   if not callable(getattr(result, attr))
-                   and not attr.startswith("__")}
+                   if not callable(getattr(result, attr)) and
+                   not attr.startswith("__")}
         regridder = members.pop('regridder')
         vicinity = members.pop('vicinity')
         self.assertDictEqual(members, expected_members)
@@ -313,6 +313,35 @@ class Test_process(IrisTest):
         # vicinity-constraint:
         expected[4, 4] = 1.
         result = self.plugin.process(self.cube,
+                                     self.input_land,
+                                     self.output_land)
+        self.assertIsInstance(result, Cube)
+        self.assertArrayEqual(result.data, expected)
+        self.assertDictEqual(result.attributes, self.cube.attributes)
+        self.assertEqual(result.name(), self.cube.name())
+
+    @ManageWarnings(ignored_messages=["Using a non-tuple sequence for "],
+                    warning_types=[FutureWarning])
+    def test_multi_realization(self):
+        """Test that the expected changes occur and meta-data are unchanged
+        when handling a multi-realization cube."""
+        cube = self.cube.copy()
+        cube.coord('realization').points = [1]
+        cubes = iris.cube.CubeList([self.cube, cube])
+        cube = cubes.merge_cube()
+
+        expected = cube.data.copy()
+
+        # Output sea-point populated with data from input sea-point:
+        expected[:, 0, 0] = 0.5
+        # Output sea-point populated with data from input sea-point:
+        expected[:, 1, 1] = 0.5
+        # Output land-point populated with data from input land-point:
+        expected[:, 0, 1] = 1.
+        # Output land-point populated with data from input sea-point due to
+        # vicinity-constraint:
+        expected[:, 4, 4] = 1.
+        result = self.plugin.process(cube,
                                      self.input_land,
                                      self.output_land)
         self.assertIsInstance(result, Cube)
