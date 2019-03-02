@@ -48,7 +48,8 @@ from improver.utilities.cube_metadata import (
     update_attribute,
     update_cell_methods,
     update_coord,
-    update_stage_v110_metadata)
+    update_stage_v110_metadata,
+    in_vicinity_name_format)
 from improver.utilities.warnings_handler import ManageWarnings
 
 from improver.tests.set_up_test_cubes import (
@@ -611,6 +612,29 @@ class Test_amend_metadata(IrisTest):
                             for item in warning_list))
         self.assertEqual(result.attributes['new_attribute'],
                          'new_value')
+
+    def test_in_vicinity_name_format(self):
+        """Test that the 'in_vicinity' above/below threshold probability
+        cube naming function produces the correctly formatted names"""
+        self.cube.rename('probability_of_rainfall_rate_above_threshold')
+        name_above = (
+            'probability_of_rainfall_rate_in_vicinity_above_threshold')
+        new_name_above = in_vicinity_name_format(self.cube.name())
+
+        self.cube.rename('probability_of_visibility_below_threshold')
+        name_below = (
+            'probability_of_visibility_in_vicinity_below_threshold')
+        new_name_below = in_vicinity_name_format(self.cube.name())
+
+        # Test the case of name without above/below_threshold
+        self.cube.rename('probability_of_diagnostic')
+        name_no_threshold = (
+            'probability_of_diagnostic_in_vicinity')
+        new_name_no_threshold = in_vicinity_name_format(self.cube.name())
+
+        self.assertEqual(new_name_above, name_above)
+        self.assertEqual(new_name_below, name_below)
+        self.assertEqual(new_name_no_threshold, name_no_threshold)
 
 
 class Test_resolve_metadata_diff(IrisTest):

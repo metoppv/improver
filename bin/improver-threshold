@@ -41,6 +41,7 @@ import warnings
 from improver.threshold import BasicThreshold
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
+from improver.utilities.cube_metadata import in_vicinity_name_format
 from improver.utilities.spatial import OccurrenceWithinVicinity
 from improver.blending.weights import ChooseDefaultWeightsLinear
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
@@ -162,16 +163,10 @@ def main():
         # smooth thresholded occurrences over local vicinity
         result_no_collapse_coord = OccurrenceWithinVicinity(
             args.vicinity).process(result_no_collapse_coord)
-        cube_name = result_no_collapse_coord.name()
-        relative_to_threshold_index = max(
-            cube_name.find('_above_threshold'),
-            cube_name.find('_below_threshold'))
-        if relative_to_threshold_index == -1:
-            new_cube_name = cube_name + '_in_vicinity'
-        else:
-            new_cube_name = (cube_name[:relative_to_threshold_index] +
-                             '_in_vicinity' +
-                             cube_name[relative_to_threshold_index:])
+
+        new_cube_name = in_vicinity_name_format(
+            result_no_collapse_coord.name())
+
         result_no_collapse_coord.rename(new_cube_name)
 
     if args.collapse_coord == "None":
