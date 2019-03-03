@@ -616,20 +616,20 @@ class Test_amend_metadata(IrisTest):
     def test_in_vicinity_name_format(self):
         """Test that the 'in_vicinity' above/below threshold probability
         cube naming function produces the correctly formatted names"""
-        self.cube.rename('probability_of_rainfall_rate_above_threshold')
+        self.cube.rename('probability_of_X_rate_above_threshold')
         correct_name_above = (
-            'probability_of_rainfall_rate_in_vicinity_above_threshold')
+            'probability_of_X_rate_in_vicinity_above_threshold')
         new_name_above = in_vicinity_name_format(self.cube.name())
 
-        self.cube.rename('probability_of_visibility_below_threshold')
+        self.cube.rename('probability_of_X_below_threshold')
         correct_name_below = (
-            'probability_of_visibility_in_vicinity_below_threshold')
+            'probability_of_X_in_vicinity_below_threshold')
         new_name_below = in_vicinity_name_format(self.cube.name())
 
         # Test the case of name without above/below_threshold
-        self.cube.rename('probability_of_diagnostic')
+        self.cube.rename('probability_of_X')
         correct_name_no_threshold = (
-            'probability_of_diagnostic_in_vicinity')
+            'probability_of_X_in_vicinity')
         new_name_no_threshold = in_vicinity_name_format(self.cube.name())
 
         self.assertEqual(new_name_above, correct_name_above)
