@@ -624,11 +624,19 @@ def in_vicinity_name_format(cube_name):
         new_cube_name (str):
             Correctly formatted name following the accepted convention e.g.
             'probability_of_X_in_vicinity_above_threshold'.
+
+    Raises:
+        ValueError: If the input cube name already contains 'in_vicinity'.
     """
     relative_to_threshold_index = max(
         cube_name.find('_above_threshold'),
         cube_name.find('_below_threshold'))
-    if relative_to_threshold_index == -1:
+
+    if 'in_vicinity' in cube_name:
+        msg = "Cube name already contains 'in_vicinity'"
+        raise ValueError(msg)
+
+    elif relative_to_threshold_index == -1:
         new_cube_name = cube_name + '_in_vicinity'
     else:
         new_cube_name = (cube_name[:relative_to_threshold_index] +

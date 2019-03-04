@@ -836,6 +836,13 @@ class Test_probability_cube_in_vicinity_rename(IrisTest):
         new_name_no_threshold = in_vicinity_name_format(self.cube.name())
         self.assertEqual(new_name_no_threshold, correct_name_no_threshold)
 
+    def test_in_vicinity_already_exists(self):
+        """Test the case of 'in_vicinity' already existing in the cube name"""
+        self.cube.rename('probability_of_X_in_vicinity')
+        msg = "Cube name already contains 'in_vicinity'"
+        with self.assertRaisesRegex(ValueError, msg):
+            in_vicinity_name_format(self.cube.name())
+
 
 if __name__ == '__main__':
     unittest.main()
