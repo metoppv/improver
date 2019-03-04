@@ -613,29 +613,6 @@ class Test_amend_metadata(IrisTest):
         self.assertEqual(result.attributes['new_attribute'],
                          'new_value')
 
-    def test_in_vicinity_name_format(self):
-        """Test that the 'in_vicinity' above/below threshold probability
-        cube naming function produces the correctly formatted names"""
-        self.cube.rename('probability_of_X_rate_above_threshold')
-        correct_name_above = (
-            'probability_of_X_rate_in_vicinity_above_threshold')
-        new_name_above = in_vicinity_name_format(self.cube.name())
-
-        self.cube.rename('probability_of_X_below_threshold')
-        correct_name_below = (
-            'probability_of_X_in_vicinity_below_threshold')
-        new_name_below = in_vicinity_name_format(self.cube.name())
-
-        # Test the case of name without above/below_threshold
-        self.cube.rename('probability_of_X')
-        correct_name_no_threshold = (
-            'probability_of_X_in_vicinity')
-        new_name_no_threshold = in_vicinity_name_format(self.cube.name())
-
-        self.assertEqual(new_name_above, correct_name_above)
-        self.assertEqual(new_name_below, correct_name_below)
-        self.assertEqual(new_name_no_threshold, correct_name_no_threshold)
-
 
 class Test_resolve_metadata_diff(IrisTest):
     """Test the resolve_metadata_diff method."""
@@ -826,6 +803,38 @@ class Test_add_history_attribute(IrisTest):
         add_history_attribute(cube, "Nowcast", append=True)
         self.assertTrue("history" in cube.attributes)
         self.assertTrue("Nowcast" in cube.attributes["history"])
+
+
+class Test_probability_cube_in_vicinity_rename(IrisTest):
+    """Test that the 'in_vicinity' above/below threshold probability
+    cube naming function produces the correctly formatted names."""
+
+    def setUp(self):
+        """Set up test cube"""
+        self.cube = create_cube_with_threshold()
+        self.cube.long_name = 'probability_of_X_rate_above_threshold'
+
+    def test_in_vicinity_name_format(self):
+        """Test that 'in_vicinity' is added correctly to the name for both
+        above and below threshold cases"""
+        correct_name_above = (
+            'probability_of_X_rate_in_vicinity_above_threshold')
+        new_name_above = in_vicinity_name_format(self.cube.name())
+        self.cube.rename('probability_of_X_below_threshold')
+        correct_name_below = (
+            'probability_of_X_in_vicinity_below_threshold')
+        new_name_below = in_vicinity_name_format(self.cube.name())
+        self.assertEqual(new_name_above, correct_name_above)
+        self.assertEqual(new_name_below, correct_name_below)
+
+    def test_no_above_below_threshold(self):
+        """Test the case of name without above/below_threshold is handled
+        correctly"""
+        self.cube.rename('probability_of_X')
+        correct_name_no_threshold = (
+            'probability_of_X_in_vicinity')
+        new_name_no_threshold = in_vicinity_name_format(self.cube.name())
+        self.assertEqual(new_name_no_threshold, correct_name_no_threshold)
 
 
 if __name__ == '__main__':
