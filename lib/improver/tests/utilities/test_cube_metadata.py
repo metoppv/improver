@@ -805,7 +805,7 @@ class Test_add_history_attribute(IrisTest):
         self.assertTrue("Nowcast" in cube.attributes["history"])
 
 
-class Test_probability_cube_in_vicinity_rename(IrisTest):
+class Test_in_vicinity_name_format(IrisTest):
     """Test that the 'in_vicinity' above/below threshold probability
     cube naming function produces the correctly formatted names."""
 
