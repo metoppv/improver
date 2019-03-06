@@ -90,7 +90,7 @@ class RebadgePercentilesAsRealizations(object):
         if ensemble_realization_numbers is None:
             ensemble_realization_numbers = (
                 np.arange(
-                    len(cube.coord(percentile_coord).points)))
+                    len(cube.coord(percentile_coord).points), dtype=np.int32))
 
         cube.coord(percentile_coord).points = (
             ensemble_realization_numbers)

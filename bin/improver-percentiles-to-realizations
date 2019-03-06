@@ -32,6 +32,8 @@
 
 """Script to run Ensemble Copula Coupling processing."""
 
+import numpy as np
+
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsRealizations, ResamplePercentiles, EnsembleReordering)
 from improver.argparser import ArgParser
@@ -159,7 +161,7 @@ def main():
     elif args.rebadging:
         if args.realization_numbers is not None:
             args.realization_numbers = (
-                [int(num) for num in args.realization_numbers])
+                [np.int32(num) for num in args.realization_numbers])
         result_cube = RebadgePercentilesAsRealizations().process(
             result_cube, ensemble_realization_numbers=args.realization_numbers)
 

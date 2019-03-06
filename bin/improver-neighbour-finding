@@ -36,6 +36,8 @@ import json
 from argparse import RawDescriptionHelpFormatter
 from textwrap import wrap
 
+import numpy as np
+
 import iris
 import cartopy.crs as ccrs
 from improver.argparser import ArgParser, safe_eval
@@ -193,7 +195,7 @@ def main():
             all_methods.append(NeighbourSelection(**method).process(*fargs))
 
         for index, cube in enumerate(all_methods):
-            cube.coord('neighbour_selection_method').points = index
+            cube.coord('neighbour_selection_method').points = np.int32(index)
         result = merge_cubes(all_methods)
     else:
         result = NeighbourSelection(**kwargs).process(*fargs)

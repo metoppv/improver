@@ -536,7 +536,7 @@ class NeighbourSelection:
         neighbour_cube = build_spotdata_cube(
             data, 'grid_neighbours', 1, site_altitudes.astype(np.float32),
             site_y_coords.astype(np.float32), site_x_coords.astype(np.float32),
-            wmo_ids, neighbour_methods=[method_name],
+            np.array(wmo_ids, np.int32), neighbour_methods=[method_name],
             grid_attributes=['x_index', 'y_index', 'vertical_displacement'])
 
         # Apply the grid identifiers from the input cubes to the output cube.

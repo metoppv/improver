@@ -108,12 +108,13 @@ def build_spotdata_cube(data, name, units,
     if np.isscalar(data):
         data = np.array([data])
     spot_index = DimCoord(
-        np.arange(len(data)), long_name='spot_index', units='1')
+        np.arange(len(data), dtype=np.int32), long_name='spot_index',
+        units='1')
     dim_coords_and_dims = [(spot_index, 0)]
 
     if neighbour_methods is not None:
         neighbour_methods_coord = DimCoord(
-            np.arange(len(neighbour_methods)),
+            np.arange(len(neighbour_methods), dtype=np.int32),
             long_name='neighbour_selection_method', units='1')
         neighbour_methods_key = AuxCoord(
             neighbour_methods, long_name='neighbour_selection_method_name',
@@ -126,7 +127,7 @@ def build_spotdata_cube(data, name, units,
 
     if grid_attributes is not None:
         grid_attributes_coord = DimCoord(
-            np.arange(len(grid_attributes)),
+            np.arange(len(grid_attributes), dtype=np.int32),
             long_name='grid_attributes', units='1')
         grid_attributes_key = AuxCoord(
             grid_attributes, long_name='grid_attributes_key', units='no_unit')
