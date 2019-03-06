@@ -45,28 +45,23 @@ from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.utilities.save import append_metadata_cube
 from improver.utilities.save import order_cell_methods
-from improver.tests.ensemble_calibration.ensemble_calibration. \
-    helper_functions import set_up_cube
 
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 def set_up_test_cube():
     """ Set up a temperature cube with additional global attributes. """
-    data = (
-        np.linspace(-45.0, 45.0, 9, dtype=np.float32).reshape(1, 1, 3, 3) +
-        273.15
-    )
-    cube = set_up_cube(data, 'air_temperature', 'K', realizations=([0]))
-    cube.attributes['test_attribute'] = np.arange(12)
-    # Desired attributes that will be global in netCDF file
-    cube.attributes['um_version'] = '10.4'
-    cube.attributes['mosg__grid_type'] = 'standard'
-    cube.attributes['mosg__model_configuration'] = 'uk_ens'
-    cube.attributes['mosg__grid_domain'] = 'uk_extended'
-    cube.attributes['mosg__grid_version'] = '1.2.0'
-    cube.attributes['source'] = 'Met Office Unified Model'
-    cube.attributes['Conventions'] = 'CF-1.5'
-    cube.attributes['institution'] = 'Met Office'
-    cube.attributes['history'] = ''
+    data = np.linspace(
+        -45.0, 45.0, 9, dtype=np.float32).reshape(1, 3, 3) + 273.15
+
+    attributes = {
+        'um_version': '10.4',
+        'source': 'Met Office Unified Model',
+        'Conventions': 'CF-1.5',
+        'institution': 'Met Office',
+        'history': ''}
+
+    cube = set_up_variable_cube(
+        data, attributes=attributes, standard_grid_metadata='uk_ens')
 
     return cube
 
@@ -160,6 +155,7 @@ class Test_save_netcdf(IrisTest):
         """ Test that forbidden global metadata are saved as data variable
         attributes
         """
+        self.cube.attributes['source_realizations'] = np.arange(12)
         save_netcdf(self.cube, self.filepath)
         # cast explicitly to dictionary, as pylint does not recognise
         # OrderedDict as subscriptable
