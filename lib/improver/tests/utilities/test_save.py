@@ -45,8 +45,8 @@ from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.utilities.save import append_metadata_cube
 from improver.utilities.save import order_cell_methods
-
 from improver.tests.set_up_test_cubes import set_up_variable_cube
+
 
 def set_up_test_cube():
     """ Set up a temperature cube with additional global attributes. """
