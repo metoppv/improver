@@ -35,8 +35,7 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.feels_like_temperature import calculate_wind_chill
-from improver.tests.ensemble_calibration.ensemble_calibration. \
-    helper_functions import set_up_temperature_cube, set_up_wind_speed_cube
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
 class Test_calculate_wind_chill(IrisTest):
@@ -45,8 +44,12 @@ class Test_calculate_wind_chill(IrisTest):
     def setUp(self):
         """Creates cubes to input"""
 
-        self.temperature_cube = set_up_temperature_cube()[0, :, 0]
-        self.wind_speed_cube = set_up_wind_speed_cube()[0, :, 0]
+        temperature = np.array([[226.15, 237.4, 248.65]], dtype=np.float32)
+        self.temperature_cube = set_up_variable_cube(temperature)
+
+        wind_speed = np.array([[0., 7.5, 15.]], dtype=np.float32)
+        self.wind_speed_cube = set_up_variable_cube(
+            wind_speed, name="wind_speed", units="m s-1")
 
     def test_wind_chill_values(self):
         """Test output values when from the wind chill equation."""
