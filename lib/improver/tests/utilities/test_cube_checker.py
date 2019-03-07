@@ -40,7 +40,8 @@ from iris.tests import IrisTest
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.cube_checker import (
-    _check_coord_datatypes,
+    check_coord_datatypes,
+    _check_coord_units_for_datatype_conversion,
     check_cube_datatypes,
     check_for_x_and_y_axes,
     check_cube_coordinates,
@@ -148,7 +149,7 @@ class Test_check_cube_datatypes(IrisTest):
         self.assertEqual(self.cube, expected_cube)
 
 
-class Test__check_coord_datatypes(IrisTest):
+class Test_check_coord_datatypes(IrisTest):
 
     """Test that the coordinate specified contains the desired datatype."""
 
@@ -168,7 +169,7 @@ class Test__check_coord_datatypes(IrisTest):
         self.fp_coord.points = self.fp_coord.points.astype(np.float64)
         expected_coord = self.fp_coord.copy()
         expected_coord.points = self.fp_coord.points.astype(np.int32)
-        _check_coord_datatypes(self.fp_coord, np.int32, fix=True)
+        check_coord_datatypes(self.fp_coord, np.int32, fix=True)
         self.assertEqual(self.fp_coord, expected_coord)
 
     def test_forecast_period_coord_points_error(self):
@@ -179,7 +180,7 @@ class Test__check_coord_datatypes(IrisTest):
         expected_coord.points = self.fp_coord.points.astype(np.int32)
         msg = "The coordinate points provided were of "
         with self.assertRaisesRegex(TypeError, msg):
-            _check_coord_datatypes(self.fp_coord, np.int32)
+            check_coord_datatypes(self.fp_coord, np.int32)
 
     def test_time_coord_bounds_fix(self):
         """Test an example time coordinate is fixed to have an
@@ -187,7 +188,7 @@ class Test__check_coord_datatypes(IrisTest):
         self.time_coord.bounds = self.time_coord.bounds.astype(np.float64)
         expected_coord = self.time_coord.copy()
         expected_coord.bounds = self.time_coord.bounds.astype(np.int64)
-        _check_coord_datatypes(self.time_coord, np.int64, fix=True)
+        check_coord_datatypes(self.time_coord, np.int64, fix=True)
         self.assertEqual(self.time_coord, expected_coord)
 
     def test_time_coord_bounds_error(self):
@@ -198,7 +199,7 @@ class Test__check_coord_datatypes(IrisTest):
         expected_coord.bounds = self.time_coord.bounds.astype(np.int64)
         msg = "The coordinate bounds provided were of "
         with self.assertRaisesRegex(TypeError, msg):
-            _check_coord_datatypes(self.time_coord, np.int64)
+            check_coord_datatypes(self.time_coord, np.int64)
 
     def test_time_coord_points_and_bounds_fix_with_rounding(self):
         """Test an example time coordinate is fixed to have an
@@ -208,9 +209,43 @@ class Test__check_coord_datatypes(IrisTest):
         expected_coord = self.time_coord.copy()
         expected_coord.points = (
             np.around(self.time_coord.points).astype(np.int64))
-        _check_coord_datatypes(
+        check_coord_datatypes(
             self.time_coord, np.int64, fix=True, rounding=True)
         self.assertEqual(self.time_coord, expected_coord)
+
+
+class Test__check_coord_units_for_datatype_conversion(IrisTest):
+
+    """Test whether the units of the coordinate are appropriate for
+       datatype conversion."""
+
+    def test_time_inappropriate_datatype(self):
+        time_coord = iris.coords.DimCoord(
+            [2.5], standard_name="time",
+            units="hours since 1970-01-01 00:00:00")
+        msg = "For datatype conversion"
+        with self.assertRaisesRegex(ValueError, msg):
+            _check_coord_units_for_datatype_conversion(time_coord)
+
+    def test_frt_inappropriate_datatype(self):
+        frt_coord = iris.coords.DimCoord(
+            [2.5], standard_name="forecast_reference_time",
+            units="hours since 1970-01-01 00:00:00")
+        msg = "For datatype conversion"
+        with self.assertRaisesRegex(ValueError, msg):
+            _check_coord_units_for_datatype_conversion(frt_coord)
+
+    def test_forecast_period_inappropriate_datatype(self):
+        fp_coord = iris.coords.DimCoord(
+            [2.5], standard_name="forecast_period", units="hours")
+        msg = "For datatype conversion"
+        with self.assertRaisesRegex(ValueError, msg):
+            _check_coord_units_for_datatype_conversion(fp_coord)
+
+    def test_no_exception_raised(self):
+        height_coord = iris.coords.DimCoord(
+            [2.5], standard_name="height", units="m")
+        _check_coord_units_for_datatype_conversion(height_coord)
 
 
 class Test_check_for_x_and_y_axes(IrisTest):

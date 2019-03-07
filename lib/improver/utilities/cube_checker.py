@@ -73,21 +73,21 @@ def check_cube_datatypes(cube, fix=False):
     for coord in cube.coords():
         if coord.name() in ["time", "forecast_reference_time"]:
             coord.convert_units("seconds since 1970-01-01 00:00:00")
-            _check_coord_datatypes(coord, np.int64, fix=fix, rounding=True)
+            check_coord_datatypes(coord, np.int64, fix=fix, rounding=True)
         elif coord.name() in ["forecast_period", "realization", "spot_index",
                               "neighbour_selection_method", "grid_attributes",
                               "wmo_id", "model_id"]:
             if coord.name() in ["forecast_period"]:
                 coord.convert_units("seconds")
-            _check_coord_datatypes(coord, np.int32, fix=fix)
+            check_coord_datatypes(coord, np.int32, fix=fix)
         elif coord.name() in ["neighbour_selection_method_name",
                               "grid_attributes_key", "model_configuration"]:
-            _check_coord_datatypes(coord, np.unicode_, fix=fix)
+            check_coord_datatypes(coord, np.unicode_, fix=fix)
         else:
-            _check_coord_datatypes(coord, np.float32, fix=fix)
+            check_coord_datatypes(coord, np.float32, fix=fix)
 
 
-def _check_coord_datatypes(coord, datatype, fix=False, rounding=False):
+def check_coord_datatypes(coord, datatype, fix=False, rounding=False):
     """Check that the coordinate is of the datatype specified. The coordinate
     will be modified in place, if the fix keyword is set to True. This
     function is intended to be called from check_cube_datatypes, so that the
@@ -113,6 +113,10 @@ def _check_coord_datatypes(coord, datatype, fix=False, rounding=False):
         TypeError: The coordinate points are not of the expected datatype.
         TypeError: The coordinate bounds are not of the expected datatype.
     """
+    # Check that the units of the coordinate are appropriate for
+    # datatype conversion.
+    _check_coord_units_for_datatype_conversion
+
     # Check to ensure that the dtype of the coordinate points is
     # mismatched with the specifed datatype, and ensure that the dtype
     # of the coordinate points is not a subtype of the specified datatype.
@@ -145,6 +149,36 @@ def _check_coord_datatypes(coord, datatype, fix=False, rounding=False):
                    "of {} datatype.").format(
                        coord.name(), coord.bounds, datatype, coord.dtype)
             raise TypeError(msg)
+
+
+def _check_coord_units_for_datatype_conversion(coord):
+    """Check that the units of the coordinate that is supplied is appropriate
+       for datatype conversion.
+
+    Args:
+        coord (iris.coord.DimCoord, iris.coord.AuxCoord):
+            The coordinate that will be checked for its datatype.
+
+    Raises:
+        ValueError: The coordinate units are not appropriate for datatype
+            conversion.
+        ValueError: The coordinate units are not appropriate for datatype
+            conversion.
+    """
+    if coord.name() in ["time", "forecast_reference_time"]:
+        if coord.units != "seconds since 1970-01-01 00:00:00":
+            msg = ("For datatype conversion, the {} coordinate "
+                   "must have units of seconds since 1970-01-01 00:00:00. "
+                   "The units supplied were {}".format(
+                        coord.name(), coord.units))
+            raise ValueError(msg)
+    if coord.name() in ["forecast_period"]:
+        if coord.units != "seconds":
+            msg = ("For datatype conversion, the {} coordinate "
+                   "must have units of seconds."
+                   "The units supplied were {}".format(
+                        coord.name(), coord.units))
+            raise ValueError(msg)
 
 
 def check_for_x_and_y_axes(cube, require_dim_coords=False):
