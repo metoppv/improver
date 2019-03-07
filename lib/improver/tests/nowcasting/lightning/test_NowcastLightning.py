@@ -47,6 +47,10 @@ from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
 
+from datetime import datetime as dt
+from improver.tests.set_up_test_cubes import (
+    set_up_variable_cube, set_up_probability_cube)
+
 
 class Test__init__(IrisTest):
 
@@ -85,26 +89,26 @@ class Test__update_metadata(IrisTest):
     """Test the _update_metadata method."""
 
     def setUp(self):
-        """Create a cube with a single non-zero point like this:
-        precipitation_amount / (kg m^-2)
+        """Create a cube like this:
+        probability_of_precipitation_amount / (1)
         Dimension coordinates:
-            realization: 1;
-            time: 1;
+            threshold: 1;
             projection_y_coordinate: 3;
             projection_x_coordinate: 3;
-        Auxiliary coordinates:
-            forecast_period (on time coord): 4.0 hours
         Scalar coordinates:
-            forecast_reference_time: 2015-11-23 03:00:00
-            threshold: 0.5 mm hr-1
-        Data:
-            All points contain float(1.) except the
-            zero point [0, 0, 1, 1] which is float(0.)
+            forecast_period: 14400 seconds
+            forecast_reference_time: 2017-11-10 00:00:00
+            time: 2017-11-10 04:00:00
+        Attributes:
+            relative_to_threshold: above
+        Cell methods:
+            mean: realization
         """
-        self.cube = add_forecast_reference_time_and_forecast_period(
-            set_up_cube())
-        coord = DimCoord(0.5, long_name="threshold", units='mm hr^-1')
-        self.cube.add_aux_coord(coord)
+        data = np.ones((1, 16, 16), dtype=np.float32)
+        thresholds = np.array([0.5], dtype=np.float32)
+        self.cube = set_up_probability_cube(
+            data, thresholds, variable_name='precipitation_amount',
+            threshold_units='mm h-1')
         self.cube.add_cell_method(CellMethod('mean', coords='realization'))
         self.plugin = Plugin()
 
@@ -144,74 +148,59 @@ class Test__modify_first_guess(IrisTest):
     """Test the _modify_first_guess method."""
 
     def setUp(self):
-        """Create cubes with a single zero prob(precip) point.
-        The cubes look like this:
-        precipitation_amount / (kg m^-2)
+        """Create cubes full of ones with a single zero point.
+        The cube coordinates look like this:
         Dimension coordinates:
-            time: 1;
             projection_y_coordinate: 3;
             projection_x_coordinate: 3;
-        Auxiliary coordinates:
-            forecast_period (on time coord): 4.0 hours (simulates UM data)
         Scalar coordinates:
-            forecast_reference_time: 2015-11-23 03:00:00
-        Data:
-        self.cube:
-            Describes the nowcast fields to be calculated.
-            forecast_period (on time coord): 0.0 hours (simulates nowcast data)
-            All points contain float(1.) except the
-            zero point [0, 1, 1] which is float(0.)
+            time: 2015-11-23 07:00:00
+            forecast_reference_time: 2015-11-23 07:00:00
+            forecast_period: 0 seconds
+
         self.fg_cube:
-            All points contain float(1.)
-        self.ltng_cube:
-            forecast_period (on time coord): 0.0 hours (simulates nowcast data)
-            All points contain float(1.)
+            Has non-zero forecast period, to test impact at lr2
         self.precip_cube:
             With extra coordinate of length(3) "threshold" containing
-            points [0.5, 7., 35.] mm hr-1.
-            All points contain float(1.) except the
-            zero point [0, 0, 1, 1] which is float(0.)
-            and [1:, 0, ...] which are float(0.)
+            points [0.5, 7., 35.] mm h-1.
         self.vii_cube:
             With extra coordinate of length(3) "threshold" containing
-            points [0.5, 1., 2.] kg m^-2.
-            forecast_period (on time coord): 0.0 hours (simulates nowcast data)
-            Time and forecast_period dimensions "sqeezed" to be Scalar coords.
-            All points contain float(0.)
+            points [0.5, 1., 2.] kg m-2.
         """
-        self.cube = add_forecast_reference_time_and_forecast_period(
-            set_up_cube_with_no_realizations(zero_point_indices=((0, 1, 1),),
-                                             num_grid_points=3), fp_point=0.0)
-        self.fg_cube = add_forecast_reference_time_and_forecast_period(
-            set_up_cube_with_no_realizations(zero_point_indices=[],
-                                             num_grid_points=3))
-        self.ltng_cube = add_forecast_reference_time_and_forecast_period(
-            set_up_cube_with_no_realizations(zero_point_indices=[],
-                                             num_grid_points=3),
-            fp_point=0.0)
-        self.precip_cube = (
-            add_forecast_reference_time_and_forecast_period(
-                set_up_cube(num_realization_points=3,
-                            zero_point_indices=((0, 1, 1),),
-                            num_grid_points=3), fp_point=0.0))
-        threshold_coord = self.precip_cube.coord('realization')
-        threshold_coord.points = [0.5, 7.0, 35.0]
-        threshold_coord.rename('threshold')
-        threshold_coord.units = cf_units.Unit('mm hr-1')
-        self.precip_cube.data[1:, 0, ...] = 0.
-        # iris.util.queeze is applied here to demote the singular coord "time"
-        # to a scalar coord.
-        self.vii_cube = squeeze(
-            add_forecast_reference_time_and_forecast_period(
-                set_up_cube(num_realization_points=3,
-                            zero_point_indices=[],
-                            num_grid_points=3),
-                fp_point=0.0))
-        threshold_coord = self.vii_cube.coord('realization')
-        threshold_coord.points = [0.5, 1.0, 2.0]
-        threshold_coord.rename('threshold')
-        threshold_coord.units = cf_units.Unit('kg m^-2')
-        self.vii_cube.data = np.zeros_like(self.vii_cube.data)
+        validity_time = dt(2015, 11, 23, 7)
+
+        data = np.ones((3, 3), dtype=np.float32)
+        self.cube = set_up_variable_cube(
+            data.copy(), name='lightning_rate', units='min-1',
+            time=validity_time, frt=validity_time)
+        self.cube.data[1, 1] = 0.
+
+        # set up lightning FORECAST cube with forecast period 4 hours
+        # (required for level 2 lighting risk index)
+        self.fg_cube = set_up_variable_cube(
+            data.copy(), name='probability_of_lightning', units='1',
+            time=validity_time, frt=dt(2015, 11, 23, 3))
+
+        self.ltng_cube = set_up_variable_cube(
+            data.copy(), name='lightning_rate', units='min-1',
+            time=validity_time, frt=validity_time)
+
+        precip_data = np.ones((3, 3, 3), dtype=np.float32)
+        precip_thresholds = np.array([0.5, 7.0, 35.0], dtype=np.float32)
+        self.precip_cube = set_up_probability_cube(
+            precip_data, precip_thresholds,
+            variable_name='precipitation_amount', threshold_units='mm h-1',
+            time=validity_time, frt=validity_time)
+        self.precip_cube.data[0, 1, 1] = 0.
+        self.precip_cube.data[1:, ...] = 0.
+
+        vii_data = np.zeros((3, 3, 3), dtype=np.float32)
+        vii_thresholds = np.array([0.5, 1.0, 2.0], dtype=np.float32)
+        self.vii_cube = set_up_probability_cube(
+            vii_data, vii_thresholds,
+            variable_name='vertical_integral_of_ice', threshold_units='kg m-2',
+            time=validity_time, frt=validity_time)
+
         self.plugin = Plugin()
 
     def test_basic(self):
@@ -281,7 +270,7 @@ class Test__modify_first_guess(IrisTest):
         # No halo - we're only testing this method.
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
-        expected.data[0, 1, 1] = 0.0067
+        expected.data[1, 1] = 0.0067
         result = self.plugin._modify_first_guess(self.cube,
                                                  self.fg_cube,
                                                  self.ltng_cube,
@@ -293,12 +282,12 @@ class Test__modify_first_guess(IrisTest):
         """Test that ApplyIce is being called"""
         # Set lightning data to zero so it has a Null impact
         self.vii_cube.data[:, 1, 1] = 1.
-        self.ltng_cube.data[0, 1, 1] = -1.
-        self.fg_cube.data[0, 1, 1] = 0.
+        self.ltng_cube.data[1, 1] = -1.
+        self.fg_cube.data[1, 1] = 0.
         # No halo - we're only testing this method.
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
-        expected.data[0, 1, 1] = 0.9
+        expected.data[1, 1] = 0.9
         result = self.plugin._modify_first_guess(self.cube,
                                                  self.fg_cube,
                                                  self.ltng_cube,
@@ -310,7 +299,7 @@ class Test__modify_first_guess(IrisTest):
         """Test that large precip probs and -1 lrates have no impact"""
         # Set prob(precip) data for lowest threshold to to 0.1, the highest
         # value that has no impact.
-        self.precip_cube.data[0, 0, 1, 1] = 0.1
+        self.precip_cube.data[0, 1, 1] = 0.1
         # Set lightning data to -1 so it has a Null impact
         self.ltng_cube.data = np.full_like(self.ltng_cube.data, -1.)
         # No halo - we're only testing this method.
@@ -327,12 +316,11 @@ class Test__modify_first_guess(IrisTest):
         """Test that large lightning rates increase zero lightning risk"""
         expected = self.fg_cube.copy()
         # expected.data contains all ones
-        # Set precip data to 1. so it has a Null impact
         # Set prob(precip) data for lowest threshold to to 1., so it has a Null
         # impact when lightning is present.
-        self.precip_cube.data[0, 0, 1, 1] = 1.
+        self.precip_cube.data[0, 1, 1] = 1.
         # Set first-guess data zero point that will be increased
-        self.fg_cube.data[0, 1, 1] = 0.
+        self.fg_cube.data[1, 1] = 0.
         # No halo - we're only testing this method.
         result = self.plugin._modify_first_guess(self.cube,
                                                  self.fg_cube,
@@ -349,16 +337,16 @@ class Test__modify_first_guess(IrisTest):
         # Set precip data to 1. so it has a Null impact
         # Set prob(precip) data for lowest threshold to to 1., so it has a Null
         # impact when lightning is present.
-        self.precip_cube.data[0, 0, 1, 1] = 1.
+        self.precip_cube.data[0, 1, 1] = 1.
         # Test the impact of the lightning-rate function.
         # A highish lightning value at one-hour lead time isn't high enough to
         # get to the high lightning category.
-        self.ltng_cube.data[0, 1, 1] = 0.8
-        self.cube.coord('forecast_period').points = [1.]  # hours
+        self.ltng_cube.data[1, 1] = 0.8
+        self.cube.coord('forecast_period').points = [3600.]  # seconds
         # Set first-guess data zero point that will be increased
-        self.fg_cube.data[0, 1, 1] = 0.
+        self.fg_cube.data[1, 1] = 0.
         # This time, lightning probability increases only to 0.25, not 1.
-        expected.data[0, 1, 1] = 0.25
+        expected.data[1, 1] = 0.25
         # No halo - we're only testing this method.
         result = self.plugin._modify_first_guess(self.cube,
                                                  self.fg_cube,
@@ -375,9 +363,9 @@ class Test__modify_first_guess(IrisTest):
         # Set precip data to 1. so it has a Null impact
         # Set prob(precip) data for lowest threshold to to 1., so it has a Null
         # impact when lightning is present.
-        self.precip_cube.data[0, 0, 1, 1] = 1.
+        self.precip_cube.data[0, 1, 1] = 1.
         # Set first-guess data zero point that will be increased
-        self.fg_cube.data[0, 1, 1] = 1.
+        self.fg_cube.data[1, 1] = 1.
         # No halo - we're only testing this method.
         result = self.plugin._modify_first_guess(self.cube,
                                                  self.fg_cube,
@@ -391,15 +379,15 @@ class Test__modify_first_guess(IrisTest):
         increases lightning risk at point"""
         # Set prob(precip) data for lowest threshold to to 1., so it has a Null
         # impact when lightning is present.
-        self.precip_cube.data[0, 0, 1, 1] = 1.
+        self.precip_cube.data[0, 1, 1] = 1.
         # Set lightning data to zero to represent the data halo
-        self.ltng_cube.data[0, 1, 1] = 0.
+        self.ltng_cube.data[1, 1] = 0.
         # Set first-guess data zero point that will be increased
-        self.fg_cube.data[0, 1, 1] = 0.
+        self.fg_cube.data[1, 1] = 0.
         # No halo - we're only testing this method.
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
-        expected.data[0, 1, 1] = 0.25
+        expected.data[1, 1] = 0.25
         result = self.plugin._modify_first_guess(self.cube,
                                                  self.fg_cube,
                                                  self.ltng_cube,
