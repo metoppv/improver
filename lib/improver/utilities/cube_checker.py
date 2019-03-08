@@ -78,58 +78,6 @@ def check_cube_not_float64(cube, fix=False):
                         coord, cube))
 
 
-def check_coord_datatypes(coord, datatype, fix=False, rounding=False):
-    """Check that the coordinate is of the datatype specified. The coordinate
-    will be modified in place, if the fix keyword is set to True.
-
-    Args:
-        coord (iris.coord.DimCoord, iris.coord.AuxCoord):
-            The coordinate that will be checked for its datatype.
-        datatype (type):
-            The datatype that is expected for the coordinate.
-            For example, np.int32, np.float32, np.float64, etc.
-
-    Keyword Args:
-       fix (bool):
-           If fix is True, then the cube is amended to not include datatype
-           specified, otherwise, an error will be raised.
-       rounding (bool):
-           If fix is True, then the rounding keyword can also be enabled,
-           that will round the coordinate points and bounds prior to changing
-           the datatype.
-
-    Raises:
-        TypeError: The coordinate points are not of the expected datatype.
-        TypeError: The coordinate bounds are not of the expected datatype.
-    """
-    if coord.points.dtype != datatype:
-        if fix:
-            if rounding:
-                coord.points = np.around(coord.points)
-            coord.points = coord.points.astype(datatype)
-        else:
-            msg = ("The {} coordinate points {} are expected "
-                   "to be of {} datatype. "
-                   "The coordinate points provided were "
-                   "of {} datatype.").format(
-                       coord.name(), coord.points, datatype, coord.dtype)
-            raise TypeError(msg)
-
-    if (hasattr(coord, "bounds") and coord.bounds is not None and
-            coord.bounds.dtype != datatype):
-        if fix:
-            if rounding:
-                coord.bounds = np.around(coord.bounds)
-            coord.bounds = coord.bounds.astype(datatype)
-        else:
-            msg = ("The {} coordinate bounds {} are expected "
-                   "to be of {} datatype. "
-                   "The coordinate bounds provided were "
-                   "of {} datatype.").format(
-                     coord.name(), coord.bounds, datatype, coord.dtype)
-            raise TypeError(msg)
-
-
 def check_for_x_and_y_axes(cube, require_dim_coords=False):
     """
     Check whether the cube has an x and y axis, otherwise raise an error.

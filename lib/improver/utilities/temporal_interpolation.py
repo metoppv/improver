@@ -39,7 +39,6 @@ from iris.exceptions import CoordinateNotFoundError
 from improver.utilities.temporal import iris_time_to_datetime
 from improver.utilities.solar import DayNightMask, calc_solar_elevation
 from improver.utilities.cube_manipulation import merge_cubes
-from improver.utilities.cube_checker import check_coord_datatypes
 from improver.utilities.spatial import (
     lat_lon_determine, transform_grid_to_lat_lon)
 
@@ -201,8 +200,16 @@ class TemporalInterpolation(object):
             dtype_orig = cube.coord(coord_name).points.dtype
             try:
                 new_coord = new_cube.coord(coord_name)
-                check_coord_datatypes(new_coord, dtype_orig, fix=True,
-                                      rounding=True)
+                # TODO: Provide safe support for time coordinates that could
+                # potentially be in units of "hours since 1970-01-01 00:00:00."
+                if new_coord.points.dtype != dtype_orig:
+                    new_coord.points = np.around(new_coord.points)
+                    new_coord.points = new_coord.points.astype(dtype_orig)
+                if (hasattr(new_coord, "bounds")
+                        and new_coord.bounds is not None and
+                        new_coord.bounds.dtype != dtype_orig):
+                    new_coord.bounds = np.around(new_coord.bounds)
+                    new_coord.bounds = new_coord.bounds.astype(dtype_orig)
             except CoordinateNotFoundError:
                 msg = ('new_cube does not have the coordinate in'
                        ' the original cube {}'.format(coord_name))

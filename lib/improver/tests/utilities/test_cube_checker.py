@@ -41,7 +41,6 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.cube_checker import (
     check_cube_not_float64,
-    check_coord_datatypes,
     check_for_x_and_y_axes,
     check_cube_coordinates,
     find_dimension_coordinate_mismatch,
@@ -148,74 +147,6 @@ class Test_check_cube_not_float64(IrisTest):
             standard_name="forecast_reference_time")
         self.cube.add_aux_coord(frt_coord)
         check_cube_not_float64(self.cube)
-
-
-class Test_check_coord_datatypes(IrisTest):
-    """Test that the coordinate specified contains the desired datatype."""
-
-    def setUp(self):
-        """Set up a cube to test."""
-        time_bounds = [datetime(2017, 11, 10, 2, 0),
-                       datetime(2017, 11, 10, 6, 0)]
-        self.cube = set_up_variable_cube(np.ones((5, 5), dtype=np.float32),
-                                         time_bounds=time_bounds,
-                                         spatial_grid='equalarea')
-        self.fp_coord = self.cube.coord("forecast_period")
-        self.time_coord = self.cube.coord("time")
-
-    def test_forecast_period_coord_points_fix(self):
-        """Test an example forecast period coordinate is fixed to have an
-        int32 datatype."""
-        self.fp_coord.points = self.fp_coord.points.astype(np.float64)
-        expected_coord = self.fp_coord.copy()
-        expected_coord.points = self.fp_coord.points.astype(np.int32)
-        check_coord_datatypes(self.fp_coord, np.int32, fix=True)
-        self.assertEqual(self.fp_coord, expected_coord)
-        self.assertEqual(str(self.fp_coord.points.dtype), 'int32')
-
-    def test_forecast_period_coord_points_error(self):
-        """Test an example forecast period coordinate raises an error if it
-        is not of int32 datatype."""
-        self.fp_coord.points = self.fp_coord.points.astype(np.float64)
-        expected_coord = self.fp_coord.copy()
-        expected_coord.points = self.fp_coord.points.astype(np.int32)
-        msg = "The coordinate points provided were of "
-        with self.assertRaisesRegex(TypeError, msg):
-            check_coord_datatypes(self.fp_coord, np.int32)
-
-    def test_time_coord_bounds_fix(self):
-        """Test an example time coordinate is fixed to have an
-        int64 datatype."""
-        self.time_coord.bounds = self.time_coord.bounds.astype(np.float64)
-        expected_coord = self.time_coord.copy()
-        expected_coord.bounds = self.time_coord.bounds.astype(np.int64)
-        check_coord_datatypes(self.time_coord, np.int64, fix=True)
-        self.assertEqual(self.time_coord, expected_coord)
-        self.assertEqual(str(self.time_coord.points.dtype), 'int64')
-
-    def test_time_coord_bounds_error(self):
-        """Test an example time coordinate raises an error if it
-        is not of int64 datatype."""
-        self.time_coord.bounds = self.time_coord.bounds.astype(np.float64)
-        expected_coord = self.time_coord.copy()
-        expected_coord.bounds = self.time_coord.bounds.astype(np.int64)
-        msg = "The coordinate bounds provided were of "
-        with self.assertRaisesRegex(TypeError, msg):
-            check_coord_datatypes(self.time_coord, np.int64)
-
-    def test_time_coord_points_and_bounds_fix_with_rounding(self):
-        """Test an example time coordinate is fixed to have an
-        int64 datatype with rounding."""
-        self.time_coord.points = self.time_coord.points.astype(np.float64)
-        self.time_coord.bounds = self.time_coord.bounds.astype(np.float64)
-        expected_coord = self.time_coord.copy()
-        expected_coord.points = (
-            np.around(self.time_coord.points).astype(np.int64))
-        check_coord_datatypes(
-            self.time_coord, np.int64, fix=True, rounding=True)
-        self.assertEqual(self.time_coord, expected_coord)
-        self.assertEqual(str(self.time_coord.points.dtype), 'int64')
-        self.assertEqual(str(self.time_coord.bounds.dtype), 'int64')
 
 
 class Test_check_for_x_and_y_axes(IrisTest):
