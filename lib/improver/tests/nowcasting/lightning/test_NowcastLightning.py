@@ -101,12 +101,11 @@ def set_up_lightning_test_cubes(validity_time=dt(2015, 11, 23, 7),
 
     # probability of precip rate exceedance cube with higher rate probabilities
     # set to zero, and central point of low rate probabilities set to zero
-    # TODO this name should be "lwe_precipitation_rate" - bug in code?
     precip_data = np.ones((3, grid_points, grid_points), dtype=np.float32)
     precip_thresholds = np.array([0.5, 7.0, 35.0], dtype=np.float32)
     prob_precip_cube = set_up_probability_cube(
         precip_data, precip_thresholds,
-        variable_name='precipitation', threshold_units='mm h-1',
+        variable_name='lwe_precipitation_rate', threshold_units='mm h-1',
         time=validity_time, frt=validity_time, spatial_grid='equalarea')
     prob_precip_cube.data[0, 1, 1] = 0.
     prob_precip_cube.data[1:, ...] = 0.
@@ -849,7 +848,7 @@ class Test_process(IrisTest):
         """Test that the method raises an error if the precip cube is
         omitted from the cubelist"""
         msg = (r"Got 0 cubes for constraint Constraint\(name=\'probability_of_"
-               r"precipitation_rate_above_threshold\'\), expecting 1.")
+               r"lwe_precipitation_rate_above_threshold\'\), expecting 1.")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
             self.plugin.process(CubeList([
                 self.fg_cube,

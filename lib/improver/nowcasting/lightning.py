@@ -470,7 +470,8 @@ class NowcastLightning(object):
             "rate_of_lightning", strict=True)
         lightning_rate_cube.convert_units("min^-1")  # Ensure units are correct
         prob_precip_cube = cubelist.extract(
-            "probability_of_precipitation_rate_above_threshold", strict=True)
+            "probability_of_lwe_precipitation_rate_above_threshold",
+            strict=True)
         # Now find prob_vii_cube. Can't use strict=True here as cube may not be
         # present, so will use a normal extract and then merge_cube if needed.
         prob_vii_cube = cubelist.extract(
