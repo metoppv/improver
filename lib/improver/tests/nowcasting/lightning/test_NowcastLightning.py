@@ -52,6 +52,79 @@ from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, set_up_probability_cube)
 
 
+def set_up_lightning_test_cubes(validity_time=dt(2015, 11, 23, 7),
+                                fg_frt=dt(2015, 11, 23, 3)):
+    """Set up five cubes for testing nowcast lightning.
+
+    The cube coordinates look like this:
+        Dimension coordinates:
+            projection_y_coordinate: 3;
+            projection_x_coordinate: 3;
+        Scalar coordinates:
+            time: 2015-11-23 07:00:00
+            forecast_reference_time: 2015-11-23 07:00:00
+            forecast_period: 0 seconds
+
+    Kwargs:
+        validity_time (datetime.datetime):
+            Time to use for test cubes.
+        fg_frt (datetime.datetime):
+            Forecast reference time for first guess cube, which needs
+            to have different forecast periods for different tests.
+
+    Returns:
+        template_cube (iris.cube.Cube)
+        first_guess_cube (iris.cube.Cube):
+            Has non-zero forecast period, to test impact at lr2
+        lightning_rate_cube (iris.cube.Cube)
+        prob_precip_cube (iris.cube.Cube):
+            Has extra coordinate of length(3) "threshold" containing
+            points [0.5, 7., 35.] mm h-1.
+        prob_vii_cube (iris.cube.Cube):
+            Has extra coordinate of length(3) "threshold" containing
+            points [0.5, 1., 2.] kg m-2.
+    """
+    # template cube full of ones with one zero point
+    data = np.ones((3, 3), dtype=np.float32)
+    template_cube = set_up_variable_cube(
+        data.copy(), name='lightning_rate', units='min-1',
+        time=validity_time, frt=validity_time)
+    template_cube.data[1, 1] = 0.
+
+    # first guess lightning FORECAST cube with flexible forecast period
+    # (required for level 2 lighting risk index)
+    first_guess_cube = set_up_variable_cube(
+        data.copy(), name='probability_of_lightning', units='1',
+        time=validity_time, frt=fg_frt)
+
+    # lightning rate cube full of ones
+    lightning_rate_cube = set_up_variable_cube(
+        data.copy(), name='rate_of_lightning', units='min-1',
+        time=validity_time, frt=validity_time)
+
+    # probability of precip rate exceedance cube with higher rate probabilities
+    # set to zero, and central point of low rate probabilities set to zero
+    precip_data = np.ones((3, 3, 3), dtype=np.float32)
+    precip_thresholds = np.array([0.5, 7.0, 35.0], dtype=np.float32)
+    prob_precip_cube = set_up_probability_cube(
+        precip_data, precip_thresholds,
+        variable_name='lwe_precipitation_rate', threshold_units='mm h-1',
+        time=validity_time, frt=validity_time)
+    prob_precip_cube.data[0, 1, 1] = 0.
+    prob_precip_cube.data[1:, ...] = 0.
+
+    # probability of VII exceedance cube full of zeros
+    vii_data = np.zeros((3, 3, 3), dtype=np.float32)
+    vii_thresholds = np.array([0.5, 1.0, 2.0], dtype=np.float32)
+    prob_vii_cube = set_up_probability_cube(
+        vii_data, vii_thresholds,
+        variable_name='vertical_integral_of_ice', threshold_units='kg m-2',
+        time=validity_time, frt=validity_time)
+
+    return (template_cube, first_guess_cube, lightning_rate_cube,
+            prob_precip_cube, prob_vii_cube)
+
+
 class Test__init__(IrisTest):
 
     """Test the __init__ method accepts keyword arguments."""
@@ -148,7 +221,7 @@ class Test__modify_first_guess(IrisTest):
     """Test the _modify_first_guess method."""
 
     def setUp(self):
-        """Create cubes full of ones with a single zero point.
+        """Create test cubes and plugin instance.
         The cube coordinates look like this:
         Dimension coordinates:
             projection_y_coordinate: 3;
@@ -159,48 +232,16 @@ class Test__modify_first_guess(IrisTest):
             forecast_period: 0 seconds
 
         self.fg_cube:
-            Has non-zero forecast period, to test impact at lr2
+            Has 4 hour forecast period, to test impact at lr2
         self.precip_cube:
-            With extra coordinate of length(3) "threshold" containing
+            Has extra coordinate of length(3) "threshold" containing
             points [0.5, 7., 35.] mm h-1.
         self.vii_cube:
-            With extra coordinate of length(3) "threshold" containing
+            Has extra coordinate of length(3) "threshold" containing
             points [0.5, 1., 2.] kg m-2.
         """
-        validity_time = dt(2015, 11, 23, 7)
-
-        data = np.ones((3, 3), dtype=np.float32)
-        self.cube = set_up_variable_cube(
-            data.copy(), name='lightning_rate', units='min-1',
-            time=validity_time, frt=validity_time)
-        self.cube.data[1, 1] = 0.
-
-        # set up lightning FORECAST cube with forecast period 4 hours
-        # (required for level 2 lighting risk index)
-        self.fg_cube = set_up_variable_cube(
-            data.copy(), name='probability_of_lightning', units='1',
-            time=validity_time, frt=dt(2015, 11, 23, 3))
-
-        self.ltng_cube = set_up_variable_cube(
-            data.copy(), name='lightning_rate', units='min-1',
-            time=validity_time, frt=validity_time)
-
-        precip_data = np.ones((3, 3, 3), dtype=np.float32)
-        precip_thresholds = np.array([0.5, 7.0, 35.0], dtype=np.float32)
-        self.precip_cube = set_up_probability_cube(
-            precip_data, precip_thresholds,
-            variable_name='precipitation_amount', threshold_units='mm h-1',
-            time=validity_time, frt=validity_time)
-        self.precip_cube.data[0, 1, 1] = 0.
-        self.precip_cube.data[1:, ...] = 0.
-
-        vii_data = np.zeros((3, 3, 3), dtype=np.float32)
-        vii_thresholds = np.array([0.5, 1.0, 2.0], dtype=np.float32)
-        self.vii_cube = set_up_probability_cube(
-            vii_data, vii_thresholds,
-            variable_name='vertical_integral_of_ice', threshold_units='kg m-2',
-            time=validity_time, frt=validity_time)
-
+        (self.cube, self.fg_cube, self.ltng_cube, self.precip_cube,
+            self.vii_cube) = set_up_lightning_test_cubes()
         self.plugin = Plugin()
 
     def test_basic(self):
@@ -401,49 +442,24 @@ class Test_apply_precip(IrisTest):
     """Test the apply_precip method."""
 
     def setUp(self):
-        """Create cubes with a single zero prob(precip) point.
-        The cubes look like this:
-        precipitation_amount / (kg m^-2)
+        """Create test cubes and plugin instance.
+        The cube coordinates look like this:
         Dimension coordinates:
-            time: 1;
             projection_y_coordinate: 3;
             projection_x_coordinate: 3;
-        Auxiliary coordinates:
-            forecast_period (on time coord): 4.0 hours (simulates UM data)
         Scalar coordinates:
-            forecast_reference_time: 2015-11-23 03:00:00
-        Data:
+            time: 2015-11-23 07:00:00
+            forecast_reference_time: 2015-11-23 07:00:00
+            forecast_period: 0 seconds
+
         self.fg_cube:
-            forecast_period (on time coord): 0.0 hours (simulates nowcast data)
-            All points contain float(1.)
-            Cube name is "probability_of_lightning_rate_above_threshold".
+            Has 4 hour forecast period
         self.precip_cube:
-            With extra coordinate of length(3) "threshold" containing
-            points [0.5, 7., 35.] mm hr-1.
-            All points contain float(1.) except the
-            zero point [0, 0, 1, 1] which is float(0.)
-            and [1:, 0, ...] which are float(0.)
-            Cube name is "probability_of_precipitation_rate_above_threshold".
-            Cube has added attribute {'relative_to_threshold': 'above'}
+            Has extra coordinate of length(3) "threshold" containing
+            points [0.5, 7., 35.] mm h-1.
         """
-        self.fg_cube = add_forecast_reference_time_and_forecast_period(
-            set_up_cube_with_no_realizations(zero_point_indices=[],
-                                             num_grid_points=3),
-            fp_point=0.0)
-        self.fg_cube.rename("probability_of_lightning_rate_above_threshold")
-        self.precip_cube = (
-            add_forecast_reference_time_and_forecast_period(
-                set_up_cube(num_realization_points=3,
-                            zero_point_indices=((0, 1, 1),),
-                            num_grid_points=3)))
-        threshold_coord = self.precip_cube.coord('realization')
-        threshold_coord.points = [0.5, 7.0, 35.0]
-        threshold_coord.rename('threshold')
-        threshold_coord.units = cf_units.Unit('mm hr-1')
-        self.precip_cube.rename(
-            "probability_of_precipitation_rate_above_threshold")
-        self.precip_cube.attributes.update({'relative_to_threshold': 'above'})
-        self.precip_cube.data[1:, 0, ...] = 0.
+        (_, self.fg_cube, _, self.precip_cube, _) = (
+            set_up_lightning_test_cubes())
         self.plugin = Plugin()
 
     def test_basic(self):
@@ -493,25 +509,25 @@ class Test_apply_precip(IrisTest):
         """Test that zero precip probs reduce high lightning risk a lot"""
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
-        expected.data[0, 1, 1] = 0.0067
+        expected.data[1, 1] = 0.0067
         result = self.plugin.apply_precip(self.fg_cube, self.precip_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_precip_small(self):
         """Test that small precip probs reduce high lightning risk a bit"""
-        self.precip_cube.data[:, 0, 1, 1] = 0.
-        self.precip_cube.data[0, 0, 1, 1] = 0.075
+        self.precip_cube.data[:, 1, 1] = 0.
+        self.precip_cube.data[0, 1, 1] = 0.075
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
-        expected.data[0, 1, 1] = 0.625
+        expected.data[1, 1] = 0.625
         result = self.plugin.apply_precip(self.fg_cube, self.precip_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_precip_light(self):
         """Test that high probs of light precip do not reduce high lightning
         risk"""
-        self.precip_cube.data[:, 0, 1, 1] = 0.
-        self.precip_cube.data[0, 0, 1, 1] = 0.8
+        self.precip_cube.data[:, 1, 1] = 0.
+        self.precip_cube.data[0, 1, 1] = 0.8
         expected = self.fg_cube.copy()
         # expected.data contains all ones
         result = self.plugin.apply_precip(self.fg_cube, self.precip_cube)
@@ -519,26 +535,26 @@ class Test_apply_precip(IrisTest):
 
     def test_precip_heavy(self):
         """Test that prob of heavy precip increases zero lightning risk"""
-        self.precip_cube.data[0, 0, 1, 1] = 1.0
-        self.precip_cube.data[1, 0, 1, 1] = 0.5
+        self.precip_cube.data[0, 1, 1] = 1.0
+        self.precip_cube.data[1, 1, 1] = 0.5
         # Set first-guess to zero
-        self.fg_cube.data[0, 1, 1] = 0.0
+        self.fg_cube.data[1, 1] = 0.0
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
-        expected.data[0, 1, 1] = 0.25
+        expected.data[1, 1] = 0.25
         result = self.plugin.apply_precip(self.fg_cube, self.precip_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_precip_heavy_null(self):
         """Test that low prob of heavy precip does not increase
         low lightning risk"""
-        self.precip_cube.data[0, 0, 1, 1] = 1.0
-        self.precip_cube.data[1, 0, 1, 1] = 0.3
+        self.precip_cube.data[0, 1, 1] = 1.0
+        self.precip_cube.data[1, 1, 1] = 0.3
         # Set first-guess to zero
-        self.fg_cube.data[0, 1, 1] = 0.1
+        self.fg_cube.data[1, 1] = 0.1
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
-        expected.data[0, 1, 1] = 0.1
+        expected.data[1, 1] = 0.1
         result = self.plugin.apply_precip(self.fg_cube, self.precip_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
@@ -546,25 +562,25 @@ class Test_apply_precip(IrisTest):
         """Test that prob of intense precip increases zero lightning risk"""
         expected = self.fg_cube.copy()
         # expected.data contains all ones
-        self.precip_cube.data[0, 0, 1, 1] = 1.0
-        self.precip_cube.data[1, 0, 1, 1] = 1.0
-        self.precip_cube.data[2, 0, 1, 1] = 0.5
+        self.precip_cube.data[0, 1, 1] = 1.0
+        self.precip_cube.data[1, 1, 1] = 1.0
+        self.precip_cube.data[2, 1, 1] = 0.5
         # Set first-guess to zero
-        self.fg_cube.data[0, 1, 1] = 0.0
+        self.fg_cube.data[1, 1] = 0.0
         result = self.plugin.apply_precip(self.fg_cube, self.precip_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_precip_intense_null(self):
         """Test that low prob of intense precip does not increase
         low lightning risk"""
-        self.precip_cube.data[0, 0, 1, 1] = 1.0
-        self.precip_cube.data[1, 0, 1, 1] = 1.0
-        self.precip_cube.data[2, 0, 1, 1] = 0.1
+        self.precip_cube.data[0, 1, 1] = 1.0
+        self.precip_cube.data[1, 1, 1] = 1.0
+        self.precip_cube.data[2, 1, 1] = 0.1
         # Set first-guess to zero
-        self.fg_cube.data[0, 1, 1] = 0.1
+        self.fg_cube.data[1, 1] = 0.1
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
-        expected.data[0, 1, 1] = 0.25  # Heavy-precip result only
+        expected.data[1, 1] = 0.25  # Heavy-precip result only
         result = self.plugin.apply_precip(self.fg_cube, self.precip_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
@@ -574,47 +590,23 @@ class Test_apply_ice(IrisTest):
     """Test the apply_ice method."""
 
     def setUp(self):
-        """Create cubes with a single zero prob(precip) point.
-        The cubes look like this:
-        precipitation_amount / (kg m^-2)
+        """Create test cubes and plugin instance.
+        The cube coordinates look like this:
         Dimension coordinates:
-            time: 1;
             projection_y_coordinate: 3;
             projection_x_coordinate: 3;
-        Auxiliary coordinates:
-            forecast_period (on time coord): 0.0 hours (simulates nowcast data)
         Scalar coordinates:
-            forecast_reference_time: 2015-11-23 03:00:00
-        Data:
-        self.fg_cube:
-            All points contain float(1.)
-            Cube name is "probability_of_lightning_rate_above_threshold".
-        self.ice_cube:
-            With extra coordinate of length(3) "threshold" containing
-            points [0.5, 1., 2.] kg m^-2.
-            Time and forecast_period dimensions "sqeezed" to be Scalar coords.
-            All points contain float(0.)
-            Cube name is
-            "probability_of_vertical_integral_of_ice_above_threshold".
+            time: 2015-11-23 07:00:00
+            forecast_reference_time: 2015-11-23 07:00:00
+            forecast_period: 0 seconds
+
+        self.vii_cube:
+            Has extra coordinate of length(3) "threshold" containing
+            points [0.5, 1., 2.] kg m-2.
         """
-        self.fg_cube = add_forecast_reference_time_and_forecast_period(
-            set_up_cube_with_no_realizations(zero_point_indices=[],
-                                             num_grid_points=3),
-            fp_point=0.0)
-        self.fg_cube.rename("probability_of_lightning_rate_above_threshold")
-        self.ice_cube = squeeze(
-            add_forecast_reference_time_and_forecast_period(
-                set_up_cube(num_realization_points=3,
-                            zero_point_indices=[],
-                            num_grid_points=3),
-                fp_point=0.0))
-        threshold_coord = self.ice_cube.coord('realization')
-        threshold_coord.points = [0.5, 1.0, 2.0]
-        threshold_coord.rename('threshold')
-        threshold_coord.units = cf_units.Unit('kg m^-2')
-        self.ice_cube.data = np.zeros_like(self.ice_cube.data)
-        self.ice_cube.rename(
-            "probability_of_vertical_integral_of_ice_above_threshold")
+        (_, self.fg_cube, _, _, self.ice_cube) = (
+            set_up_lightning_test_cubes(validity_time=dt(2015, 11, 23, 7),
+                                        fg_frt=dt(2015, 11, 23, 7)))
         self.plugin = Plugin()
 
     def test_basic(self):
@@ -658,10 +650,10 @@ class Test_apply_ice(IrisTest):
         """Test that small VII probs do not increase moderate lightning risk"""
         self.ice_cube.data[:, 1, 1] = 0.
         self.ice_cube.data[0, 1, 1] = 0.5
-        self.fg_cube.data[0, 1, 1] = 0.25
+        self.fg_cube.data[1, 1] = 0.25
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
-        expected.data[0, 1, 1] = 0.25
+        expected.data[1, 1] = 0.25
         result = self.plugin.apply_ice(self.fg_cube,
                                        self.ice_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
@@ -669,10 +661,10 @@ class Test_apply_ice(IrisTest):
     def test_ice_zero(self):
         """Test that zero VII probs do not increase zero lightning risk"""
         self.ice_cube.data[:, 1, 1] = 0.
-        self.fg_cube.data[0, 1, 1] = 0.
+        self.fg_cube.data[1, 1] = 0.
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
-        expected.data[0, 1, 1] = 0.
+        expected.data[1, 1] = 0.
         result = self.plugin.apply_ice(self.fg_cube,
                                        self.ice_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
@@ -681,10 +673,10 @@ class Test_apply_ice(IrisTest):
         """Test that small VII probs do increase zero lightning risk"""
         self.ice_cube.data[:, 1, 1] = 0.
         self.ice_cube.data[0, 1, 1] = 0.5
-        self.fg_cube.data[0, 1, 1] = 0.
+        self.fg_cube.data[1, 1] = 0.
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
-        expected.data[0, 1, 1] = 0.05
+        expected.data[1, 1] = 0.05
         result = self.plugin.apply_ice(self.fg_cube,
                                        self.ice_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
@@ -692,10 +684,10 @@ class Test_apply_ice(IrisTest):
     def test_ice_large(self):
         """Test that large VII probs do increase zero lightning risk"""
         self.ice_cube.data[:, 1, 1] = 1.
-        self.fg_cube.data[0, 1, 1] = 0.
+        self.fg_cube.data[1, 1] = 0.
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
-        expected.data[0, 1, 1] = 0.9
+        expected.data[1, 1] = 0.9
         result = self.plugin.apply_ice(self.fg_cube,
                                        self.ice_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
@@ -704,12 +696,12 @@ class Test_apply_ice(IrisTest):
         """Test that large VII probs do increase zero lightning risk when
         forecast lead time is non-zero (two forecast_period points)"""
         self.ice_cube.data[:, 1, 1] = 1.
-        self.fg_cube.data[0, 1, 1] = 0.
-        self.fg_cube.coord('forecast_period').points = [1.]  # hours
+        self.fg_cube.data[1, 1] = 0.
+        self.fg_cube.coord('forecast_period').points = [3600]  # 1 hour
         fg_cube_next = self.fg_cube.copy()
         time_pt, = self.fg_cube.coord('time').points
-        fg_cube_next.coord('time').points = [time_pt + 2.]  # hours
-        fg_cube_next.coord('forecast_period').points = [3.]  # hours
+        fg_cube_next.coord('time').points = [time_pt + 7200]  # 2 hours
+        fg_cube_next.coord('forecast_period').points = [10800]  # 3 hours
         self.fg_cube = CubeList([squeeze(self.fg_cube),
                                  squeeze(fg_cube_next)]).merge_cube()
         expected = self.fg_cube.copy()
