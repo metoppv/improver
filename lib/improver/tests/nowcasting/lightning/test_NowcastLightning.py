@@ -32,11 +32,10 @@
 
 
 import unittest
-import cf_units
 import numpy as np
 from datetime import datetime as dt
 
-from iris.coords import DimCoord, CellMethod
+from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError, ConstraintMismatchError
 from iris.tests import IrisTest
