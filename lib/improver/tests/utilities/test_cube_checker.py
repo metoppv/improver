@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the cube_checker utility."""
 
-from datetime import datetime
 import numpy as np
 import unittest
 
