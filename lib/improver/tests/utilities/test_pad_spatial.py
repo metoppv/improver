@@ -137,7 +137,7 @@ class Test_create_cube_with_halo(IrisTest):
         self.cube = set_up_variable_cube(
             np.ones((11, 11), dtype=np.float32), spatial_grid='equalarea',
             standard_grid_metadata='uk_det', attributes=attrs)
-        self.grid_spacing = 100000
+        self.grid_spacing = np.diff(self.cube.coord(axis='x').points)[0]
 
     def test_basic(self):
         """Test function returns a cube with expected metadata"""
@@ -371,7 +371,7 @@ class Test_remove_cube_halo(IrisTest):
         self.cube_1d = set_up_variable_cube(
             np.ones((1, 11, 11), dtype=np.float32), spatial_grid='equalarea',
             standard_grid_metadata='uk_det', attributes=self.attrs)
-        self.grid_spacing = 100000
+        self.grid_spacing = np.diff(self.cube.coord(axis='x').points)[0]
 
     def test_basic(self):
         """Test function returns a cube with expected attributes and shape"""

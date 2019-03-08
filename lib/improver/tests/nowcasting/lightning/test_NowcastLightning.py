@@ -32,94 +32,93 @@
 
 
 import unittest
-from iris.util import squeeze
+import cf_units
+import numpy as np
+from datetime import datetime as dt
+
 from iris.coords import DimCoord, CellMethod
 from iris.cube import Cube, CubeList
-from iris.tests import IrisTest
 from iris.exceptions import CoordinateNotFoundError, ConstraintMismatchError
-import numpy as np
-import cf_units
+from iris.tests import IrisTest
+from iris.util import squeeze
 
 from improver.nowcasting.lightning import NowcastLightning as Plugin
 from improver.utilities.cube_checker import find_dimension_coordinate_mismatch
-from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
-    set_up_cube, set_up_cube_with_no_realizations)
-from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
-    import add_forecast_reference_time_and_forecast_period
-
-from datetime import datetime as dt
 from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, set_up_probability_cube)
 
 
 def set_up_lightning_test_cubes(validity_time=dt(2015, 11, 23, 7),
-                                fg_frt=dt(2015, 11, 23, 3)):
+                                fg_frt=dt(2015, 11, 23, 3),
+                                grid_points=3):
     """Set up five cubes for testing nowcast lightning.
 
     The cube coordinates look like this:
         Dimension coordinates:
-            projection_y_coordinate: 3;
-            projection_x_coordinate: 3;
+            projection_y_coordinate: grid_points;
+            projection_x_coordinate: grid_points;
         Scalar coordinates:
             time: 2015-11-23 07:00:00
             forecast_reference_time: 2015-11-23 07:00:00
             forecast_period: 0 seconds
 
     Kwargs:
+        grid_points (int):
+            Number of points along each spatial axis (square grid)
         validity_time (datetime.datetime):
-            Time to use for test cubes.
+            Time to use for test cubes
         fg_frt (datetime.datetime):
-            Forecast reference time for first guess cube, which needs
-            to have different forecast periods for different tests.
+            Forecast reference time for first_guess_cube, which needs
+            to have different forecast periods for different tests
 
     Returns:
         template_cube (iris.cube.Cube)
-        first_guess_cube (iris.cube.Cube):
-            Has non-zero forecast period, to test impact at lr2
+        first_guess_cube (iris.cube.Cube)
         lightning_rate_cube (iris.cube.Cube)
         prob_precip_cube (iris.cube.Cube):
             Has extra coordinate of length(3) "threshold" containing
-            points [0.5, 7., 35.] mm h-1.
+            points [0.5, 7., 35.] mm h-1
         prob_vii_cube (iris.cube.Cube):
             Has extra coordinate of length(3) "threshold" containing
-            points [0.5, 1., 2.] kg m-2.
+            points [0.5, 1., 2.] kg m-2
     """
     # template cube full of ones with one zero point
-    data = np.ones((3, 3), dtype=np.float32)
+    data = np.ones((grid_points, grid_points), dtype=np.float32)
     template_cube = set_up_variable_cube(
         data.copy(), name='lightning_rate', units='min-1',
-        time=validity_time, frt=validity_time)
+        time=validity_time, frt=validity_time, spatial_grid='equalarea')
     template_cube.data[1, 1] = 0.
 
     # first guess lightning FORECAST cube with flexible forecast period
     # (required for level 2 lighting risk index)
     first_guess_cube = set_up_variable_cube(
         data.copy(), name='probability_of_lightning', units='1',
-        time=validity_time, frt=fg_frt)
+        time=validity_time, frt=fg_frt, spatial_grid='equalarea')
 
     # lightning rate cube full of ones
     lightning_rate_cube = set_up_variable_cube(
         data.copy(), name='rate_of_lightning', units='min-1',
-        time=validity_time, frt=validity_time)
+        time=validity_time, frt=validity_time, spatial_grid='equalarea')
 
     # probability of precip rate exceedance cube with higher rate probabilities
     # set to zero, and central point of low rate probabilities set to zero
-    precip_data = np.ones((3, 3, 3), dtype=np.float32)
+    # TODO this name should be "lwe_precipitation_rate" - bug in code?
+    precip_data = np.ones((3, grid_points, grid_points), dtype=np.float32)
     precip_thresholds = np.array([0.5, 7.0, 35.0], dtype=np.float32)
     prob_precip_cube = set_up_probability_cube(
         precip_data, precip_thresholds,
-        variable_name='lwe_precipitation_rate', threshold_units='mm h-1',
-        time=validity_time, frt=validity_time)
+        variable_name='precipitation', threshold_units='mm h-1',
+        time=validity_time, frt=validity_time, spatial_grid='equalarea')
     prob_precip_cube.data[0, 1, 1] = 0.
     prob_precip_cube.data[1:, ...] = 0.
 
     # probability of VII exceedance cube full of zeros
-    vii_data = np.zeros((3, 3, 3), dtype=np.float32)
+    vii_data = np.zeros((3, grid_points, grid_points), dtype=np.float32)
     vii_thresholds = np.array([0.5, 1.0, 2.0], dtype=np.float32)
     prob_vii_cube = set_up_probability_cube(
         vii_data, vii_thresholds,
         variable_name='vertical_integral_of_ice', threshold_units='kg m-2',
-        time=validity_time, frt=validity_time)
+        time=validity_time, frt=validity_time, spatial_grid='equalarea')
 
     return (template_cube, first_guess_cube, lightning_rate_cube,
             prob_precip_cube, prob_vii_cube)
@@ -718,75 +717,37 @@ class Test_process(IrisTest):
     """Test the nowcast lightning plugin."""
 
     def setUp(self):
-        """Create cubes with a single zero prob(precip) point.
-        The cubes look like this:
-        precipitation_amount / (kg m^-2)
+        """Create test cubes and plugin instance.
+        The cube coordinates look like this:
         Dimension coordinates:
-            time: 1;
-            projection_y_coordinate: 16;
-            projection_x_coordinate: 16;
-        Auxiliary coordinates:
-            forecast_period (on time coord): 4.0 hours (simulates UM data)
+            projection_y_coordinate: 3;
+            projection_x_coordinate: 3;
         Scalar coordinates:
-            forecast_reference_time: 2015-11-23 03:00:00
-        Data:
+            time: 2015-11-23 07:00:00
+            forecast_reference_time: 2015-11-23 07:00:00
+            forecast_period: 0 seconds
+
         self.fg_cube:
-            All points contain float(1.)
-            Cube name is "probability_of_lightning_rate_above_threshold".
-        self.ltng_cube:
-            forecast_period (on time coord): 0.0 hours (simulates nowcast data)
-            All points contain float(1.)
-            Cube name is "rate_of_lightning".
-            Cube units are "min^-1".
+            Has 4 hour forecast period, to test impact at lr2
         self.precip_cube:
-            With extra coordinate of length(3) "threshold" containing
-            points [0.5, 7., 35.] mm hr-1.
-            All points contain float(1.) except the
-            zero point [0, 0, 7, 7] which is float(0.)
-            and [1:, 0, ...] which are float(0.)
-            Cube name is "probability_of_precipitation_rate_above_threshold".
-            Cube has added attribute {'relative_to_threshold': 'above'}
+            Has extra coordinate of length(3) "threshold" containing
+            points [0.5, 7., 35.] mm h-1.  Has a 4 hour forecast period.
         self.vii_cube:
-            forecast_period (on time coord): 0.0 hours (simulates nowcast data)
-            With extra coordinate of length(3) "threshold" containing
-            points [0.5, 1., 2.] kg m^-2.
-            forecast_period (on time coord): 0.0 hours (simulates nowcast data)
-            Time and forecast_period dimensions "sqeezed" to be Scalar coords.
-            All points contain float(0.)
-            Cube name is
-            "probability_of_vertical_integral_of_ice_above_threshold".
+            Has extra coordinate of length(3) "threshold" containing
+            points [0.5, 1., 2.] kg m-2.
         """
-        self.fg_cube = add_forecast_reference_time_and_forecast_period(
-            set_up_cube_with_no_realizations(zero_point_indices=[]))
-        self.fg_cube.rename("probability_of_lightning_rate_above_threshold")
-        self.ltng_cube = add_forecast_reference_time_and_forecast_period(
-            set_up_cube_with_no_realizations(zero_point_indices=[]),
-            fp_point=0.0)
-        self.ltng_cube.rename("rate_of_lightning")
-        self.ltng_cube.units = cf_units.Unit("min^-1")
-        self.precip_cube = (
-            add_forecast_reference_time_and_forecast_period(
-                set_up_cube(num_realization_points=3)))
-        threshold_coord = self.precip_cube.coord('realization')
-        threshold_coord.points = [0.5, 7.0, 35.0]
-        threshold_coord.rename('threshold')
-        threshold_coord.units = cf_units.Unit('mm hr-1')
-        self.precip_cube.rename(
-            "probability_of_precipitation_rate_above_threshold")
-        self.precip_cube.attributes.update({'relative_to_threshold': 'above'})
-        self.precip_cube.data[1:, 0, ...] = 0.
-        self.vii_cube = squeeze(
-            add_forecast_reference_time_and_forecast_period(
-                set_up_cube(num_realization_points=3,
-                            zero_point_indices=[]),
-                fp_point=0.0))
-        threshold_coord = self.vii_cube.coord('realization')
-        threshold_coord.points = [0.5, 1.0, 2.0]
-        threshold_coord.rename('threshold')
-        threshold_coord.units = cf_units.Unit('kg m^-2')
-        self.vii_cube.data = np.zeros_like(self.vii_cube.data)
-        self.vii_cube.rename(
-            "probability_of_vertical_integral_of_ice_above_threshold")
+        (_, self.fg_cube, self.ltng_cube, self.precip_cube,
+            self.vii_cube) = set_up_lightning_test_cubes(grid_points=16)
+        # reset some data and give precip cube a 4 hour forecast period
+        self.precip_cube.data[0, ...] = 1.
+        self.precip_cube.coord("forecast_period").points = [4*3600.]
+
+        # sort out spatial coordinates - need smaller grid length (set to 2 km)
+        for cube in [self.fg_cube, self.ltng_cube,
+                     self.precip_cube, self.vii_cube]:
+            points_array = 2000.*np.arange(16).astype(np.float32)
+            cube.coord(axis='x').points = points_array
+            cube.coord(axis='y').points = points_array
         self.plugin = Plugin()
 
     def set_up_vii_input_output(self):
@@ -798,43 +759,43 @@ class Test_process(IrisTest):
 
         # Set up precip_cube with increasing intensity along x-axis
         # y=5; no precip
-        self.precip_cube.data[:, 0, 5:9, 5] = 0.
+        self.precip_cube.data[:, 5:9, 5] = 0.
         # y=6; light precip
-        self.precip_cube.data[0, 0, 5:9, 6] = 0.1
-        self.precip_cube.data[1, 0:, 5:9, 6] = 0.
+        self.precip_cube.data[0, 5:9, 6] = 0.1
+        self.precip_cube.data[1, 5:9, 6] = 0.
         # y=7; heavy precip
-        self.precip_cube.data[:2, 0, 5:9, 7] = 1.
-        self.precip_cube.data[2, 0, 5:9, 7] = 0.
+        self.precip_cube.data[:2, 5:9, 7] = 1.
+        self.precip_cube.data[2, 5:9, 7] = 0.
         # y=8; intense precip
-        self.precip_cube.data[:, 0, 5:9, 8] = 1.
+        self.precip_cube.data[:, 5:9, 8] = 1.
 
         # test_vii_null - with lightning-halo
         self.vii_cube.data[:, 5, 5:9] = 0.
         self.vii_cube.data[0, 5, 5:9] = 0.5
-        self.ltng_cube.data[0, 5, 5:9] = 0.
-        self.fg_cube.data[0, 5, 5:9] = 0.
-        expected.data[0, 5, 5:9] = [0.05, 0.25, 0.25, 1.]
+        self.ltng_cube.data[5, 5:9] = 0.
+        self.fg_cube.data[5, 5:9] = 0.
+        expected.data[5, 5:9] = [0.05, 0.25, 0.25, 1.]
 
         # test_vii_zero
         self.vii_cube.data[:, 6, 5:9] = 0.
-        self.ltng_cube.data[0, 6, 5:9] = -1.
-        self.fg_cube.data[0, 6, 5:9] = 0.
-        expected.data[0, 6, 5:9] = [0., 0., 0.25, 1.]
+        self.ltng_cube.data[6, 5:9] = -1.
+        self.fg_cube.data[6, 5:9] = 0.
+        expected.data[6, 5:9] = [0., 0., 0.25, 1.]
 
         # test_vii_small
         # Set lightning data to -1 so it has a Null impact
         self.vii_cube.data[:, 7, 5:9] = 0.
         self.vii_cube.data[0, 7, 5:9] = 0.5
-        self.ltng_cube.data[0, 7, 5:9] = -1.
-        self.fg_cube.data[0, 7, 5:9] = 0.
-        expected.data[0, 7, 5:9] = [0.05, 0.05, 0.25, 1.]
+        self.ltng_cube.data[7, 5:9] = -1.
+        self.fg_cube.data[7, 5:9] = 0.
+        expected.data[7, 5:9] = [0.05, 0.05, 0.25, 1.]
 
         # test_vii_large
         # Set lightning data to -1 so it has a Null impact
         self.vii_cube.data[:, 8, 5:9] = 1.
-        self.ltng_cube.data[0, 8, 5:9] = -1.
-        self.fg_cube.data[0, 8, 5:9] = 0.
-        expected.data[0, 8, 5:9] = [0.9, 0.9, 0.9, 1.]
+        self.ltng_cube.data[8, 5:9] = -1.
+        self.fg_cube.data[8, 5:9] = 0.
+        expected.data[8, 5:9] = [0.9, 0.9, 0.9, 1.]
         return expected
 
     def test_basic(self):
@@ -930,14 +891,14 @@ class Test_process(IrisTest):
         expected = self.set_up_vii_input_output()
 
         # test_vii_null with no precip will now return 0.0067
-        expected.data[0, 5, 5] = 0.0067
+        expected.data[5, 5] = 0.0067
 
         # test_vii_small with no and light precip will now return zero
-        expected.data[0, 7, 5:7] = 0.
+        expected.data[7, 5:7] = 0.
 
         # test_vii_large with no and light precip now return zero
         # and 0.25 for heavy precip
-        expected.data[0, 8, 5:8] = [0., 0., 0.25]
+        expected.data[8, 5:8] = [0., 0., 0.25]
         # No halo - we're only testing this method.
         # 2000m is the grid-length, so halo includes only one pixel.
         plugin = Plugin(2000.)

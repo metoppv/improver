@@ -77,12 +77,17 @@ def construct_xy_coords(ypoints, xpoints, spatial_grid):
             "longitude", units="degrees", coord_system=GLOBAL_GRID_CCRS)
     elif 'equalarea':
         # use UK eastings and northings on standard grid
+        # round grid spacing to nearest integer to avoid precision issues
+        grid_spacing = np.around(1000000. / ypoints)
+        y_points_array = [-100000 + i*grid_spacing for i in range(ypoints)]
+        x_points_array = [-400000 + i*grid_spacing for i in range(xpoints)]
+
         y_coord = DimCoord(
-            np.linspace(-100000, 900000, ypoints, dtype=np.float32),
+            np.array(y_points_array, dtype=np.float32),
             "projection_y_coordinate", units="metres",
             coord_system=STANDARD_GRID_CCRS)
         x_coord = DimCoord(
-            np.linspace(-400000, 600000, xpoints, dtype=np.float32),
+            np.array(x_points_array, dtype=np.float32),
             "projection_x_coordinate", units="metres",
             coord_system=STANDARD_GRID_CCRS)
     else:
