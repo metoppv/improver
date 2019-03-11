@@ -30,9 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """ Unit tests for the nowcasting.OpticalFlow plugin """
 
-import datetime
 import unittest
 import numpy as np
+from datetime import datetime, timedelta
 
 import iris
 from iris.coords import DimCoord
@@ -40,6 +40,7 @@ from iris.exceptions import InvalidCubeError
 from iris.tests import IrisTest
 
 from improver.nowcasting.optical_flow import OpticalFlow
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
 
@@ -441,12 +442,12 @@ class Test_calculate_displacement_vectors(IrisTest):
                                    [1., 1., 1., 1., 1., 1., 1.],
                                    [1., 1., 1., 1., 1., 1., 1.]])
 
-        first_input = np.zeros((10, 10))
+        first_input = np.zeros((10, 10), dtype=np.float32)
         first_input[1:8, 2:9] = rainfall_block
         self.plugin.data1 = first_input
         self.plugin.shape = first_input.shape
 
-        second_input = np.zeros((10, 10))
+        second_input = np.zeros((10, 10), dtype=np.float32)
         second_input[2:9, 1:8] = rainfall_block
         self.plugin.data2 = second_input
 
@@ -572,10 +573,10 @@ class Test_process_dimensionless(IrisTest):
                                    [1., 1., 1., 1., 1., 1., 1.],
                                    [1., 1., 1., 1., 1., 1., 1.]])
 
-        self.first_input = np.zeros((16, 16))
+        self.first_input = np.zeros((16, 16), dtype=np.float32)
         self.first_input[1:8, 2:9] = rainfall_block
 
-        self.second_input = np.zeros((16, 16))
+        self.second_input = np.zeros((16, 16), dtype=np.float32)
         self.second_input[2:9, 1:8] = rainfall_block
 
     def test_basic(self):
@@ -584,15 +585,15 @@ class Test_process_dimensionless(IrisTest):
             self.first_input, self.second_input, 0, 1, self.smoothing_kernel)
         self.assertIsInstance(ucomp, np.ndarray)
         self.assertIsInstance(vcomp, np.ndarray)
-        self.assertAlmostEqual(np.mean(ucomp), 0.97735882)
-        self.assertAlmostEqual(np.mean(vcomp), -0.97735888)
+        self.assertAlmostEqual(np.mean(ucomp), 0.97735876)
+        self.assertAlmostEqual(np.mean(vcomp), -0.97735894)
 
     def test_axis_inversion(self):
         """Test inverting x and y axis indices gives the correct result"""
         ucomp, vcomp = self.plugin.process_dimensionless(
             self.first_input, self.second_input, 1, 0, self.smoothing_kernel)
-        self.assertAlmostEqual(np.mean(ucomp), -0.97735888)
-        self.assertAlmostEqual(np.mean(vcomp), 0.97735882)
+        self.assertAlmostEqual(np.mean(ucomp), -0.97735894)
+        self.assertAlmostEqual(np.mean(vcomp), 0.97735876)
 
 
 class Test_process(IrisTest):
@@ -603,10 +604,7 @@ class Test_process(IrisTest):
         self.plugin = OpticalFlow(iterations=20)
         self.plugin.data_smoothing_radius_km = np.float32(6.)
 
-        coord_points = 2*np.arange(16, dtype=np.float32)
-        x_coord = DimCoord(coord_points, 'projection_x_coordinate', units='km')
-        y_coord = DimCoord(coord_points, 'projection_y_coordinate', units='km')
-
+        coord_points = 2000*np.arange(16, dtype=np.float32)  # in metres
         rainfall_block = np.array([[1., 1., 1., 1., 1., 1., 1.],
                                    [1., 2., 2., 2., 2., 1., 1.],
                                    [1., 2., 3., 3., 2., 1., 1.],
@@ -616,25 +614,23 @@ class Test_process(IrisTest):
                                    [1., 1., 1., 1., 1., 1., 1.]],
                                   dtype=np.float32)
 
-        data1 = np.zeros((16, 16))
+        data1 = np.zeros((16, 16), dtype=np.float32)
         data1[1:8, 2:9] = rainfall_block
-        self.cube1 = iris.cube.Cube(
-            data1, standard_name='rainfall_rate', units='mm h-1',
-            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
-        # time1: [datetime.datetime(2018, 2, 20, 4, 0)]
-        time1 = DimCoord(1519099200, standard_name="time",
-                         units='seconds since 1970-01-01 00:00:00')
-        self.cube1.add_aux_coord(time1)
+        self.cube1 = set_up_variable_cube(
+            data1, name="rainfall_rate", units="mm h-1",
+            spatial_grid="equalarea", time=datetime(2018, 2, 20, 4, 0),
+            frt=datetime(2018, 2, 20, 4, 0))
+        self.cube1.coord(axis='x').points = coord_points
+        self.cube1.coord(axis='y').points = coord_points
 
-        data2 = np.zeros((16, 16))
+        data2 = np.zeros((16, 16), dtype=np.float32)
         data2[2:9, 1:8] = rainfall_block
-        self.cube2 = iris.cube.Cube(
-            data2, standard_name='rainfall_rate', units='mm h-1',
-            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
-        # time2: [datetime.datetime(2018, 2, 20, 4, 15)]
-        time2 = DimCoord(1519100100, standard_name="time",
-                         units='seconds since 1970-01-01 00:00:00')
-        self.cube2.add_aux_coord(time2)
+        self.cube2 = set_up_variable_cube(
+            data2, name="rainfall_rate", units="mm h-1",
+            spatial_grid="equalarea", time=datetime(2018, 2, 20, 4, 15),
+            frt=datetime(2018, 2, 20, 4, 15))
+        self.cube2.coord(axis='x').points = coord_points
+        self.cube2.coord(axis='y').points = coord_points
 
     def test_basic(self):
         """Test correct output types and metadata"""
@@ -665,7 +661,7 @@ class Test_process(IrisTest):
         """Test velocity values are as expected (in m/s)"""
         ucube, vcube = self.plugin.process(self.cube1, self.cube2, boxsize=3)
         self.assertAlmostEqual(
-            np.mean(ucube.data), -2.1719086)
+            np.mean(ucube.data), -2.1719084)
         self.assertAlmostEqual(np.mean(vcube.data), 2.1719084)
 
     def test_decrease_time_interval(self):
@@ -675,7 +671,7 @@ class Test_process(IrisTest):
         test above multiplied by a factor of two."""
         time_unit = self.cube2.coord("time").units
         new_time = time_unit.num2date(self.cube2.coord("time").points[0])
-        new_time -= datetime.timedelta(seconds=450)
+        new_time -= timedelta(seconds=450)
         self.cube2.remove_coord("time")
         time_coord = DimCoord(time_unit.date2num(new_time),
                               standard_name="time", units=time_unit)
@@ -683,7 +679,7 @@ class Test_process(IrisTest):
 
         ucube, vcube = self.plugin.process(self.cube1, self.cube2, boxsize=3)
         self.assertAlmostEqual(
-            np.mean(ucube.data), -2.1719086 * 2.)
+            np.mean(ucube.data), -2.1719084 * 2.)
         self.assertAlmostEqual(np.mean(vcube.data), 2.1719084 * 2.)
 
     def test_increase_time_interval(self):
@@ -695,7 +691,7 @@ class Test_process(IrisTest):
         box size."""
         time_unit = self.cube2.coord("time").units
         new_time = time_unit.num2date(self.cube2.coord("time").points[0])
-        new_time += datetime.timedelta(seconds=900)
+        new_time += timedelta(seconds=900)
         self.cube2.remove_coord("time")
         time_coord = DimCoord(time_unit.date2num(new_time),
                               standard_name="time", units=time_unit)
