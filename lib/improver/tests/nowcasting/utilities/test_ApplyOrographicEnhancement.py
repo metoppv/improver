@@ -218,32 +218,6 @@ class Test__apply_orographic_enhancement(IrisTest):
         result.convert_units("mm/hr")
         self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_check_scalar_time_dimensions(self):
-        """Test the expected values are returned when cubes are combined when
-        the dimensions of the input cubes mismatch. As the
-        _select_orographic_enhancement_cube extracts a time point, the output
-        from this method can result in an orographic enhancement cube
-        with a scalar time coordinate. This means that that precipitation cube
-        and the orographic enhancement cube do not necessarily match in terms
-        of the number of dimensions, as the time dimension may be a dimension
-        coordinate within the precipitation cube. This test aims to check
-        that the check_cube_coordinate has worked as intended by promoting
-        the scalar time coordinate on the orographic enhancement cube,
-        if this is required, so that the input precipitation cube and the
-        orographic enhancement cube do not have mismatching dimensions."""
-        # TODO I don't believe this test is required any more - orographic
-        # enhancement and precip have different input dimensions anyway
-        expected = np.array([[[0., 1., 2.],
-                              [1., 2., 7.],
-                              [0., 3., 4.]]])
-        plugin = ApplyOrographicEnhancement("add")
-        result = plugin._apply_orographic_enhancement(
-            self.precip_cube, self.sliced_oe_cube)
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertEqual(result.metadata, self.precip_cube.metadata)
-        result.convert_units("mm/hr")
-        self.assertArrayAlmostEqual(result.data, expected)
-
     def test_check_expected_values_for_different_units(self):
         """Test the expected values are returned when cubes are combined when
         the orographic enhancement cube is in different units to the
