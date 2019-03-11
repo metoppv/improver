@@ -188,8 +188,6 @@ class Test__apply_orographic_enhancement(IrisTest):
         """Set up cubes for testing."""
         self.precip_cube = set_up_precipitation_rate_cubelist()[0]
         self.oe_cube = set_up_orographic_enhancement_cube()
-        #self.sliced_oe_cube = (
-        #    iris.util.new_axis(self.oe_cube[:, 0, :, :], "time"))
         self.sliced_oe_cube = self.oe_cube[0]
 
     def test_check_expected_values_add(self):
