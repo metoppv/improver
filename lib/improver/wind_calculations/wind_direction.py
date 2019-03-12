@@ -33,8 +33,8 @@
 import iris
 from iris.coords import CellMethod
 import numpy as np
-from improver.utilities.cube_checker import check_cube_coordinates
-from improver.utilities.cube_manipulation import enforce_float32_precision
+from improver.utilities.cube_checker import (
+    check_cube_coordinates, check_cube_not_float64)
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 
 
@@ -427,7 +427,7 @@ class WindDirection(object):
             raise ValueError(msg)
 
         # Force input cube to float32.
-        enforce_float32_precision(cube_ens_wdir)
+        check_cube_not_float64(cube_ens_wdir, fix=True)
 
         self.n_realizations = len(cube_ens_wdir.coord('realization').points)
         y_coord_name = cube_ens_wdir.coord(axis="y").name()

@@ -38,7 +38,8 @@ import numpy as np
 import iris
 from iris.coords import AuxCoord, DimCoord
 from iris.exceptions import CoordinateNotFoundError
-from improver.utilities.cube_checker import check_cube_coordinates
+from improver.utilities.cube_checker import (
+    check_cube_coordinates, check_cube_not_float64)
 
 
 def _associate_any_coordinate_with_master_coordinate(
@@ -288,7 +289,8 @@ def _equalise_cubes(cubes_in, model_id_attr=None, merging=True):
     if merging:
         cubelist = _equalise_cube_coords(cubes)
         cubelist = _equalise_cell_methods(cubelist)
-        demote_float64_precision(cubelist)
+        for cube in cubelist:
+            check_cube_not_float64(cube, fix=True)
     else:
         cubelist = cubes
     return cubelist
@@ -959,51 +961,6 @@ def enforce_coordinate_ordering(
     elif anchor == "end":
         cube.transpose(remaining_coords + coord_dims)
     return cube
-
-
-def enforce_float32_precision(input_cubes):
-    """Take input cube of any precision and convert to float32.
-
-    Args:
-        input_cubes (list):
-            List containing one or more iris cubes to test if not float32
-            precision and downscale to float32 if necessary. If a list item
-            is not an Iris cube - then this item is skipped.
-            Note: The code will modify the cubes in-place.
-
-    """
-    # If single cube - place within list.
-    if isinstance(input_cubes, iris.cube.Cube):
-        input_cubes = [input_cubes]
-
-    for cube in input_cubes:
-        if isinstance(cube, iris.cube.Cube):  # Skip if not cube.
-            if cube.dtype != np.float32:
-                cube.data = cube.data.astype(np.float32)
-
-
-def demote_float64_precision(input_cubes):
-    """Take input cube of any precision and convert any float64 data to
-    float32.
-
-    Args:
-        input_cubes (cubelist or cube):
-            List containing one or more iris cubes to test and adjust if
-            necessary.
-            Note: The code will modify the cubes in-place.
-
-    """
-    # If single cube - place within cubelist.
-    if isinstance(input_cubes, iris.cube.Cube):
-        input_cubes = iris.cube.CubeList([input_cubes])
-
-    # Cycle through the cubes
-    for cube in input_cubes:
-        assert isinstance(cube, iris.cube.Cube), 'Object is not a cube'
-
-        # Modify data if it is float64
-        if cube.dtype == np.float64:
-            cube.data = cube.data.astype(np.float32)
 
 
 def clip_cube_data(cube, minimum_value, maximum_value):

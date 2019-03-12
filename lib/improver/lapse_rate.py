@@ -38,8 +38,8 @@ import iris
 from iris.analysis.maths import multiply
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.utilities.cube_checker import spatial_coords_match
-from improver.utilities.cube_manipulation import enforce_float32_precision
+from improver.utilities.cube_checker import (
+    check_cube_not_float64, spatial_coords_match)
 from improver.constants import DALR
 
 
@@ -366,7 +366,7 @@ class LapseRate(object):
         temperature_cube.convert_units('K')
         orography_cube.convert_units('metres')
 
-        enforce_float32_precision([temperature_cube])
+        check_cube_not_float64(temperature_cube, fix=True)
 
         # Extract x/y co-ordinates.
         x_coord = temperature_cube.coord(axis='x').name()
