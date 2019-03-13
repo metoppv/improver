@@ -56,7 +56,7 @@ def set_up_wxcubes():
     snowfall_rate = (
         set_up_probability_above_threshold_cube(
             data_snow,
-            'lwe_snowfall_rate',
+            'lwe_snowfall_rate_above_threshold',
             'm s-1',
             forecast_thresholds=np.array([8.33333333e-09,
                                           2.77777778e-08,
@@ -69,7 +69,7 @@ def set_up_wxcubes():
     rainfall_rate = (
         set_up_probability_above_threshold_cube(
             data_rain,
-            'rainfall_rate',
+            'rainfall_rate_above_threshold',
             'm s-1',
             forecast_thresholds=np.array([8.33333333e-09,
                                           2.77777778e-08,
@@ -82,7 +82,7 @@ def set_up_wxcubes():
     snowfall_vicinity = (
         set_up_probability_above_threshold_cube(
             data_snowv,
-            'lwe_snowfall_rate_in_vicinity',
+            'lwe_snowfall_rate_in_vicinity_above_threshold',
             'm s-1',
             forecast_thresholds=np.array([8.33333333e-09,
                                           2.77777778e-08,
@@ -95,7 +95,7 @@ def set_up_wxcubes():
     rainfall_vicinity = (
         set_up_probability_above_threshold_cube(
             data_rainv,
-            'rainfall_rate_in_vicinity',
+            'rainfall_rate_in_vicinity_above_threshold',
             'm s-1',
             forecast_thresholds=np.array([8.33333333e-09,
                                           2.77777778e-08,
@@ -106,7 +106,7 @@ def set_up_wxcubes():
                            0.0, 0.0, 1.0]).reshape(2, 1, 3, 3)
     cloud = (set_up_probability_above_threshold_cube(
         data_cloud,
-        'cloud_area_fraction',
+        'cloud_area_fraction_above_threshold',
         '1',
         forecast_thresholds=np.array([0.1875, 0.8125])))
 
@@ -116,7 +116,7 @@ def set_up_wxcubes():
         set_up_probability_above_threshold_cube(
             data_cld_1000ft,
             'cloud_area_fraction_assuming_only'
-            '_consider_surface_to_1000_feet_asl',
+            '_consider_surface_to_1000_feet_asl_above_threshold',
             '1',
             forecast_thresholds=np.array([0.85])))
 
@@ -126,7 +126,7 @@ def set_up_wxcubes():
     visibility = (
         set_up_probability_below_threshold_cube(
             data_vis,
-            'visibility_in_air',
+            'visibility_in_air_below_threshold',
             'm',
             forecast_thresholds=np.array([1000.0, 5000.0])))
     visibility.attributes['relative_to_threshold'] = 'below'
@@ -147,7 +147,7 @@ def set_up_wxcubes_global():
     snowfall_rate = (
         set_up_probability_above_threshold_cube(
             data_snow,
-            'lwe_snowfall_rate',
+            'lwe_snowfall_rate_above_threshold',
             'm s-1',
             forecast_thresholds=np.array([8.33333333e-09,
                                           2.77777778e-08,
@@ -160,7 +160,7 @@ def set_up_wxcubes_global():
     rainfall_rate = (
         set_up_probability_above_threshold_cube(
             data_rain,
-            'rainfall_rate',
+            'rainfall_rate_above_threshold',
             'm s-1',
             forecast_thresholds=np.array([8.33333333e-09,
                                           2.77777778e-08,
@@ -171,7 +171,7 @@ def set_up_wxcubes_global():
                            0.0, 0.0, 1.0]).reshape(2, 1, 3, 3)
     cloud = (set_up_probability_above_threshold_cube(
         data_cloud,
-        'cloud_area_fraction',
+        'cloud_area_fraction_above_threshold',
         '1',
         forecast_thresholds=np.array([0.1875, 0.8125])))
 
@@ -181,7 +181,7 @@ def set_up_wxcubes_global():
         set_up_probability_above_threshold_cube(
             data_cld_1000ft,
             'cloud_area_fraction_assuming_only'
-            '_consider_surface_to_1000_feet_asl',
+            '_consider_surface_to_1000_feet_asl_above_threshold',
             '1',
             forecast_thresholds=np.array([0.85])))
 
@@ -191,7 +191,7 @@ def set_up_wxcubes_global():
     visibility = (
         set_up_probability_below_threshold_cube(
             data_vis,
-            'visibility_in_air',
+            'visibility_in_air_below_threshold',
             'm',
             forecast_thresholds=np.array([1000.0, 5000.0])))
     visibility.attributes['relative_to_threshold'] = 'below'
@@ -318,13 +318,14 @@ class Test_construct_condition(IrisTest):
     def test_basic(self):
         """Test that the construct_condition method returns a string."""
         plugin = WeatherSymbols()
-        constraint_value = iris.Constraint(name='probability_of_rainfall_rate',
-                                           coord_values={'threshold': 0.03})
+        constraint_value = iris.Constraint(
+            name='probability_of_rainfall_rate_above_threshold',
+            coord_values={'threshold': 0.03})
         condition = '<'
         prob_threshold = 0.5
         gamma = None
         expected = ("cubes.extract(Constraint(name="
-                    "'probability_of_rainfall_rate',"
+                    "'probability_of_rainfall_rate_above_threshold',"
                     " coord_values={'threshold': 0.03})"
                     ")[0].data < 0.5")
         result = plugin.construct_condition(constraint_value,
@@ -339,18 +340,20 @@ class Test_construct_condition(IrisTest):
         of Constraints. """
         plugin = WeatherSymbols()
         constraint_list = [
-            iris.Constraint(name='probability_of_lwe_snowfall_rate',
-                            coord_values={'threshold': 0.03}),
-            iris.Constraint(name='probability_of_rainfall_rate',
-                            coord_values={'threshold': 0.03})]
+            iris.Constraint(
+                name='probability_of_lwe_snowfall_rate_above_threshold',
+                coord_values={'threshold': 0.03}),
+            iris.Constraint(
+                name='probability_of_rainfall_rate_above_threshold',
+                coord_values={'threshold': 0.03})]
         condition = '<'
         prob_threshold = 0.5
         gamma = 0.7
         expected = ("(cubes.extract(Constraint(name="
-                    "'probability_of_lwe_snowfall_rate', "
+                    "'probability_of_lwe_snowfall_rate_above_threshold', "
                     "coord_values={'threshold': 0.03}))[0].data - "
                     "cubes.extract(Constraint(name="
-                    "'probability_of_rainfall_rate', "
+                    "'probability_of_rainfall_rate_above_threshold', "
                     "coord_values={'threshold': 0.03}))[0].data * 0.7) < 0.5")
         result = plugin.construct_condition(constraint_list,
                                             condition,
@@ -385,7 +388,6 @@ class Test_format_condition_chain(IrisTest):
 
 
 class Test_create_condition_chain(IrisTest):
-
     """Test the create_condition_chain method."""
 
     def setUp(self):
@@ -397,12 +399,13 @@ class Test_create_condition_chain(IrisTest):
                 'probability_thresholds': [0.5, 0.5],
                 'threshold_condition': '>=',
                 'condition_combination': 'OR',
-                'diagnostic_fields': ['probability_of_rainfall_rate',
-                                      'probability_of_lwe_snowfall_rate'],
+                'diagnostic_fields':
+                    ['probability_of_rainfall_rate_above_threshold',
+                     'probability_of_lwe_snowfall_rate_above_threshold'],
                 'diagnostic_thresholds': [AuxCoord(0.03, units='mm hr-1'),
                                           AuxCoord(0.03, units='mm hr-1')],
                 'diagnostic_conditions': ['above', 'above']}
-            }
+        }
 
     def test_basic(self):
         """Test create_condition_chain returns a list of strings."""
@@ -410,9 +413,11 @@ class Test_create_condition_chain(IrisTest):
         test_condition = self.dummy_queries['significant_precipitation']
         result = plugin.create_condition_chain(test_condition)
         expected = ("(cubes.extract(iris.Constraint(name='probability_of_"
-                    "rainfall_rate', threshold=lambda cell: 0.03 * {t_min} < "
+                    "rainfall_rate_above_threshold', threshold=lambda cell: "
+                    "0.03 * {t_min} < "
                     "cell < 0.03 * {t_max}))[0].data >= 0.5) | (cubes.extract"
-                    "(iris.Constraint(name='probability_of_lwe_snowfall_rate',"
+                    "(iris.Constraint("
+                    "name='probability_of_lwe_snowfall_rate_above_threshold',"
                     " threshold=lambda cell: 0.03 * {t_min} < cell < 0.03 * "
                     "{t_max}))[0].data >= 0.5)".format(
                         t_min=(1. - WeatherSymbols().float_tolerance),
@@ -429,11 +434,12 @@ class Test_construct_extract_constraint(IrisTest):
     def test_basic(self):
         """Test construct_extract_constraint returns a iris.Constraint."""
         plugin = WeatherSymbols()
-        diagnostic = 'probability_of_rainfall_rate'
+        diagnostic = 'probability_of_rainfall_rate_above_threshold'
         threshold = AuxCoord(0.03, units='mm hr-1')
         result = plugin.construct_extract_constraint(diagnostic,
                                                      threshold)
-        expected = ("iris.Constraint(name='probability_of_rainfall_rate', "
+        expected = ("iris.Constraint("
+                    "name='probability_of_rainfall_rate_above_threshold', "
                     "threshold=lambda cell: 0.03 * {t_min} < cell < 0.03 * "
                     "{t_max})".format(
                         t_min=(1. - WeatherSymbols().float_tolerance),
@@ -445,14 +451,15 @@ class Test_construct_extract_constraint(IrisTest):
         """Test construct_extract_constraint returns a list
            of iris.Constraint."""
         plugin = WeatherSymbols()
-        diagnostics = ['probability_of_rainfall_rate',
-                       'probability_of_lwe_snowfall_rate']
+        diagnostics = ['probability_of_rainfall_rate_above_threshold',
+                       'probability_of_lwe_snowfall_rate_above_threshold']
         thresholds = [AuxCoord(0.03, units='mm hr-1'),
                       AuxCoord(0.03, units='mm hr-1')]
         result = plugin.construct_extract_constraint(diagnostics,
                                                      thresholds)
 
-        expected = ("iris.Constraint(name='probability_of_lwe_snowfall_rate', "
+        expected = ("iris.Constraint("
+                    "name='probability_of_lwe_snowfall_rate_above_threshold', "
                     "threshold=lambda cell: 0.03 * {t_min} < cell < 0.03 * "
                     "{t_max})".format(
                         t_min=(1. - WeatherSymbols().float_tolerance),
@@ -537,6 +544,7 @@ class Test_create_symbol_cube(IrisTest):
 class Test_process(IrisTest):
 
     """Test the find_all_routes method ."""
+
     def setUp(self):
         """ Set up wxcubes for testing. """
         self.cubes = set_up_wxcubes()

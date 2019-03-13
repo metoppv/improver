@@ -609,3 +609,38 @@ def add_history_attribute(cube, value, append=False):
         cube.attributes["history"] += '; {}'.format(new_history)
     else:
         cube.attributes["history"] = new_history
+
+
+def in_vicinity_name_format(cube_name):
+    """Generate the correct name format for an 'in_vicinity' probability
+    cube, taking into account the _'above/below_threshold' suffix required
+    by convention.
+
+    Args:
+        cube_name (str):
+            The 'in_vicinity' probability cube name to be formatted.
+
+    Returns:
+        new_cube_name (str):
+            Correctly formatted name following the accepted convention e.g.
+            'probability_of_X_in_vicinity_above_threshold'.
+
+    Raises:
+        ValueError: If the input cube name already contains 'in_vicinity'.
+    """
+    relative_to_threshold_index = max(
+        cube_name.find('_above_threshold'),
+        cube_name.find('_below_threshold'))
+
+    if 'in_vicinity' in cube_name:
+        msg = "Cube name already contains 'in_vicinity'"
+        raise ValueError(msg)
+
+    elif relative_to_threshold_index == -1:
+        new_cube_name = cube_name + '_in_vicinity'
+    else:
+        new_cube_name = (cube_name[:relative_to_threshold_index] +
+                         '_in_vicinity' +
+                         cube_name[relative_to_threshold_index:])
+
+    return new_cube_name

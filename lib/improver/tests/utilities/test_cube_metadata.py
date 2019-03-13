@@ -48,7 +48,8 @@ from improver.utilities.cube_metadata import (
     update_attribute,
     update_cell_methods,
     update_coord,
-    update_stage_v110_metadata)
+    update_stage_v110_metadata,
+    in_vicinity_name_format)
 from improver.utilities.warnings_handler import ManageWarnings
 
 from improver.tests.set_up_test_cubes import (
@@ -802,6 +803,45 @@ class Test_add_history_attribute(IrisTest):
         add_history_attribute(cube, "Nowcast", append=True)
         self.assertTrue("history" in cube.attributes)
         self.assertTrue("Nowcast" in cube.attributes["history"])
+
+
+class Test_in_vicinity_name_format(IrisTest):
+    """Test that the 'in_vicinity' above/below threshold probability
+    cube naming function produces the correctly formatted names."""
+
+    def setUp(self):
+        """Set up test cube"""
+        self.cube = create_cube_with_threshold()
+        self.cube.long_name = 'probability_of_X_rate_above_threshold'
+
+    def test_in_vicinity_name_format(self):
+        """Test that 'in_vicinity' is added correctly to the name for both
+        above and below threshold cases"""
+        correct_name_above = (
+            'probability_of_X_rate_in_vicinity_above_threshold')
+        new_name_above = in_vicinity_name_format(self.cube.name())
+        self.cube.rename('probability_of_X_below_threshold')
+        correct_name_below = (
+            'probability_of_X_in_vicinity_below_threshold')
+        new_name_below = in_vicinity_name_format(self.cube.name())
+        self.assertEqual(new_name_above, correct_name_above)
+        self.assertEqual(new_name_below, correct_name_below)
+
+    def test_no_above_below_threshold(self):
+        """Test the case of name without above/below_threshold is handled
+        correctly"""
+        self.cube.rename('probability_of_X')
+        correct_name_no_threshold = (
+            'probability_of_X_in_vicinity')
+        new_name_no_threshold = in_vicinity_name_format(self.cube.name())
+        self.assertEqual(new_name_no_threshold, correct_name_no_threshold)
+
+    def test_in_vicinity_already_exists(self):
+        """Test the case of 'in_vicinity' already existing in the cube name"""
+        self.cube.rename('probability_of_X_in_vicinity')
+        msg = "Cube name already contains 'in_vicinity'"
+        with self.assertRaisesRegex(ValueError, msg):
+            in_vicinity_name_format(self.cube.name())
 
 
 if __name__ == '__main__':
