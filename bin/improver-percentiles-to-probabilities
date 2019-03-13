@@ -78,7 +78,8 @@ def main():
                         "calculated.")
     parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
                         help="The output path for the processed NetCDF")
-    parser.add_argument("new_name", metavar="NEW_NAME", type=str,
+    parser.add_argument("output_diagnostic_name",
+                        metavar="OUTPUT_DIAGNOSTIC_NAME", type=str,
                         help="Name for data in output file e.g. "
                              "probability_of_snowfall")
     args = parser.parse_args()
@@ -86,7 +87,8 @@ def main():
     threshold_cube = load_cube(args.threshold_filepath)
     percentiles_cube = load_cube(args.percentiles_filepath)
 
-    result = ProbabilitiesFromPercentiles2D(percentiles_cube, args.new_name)
+    result = ProbabilitiesFromPercentiles2D(percentiles_cube,
+                                            args.output_diagnostic_name)
     probability_cube = result.process(threshold_cube)
 
     save_netcdf(probability_cube, args.output_filepath)

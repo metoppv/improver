@@ -36,7 +36,8 @@
 usage: improver-percentiles-to-probabilities [-h] [--profile]
                                              [--profile_file PROFILE_FILE]
                                              PERCENTILES_FILE THRESHOLD_FILE
-                                             OUTPUT_FILE NEW_NAME
+                                             OUTPUT_FILE
+                                             OUTPUT_DIAGNOSTIC_NAME
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

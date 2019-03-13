@@ -36,7 +36,8 @@
 usage: improver-percentiles-to-probabilities [-h] [--profile]
                                              [--profile_file PROFILE_FILE]
                                              PERCENTILES_FILE THRESHOLD_FILE
-                                             OUTPUT_FILE NEW_NAME
+                                             OUTPUT_FILE
+                                             OUTPUT_DIAGNOSTIC_NAME
 
 Calculate probability from a percentiled field at a 2D threshold level. Eg for
 2D percentile levels at different heights, calculate probability that height
@@ -48,7 +49,8 @@ positional arguments:
   THRESHOLD_FILE        A path to an input NetCDF file containing a threshold
                         value at which probabilities should be calculated.
   OUTPUT_FILE           The output path for the processed NetCDF
-  NEW_NAME              Name for data in output file e.g.
+  OUTPUT_DIAGNOSTIC_NAME
+                        Name for data in output file e.g.
                         probability_of_snowfall
 
 optional arguments:
@@ -56,7 +58,6 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
-
 __HELP__
   [[ "$output" == "$expected" ]]
 }
