@@ -190,7 +190,7 @@ class Test_process(IrisTest):
         plugin = Threshold(0.1)
         result = plugin.process(cube)
         # The single 0.5-valued point => 1.0, so cheat by * 2.0 vs orig data.
-        name = "probability_of_{}"
+        name = "probability_of_{}_above_threshold"
         expected_name = name.format(self.cube.name())
         expected_attribute = "above"
         expected_units = 1
