@@ -89,10 +89,10 @@ def set_up_lightning_test_cubes(validity_time=dt(2015, 11, 23, 7),
     template_cube.data[1, 1] = 0.
 
     # first guess lightning FORECAST cube with flexible forecast period
-    # (required for level 2 lighting risk index)
+    # (required for level 2 lighting risk index) # TODO this is a problem...
     first_guess_cube = set_up_variable_cube(
-        data.copy(), name='probability_of_lightning', units='1',
-        time=validity_time, frt=fg_frt, spatial_grid='equalarea')
+        data.copy(), name='probability_of_lightning_rate_above_threshold',
+        units='1', time=validity_time, frt=fg_frt, spatial_grid='equalarea')
 
     # lightning rate cube full of ones
     lightning_rate_cube = set_up_variable_cube(
