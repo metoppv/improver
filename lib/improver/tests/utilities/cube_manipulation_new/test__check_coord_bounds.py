@@ -131,9 +131,8 @@ class Test__check_coord_bounds(IrisTest):
         result = iris.cube.CubeList([cube_with_bounds, cube_no_bounds,
                                      cube_with_bounds])
         msg = "Cubes with mismatching time bounds are not compatible"
-        for cube in result:
-            with self.assertRaisesRegex(ValueError, msg):
-                _check_coord_bounds(result)
+        with self.assertRaisesRegex(ValueError, msg):
+            _check_coord_bounds(result)
 
     def test_mismatched_bounds(self):
         """Test for error when input cubes has mismatched bounds."""
