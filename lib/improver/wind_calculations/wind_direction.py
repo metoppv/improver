@@ -426,7 +426,7 @@ class WindDirection(object):
             msg = "Input cube cannot be converted to degrees: {}".format(err)
             raise ValueError(msg)
 
-        # Force input cube to float32.
+        # Demote input cube data and coords to float32 if float64
         check_cube_not_float64(cube_ens_wdir, fix=True)
 
         self.n_realizations = len(cube_ens_wdir.coord('realization').points)
