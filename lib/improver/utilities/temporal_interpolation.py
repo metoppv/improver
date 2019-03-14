@@ -203,21 +203,17 @@ class TemporalInterpolation(object):
                 # TODO: Provide safe support for time coordinates that could
                 # potentially be in units of "hours since 1970-01-01 00:00:00."
                 if new_coord.points.dtype != dtype_orig:
-                    units_orig = new_coord.units
                     new_coord.convert_units(
                         "seconds since 1970-01-01 00:00:00")
                     new_coord.points = np.around(new_coord.points)
                     new_coord.points = new_coord.points.astype(dtype_orig)
-                    new_coord.convert_units(units_orig)
                 if (hasattr(new_coord, "bounds")
                         and new_coord.bounds is not None and
                         new_coord.bounds.dtype != dtype_orig):
-                    units_orig = new_coord.units
                     new_coord.convert_units(
                         "seconds since 1970-01-01 00:00:00")
                     new_coord.bounds = np.around(new_coord.bounds)
                     new_coord.bounds = new_coord.bounds.astype(dtype_orig)
-                    new_coord.convert_units(units_orig)
             except CoordinateNotFoundError:
                 msg = ('new_cube does not have the coordinate in'
                        ' the original cube {}'.format(coord_name))
