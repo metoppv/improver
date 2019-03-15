@@ -158,77 +158,92 @@ class Test_construct_time_list(IrisTest):
                 self.time_0, self.time_1)
 
 
-class Test_check_cube_coords(IrisTest):
+class Test_enforce_time_coords_dtype(IrisTest):
 
-    """Test construction of time lists suitable for iris interpolation using
-    this function."""
+    """Test that the datatypes and units of the time, forecast_reference_time
+    and forecast_period coordinates have been enforced."""
 
     def setUp(self):
         """Set up the test inputs."""
         time_start = datetime.datetime(2017, 11, 1, 3)
         time_mid = datetime.datetime(2017, 11, 1, 6)
         time_end = datetime.datetime(2017, 11, 1, 9)
-        self.extra_coord = np.array([1.0, 4.0, 7.0], dtype=np.float32)
-        self.bad_extra_coord = np.array([1.1, 4.3, 6.9], dtype=np.float64)
         self.npoints = 10
         data_time_0 = np.ones((self.npoints, self.npoints), dtype=np.float32)
         cube_time_0 = set_up_variable_cube(data_time_0,
                                            time=time_start,
                                            frt=time_start)
-        cube_times = add_coordinate(cube_time_0,
+        cube_times = add_coordinate(cube_time_0.copy(),
                                     [time_start, time_mid, time_end],
                                     'time', is_datetime=True)
-        self.cube = add_coordinate(cube_times, self.extra_coord,
-                                   'extra_coord')
-        self.bad_coords = self.cube.copy()
-        self.bad_coords.coord('time').points = (
-            self.bad_coords.coord('time').points.astype(np.float64))
-        self.bad_coords.coord('forecast_period').points = (
-            self.bad_coords.coord('forecast_period').points.astype(np.int64))
-        self.bad_coords.coord('extra_coord').points = (
-            self.bad_extra_coord)
+        # Convert units and datatypes, so that they are non-standard.
+        cube_times.coord("time").convert_units(
+            "hours since 1970-01-01 00:00:00")
+        cube_times.coord("time").points = (
+            cube_times.coord("time").points.astype(np.int32))
+        cube_times.coord("forecast_reference_time").convert_units(
+            "hours since 1970-01-01 00:00:00")
+        cube_times.coord("forecast_reference_time").points = (
+            cube_times.coord(
+                "forecast_reference_time").points.astype(np.int32))
+        cube_times.coord("forecast_period").convert_units("hours")
+        cube_times.coord("forecast_period").points.astype(np.float32)
 
-    def test_check_all_type(self):
+        self.cube = cube_times
+
+    def test_check_points(self):
+        """Test that a cube is returned with the right types"""
+        plugin = TemporalInterpolation(interval_in_minutes=60)
+        result = plugin.enforce_time_coords_dtype(self.cube)
+        self.assertIsInstance(result, iris.cube.Cube)
+        # All coordinates converted to the desired units and datatypes.
+        # Check time coordinate.
+        self.assertEqual(result.coord('time'),
+                         self.cube.coord('time'))
+        self.assertEqual(str(result.coord('time').points.dtype),
+                         'int64')
+        # Check forecast_reference_time.
+        self.assertEqual(result.coord('forecast_reference_time'),
+                         self.cube.coord('forecast_reference_time'))
+        self.assertEqual(
+            str(result.coord('forecast_reference_time').points.dtype), 'int64')
+        # Check forecast_period.
+        self.assertEqual(result.coord('forecast_period'),
+                         self.cube.coord('forecast_period'))
+        self.assertEqual(str(result.coord('forecast_period').points.dtype),
+                         'int32')
+
+    def test_check_bounds(self):
         """Test that a cube is returned.with the right types"""
         plugin = TemporalInterpolation(interval_in_minutes=60)
-        result = plugin.check_cube_coords_dtype(self.cube,
-                                                self.bad_coords)
-        self.assertIsInstance(result, iris.cube.Cube)
-        # All coords reverted back to the dtypes of the
-        # original cube and points in extra_coord cube have been rounded
-        self.assertEqual(result.coord('time'),
-                         self.cube.coord('time'))
-        self.assertEqual(str(result.coord('time').points.dtype),
-                         'int64')
-        self.assertEqual(result.coord('forecast_period'),
-                         self.cube.coord('forecast_period'))
-        self.assertEqual(str(result.coord('forecast_period').points.dtype),
-                         'int32')
-        self.assertEqual(result.coord('extra_coord'),
-                         self.cube.coord('extra_coord'))
-        self.assertEqual(str(result.coord('extra_coord').points.dtype),
-                         'float32')
+        cube = self.cube
+        # Use of guess_bounds converts datatype to float64.
+        cube.coord("time").guess_bounds()
+        cube.coord("forecast_period").guess_bounds()
 
-    def test_time_types(self):
-        """Test that only the coords associated with time have been updated."""
-        plugin = TemporalInterpolation(interval_in_minutes=60)
-        result = plugin.check_cube_coords_dtype(self.cube,
-                                                self.bad_coords,
-                                                dim_coords=['time'])
-        # Time and forecast_period reverted back to original type
+        result = plugin.enforce_time_coords_dtype(cube)
+        self.assertIsInstance(result, iris.cube.Cube)
+        # All coordinates including bounds converted to the
+        # desired units and datatypes.
+        # Check time coordinate.
         self.assertEqual(result.coord('time'),
                          self.cube.coord('time'))
         self.assertEqual(str(result.coord('time').points.dtype),
                          'int64')
+        self.assertEqual(str(result.coord('time').bounds.dtype),
+                         'int64')
+        # Check forecast_reference_time coordinate.
+        self.assertEqual(result.coord('forecast_reference_time'),
+                         self.cube.coord('forecast_reference_time'))
+        self.assertEqual(
+            str(result.coord('forecast_reference_time').points.dtype), 'int64')
+        # Check forecast_period coordinate.
         self.assertEqual(result.coord('forecast_period'),
                          self.cube.coord('forecast_period'))
         self.assertEqual(str(result.coord('forecast_period').points.dtype),
                          'int32')
-        # Extra coordinate left as changed.
-        self.assertEqual(result.coord('extra_coord'),
-                         self.bad_coords.coord('extra_coord'))
-        self.assertEqual(str(result.coord('extra_coord').points.dtype),
-                         'float64')
+        self.assertEqual(str(result.coord('forecast_period').bounds.dtype),
+                         'int32')
 
 
 class Test_calc_sin_phi(IrisTest):

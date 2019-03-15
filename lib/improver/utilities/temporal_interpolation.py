@@ -149,76 +149,51 @@ class TemporalInterpolation(object):
         return [('time', time_list)]
 
     @staticmethod
-    def check_cube_coords_dtype(cube, new_cube, dim_coords=None):
+    def enforce_time_coords_dtype(cube):
         """
-        Update the data type of the coords within the new_cube
-        to those in the original cube. This can be limited to a list of
-        dimension coordinates and associated auxillary coordinates if required.
+        Enforce the data type of the time, forecast_reference_time and
+        forecast_period within the cube, so that time coordinates do not
+        become mis-represented. The units of the time and
+        forecast_reference_time are enforced to be
+        "seconds since 1970-01-01 00:00:00" with a datatype of int64.
+        The units of forecast_period are enforced to be seconds with a datatype
+        of int32.
+
 
         Args:
-        cube (iris.cube.Cube):
-            The original cube that will be used to checked against for the
-            required data type of that coordinate in the new_cube.
-        new_cube (iris.cube.Cube):
-            The cube that must be checked and adjusted using the coordinates
-            from the original cube.
-        dim_coords (list):
-            List of dimension coordinate names. This list will be used to
-            limit the correction of the coordinate data type
-            to these coordinates and associated auxillary coordinates.
-            Default is None.
+            cube (iris.cube.Cube):
+                The cube that will have the datatype and units for the
+                time, forecast_reference_time and forecast_period coordinates
+                enforced.
 
         Returns:
-        new_cube (iris.cube.Cube):
-            Modified cube with the relevant coordinates datatypes
-            set to the same as on the original cube.
+            cube (iris.cube.Cube):
+                Cube where the datatype and units for the
+                time, forecast_reference_time and forecast_period coordinates
+                have been enforced.
 
-        Raises:
-            CoordinateNotFoundError : If original cube does not have the
-                coordinate in dim_coords.
-            CoordinateNotFoundError : If coordinate in original cube is
-                not in new_cube.
         """
-        if dim_coords is None:
-            coord_list = [coord.name() for coord in cube.coords()]
-        else:
-            coord_list = []
-            for coord_name in dim_coords:
-                try:
-                    req_dim = cube.coord_dims(coord_name)
-                    associated_coords = [crd.name() for crd in cube.coords()
-                                         if cube.coord_dims(crd) == req_dim
-                                         and crd.name() is not coord_name]
-                    coord_list.append(coord_name)
-                    for val in associated_coords:
-                        coord_list.append(val)
-                except CoordinateNotFoundError:
-                    msg = ('Original cube does not have the coordinate in'
-                           ' dim_coords {}'.format(coord_name))
-                    raise CoordinateNotFoundError(msg)
-        for coord_name in coord_list:
-            dtype_orig = cube.coord(coord_name).points.dtype
-            try:
-                new_coord = new_cube.coord(coord_name)
-                # TODO: Provide safe support for time coordinates that could
-                # potentially be in units of "hours since 1970-01-01 00:00:00."
-                if new_coord.points.dtype != dtype_orig:
-                    new_coord.convert_units(
-                        "seconds since 1970-01-01 00:00:00")
-                    new_coord.points = np.around(new_coord.points)
-                    new_coord.points = new_coord.points.astype(dtype_orig)
-                if (hasattr(new_coord, "bounds")
-                        and new_coord.bounds is not None and
-                        new_coord.bounds.dtype != dtype_orig):
-                    new_coord.convert_units(
-                        "seconds since 1970-01-01 00:00:00")
-                    new_coord.bounds = np.around(new_coord.bounds)
-                    new_coord.bounds = new_coord.bounds.astype(dtype_orig)
-            except CoordinateNotFoundError:
-                msg = ('new_cube does not have the coordinate in'
-                       ' the original cube {}'.format(coord_name))
-                raise CoordinateNotFoundError(msg)
-        return new_cube
+        coord_dtypes = {
+            'time': np.int64,
+            'forecast_reference_time': np.int64,
+            'forecast_period': np.int32,
+            }
+        coord_units = {
+            'time': "seconds since 1970-01-01 00:00:00",
+            'forecast_reference_time': "seconds since 1970-01-01 00:00:00",
+            'forecast_period': "seconds",
+            }
+
+        for coord_name in ["time", "forecast_reference_time",
+                           "forecast_period"]:
+            coord = cube.coord(coord_name)
+            coord.convert_units(coord_units[coord_name])
+            coord.points = np.around(coord.points)
+            coord.points = coord.points.astype(coord_dtypes[coord_name])
+            if hasattr(coord, "bounds") and coord.bounds is not None:
+                coord.bounds = np.around(coord.bounds)
+                coord.bounds = coord.bounds.astype(coord_dtypes[coord_name])
+        return cube
 
     @staticmethod
     def calc_sin_phi(dtval, lats, lons):
@@ -426,9 +401,7 @@ class TemporalInterpolation(object):
 
         interpolated_cube = cube.interpolate(time_list,
                                              iris.analysis.Linear())
-        self.check_cube_coords_dtype(cube_t0,
-                                     interpolated_cube,
-                                     dim_coords=['time'])
+        self.enforce_time_coords_dtype(interpolated_cube)
         interpolated_cubes = iris.cube.CubeList()
         if self.interpolation_method == 'solar':
                 interpolated_cubes = self.solar_interpolate(cube,
