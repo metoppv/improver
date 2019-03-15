@@ -141,15 +141,16 @@ class ResamplePercentiles(object):
         Padding of the lower and upper bounds of the percentiles for a
         given phenomenon, and padding of forecast values using the
         constant lower and upper bounds.
+
         Args:
             percentiles (Numpy array):
-            Array of percentiles from a Cumulative Distribution Function.
-        forecast_at_percentiles (Numpy array):
-            Array containing the underlying forecast values at each
-            percentile.
-        bounds_pairing (Tuple):
-            Lower and upper bound to be used as the ends of the
-            cumulative distribution function.
+                Array of percentiles from a Cumulative Distribution Function.
+            forecast_at_percentiles (Numpy array):
+                Array containing the underlying forecast values at each
+                percentile.
+            bounds_pairing (Tuple):
+                Lower and upper bound to be used as the ends of the
+                cumulative distribution function.
         """
         lower_bound, upper_bound = bounds_pairing
         percentiles = insert_lower_and_upper_endpoint_to_1d_array(

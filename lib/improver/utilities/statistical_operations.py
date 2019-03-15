@@ -93,7 +93,7 @@ class ProbabilitiesFromPercentiles2D(object):
                 cube.
             output_name (str):
                 The name of the cube being created,
-                e.g.'probability_of_snowfall'.
+                e.g.'probability_of_snow_falling_level_below_ground_level'
         """
         self.percentile_coordinate = find_percentile_coordinate(
             percentiles_cube)

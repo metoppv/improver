@@ -103,13 +103,6 @@ class Test__init__(IrisTest):
                                                          self.new_name)
         self.assertEqual(plugin_instance.output_name, self.new_name)
 
-    # def test_naming(self):
-    #     """ Test default naming """
-    #     plugin_instance = ProbabilitiesFromPercentiles2D(self.test_cube)
-    #     self.assertEqual(
-    #         plugin_instance.output_name,
-    #         "probability_of_{}_above_threshold".format(self.test_cube.name()))
-
     def test_inverse_order_false(self):
         """ Test setting of inverse_order flag using percentiles_cube. In this
         case the flag should be false as the values associated with the

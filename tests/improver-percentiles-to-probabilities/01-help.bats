@@ -51,7 +51,7 @@ positional arguments:
   OUTPUT_FILE           The output path for the processed NetCDF
   OUTPUT_DIAGNOSTIC_NAME
                         Name for data in output file e.g.
-                        probability_of_snowfall
+                        probability_of_snow_falling_level_below_ground_level
 
 optional arguments:
   -h, --help            show this help message and exit

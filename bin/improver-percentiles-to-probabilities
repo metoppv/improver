@@ -81,7 +81,7 @@ def main():
     parser.add_argument("output_diagnostic_name",
                         metavar="OUTPUT_DIAGNOSTIC_NAME", type=str,
                         help="Name for data in output file e.g. "
-                             "probability_of_snowfall")
+                        "probability_of_snow_falling_level_below_ground_level")
     args = parser.parse_args()
 
     threshold_cube = load_cube(args.threshold_filepath)
