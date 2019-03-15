@@ -163,7 +163,7 @@ class Test__update_metadata(IrisTest):
 
     def setUp(self):
         """Create a cube like this:
-        probability_of_precipitation_amount / (1)
+        probability_of_lwe_precipitation_rate_above_threshold / (1)
         Dimension coordinates:
             threshold: 1;
             projection_y_coordinate: 3;
@@ -180,7 +180,7 @@ class Test__update_metadata(IrisTest):
         data = np.ones((1, 16, 16), dtype=np.float32)
         thresholds = np.array([0.5], dtype=np.float32)
         self.cube = set_up_probability_cube(
-            data, thresholds, variable_name='precipitation_amount',
+            data, thresholds, variable_name='lwe_precipitation_rate',
             threshold_units='mm h-1')
         self.cube.add_cell_method(CellMethod('mean', coords='realization'))
         self.plugin = Plugin()
@@ -231,8 +231,13 @@ class Test__modify_first_guess(IrisTest):
             forecast_reference_time: 2015-11-23 07:00:00
             forecast_period: 0 seconds
 
+        self.cube:
+            Metadata describes the nowcast lightning fields to be calculated.
+            forecast_period: 0 seconds (simulates nowcast data)
         self.fg_cube:
             Has 4 hour forecast period, to test impact at lr2
+        self.ltng_cube:
+            forecast_period: 0 seconds (simulates nowcast data)
         self.precip_cube:
             Has extra coordinate of length(3) "threshold" containing
             points [0.5, 7., 35.] mm h-1.
