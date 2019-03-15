@@ -404,11 +404,11 @@ class TemporalInterpolation(object):
         self.enforce_time_coords_dtype(interpolated_cube)
         interpolated_cubes = iris.cube.CubeList()
         if self.interpolation_method == 'solar':
-                interpolated_cubes = self.solar_interpolate(cube,
-                                                            interpolated_cube)
+            interpolated_cubes = self.solar_interpolate(cube,
+                                                        interpolated_cube)
         elif self.interpolation_method == 'daynight':
-                interpolated_cubes = (
-                    self.daynight_interpolate(interpolated_cube))
+            interpolated_cubes = (
+                self.daynight_interpolate(interpolated_cube))
         else:
             for single_time in interpolated_cube.slices_over('time'):
                 interpolated_cubes.append(single_time)
