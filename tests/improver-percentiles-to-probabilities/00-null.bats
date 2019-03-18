@@ -35,9 +35,9 @@
   read -d '' expected <<'__TEXT__' || true
 usage: improver-percentiles-to-probabilities [-h] [--profile]
                                              [--profile_file PROFILE_FILE]
-                                             [--new_name NEW_NAME]
                                              PERCENTILES_FILE THRESHOLD_FILE
                                              OUTPUT_FILE
+                                             OUTPUT_DIAGNOSTIC_NAME
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

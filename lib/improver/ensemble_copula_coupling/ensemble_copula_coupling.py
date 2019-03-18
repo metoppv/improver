@@ -141,6 +141,7 @@ class ResamplePercentiles(object):
         Padding of the lower and upper bounds of the percentiles for a
         given phenomenon, and padding of forecast values using the
         constant lower and upper bounds.
+
         Args:
             percentiles (Numpy array):
                 Array of percentiles from a Cumulative Distribution Function.
@@ -150,14 +151,6 @@ class ResamplePercentiles(object):
             bounds_pairing (Tuple):
                 Lower and upper bound to be used as the ends of the
                 cumulative distribution function.
-        Returns:
-            (tuple) : tuple containing:
-                **percentiles** (Numpy array):
-                    Array of percentiles from a Cumulative Distribution
-                    Function.
-                **forecast_at_percentiles** (Numpy array):
-                    Array containing the underlying forecast values at each
-                    percentile.
         """
         lower_bound, upper_bound = bounds_pairing
         percentiles = insert_lower_and_upper_endpoint_to_1d_array(
@@ -499,6 +492,10 @@ class GeneratePercentilesFromProbabilities(object):
                 threshold_coord.name()):
             template_cube.rename(
                 template_cube.name().replace("probability_of_", ""))
+            template_cube.rename(
+                template_cube.name().replace(
+                    "_above_threshold", "").replace("_below_threshold", ""))
+
             template_cube.remove_coord(threshold_coord.name())
             template_cube.attributes.pop('relative_to_threshold')
             break
@@ -559,7 +556,9 @@ class GeneratePercentilesFromProbabilities(object):
 
         threshold_coord = forecast_probabilities.coord("threshold")
         phenom_name = (
-            forecast_probabilities.name().replace("probability_of_", ""))
+            forecast_probabilities.name().replace(
+                "probability_of_", "").replace("_above_threshold", "").replace(
+                "_below_threshold", ""))
 
         if no_of_percentiles is None:
             no_of_percentiles = (
@@ -868,7 +867,6 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
                 A probability cube that has the threshold coordinate, and
                 attribute relative_to_threshold, that match the desired output
                 cube format.
-
         Returns:
             probability_cube (iris.cube.Cube):
                 A cube of diagnostic data expressed as probabilities relative

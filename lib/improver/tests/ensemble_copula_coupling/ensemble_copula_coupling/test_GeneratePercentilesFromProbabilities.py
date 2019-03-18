@@ -46,7 +46,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
 from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import (
         add_forecast_reference_time_and_forecast_period,
-        set_up_probability_above_threshold_cube,
+        set_up_probability_threshold_cube,
         set_up_probability_above_threshold_temperature_cube,
         set_up_probability_above_threshold_spot_temperature_cube)
 from improver.utilities.warnings_handler import ManageWarnings
@@ -265,10 +265,10 @@ class Test__probabilities_to_percentiles(IrisTest):
 
         self.current_temperature_forecast_cube = (
             add_forecast_reference_time_and_forecast_period(
-                set_up_probability_above_threshold_cube(
+                set_up_probability_threshold_cube(
                     data, "air_temperature", "degreesC",
                     forecast_thresholds=[8, 10, 12], y_dimension_length=1,
-                    x_dimension_length=1)))
+                    x_dimension_length=1, relative_to_threshold='above')))
         cube = self.current_temperature_forecast_cube
         percentiles = [10, 50, 90]
         bounds_pairing = (-40, 50)
@@ -294,10 +294,10 @@ class Test__probabilities_to_percentiles(IrisTest):
 
         self.current_temperature_forecast_cube = (
             add_forecast_reference_time_and_forecast_period(
-                set_up_probability_above_threshold_cube(
+                set_up_probability_threshold_cube(
                     data, "air_temperature", "degreesC",
                     forecast_thresholds=[8, 10, 12], y_dimension_length=1,
-                    x_dimension_length=1)))
+                    x_dimension_length=1, relative_to_threshold='above')))
         cube = self.current_temperature_forecast_cube
         cube.attributes["relative_to_threshold"] = "below"
         percentiles = [10, 50, 90]
@@ -338,9 +338,10 @@ class Test__probabilities_to_percentiles(IrisTest):
                           [[0.1, 0.1],
                            [0.1, 0.2]]]], dtype=np.float32)
 
-        cube = set_up_probability_above_threshold_cube(
+        cube = set_up_probability_threshold_cube(
             data, "air_temperature", "degreesC", timesteps=2,
-            x_dimension_length=2, y_dimension_length=2)
+            x_dimension_length=2, y_dimension_length=2,
+            relative_to_threshold='above')
         self.probability_cube = (
             add_forecast_reference_time_and_forecast_period(
                 cube, time_point=np.array([402295.0, 402296.0]),
@@ -366,10 +367,10 @@ class Test__probabilities_to_percentiles(IrisTest):
 
         self.current_temperature_forecast_cube = (
             add_forecast_reference_time_and_forecast_period(
-                set_up_probability_above_threshold_cube(
+                set_up_probability_threshold_cube(
                     data, "air_temperature", "degreesC",
                     forecast_thresholds=[8, 10, 12], y_dimension_length=1,
-                    x_dimension_length=1)))
+                    x_dimension_length=1, relative_to_threshold='above')))
         cube = self.current_temperature_forecast_cube
         percentiles = [10, 50, 90]
         bounds_pairing = (-40, 50)
@@ -466,9 +467,10 @@ class Test__probabilities_to_percentiles(IrisTest):
         temperature_values = np.arange(0, 30)
         cube = (
             add_forecast_reference_time_and_forecast_period(
-                set_up_probability_above_threshold_cube(
+                set_up_probability_threshold_cube(
                     input_probs, "air_temperature", "degreesC",
-                    forecast_thresholds=temperature_values)))
+                    forecast_thresholds=temperature_values,
+                    relative_to_threshold='above')))
         percentiles = [10, 50, 90]
         bounds_pairing = (-40, 50)
         plugin = Plugin()

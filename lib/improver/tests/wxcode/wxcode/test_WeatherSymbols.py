@@ -43,7 +43,7 @@ from cf_units import Unit
 from improver.wxcode.weather_symbols import WeatherSymbols
 from improver.wxcode.wxcode_utilities import WX_DICT
 from improver.tests.ensemble_calibration.ensemble_calibration. \
-    helper_functions import set_up_probability_above_threshold_cube
+    helper_functions import set_up_probability_threshold_cube
 
 
 def set_up_wxcubes():
@@ -53,10 +53,11 @@ def set_up_wxcubes():
                           0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                           0.0, 0.0, 0.0]).reshape(3, 1, 3, 3)
     snowfall_rate = (
-        set_up_probability_above_threshold_cube(
+        set_up_probability_threshold_cube(
             data_snow,
-            'lwe_snowfall_rate_above_threshold',
+            'lwe_snowfall_rate',
             'm s-1',
+            relative_to_threshold='above',
             forecast_thresholds=np.array([8.33333333e-09,
                                           2.77777778e-08,
                                           2.77777778e-07])))
@@ -66,10 +67,11 @@ def set_up_wxcubes():
                           0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                           0.0, 0.0, 0.0]).reshape(3, 1, 3, 3)
     rainfall_rate = (
-        set_up_probability_above_threshold_cube(
+        set_up_probability_threshold_cube(
             data_rain,
-            'rainfall_rate_above_threshold',
+            'rainfall_rate',
             'm s-1',
+            relative_to_threshold='above',
             forecast_thresholds=np.array([8.33333333e-09,
                                           2.77777778e-08,
                                           2.77777778e-07])))
@@ -79,10 +81,11 @@ def set_up_wxcubes():
                            0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                            0.0, 0.0, 0.0]).reshape(3, 1, 3, 3)
     snowfall_vicinity = (
-        set_up_probability_above_threshold_cube(
+        set_up_probability_threshold_cube(
             data_snowv,
-            'lwe_snowfall_rate_in_vicinity_above_threshold',
+            'lwe_snowfall_rate_in_vicinity',
             'm s-1',
+            relative_to_threshold='above',
             forecast_thresholds=np.array([8.33333333e-09,
                                           2.77777778e-08,
                                           2.77777778e-07])))
@@ -92,10 +95,11 @@ def set_up_wxcubes():
                            0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                            0.0, 0.0, 0.0]).reshape(3, 1, 3, 3)
     rainfall_vicinity = (
-        set_up_probability_above_threshold_cube(
+        set_up_probability_threshold_cube(
             data_rainv,
-            'rainfall_rate_in_vicinity_above_threshold',
+            'rainfall_rate_in_vicinity',
             'm s-1',
+            relative_to_threshold='above',
             forecast_thresholds=np.array([8.33333333e-09,
                                           2.77777778e-08,
                                           2.77777778e-07])))
@@ -103,30 +107,33 @@ def set_up_wxcubes():
     data_cloud = np.array([0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,
                            0.0, 0.0, 0.0, 0.0, 1.0, 1.0,
                            0.0, 0.0, 1.0]).reshape(2, 1, 3, 3)
-    cloud = (set_up_probability_above_threshold_cube(
+    cloud = (set_up_probability_threshold_cube(
         data_cloud,
-        'cloud_area_fraction_above_threshold',
+        'cloud_area_fraction',
         '1',
+        relative_to_threshold='above',
         forecast_thresholds=np.array([0.1875, 0.8125])))
 
     data_cld_1000ft = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
                                 0.0, 0.0, 0.0]).reshape(1, 1, 3, 3)
     cloud_below_1000ft = (
-        set_up_probability_above_threshold_cube(
+        set_up_probability_threshold_cube(
             data_cld_1000ft,
             'cloud_area_fraction_assuming_only'
-            '_consider_surface_to_1000_feet_asl_above_threshold',
+            '_consider_surface_to_1000_feet_asl',
             '1',
+            relative_to_threshold='above',
             forecast_thresholds=np.array([0.85])))
 
     data_vis = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                          0.0, 0.0, 1.0, 1.0, 0.0, 0.0,
                          0.0, 1.0, 0.0]).reshape(2, 1, 3, 3)
     visibility = (
-        set_up_probability_above_threshold_cube(
+        set_up_probability_threshold_cube(
             data_vis,
-            'visibility_in_air_below_threshold',
+            'visibility_in_air',
             'm',
+            relative_to_threshold='below',
             forecast_thresholds=np.array([1000.0, 5000.0])))
     visibility.attributes['relative_to_threshold'] = 'below'
 
@@ -144,10 +151,11 @@ def set_up_wxcubes_global():
                           0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                           0.0, 0.0, 0.0]).reshape(3, 1, 3, 3)
     snowfall_rate = (
-        set_up_probability_above_threshold_cube(
+        set_up_probability_threshold_cube(
             data_snow,
-            'lwe_snowfall_rate_above_threshold',
+            'lwe_snowfall_rate',
             'm s-1',
+            relative_to_threshold='above',
             forecast_thresholds=np.array([8.33333333e-09,
                                           2.77777778e-08,
                                           2.77777778e-07])))
@@ -157,10 +165,11 @@ def set_up_wxcubes_global():
                           0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                           0.0, 0.0, 0.0]).reshape(3, 1, 3, 3)
     rainfall_rate = (
-        set_up_probability_above_threshold_cube(
+        set_up_probability_threshold_cube(
             data_rain,
-            'rainfall_rate_above_threshold',
+            'rainfall_rate',
             'm s-1',
+            relative_to_threshold='above',
             forecast_thresholds=np.array([8.33333333e-09,
                                           2.77777778e-08,
                                           2.77777778e-07])))
@@ -168,30 +177,33 @@ def set_up_wxcubes_global():
     data_cloud = np.array([0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,
                            0.0, 0.0, 0.0, 0.0, 1.0, 1.0,
                            0.0, 0.0, 1.0]).reshape(2, 1, 3, 3)
-    cloud = (set_up_probability_above_threshold_cube(
+    cloud = (set_up_probability_threshold_cube(
         data_cloud,
-        'cloud_area_fraction_above_threshold',
+        'cloud_area_fraction',
         '1',
+        relative_to_threshold='above',
         forecast_thresholds=np.array([0.1875, 0.8125])))
 
     data_cld_1000ft = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
                                 0.0, 0.0, 0.0]).reshape(1, 1, 3, 3)
     cloud_below_1000ft = (
-        set_up_probability_above_threshold_cube(
+        set_up_probability_threshold_cube(
             data_cld_1000ft,
             'cloud_area_fraction_assuming_only'
-            '_consider_surface_to_1000_feet_asl_above_threshold',
+            '_consider_surface_to_1000_feet_asl',
             '1',
+            relative_to_threshold='above',
             forecast_thresholds=np.array([0.85])))
 
     data_vis = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                          0.0, 0.0, 1.0, 1.0, 0.0, 0.0,
                          0.0, 1.0, 0.0]).reshape(2, 1, 3, 3)
     visibility = (
-        set_up_probability_above_threshold_cube(
+        set_up_probability_threshold_cube(
             data_vis,
-            'visibility_in_air_below_threshold',
+            'visibility_in_air',
             'm',
+            relative_to_threshold='below',
             forecast_thresholds=np.array([1000.0, 5000.0])))
     visibility.attributes['relative_to_threshold'] = 'below'
 
@@ -522,9 +534,8 @@ class Test_create_symbol_cube(IrisTest):
                          0.2, 0.2, 0.5, 0.1, 0.3, 0.9, 0.8, 0.5, 0.3,
                          0.6, 0.3, 0.5, 0.6, 0.8, 0.2,
                          0.8, 0.1, 0.2]).reshape(3, 1, 3, 3)
-        self.cube = set_up_probability_above_threshold_cube(data,
-                                                            'air_temperature',
-                                                            'K')
+        self.cube = set_up_probability_threshold_cube(
+            data, 'air_temperature', 'K', relative_to_threshold='above')
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
 

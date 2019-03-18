@@ -73,7 +73,7 @@ class ProbabilitiesFromPercentiles2D(object):
         each point in the orography field.
     """
 
-    def __init__(self, percentiles_cube, output_name=None):
+    def __init__(self, percentiles_cube, output_name):
         """
         Initialise class. Sets an inverse_ordering (bool) switch to true for
         cases where the percentiled data increases in the opposite sense to the
@@ -93,7 +93,7 @@ class ProbabilitiesFromPercentiles2D(object):
                 cube.
             output_name (str):
                 The name of the cube being created,
-                e.g.'probability_of_snowfall'.
+                e.g.'probability_of_snow_falling_level_below_ground_level'
         """
         self.percentile_coordinate = find_percentile_coordinate(
             percentiles_cube)
@@ -103,12 +103,7 @@ class ProbabilitiesFromPercentiles2D(object):
                    "values are provided.")
             raise ValueError(msg)
         self.percentiles_cube = percentiles_cube
-
-        if output_name is not None:
-            self.output_name = output_name
-        else:
-            self.output_name = "probability_of_{}".format(
-                percentiles_cube.name())
+        self.output_name = output_name
 
         # Set inverse_ordering switch
         percentile_slices = percentiles_cube.slices_over(
@@ -140,9 +135,11 @@ class ProbabilitiesFromPercentiles2D(object):
                 as x and y coordinates. We keep all the metadata from this cube
                 but dispose of the percentile coordinate as we will be filling
                 the cube with probabilities.
+
         Returns:
             probability_cube (iris.cube.Cube):
                 A new 2-dimensional probability cube with suitable metadata.
+
         """
         cube_format = next(cube.slices([cube.coord(axis='y'),
                                         cube.coord(axis='x')]))
@@ -167,7 +164,6 @@ class ProbabilitiesFromPercentiles2D(object):
         for each point on a 2-dimensional grid, we can interpolate through each
         distribution to obtain a probability. The point to which we interpolate
         is defined by the threshold_cube.
-
         Note that the current implementation assumes that in cases of a
         degenerate percentile distribution, the right most bin in which a
         threshold value is found is chosen.
@@ -184,7 +180,6 @@ class ProbabilitiesFromPercentiles2D(object):
         wary of the returned probabilities.
 
         Examples:
-
             This simple linear interpolator works in the following way.
 
             percentiles_cube::
@@ -222,7 +217,6 @@ class ProbabilitiesFromPercentiles2D(object):
                   [[-1, -1, -1],
                    [-1, -1, -1],
                    [-1, -1, -1]] ]
-
 
             1. Create slices over each percentile, and using the correct
                inequality (as determined by inverse_ordering) compare the
@@ -300,19 +294,15 @@ class ProbabilitiesFromPercentiles2D(object):
             2. When all slices have been interated over, the interpolants are
                calculated using the threshold values and the values_bounds.
                ::
-
                (threshold_cube.data - lower_bound)/(upper_bound - lower_bound)
-
                If the upper_bound and lower_bound are the same this leads to
                a divide by 0 calculation, resulting in np.inf as the output.
 
             3. The interpolants are used to calculate the percentile value at
                each point in the array using the percentile_bounds.
                ::
-
                    lower_percentile_bound + interpolants *
                        (upper_percentile_bounds - lower_percentile_bounds)
-
                The percentiles are divided by 100 to give a fractional
                probability.
 
@@ -336,10 +326,12 @@ class ProbabilitiesFromPercentiles2D(object):
                 A 3-dimensional cube, 1 dimension describing the percentile
                 distributions, and 2-dimensions shared with the threshold_cube,
                 typically x and y.
+
         Returns:
             probabilities (iris.cube.Cube):
                 A 2-dimensional cube of probabilities obtained by interpolating
                 between percentile values.
+
         """
         percentiles = self.percentile_coordinate.points
         probabilities = self.create_probability_cube(percentiles_cube,
@@ -394,7 +386,6 @@ class ProbabilitiesFromPercentiles2D(object):
         Slice the percentiles cube over any non-spatial coordinates
         (realization, time, etc) if present, and call the percentile
         interpolation method for each resulting cube.
-
         Args:
             threshold_cube (iris.cube.Cube):
                 A cube of values, that effectively behave as thresholds, for

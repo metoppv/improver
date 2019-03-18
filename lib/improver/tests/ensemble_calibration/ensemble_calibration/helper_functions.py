@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """
 Functions for use within unit tests for `ensemble_calibration` plugins.
-
 """
 import datetime
 
@@ -44,16 +43,18 @@ import numpy as np
 from improver.utilities.cube_manipulation import concatenate_cubes
 
 
-def set_up_probability_above_threshold_cube(
+def set_up_probability_threshold_cube(
         data, phenomenon_standard_name, phenomenon_units,
         forecast_thresholds=np.array([8, 10, 12]), timesteps=1,
-        y_dimension_length=3, x_dimension_length=3):
+        y_dimension_length=3, x_dimension_length=3,
+        relative_to_threshold='above'):
     """
-    Create a cube containing multiple probability_above_threshold
+    Create a cube containing multiple probability_above/below_threshold
     values for the coordinate.
     """
     cube_long_name = (
-        "probability_of_{}".format(phenomenon_standard_name))
+        "probability_of_{}_{}_threshold".format(
+            phenomenon_standard_name, relative_to_threshold))
     cube = Cube(data, long_name=cube_long_name,
                 units=1)
     coord_long_name = "threshold"
@@ -72,7 +73,7 @@ def set_up_probability_above_threshold_cube(
     cube.add_dim_coord(DimCoord(np.linspace(120, 180, x_dimension_length,
                                             dtype=np.float32),
                                 'longitude', units='degrees'), 3)
-    cube.attributes["relative_to_threshold"] = "above"
+    cube.attributes["relative_to_threshold"] = relative_to_threshold
     return cube
 
 
@@ -90,8 +91,9 @@ def set_up_probability_above_threshold_temperature_cube():
                        [0.2, 0.0, 0.1],
                        [0.0, 0.0, 0.0]]]], dtype=np.float32)
     return (
-        set_up_probability_above_threshold_cube(data, "air_temperature",
-                                                "degreesC"))
+        set_up_probability_threshold_cube(
+            data, "air_temperature", "degreesC",
+            relative_to_threshold='above'))
 
 
 def set_up_probability_above_threshold_spot_cube(
@@ -103,7 +105,7 @@ def set_up_probability_above_threshold_spot_cube(
     dimensions is an index used for spot forecasts.
     """
     cube_long_name = (
-        "probability_of_{}".format(phenomenon_standard_name))
+        "probability_of_{}_above_threshold".format(phenomenon_standard_name))
     cube = Cube(data, long_name=cube_long_name,
                 units=1)
     coord_long_name = "threshold"
