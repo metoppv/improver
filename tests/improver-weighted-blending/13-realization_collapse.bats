@@ -1,4 +1,3 @@
-#!/usr/bin/env bats
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -31,12 +30,12 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending source realizations" {
+@test "weighted-blending realization collapse" {
   improver_check_skip_acceptance
   KGO="weighted_blending/realizations/kgo.nc"
 
-  # Run weighted blending with linear weights and check it passes, creating
-  # a source_realization attribute.
+  # Run weighted blending with linear weights and check it passes,
+  # after realization collapse.
   run improver weighted-blending 'realization' 'weighted_mean' \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/realizations/input.nc" \
       "$TEST_DIR/output.nc"

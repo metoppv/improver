@@ -892,11 +892,6 @@ class WeightedBlendAcrossWholeDimension:
             cube_new, cube, coord=self.coord,
             cycletime=self.cycletime)
 
-        # Add a source realizations attribute if collapsing realizations.
-        if self.coord == "realization":
-            result.attributes['source_realizations'] = (
-                cube.coord(self.coord).points)
-
         if isinstance(cube.data, np.ma.core.MaskedArray):
             result.data = np.ma.array(result.data)
 

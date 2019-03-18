@@ -922,22 +922,6 @@ class Test_process(Test_weighted_blend):
         self.assertEqual(result.coord('forecast_period').points,
                          expected_forecast_period)
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_source_realizations_attribute_added(self):
-        """Test that when a realization coordinate is collapsed, a new
-        source_realizations attribute is added to record the contributing
-        realizations."""
-        coord = "realization"
-        self.cube.coord('forecast_reference_time').rename(coord)
-        self.cube.coord(coord).points = [1, 3, 4]
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
-        weights = None
-        result = plugin.process(self.cube, weights)
-        expected = [1, 3, 4]
-        self.assertArrayEqual(result.attributes['source_realizations'],
-                              expected)
-
 
 if __name__ == '__main__':
     unittest.main()
