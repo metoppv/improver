@@ -84,7 +84,7 @@ def set_up_lightning_test_cubes(validity_time=dt(2015, 11, 23, 7),
     # template cube full of ones with one zero point
     data = np.ones((grid_points, grid_points), dtype=np.float32)
     template_cube = set_up_variable_cube(
-        data.copy(), name='lightning_rate', units='min-1',
+        data.copy(), name='rate_of_lightning', units='min-1',
         time=validity_time, frt=validity_time, spatial_grid='equalarea')
     template_cube.data[1, 1] = 0.
 
@@ -166,8 +166,8 @@ class Test__update_metadata(IrisTest):
         probability_of_lwe_precipitation_rate_above_threshold / (1)
         Dimension coordinates:
             threshold: 1;
-            projection_y_coordinate: 3;
-            projection_x_coordinate: 3;
+            projection_y_coordinate: 16;
+            projection_x_coordinate: 16;
         Scalar coordinates:
             forecast_period: 14400 seconds
             forecast_reference_time: 2017-11-10 00:00:00
@@ -726,15 +726,18 @@ class Test_process(IrisTest):
         """Create test cubes and plugin instance.
         The cube coordinates look like this:
         Dimension coordinates:
-            projection_y_coordinate: 3;
-            projection_x_coordinate: 3;
+            projection_y_coordinate: 16;
+            projection_x_coordinate: 16;
         Scalar coordinates:
             time: 2015-11-23 07:00:00
             forecast_reference_time: 2015-11-23 07:00:00
             forecast_period: 0 seconds
 
         self.fg_cube:
-            Has 4 hour forecast period, to test impact at lr2
+            Has 4 hour forecast period, to test impact on "lightning risk
+            2 level" output (see improver.nowcasting.lightning for details)
+        self.ltng_cube:
+            forecast_period: 0 seconds (simulates nowcast data)
         self.precip_cube:
             Has extra coordinate of length(3) "threshold" containing
             points [0.5, 7., 35.] mm h-1.  Has a 4 hour forecast period.
