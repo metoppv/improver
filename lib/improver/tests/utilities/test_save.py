@@ -155,7 +155,7 @@ class Test_save_netcdf(IrisTest):
         """ Test that forbidden global metadata are saved as data variable
         attributes
         """
-        self.cube.attributes['source_realizations'] = np.arange(12)
+        self.cube.attributes['test_attribute'] = np.arange(12)
         save_netcdf(self.cube, self.filepath)
         # cast explicitly to dictionary, as pylint does not recognise
         # OrderedDict as subscriptable
