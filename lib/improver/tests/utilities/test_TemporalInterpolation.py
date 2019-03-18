@@ -52,10 +52,19 @@ class Test__init__(IrisTest):
     """Test the __init__ method."""
 
     def test_raises_error_with_no_keyword_args(self):
-        """Test __init__ raises a ValueError if both keywords are unset."""
+        """Test __init__ raises a ValueError if both interval_in_minutes
+        and times keywords are unset."""
         msg = "TemporalInterpolation: One of"
         with self.assertRaisesRegex(ValueError, msg):
             TemporalInterpolation()
+
+    def test_raises_error_with_both_keyword_args(self):
+        """Test __init__ raises a ValueError if both interval_in_minutes
+        and times keywords are both set."""
+        msg = "TemporalInterpolation: Only one of"
+        with self.assertRaisesRegex(ValueError, msg):
+            TemporalInterpolation(interval_in_minutes=60,
+                                  times=[datetime.datetime(2017, 11, 1, 9)])
 
     def test_unknown_method(self):
         """Test __init__ raises a ValueError if method unknown."""
@@ -375,6 +384,28 @@ class Test_solar_interpolation(IrisTest):
                                            time=self.time_mid,
                                            frt=self.time_0)
         self.interpolated_cube = iris.util.new_axis(interp_cube, 'time')
+        data_time_0_ens = np.zeros((3, self.npoints, self.npoints),
+                                   dtype=np.float32)
+        data_time_1_ens = np.ones((3, self.npoints, self.npoints),
+                                  dtype=np.float32)
+        data_time_mid_ens = np.ones((3, self.npoints, self.npoints),
+                                    dtype=np.float32)
+        cube_time_0_ens = set_up_variable_cube(data_time_0_ens,
+                                               time=self.time_0,
+                                               frt=self.time_0,
+                                               realizations=[0, 1, 2])
+        cube_time_1_ens = set_up_variable_cube(data_time_1_ens,
+                                               time=self.time_1,
+                                               frt=self.time_0,
+                                               realizations=[0, 1, 2])
+        interp_cube_ens = set_up_variable_cube(data_time_mid_ens,
+                                               time=self.time_mid,
+                                               frt=self.time_0,
+                                               realizations=[0, 1, 2])
+        self.interpolated_cube_ens = iris.util.new_axis(interp_cube_ens,
+                                                        'time')
+        cubes_ens = iris.cube.CubeList([cube_time_0_ens, cube_time_1_ens])
+        self.cube_ens = cubes_ens.merge_cube()
 
     def test_return_type(self):
         """Test that an iris cubelist is returned."""
@@ -395,6 +426,24 @@ class Test_solar_interpolation(IrisTest):
                                            self.interpolated_cube)
 
         self.assertArrayAlmostEqual(result.data, self.expected)
+        self.assertArrayAlmostEqual(result.coord('time').points,
+                                    expected_time)
+        self.assertAlmostEqual(result.coord('forecast_period').points[0],
+                               expected_fp)
+
+    def test_solar_interpolation_shape(self):
+        """Test interpolating using solar method with len(shape) >= 3
+         works correctly."""
+
+        expected_time = (self.time_0 + timedelta(hours=2)).timestamp()
+        expected_fp = 2 * 3600
+        plugin = TemporalInterpolation(interpolation_method='solar',
+                                       times=[self.time_mid])
+        result, = plugin.solar_interpolate(self.cube_ens,
+                                           self.interpolated_cube_ens)
+
+        self.assertArrayEqual(result.data.shape, (3, 5, 5))
+        self.assertArrayAlmostEqual(result.data[0], self.expected)
         self.assertArrayAlmostEqual(result.coord('time').points,
                                     expected_time)
         self.assertAlmostEqual(result.coord('forecast_period').points[0],
@@ -594,7 +643,8 @@ class Test_process(IrisTest):
 
         self.cube_time_0.remove_coord('time')
 
-        msg = 'Cube provided to time_interpolate contains no time coordinate'
+        msg = ('Cube provided to TemporalInterpolation '
+               'contains no time coordinate')
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             TemporalInterpolation(interval_in_minutes=180).process(
                 self.cube_time_0, self.cube_time_1)
@@ -604,7 +654,7 @@ class Test_process(IrisTest):
         initial time has a validity time that is after the cube representing
         the final time."""
 
-        msg = 'time_interpolate input cubes ordered incorrectly'
+        msg = 'TemporalInterpolation input cubes ordered incorrectly'
         with self.assertRaisesRegex(ValueError, msg):
             TemporalInterpolation(interval_in_minutes=180).process(
                 self.cube_time_1, self.cube_time_0)
@@ -618,7 +668,7 @@ class Test_process(IrisTest):
         cube = iris.cube.CubeList([self.cube_time_0, second_time])
         cube = cube.merge_cube()
 
-        msg = 'Cube provided to time_interpolate contains multiple'
+        msg = 'Cube provided to TemporalInterpolation contains multiple'
         with self.assertRaisesRegex(ValueError, msg):
             TemporalInterpolation(interval_in_minutes=180).process(
                 cube, self.cube_time_1)

@@ -80,7 +80,10 @@ class TemporalInterpolation(object):
             raise ValueError("TemporalInterpolation: One of "
                              "'interval_in_minutes' or 'times' must be set. "
                              "Currently both are none.")
-
+        if interval_in_minutes is not None and times is not None:
+            raise ValueError("TemporalInterpolation: Only one of "
+                             "'interval_in_minutes' or 'times' must be set. "
+                             "Currently both are set.")
         self.interval_in_minutes = interval_in_minutes
         self.times = times
         known_interpolation_methods = ['linear', 'solar', 'daynight']
@@ -131,12 +134,13 @@ class TemporalInterpolation(object):
                     'List of times falls outside the range given by '
                     'initial_time and final_time. ')
             time_list = self.times
-        else:
+        elif self.interval_in_minutes is not None:
             if ((final_time - initial_time).seconds %
                     (60 * self.interval_in_minutes) != 0):
                 raise ValueError(
                     'interval_in_minutes provided to time_interpolate does not'
-                    ' divide into the interval equally.')
+                    ' divide into the interval equally.'
+                    '{}'.format(self.interval_in_minutes))
 
             time_entry = initial_time
             while True:
@@ -223,7 +227,9 @@ class TemporalInterpolation(object):
     @staticmethod
     def calc_lats_lons(cube):
         """
-        Calculate the lats and lons of each point for a given cube.
+        Calculate the lats and lons of each point from a non-latlon cube,
+        or output a 2d array of lats and lons, if the input cube has latitude
+        and longitude coordinates.
 
         Args:
             cube (iris.cube.Cube):
@@ -248,18 +254,19 @@ class TemporalInterpolation(object):
             lons = np.repeat(lons_col[np.newaxis, :], len(lats_row), axis=0)
         return lats, lons
 
-    def solar_interpolate(self, cube, interpolated_cube):
+    def solar_interpolate(self, diag_cube, interpolated_cube):
         """
-        Interpolate solar radiation parameter which are zero if the
+        Temporal Interpolation code using solar elevation for
+        parameters (e.g. solar radiation parameters) which are zero if the
         sun is below the horizon.
 
         Args:
-            cube (iris.cube.Cube):
-                cube containing diagnostic cube valid at the beginning
-                of the period and cube valid at the end of the period
+            diag_cube (iris.cube.Cube):
+                cube containing diagnostic data valid at the beginning
+                of the period and at the end of the period.
             interpolated_cube (iris.cube.Cube):
                 cube containing Linear interpolation of
-                cube at interpolation times in time_list.
+                diag_cube at interpolation times in time_list.
         Returns:
             interpolated_cubes (iris.cube.CubeList):
                 A list of cubes interpolated to the desired times.
@@ -267,10 +274,10 @@ class TemporalInterpolation(object):
         """
 
         interpolated_cubes = iris.cube.CubeList()
-        (lats, lons) = self.calc_lats_lons(cube)
-        prev_data = cube[0].data
-        next_data = cube[1].data
-        dtvals = iris_time_to_datetime(cube.coord('time'))
+        (lats, lons) = self.calc_lats_lons(diag_cube)
+        prev_data = diag_cube[0].data
+        next_data = diag_cube[1].data
+        dtvals = iris_time_to_datetime(diag_cube.coord('time'))
         # Calculate sine of solar elevation for cube valid at the
         # beginning of the period.
         dtval_prev = dtvals[0]
@@ -291,22 +298,23 @@ class TemporalInterpolation(object):
             diff_interp = (dtval_interp - dtval_prev).seconds
             # Set all values to 0.0, to be replaced
             # with values calculated through this solar method.
-            single_time.data[::] = 0.0
+            single_time.data[:] = 0.0
             sun_up = np.where(sin_phi_interp > 0.0)
             # Solar value is calculated only for points where the sun is up
             # and is a weighted combination of the data using the sine of
-            # solar elevation and the data in the cube valid
+            # solar elevation and the data in the diag_cube valid
             # at the begining and end.
 
-            # If the cube containing cube valid at the beginning of the period
-            # and at the end of the period has more than x and y coordinates
+            # If the diag_cube containing data valid at the
+            # beginning of the period and at the end of the period
+            # has more than x and y coordinates
             # the calculation needs to adapted to accommodate this.
             if len(single_time.shape) > 2:
                 prevv = (
-                    prev_data[::, sun_up[0], sun_up[1]]/sin_phi_prev[sun_up])
+                    prev_data[..., sun_up[0], sun_up[1]]/sin_phi_prev[sun_up])
                 nextv = (
-                    next_data[::, sun_up[0], sun_up[1]]/sin_phi_next[sun_up])
-                single_time.data[::, sun_up[0], sun_up[1]] = (
+                    next_data[..., sun_up[0], sun_up[1]]/sin_phi_next[sun_up])
+                single_time.data[..., sun_up[0], sun_up[1]] = (
                     sin_phi_interp[sun_up] *
                     (prevv + (nextv - prevv) * (diff_interp/diff_step)))
             else:
@@ -322,11 +330,12 @@ class TemporalInterpolation(object):
     @staticmethod
     def daynight_interpolate(interpolated_cube):
         """
-        Interpolate solar radiation parameter which are zero if the
+        Set linearly interpolated data to zero for parameters
+        (e.g. solar radiation parameters) which are zero if the
         sun is below the horizon.
 
         Args:
-            interpoldated_cube (iris.cube.Cube):
+            interpolated_cube (iris.cube.Cube):
                 cube containing Linear interpolation of
                 cube at interpolation times in time_list.
 
@@ -343,7 +352,7 @@ class TemporalInterpolation(object):
         for i, single_time in enumerate(interpolated_cube.slices_over('time')):
             index = np.where(daynight_mask.data[i] == daynightplugin.night)
             if len(single_time.shape) > 2:
-                single_time.data[::, index[0], index[1]] = 0.0
+                single_time.data[..., index[0], index[1]] = 0.0
             else:
                 single_time.data[index] = 0.0
             interpolated_cubes.append(single_time)
@@ -384,16 +393,17 @@ class TemporalInterpolation(object):
             initial_time, = iris_time_to_datetime(cube_t0.coord('time'))
             final_time, = iris_time_to_datetime(cube_t1.coord('time'))
         except CoordinateNotFoundError:
-            msg = ('Cube provided to time_interpolate contains no time '
+            msg = ('Cube provided to TemporalInterpolation contains no time '
                    'coordinate.')
             raise CoordinateNotFoundError(msg)
         except ValueError:
-            msg = ('Cube provided to time_interpolate contains multiple '
+            msg = ('Cube provided to TemporalInterpolation contains multiple '
                    'validity times, only one expected.')
             raise ValueError(msg)
 
         if initial_time > final_time:
-            raise ValueError('time_interpolate input cubes ordered incorrectly'
+            raise ValueError('TemporalInterpolation input cubes '
+                             'ordered incorrectly'
                              ', with the final time being before the initial '
                              'time.')
 
