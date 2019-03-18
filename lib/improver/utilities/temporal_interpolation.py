@@ -157,7 +157,7 @@ class TemporalInterpolation(object):
         forecast_reference_time are enforced to be
         "seconds since 1970-01-01 00:00:00" with a datatype of int64.
         The units of forecast_period are enforced to be seconds with a datatype
-        of int32.
+        of int32. This functions modifies the cube in-place.
 
 
         Args:
@@ -186,13 +186,15 @@ class TemporalInterpolation(object):
 
         for coord_name in ["time", "forecast_reference_time",
                            "forecast_period"]:
-            coord = cube.coord(coord_name)
-            coord.convert_units(coord_units[coord_name])
-            coord.points = np.around(coord.points)
-            coord.points = coord.points.astype(coord_dtypes[coord_name])
-            if hasattr(coord, "bounds") and coord.bounds is not None:
-                coord.bounds = np.around(coord.bounds)
-                coord.bounds = coord.bounds.astype(coord_dtypes[coord_name])
+            if cube.coords(coord_name):
+                coord = cube.coord(coord_name)
+                coord.convert_units(coord_units[coord_name])
+                coord.points = np.around(coord.points)
+                coord.points = coord.points.astype(coord_dtypes[coord_name])
+                if hasattr(coord, "bounds") and coord.bounds is not None:
+                    coord.bounds = np.around(coord.bounds)
+                    coord.bounds = (
+                        coord.bounds.astype(coord_dtypes[coord_name]))
         return cube
 
     @staticmethod

@@ -188,62 +188,77 @@ class Test_enforce_time_coords_dtype(IrisTest):
                 "forecast_reference_time").points.astype(np.int32))
         cube_times.coord("forecast_period").convert_units("hours")
         cube_times.coord("forecast_period").points.astype(np.float32)
-
         self.cube = cube_times
 
+        self.coord_dtypes = {
+            'time': np.int64,
+            'forecast_reference_time': np.int64,
+            'forecast_period': np.int32,
+            }
+        self.coord_units = {
+            'time': "seconds since 1970-01-01 00:00:00",
+            'forecast_reference_time': "seconds since 1970-01-01 00:00:00",
+            'forecast_period': "seconds",
+            }
+
     def test_check_points(self):
-        """Test that a cube is returned with the right types"""
+        """Test that a cube is returned with the desired types for the points
+        of the time, forecast_reference_time and forecast_period
+        coordinates."""
         plugin = TemporalInterpolation(interval_in_minutes=60)
-        result = plugin.enforce_time_coords_dtype(self.cube)
+        result = plugin.enforce_time_coords_dtype(self.cube.copy())
         self.assertIsInstance(result, iris.cube.Cube)
         # All coordinates converted to the desired units and datatypes.
         # Check time coordinate.
-        self.assertEqual(result.coord('time'),
-                         self.cube.coord('time'))
-        self.assertEqual(str(result.coord('time').points.dtype),
-                         'int64')
+        self.assertEqual(result.coord('time').points.dtype,
+                         self.coord_dtypes['time'])
+        self.assertEqual(result.coord('time').units, self.coord_units['time'])
         # Check forecast_reference_time.
-        self.assertEqual(result.coord('forecast_reference_time'),
-                         self.cube.coord('forecast_reference_time'))
         self.assertEqual(
-            str(result.coord('forecast_reference_time').points.dtype), 'int64')
+            result.coord('forecast_reference_time').points.dtype,
+            self.coord_dtypes["forecast_reference_time"])
+        self.assertEqual(
+            result.coord('forecast_reference_time').units,
+            self.coord_units["forecast_reference_time"])
         # Check forecast_period.
-        self.assertEqual(result.coord('forecast_period'),
-                         self.cube.coord('forecast_period'))
-        self.assertEqual(str(result.coord('forecast_period').points.dtype),
-                         'int32')
+        self.assertEqual(result.coord('forecast_period').points.dtype,
+                         self.coord_dtypes['forecast_period'])
+        self.assertEqual(result.coord('forecast_period').units,
+                         self.coord_units['forecast_period'])
 
     def test_check_bounds(self):
-        """Test that a cube is returned.with the right types"""
+        """Test that a cube is returned with the desired types when
+        the time and forecast_period coordinates have bounds."""
         plugin = TemporalInterpolation(interval_in_minutes=60)
         cube = self.cube
         # Use of guess_bounds converts datatype to float64.
         cube.coord("time").guess_bounds()
         cube.coord("forecast_period").guess_bounds()
 
-        result = plugin.enforce_time_coords_dtype(cube)
+        result = plugin.enforce_time_coords_dtype(cube.copy())
         self.assertIsInstance(result, iris.cube.Cube)
         # All coordinates including bounds converted to the
         # desired units and datatypes.
         # Check time coordinate.
-        self.assertEqual(result.coord('time'),
-                         self.cube.coord('time'))
-        self.assertEqual(str(result.coord('time').points.dtype),
-                         'int64')
-        self.assertEqual(str(result.coord('time').bounds.dtype),
-                         'int64')
+        self.assertEqual(result.coord('time').points.dtype,
+                         self.coord_dtypes['time'])
+        self.assertEqual(result.coord('time').bounds.dtype,
+                         self.coord_dtypes['time'])
+        self.assertEqual(result.coord('time').units, self.coord_units['time'])
         # Check forecast_reference_time coordinate.
-        self.assertEqual(result.coord('forecast_reference_time'),
-                         self.cube.coord('forecast_reference_time'))
         self.assertEqual(
-            str(result.coord('forecast_reference_time').points.dtype), 'int64')
+            result.coord('forecast_reference_time').points.dtype,
+            self.coord_dtypes["forecast_reference_time"])
+        self.assertEqual(
+            result.coord('forecast_reference_time').units,
+            self.coord_units["forecast_reference_time"])
         # Check forecast_period coordinate.
-        self.assertEqual(result.coord('forecast_period'),
-                         self.cube.coord('forecast_period'))
-        self.assertEqual(str(result.coord('forecast_period').points.dtype),
-                         'int32')
-        self.assertEqual(str(result.coord('forecast_period').bounds.dtype),
-                         'int32')
+        self.assertEqual(result.coord('forecast_period').points.dtype,
+                         self.coord_dtypes["forecast_period"])
+        self.assertEqual(result.coord('forecast_period').bounds.dtype,
+                         self.coord_dtypes["forecast_period"])
+        self.assertEqual(result.coord('forecast_period').units,
+                         self.coord_units['forecast_period'])
 
 
 class Test_calc_sin_phi(IrisTest):
