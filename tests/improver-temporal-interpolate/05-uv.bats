@@ -29,18 +29,23 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "temporal-interpolate no arguments" {
-  run improver temporal-interpolate
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver-temporal-interpolate [-h] [--profile]
-                                     [--profile_file PROFILE_FILE]
-                                     (--interval_in_mins INTERVAL_IN_MINS | --times TIMES [TIMES ...])
-                                     [--interpolation_method INTERPOLATION_METHOD]
-                                     --output_files OUTPUT_FILES
-                                     [OUTPUT_FILES ...]
-                                     INFILES INFILES
-improver-temporal-interpolate: error: the following arguments are required: INFILES, --output_files
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "temporal-interpolate t0 t3 --times t1 --interpolation_method=solar --output_files out_t1" {
+  improver_check_skip_acceptance
+  KGO="temporal-interpolate/uv/kgo_t1.nc"
+  # Run temporal-interpolation for a time and check the result.
+  run improver temporal-interpolate \
+      "$IMPROVER_ACC_TEST_DIR/temporal-interpolate/uv/20181220T0900Z-PT0021H00M-uv_index.nc" \
+      "$IMPROVER_ACC_TEST_DIR/temporal-interpolate/uv/20181220T1200Z-PT0024H00M-uv_index.nc" \
+      --times 20181220T1000Z \
+      --interpolation_method=solar \
+      --output_files "$TEST_DIR/output_t1.nc"
+  [[ "$status" -eq 0 ]]
+
+  improver_check_recreate_kgo "output.nc" $KGO
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output_t1.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

@@ -30,8 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the cube_checker utility."""
 
-import unittest
 import numpy as np
+import unittest
 
 import iris
 from iris.cube import Cube
@@ -39,12 +39,15 @@ from iris.tests import IrisTest
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.cube_checker import (
-    check_cube_not_float64, check_for_x_and_y_axes,
-    check_cube_coordinates, find_dimension_coordinate_mismatch,
+    check_cube_not_float64,
+    check_for_x_and_y_axes,
+    check_cube_coordinates,
+    find_dimension_coordinate_mismatch,
     spatial_coords_match,
     find_percentile_coordinate)
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube)
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.tests.wind_calculations.wind_gust_diagnostic.\
     test_WindGustDiagnostic import create_cube_with_percentile_coord
 
@@ -55,10 +58,8 @@ class Test_check_cube_not_float64(IrisTest):
 
     def setUp(self):
         """Set up a cube to test."""
-        self.cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
-            num_grid_points=5
-        )
+        self.cube = set_up_variable_cube(np.ones((5, 5), dtype=np.float32),
+                                         spatial_grid='equalarea')
 
     def test_float32_ok(self):
         """Test a cube that should pass."""
