@@ -92,7 +92,7 @@ class Test__associate_any_coordinate_with_master_coordinate(IrisTest):
 
     def setUp(self):
         """Set up default plugin and test cube"""
-        self.plugin = ConcatenateCubes("time")   
+        self.plugin = ConcatenateCubes("time")
         data = 275.*np.ones((3, 3, 3), dtype=np.float32)
         cube = set_up_variable_cube(
             data, time=dt(2017, 1, 10, 3), frt=dt(2017, 1, 10, 0))
@@ -333,4 +333,3 @@ class Test_process(IrisTest):
 
 if __name__ == '__main__':
     unittest.main()
-

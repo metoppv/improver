@@ -119,7 +119,7 @@ class ConcatenateCubes():
 
         Args:
             master_coord (str):
-                Coordinate to concatenate over.        
+                Coordinate to concatenate over.
 
         Kwargs:
             coords_to_associate (list):
@@ -151,8 +151,8 @@ class ConcatenateCubes():
 
         Args:
             cube (iris.cube.Cube):
-                Cube requiring addition of the specified coordinates as auxiliary
-                coordinates.
+                Cube requiring addition of the specified coordinates as
+                auxiliary coordinates.
 
         Returns:
             iris.cube.Cube:
@@ -268,36 +268,12 @@ class ConcatenateCubes():
         return result
 
 
-def concatenate_cubes(
-        cubes_in, coords_to_slice_over=None, master_coord="time",
-        coordinates_for_association=None):
-    """
-    Wrapper for the ConcatenateCubes.process method
-
-    Function to concatenate cubes, accounting for differences in the
-    history attribute, and allow promotion of forecast_reference_time
-    and forecast_period coordinates from scalar coordinates to auxiliary
-    coordinates to allow concatenation.
-
-    Args:
-        cubes_in (Iris cubelist or Iris cube):
-            Cubes to be concatenated.
-        coords_to_slice_over (List):
-            Coordinates to be sliced over.
-        master_coord (String):
-            Coordinate that the other coordinates will be associated with.
-        coordinates_for_association (List):
-            List of coordinates to be associated with the master_coord.
-
-    Returns:
-        result (Iris cube):
-            Concatenated cube.
-    """
-    plugin = ConcatenateCubes(
+# define wrapper function
+concatenate_cubes(
+    cubes_in, coords_to_slice_over=None, master_coord="time",
+    coordinates_for_association=None) = ConcatenateCubes(
         master_coord, coords_to_associate=coordinates_for_association,
-        coords_to_slice_over=coords_to_slice_over)
-    result = plugin.process(cubes_in)
-    return result
+        coords_to_slice_over=coords_to_slice_over).process(cubes_in)
 
 
 def merge_cubes(cubes, model_id_attr=None, blend_coord=None):
