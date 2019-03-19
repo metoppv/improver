@@ -334,12 +334,14 @@ class Test_calc_lats_lons(IrisTest):
 
     def test_x_y(self):
         """Test that the function returns the lats and lons expected."""
-        expected_lats = np.array([[53.84618597, 53.99190127, 53.65267706],
-                                  [58.31587416, 58.48175941, 58.09588632],
-                                  [62.7807602, 62.97387785, 62.52520691]])
-        expected_lons = np.array([[-8.58580705, -0.97523083, 6.60246566],
-                                  [-9.33367416, -0.78656213, 7.7109328],
-                                  [-10.33495761, -0.53319364, 9.18915154]])
+        expected_lats = np.array([[53.84618597, 53.99730779, 53.93247526],
+                                  [56.82670954, 56.99111356, 56.9205672],
+                                  [59.8045105,  59.98499383, 59.90752513]])
+
+        expected_lons = np.array([[-8.58580705, -3.51660018, 1.56242662],
+                                  [-9.06131306, -3.59656346, 1.88105082],
+                                  [-9.63368459, -3.69298822, 2.26497216]])
+
         plugin = TemporalInterpolation(interval_in_minutes=60,
                                        interpolation_method='solar')
         result_lats, result_lons = plugin.calc_lats_lons(self.cube_equalarea)
