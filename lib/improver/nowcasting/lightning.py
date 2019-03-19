@@ -186,7 +186,7 @@ class NowcastLightning(object):
         Modify the meta data of input cube to resemble a Nowcast of lightning
         probability.
 
-        1. Rename to "probability_of_lightning_rate_above_threshold"
+        1. Rename to "probability_of_rate_of_lightning_above_threshold"
 
         2. Remove "threshold" coord
         (or causes iris.exceptions.CoordinateNotFoundError)
@@ -204,7 +204,7 @@ class NowcastLightning(object):
                 The data array will be a copy of the input cube.data
         """
         new_cube = cube.copy()
-        new_cube.rename("probability_of_lightning_rate_above_threshold")
+        new_cube.rename("probability_of_rate_of_lightning_above_threshold")
         new_cube.remove_coord('threshold')
         new_cube.cell_methods = None
         return new_cube
@@ -465,12 +465,13 @@ class NowcastLightning(object):
                 If cubelist does not contain the expected cubes.
         """
         first_guess_lightning_cube = cubelist.extract(
-            "probability_of_lightning_rate_above_threshold", strict=True)
+            "probability_of_rate_of_lightning_above_threshold", strict=True)
         lightning_rate_cube = cubelist.extract(
             "rate_of_lightning", strict=True)
         lightning_rate_cube.convert_units("min^-1")  # Ensure units are correct
         prob_precip_cube = cubelist.extract(
-            "probability_of_precipitation_rate_above_threshold", strict=True)
+            "probability_of_lwe_precipitation_rate_above_threshold",
+            strict=True)
         # Now find prob_vii_cube. Can't use strict=True here as cube may not be
         # present, so will use a normal extract and then merge_cube if needed.
         prob_vii_cube = cubelist.extract(
