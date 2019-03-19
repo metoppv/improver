@@ -6,9 +6,8 @@ channels:
   - conda-forge
 dependencies:
   - python=3
-  - iris
+  - iris=2.1
   - numpy
-  - pandas
-  - netcdf4
+  - cf_units
   - sphinx
   - python-stratify
