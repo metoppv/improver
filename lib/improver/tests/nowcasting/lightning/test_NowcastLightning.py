@@ -81,19 +81,18 @@ def set_up_lightning_test_cubes(validity_time=dt(2015, 11, 23, 7),
             Has extra coordinate of length(3) "threshold" containing
             points [0.5, 1., 2.] kg m-2
     """
-    # template cube full of ones with one zero point
+    # template cube with metadata matching desired output
     data = np.ones((grid_points, grid_points), dtype=np.float32)
     template_cube = set_up_variable_cube(
-        data.copy(), name='rate_of_lightning', units='min-1',
+        data.copy(), name='metadata_template', units=None,
         time=validity_time, frt=validity_time, spatial_grid='equalarea')
-    template_cube.data[1, 1] = 0.
 
     # first guess lightning rate probability cube with flexible forecast
     # period (required for level 2 lighting risk index)
     prob_fg = np.array([data.copy()], dtype=np.float32)
     first_guess_cube = set_up_probability_cube(
         prob_fg, np.array([0], dtype=np.float32), threshold_units='s-1',
-        variable_name='lightning_rate', time=validity_time, frt=fg_frt,
+        variable_name='rate_of_lightning', time=validity_time, frt=fg_frt,
         spatial_grid='equalarea')
     first_guess_cube = squeeze(first_guess_cube)
 
@@ -193,7 +192,7 @@ class Test__update_metadata(IrisTest):
         result = self.plugin._update_metadata(self.cube)
         self.assertIsInstance(result, Cube)
         self.assertEqual(
-            result.name(), "probability_of_lightning_rate_above_threshold")
+            result.name(), "probability_of_rate_of_lightning_above_threshold")
         msg = ("Expected to find exactly 1 threshold coordinate, but found "
                "none.")
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
@@ -817,8 +816,9 @@ class Test_process(IrisTest):
         # We expect the threshold coordinate to have been removed.
         self.assertCountEqual(find_dimension_coordinate_mismatch(
                 result, self.precip_cube), ['threshold'])
-        self.assertTrue(
-            result.name() == 'probability_of_lightning_rate_above_threshold')
+        self.assertEqual(
+            result.name(), 'probability_of_rate_of_lightning_above_threshold')
+        self.assertEqual(result.units, '1')
 
     def test_basic_with_vii(self):
         """Test that the method returns the expected cube type when vii is
@@ -832,14 +832,15 @@ class Test_process(IrisTest):
         # We expect the threshold coordinate to have been removed.
         self.assertCountEqual(find_dimension_coordinate_mismatch(
                 result, self.precip_cube), ['threshold'])
-        self.assertTrue(
-            result.name() == 'probability_of_lightning_rate_above_threshold')
+        self.assertEqual(
+            result.name(), 'probability_of_rate_of_lightning_above_threshold')
+        self.assertEqual(result.units, '1')
 
     def test_no_first_guess_cube(self):
         """Test that the method raises an error if the first_guess cube is
         omitted from the cubelist"""
         msg = (r"Got 0 cubes for constraint Constraint\(name=\'probability_of_"
-               r"lightning_rate_above_threshold\'\), expecting 1.")
+               r"rate_of_lightning_above_threshold\'\), expecting 1.")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
             self.plugin.process(CubeList([
                 self.ltng_cube,
