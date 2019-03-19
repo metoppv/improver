@@ -140,7 +140,7 @@ class Test_construct_time_list(IrisTest):
         """Test an exception is raised when trying to generate a list of times
         that would not divide the time range equally."""
 
-        msg = 'interval_in_minutes provided to time_interpolate does not'
+        msg = 'interval_in_minutes of'
         with self.assertRaisesRegex(ValueError, msg):
             TemporalInterpolation(interval_in_minutes=61).construct_time_list(
                 self.time_0, self.time_1)
@@ -478,6 +478,15 @@ class Test_daynight_interpolation(IrisTest):
                                            frt=self.time_0)
         self.interpolated_cube = iris.util.new_axis(interp_cube, 'time')
 
+        data_time_mid_ens = np.ones((3, self.npoints, self.npoints),
+                                    dtype=np.float32)*4
+        interp_cube_ens = set_up_variable_cube(data_time_mid_ens,
+                                               time=self.time_mid,
+                                               frt=self.time_0,
+                                               realizations=[0, 1, 2])
+        self.interpolated_cube_ens = iris.util.new_axis(interp_cube_ens,
+                                                        'time')
+
     def test_return_type(self):
         """Test that an iris cubelist is returned."""
 
@@ -498,6 +507,26 @@ class Test_daynight_interpolation(IrisTest):
         plugin = TemporalInterpolation(interpolation_method='daynight',
                                        times=[self.time_mid])
         result, = plugin.daynight_interpolate(self.interpolated_cube)
+        self.assertArrayAlmostEqual(expected_data, result.data)
+        self.assertArrayAlmostEqual(result.coord('time').points,
+                                    expected_time)
+        self.assertAlmostEqual(result.coord('forecast_period').points[0],
+                               expected_fp)
+
+    def test_daynight_interpolation_ens(self):
+        """Test interpolating to the a point where the daynight
+           mask is not all zero and the len(shape) of the cube > 2."""
+
+        expected_data_grid = np.ones((self.npoints, self.npoints))*4
+        index = np.where(self.daynight_mask == 0)
+        expected_data_grid[index] = 0.0
+        expected_data = np.repeat(expected_data_grid[np.newaxis, :, :],
+                                  3, axis=0)
+        expected_time = (self.time_0 + timedelta(hours=2)).timestamp()
+        expected_fp = 2 * 3600
+        plugin = TemporalInterpolation(interpolation_method='daynight',
+                                       times=[self.time_mid])
+        result, = plugin.daynight_interpolate(self.interpolated_cube_ens)
         self.assertArrayAlmostEqual(expected_data, result.data)
         self.assertArrayAlmostEqual(result.coord('time').points,
                                     expected_time)

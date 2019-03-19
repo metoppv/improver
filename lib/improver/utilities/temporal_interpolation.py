@@ -61,7 +61,7 @@ class TemporalInterpolation(object):
             interval_in_minutes (int):
                 Specifies the interval in minutes at which to interpolate
                 between the two input cubes. A number of minutes which does not
-                divide up the interval equally will raise an exception::
+                divide up the interval equally will raise an exception
                     e.g. cube_t0 valid at 03Z, cube_t1 valid at 06Z,
                     interval_in_minutes = 60 --> interpolate to 04Z and 05Z.
             times (list or tuple of datetime.datetime objects):
@@ -137,10 +137,12 @@ class TemporalInterpolation(object):
         elif self.interval_in_minutes is not None:
             if ((final_time - initial_time).seconds %
                     (60 * self.interval_in_minutes) != 0):
-                raise ValueError(
-                    'interval_in_minutes provided to time_interpolate does not'
-                    ' divide into the interval equally.'
-                    '{}'.format(self.interval_in_minutes))
+                msg = ('interval_in_minutes of {} does not'
+                       ' divide into the interval of'
+                       ' {} mins equally.'.format(
+                           self.interval_in_minutes,
+                           int((final_time - initial_time).seconds/60)))
+                raise ValueError(msg)
 
             time_entry = initial_time
             while True:
@@ -257,8 +259,11 @@ class TemporalInterpolation(object):
     def solar_interpolate(self, diag_cube, interpolated_cube):
         """
         Temporal Interpolation code using solar elevation for
-        parameters (e.g. solar radiation parameters) which are zero if the
-        sun is below the horizon.
+        parameters (e.g. solar radiation parameters like
+        Downward Shortwave (SW) radiation or UV index)
+        which are zero if the sun is below the horizon and
+        scaled by the sine of the solar elevation angle if the sun is above the
+        horizon.
 
         Args:
             diag_cube (iris.cube.Cube):
@@ -386,8 +391,11 @@ class TemporalInterpolation(object):
         """
         if (not isinstance(cube_t0, iris.cube.Cube) or
                 not isinstance(cube_t1, iris.cube.Cube)):
-            raise TypeError('Inputs to TemporalInterpolation are not of type '
-                            'iris.cube.Cube')
+            msg = ('Inputs to TemporalInterpolation are not of type '
+                   'iris.cube.Cube, first input is type '
+                   '{}, second input is type {}'.format(type(cube_t0),
+                                                        type(cube_t1)))
+            raise TypeError(msg)
 
         try:
             initial_time, = iris_time_to_datetime(cube_t0.coord('time'))
