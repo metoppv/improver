@@ -38,100 +38,44 @@ import numpy as np
 import iris
 from iris.coords import AuxCoord, DimCoord
 from iris.exceptions import CoordinateNotFoundError
-from improver.utilities.cube_checker import check_cube_coordinates
+from improver.utilities.cube_checker import (
+    check_cube_coordinates, check_cube_not_float64)
 
 
-def _associate_any_coordinate_with_master_coordinate(
-        cube, master_coord="time", coordinates=None):
+def equalise_cube_attributes(cubes, unmatched=None, silent=None):
     """
-    Function to convert the given coordinates from scalar coordinates to
-    auxiliary coordinates, where these auxiliary coordinates will be
-    associated with the master coordinate.
-
-    For example, forecast_reference_time and forecast_period can be converted
-    from scalar coordinates to auxiliary coordinates, and associated with time.
+    Function to remove attributes that do not match between all cubes on the
+    list.  Cubes are modified in place.
 
     Args:
-        cube (Iris cube):
-            Cube requiring addition of the specified coordinates as auxiliary
-            coordinates.
-        master_coord (String):
-            Coordinate that the other coordinates will be associated with.
-        coordinates (None or List):
-            List of coordinates to be associated with the master_coord.
+        cubes (iris.cube.CubeList):
+            List of cubes to check the attributes and revise.
 
-    Returns:
-        forecast_data (Iris cube):
-            Cube where the the requested coordinates have been added to the
-            cube as auxiliary coordinates and associated with the desired
-            master coordinate.
+    Kwargs:
+        unmatched (list or None):
+            List of unmatched attributes.  If None, function
+            finds.
+        silent (list or None):
+            List of attributes to remove silently if unmatched.
 
-    Raises:
-        ValueError: If the master coordinate is not present on the cube.
-
+    Warns:
+        UserWarning:
+            If an unmatched attribute is not on the "silent" list,
+            a warning will be raised.
     """
-    if coordinates is None:
-        coordinates = []
+    if unmatched is None:
+        unmatched = compare_attributes(cubes)
 
-    if not cube.coords(master_coord):
-        msg = (
-            "The master coordinate for associating other "
-            "coordinates with is not present: "
-            "master_coord: {}, other coordinates: {}".format(
-                master_coord, coordinates))
-        raise ValueError(msg)
-
-    # If the master_coord is not a dimension coordinate, then the other
-    # coordinates cannot be associated with it.
-    if len(cube.coords(master_coord, dim_coords=True)) > 0:
-        for coord in coordinates:
-            if cube.coords(coord):
-                temp_coord = cube.coord(coord)
-                cube.remove_coord(coord)
-                temp_aux_coord = (
-                    build_coordinate(temp_coord.points,
-                                     bounds=temp_coord.bounds,
-                                     coord_type=AuxCoord,
-                                     template_coord=temp_coord))
-                coord_names = [
-                    coord.standard_name for coord in cube.dim_coords]
-                cube.add_aux_coord(
-                    temp_aux_coord,
-                    data_dims=coord_names.index(master_coord))
-    return cube
-
-
-def _slice_over_coordinate(cubes, coord_to_slice_over):
-    """
-    Function slice over the requested coordinate,
-    promote the sliced coordinate into a dimension coordinate
-    to help concatenation.
-
-    Args:
-        cubes (Iris cubelist or Iris cube):
-            Cubes to be concatenated.
-        coords_to_slice_over (List):
-            Coordinates to be sliced over.
-
-    Returns:
-        Iris CubeList
-            CubeList containing sliced cubes.
-
-    """
-    sliced_by_coord_cubelist = iris.cube.CubeList([])
-    if isinstance(cubes, iris.cube.Cube):
-        cubes = iris.cube.CubeList([cubes])
-
-    for cube in cubes:
-        if cube.coords(coord_to_slice_over):
-            for coord_slice in cube.slices_over(coord_to_slice_over):
-                coord_slice = iris.util.new_axis(
-                    coord_slice, coord_to_slice_over)
-                sliced_by_coord_cubelist.append(coord_slice)
-        else:
-            sliced_by_coord_cubelist.append(cube)
-
-    return sliced_by_coord_cubelist
+    warning_msg = 'Deleting unmatched attribute {}, value {}'
+    if len(unmatched) > 0:
+        for i, cube in enumerate(cubes):
+            for attr in unmatched[i]:
+                if silent is not None and attr in silent:
+                    cube.attributes.pop(attr)
+                else:
+                    warnings.warn(
+                        warning_msg.format(attr, cube.attributes[attr]))
+                    cube.attributes.pop(attr)
 
 
 def strip_var_names(cubes):
@@ -158,10 +102,178 @@ def strip_var_names(cubes):
     return cubes
 
 
+class ConcatenateCubes():
+    """
+    Class adding functionality to iris.concatenate_cubes().
+
+    Accounts for differences in attributes and allows promotion of scalar
+    coordinates to be associated with the dimension over which concatenation
+    is to be performed (eg can promote forecast_period to auxiliary for single
+    time point cube inputs).
+    """
+
+    def __init__(self, master_coord, coords_to_associate=None,
+                 coords_to_slice_over=None):
+        """
+        Initialise parameters
+
+        Args:
+            master_coord (str):
+                Coordinate to concatenate over.        
+
+        Kwargs:
+            coords_to_associate (list):
+                List of coordinates to be associated with the master_coord.  If
+                master_coord is "time" this should be "forecast_reference_time"
+                OR "forecast_period", NOT both.
+            coords_to_slice_over (list):
+                Dimension coordinates to slice over before concatenation.
+        """
+        self.master_coord = master_coord
+        self.coords_to_associate = coords_to_associate
+        self.coords_to_slice_over = coords_to_slice_over
+
+        if self.coords_to_slice_over is None:
+            self.coords_to_slice_over = ["realization", "time"]
+        if self.coords_to_associate is None and self.master_coord == "time":
+            self.coords_to_associate = ["forecast_period"]
+
+        self.silent_attributes = ["history", "title", "mosg__grid_version"]
+
+    def _associate_any_coordinate_with_master_coordinate(self, cube):
+        """
+        Function to convert the given coordinates from scalar coordinates to
+        auxiliary coordinates, where these auxiliary coordinates will be
+        associated with the master coordinate.
+
+        For example, forecast_period can be converted from scalar coordinate
+        to auxiliary coordinate to be associated with a time dimension.
+
+        Args:
+            cube (iris.cube.Cube):
+                Cube requiring addition of the specified coordinates as auxiliary
+                coordinates.
+
+        Returns:
+            iris.cube.Cube:
+                Cube where the the requested coordinates have been added to the
+                cube as auxiliary coordinates and associated with the desired
+                master coordinate.
+
+        Raises:
+            ValueError: If the master coordinate is not present on the cube.
+        """
+        coordinates = self.coords_to_associate
+        if coordinates is None:
+            coordinates = []
+
+        # If the master_coord is not a dimension coordinate, then the other
+        # coordinates cannot be associated with it.
+        if len(cube.coords(self.master_coord, dim_coords=True)) > 0:
+            for coord in coordinates:
+                if cube.coords(coord):
+                    temp_coord = cube.coord(coord)
+                    cube.remove_coord(coord)
+                    temp_aux_coord = (
+                        build_coordinate(temp_coord.points,
+                                         bounds=temp_coord.bounds,
+                                         coord_type=AuxCoord,
+                                         template_coord=temp_coord))
+                    coord_names = [
+                        coord.standard_name for coord in cube.dim_coords]
+                    cube.add_aux_coord(
+                        temp_aux_coord,
+                        data_dims=coord_names.index(self.master_coord))
+        return cube
+
+    @staticmethod
+    def _slice_over_coordinate(cubes, coord_to_slice_over):
+        """
+        Function slices over the requested coordinate and promotes the sliced
+        coordinate into a one-point dimension to help concatenation.
+
+        Args:
+            cubes (iris.cube.Cube or iris.cube.CubeList):
+                Cubes to be concatenated.
+            coord_to_slice_over (list):
+                Coordinate to slice over.
+
+        Returns:
+            iris.cube.CubeList
+                CubeList containing sliced cubes.
+        """
+        sliced_by_coord_cubelist = iris.cube.CubeList([])
+        if isinstance(cubes, iris.cube.Cube):
+            cubes = iris.cube.CubeList([cubes])
+
+        for cube in cubes:
+            if cube.coords(coord_to_slice_over):
+                for coord_slice in cube.slices_over(coord_to_slice_over):
+                    coord_slice = iris.util.new_axis(
+                        coord_slice, coord_to_slice_over)
+                    sliced_by_coord_cubelist.append(coord_slice)
+            else:
+                sliced_by_coord_cubelist.append(cube)
+
+        return sliced_by_coord_cubelist
+
+    def process(self, cubes_in):
+        """
+        Concatenate cubes
+
+        Args:
+            cubes_in (iris.cube.CubeList):
+                Cube or list of cubes to be concatenated
+
+        Returns:
+            iris.cube.Cube:
+                Cube concatenated along master coord
+
+        Raises:
+            ValueError:
+                If master coordinate is not present on all "cubes_in"
+        """
+        # create copies of input cubes so as not to modify in place
+        if isinstance(cubes_in, iris.cube.Cube):
+            cubes = iris.cube.CubeList([cubes_in.copy()])
+        else:
+            cubes = iris.cube.CubeList([])
+            for cube in cubes_in:
+                cubes.append(cube.copy())
+
+        # check master coordinate is on cubes - if not, throw error
+        if not all(cube.coords(self.master_coord) for cube in cubes):
+            raise ValueError(
+                "Master coordinate {} is not present on input cube(s)".format(
+                    self.master_coord))
+
+        # slice over requested coordinates
+        for coord_to_slice_over in self.coords_to_slice_over:
+            cubes = self._slice_over_coordinate(cubes, coord_to_slice_over)
+
+        # remove unmatched attributes
+        equalise_cube_attributes(cubes, silent=self.silent_attributes)
+
+        # remove cube variable names
+        strip_var_names(cubes)
+
+        # promote scalar coordinates to auxiliary as necessary
+        associated_master_cubelist = iris.cube.CubeList([])
+        for cube in cubes:
+            associated_master_cubelist.append(
+                self._associate_any_coordinate_with_master_coordinate(cube))
+
+        # concatenate cube
+        result = associated_master_cubelist.concatenate_cube()
+        return result
+
+
 def concatenate_cubes(
         cubes_in, coords_to_slice_over=None, master_coord="time",
         coordinates_for_association=None):
     """
+    Wrapper for the ConcatenateCubes.process method
+
     Function to concatenate cubes, accounting for differences in the
     history attribute, and allow promotion of forecast_reference_time
     and forecast_period coordinates from scalar coordinates to auxiliary
@@ -179,34 +291,12 @@ def concatenate_cubes(
 
     Returns:
         result (Iris cube):
-            Concatenated / merge cube.
-
+            Concatenated cube.
     """
-    if coords_to_slice_over is None:
-        coords_to_slice_over = ["realization", "time"]
-    if coordinates_for_association is None:
-        coordinates_for_association = ["forecast_reference_time",
-                                       "forecast_period"]
-    if isinstance(cubes_in, iris.cube.Cube):
-        cubes = iris.cube.CubeList([cubes_in.copy()])
-    else:
-        cubes = iris.cube.CubeList([])
-        for cube in cubes_in:
-            cubes.append(cube.copy())
-
-    for coord_to_slice_over in coords_to_slice_over:
-        cubes = _slice_over_coordinate(cubes, coord_to_slice_over)
-
-    cubes = _equalise_cubes(cubes, merging=False)
-
-    associated_master_cubelist = iris.cube.CubeList([])
-    for cube in cubes:
-        associated_master_cubelist.append(
-            _associate_any_coordinate_with_master_coordinate(
-                cube, master_coord=master_coord,
-                coordinates=coordinates_for_association))
-
-    result = associated_master_cubelist.concatenate_cube()
+    plugin = ConcatenateCubes(
+        master_coord, coords_to_associate=coordinates_for_association,
+        coords_to_slice_over=coords_to_slice_over)
+    result = plugin.process(cubes_in)
     return result
 
 
@@ -288,7 +378,8 @@ def _equalise_cubes(cubes_in, model_id_attr=None, merging=True):
     if merging:
         cubelist = _equalise_cube_coords(cubes)
         cubelist = _equalise_cell_methods(cubelist)
-        demote_float64_precision(cubelist)
+        for cube in cubelist:
+            check_cube_not_float64(cube, fix=True)
     else:
         cubelist = cubes
     return cubelist
@@ -959,51 +1050,6 @@ def enforce_coordinate_ordering(
     elif anchor == "end":
         cube.transpose(remaining_coords + coord_dims)
     return cube
-
-
-def enforce_float32_precision(input_cubes):
-    """Take input cube of any precision and convert to float32.
-
-    Args:
-        input_cubes (list):
-            List containing one or more iris cubes to test if not float32
-            precision and downscale to float32 if necessary. If a list item
-            is not an Iris cube - then this item is skipped.
-            Note: The code will modify the cubes in-place.
-
-    """
-    # If single cube - place within list.
-    if isinstance(input_cubes, iris.cube.Cube):
-        input_cubes = [input_cubes]
-
-    for cube in input_cubes:
-        if isinstance(cube, iris.cube.Cube):  # Skip if not cube.
-            if cube.dtype != np.float32:
-                cube.data = cube.data.astype(np.float32)
-
-
-def demote_float64_precision(input_cubes):
-    """Take input cube of any precision and convert any float64 data to
-    float32.
-
-    Args:
-        input_cubes (cubelist or cube):
-            List containing one or more iris cubes to test and adjust if
-            necessary.
-            Note: The code will modify the cubes in-place.
-
-    """
-    # If single cube - place within cubelist.
-    if isinstance(input_cubes, iris.cube.Cube):
-        input_cubes = iris.cube.CubeList([input_cubes])
-
-    # Cycle through the cubes
-    for cube in input_cubes:
-        assert isinstance(cube, iris.cube.Cube), 'Object is not a cube'
-
-        # Modify data if it is float64
-        if cube.dtype == np.float64:
-            cube.data = cube.data.astype(np.float32)
 
 
 def clip_cube_data(cube, minimum_value, maximum_value):
