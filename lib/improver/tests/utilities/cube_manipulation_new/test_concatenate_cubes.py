@@ -33,18 +33,19 @@ Unit tests for the function "cube_manipulation.concatenate_cubes".
 """
 
 import unittest
-import numpy as np
-from cf_units import Unit
-from datetime import datetime as dt
 
+from cf_units import Unit
 import iris
 from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.exceptions import ConcatenateError
 from iris.tests import IrisTest
+import numpy as np
 
-from improver.utilities.cube_manipulation_new import concatenate_cubes
-from improver.tests.set_up_test_cubes import set_up_variable_cube
+from improver.utilities.cube_manipulation import concatenate_cubes
+
+from improver.tests.ensemble_calibration.ensemble_calibration.\
+    helper_functions import set_up_temperature_cube
 
 
 class Test_concatenate_cubes(IrisTest):
@@ -52,20 +53,8 @@ class Test_concatenate_cubes(IrisTest):
     """Test the concatenate_cubes utility."""
 
     def setUp(self):
-        """Set up temperature cubes with different scalar time dimensions"""
-        data = 275.*np.ones((3, 3, 3), dtype=np.float32)
-        cube = set_up_variable_cube(
-            data, time=dt(2017, 1, 10, 3), frt=dt(2017, 1, 10, 0))
-        # cubes can only be concatenated along an existing dimension;
-        # therefore promote "time"
-        self.cube = iris.util.new_axis(cube, scalar_coord="time")
-
-        # create a cube for 3 hours later from the same forecast cycle
-        self.later_cube = self.cube.copy()
-        self.later_cube.coord("time").points = (
-            self.later_cube.coord("time").points + 3*3600)
-        self.later_cube.coord("forecast_period").points = (
-            self.later_cube.coord("forecast_period").points + 3*3600)
+        """Use temperature cube to test with."""
+        self.cube = set_up_temperature_cube()
 
     def test_basic(self):
         """Test that the utility returns an iris.cube.Cube."""
@@ -88,10 +77,17 @@ class Test_concatenate_cubes(IrisTest):
         resulting data, if a CubeList containing non-identical cubes
         (different values for the time coordinate) is passed in as the input.
         """
-        data = self.cube.data.copy()
-        expected_result = np.vstack([data, data])
+        cube1 = self.cube.copy()
+        cube2 = self.cube.copy()
 
-        cubelist = iris.cube.CubeList([self.cube, self.later_cube])
+        cube3 = self.cube.copy()
+        cube3.transpose([1, 0, 2, 3])
+        expected_result = np.vstack([cube3.data, cube3.data])
+
+        cube2.coord("time").points = np.array([412230.0], dtype=np.float64)
+
+        cubelist = iris.cube.CubeList([cube1, cube2])
+
         result = concatenate_cubes(cubelist)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(expected_result, result.data)
@@ -144,25 +140,21 @@ class Test_concatenate_cubes(IrisTest):
     def test_cubelist_slice_over_time_only(self):
         """
         Test that the utility returns an iris.cube.Cube with the expected
-        time and associated forecast period coordinates, if a CubeList
-        containing cubes with different timesteps is passed in as the input.
+        time coordinate, if a CubeList containing cubes with different
+        timesteps is passed in as the input.
         """
-        expected_time_points = [
-            self.cube.coord("time").points[0],
-            self.later_cube.coord("time").points[0]]
-        expected_fp_points = [
-            self.cube.coord("forecast_period").points[0],
-            self.later_cube.coord("forecast_period").points[0]]
+        cube1 = self.cube.copy()
+        cube2 = self.cube.copy()
 
-        cubelist = iris.cube.CubeList([self.cube, self.later_cube])
+        cube2.coord("time").points = np.array([412230.0], dtype=np.float64)
+
+        cubelist = iris.cube.CubeList([cube1, cube2])
 
         result = concatenate_cubes(
             cubelist, coords_to_slice_over=["time"])
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
-            result.coord("time").points, expected_time_points)
-        self.assertArrayAlmostEqual(
-            result.coord("forecast_period").points, expected_fp_points)
+            result.coord("time").points, [412227.0, 412230.0])
 
     def test_cubelist_slice_over_realization_only(self):
         """
@@ -170,12 +162,44 @@ class Test_concatenate_cubes(IrisTest):
         realization coordinate, if a CubeList containing cubes with different
         realizations is passed in as the input.
         """
-        cubelist = iris.cube.CubeList([self.cube, self.later_cube])
+        cube1 = self.cube.copy()
+        cube2 = self.cube.copy()
+
+        cube2.coord("time").points = np.float64(412230.0)
+
+        cubelist = iris.cube.CubeList([cube1, cube2])
+
         result = concatenate_cubes(
             cubelist, coords_to_slice_over=["realization"])
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
             result.coord("realization").points, [0, 1, 2])
+
+    def test_cubelist_with_forecast_reference_time_only(self):
+        """
+        Test that the utility returns an iris.cube.Cube with the expected
+        resulting data, if a CubeList containing cubes with different
+        forecast_reference_time coordinates is passed in as the input.
+        This makes sure that the forecast_reference_time from the input cubes
+        is maintained within the output cube, after concatenation.
+        """
+        cube1 = self.cube.copy()
+        cube2 = self.cube.copy()
+        cube2.coord("time").points = np.array([412230.0], dtype=np.float64)
+        time_origin = "hours since 1970-01-01 00:00:00"
+        calendar = "gregorian"
+        tunit = Unit(time_origin, calendar)
+        cube1.add_aux_coord(
+            DimCoord([412227.0], "forecast_reference_time", units=tunit))
+        cube2.add_aux_coord(
+            DimCoord([412230.0], "forecast_reference_time", units=tunit))
+
+        cubelist = iris.cube.CubeList([cube1, cube2])
+
+        result = concatenate_cubes(cubelist)
+        self.assertArrayAlmostEqual(
+            result.coord("forecast_reference_time").points,
+            [412227.0, 412230.0])
 
     def test_cubelist_different_var_names(self):
         """
@@ -183,7 +207,9 @@ class Test_concatenate_cubes(IrisTest):
         containing non-identical cubes is passed in as the input.
         """
         cube1 = self.cube.copy()
-        cube2 = self.later_cube.copy()
+        cube2 = self.cube.copy()
+        cube2.coord("time").points = np.float64(412230.0)
+
         cube1.coord("time").var_name = "time_0"
         cube2.coord("time").var_name = "time_1"
 
