@@ -261,27 +261,43 @@ class RoughnessCorrectionUtilities(object):
 
         Function to calculate wavenumber k of typical orographic
         lengthscale L:
-            k = 2*pi / L (1)
+
+        .. math::
+          :label:
+
+            k = 2 * \\pi / L
 
         L is approximated from half the peak-to-trough height h_over_2
         and the silhoutte roughness a_over_s (average of up-slopes per
         unit length over several cross-sections through a grid cell)
         as:
-            L = 2*h_over_2 / a_over_s (2)
+
+        .. math::
+          :label:
+
+            L = 2 * \\rm{h\_over\_2} / \\rm{a\_over\_s}
 
         a_over_s is dimensionless since it is the sum of up-slopes
         measured in the same unit lengths as it is calculated over.
 
         h_over_2 is calculated from the standard deviation of height in
         a grid cell, sigma, as:
-            h_over_2 = sqrt(2) * sigma
+
+        .. math
+          :label:
+
+            h_over_2 = sqrt(2) * \\rm{sigma}
 
         which is based on the assumptions of sine waves, see
         sigma2hover2.
 
         From eq. (1) and (2) it follows that:
-            k = 2*pi / (2*h_over_2 / a_over_s)
-              = a_over_s * pi / h_over_2
+
+        .. math::
+          :label:
+
+            k = 2*\\pi / (2 * \\rm{h\_over\_2} / \\rm{a\_over\_s)}
+              = \\rm{a\_over\_s} * \\pi / \\rm{h\_over\_2}
 
         Returns:
             wavn (np.ndarray):

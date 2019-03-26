@@ -139,7 +139,6 @@ class ProbabilitiesFromPercentiles2D(object):
         Returns:
             probability_cube (iris.cube.Cube):
                 A new 2-dimensional probability cube with suitable metadata.
-
         """
         cube_format = next(cube.slices([cube.coord(axis='y'),
                                         cube.coord(axis='x')]))
@@ -294,15 +293,20 @@ class ProbabilitiesFromPercentiles2D(object):
             2. When all slices have been interated over, the interpolants are
                calculated using the threshold values and the values_bounds.
                ::
-               (threshold_cube.data - lower_bound)/(upper_bound - lower_bound)
+
+                   (threshold_cube.data - lower_bound) /
+                   (upper_bound - lower_bound)
+
                If the upper_bound and lower_bound are the same this leads to
                a divide by 0 calculation, resulting in np.inf as the output.
 
             3. The interpolants are used to calculate the percentile value at
                each point in the array using the percentile_bounds.
                ::
+
                    lower_percentile_bound + interpolants *
-                       (upper_percentile_bounds - lower_percentile_bounds)
+                   (upper_percentile_bounds - lower_percentile_bounds)
+
                The percentiles are divided by 100 to give a fractional
                probability.
 
@@ -386,6 +390,7 @@ class ProbabilitiesFromPercentiles2D(object):
         Slice the percentiles cube over any non-spatial coordinates
         (realization, time, etc) if present, and call the percentile
         interpolation method for each resulting cube.
+
         Args:
             threshold_cube (iris.cube.Cube):
                 A cube of values, that effectively behave as thresholds, for

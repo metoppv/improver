@@ -37,6 +37,7 @@ def wxcode_decision_tree():
     """
     Define queries that comprise the weather symbol decision tree.
     Each queries contains the following elements:
+
         * succeed: The next query to call if the diagnostic being queried
               satisfies the current query.
         * fail: The next query to call if the diagnostic being queried
@@ -64,6 +65,7 @@ def wxcode_decision_tree():
         * diagnostic_conditions: The condition that is expected to have
               been applied to the input data; this can be used to ensure
               the thresholding is as expected.
+
     Returns:
         queries (dict):
             A dictionary containing the queries that comprise the decision
