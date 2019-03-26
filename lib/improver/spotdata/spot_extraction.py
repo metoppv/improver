@@ -168,7 +168,8 @@ class SpotExtraction():
         coordinates provided by the neighbour cube.
 
         .. See the documentation for more details about the inputs and output.
-        .. include:: extended_documentation/spot_extraction_examples.rst
+        .. include:: /extended_documentation/spotdata/spot_extraction/
+           spot_extraction_examples.rst
 
         Args:
             neighbour_cube (iris.cube.Cube):
