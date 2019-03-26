@@ -111,7 +111,7 @@ class Test_process(IrisTest):
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertIsInstance(result, CubeList)
+        self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 2)
 
     @ManageWarnings(
@@ -133,7 +133,7 @@ class Test_process(IrisTest):
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertIsInstance(result, CubeList)
+        self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 2)
 
     @ManageWarnings(
@@ -152,7 +152,7 @@ class Test_process(IrisTest):
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
-        self.assertIsInstance(result, CubeList)
+        self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 2)
 
     @ManageWarnings(
@@ -174,7 +174,7 @@ class Test_process(IrisTest):
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
-        self.assertIsInstance(result, CubeList)
+        self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 2)
 
     @ManageWarnings(
@@ -367,7 +367,7 @@ class Test_process(IrisTest):
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertIsInstance(result, CubeList)
+        self.assertIsInstance(result, tuple)
 
     def test_unknown_calibration_method(self):
         """

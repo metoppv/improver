@@ -1063,9 +1063,11 @@ class EnsembleCalibration(object):
                 calibration with dates matching the historic forecasts.
 
         Returns:
-            calibrated_forecast_predictor_and_variance (CubeList):
-                CubeList containing the calibrated forecast predictor and
-                calibrated forecast variance.
+            (tuple): tuple containing:
+                **calibrated_forecast_predictor** (iris.cube.Cube):
+                    Cube containing the calibrated forecast predictor.
+                **calibrated_forecast_variance** (iris.cube.Cube):
+                    Cube containing the calibrated forecast variance.
 
         """
         def format_calibration_method(calibration_method):
@@ -1103,6 +1105,4 @@ class EnsembleCalibration(object):
         for cube in calibrated_forecast_variance:
             cube.data = cube.data.astype(np.float32)
 
-        calibrated_forecast_predictor_and_variance = iris.cube.CubeList([
-            calibrated_forecast_predictor, calibrated_forecast_variance])
-        return calibrated_forecast_predictor_and_variance
+        return calibrated_forecast_predictor, calibrated_forecast_variance
