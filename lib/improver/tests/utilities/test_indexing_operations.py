@@ -97,7 +97,7 @@ class Test_choose(IrisTest):
         index_array = [[[[0, 1], [1, 2]]]]
         msg = ("Dimensionality of array_set has increased which will prevent "
                "indexing from working as expected.")
-        with self.assertRaisesRegexp(IndexError, msg):
+        with self.assertRaisesRegex(IndexError, msg):
             choose(index_array, self.data)
 
     def test_utilising_indices_beyond_32(self):
@@ -163,7 +163,7 @@ class Test_choose(IrisTest):
         data arrays cannot be broadcast to a common shape."""
         index_array = [0, 1, 2]
         msg = ("shape mismatch: objects cannot be broadcast to a single shape")
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             choose(index_array, self.small_data)
 
     def test_invalid_array_indices(self):
@@ -175,7 +175,7 @@ class Test_choose(IrisTest):
         or clip invalid index values."""
         index_array = [0, 3]
         msg = 'index_array contains an index that is larger than the number'
-        with self.assertRaisesRegexp(IndexError, msg):
+        with self.assertRaisesRegex(IndexError, msg):
             choose(index_array, self.small_data)
 
 

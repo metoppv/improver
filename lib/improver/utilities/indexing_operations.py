@@ -121,7 +121,7 @@ def choose(index_array, array_set):
 
     # numpy choose can handle the condition below, but we currently have no
     # need to accommodate this behaviour, so we trap it and raise an error.
-    if broadcast_arrays[1].ndim > array_set.ndim :
+    if broadcast_arrays[1].ndim > array_set.ndim:
         msg = ('Dimensionality of array_set has increased which will prevent '
                'indexing from working as expected.')
         raise IndexError(msg)
