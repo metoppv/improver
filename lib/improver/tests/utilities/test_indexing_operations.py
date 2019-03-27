@@ -81,6 +81,25 @@ class Test_choose(IrisTest):
         self.assertArrayEqual(result, expected)
         self.assertEqual(result.shape, expected.shape)
 
+    def test_3D_index_array(self):
+        """Test that a 3D array of indices returns the expected values. Note
+        that in this case there is an additional dimension in the returned
+        array as the index_array has as many dimensions as the data array."""
+        index_array = [[[0, 1], [1, 2]]]
+        expected = np.array([[[1, 6], [7, 12]]])
+        result = choose(index_array, self.data)
+        self.assertArrayEqual(result, expected)
+        self.assertEqual(result.shape, expected.shape)
+
+    def test_4D_index_array(self):
+        """Test that using an array of indices of higher dimesionality than the
+        data_array results in a sensible error."""
+        index_array = [[[[0, 1], [1, 2]]]]
+        msg = ("Dimensionality of array_set has increased which will prevent "
+               "indexing from working as expected.")
+        with self.assertRaisesRegexp(IndexError, msg):
+            choose(index_array, self.data)
+
     def test_utilising_indices_beyond_32(self):
         """An explicit test that this function is handling indices beyond 32.
         The numpy choose function does not support a data array with a leading
@@ -101,7 +120,16 @@ class Test_choose(IrisTest):
         self.assertArrayEqual(result, expected)
         self.assertEqual(result.shape, expected.shape)
 
-    def test_nupmy_choose_comparison_2D_index_array_rows_only(self):
+    def test_numpy_choose_comparison_1D_index_array_columns(self):
+        """Test that a 1D array of indices returns the same values and array
+        shape as numpy choose."""
+        index_array = [0, 1]
+        expected = np.choose(index_array, self.small_data)
+        result = choose(index_array, self.small_data)
+        self.assertArrayEqual(result, expected)
+        self.assertEqual(result.shape, expected.shape)
+
+    def test_numpy_choose_comparison_2D_index_array_rows_only(self):
         """Test that a 2D array of indices, arranged as a single column,
         returns the same values and array shape as numpy choose."""
         index_array = [[0], [1]]
@@ -119,14 +147,36 @@ class Test_choose(IrisTest):
         self.assertArrayEqual(result, expected)
         self.assertEqual(result.shape, expected.shape)
 
-    def test_numpy_choose_comparison_1D_index_array_columns(self):
-        """Test that a 1D array of indices returns the same values and array
-        shape as numpy choose."""
-        index_array = [0, 1]
-        expected = np.choose(index_array, self.small_data)
-        result = choose(index_array, self.small_data)
+    def test_numpy_choose_comparison_3D_index_array(self):
+        """Test that a 3D array of indices returns the same values and array
+        shape as numpy choose. Note that in this case there is an additional
+        dimension in the returned array as the index_array has as many
+        dimensions as the data array."""
+        index_array = [[[0, 1], [1, 2]]]
+        expected = np.array([[[1, 6], [7, 12]]])
+        result = choose(index_array, self.data)
         self.assertArrayEqual(result, expected)
         self.assertEqual(result.shape, expected.shape)
+
+    def test_unbroadcastable_shape_error(self):
+        """Test that a useful error is raised when the array of indices and the
+        data arrays cannot be broadcast to a common shape."""
+        index_array = [0, 1, 2]
+        msg = ("shape mismatch: objects cannot be broadcast to a single shape")
+        with self.assertRaisesRegexp(ValueError, msg):
+            choose(index_array, self.small_data)
+
+    def test_invalid_array_indices(self):
+        """Test that a useful error is raised when the array that is indexed
+        to provide data does not exist because the index is out of range. More
+        simply, if there are only 3 sub-arays, indices of 3 or more should lead
+        to a sensbile error. Note that the behaviour of this function is
+        equivalent to numpy choose with mode=raise, there is no attempt to wrap
+        or clip invalid index values."""
+        index_array = [0, 3]
+        msg = 'index_array contains an index that is larger than the number'
+        with self.assertRaisesRegexp(IndexError, msg):
+            choose(index_array, self.small_data)
 
 
 if __name__ == '__main__':
