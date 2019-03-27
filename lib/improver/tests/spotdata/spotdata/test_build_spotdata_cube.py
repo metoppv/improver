@@ -175,6 +175,19 @@ class Test_build_spotdata_cube(IrisTest):
             result.coord('forecast_reference_time').points[0], 419805.)
         self.assertEqual(result.coord('forecast_period').points[0], 6)
 
+    def test_renaming_to_set_standard_name(self):
+        """Test that CF standard names are set as such in the returned cube,
+        whilst non-standard names remain as the long_name."""
+        standard_name_cube = build_spotdata_cube(
+            1.6, 'air_temperature', 'degC', 10., 59.5, 1.3, '03854')
+        non_standard_name_cube = build_spotdata_cube(
+            1.6, 'toast_temperature', 'degC', 10., 59.5, 1.3, '03854')
+
+        self.assertEqual(standard_name_cube.standard_name, 'air_temperature')
+        self.assertEqual(standard_name_cube.long_name, None)
+        self.assertEqual(non_standard_name_cube.standard_name, None)
+        self.assertEqual(non_standard_name_cube.long_name, 'toast_temperature')
+
 
 if __name__ == '__main__':
     unittest.main()

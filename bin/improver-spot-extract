@@ -33,6 +33,7 @@
 
 import json
 import warnings
+import numpy as np
 
 import iris
 from iris.exceptions import CoordinateNotFoundError
@@ -40,6 +41,7 @@ from iris.exceptions import CoordinateNotFoundError
 from improver.argparser import ArgParser
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
     GeneratePercentilesFromProbabilities
+from improver.percentile import PercentileConverter
 from improver.spotdata.apply_lapse_rate import SpotLapseRateAdjust
 from improver.spotdata.spot_extraction import SpotExtraction
 from improver.spotdata.neighbour_finding import NeighbourSelection
@@ -91,7 +93,9 @@ def main():
     percentile_group = parser.add_argument_group(
         title="Extract percentiles",
         description="Extract particular percentiles from probabilistic "
-        "data.")
+        "or realization inputs. If deterministic input is provided a warning "
+        "is raised and all leading dimensions are included in the returned "
+        "spot-data cube.")
     percentile_group.add_argument(
         "--extract_percentile", default=None, nargs='+', type=int,
         help="If set to a percentile value or a list of percentile values, "
@@ -162,6 +166,18 @@ def main():
                     ecc_bounds_warning=args.ecc_bounds_warning).process(
                         result, percentiles=args.extract_percentile)
                 result = iris.util.squeeze(result)
+            elif result.coords('realization', dim_coords=True):
+                fast_percentile_method = (
+                    False if np.ma.isMaskedArray(result.data) else True)
+                result = PercentileConverter(
+                    'realization', percentiles=args.extract_percentile,
+                    fast_percentile_method=fast_percentile_method).process(
+                        result)
+                # This ensures the output for percentiles derived from
+                # realization input looks like that derived from other inputs.
+                result.coord('percentile_over_realization').rename(
+                    'percentile')
+                result.coord('percentile').units = '%'
             else:
                 msg = ('Diagnostic cube is not a known probabilistic type. '
                        'The {} percentile could not be extracted. Extracting '
@@ -171,10 +187,8 @@ def main():
                 if not args.suppress_warnings:
                     warnings.warn(msg)
         else:
-            print(args.extract_percentile)
             constraint = ['{}={}'.format(perc_coordinate.name(),
                                          args.extract_percentile)]
-            print(constraint)
             perc_result = extract_subcube(result, constraint)
             if perc_result is not None:
                 result = perc_result
