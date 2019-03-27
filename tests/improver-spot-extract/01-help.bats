@@ -84,7 +84,9 @@ Neighbour finding method:
                         land_constraint.
 
 Extract percentiles:
-  Extract particular percentiles from probabilistic data.
+  Extract particular percentiles from probabilistic or realization inputs.
+  If deterministic input is provided a warning is raised and all leading
+  dimensions are included in the returned spot-data cube.
 
   --extract_percentile EXTRACT_PERCENTILE [EXTRACT_PERCENTILE ...]
                         If set to a percentile value or a list of percentile
