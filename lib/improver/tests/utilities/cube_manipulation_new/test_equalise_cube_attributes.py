@@ -92,9 +92,9 @@ class Test_equalise_cube_attributes(IrisTest):
         self.assertIn("history", cubelist[0].attributes.keys())
         self.assertIn("history", cubelist[1].attributes.keys())
 
-    def test_unmatched_argument(self):
+    def test_unmatched_argument_list(self):
         """Test function can take a list of attributes to remove (desirable
-        for blending)"""
+        for blending) in dict form"""
         unmatched_attributes = [
             {"history": "2017-01-18T08:59:53: StaGE Decoupler"},
             {"history": "2017-01-18T08:59:53: StaGE Decoupler"}]

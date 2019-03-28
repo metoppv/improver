@@ -119,8 +119,7 @@ class Test__associate_any_coordinate_with_master_coordinate(IrisTest):
         """
         Test that the utility returns an iris.cube.Cube with a height
         coordinate, if this coordinate is added to the input cube. This checks
-        that the height coordinate points, which were added to the cube
-        are the same as the after applying the utility.
+        that the height coordinate points are not modified.
         """
         plugin = ConcatenateCubes("latitude", coords_to_associate=["height"])
 
@@ -154,13 +153,15 @@ class Test__slice_over_coordinate(IrisTest):
         self.cube = iris.util.new_axis(cube, scalar_coord="time")
 
     def test_basic(self):
-        """Test that the utility returns an iris.cube.CubeList."""
+        """Test that the utility returns an iris.cube.CubeList when given an
+        iris.cube.CubeList instance."""
         cubelist = iris.cube.CubeList([self.cube])
         result = self.plugin._slice_over_coordinate(cubelist, "time")
         self.assertIsInstance(result, iris.cube.CubeList)
 
     def test_basic_cube(self):
-        """Test that the utility returns an iris.cube.CubeList."""
+        """Test that the utility returns an iris.cube.CubeList when given an
+        iris.cube.Cube instance."""
         result = self.plugin._slice_over_coordinate(self.cube, "time")
         self.assertIsInstance(result, iris.cube.CubeList)
 

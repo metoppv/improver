@@ -53,8 +53,13 @@ def equalise_cube_attributes(cubes, unmatched=None, silent=None):
 
     Kwargs:
         unmatched (list or None):
-            List of unmatched attributes.  If None, function
-            finds.
+            List of unmatched attribute dictionaries of the form returned
+            by compare_attributes(), eg:
+            unmatched=[
+                {"history": "2017-01-18T08:57:54: StaGE Decoupler"},
+                {"history": "2017-01-18T08:59:03: StaGE Decoupler"}]}]
+            If None, the compare_attributes() function is called to generate
+            this list.
         silent (list or None):
             List of attributes to remove silently if unmatched.
 
@@ -155,7 +160,7 @@ class ConcatenateCubes():
                 auxiliary coordinates.
 
         Returns:
-            iris.cube.Cube:
+            cube (iris.cube.Cube):
                 Cube where the the requested coordinates have been added to the
                 cube as auxiliary coordinates and associated with the desired
                 master coordinate.
@@ -199,7 +204,7 @@ class ConcatenateCubes():
                 Coordinate to slice over.
 
         Returns:
-            iris.cube.CubeList
+            sliced_by_coord_cubelist (iris.cube.CubeList):
                 CubeList containing sliced cubes.
         """
         sliced_by_coord_cubelist = iris.cube.CubeList([])
@@ -226,7 +231,7 @@ class ConcatenateCubes():
                 Cube or list of cubes to be concatenated
 
         Returns:
-            iris.cube.Cube:
+            result (iris.cube.Cube):
                 Cube concatenated along master coord
 
         Raises:
