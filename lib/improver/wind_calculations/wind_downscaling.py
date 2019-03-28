@@ -275,7 +275,7 @@ class RoughnessCorrectionUtilities(object):
         .. math::
           :label:
 
-            L = 2 * \\rm{h\_over\_2} / \\rm{a\_over\_s}
+            L = 2 * \\rm{h\\_over\\_2} / \\rm{a\\_over\\_s}
 
         a_over_s is dimensionless since it is the sum of up-slopes
         measured in the same unit lengths as it is calculated over.
@@ -296,8 +296,8 @@ class RoughnessCorrectionUtilities(object):
         .. math::
           :label:
 
-            k = 2*\\pi / (2 * \\rm{h\_over\_2} / \\rm{a\_over\_s)}
-              = \\rm{a\_over\_s} * \\pi / \\rm{h\_over\_2}
+            k = 2*\\pi / (2 * \\rm{h\\_over\\_2} / \\rm{a\\_over\\_s)}
+              = \\rm{a\\_over\\_s} * \\pi / \\rm{h\\_over\\_2}
 
         Returns:
             wavn (np.ndarray):
