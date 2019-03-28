@@ -48,10 +48,14 @@ def choose(index_array, array_set):
     The shape of the index array, and where in that shape the array indices
     are positioned will determine which data is extracted from the arrays. The
     two arrays will be broadcast to a common shape if they do not match and
-    such a broadcasting operation is possible. The returned array will have the
-    same shape as the sub-arrays in most instances. If the index_array has the
-    same number of dimensions as the array_set, the returned array will have an
-    equivalent number of dimensions (i.e. one more than the sub-arrays).
+    such a broadcasting operation is possible. If the input index_array shape
+    does not match the array_set shape, it is assumed that the indexing is for
+    the sub-arrays, not the complete array_set. The leading dimension in the
+    resulting extracted array is thus cut away such that the returned array
+    will have the same shape as the sub-arrays. If the input index_array has
+    the same number of dimensions as the array_set, the returned array will
+    have an equivalent number of dimensions (i.e. one more than the
+    sub-arrays).
 
     The following figure gives some examples of the expected result of this
     function when a series of index_arrays of differing shape and
@@ -100,9 +104,16 @@ def choose(index_array, array_set):
             match those given in the index_array.
     Returns:
         result (np.array):
-            An array containing data extracted from the array_set.
+            An array containing data extracted from the array_set. The returned
+            array will have the same shape as the sub-arrays unless the
+            index_array has dimensions equivalent to array_set. In this case
+            the returned array will have an equivalent number of dimensions
+            (i.e. one more than the sub-arrays).
     Raises:
         ValueError: If input arrays cannot be broadcast to a common shape.
+        IndexError: If dimensions are added to array_set during the
+                    broadcasting of arrays; this will prevent the later
+                    indexing from working as expected.
         IndexError: If an index exceeds the number of available sub-arrays.
     """
     # Used to correct array shape in output following intermediate broadcast.
