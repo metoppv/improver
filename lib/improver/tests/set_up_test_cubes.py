@@ -70,10 +70,10 @@ def construct_xy_coords(ypoints, xpoints, spatial_grid):
     if spatial_grid == 'latlon':
         # make a lat-lon grid including the UK area
         y_coord = DimCoord(
-            np.linspace(-20.0, 20.0, ypoints, dtype=np.float32),
+            np.linspace(40., 80., ypoints, dtype=np.float32),
             "latitude", units="degrees", coord_system=GLOBAL_GRID_CCRS)
         x_coord = DimCoord(
-            np.linspace(40, 80, xpoints, dtype=np.float32),
+            np.linspace(-20., 20., xpoints, dtype=np.float32),
             "longitude", units="degrees", coord_system=GLOBAL_GRID_CCRS)
     elif 'equalarea':
         # use UK eastings and northings on standard grid

@@ -316,12 +316,12 @@ class Test_calc_lats_lons(IrisTest):
 
     def test_lat_lon(self):
         """Test that the function returns the lats and lons expected."""
-        expected_lats = np.array([[-20.0, -20.0, -20.0],
-                                  [0.0, 0.0, 0.0],
-                                  [20.0, 20.0, 20.0]])
-        expected_lons = np.array([[40.0, 60.0, 80.0],
-                                  [40.0, 60.0, 80.0],
-                                  [40.0, 60.0, 80.0]])
+        expected_lons = np.array([[-20.0, 0.0, 20.0],
+                                  [-20.0, 0.0, 20.0],
+                                  [-20.0, 0.0, 20.0]])
+        expected_lats = np.array([[40.0, 40.0, 40.0],
+                                  [60.0, 60.0, 60.0],
+                                  [80.0, 80.0, 80.0]])
         plugin = TemporalInterpolation(interval_in_minutes=60,
                                        interpolation_method='solar')
         result_lats, result_lons = plugin.calc_lats_lons(self.cube)
@@ -409,6 +409,14 @@ class Test_solar_interpolation(IrisTest):
         cubes_ens = iris.cube.CubeList([cube_time_0_ens, cube_time_1_ens])
         self.cube_ens = cubes_ens.merge_cube()
 
+        # set location
+        for cube in [self.cube, self.cube_ens, self.interpolated_cube,
+                     self.interpolated_cube_ens]:
+            cube.coord('latitude').points = (
+                np.linspace(-20., 20., self.npoints, dtype=np.float32))
+            cube.coord('longitude').points = (
+                np.linspace(40., 80., self.npoints, dtype=np.float32))
+
     def test_return_type(self):
         """Test that an iris cubelist is returned."""
 
@@ -489,6 +497,13 @@ class Test_daynight_interpolation(IrisTest):
         self.interpolated_cube_ens = iris.util.new_axis(interp_cube_ens,
                                                         'time')
 
+        # set location
+        for cube in [self.interpolated_cube, self.interpolated_cube_ens]:
+            cube.coord('latitude').points = (
+                np.linspace(-20., 20., self.npoints, dtype=np.float32))
+            cube.coord('longitude').points = (
+                np.linspace(40., 80., self.npoints, dtype=np.float32))
+
     def test_return_type(self):
         """Test that an iris cubelist is returned."""
 
@@ -555,6 +570,12 @@ class Test_process(IrisTest):
         self.cube_time_1 = set_up_variable_cube(data_time_1,
                                                 time=self.time_1,
                                                 frt=self.time_0)
+        # set location
+        for cube in [self.cube_time_1, self.cube_time_0]:
+            cube.coord('latitude').points = (
+                np.linspace(-20., 20., self.npoints, dtype=np.float32))
+            cube.coord('longitude').points = (
+                np.linspace(40., 80., self.npoints, dtype=np.float32))
 
     def test_return_type(self):
         """Test that an iris cubelist is returned."""
