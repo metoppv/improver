@@ -316,12 +316,12 @@ class Test_process(IrisTest):
             "realization", iris.analysis.VARIANCE)
         raw_forecast = cube.copy()
 
-        predictor_and_variance = CubeList(
-            [current_forecast_predictor, current_forecast_variance])
         no_of_percentiles = len(raw_forecast.coord("realization").points)
 
         plugin = Plugin()
-        result = plugin.process(predictor_and_variance, no_of_percentiles)
+        result = plugin.process(
+            current_forecast_predictor, current_forecast_variance,
+            no_of_percentiles)
         self.assertIsInstance(result, Cube)
 
     @ManageWarnings(
@@ -339,13 +339,12 @@ class Test_process(IrisTest):
             "realization", iris.analysis.VARIANCE)
         raw_forecast = cube.copy()
 
-        predictor_and_variance = CubeList(
-            [current_forecast_predictor, current_forecast_variance])
-
         no_of_percentiles = len(raw_forecast.coord("realization").points)
 
         plugin = Plugin()
-        result = plugin.process(predictor_and_variance, no_of_percentiles)
+        result = plugin.process(
+            current_forecast_predictor, current_forecast_variance,
+            no_of_percentiles)
         self.assertEqual(
             len(raw_forecast.coord("realization").points),
             len(result.coord("percentile_over_realization").points))

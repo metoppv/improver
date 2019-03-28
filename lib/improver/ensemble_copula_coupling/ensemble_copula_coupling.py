@@ -696,18 +696,19 @@ class GeneratePercentilesFromMeanAndVariance(object):
         percentile_cube.cell_methods = {}
         return percentile_cube
 
-    def process(self, calibrated_forecast_predictor_and_variance,
-                no_of_percentiles):
+    def process(self, calibrated_forecast_predictor,
+                calibrated_forecast_variance, no_of_percentiles):
         """
         Generate ensemble percentiles from the mean and variance.
 
         Args:
-            calibrated_forecast_predictor_and_variance (Iris CubeList):
-                CubeList containing the calibrated forecast predictor and
-                calibrated forecast variance.
-            raw_forecast (Iris Cube or CubeList):
-                Cube or CubeList that is expected to be the raw
-                (uncalibrated) forecast.
+            calibrated_forecast_predictor (iris.cube.Cube):
+                Cube containing the calibrated forecast predictor.
+            calibrated_forecast_variance (iris.cube.Cube):
+                CubeList containing the calibrated forecast variance.
+            no_of_percentiles (int):
+                Integer defining the number of percentiles that will be
+                calculated from the mean and variance.
 
         Returns:
             calibrated_forecast_percentiles (iris.cube.Cube):
@@ -715,15 +716,6 @@ class GeneratePercentilesFromMeanAndVariance(object):
                 The percentile coordinate is always the zeroth dimension.
 
         """
-        (calibrated_forecast_predictor, calibrated_forecast_variance) = (
-            calibrated_forecast_predictor_and_variance)
-        if isinstance(calibrated_forecast_predictor, iris.cube.CubeList):
-            calibrated_forecast_predictor = (
-                calibrated_forecast_predictor.merge_cube())
-        if isinstance(calibrated_forecast_variance, iris.cube.CubeList):
-            calibrated_forecast_variance = (
-                calibrated_forecast_variance.merge_cube())
-
         percentiles = choose_set_of_percentiles(no_of_percentiles)
         calibrated_forecast_percentiles = (
             self._mean_and_variance_to_percentiles(

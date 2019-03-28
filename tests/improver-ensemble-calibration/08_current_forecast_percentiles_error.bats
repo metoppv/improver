@@ -31,21 +31,19 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "ensemble-calibration emos gaussian probabilities" {
+@test "ensemble-calibration emos gaussian percentiles" {
   improver_check_skip_acceptance
-  KGO="ensemble-calibration/probabilities/kgo.nc"
+  KGO="ensemble-calibration/percentiles/kgo.nc"
 
   # Run ensemble calibration with saving of mean and variance and check it passes.
   run improver ensemble-calibration 'ensemble model output statistics' 'K' \
-      'gaussian' "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/probabilities/input.nc" \
+      'gaussian' "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/percentiles/input.nc" \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
-      "$TEST_DIR/output.nc" --num_realizations=18
-  [[ "$status" -eq 0 ]]
-
-  improver_check_recreate_kgo "output.nc" $KGO
-
-  # Run nccmp to compare the output calibrated probabilities and check it passes.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 1 ]]
+  read -d '' expected <<'__TEXT__' || true
+ValueError: The current forecast has been provided as percentiles. These percentiles need to be converted to realizations for ensemble calibration. The args.num_realizations argument is used to define the number of realizations to construct from the input percentiles, so if the current forecast is provided as percentiles then args.num_realizations must be defined.
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
 }

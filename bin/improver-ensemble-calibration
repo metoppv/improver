@@ -31,9 +31,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run ensemble calibration."""
 
+import numpy as np
+
 from improver.argparser import ArgParser
 
 import iris
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.ensemble_calibration.ensemble_calibration import (
     EnsembleCalibration)
@@ -44,6 +47,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     GenerateProbabilitiesFromMeanAndVariance,
     RebadgePercentilesAsRealizations,
     ResamplePercentiles)
+from improver.utilities.cube_checker import find_percentile_coordinate
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
@@ -113,7 +117,7 @@ def main():
                              'EnsembleCalibration plugin. If used, a path '
                              'to save the output to must be provided.')
     parser.add_argument('--num_realizations', metavar='NUMBER_OF_REALIZATIONS',
-                        default=None,
+                        default=None, type=np.int32,
                         help='Optional argument to specify the number of '
                              'ensemble realizations to produce. '
                              'If the current forecast is input as '
@@ -130,7 +134,7 @@ def main():
                         help='Option to reorder the post-processed forecasts '
                              'randomly. If not set, the ordering of the raw '
                              'ensemble is used.')
-    parser.add_argument('--random_seed', default=None,
+    parser.add_argument('--random_seed', metavar='RANDOM_SEED', default=None,
                         help='Option to specify a value for the random seed '
                         'for testing purposes, otherwise, the default random '
                         'seed behaviour is utilised. The random seed is used '
@@ -156,20 +160,21 @@ def main():
     historic_forecast = load_cube(args.historic_filepath)
     truth = load_cube(args.truth_filepath)
 
-    msg = ("The current forecast has been provided as {}. "
-           "These {} need to be converted to realizations "
-           "for ensemble calibration. The args.num_realizations"
+    msg = ("The current forecast has been provided as {0}. "
+           "These {0} need to be converted to realizations "
+           "for ensemble calibration. The args.num_realizations "
            "argument is used to define the number of realizations "
-           "to construct from the input {}, so if the "
-           "current forecast is provided as {} then "
+           "to construct from the input {0}, so if the "
+           "current forecast is provided as {0} then "
            "args.num_realizations must be defined.")
 
     input_forecast_type = "realizations"
-    # If probabilities, convert from probs to realizations
+    # If probabilities, convert from probabilities to realizations
     if current_forecast.name().startswith("probability_of"):
         input_forecast_type = "probabilities"
         if not args.num_realizations:
             raise ValueError(msg.format(input_forecast_type))
+        original_current_forecast = current_forecast.copy()
         current_forecast = GeneratePercentilesFromProbabilities(
             ecc_bounds_warning=args.ecc_bounds_warning).process(
                 current_forecast, no_of_percentiles=args.num_realizations)
@@ -203,18 +208,19 @@ def main():
         args.calibration_method, args.distribution, args.units,
         predictor_of_mean_flag=args.predictor_of_mean).process(
             current_forecast, historic_forecast, truth)
+
     # If required, save the mean and variance.
     if args.save_mean:
-        save_netcdf(forecast_predictor, args.save_mean)
+        save_netcdf(forecast_predictor.copy(), args.save_mean)
     if args.save_variance:
-        save_netcdf(forecast_variance, args.save_variance)
+        save_netcdf(forecast_variance.copy(), args.save_variance)
 
     # If input forecast is probabilities, convert output into probabilities.
     # If input forecast is percentiles, convert output into percentiles.
     # If input forecast is realizations, convert output into realizations.
     if input_forecast_type == "probabilities":
         result = GenerateProbabilitiesFromMeanAndVariance().process(
-            forecast_predictor, forecast_variance, args.num_realizations)
+            forecast_predictor, forecast_variance, original_current_forecast)
     elif input_forecast_type == "percentiles":
         result = GeneratePercentilesFromMeanAndVariance().process(
             forecast_predictor, forecast_variance, args.num_realizations)
@@ -222,7 +228,7 @@ def main():
         # Ensemble Copula Coupling to generate realizations
         # from mean and variance.
         percentiles = GeneratePercentilesFromMeanAndVariance().process(
-            forecast_predictor_and_variance, args.num_realizations)
+            forecast_predictor, forecast_variance, args.num_realizations)
         result = EnsembleReordering().process(
             percentiles, current_forecast,
             random_ordering=args.random_ordering,

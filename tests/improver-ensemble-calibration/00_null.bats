@@ -35,10 +35,12 @@
   expected="usage: improver-ensemble-calibration [-h] [--profile]
                                      [--profile_file PROFILE_FILE]
                                      [--predictor_of_mean CALIBRATE_MEAN_FLAG]
-                                     [--save_mean_variance MEAN_VARIANCE_FILE]
+                                     [--save_mean MEAN_FILE]
+                                     [--save_variance VARIANCE_FILE]
                                      [--num_realizations NUMBER_OF_REALIZATIONS]
                                      [--random_ordering]
                                      [--random_seed RANDOM_SEED]
+                                     [--ecc_bounds_warning]
                                      ENSEMBLE_CALIBRATION_METHOD
                                      UNITS_TO_CALIBRATE_IN DISTRIBUTION
                                      INPUT_FILE HISTORIC_DATA_FILE

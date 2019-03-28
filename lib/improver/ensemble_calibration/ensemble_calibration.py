@@ -1105,4 +1105,5 @@ class EnsembleCalibration(object):
         for cube in calibrated_forecast_variance:
             cube.data = cube.data.astype(np.float32)
 
-        return calibrated_forecast_predictor, calibrated_forecast_variance
+        return (calibrated_forecast_predictor.merge_cube(),
+                calibrated_forecast_variance.merge_cube())
