@@ -42,7 +42,7 @@ from improver.utilities.cube_checker import (
     check_cube_coordinates, check_cube_not_float64)
 
 
-def equalise_cube_attributes(cubes, unmatched=None, silent=None):
+def equalise_cube_attributes(cubes, silent=None):
     """
     Function to remove attributes that do not match between all cubes on the
     list.  Cubes are modified in place.
@@ -52,14 +52,6 @@ def equalise_cube_attributes(cubes, unmatched=None, silent=None):
             List of cubes to check the attributes and revise.
 
     Kwargs:
-        unmatched (list or None):
-            List of unmatched attribute dictionaries of the form returned
-            by compare_attributes(), eg:
-            unmatched=[
-                {"history": "2017-01-18T08:57:54: StaGE Decoupler"},
-                {"history": "2017-01-18T08:59:03: StaGE Decoupler"}]}]
-            If None, the compare_attributes() function is called to generate
-            this list.
         silent (list or None):
             List of attributes to remove silently if unmatched.
 
@@ -68,9 +60,7 @@ def equalise_cube_attributes(cubes, unmatched=None, silent=None):
             If an unmatched attribute is not on the "silent" list,
             a warning will be raised.
     """
-    if unmatched is None:
-        unmatched = compare_attributes(cubes)
-
+    unmatched = compare_attributes(cubes)
     warning_msg = 'Deleting unmatched attribute {}, value {}'
     if len(unmatched) > 0:
         for i, cube in enumerate(cubes):

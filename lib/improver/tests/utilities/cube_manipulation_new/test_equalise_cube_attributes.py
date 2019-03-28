@@ -92,22 +92,6 @@ class Test_equalise_cube_attributes(IrisTest):
         self.assertIn("history", cubelist[0].attributes.keys())
         self.assertIn("history", cubelist[1].attributes.keys())
 
-    def test_unmatched_argument_list(self):
-        """Test function can take a list of attributes to remove (desirable
-        for blending) in dict form"""
-        unmatched_attributes = [
-            {"history": "2017-01-18T08:59:53: StaGE Decoupler"},
-            {"history": "2017-01-18T08:59:53: StaGE Decoupler"}]
-
-        cube1 = self.cube.copy()
-        cube2 = self.cube.copy()
-        cubelist = iris.cube.CubeList([cube1, cube2])
-
-        equalise_cube_attributes(
-            cubelist, unmatched=unmatched_attributes, silent="history")
-        self.assertNotIn("history", cubelist[0].attributes.keys())
-        self.assertNotIn("history", cubelist[1].attributes.keys())
-
     @ManageWarnings(record=True)
     def test_unknown_attribute(self, warning_list=None):
         """Test that the utility raises warning when removing a non-silent
