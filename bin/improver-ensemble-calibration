@@ -158,6 +158,8 @@ def main():
     historic_forecast = load_cube(args.historic_filepath)
     truth = load_cube(args.truth_filepath)
 
+    original_current_forecast = current_forecast.copy()
+
     msg = ("The current forecast has been provided as {0}. "
            "These {0} need to be converted to realizations "
            "for ensemble calibration. The args.num_realizations "
@@ -172,14 +174,14 @@ def main():
         input_forecast_type = "probabilities"
         if not args.num_realizations:
             raise ValueError(msg.format(input_forecast_type))
-        original_current_forecast = current_forecast.copy()
         current_forecast = GeneratePercentilesFromProbabilities(
             ecc_bounds_warning=args.ecc_bounds_warning).process(
                 current_forecast, no_of_percentiles=args.num_realizations)
         current_forecast = (
             RebadgePercentilesAsRealizations().process(current_forecast))
 
-    # If percentiles, rebadge as realizations.
+    # If percentiles, resample percentiles so that the percentiles are
+    # evenly spaced and rebadge as realizations.
     try:
         find_percentile_coordinate(current_forecast)
         input_forecast_type = "percentiles"
@@ -220,13 +222,16 @@ def main():
         result = GenerateProbabilitiesFromMeanAndVariance().process(
             forecast_predictor, forecast_variance, original_current_forecast)
     elif input_forecast_type == "percentiles":
+        perc_coord = find_percentile_coordinate(original_current_forecast)
         result = GeneratePercentilesFromMeanAndVariance().process(
-            forecast_predictor, forecast_variance, args.num_realizations)
+            forecast_predictor, forecast_variance,
+            percentiles=perc_coord.points)
     elif input_forecast_type == "realizations":
         # Ensemble Copula Coupling to generate realizations
         # from mean and variance.
         percentiles = GeneratePercentilesFromMeanAndVariance().process(
-            forecast_predictor, forecast_variance, args.num_realizations)
+            forecast_predictor, forecast_variance,
+            no_of_percentiles=args.num_realizations)
         result = EnsembleReordering().process(
             percentiles, current_forecast,
             random_ordering=args.random_ordering,

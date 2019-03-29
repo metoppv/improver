@@ -697,7 +697,8 @@ class GeneratePercentilesFromMeanAndVariance(object):
         return percentile_cube
 
     def process(self, calibrated_forecast_predictor,
-                calibrated_forecast_variance, no_of_percentiles):
+                calibrated_forecast_variance, no_of_percentiles=None,
+                percentiles=None):
         """
         Generate ensemble percentiles from the mean and variance.
 
@@ -709,6 +710,9 @@ class GeneratePercentilesFromMeanAndVariance(object):
             no_of_percentiles (int):
                 Integer defining the number of percentiles that will be
                 calculated from the mean and variance.
+            percentiles (list):
+                List of percentiles that will be generated from the mean
+                and variance provided.
 
         Returns:
             calibrated_forecast_percentiles (iris.cube.Cube):
@@ -716,7 +720,15 @@ class GeneratePercentilesFromMeanAndVariance(object):
                 The percentile coordinate is always the zeroth dimension.
 
         """
-        percentiles = choose_set_of_percentiles(no_of_percentiles)
+        if no_of_percentiles and percentiles:
+            msg = ("Please specify either the number of percentiles or "
+                   "provide a list of percentiles. The number of percentiles "
+                   "provided was {} and the list of percentiles "
+                   "provided was {}".format(no_of_percentiles, percentiles))
+            raise ValueError(msg)
+
+        if no_of_percentiles:
+            percentiles = choose_set_of_percentiles(no_of_percentiles)
         calibrated_forecast_percentiles = (
             self._mean_and_variance_to_percentiles(
                 calibrated_forecast_predictor,

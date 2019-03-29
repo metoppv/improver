@@ -321,7 +321,7 @@ class Test_process(IrisTest):
         plugin = Plugin()
         result = plugin.process(
             current_forecast_predictor, current_forecast_variance,
-            no_of_percentiles)
+            no_of_percentiles=no_of_percentiles)
         self.assertIsInstance(result, Cube)
 
     @ManageWarnings(
@@ -344,10 +344,61 @@ class Test_process(IrisTest):
         plugin = Plugin()
         result = plugin.process(
             current_forecast_predictor, current_forecast_variance,
-            no_of_percentiles)
+            no_of_percentiles=no_of_percentiles)
         self.assertEqual(
             len(raw_forecast.coord("realization").points),
             len(result.coord("percentile_over_realization").points))
+
+    @ManageWarnings(
+        ignored_messages=["Only a single cube so no differences",
+                          "Collapsing a non-contiguous coordinate."])
+    def test_list_of_percentiles(self):
+        """
+        Test that the plugin returns a cube with the expected percentiles
+        when a specific list of percentiles is provided.
+        """
+        cube = self.current_temperature_forecast_cube
+        current_forecast_predictor = cube.collapsed(
+            "realization", iris.analysis.MEAN)
+        current_forecast_variance = cube.collapsed(
+            "realization", iris.analysis.VARIANCE)
+
+        percentiles = [10, 25, 50, 75, 90]
+
+        plugin = Plugin()
+        result = plugin.process(
+            current_forecast_predictor, current_forecast_variance,
+            percentiles=percentiles)
+        self.assertEqual(
+            len(percentiles),
+            len(result.coord("percentile_over_realization").points))
+        self.assertArrayAlmostEqual(
+            percentiles, result.coord("percentile_over_realization").points)
+
+    @ManageWarnings(
+        ignored_messages=["Only a single cube so no differences",
+                          "Collapsing a non-contiguous coordinate."])
+    def test_multiple_keyword_arguments_error(self):
+        """
+        Test that the plugin raises an error when both the no_of_percentiles
+        keyword argument and the percentiles keyword argument are provided.
+        """
+        cube = self.current_temperature_forecast_cube
+        current_forecast_predictor = cube.collapsed(
+            "realization", iris.analysis.MEAN)
+        current_forecast_variance = cube.collapsed(
+            "realization", iris.analysis.VARIANCE)
+        raw_forecast = cube.copy()
+
+        no_of_percentiles = len(raw_forecast.coord("realization").points)
+        percentiles = [10, 25, 50, 75, 90]
+
+        plugin = Plugin()
+        msg = "Please specify either the number of percentiles or"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.process(
+                current_forecast_predictor, current_forecast_variance,
+                no_of_percentiles=no_of_percentiles, percentiles=percentiles)
 
 
 if __name__ == '__main__':
