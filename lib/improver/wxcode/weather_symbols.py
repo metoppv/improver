@@ -35,6 +35,7 @@ import numpy as np
 import copy
 import iris
 
+from improver.utilities.cube_checker import find_threshold_coordinate
 from improver.wxcode.wxcode_utilities import (add_wxcode_metadata,
                                               expand_nested_lists,
                                               update_daynight)
@@ -108,7 +109,7 @@ class WeatherSymbols(object):
                     continue
                 else:
                     cube_threshold_units = (
-                        matched_cube[0].coord('threshold').units)
+                        find_threshold_coordinate(matched_cube[0]).units)
                     threshold.convert_units(cube_threshold_units)
 
                 # Then we check if the required threshold is present in the
@@ -380,11 +381,12 @@ class WeatherSymbols(object):
                 A cube full of -1 values, with suitable metadata to describe
                 the weather symbols that will fill it.
         """
-        cube_format = next(cube.slices_over(['threshold']))
+        threshold_coord = find_threshold_coordinate(cube)
+        cube_format = next(cube.slices_over([threshold_coord]))
         symbols = cube_format.copy(data=np.full(cube_format.data.shape, -1,
                                                 dtype=np.int))
 
-        symbols.remove_coord('threshold')
+        symbols.remove_coord(threshold_coord)
         symbols.attributes.pop('relative_to_threshold')
         symbols = add_wxcode_metadata(symbols)
 

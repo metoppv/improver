@@ -34,7 +34,8 @@ import numpy as np
 import iris
 from iris.exceptions import ConstraintMismatchError
 from improver.nbhood.nbhood import NeighbourhoodProcessing
-from improver.utilities.cube_checker import check_cube_coordinates
+from improver.utilities.cube_checker import (
+    check_cube_coordinates, find_threshold_coordinate)
 from improver.utilities.temporal import (
     extract_nearest_time_point, iris_time_to_datetime)
 from improver.utilities.rescale import apply_double_scaling, rescale
@@ -205,7 +206,8 @@ class NowcastLightning(object):
         """
         new_cube = cube.copy()
         new_cube.rename("probability_of_rate_of_lightning_above_threshold")
-        new_cube.remove_coord('threshold')
+        threshold_coord = find_threshold_coordinate(new_cube)
+        new_cube.remove_coord(threshold_coord)
         new_cube.cell_methods = None
         return new_cube
 
@@ -333,7 +335,8 @@ class NowcastLightning(object):
         """
         new_cube_list = iris.cube.CubeList([])
         # check prob-precip threshold units are as expected
-        prob_precip_cube.coord('threshold').convert_units('mm hr-1')
+        precip_threshold_coord = find_threshold_coordinate(prob_precip_cube)
+        precip_threshold_coord.convert_units('mm hr-1')
         # extract precipitation probabilities at required thresholds
         for cube_slice in prob_lightning_cube.slices_over('time'):
             this_time = iris_time_to_datetime(
@@ -409,7 +412,8 @@ class NowcastLightning(object):
         """
         prob_lightning_cube.coord('forecast_period').convert_units('minutes')
         # check prob-ice threshold units are as expected
-        ice_cube.coord('threshold').convert_units('kg m^-2')
+        ice_threshold_coord = find_threshold_coordinate(ice_cube)
+        ice_threshold_coord.convert_units('kg m^-2')
         new_cube_list = iris.cube.CubeList([])
         err_string = "No matching prob(Ice) cube for threshold {}"
         for cube_slice in prob_lightning_cube.slices_over('time'):
@@ -478,7 +482,8 @@ class NowcastLightning(object):
             "probability_of_vertical_integral_of_ice_above_threshold")
         if prob_vii_cube:
             prob_vii_cube = prob_vii_cube.merge_cube()
-        prob_precip_cube.coord('threshold').convert_units('mm hr-1')
+        precip_threshold_coord = find_threshold_coordinate(prob_precip_cube)
+        precip_threshold_coord.convert_units('mm hr-1')
         precip_slice = prob_precip_cube.extract(
             iris.Constraint(threshold=lambda t: isclose(t.point, 0.5)))
         if not isinstance(precip_slice, iris.cube.Cube):

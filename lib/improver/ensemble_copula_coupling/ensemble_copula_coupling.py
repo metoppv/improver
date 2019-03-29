@@ -51,8 +51,8 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
 from improver.utilities.cube_manipulation import (
     concatenate_cubes, enforce_coordinate_ordering)
 from improver.utilities.cube_checker import (
-    find_percentile_coordinate, check_for_x_and_y_axes,
-    check_cube_coordinates)
+    find_percentile_coordinate, find_threshold_coordinate,
+    check_for_x_and_y_axes, check_cube_coordinates)
 from improver.utilities.indexing_operations import choose
 
 
@@ -799,7 +799,8 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
         Raises:
             ValueError: If units of input cubes are not compatible.
         """
-        threshold_units = probability_cube_template.coord('threshold').units
+        threshold_units = (
+            find_threshold_coordinate(probability_cube_template).units)
 
         try:
             mean_values.convert_units(threshold_units)
@@ -833,7 +834,8 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
                 the provided thresholds in the way described by
                 relative_to_threshold.
         """
-        thresholds = probability_cube_template.coord('threshold').points
+        thresholds = (
+            find_threshold_coordinate(probability_cube_template).points)
         relative_to_threshold = (
             probability_cube_template.attributes['relative_to_threshold'])
 

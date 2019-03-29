@@ -36,6 +36,7 @@ import numpy as np
 from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
 from improver.threshold import BasicThreshold
 from improver.nbhood.nbhood import NeighbourhoodProcessing
+from improver.utilities.cube_checker import find_threshold_coordinate
 
 
 class DiagnoseConvectivePrecipitation(object):
@@ -232,7 +233,8 @@ class DiagnoseConvectivePrecipitation(object):
                     below_thresh_ok=self.below_thresh_ok
                     ).process(cube.copy()))
             # Will only ever contain one slice on threshold
-            for cube_slice in threshold_cube.slices_over('threshold'):
+            for cube_slice in threshold_cube.slices_over(
+                    find_threshold_coordinate(threshold_cube)):
                 threshold_cube = cube_slice
 
             cubes.append(threshold_cube)
