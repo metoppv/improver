@@ -40,9 +40,25 @@ import numpy as np
 
 from improver.generate_ancillaries.generate_topographic_zone_weights import (
     GenerateTopographicZoneWeights)
-from improver.tests.ensemble_calibration.ensemble_calibration. \
-    helper_functions import set_up_cube
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
+
+
+def set_up_orography_cube(data):
+    """
+    Set up a static orography cube using the centralised cube
+    setup utility but removing all time coordinates
+
+    Args:
+        data (np.array):
+            Orography data to populate the cube
+    """
+    orography = set_up_variable_cube(
+        data.astype(np.float32), name="altitude", units="m")
+    for coord in ["time", "forecast_reference_time",
+                  "forecast_period"]:
+        orography.remove_coord(coord)
+    return orography
 
 
 class Test_add_weight_to_upper_adjacent_band(IrisTest):
@@ -287,20 +303,13 @@ class Test_process(IrisTest):
     def setUp(self):
         """Set up data for testing."""
         self.plugin = GenerateTopographicZoneWeights()
-        orography_data = np.array([[[[10., 25.],
-                                     [75., 100.]]]])
-        orography = set_up_cube(
-            orography_data, "altitude", "m",
-            realizations=np.array([0]),
-            y_dimension_length=2, x_dimension_length=2)
-        orography = orography[0, 0, ...]
-        orography.remove_coord("realization")
-        orography.remove_coord("time")
-        self.orography = orography
+        orography_data = np.array([[10., 25.],
+                                   [75., 100.]])
+        self.orography = set_up_orography_cube(orography_data)
 
         landmask_data = np.array([[0, 1],
-                                  [1, 1]])
-        landmask = orography.copy(data=landmask_data)
+                                  [1, 1]], dtype=np.float32)
+        landmask = self.orography.copy(data=landmask_data)
         landmask.rename("land_binary_mask")
         landmask.units = Unit("1")
         self.landmask = landmask
@@ -319,12 +328,9 @@ class Test_process(IrisTest):
     def test_invalid_orography(self):
         """Test that the appropriate exception is raised if the orography has
         more than two dimensions."""
-        orography_data = np.array([[[[0., 25.],
-                                     [75., 100.]]]])
-        orography = set_up_cube(
-            orography_data, "altitude", "m",
-            realizations=np.array([0]),
-            y_dimension_length=2, x_dimension_length=2)
+        orography_data = np.array([[[0., 25.],
+                                    [75., 100.]]])
+        orography = set_up_orography_cube(orography_data)
         msg = "The input orography cube should be two-dimensional"
         with self.assertRaisesRegex(InvalidCubeError, msg):
             self.plugin.process(orography, self.thresholds_dict, self.landmask)
@@ -390,15 +396,10 @@ class Test_process(IrisTest):
     def test_data_no_mask_three_bands(self):
         """Test that the result data is as expected, when none of the points
         are masked and there are three bands defined."""
-        orography_data = np.array([[[[10., 40., 45.],
-                                     [70., 80., 95.],
-                                     [115., 135., 145.]]]])
-        orography = set_up_cube(
-            orography_data, "altitude", "m", realizations=np.array([0]),
-            y_dimension_length=3, x_dimension_length=3)
-        orography = orography[0, 0, ...]
-        orography.remove_coord("realization")
-        orography.remove_coord("time")
+        orography_data = np.array([[10., 40., 45.],
+                                   [70., 80., 95.],
+                                   [115., 135., 145.]])
+        orography = set_up_orography_cube(orography_data)
 
         landmask_data = np.array([[1, 1, 1],
                                   [1, 1, 1],

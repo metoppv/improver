@@ -35,9 +35,7 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.feels_like_temperature import calculate_apparent_temperature
-from improver.tests.ensemble_calibration.ensemble_calibration. \
-    helper_functions import (set_up_temperature_cube, set_up_wind_speed_cube,
-                             set_up_cube)
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
 class Test_calculate_apparent_temperature(IrisTest):
@@ -45,26 +43,20 @@ class Test_calculate_apparent_temperature(IrisTest):
 
     def setUp(self):
         """Create cubes to input."""
+        temperature = np.array([[293.65, 304.9, 316.15]], dtype=np.float32)
+        self.temperature_cube = set_up_variable_cube(temperature)
 
-        self.temperature_cube = set_up_temperature_cube()[0, :, 2]
-        self.wind_speed_cube = set_up_wind_speed_cube()[0, :, 0]
-        # create cube with metadata and values suitable for pressure.
-        pressure_data = (
-            np.tile(np.linspace(100000, 110000, 9), 3).reshape(3, 1, 3, 3))
-        pressure_data[0] -= 2
-        pressure_data[1] += 2
-        pressure_data[2] += 4
-        self.pressure_cube = set_up_cube(
-            pressure_data, "air_pressure", "Pa")[0, :, 0]
+        wind_speed = np.array([[0., 7.5, 15.]], dtype=np.float32)
+        self.wind_speed_cube = set_up_variable_cube(
+            wind_speed, name="wind_speed", units="m s-1")
 
-        # create cube with metadata and values suitable for relative humidity.
-        relative_humidity_data = (
-            np.tile(np.linspace(0, 0.6, 9), 3).reshape(3, 1, 3, 3))
-        relative_humidity_data[0] += 0
-        relative_humidity_data[1] += 0.2
-        relative_humidity_data[2] += 0.4
-        self.relative_humidity_cube = set_up_cube(
-            relative_humidity_data, "relative_humidity", "1")[0, :, 0]
+        pressure = np.array([[99998., 101248., 102498.]], dtype=np.float32)
+        self.pressure_cube = set_up_variable_cube(
+            pressure, name="air_pressure", units="Pa")
+
+        relh = np.array([[0., 0.075, 0.15]], dtype=np.float32)
+        self.relative_humidity_cube = set_up_variable_cube(
+            relh, name="relative_humidity", units="1")
 
     def test_apparent_temperature_values(self):
         """Test output values from apparent temperature equation."""
