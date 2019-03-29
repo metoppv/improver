@@ -375,11 +375,11 @@ class CreateExtrapolationForecast(object):
 
     def __repr__(self):
         """Represent the plugin instance as a string."""
-        result = ('<CreateExtrapolationForecast: input_cube = {}, vel_x = {}, '
-                  'vel_y = {}, orographic_enhancement_cube = {},'
-                  ' metadata_dict = {}'.format(
-                     input_cube, vel_x, vel_y, orographic_enhancement_cube,
-                     metadata_dict))
+        result = ('<CreateExtrapolationForecast: input_cube = {},'
+                  'orographic_enhancement_cube = {},'
+                  'advection_plugin = {}'.format(
+                     self.input_cube, self.orographic_enhancement_cube,
+                     self.advection_plugin))
         return result
 
     def _remove_orographic_enhancement(self, input_cube):
