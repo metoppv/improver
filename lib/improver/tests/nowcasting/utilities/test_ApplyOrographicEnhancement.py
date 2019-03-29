@@ -46,8 +46,8 @@ MIN_PRECIP_RATE_MMH = ApplyOrographicEnhancement("add").min_precip_rate_mmh
 
 
 def set_up_precipitation_rate_cubelist():
-    """Create a cube with metadata and values suitable for
-    precipitation rate."""
+    """Create a cubelist containing cubes with metadata and values suitable
+    for precipitation rate."""
     data = np.array([[[0., 1., 2.],
                       [1., 2., 3.],
                       [0., 2., 2.]]], dtype=np.float32)
