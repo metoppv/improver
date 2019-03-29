@@ -424,8 +424,8 @@ class GeneratePercentilesFromProbabilities(object):
                 air_temperature at the required percentiles.
 
         """
-        threshold_coord = forecast_probabilities.coord("threshold")
-        threshold_unit = forecast_probabilities.coord("threshold").units
+        threshold_coord = find_threshold_coordinate(forecast_probabilities)
+        threshold_unit = threshold_coord.units
         threshold_points = threshold_coord.points
 
         # Ensure that the percentile dimension is first, so that the
@@ -550,12 +550,12 @@ class GeneratePercentilesFromProbabilities(object):
                 "Cannot specify both no_of_percentiles and percentiles to "
                 "GeneratePercentilesFromProbabilities")
 
+        threshold_coord = find_threshold_coordinate(forecast_probabilities)
         forecast_probabilities = concatenate_cubes(
             forecast_probabilities,
-            coords_to_slice_over="threshold",
+            coords_to_slice_over=threshold_coord,
             coordinates_for_association=[])
 
-        threshold_coord = forecast_probabilities.coord("threshold")
         phenom_name = (
             forecast_probabilities.name().replace(
                 "probability_of_", "").replace("_above_threshold", "").replace(
