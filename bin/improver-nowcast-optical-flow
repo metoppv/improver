@@ -39,7 +39,8 @@ import numpy as np
 import json
 
 from improver.argparser import ArgParser
-from improver.nowcasting.optical_flow import AdvectField, OpticalFlow
+from improver.nowcasting.optical_flow import OpticalFlow
+from improver.nowcasting.forecasting import AdvectField
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
 from improver.utilities.cube_manipulation import merge_cubes, strip_var_names
 from improver.utilities.filename import generate_file_name
