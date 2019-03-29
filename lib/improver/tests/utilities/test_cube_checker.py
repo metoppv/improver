@@ -44,10 +44,12 @@ from improver.utilities.cube_checker import (
     check_cube_coordinates,
     find_dimension_coordinate_mismatch,
     spatial_coords_match,
-    find_percentile_coordinate)
+    find_percentile_coordinate,
+    find_threshold_coordinate)
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube)
-from improver.tests.set_up_test_cubes import set_up_variable_cube
+from improver.tests.set_up_test_cubes import (
+    set_up_variable_cube, set_up_probability_cube)
 from improver.tests.wind_calculations.wind_gust_diagnostic.\
     test_WindGustDiagnostic import create_cube_with_percentile_coord
 
@@ -450,6 +452,57 @@ class Test_find_percentile_coordinate(IrisTest):
         cube.add_aux_coord(new_perc_coord)
         with self.assertRaisesRegex(ValueError, msg):
             find_percentile_coordinate(cube)
+
+
+class Test_find_threshold_coordinate(IrisTest):
+    """Test the find_threshold_coordinate function"""
+
+    def setUp(self):
+        """Set up test probability cubes with old and new threshold coordinate
+        naming conventions"""
+        data = np.ones((3, 3, 3), dtype=np.float32)
+        self.threshold_points = np.array([276, 277, 278], dtype=np.float32)
+        cube = set_up_probability_cube(data, self.threshold_points)
+
+        self.cube_old = cube.copy()  # TODO update these with setup utility
+        self.cube_new = cube.copy()
+        self.cube_new.coord("threshold").rename("air_temperature")
+        self.cube_new.coord("air_temperature").var_name = "threshold"
+
+    def test_basic(self):
+        """Test function returns an iris.coords.Coord"""
+        threshold_coord = find_threshold_coordinate(self.cube_new)
+        self.assertIsInstance(threshold_coord, iris.coords.Coord)
+
+    def test_old_convention(self):
+        """Test function recognises threshold coordinate with name "threshold"
+        """
+        threshold_coord = find_threshold_coordinate(self.cube_old)
+        self.assertEqual(threshold_coord.name(), "threshold")
+        self.assertArrayAlmostEqual(
+            threshold_coord.points, self.threshold_points)
+
+    def test_new_convention(self):
+        """Test function recognises threshold coordinate with standard
+        diagnostic name and "threshold" as var_name"""
+        threshold_coord = find_threshold_coordinate(self.cube_new)
+        self.assertEqual(threshold_coord.name(), "air_temperature")
+        self.assertEqual(threshold_coord.var_name, "threshold")
+        self.assertArrayAlmostEqual(
+            threshold_coord.points, self.threshold_points)
+
+    def test_fails_if_not_cube(self):
+        """Test error if given a non-cube argument"""
+        msg = "Expecting data to be an instance of iris.cube.Cube"
+        with self.assertRaisesRegex(TypeError, msg):
+            _ = find_threshold_coordinate([self.cube_new])
+
+    def test_fails_if_no_threshold_coord(self):
+        """Test error if no threshold coordinate is present"""
+        self.cube_new.coord("air_temperature").var_name = None
+        msg = "No threshold coord found"
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
+            _ = find_threshold_coordinate(self.cube_new)
 
 
 if __name__ == '__main__':
