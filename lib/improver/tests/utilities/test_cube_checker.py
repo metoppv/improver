@@ -495,14 +495,14 @@ class Test_find_threshold_coordinate(IrisTest):
         """Test error if given a non-cube argument"""
         msg = "Expecting data to be an instance of iris.cube.Cube"
         with self.assertRaisesRegex(TypeError, msg):
-            _ = find_threshold_coordinate([self.cube_new])
+            find_threshold_coordinate([self.cube_new])
 
     def test_fails_if_no_threshold_coord(self):
         """Test error if no threshold coordinate is present"""
         self.cube_new.coord("air_temperature").var_name = None
         msg = "No threshold coord found"
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            _ = find_threshold_coordinate(self.cube_new)
+            find_threshold_coordinate(self.cube_new)
 
 
 if __name__ == '__main__':
