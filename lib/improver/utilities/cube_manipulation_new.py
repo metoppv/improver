@@ -133,6 +133,7 @@ class ConcatenateCubes():
         if self.coords_to_associate is None and self.master_coord == "time":
             self.coords_to_associate = ["forecast_period"]
 
+        # List of attributes to remove silently if unmatched
         self.silent_attributes = ["history", "title", "mosg__grid_version"]
 
     def _associate_any_coordinate_with_master_coordinate(self, cube):
