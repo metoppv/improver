@@ -35,68 +35,38 @@ import numpy as np
 
 def choose(index_array, array_set):
     """
-    Construct an array from an index array and a set of arrays to choose from.
+    Create a reordered copy of a data array, where an index array of matching
+    shape determines how the data is reordered.
 
-    The index values specify which array to take the value from. For example,
-    if the function is provided with a list of 10 arrays, the index values
-    should range from 0-9. This function should be provided with a
-    multi-dimensional array and is not designed to accept a list of arrays,
-    which is the preferred input to numpy choose. The first dimension of the
-    multi-dimensional array will be treated as defining the sequence of
-    sub-arrays.
+    The reordered copy of the array will have the same shape as the inputs.
+    If a 3-dimensional array_set is provided, the data coordinates could be
+    described as A[i, j, k]. This function does not rerrange the j and k
+    coordinates. The reordered array is constructed by substituting into each
+    position [i, j, k] in the index_array a value taken from the array_set
+    at a matching [j, k] position, but where [i] is determined by the given
+    index value. As such the index values must run 0 - N-1 where N is the
+    length of the leading dimension of array_set (and equivalently of
+    index_array).
 
-    The shape of the index array, and where in that shape the array indices
-    are positioned will determine which data is extracted from the arrays. The
-    two arrays will be broadcast to a common shape if they do not match and
-    such a broadcasting operation is possible. If the input index_array shape
-    does not match the array_set shape, it is assumed that the indexing is for
-    the sub-arrays, not the complete array_set. The leading dimension in the
-    resulting extracted array is thus cut away such that the returned array
-    will have the same shape as the sub-arrays. If the input index_array has
-    the same number of dimensions as the array_set, the returned array will
-    have an equivalent number of dimensions (i.e. one more than the
-    sub-arrays).
-
-    The following figure gives some examples of the expected result of this
-    function when a series of index_arrays of differing shape and
-    dimensionality are used. The array_set is the same for each example,
-    shown down the left hand side; this array has the shape (3, 2, 2).
+    The following figure gives an examples of the expected result of this
+    function for a given index_array and array_set.
 
     .. figure:: extended_documentation/utilities/indexing_operations/
-       numpy_choose_example.png
+       numpy_choose_test1.png
+       :align: center
        :scale: 60 %
        :alt: Diagram to help explain indexing behaviour of choose.
 
-       The Array column gives the index in the outer most dimension of the
-       multi-dimensional input array (array_set). The Data column shows the
-       contents of the 3 sub-arrays that correspond to the given Array index.
-       The Indices examples are used to show which data would be returned
-       (Result) should the index_array be shaped in these various ways, with
-       these array index values. The colour coding is used to help make clear
-       how the shape of the index_array relates to the arrays within the
-       array_set.
-
-    The examples above demonstrate the application of choose with a series of
-    index_arrays of different dimensionality. In all but the last of these
-    cases the choose function will use broadcasting to construct an index array
-    that matches the shape of the sub-arrays from which data is being taken.
-    The figure below illustrates the results of this intermediate broadcasting
-    step.
-
-    .. figure:: extended_documentation/utilities/indexing_operations/
-       numpy_choose_broadcasting.png
-       :scale: 60 %
-       :alt: Diagram to help explain broadcasting behaviour of choose.
-
-       The form of the index_arrays after they have been broadcast to match the
-       sub-arrays from which values are being taken.
+       The input data array is reordered along the leading dimension (i),
+       but maintains its sub-array position (j, k), denoted here by the
+       different colours.
 
     Args:
         index_array (np.array of ints):
-            This array must contain integers in the range [0, n-1], where n is
-            the number of arrays in the array_set (equivalent to the length of
-            the leading dimension of array_set if it is a multi-dimensional
-            array rather than a list).
+            This array must contain integers in the range [0, N-1], where N is
+            if the length of the leading dimension of the array_set array.
+            These integers determine how array_set will be reordered in the
+            returned array.
         array_set (np.array):
             A multi-dimensional array, where the leading dimension is in effect
             an indexing dimension. Within this leading dimension are the
@@ -104,65 +74,30 @@ def choose(index_array, array_set):
             match those given in the index_array.
     Returns:
         result (np.array):
-            An array containing data extracted from the array_set. The returned
-            array will have the same shape as the sub-arrays unless the
-            index_array has dimensions equivalent to array_set. In this case
-            the returned array will have an equivalent number of dimensions
-            (i.e. one more than the sub-arrays).
+            An array containing the reordered data extracted from array_set.
+            The returned array will have the same shape as the index_array and
+            array_set arrays.
     Raises:
-        ValueError: If input arrays cannot be broadcast to a common shape.
-        IndexError: If dimensions are added to array_set during the
-                    broadcasting of arrays; this will prevent the later
-                    indexing from working as expected.
-        IndexError: If an index exceeds the number of available sub-arrays.
+        ValueError: If index_array and array_set do not have matching shapes.
+        IndexError: If an index exceeds the length of the leading dimension
+                    of the array_set array (N-1).
     """
-    # Used to correct array shape in output following intermediate broadcast.
-    index_array = np.array(index_array)
-    index_dims = index_array.ndim
-    trim_result = index_array.shape != array_set.shape
-
-    # Broadcast arrays to matching shape. This is included to replicate as much
-    # of the numpy choose functionality as possible.
-    try:
-        broadcast_arrays = np.broadcast_arrays(index_array, array_set)
-    except ValueError as err:
-        msg = '{}\nindex_array shape: {}\narray_set shape: {}'.format(
-            err, index_array.shape, array_set.shape)
+    if index_array.shape != array_set.shape:
+        msg = ("The choose function only works with an index_array that "
+               "matches the shape of array_set.\nindex_array shape: {}\n"
+               "array_set shape: {}".format(index_array.shape,
+                                            array_set.shape))
         raise ValueError(msg)
-
-    # numpy choose can handle the condition below, but we currently have no
-    # need to accommodate this behaviour, so we trap it and raise an error.
-    if broadcast_arrays[1].ndim > array_set.ndim:
-        msg = ('Dimensionality of array_set has increased which will prevent '
-               'indexing from working as expected.')
-        raise IndexError(msg)
-
-    index_array = broadcast_arrays[0]
-    array_set = broadcast_arrays[1]
-
-    # Use indexing to extract the requires values from the sub-arrays.
-    try:
-        result = np.array(
-            [array_set[index_array[I]][I[1:]]
-             for I in np.lib.index_tricks.ndindex(index_array.shape)]
-        ).reshape(index_array.shape)
-    except IndexError as err:
-        msg = ('{}\nindex_array contains an index that is larger than the '
+    if index_array.max() > array_set.shape[0] - 1:
+        msg = ('index_array contains an index that is larger than the '
                'number of sub-arrays from which data can be drawn.\nMax '
                'index: {}\nNumber of sub-arrays: {}'.format(
-                   err, index_array.max(), array_set.shape[0]))
+                   index_array.max(), array_set.shape[0]))
         raise IndexError(msg)
 
-    # If the index_array shape did not match the array_set shape, it is assumed
-    # that the indexing is for the sub-arrays, not the complete array_set. The
-    # leading dimension is thus cut away in the result.
-    if trim_result:
-        result = result[0]
-
-    # Add back any lost empty dimensions to ensure the returned array has the
-    # expected dimensionality.
-    dim_diff = index_dims - result.ndim
-    for _ in range(dim_diff):
-        result = np.expand_dims(result, 0)
+    result = np.array(
+        [array_set[index_array[I]][I[1:]]
+         for I in np.lib.index_tricks.ndindex(index_array.shape)]
+        ).reshape(index_array.shape)
 
     return result

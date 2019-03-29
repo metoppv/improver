@@ -47,124 +47,69 @@ class Test_choose(IrisTest):
         self.data = np.arange(132).reshape(33, 2, 2) + 1
         self.small_data = np.arange(12).reshape(3, 2, 2) + 1
 
-    def test_single_index(self):
-        """Test that an array of indices containing only one value returns the
-        expected values."""
-        index_array = [0]
-        expected = np.array([[1, 2], [3, 4]])
-        result = choose(index_array, self.data)
+    def test_3D_index_array_test1(self):
+        """Test that a 3D array of indices with a shape matching the data array
+        returns the expected values. Here values are taken from a mix of
+        sub-arrays. This example can be seen graphically in the documentation
+        for the choose function."""
+        index_array = np.array([[[0, 1], [1, 0]],
+                                [[0, 2], [0, 1]],
+                                [[1, 1], [2, 0]]])
+        expected = np.array([[[1, 6], [7, 4]],
+                             [[1, 10], [3, 8]],
+                             [[5, 6], [11, 4]]])
+        result = choose(index_array, self.small_data)
         self.assertArrayEqual(result, expected)
         self.assertEqual(result.shape, expected.shape)
 
-    def test_1D_index_array_columns(self):
-        """Test that a 1D array of indices returns the expected values."""
-        index_array = [0, 1]
-        expected = np.array([[1, 6], [3, 8]])
-        result = choose(index_array, self.data)
+    def test_3D_index_array_test2(self):
+        """Test that a 3D array of indices with a shape matching the data array
+        returns the expected values. Here the sub-arrays are rearranged as
+        complete units."""
+        index_array = np.array([[[1, 1], [1, 1]],
+                                [[2, 2], [2, 2]],
+                                [[0, 0], [0, 0]]])
+        expected = np.array([self.small_data[1],
+                             self.small_data[2],
+                             self.small_data[0]])
+        result = choose(index_array, self.small_data)
         self.assertArrayEqual(result, expected)
         self.assertEqual(result.shape, expected.shape)
 
-    def test_2D_index_array_rows_only(self):
-        """Test that a 2D array of indices, arranged as a single column,
-        returns the expected values."""
-        index_array = [[0], [1]]
-        expected = np.array([[1, 2], [7, 8]])
-        result = choose(index_array, self.data)
-        self.assertArrayEqual(result, expected)
-        self.assertEqual(result.shape, expected.shape)
-
-    def test_2D_index_array(self):
-        """Test that a 2D array of indices returns the expected values."""
-        index_array = [[0, 1], [1, 2]]
-        expected = np.array([[1, 6], [7, 12]])
-        result = choose(index_array, self.data)
-        self.assertArrayEqual(result, expected)
-        self.assertEqual(result.shape, expected.shape)
-
-    def test_3D_index_array(self):
-        """Test that a 3D array of indices returns the expected values. Note
-        that in this case there is an additional dimension in the returned
-        array as the index_array has as many dimensions as the data array."""
-        index_array = [[[0, 1], [1, 2]]]
-        expected = np.array([[[1, 6], [7, 12]]])
-        result = choose(index_array, self.data)
-        self.assertArrayEqual(result, expected)
-        self.assertEqual(result.shape, expected.shape)
-
-    def test_4D_index_array(self):
-        """Test that using an array of indices of higher dimesionality than the
-        data_array results in a sensible error."""
-        index_array = [[[[0, 1], [1, 2]]]]
-        msg = ("Dimensionality of array_set has increased which will prevent "
-               "indexing from working as expected.")
-        with self.assertRaisesRegex(IndexError, msg):
-            choose(index_array, self.data)
-
-    def test_utilising_indices_beyond_32(self):
+    def test_3D_index_array_utilising_indices_beyond_32(self):
         """An explicit test that this function is handling indices beyond 32.
         The numpy choose function does not support a data array with a leading
         dimension of longer than 32. Note that due to indexing from 0, an index
         of 32 here is for array 33, beyond numpy's limit."""
-        index_array = [32]
-        expected = np.array([[129, 130], [131, 132]])
+        index_array = np.ones(self.data.shape).astype(int)
+        expected = np.array([self.data[1]] * 33)
         result = choose(index_array, self.data)
         self.assertArrayEqual(result, expected)
         self.assertEqual(result.shape, expected.shape)
 
-    def test_numpy_choose_comparison_single_index(self):
-        """Test that an array of indices containing only one value returns the
-        same values and array shape as numpy choose."""
-        index_array = [0]
-        expected = np.choose(index_array, self.small_data)
-        result = choose(index_array, self.small_data)
-        self.assertArrayEqual(result, expected)
-        self.assertEqual(result.shape, expected.shape)
+    def test_numpy_choose_comparison_3D_index_array_test1(self):
+        """Test that a 3D array of indices with a shape matching the data array
+        returns the same result as numpy choose. Here values are taken from a
+        mix of sub-arrays."""
+        index_array = np.array([[[0, 1], [1, 0]],
+                                [[0, 2], [0, 1]],
+                                [[1, 1], [2, 0]]])
+        choose_result = choose(index_array, self.small_data)
+        npchoose_result = np.choose(index_array, self.small_data)
+        self.assertArrayEqual(choose_result, npchoose_result)
+        self.assertEqual(choose_result.shape, npchoose_result.shape)
 
-    def test_numpy_choose_comparison_1D_index_array_columns(self):
-        """Test that a 1D array of indices returns the same values and array
-        shape as numpy choose."""
-        index_array = [0, 1]
-        expected = np.choose(index_array, self.small_data)
-        result = choose(index_array, self.small_data)
-        self.assertArrayEqual(result, expected)
-        self.assertEqual(result.shape, expected.shape)
-
-    def test_numpy_choose_comparison_2D_index_array_rows_only(self):
-        """Test that a 2D array of indices, arranged as a single column,
-        returns the same values and array shape as numpy choose."""
-        index_array = [[0], [1]]
-        expected = np.choose(index_array, self.small_data)
-        result = choose(index_array, self.small_data)
-        self.assertArrayEqual(result, expected)
-        self.assertEqual(result.shape, expected.shape)
-
-    def test_numpy_choose_comparison_2D_index_array(self):
-        """Test that a 2D array of indices returns the same values and array
-        shape as numpy choose."""
-        index_array = [[0, 1], [1, 2]]
-        expected = np.choose(index_array, self.small_data)
-        result = choose(index_array, self.small_data)
-        self.assertArrayEqual(result, expected)
-        self.assertEqual(result.shape, expected.shape)
-
-    def test_numpy_choose_comparison_3D_index_array(self):
-        """Test that a 3D array of indices returns the same values and array
-        shape as numpy choose. Note that in this case there is an additional
-        dimension in the returned array as the index_array has as many
-        dimensions as the data array."""
-        index_array = [[[0, 1], [1, 2]]]
-        expected = np.array([[[1, 6], [7, 12]]])
-        result = choose(index_array, self.data)
-        self.assertArrayEqual(result, expected)
-        self.assertEqual(result.shape, expected.shape)
-
-    def test_unbroadcastable_shape_error(self):
-        """Test that a useful error is raised when the array of indices and the
-        data arrays cannot be broadcast to a common shape."""
-        index_array = [0, 1, 2]
-        msg = ("shape mismatch: objects cannot be broadcast to a single shape")
-        with self.assertRaisesRegex(ValueError, msg):
-            choose(index_array, self.small_data)
+    def test_numpy_choose_comparison_3D_index_array_test2(self):
+        """Test that a 3D array of indices with a shape matching the data array
+        returns the same result as numpy choose. Here the sub-arrays are
+        rearranged as complete units."""
+        index_array = np.array([[[1, 1], [1, 1]],
+                                [[2, 2], [2, 2]],
+                                [[0, 0], [0, 0]]])
+        choose_result = choose(index_array, self.small_data)
+        npchoose_result = np.choose(index_array, self.small_data)
+        self.assertArrayEqual(choose_result, npchoose_result)
+        self.assertEqual(choose_result.shape, npchoose_result.shape)
 
     def test_invalid_array_indices(self):
         """Test that a useful error is raised when the array that is indexed
@@ -173,7 +118,9 @@ class Test_choose(IrisTest):
         to a sensbile error. Note that the behaviour of this function is
         equivalent to numpy choose with mode=raise, there is no attempt to wrap
         or clip invalid index values."""
-        index_array = [0, 3]
+        index_array = np.array([[[0, 1], [1, 0]],
+                                [[0, 2], [0, 1]],
+                                [[3, 3], [3, 3]]])
         msg = 'index_array contains an index that is larger than the number'
         with self.assertRaisesRegex(IndexError, msg):
             choose(index_array, self.small_data)
