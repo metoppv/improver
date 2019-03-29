@@ -33,11 +33,9 @@
 
 import numpy as np
 
-from improver.argparser import ArgParser
-
-import iris
 from iris.exceptions import CoordinateNotFoundError
 
+from improver.argparser import ArgParser
 from improver.ensemble_calibration.ensemble_calibration import (
     EnsembleCalibration)
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
@@ -185,7 +183,7 @@ def main():
     try:
         find_percentile_coordinate(current_forecast)
         input_forecast_type = "percentiles"
-    except CoordinateNotFoundError as err:
+    except CoordinateNotFoundError:
         pass
     if input_forecast_type == "percentiles":
         if not args.num_realizations:
