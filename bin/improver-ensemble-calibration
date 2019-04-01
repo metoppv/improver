@@ -51,23 +51,7 @@ from improver.utilities.save import save_netcdf
 
 
 def main():
-    """Load in arguments for ensemble calibration. 3 sources of input data
-       must be provided: current forecast (to be calibrated) in the form of
-       realizations, probabilities, or percentiles, historical
-       forecasts in the form of realizations and historical truth data
-       (to use in calibration). The mean and variance output from the
-       EnsembleCalibration plugin can be written to an output file if required.
-
-       If the current forecast is supplied in the form of probabilities or
-       percentiles, these are converted to realizations prior to calibration.
-       After calibration, the mean and variance computed in the calibration
-       are converted to match the format of the current forecast i.e.
-       if realizations are input, realizations are output, if probabilities
-       are input, probabilities are output, and if percentiles are input,
-       percentiles are output.
-
-       If realizations are input, realizations are regenerated using Ensemble
-       Copula Coupling.
+    """Do ensemble calibration using the EnsembleCalibration plugin.
     """
     parser = ArgParser(
         description='Apply the requested ensemble calibration method using '

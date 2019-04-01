@@ -47,9 +47,18 @@ usage: improver-ensemble-calibration [-h] [--profile]
                                      INPUT_FILE HISTORIC_DATA_FILE
                                      TRUTH_DATA_FILE OUTPUT_FILE
 
-Apply the requested ensemble calibration method using historical forecast and
-"truth" data. Then apply ensemble copula coupling to regenerate ensemble
-realizations from output.
+Apply the requested ensemble calibration method using the current forecast (to
+be calibrated) in the form of realizations, probabilities, or percentiles,
+historical forecasts in the form of realizations and historical truth data (to
+use in calibration). The mean and variance output from the EnsembleCalibration
+plugin can be written to an output file if required. If the current forecast
+is supplied in the form of probabilities or percentiles, these are converted
+to realizations prior to calibration. After calibration, the mean and variance
+computed in the calibration are converted to match the format of the current
+forecast i.e. if realizations are input, realizations are output, if
+probabilities are input, probabilities are output, and if percentiles are
+input, percentiles are output.If realizations are input, realizations are
+regenerated using Ensemble Copula Coupling.
 
 positional arguments:
   ENSEMBLE_CALIBRATION_METHOD
@@ -65,9 +74,12 @@ positional arguments:
                         has to be supported by the minimisation functions in
                         ContinuousRankedProbabilityScoreMinimisers.
   INPUT_FILE            A path to an input NetCDF file containing the current
-                        forecast to be processed.
+                        forecast to be processed.The file provided could be in
+                        the form of realizations, probabilities or
+                        percentiles.
   HISTORIC_DATA_FILE    A path to an input NetCDF file containing the historic
-                        forecast(s) used for calibration.
+                        forecast(s) used for calibration.The file provided
+                        must be in the form of realizations.
   TRUTH_DATA_FILE       A path to an input NetCDF file containing the historic
                         truth analyses used for calibration.
   OUTPUT_FILE           The output path for the processed NetCDF
