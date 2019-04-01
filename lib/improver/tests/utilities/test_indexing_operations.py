@@ -125,6 +125,18 @@ class Test_choose(IrisTest):
         with self.assertRaisesRegex(IndexError, msg):
             choose(index_array, self.small_data)
 
+    def test_unmatched_array_shapes(self):
+        """Test that a useful error is raised when the index_array and
+        data_array have different shapes. This choose function provides only
+        a subset of the full numpy choose features, and one of its limitations
+        is to work only with arrays that match; there is no broadcasting."""
+        index_array = np.array([[[0, 1], [1, 0]],
+                                [[0, 2], [0, 1]]])
+        msg = ("The choose function only works with an index_array that "
+               "matches the shape of array_set.")
+        with self.assertRaisesRegex(ValueError, msg):
+            choose(index_array, self.small_data)
+
 
 if __name__ == '__main__':
     unittest.main()
