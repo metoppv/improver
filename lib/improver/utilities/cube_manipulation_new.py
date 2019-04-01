@@ -44,7 +44,7 @@ from improver.utilities.cube_checker import (
 
 def equalise_cube_attributes(cubes, silent=None):
     """
-    Function to remove attributes that do not match between all cubes on the
+    Function to remove attributes that do not match between all cubes in the
     list.  Cubes are modified in place.
 
     Args:
@@ -57,20 +57,20 @@ def equalise_cube_attributes(cubes, silent=None):
 
     Warns:
         UserWarning:
-            If an unmatched attribute is not on the "silent" list,
+            If an unmatched attribute is not in the "silent" list,
             a warning will be raised.
     """
+    if silent is None:
+        silent = []
     unmatched = compare_attributes(cubes)
     warning_msg = 'Deleting unmatched attribute {}, value {}'
     if len(unmatched) > 0:
         for i, cube in enumerate(cubes):
             for attr in unmatched[i]:
-                if silent is not None and attr in silent:
-                    cube.attributes.pop(attr)
-                else:
+                if attr not in silent:
                     warnings.warn(
                         warning_msg.format(attr, cube.attributes[attr]))
-                    cube.attributes.pop(attr)
+                cube.attributes.pop(attr)
 
 
 def strip_var_names(cubes):
@@ -147,14 +147,14 @@ class ConcatenateCubes():
 
         Args:
             cube (iris.cube.Cube):
-                Cube requiring addition of the specified coordinates as
-                auxiliary coordinates.
+                Cube requiring promotion of the specified coordinates to
+                auxiliary coordinates, to be associated with the master
+                coordinate dimension.
 
         Returns:
             cube (iris.cube.Cube):
-                Cube where the the requested coordinates have been added to the
-                cube as auxiliary coordinates and associated with the desired
-                master coordinate.
+                Cube where the the requested coordinates have been promoted to
+                auxiliary coordinates.
 
         Raises:
             ValueError: If the master coordinate is not present on the cube.
@@ -165,7 +165,7 @@ class ConcatenateCubes():
 
         # If the master_coord is not a dimension coordinate, then the other
         # coordinates cannot be associated with it.
-        if len(cube.coords(self.master_coord, dim_coords=True)) > 0:
+        if cube.coords(self.master_coord, dim_coords=True):
             for coord in coordinates:
                 if cube.coords(coord):
                     temp_coord = cube.coord(coord)
@@ -185,14 +185,16 @@ class ConcatenateCubes():
     @staticmethod
     def _slice_over_coordinate(cubes, coord_to_slice_over):
         """
-        Function slices over the requested coordinate and promotes the sliced
-        coordinate into a one-point dimension to help concatenation.
+        Function slices over the requested coordinate in each cube within a
+        cubelist. The sliced coordinate is promoted into a one-point dimension
+        to help concatenation. If the coord_to_slice_over is not found on a
+        cube, the cube is added to the list in its original form.
 
         Args:
             cubes (iris.cube.Cube or iris.cube.CubeList):
                 Cubes to be concatenated.
-            coord_to_slice_over (list):
-                Coordinate to slice over.
+            coord_to_slice_over (str or iris.coords.Coord):
+                Coordinate instance or name of coordinate to slice over.
 
         Returns:
             sliced_by_coord_cubelist (iris.cube.CubeList):
@@ -215,7 +217,11 @@ class ConcatenateCubes():
 
     def process(self, cubes_in):
         """
-        Concatenate cubes
+        Processes a list of cubes to ensure compatibility before calling the
+        iris.cube.CubeList.concatenate_cube() method. Removes mismatched
+        attributes, strips var_names from the cube and coordinates, and slices
+        over any requested dimensions to avoid coordinate mismatch errors (eg
+        for concatenating cubes with differently numbered realizations).
 
         Args:
             cubes_in (iris.cube.CubeList):
