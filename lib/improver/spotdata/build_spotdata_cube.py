@@ -56,7 +56,8 @@ def build_spotdata_cube(data, name, units,
     neighbour.
 
     .. See the documentation for examples of these cubes.
-    .. include:: extended_documentation/build_spotdata_cube_examples.rst
+    .. include:: extended_documentation/spotdata/build_spotdata_cube/
+       build_spotdata_cube_examples.rst
 
     Args:
         data (float or np.ndarray):

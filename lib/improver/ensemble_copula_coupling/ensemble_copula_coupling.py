@@ -53,6 +53,7 @@ from improver.utilities.cube_manipulation import (
 from improver.utilities.cube_checker import (
     find_percentile_coordinate, check_for_x_and_y_axes,
     check_cube_coordinates)
+from improver.utilities.indexing_operations import choose
 
 
 class RebadgePercentilesAsRealizations(object):
@@ -558,7 +559,7 @@ class GeneratePercentilesFromProbabilities(object):
         phenom_name = (
             forecast_probabilities.name().replace(
                 "probability_of_", "").replace("_above_threshold", "").replace(
-                "_below_threshold", ""))
+                    "_below_threshold", ""))
 
         if no_of_percentiles is None:
             no_of_percentiles = (
@@ -1021,8 +1022,12 @@ class EnsembleReordering(object):
                 # Returns the indices that would sort the array.
                 ranking = np.argsort(sorting_index, axis=0)
             # Index the post-processed forecast data using the ranking array.
-            # np.choose allows indexing of a 3d array using a 3d array,
-            calfc.data = np.choose(ranking, calfc.data)
+            # The following uses a custom choose function that reproduces the
+            # required elements of the np.choose method without the limitation
+            # of having < 32 arrays or a leading dimension < 32 in the
+            # input data array. This function allows indexing of a 3d array
+            # using a 3d array.
+            calfc.data = choose(ranking, calfc.data)
             results.append(calfc)
         # Ensure we haven't lost any dimensional coordinates with only one
         # value in.
