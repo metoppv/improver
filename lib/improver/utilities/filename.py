@@ -33,13 +33,18 @@
 from iris.exceptions import CoordinateNotFoundError
 
 
-def generate_file_name(cube, parameter=None):
+def generate_file_name(cube, parameter=None, include_period=False):
     """
     From a forecast cube, generate an IMPROVER-suitable file name using the
-    correct lead time.  Based on existing StaGE functionality.  Requires a
-    "time" coordinate.  If the cube has no "forecast_period" coordinate (for
+    correct lead time. Based on existing StaGE functionality. Requires a
+    "time" coordinate. If the cube has no "forecast_period" coordinate (for
     example if the input is a radar composite or other observation), this
     function creates a dummy string representing a forecast period of zero.
+
+    The filename generated will be of the format:
+    20180806T2300Z-PT0012H00M-lwe_precip_rate.nc.
+    If a period is included, the filename will become:
+    20180806T2300Z-PT0012H00M-lwe_precip_accumulation-PT03H.nc
 
     Args:
         cube (iris.cube.Cube):
@@ -49,6 +54,9 @@ def generate_file_name(cube, parameter=None):
         parameter (str):
             Optional parameter name to use in the output filename rather than
             taking the name of the cube diagnostic.
+        include_period (bool):
+            Keyword argument to indicate whether a period, accumulation or
+            time window identifier should be included within the filename.
 
     Returns:
         filename (str):
@@ -81,7 +89,28 @@ def generate_file_name(cube, parameter=None):
             parameter = parameter.replace(char, '')
         parameter = parameter.replace('__', '_')
 
-    filename = '{}-{}-{}.nc'.format(
-        validity_time_string, forecast_period_string, parameter)
+    if include_period:
+        for coord_name in ["time", "forecast_period"]:
+            if cube.coords(coord_name):
+                coord = cube.coords(name)
+                break
+        forecast_period_coord = cube.coord('forecast_period').copy()
+        forecast_period_coord.convert_units('s')
+        bounds_diff = coord.bounds[1] - coord.bounds[0]
+        bounds_diff_hours = int(bounds_diff // 3600)
+        bounds_diff_minutes = int(
+            (bounds - 3600*bounds_diff_hours)) // 60
+        if bounds_diff_minutes:
+            period_string = 'PT{:02}M'.format(forecast_period_minutes)
+        else:
+            period_string = 'PT{:04}H'.format(forecast_period_hours)
+
+    if include_period:
+        filename = '{}-{}-{}-{}.nc'.format(
+            validity_time_string, forecast_period_string, parameter,
+            period_string)
+    else:
+        filename = '{}-{}-{}.nc'.format(
+            validity_time_string, forecast_period_string, parameter)
 
     return filename
