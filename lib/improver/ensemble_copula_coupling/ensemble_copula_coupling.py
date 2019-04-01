@@ -707,6 +707,8 @@ class GeneratePercentilesFromMeanAndVariance(object):
                 Cube containing the calibrated forecast predictor.
             calibrated_forecast_variance (iris.cube.Cube):
                 CubeList containing the calibrated forecast variance.
+
+        Kwargs:
             no_of_percentiles (int):
                 Integer defining the number of percentiles that will be
                 calculated from the mean and variance.
@@ -718,6 +720,11 @@ class GeneratePercentilesFromMeanAndVariance(object):
             calibrated_forecast_percentiles (iris.cube.Cube):
                 Cube for calibrated percentiles.
                 The percentile coordinate is always the zeroth dimension.
+
+        Raises:
+            ValueError: Ensure that it is not possible to supply
+                "no_of_percentiles" and "percentiles" simultaneously
+                as keyword arguments.
 
         """
         if no_of_percentiles and percentiles:
