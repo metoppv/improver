@@ -341,33 +341,18 @@ class NowcastLightning(object):
         for cube_slice in prob_lightning_cube.slices_over('time'):
             this_time = iris_time_to_datetime(
                 cube_slice.coord('time').copy())[0]
-
-            if precip_threshold_coord.name() == 'threshold':
-                this_precip = prob_precip_cube.extract(
-                    iris.Constraint(time=this_time) &
-                    iris.Constraint(threshold=lambda t: isclose(t.point, 0.5)))
-                high_precip = prob_precip_cube.extract(
-                    iris.Constraint(time=this_time) &
-                    iris.Constraint(threshold=lambda t: isclose(t.point, 7.)))
-                torr_precip = prob_precip_cube.extract(
-                    iris.Constraint(time=this_time) &
-                    iris.Constraint(threshold=lambda t: isclose(t.point, 35.)))
-            else:
-                this_precip = prob_precip_cube.extract(
-                    iris.Constraint(time=this_time) &
-                    iris.Constraint(
-                        lwe_precipitation_rate=lambda t: isclose(
-                            t.point, 0.5)))
-                high_precip = prob_precip_cube.extract(
-                    iris.Constraint(time=this_time) &
-                    iris.Constraint(
-                        lwe_precipitation_rate=lambda t: isclose(t.point, 7.)))
-                torr_precip = prob_precip_cube.extract(
-                    iris.Constraint(time=this_time) &
-                    iris.Constraint(
-                        lwe_precipitation_rate=lambda t: isclose(
-                            t.point, 35.)))
-
+            this_precip = prob_precip_cube.extract(
+                iris.Constraint(time=this_time) &
+                iris.Constraint(coord_values={
+                    precip_threshold_coord: lambda t: isclose(t.point, 0.5)}))
+            high_precip = prob_precip_cube.extract(
+                iris.Constraint(time=this_time) &
+                iris.Constraint(coord_values={
+                    precip_threshold_coord: lambda t: isclose(t.point, 7.)}))
+            torr_precip = prob_precip_cube.extract(
+                iris.Constraint(time=this_time) &
+                iris.Constraint(coord_values={
+                    precip_threshold_coord: lambda t: isclose(t.point, 35.)}))
             err_string = "No matching {} cube for {}"
             if not isinstance(this_precip, iris.cube.Cube):
                 raise ConstraintMismatchError(
@@ -438,16 +423,10 @@ class NowcastLightning(object):
             fcmins = cube_slice.coord('forecast_period').points[0]
             for threshold, prob_max in zip(self.ice_thresholds,
                                            self.ice_scaling):
-                if ice_threshold_coord.name() == "threshold":
-                    ice_slice = ice_cube.extract(
-                        iris.Constraint(
-                            threshold=lambda t: isclose(t.point, threshold)))
-                else:
-                    ice_slice = ice_cube.extract(
-                        iris.Constraint(
-                            vertical_integral_of_ice=lambda t: isclose(
-                                t.point, threshold)))
-
+                ice_slice = ice_cube.extract(
+                    iris.Constraint(coord_values={
+                        ice_threshold_coord: lambda t: isclose(
+                            t.point, threshold)}))
                 if not isinstance(ice_slice, iris.cube.Cube):
                     raise ConstraintMismatchError(err_string.format(threshold))
                 # Linearly reduce impact of ice as fcmins increases to 2H30M.
@@ -509,14 +488,9 @@ class NowcastLightning(object):
             prob_vii_cube = prob_vii_cube.merge_cube()
         precip_threshold_coord = find_threshold_coordinate(prob_precip_cube)
         precip_threshold_coord.convert_units('mm hr-1')
-        if precip_threshold_coord.name() == "threshold":
-            precip_slice = prob_precip_cube.extract(
-                iris.Constraint(threshold=lambda t: isclose(t.point, 0.5)))
-        else:
-            precip_slice = prob_precip_cube.extract(
-                iris.Constraint(
-                    lwe_precipitation_rate=lambda t: isclose(t.point, 0.5)))
-
+        precip_slice = prob_precip_cube.extract(
+            iris.Constraint(coord_values={
+                precip_threshold_coord: lambda t: isclose(t.point, 0.5)}))
         if not isinstance(precip_slice, iris.cube.Cube):
             raise ConstraintMismatchError(
                 "Cannot find prob(precip > 0.5 mm hr-1) cube in cubelist.")
