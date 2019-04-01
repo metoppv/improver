@@ -52,18 +52,39 @@ from improver.utilities.save import save_netcdf
 
 def main():
     """Load in arguments for ensemble calibration. 3 sources of input data
-       must be provided: current forecast (to be calibrated), historical
-       forecasts and historical truth data (to use in calibration). Output from
-       EnsembleCalibration plugin can be written to file if required.
+       must be provided: current forecast (to be calibrated) in the form of
+       realizations, probabilities, or percentiles, historical
+       forecasts in the form of realizations and historical truth data
+       (to use in calibration). The mean and variance output from the
+       EnsembleCalibration plugin can be written to an output file if required.
 
-       The mean and variance calculated by this plugin are passed to
-       GeneratePercentilesFromMeanAndVariance and EnsembleReordering plugins
-       to regenerate realizations.
+       If the current forecast is supplied in the form of probabilities or
+       percentiles, these are converted to realizations prior to calibration.
+       After calibration, the mean and variance computed in the calibration
+       are converted to match the format of the current forecast i.e.
+       if realizations are input, realizations are output, if probabilities
+       are input, probabilities are output, and if percentiles are input,
+       percentiles are output.
+
+       If realizations are input, realizations are regenerated using Ensemble
+       Copula Coupling.
     """
     parser = ArgParser(
         description='Apply the requested ensemble calibration method using '
-        'historical forecast and "truth" data. Then apply ensemble '
-        'copula coupling to regenerate ensemble realizations from output.')
+        'the current forecast (to be calibrated) in the form of '
+        'realizations, probabilities, or percentiles, historical '
+        'forecasts in the form of realizations and historical truth data '
+        '(to use in calibration). The mean and variance output from the '
+        'EnsembleCalibration plugin can be written to an output file '
+        'if required. If the current forecast is supplied in the form of '
+        'probabilities or percentiles, these are converted to realizations '
+        'prior to calibration. After calibration, the mean and variance '
+        'computed in the calibration are converted to match the format of the '
+        'current forecast i.e. if realizations are input, realizations '
+        'are output, if probabilities are input, probabilities are output, '
+        'and if percentiles are input, percentiles are output.'
+        'If realizations are input, realizations are regenerated using '
+        'Ensemble Copula Coupling.')
     # Arguments for EnsembleCalibration
     parser.add_argument('calibration_method',
                         metavar='ENSEMBLE_CALIBRATION_METHOD',
@@ -87,10 +108,14 @@ def main():
     # Filepaths for current, historic and truth data.
     parser.add_argument('input_filepath', metavar='INPUT_FILE',
                         help='A path to an input NetCDF file containing the '
-                             'current forecast to be processed.')
+                             'current forecast to be processed.'
+                             'The file provided could be in the form of '
+                             'realizations, probabilities or percentiles.')
     parser.add_argument('historic_filepath', metavar='HISTORIC_DATA_FILE',
                         help='A path to an input NetCDF file containing the '
-                             'historic forecast(s) used for calibration.')
+                             'historic forecast(s) used for calibration.'
+                             'The file provided must be in the form of '
+                             'realizations.')
     parser.add_argument('truth_filepath', metavar='TRUTH_DATA_FILE',
                         help='A path to an input NetCDF file containing the '
                              'historic truth analyses used for calibration.')
@@ -211,9 +236,9 @@ def main():
 
     # If required, save the mean and variance.
     if args.save_mean:
-        save_netcdf(forecast_predictor.copy(), args.save_mean)
+        save_netcdf(forecast_predictor, args.save_mean)
     if args.save_variance:
-        save_netcdf(forecast_variance.copy(), args.save_variance)
+        save_netcdf(forecast_variance, args.save_variance)
 
     # If input forecast is probabilities, convert output into probabilities.
     # If input forecast is percentiles, convert output into percentiles.
