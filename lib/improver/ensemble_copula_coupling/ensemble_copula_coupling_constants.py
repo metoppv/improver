@@ -62,8 +62,8 @@ BOUNDS_FOR_ECDF = {
     ("cloud_area_fraction_assuming_only_consider_surface_to_1000_" +
      "feet_asl"): Bounds((0, 1.0), "1"),
     "low_type_cloud_area_fraction": Bounds((0, 1.0), "1"),
-    "precipitation_rate": Bounds((0, 128.0), "mm h-1"),
-    "precipitation_rate_in_vicinity": Bounds((0, 128.0), "mm h-1"),
+    "lwe_precipitation_rate": Bounds((0, 128.0), "mm h-1"),
+    "lwe_precipitation_rate_in_vicinity": Bounds((0, 128.0), "mm h-1"),
     "rainfall_rate": Bounds((0, 128.0), "mm h-1"),
     "rainfall_rate_in_vicinity": Bounds((0, 128.0), "mm h-1"),
     "relative_humidity": Bounds((0, 1.2), "1"),
