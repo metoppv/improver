@@ -47,7 +47,7 @@ class Test_generate_file_name(IrisTest):
     def setUp(self):
         """Set up dummy cube"""
         data = np.zeros((3, 3), dtype=np.float32)
-        self.cube = set_up_variable_cube(
+        self.cube15m = set_up_variable_cube(
             data, name="air_temperature", units="degreesC",
             spatial_grid="equalarea", time=datetime(2015, 11, 19, 0, 30),
             frt=datetime(2015, 11, 19, 0, 15),
@@ -70,54 +70,55 @@ class Test_generate_file_name(IrisTest):
 
     def test_basic(self):
         """Test basic file name generation"""
-        name = generate_file_name(self.cube)
+        name = generate_file_name(self.cube15m)
         self.assertIsInstance(name, str)
         self.assertEqual(name, "20151119T0030Z-PT0000H15M-air_temperature.nc")
 
     def test_input_cube_unmodified(self):
         """Test the function does not modify the input cube"""
-        reference_cube = self.cube.copy()
-        _ = generate_file_name(self.cube)
-        self.assertArrayAlmostEqual(self.cube.data, reference_cube.data)
-        self.assertEqual(self.cube.metadata, reference_cube.metadata)
+        reference_cube = self.cube15m.copy()
+        _ = generate_file_name(self.cube15m)
+        self.assertArrayAlmostEqual(self.cube15m.data, reference_cube.data)
+        self.assertEqual(self.cube15m.metadata, reference_cube.metadata)
 
     def test_longer_lead_time(self):
         """Test with lead time > 1 hr"""
-        self.cube.coord("forecast_period").points = (
+        self.cube15m.coord("forecast_period").points = (
             np.array([75*60], dtype=np.int32))
-        name = generate_file_name(self.cube)
+        name = generate_file_name(self.cube15m)
         self.assertEqual(name, "20151119T0030Z-PT0001H15M-air_temperature.nc")
 
     def test_missing_lead_time(self):
         """Test with missing lead time"""
-        self.cube.remove_coord("forecast_period")
-        name = generate_file_name(self.cube)
+        self.cube15m.remove_coord("forecast_period")
+        name = generate_file_name(self.cube15m)
         self.assertEqual(name, "20151119T0030Z-PT0000H00M-air_temperature.nc")
 
     def test_missing_time(self):
         """Test error is raised if "time" coordinate is missing"""
-        self.cube.remove_coord("time")
+        self.cube15m.remove_coord("time")
         with self.assertRaises(CoordinateNotFoundError):
-            _ = generate_file_name(self.cube)
+            _ = generate_file_name(self.cube15m)
 
     def test_funny_cube_name(self):
         """Test cube names are correctly parsed to remove spaces, brackets,
         slashes, parentheses and uppercase letters"""
-        self.cube.rename("Rainfall rate / (Composite)")
-        name = generate_file_name(self.cube)
+        self.cube15m.rename("Rainfall rate / (Composite)")
+        name = generate_file_name(self.cube15m)
         self.assertEqual(
             name, "20151119T0030Z-PT0000H15M-rainfall_rate_composite.nc")
 
     def test_parameter_name(self):
         """Test basic file name generation"""
-        name = generate_file_name(self.cube, parameter='another_temperature')
+        name = generate_file_name(
+            self.cube15m, parameter='another_temperature')
         self.assertEqual(
             name, "20151119T0030Z-PT0000H15M-another_temperature.nc")
 
     def test_time_period_in_hours_from_forecast_period(self):
         """Test including a period within the filename when the period
         is in hours and deduced from the forecast_period coordinate."""
-        self.cube.coord("time").bounds = None
+        self.cube1h.coord("time").bounds = None
         name = generate_file_name(self.cube1h, include_period=True)
         self.assertIsInstance(name, str)
         self.assertEqual(
@@ -135,8 +136,8 @@ class Test_generate_file_name(IrisTest):
     def test_time_period_in_minutes_from_forecast_period(self):
         """Test including a period within the filename when the period
         is in minutes and deduced from the forecast_period coordinate."""
-        self.cube.coord("time").bounds = None
-        name = generate_file_name(self.cube, include_period=True)
+        self.cube15m.coord("time").bounds = None
+        name = generate_file_name(self.cube15m, include_period=True)
         self.assertIsInstance(name, str)
         self.assertEqual(
             name, "20151119T0030Z-PT0000H15M-air_temperature-PT15M.nc")
@@ -144,8 +145,8 @@ class Test_generate_file_name(IrisTest):
     def test_time_period_in_minutes_from_time(self):
         """Test including a period within the filename when the period is in
         minutes and deduced from the time coordinate."""
-        self.cube.coord("forecast_period").bounds = None
-        name = generate_file_name(self.cube, include_period=True)
+        self.cube15m.coord("forecast_period").bounds = None
+        name = generate_file_name(self.cube15m, include_period=True)
         self.assertIsInstance(name, str)
         self.assertEqual(
             name, "20151119T0030Z-PT0000H15M-air_temperature-PT15M.nc")
