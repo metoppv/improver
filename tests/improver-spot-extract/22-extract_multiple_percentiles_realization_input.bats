@@ -39,7 +39,7 @@
   run improver spot-extract \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/all_methods_uk.nc" \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/enukx_temperature_realizations.nc" \
-      "$TEST_DIR/output.nc" --extract_percentile 25 50 75
+      "$TEST_DIR/output.nc" --extract_percentiles 25 50 75
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

@@ -38,7 +38,7 @@
   run improver spot-extract \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/all_methods_uk.nc" \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/enukx_temperature_percentiles.nc" \
-      "$TEST_DIR/output.nc" --extract_percentile 45
+      "$TEST_DIR/output.nc" --extract_percentiles 45
   echo "status = ${status}"
   [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true

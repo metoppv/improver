@@ -92,17 +92,19 @@ def main():
 
     percentile_group = parser.add_argument_group(
         title="Extract percentiles",
-        description="Extract particular percentiles from probabilistic "
-        "or realization inputs. If deterministic input is provided a warning "
-        "is raised and all leading dimensions are included in the returned "
-        "spot-data cube.")
+        description="Extract particular percentiles from probabilistic, "
+        "percentile, or realization inputs. If deterministic input is "
+        "provided a warning is raised and all leading dimensions are included "
+        "in the returned spot-data cube.")
     percentile_group.add_argument(
-        "--extract_percentile", default=None, nargs='+', type=int,
+        "--extract_percentiles", default=None, nargs='+', type=int,
         help="If set to a percentile value or a list of percentile values, "
         "data corresponding to those percentiles will be returned. For "
-        "example setting '--extract_percentile 50' will result in the "
-        "50th percentile (median) values being returned from a cube of "
-        "probabilities or percentiles.")
+        "example setting '--extract_percentiles 25 50 75' will result in the "
+        "25th, 50th, and 75th percentiles being returned from a cube of "
+        "probabilities, percentiles, or realizations. Note that for "
+        "percentile inputs, the desired percentile(s) must exist in the input "
+        "cube.")
     parser.add_argument(
         "--ecc_bounds_warning", default=False, action="store_true",
         help="If True, where calculated percentiles are outside the ECC "
@@ -157,20 +159,20 @@ def main():
     # the given percentile if available. This is done after the spot-extraction
     # to minimise processing time; usually there are far fewer spot sites than
     # grid points.
-    if args.extract_percentile:
+    if args.extract_percentiles:
         try:
             perc_coordinate = find_percentile_coordinate(result)
         except CoordinateNotFoundError:
             if 'probability_of_' in result.name():
                 result = GeneratePercentilesFromProbabilities(
                     ecc_bounds_warning=args.ecc_bounds_warning).process(
-                        result, percentiles=args.extract_percentile)
+                        result, percentiles=args.extract_percentiles)
                 result = iris.util.squeeze(result)
             elif result.coords('realization', dim_coords=True):
                 fast_percentile_method = (
                     False if np.ma.isMaskedArray(result.data) else True)
                 result = PercentileConverter(
-                    'realization', percentiles=args.extract_percentile,
+                    'realization', percentiles=args.extract_percentiles,
                     fast_percentile_method=fast_percentile_method).process(
                         result)
                 # This ensures the output for percentiles derived from
@@ -183,19 +185,19 @@ def main():
                        'The {} percentile could not be extracted. Extracting '
                        'data from the cube including any leading '
                        'dimensions.'.format(
-                           args.extract_percentile))
+                           args.extract_percentiles))
                 if not args.suppress_warnings:
                     warnings.warn(msg)
         else:
             constraint = ['{}={}'.format(perc_coordinate.name(),
-                                         args.extract_percentile)]
+                                         args.extract_percentiles)]
             perc_result = extract_subcube(result, constraint)
             if perc_result is not None:
                 result = perc_result
             else:
                 msg = ('The percentile diagnostic cube does not contain the '
                        'requested percentile value. Requested {}, available '
-                       '{}'.format(args.extract_percentile,
+                       '{}'.format(args.extract_percentiles,
                                    perc_coordinate.points))
                 raise ValueError(msg)
 

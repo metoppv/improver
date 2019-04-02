@@ -35,7 +35,7 @@
   read -d '' expected <<'__TEXT__' || true
 usage: improver-spot-extract [-h] [--profile] [--profile_file PROFILE_FILE]
                              [--land_constraint] [--minimum_dz]
-                             [--extract_percentile EXTRACT_PERCENTILE [EXTRACT_PERCENTILE ...]]
+                             [--extract_percentiles EXTRACT_PERCENTILES [EXTRACT_PERCENTILES ...]]
                              [--ecc_bounds_warning]
                              [--temperature_lapse_rate_filepath TEMPERATURE_LAPSE_RATE_FILEPATH]
                              [--grid_metadata_identifier GRID_METADATA_IDENTIFIER]
