@@ -133,6 +133,16 @@ class ConcatenateCubes():
         if self.coords_to_associate is None and self.master_coord == "time":
             self.coords_to_associate = ["forecast_period"]
 
+        # Check for dangerous coordinate associations
+        associated_coords = self.coords_to_associate.copy()
+        associated_coords.append(self.master_coord)
+        if ("time" in associated_coords and
+                "forecast_period" in associated_coords and
+                "forecast_reference_time" in associated_coords):
+            msg = ("Time, forecast period and forecast reference time "
+                   "cannot all be associated with a single dimension")
+            raise ValueError(msg)
+
         # List of attributes to remove silently if unmatched
         self.silent_attributes = ["history", "title", "mosg__grid_version"]
 

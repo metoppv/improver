@@ -86,6 +86,16 @@ class Test__init__(IrisTest):
         self.assertSequenceEqual(
             plugin.coords_to_slice_over, ["realization"])
 
+    def test_fails_unphysical_associations(self):
+        """Test the plugin will not accept time, forecast period and forecast
+        reference time (which describe a two-dimensional space) as all
+        associated with the same dimension"""
+        msg = "cannot all be associated with a single dimension"
+        with self.assertRaisesRegex(ValueError, msg):
+            ConcatenateCubes(
+                "time", coords_to_associate=[
+                    "forecast_period", "forecast_reference_time"])
+
 
 class Test__associate_any_coordinate_with_master_coordinate(IrisTest):
     """Test the _associate_any_coordinate_with_master_coordinate method"""
@@ -195,6 +205,7 @@ class Test_process(IrisTest):
             self.later_cube.coord("time").points + 3*3600)
         self.later_cube.coord("forecast_period").points = (
             self.later_cube.coord("forecast_period").points + 3*3600)
+        self.cubelist = iris.cube.CubeList([self.cube, self.later_cube])
 
     def test_basic(self):
         """Test that the utility returns an iris.cube.Cube."""
@@ -226,9 +237,7 @@ class Test_process(IrisTest):
         """
         data = self.cube.data.copy()
         expected_result = np.vstack([data, data])
-
-        cubelist = iris.cube.CubeList([self.cube, self.later_cube])
-        result = self.plugin.process(cubelist)
+        result = self.plugin.process(self.cubelist)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(expected_result, result.data)
 
@@ -294,9 +303,7 @@ class Test_process(IrisTest):
             self.cube.coord("forecast_period").points[0],
             self.later_cube.coord("forecast_period").points[0]]
 
-        cubelist = iris.cube.CubeList([self.cube, self.later_cube])
-
-        result = plugin.process(cubelist)
+        result = plugin.process(self.cubelist)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
             result.coord("time").points, expected_time_points)
@@ -310,8 +317,7 @@ class Test_process(IrisTest):
         realizations is passed in as the input.
         """
         plugin = ConcatenateCubes("time", coords_to_slice_over=["realization"])
-        cubelist = iris.cube.CubeList([self.cube, self.later_cube])
-        result = plugin.process(cubelist)
+        result = plugin.process(self.cubelist)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
             result.coord("realization").points, [0, 1, 2])
