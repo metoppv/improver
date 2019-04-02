@@ -33,10 +33,7 @@
 from datetime import datetime
 import unittest
 import numpy as np
-from cf_units import Unit
 
-import iris
-from iris.coords import DimCoord, AuxCoord
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 

@@ -111,16 +111,15 @@ def generate_file_name(cube, parameter=None, include_period=False):
             (bounds_diff - 3600*bounds_diff_hours)) // 60
         if bounds_diff_minutes:
             if bounds_diff_hours:
-                msg = ("If the difference between the bounds of the {} " 
+                msg = ("If the difference between the bounds of the {} "
                        "coordinate should either be less than one hour "
                        "or should in terms of whole hours."
                        "Differences in the hours of {} and in the minutes "
                        "of {} is not supported.".format(
-                            coord_name, bounds_diff_hours,
-                            bounds_diff_minutes))
+                           coord_name, bounds_diff_hours,
+                           bounds_diff_minutes))
                 raise ValueError(msg)
-            else:
-                period_string = 'PT{:02}M'.format(forecast_period_minutes)
+            period_string = 'PT{:02}M'.format(forecast_period_minutes)
         else:
             period_string = 'PT{:02}H'.format(forecast_period_hours)
 
