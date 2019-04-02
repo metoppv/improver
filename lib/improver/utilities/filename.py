@@ -89,22 +89,43 @@ def generate_file_name(cube, parameter=None, include_period=False):
             parameter = parameter.replace(char, '')
         parameter = parameter.replace('__', '_')
 
+    period_string = None
     if include_period:
-        for coord_name in ["time", "forecast_period"]:
+        coord_units = {"forecast_period": "seconds",
+                       "time": "seconds since 1970-01-01 00:00:00"}
+        for coord_name in ["forecast_period", "time"]:
             if cube.coords(coord_name):
-                coord = cube.coords(name)
-                break
-        forecast_period_coord = cube.coord('forecast_period').copy()
-        forecast_period_coord.convert_units('s')
-        bounds_diff = coord.bounds[1] - coord.bounds[0]
+                coord = cube.coord(coord_name).copy()
+                if hasattr(coord, "bounds") and coord.bounds is not None:
+                    coord.convert_units(coord_units[coord_name])
+                    break
+        else:
+            msg = ("Neither the forecast_period coordinate nor the time "
+                   "coordinate has bounds. Therefore the period required "
+                   "for the filename could not be calculated.")
+            raise ValueError(msg)
+
+        bounds_diff = coord.bounds[0][1] - coord.bounds[0][0]
         bounds_diff_hours = int(bounds_diff // 3600)
         bounds_diff_minutes = int(
-            (bounds - 3600*bounds_diff_hours)) // 60
+            (bounds_diff - 3600*bounds_diff_hours)) // 60
         if bounds_diff_minutes:
-            period_string = 'PT{:02}M'.format(forecast_period_minutes)
+            if bounds_diff_hours:
+                msg = ("If the difference between the bounds of the {} " 
+                       "coordinate should either be less than one hour "
+                       "or should in terms of whole hours."
+                       "Differences in the hours of {} and in the minutes "
+                       "of {} is not supported.".format(
+                            coord_name, bounds_diff_hours,
+                            bounds_diff_minutes))
+                raise ValueError(msg)
+            else:
+                period_string = 'PT{:02}M'.format(forecast_period_minutes)
         else:
-            period_string = 'PT{:04}H'.format(forecast_period_hours)
+            period_string = 'PT{:02}H'.format(forecast_period_hours)
 
+    # Construct filename with or without an additional string to describe the
+    # accumulation period or time window of relevance.
     if include_period:
         filename = '{}-{}-{}-{}.nc'.format(
             validity_time_string, forecast_period_string, parameter,

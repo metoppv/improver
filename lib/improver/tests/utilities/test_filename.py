@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for file name generation."""
 
+from datetime import datetime
 import unittest
 import numpy as np
 from cf_units import Unit
@@ -39,6 +40,7 @@ from iris.coords import DimCoord, AuxCoord
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.filename import generate_file_name
 
 
@@ -47,23 +49,27 @@ class Test_generate_file_name(IrisTest):
 
     def setUp(self):
         """Set up dummy cube"""
-        x_coord = DimCoord(np.arange(3), "projection_x_coordinate", units="km")
-        y_coord = DimCoord(np.arange(3), "projection_y_coordinate", units="km")
-        data = np.zeros((3, 3))
+        data = np.zeros((3, 3), dtype=np.float32)
+        self.cube = set_up_variable_cube(
+            data, name="air_temperature", units="degreesC",
+            spatial_grid="equalarea", time=datetime(2015, 11, 19, 0, 30),
+            frt=datetime(2015, 11, 19, 0, 15),
+            time_bounds=[datetime(2015, 11, 19, 0, 15),
+                         datetime(2015, 11, 19, 0, 30)])
 
-        time_origin = "hours since 1970-01-01 00:00:00"
-        calendar = "gregorian"
-        tunit = Unit(time_origin, calendar)
-        t_coord = AuxCoord(np.linspace(402192.5, 402292.5, 1),
-                           "time", units=tunit)
+        self.cube1h = set_up_variable_cube(
+            data, name="air_temperature", units="degreesC",
+            spatial_grid="equalarea", time=datetime(2015, 11, 19, 1, 15),
+            frt=datetime(2015, 11, 19, 0, 15),
+            time_bounds=[datetime(2015, 11, 19, 0, 15),
+                         datetime(2015, 11, 19, 1, 15)])
 
-        fp_coord = AuxCoord(15, "forecast_period", units="minutes")
-
-        self.cube = iris.cube.Cube(data, "air_temperature", units='degreesC',
-                                   dim_coords_and_dims=[(y_coord, 0),
-                                                        (x_coord, 1)])
-        self.cube.add_aux_coord(t_coord)
-        self.cube.add_aux_coord(fp_coord)
+        self.cube1h15m = set_up_variable_cube(
+            data, name="air_temperature", units="degreesC",
+            spatial_grid="equalarea", time=datetime(2015, 11, 19, 1, 30),
+            frt=datetime(2015, 11, 19, 0, 15),
+            time_bounds=[datetime(2015, 11, 19, 0, 15),
+                         datetime(2015, 11, 19, 1, 30)])
 
     def test_basic(self):
         """Test basic file name generation"""
@@ -80,7 +86,8 @@ class Test_generate_file_name(IrisTest):
 
     def test_longer_lead_time(self):
         """Test with lead time > 1 hr"""
-        self.cube.coord("forecast_period").points[0] += 60
+        self.cube.coord("forecast_period").points = (
+            np.array([75*60], dtype=np.int32))
         name = generate_file_name(self.cube)
         self.assertEqual(name, "20151119T0030Z-PT0001H15M-air_temperature.nc")
 
@@ -109,6 +116,58 @@ class Test_generate_file_name(IrisTest):
         name = generate_file_name(self.cube, parameter='another_temperature')
         self.assertEqual(
             name, "20151119T0030Z-PT0000H15M-another_temperature.nc")
+
+    def test_time_period_in_hours_from_forecast_period(self):
+        """Test including a period within the filename when the period
+        is in hours and deduced from the forecast_period coordinate."""
+        self.cube.coord("time").bounds = None
+        name = generate_file_name(self.cube1h, include_period=True)
+        self.assertIsInstance(name, str)
+        self.assertEqual(
+            name, "20151119T0115Z-PT0001H00M-air_temperature-PT01H.nc")
+
+    def test_time_period_in_hours_from_time(self):
+        """Test including a period within the filename when the period is in
+        hours and deduced from the time coordinate."""
+        self.cube1h.coord("forecast_period").bounds = None
+        name = generate_file_name(self.cube1h, include_period=True)
+        self.assertIsInstance(name, str)
+        self.assertEqual(
+            name, "20151119T0115Z-PT0001H00M-air_temperature-PT01H.nc")
+
+    def test_time_period_in_minutes_from_forecast_period(self):
+        """Test including a period within the filename when the period
+        is in minutes and deduced from the forecast_period coordinate."""
+        self.cube.coord("time").bounds = None
+        name = generate_file_name(self.cube, include_period=True)
+        self.assertIsInstance(name, str)
+        self.assertEqual(
+            name, "20151119T0030Z-PT0000H15M-air_temperature-PT15M.nc")
+
+    def test_time_period_in_minutes_from_time(self):
+        """Test including a period within the filename when the period is in
+        minutes and deduced from the time coordinate."""
+        self.cube.coord("forecast_period").bounds = None
+        name = generate_file_name(self.cube, include_period=True)
+        self.assertIsInstance(name, str)
+        self.assertEqual(
+            name, "20151119T0030Z-PT0000H15M-air_temperature-PT15M.nc")
+
+    def test_no_bounds_exception(self):
+        """Test that an exception is raised forecast_period and time
+        coordinates provided do not have bounds."""
+        self.cube1h15m.coord("forecast_period").bounds = None
+        self.cube1h15m.coord("time").bounds = None
+        msg = "Neither the forecast_period coordinate"
+        with self.assertRaisesRegex(ValueError, msg):
+            generate_file_name(self.cube1h15m, include_period=True)
+
+    def test_hours_and_minutes_exception(self):
+        """Test that an exception is raised if the difference between the
+        bounds is greater than 1 hour and not equal to a whole hour."""
+        msg = "If the difference between the bounds of the"
+        with self.assertRaisesRegex(ValueError, msg):
+            generate_file_name(self.cube1h15m, include_period=True)
 
 
 if __name__ == '__main__':
