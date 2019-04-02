@@ -68,6 +68,14 @@ def main(argv=None):
     parser.add_argument("diagnostic_filepath", metavar="DIAGNOSTIC_FILEPATH",
                         help="Path to a NetCDF file containing the diagnostic "
                              "data to be extracted.")
+    parser.add_argument("temperature_lapse_rate_filepath",
+                        metavar="LAPSE_RATE_FILEPATH", nargs='?',
+                        help="(Optional) Filepath to a NetCDF file containing"
+                        " temperature lapse rates. If this cube is provided,"
+                        " and a screen temperature cube is being processed,"
+                        " the lapse rates will be used to adjust the"
+                        " temperatures to better represent each spot's"
+                        " site-altitude.")
     parser.add_argument("output_filepath", metavar="OUTPUT_FILEPATH",
                         help="The output path for the resulting NetCDF")
 
@@ -109,15 +117,6 @@ def main(argv=None):
         "--ecc_bounds_warning", default=False, action="store_true",
         help="If True, where calculated percentiles are outside the ECC "
         "bounds range, raise a warning rather than an exception.")
-
-    lapse_group = parser.add_argument_group(
-        "Temperature lapse rate adjustment")
-    lapse_group.add_argument(
-        "--temperature_lapse_rate_filepath",
-        help="Filepath to a NetCDF file containing temperature lapse rates. "
-        "If this cube is provided, and a screen temperature cube is being "
-        "processed, the lapse rates will be used to adjust the temperatures "
-        "to better represent each spot's site-altitude.")
 
     meta_group = parser.add_argument_group("Metadata")
     meta_group.add_argument(

@@ -39,7 +39,7 @@
   run improver spot-extract \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/all_methods_uk.nc" \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_temperature.nc" \
-      --temperature_lapse_rate_filepath "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_lapse_rate.nc" \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_lapse_rate.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

@@ -38,11 +38,10 @@ usage: improver spot-extract [-h] [--profile] [--profile_file PROFILE_FILE]
                              [--land_constraint] [--minimum_dz]
                              [--extract_percentiles EXTRACT_PERCENTILES [EXTRACT_PERCENTILES ...]]
                              [--ecc_bounds_warning]
-                             [--temperature_lapse_rate_filepath TEMPERATURE_LAPSE_RATE_FILEPATH]
                              [--grid_metadata_identifier GRID_METADATA_IDENTIFIER]
                              [--json_file JSON_FILE] [--suppress_warnings]
                              NEIGHBOUR_FILEPATH DIAGNOSTIC_FILEPATH
-                             OUTPUT_FILEPATH
+                             [LAPSE_RATE_FILEPATH] OUTPUT_FILEPATH
 
 Extract diagnostic data from gridded fields for spot data sites. It is
 possible to apply a temperature lapse rate adjustment to temperature data that
@@ -54,6 +53,11 @@ positional arguments:
                         file also contains the spot site information.
   DIAGNOSTIC_FILEPATH   Path to a NetCDF file containing the diagnostic data
                         to be extracted.
+  LAPSE_RATE_FILEPATH   (Optional) Filepath to a NetCDF file containing
+                        temperature lapse rates. If this cube is provided, and
+                        a screen temperature cube is being processed, the
+                        lapse rates will be used to adjust the temperatures to
+                        better represent each spot's site-altitude.
   OUTPUT_FILEPATH       The output path for the resulting NetCDF
 
 optional arguments:
@@ -97,14 +101,6 @@ Extract percentiles:
                         of probabilities, percentiles, or realizations. Note
                         that for percentile inputs, the desired percentile(s)
                         must exist in the input cube.
-
-Temperature lapse rate adjustment:
-  --temperature_lapse_rate_filepath TEMPERATURE_LAPSE_RATE_FILEPATH
-                        Filepath to a NetCDF file containing temperature lapse
-                        rates. If this cube is provided, and a screen
-                        temperature cube is being processed, the lapse rates
-                        will be used to adjust the temperatures to better
-                        represent each spot's site-altitude.
 
 Metadata:
   --grid_metadata_identifier GRID_METADATA_IDENTIFIER

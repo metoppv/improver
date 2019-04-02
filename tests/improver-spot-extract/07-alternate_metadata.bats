@@ -39,10 +39,9 @@
   run improver spot-extract \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/all_methods_uk_alternate_metadata.nc" \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_temperature_alternate_metadata.nc" \
-      --temperature_lapse_rate_filepath \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_lapse_rate_alternate_metadata.nc" \
-      --grid_metadata_identifier my_grid_metadata \
-      "$TEST_DIR/output.nc"
+      "$TEST_DIR/output.nc" \
+      --grid_metadata_identifier my_grid_metadata
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
