@@ -172,12 +172,8 @@ class ApplyOrographicEnhancement(object):
                 orographic enhancement cube.
 
         """
-        # Ensure the orographic enhancement cube matches the
-        # dimensions of the precip_cube.
-        oe_cube = check_cube_coordinates(precip_cube, oe_cube.copy())
-
-        # Ensure that orographic enhancement is in the units of the
-        # precipitation rate cube.
+        # Convert orographic enhancement into the units of the precipitation
+        # rate cube.
         oe_cube.convert_units(precip_cube.units)
 
         # Set orographic enhancement to be zero for points with a
