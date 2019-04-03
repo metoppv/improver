@@ -144,7 +144,7 @@ class Test__equalise_cube_coords(IrisTest):
         """Test that the coords are equalised by slicing over eg unmatched
         non-threshold dimensions"""
         lagged_cubelist = iris.cube.CubeList([])
-        for i, cube in enumerate(self.cubelist):
+        for cube in self.cubelist:
             cube.coord("threshold").rename("realization")
             lagged_cubelist.append(cube)
         lagged_cubelist[0].coord("realization").points = np.array([0, 1, 2])
@@ -176,7 +176,7 @@ class Test__check_dim_coord_bounds(IrisTest):
         # create a list of 3 cubes with the same accumulation period and
         # different scalar validity times (+ 1 hr each time)
         self.cubelist = iris.cube.CubeList([cube])
-        for i in range(2):
+        for _ in range(2):
             cube = self.cubelist[-1].copy()
             cube.coord("time").points = cube.coord("time").points + 3600
             cube.coord("time").bounds = cube.coord("time").bounds + 3600
