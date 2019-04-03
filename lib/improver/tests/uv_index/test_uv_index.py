@@ -94,8 +94,8 @@ class Test_uv_index(IrisTest):
         and name = ultraviolet index)."""
         result = calculate_uv_index(self.cube_uv_up, self.cube_uv_down)
         self.assertEqual(str(result.standard_name), 'ultraviolet_index')
-        self.assertEqual(str(result.var_name), 'None')
-        self.assertEqual(str(result.long_name), 'None')
+        self.assertIsNone(result.var_name)
+        self.assertIsNone(result.long_name)
         self.assertEqual((result.units), Unit("1"))
 
     def test_diff_units(self):
