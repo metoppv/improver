@@ -33,8 +33,6 @@
 
 @test "ensemble-calibration emos gaussian percentiles" {
   improver_check_skip_acceptance
-  KGO="ensemble-calibration/percentiles/kgo.nc"
-
   # Run ensemble calibration with saving of mean and variance and check it passes.
   run improver ensemble-calibration 'ensemble model output statistics' 'K' \
       'gaussian' "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/percentiles/input.nc" \

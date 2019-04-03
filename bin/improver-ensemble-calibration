@@ -177,32 +177,30 @@ def main():
            "current forecast is provided as {0} then "
            "args.num_realizations must be defined.")
 
-    input_forecast_type = "realizations"
-    # If probabilities, convert from probabilities to realizations
-    if current_forecast.name().startswith("probability_of"):
-        input_forecast_type = "probabilities"
-        if not args.num_realizations:
-            raise ValueError(msg.format(input_forecast_type))
-        current_forecast = GeneratePercentilesFromProbabilities(
-            ecc_bounds_warning=args.ecc_bounds_warning).process(
-                current_forecast, no_of_percentiles=args.num_realizations)
-        current_forecast = (
-            RebadgePercentilesAsRealizations().process(current_forecast))
-
-    # If percentiles, resample percentiles so that the percentiles are
-    # evenly spaced and rebadge as realizations.
     try:
         find_percentile_coordinate(current_forecast)
         input_forecast_type = "percentiles"
     except CoordinateNotFoundError:
-        pass
-    if input_forecast_type == "percentiles":
+        input_forecast_type = "realizations"
+
+    if current_forecast.name().startswith("probability_of"):
+        input_forecast_type = "probabilities"
+        # If probabilities, convert to percentiles.
+        conversion_plugin = GeneratePercentilesFromProbabilities(
+            ecc_bounds_warning=args.ecc_bounds_warning)
+    elif input_forecast_type == "percentiles":
+        # If percentiles, resample percentiles so that the percentiles are
+        # evenly spaced.
+        conversion_plugin = ResamplePercentiles(
+            ecc_bounds_warning=args.ecc_bounds_warning)
+
+    # If percentiles, resample percentiles and then rebadge.
+    # If probabilities, generate percentiles and then rebadge.
+    if input_forecast_type in ["percentiles", "probabilities"]:
         if not args.num_realizations:
             raise ValueError(msg.format(input_forecast_type))
-        # Resample percentiles, so that the percentiles are equally spaced.
-        current_forecast = ResamplePercentiles(
-            ecc_bounds_warning=args.ecc_bounds_warning).process(
-                current_forecast, no_of_percentiles=args.num_realizations)
+        current_forecast = conversion_plugin.process(
+            current_forecast, no_of_percentiles=args.num_realizations)
         current_forecast = (
             RebadgePercentilesAsRealizations().process(current_forecast))
 
