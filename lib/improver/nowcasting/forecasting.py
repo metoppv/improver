@@ -38,10 +38,10 @@ import numpy as np
 from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 
-from improver.utilities.cube_metadata import (
-    amend_metadata, add_history_attribute)
 from improver.nowcasting.optical_flow import check_input_coords
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
+from improver.utilities.cube_metadata import (
+    amend_metadata, add_history_attribute)
 
 
 class AdvectField(object):
@@ -411,14 +411,14 @@ class CreateExtrapolationForecast(object):
             raise ValueError(msg)
         return input_cube
 
-    def process(self, lead_time):
+    def extrapolate(self, leadtime_hours=None):
         """
         Produce a new forecast cube for the supplied lead time. Creates a new
         advected forecast and then reapplies the orographic enhancement if it
         is supplied.
 
         Args:
-            lead_time (int):
+            leadtime_hours (int):
                 The forecast leadtime we want to generate a forecast for
                 in hours.
 
@@ -429,9 +429,15 @@ class CreateExtrapolationForecast(object):
                 out of bounds (ie where data could not be advected from outside
                 the cube domain).
 
+        Raises:
+            ValueError: If no leadtime_hours are provided.
         """
+        if leadtime_hours is None:
+            message = ("leadtime_hours must be provided in order to produce an"
+                       " extrapolated forecast")
+            raise ValueError(message)
         # cast to float as datetime.timedelta cannot accept np.int
-        timestep = datetime.timedelta(seconds=60.*lead_time)
+        timestep = datetime.timedelta(seconds=60.*leadtime_hours)
         forecast_cube = self.advection_plugin.process(
             self.input_cube, timestep)
         if self.orographic_enhancement_cube:
