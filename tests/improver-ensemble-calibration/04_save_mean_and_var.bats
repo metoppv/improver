@@ -33,7 +33,8 @@
 
 @test "ensemble-calibration emos gaussian save_mean_and_variance" {
   improver_check_skip_acceptance
-  KGO="ensemble-calibration/gaussian/mandv_kgo.nc"
+  KGO_MEAN="ensemble-calibration/gaussian/kgo_mean.nc"
+  KGO_VARIANCE="ensemble-calibration/gaussian/kgo_variance.nc"
 
   # Run ensemble calibration with saving of mean and variance and check it passes.
   run improver ensemble-calibration 'ensemble model output statistics' 'K' \
@@ -41,12 +42,16 @@
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
       "$TEST_DIR/output.nc" \
-      --save_mean_variance "$TEST_DIR/mean_and_variance.nc"
+      --save_mean "$TEST_DIR/mean.nc" \
+      --save_variance "$TEST_DIR/variance.nc"
   [[ "$status" -eq 0 ]]
 
-  improver_check_recreate_kgo "mean_and_variance.nc" $KGO
+  improver_check_recreate_kgo "mean.nc" $KGO_MEAN
+  improver_check_recreate_kgo "variance.nc" $KGO_VARIANCE
 
-  # Run nccmp to compare the output mean_and_variance and check it passes.
-  improver_compare_output "$TEST_DIR/mean_and_variance.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
+  # Run nccmp to compare the output mean and variance and check it passes.
+  improver_compare_output "$TEST_DIR/mean.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO_MEAN"
+   improver_compare_output "$TEST_DIR/variance.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO_VARIANCE"
 }

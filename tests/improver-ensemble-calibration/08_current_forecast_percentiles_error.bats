@@ -29,22 +29,19 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "ensemble-calibration no arguments" {
-  run improver ensemble-calibration
-  [[ "$status" -eq 2 ]]
-  expected="usage: improver-ensemble-calibration [-h] [--profile]
-                                     [--profile_file PROFILE_FILE]
-                                     [--predictor_of_mean CALIBRATE_MEAN_FLAG]
-                                     [--save_mean MEAN_FILE]
-                                     [--save_variance VARIANCE_FILE]
-                                     [--num_realizations NUMBER_OF_REALIZATIONS]
-                                     [--random_ordering]
-                                     [--random_seed RANDOM_SEED]
-                                     [--ecc_bounds_warning]
-                                     ENSEMBLE_CALIBRATION_METHOD
-                                     UNITS_TO_CALIBRATE_IN DISTRIBUTION
-                                     INPUT_FILE HISTORIC_DATA_FILE
-                                     TRUTH_DATA_FILE OUTPUT_FILE
-"
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "ensemble-calibration emos gaussian percentiles" {
+  improver_check_skip_acceptance
+  # Run ensemble calibration with saving of mean and variance and check it passes.
+  run improver ensemble-calibration 'ensemble model output statistics' 'K' \
+      'gaussian' "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/percentiles/input.nc" \
+      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
+      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 1 ]]
+  read -d '' expected <<'__TEXT__' || true
+ValueError: The current forecast has been provided as percentiles. These percentiles need to be converted to realizations for ensemble calibration. The args.num_realizations argument is used to define the number of realizations to construct from the input percentiles, so if the current forecast is provided as percentiles then args.num_realizations must be defined.
+__TEXT__
   [[ "$output" =~ "$expected" ]]
 }

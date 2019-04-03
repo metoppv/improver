@@ -29,22 +29,26 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "ensemble-calibration no arguments" {
-  run improver ensemble-calibration
-  [[ "$status" -eq 2 ]]
-  expected="usage: improver-ensemble-calibration [-h] [--profile]
-                                     [--profile_file PROFILE_FILE]
-                                     [--predictor_of_mean CALIBRATE_MEAN_FLAG]
-                                     [--save_mean MEAN_FILE]
-                                     [--save_variance VARIANCE_FILE]
-                                     [--num_realizations NUMBER_OF_REALIZATIONS]
-                                     [--random_ordering]
-                                     [--random_seed RANDOM_SEED]
-                                     [--ecc_bounds_warning]
-                                     ENSEMBLE_CALIBRATION_METHOD
-                                     UNITS_TO_CALIBRATE_IN DISTRIBUTION
-                                     INPUT_FILE HISTORIC_DATA_FILE
-                                     TRUTH_DATA_FILE OUTPUT_FILE
-"
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "ensemble-calibration emos gaussian rebadged percentiles" {
+  improver_check_skip_acceptance
+  KGO="ensemble-calibration/percentiles/kgo.nc"
+
+  # Run ensemble calibration with percentiles rebadged as realizations.
+  run improver ensemble-calibration 'ensemble model output statistics' 'K' \
+      'gaussian' "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/rebadged_percentiles/input.nc" \
+      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
+      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 0 ]]
+
+  improver_check_recreate_kgo "output.nc" $KGO
+
+  # Run nccmp to compare the output calibrated realizations when the input
+  # is percentiles that have been rebadged as realizations. The known good
+  # output in this case is the same as when passing in percentiles directly
+  # and check it passes.
+  run nccmp -dmNsg -x realization "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

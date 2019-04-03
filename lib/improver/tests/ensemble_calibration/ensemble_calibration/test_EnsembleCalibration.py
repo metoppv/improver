@@ -111,7 +111,7 @@ class Test_process(IrisTest):
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertIsInstance(result, CubeList)
+        self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 2)
 
     @ManageWarnings(
@@ -133,7 +133,7 @@ class Test_process(IrisTest):
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertIsInstance(result, CubeList)
+        self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 2)
 
     @ManageWarnings(
@@ -152,7 +152,7 @@ class Test_process(IrisTest):
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
-        self.assertIsInstance(result, CubeList)
+        self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 2)
 
     @ManageWarnings(
@@ -174,7 +174,7 @@ class Test_process(IrisTest):
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
-        self.assertIsInstance(result, CubeList)
+        self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 2)
 
     @ManageWarnings(
@@ -201,12 +201,13 @@ class Test_process(IrisTest):
         distribution = "gaussian"
         desired_units = "degreesC"
         plugin = Plugin(calibration_method, distribution, desired_units)
-        result = plugin.process(
+        calibrated_predictor, calibrated_variance = plugin.process(
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertArrayAlmostEqual(result[0][0].data, predictor_data)
-        self.assertArrayAlmostEqual(result[1][0].data, variance_data)
+
+        self.assertArrayAlmostEqual(calibrated_predictor.data, predictor_data)
+        self.assertArrayAlmostEqual(calibrated_variance.data, variance_data)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -259,13 +260,13 @@ class Test_process(IrisTest):
         plugin = Plugin(
             calibration_method, distribution, desired_units,
             predictor_of_mean_flag=predictor_of_mean_flag)
-        result = plugin.process(
+        calibrated_predictor, calibrated_variance = plugin.process(
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertArrayAlmostEqual(result[0][0].data, predictor_data,
+        self.assertArrayAlmostEqual(calibrated_predictor.data, predictor_data,
                                     decimal=4)
-        self.assertArrayAlmostEqual(result[1][0].data, variance_data,
+        self.assertArrayAlmostEqual(calibrated_variance.data, variance_data,
                                     decimal=4)
 
     @ManageWarnings(
@@ -294,12 +295,12 @@ class Test_process(IrisTest):
         distribution = "truncated gaussian"
         desired_units = "m s^-1"
         plugin = Plugin(calibration_method, distribution, desired_units)
-        result = plugin.process(
+        calibrated_predictor, calibrated_variance = plugin.process(
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
-        self.assertArrayAlmostEqual(result[0][0].data, predictor_data)
-        self.assertArrayAlmostEqual(result[1][0].data, variance_data)
+        self.assertArrayAlmostEqual(calibrated_predictor.data, predictor_data)
+        self.assertArrayAlmostEqual(calibrated_variance.data, variance_data)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -344,13 +345,13 @@ class Test_process(IrisTest):
         plugin = Plugin(
             calibration_method, distribution, desired_units,
             predictor_of_mean_flag=predictor_of_mean_flag)
-        result = plugin.process(
+        calibrated_predictor, calibrated_variance = plugin.process(
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
-        self.assertArrayAlmostEqual(result[0][0].data, predictor_data,
+        self.assertArrayAlmostEqual(calibrated_predictor.data, predictor_data,
                                     decimal=4)
-        self.assertArrayAlmostEqual(result[1][0].data, variance_data)
+        self.assertArrayAlmostEqual(calibrated_variance.data, variance_data)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -367,7 +368,7 @@ class Test_process(IrisTest):
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertIsInstance(result, CubeList)
+        self.assertIsInstance(result, tuple)
 
     def test_unknown_calibration_method(self):
         """

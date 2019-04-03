@@ -697,35 +697,46 @@ class GeneratePercentilesFromMeanAndVariance(object):
         percentile_cube.cell_methods = {}
         return percentile_cube
 
-    def process(self, calibrated_forecast_predictor_and_variance,
-                no_of_percentiles):
+    def process(self, calibrated_forecast_predictor,
+                calibrated_forecast_variance, no_of_percentiles=None,
+                percentiles=None):
         """
         Generate ensemble percentiles from the mean and variance.
 
         Args:
-            calibrated_forecast_predictor_and_variance (Iris CubeList):
-                CubeList containing the calibrated forecast predictor and
-                calibrated forecast variance.
-            raw_forecast (Iris Cube or CubeList):
-                Cube or CubeList that is expected to be the raw
-                (uncalibrated) forecast.
+            calibrated_forecast_predictor (iris.cube.Cube):
+                Cube containing the calibrated forecast predictor.
+            calibrated_forecast_variance (iris.cube.Cube):
+                CubeList containing the calibrated forecast variance.
+
+        Kwargs:
+            no_of_percentiles (int):
+                Integer defining the number of percentiles that will be
+                calculated from the mean and variance.
+            percentiles (list):
+                List of percentiles that will be generated from the mean
+                and variance provided.
 
         Returns:
             calibrated_forecast_percentiles (iris.cube.Cube):
                 Cube for calibrated percentiles.
                 The percentile coordinate is always the zeroth dimension.
 
-        """
-        (calibrated_forecast_predictor, calibrated_forecast_variance) = (
-            calibrated_forecast_predictor_and_variance)
-        if isinstance(calibrated_forecast_predictor, iris.cube.CubeList):
-            calibrated_forecast_predictor = (
-                calibrated_forecast_predictor.merge_cube())
-        if isinstance(calibrated_forecast_variance, iris.cube.CubeList):
-            calibrated_forecast_variance = (
-                calibrated_forecast_variance.merge_cube())
+        Raises:
+            ValueError: Ensure that it is not possible to supply
+                "no_of_percentiles" and "percentiles" simultaneously
+                as keyword arguments.
 
-        percentiles = choose_set_of_percentiles(no_of_percentiles)
+        """
+        if no_of_percentiles and percentiles:
+            msg = ("Please specify either the number of percentiles or "
+                   "provide a list of percentiles. The number of percentiles "
+                   "provided was {} and the list of percentiles "
+                   "provided was {}".format(no_of_percentiles, percentiles))
+            raise ValueError(msg)
+
+        if no_of_percentiles:
+            percentiles = choose_set_of_percentiles(no_of_percentiles)
         calibrated_forecast_percentiles = (
             self._mean_and_variance_to_percentiles(
                 calibrated_forecast_predictor,
