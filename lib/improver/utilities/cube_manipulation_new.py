@@ -38,6 +38,8 @@ import numpy as np
 import iris
 from iris.coords import AuxCoord, DimCoord
 from iris.exceptions import CoordinateNotFoundError
+
+from improver.blending.weighted_blend import rationalise_blend_time_coords
 from improver.utilities.cube_checker import (
     check_cube_coordinates, check_cube_not_float64, find_threshold_coordinate)
 
@@ -314,367 +316,379 @@ def concatenate_cubes(
     return result
 
 
-def merge_cubes(cubes, model_id_attr=None, blend_coord=None):
+class MergeCubes():
     """
-    Function to merge cubes, accounting for differences in the
-    attributes, and coords.
+    Class adding functionality to iris.merge_cubes()
 
-    Args:
-        cubes (Iris cubelist or Iris cube):
-            Cubes to be merged.
-
-    Kwargs:
-        model_id_attr (str):
-            Name of cube attribute used to identify the model for grid
-            blending or None.
-        blend_coord (str):
-            Name of coordinate over which merged cube is to be blended, or
-            None. If "time", triggers bounds range checks to avoid passing
-            eg mismatched accumulation periods into blending.
-
-    Returns:
-        result (Iris cube):
-            Merged cube.
-
+    Accounts for differences in attributes and coordinates to avoid merge
+    failures and anonymous dimensions.
     """
-    if isinstance(cubes, iris.cube.Cube):
-        cubes = iris.cube.CubeList([cubes])
+    def __init__(self):
+        """Initialise constants"""
+        self.silent_attributes = ["history", "title", "mosg__grid_version"]
+        self.coord_mismatch_error_keys = ["threshold"]
 
-    cubelist = _equalise_cubes(
-        cubes, model_id_attr=model_id_attr, merging=True)
+    def _equalise_cubes(self, cubelist):
+        """
+        Function to equalise cubes where they do not match.
 
-    for i, cube in enumerate(cubelist):
-        cubelist[i] = iris.util.squeeze(cube)
+        Args:
+            cubelist (iris.cube.CubeList):
+                List of cubes to check and equalise.
 
-    result = cubelist.merge_cube()
+        Returns:
+            cubelist (iris.cube.CubeList):
+                List of cubes with revised cubes. The number of cubes in this
+                list may be greater than the original number of cubes if they
+                have been sliced over mismatching dimension coordinates.
+        """
+        equalise_cube_attributes(cubelist, silent=self.silent_attributes)
+        strip_var_names(cubelist)
 
-    if blend_coord is not None and blend_coord == "time":
-        # If bounds ranges did not match, "result" will not have a name
-        # on the leading dimension, but will have time and fp as aux
-        # coords.  Checking bounds ranges here raises a useful error,
-        # rather than encountering a missing blend coord downstream.
-        check_bounds_range_coords = ["time", "forecast_period"]
-        _check_bounds_ranges(result, check_bounds_range_coords)
-
-    return result
-
-
-def _equalise_cubes(cubes_in, model_id_attr=None, merging=True):
-    """
-    Function to equalise cubes where they do not match.
-
-    Args:
-        cubes_in (Iris cubelist):
-            List of cubes to check and equalise.
-
-    Kwargs:
-        model_id_attr (str):
-            Name of cube attribute used to identify the model for grid
-            blending or None.
-        merging (bool):
-            Flag for whether equalisation is for merging or concatenation.
-
-    Returns:
-        cubelist (Iris cubelist):
-            List of cubes with revised cubes.
-            If merging the number of cubes in cubelist
-            may be greater than the original number
-            of cubes as the original cubes will be sliced
-            so that that they can be merged together.
-            Merging can only create new coords not add
-            to existing mismatching coords.
-    """
-    cubes = iris.cube.CubeList([])
-    for cube in cubes_in:
-        cubes.append(cube.copy())
-    _equalise_cube_attributes(cubes, model_id_attr=model_id_attr)
-    strip_var_names(cubes)
-    if merging:
-        cubelist = _equalise_cube_coords(cubes)
-        cubelist = _equalise_cell_methods(cubelist)
+        cubelist = self._equalise_cube_coords(cubelist)
+        cubelist = self._equalise_cell_methods(cubelist)
         for cube in cubelist:
-            check_cube_not_float64(cube, fix=True)
-    else:
-        cubelist = cubes
-    return cubelist
+            check_cube_not_float64(cube, fix=True)  # TODO why here?
+        return cubelist
 
+    def _equalise_cube_coords(self, cubes):
+        """
+        Function to equalise coordinates that do not match.
 
-def _equalise_cube_attributes(cubes, model_id_attr=None):
-    """
-    Function to equalise attributes that do not match.
+        Args:
+            cubes (iris.cube.CubeList):
+                List of cubes to check the coords and revise.
 
-    Args:
-        cubes (Iris cubelist):
-            List of cubes to check the attributes and revise.
-        model_id_attr (str):
-            Name of cube attribute used to identify the model
-            for grid blending or None.
+        Returns:
+            cubelist (iris.cube.CubeList):
+                List of cubes with revised coords. The number of cubes in this
+                list may be greater than the original number of cubes if they
+                have been sliced over mismatching dimension coordinates.
 
-    Returns:
-        cubelist (Iris cubelist):
-        Note: This internal function modifies the incoming cubes
-    Warns:
-        Warning: If it does not know what to do with an unmatching
-                 attribute. Default is to delete it.
-    """
-    # Unmatched warnings matching one of the silent_attributes are deleted
-    # without raising a warning message
-    silent_attributes = ['history', 'title', 'mosg__grid_version']
-    unmatching_attributes = compare_attributes(cubes)
+        Raises:
+            ValueError:
+                If coordinates in error_keys do not match.
+        """
+        # check for unmatching coords (returns a list of dictionaries, each
+        # with an entry for each mismatched coord.  If all coords match,
+        # returns a list of empty dictionaries.)
+        unmatching_coords = compare_coords(cubes)
 
-    if len(unmatching_attributes) > 0:
-        for i, cube in enumerate(cubes):
-            # Remove ignored attributes.
-            for attr in silent_attributes:
-                if attr in unmatching_attributes[i]:
-                    cube.attributes.pop(attr)
-                    unmatching_attributes[i].pop(attr)
+        # continue only if the list contains non-empty dictionaries
+        if bool(unmatching_coords[0]):
 
-            # If a model_id_attr has been specified, assume we are trying to
-            # grid blend and throw an error if the model_id_attr does not
-            # match that on the cubes to be blended.
-            if model_id_attr is not None and \
-                    model_id_attr not in cube.attributes:
-                msg = ('Cannot create model ID coordinate for grid blending '
-                       'as the model ID attribute specified is not found '
-                       'within the cube attributes')
-                raise ValueError(msg)
+            # check for mismatches in dim coord bounds
+            self._check_dim_coord_bounds(cubes)
 
-            if model_id_attr in unmatching_attributes[i]:
-                model_title = cube.attributes.pop(model_id_attr)
-                cube.attributes[model_id_attr] = "blend"
-
-                new_model_id_coord = build_coordinate([1000 * i],
-                                                      long_name='model_id',
-                                                      data_type=np.int)
-                new_model_coord = (
-                    build_coordinate([model_title],
-                                     long_name='model_configuration',
-                                     coord_type=AuxCoord,
-                                     data_type=np.str))
-
-                cube.add_aux_coord(new_model_id_coord)
-                cube.add_aux_coord(new_model_coord)
-                unmatching_attributes[i].pop(model_id_attr)
-
-            # Remove any other mismatching attributes but raise warning.
-            if len(unmatching_attributes[i]) != 0:
-                for key in unmatching_attributes[i]:
-                    msg = ('Do not know what to do with ' + key +
-                           ' will delete it'
-                           ' - value is {}'.format(cube.attributes[key]))
-                    warnings.warn(msg)
-                    cube.attributes.pop(key)
-    return cubes
-
-
-def _equalise_cube_coords(cubes):
-    """
-    Function to equalise coordinates that do not match.
-
-    Args:
-        cubes (Iris cubelist):
-            List of cubes to check the coords and revise.
-
-    Returns:
-        cubelist (Iris cubelist):
-            List of cubes with revised coords.
-            The number of cubes in cubelist
-            may be greater than the original number
-            of cubes as the original cubes will be sliced
-            so that that they can be merged together.
-            Merging can only create new coords not add
-            to existing mismatching coords.
-            Note: This internal function modifies the incoming cubes
-    Raises:
-        ValueError: If coordinates in error_keys do not match.
-        ValueError: If model_id has more than one point.
-    """
-    unmatching_coords = compare_coords(cubes)
-    # If len = 0 then cubes is a cube,
-    # otherwise there will be a dict (possible empty) for
-    # each cube in cubes.
-
-    if len(unmatching_coords) == 0:
-        cubelist = cubes
-    else:
-        # Check for mismatches in dim coord bounds
-        _check_coord_bounds(cubes)
-
-        # Throw an error for threshold coordinate mismatch
-        try:
-            error_keys = [find_threshold_coordinate(cubes[0]).name()]
-        except CoordinateNotFoundError:
-            error_keys = []
-
-        for error_key in error_keys:
-            for key in ([keyval for cube_dict in unmatching_coords
-                         for keyval in cube_dict]):
-                if error_key in key:
-                    msg = ("{} ".format(error_key) +
-                           "coordinates must match to merge")
-                    raise ValueError(msg)
-
-        cubelist = iris.cube.CubeList([])
-        for i, cube in enumerate(cubes):
-            slice_over_keys = []
-            for key in unmatching_coords[i]:
-                # mismatching model id
-                if key == 'model_id':
-                    realization_found = False
-                    # Check to see if there is a mismatch realization coord.
-                    for j, check in enumerate(unmatching_coords):
-                        if 'realization' in check:
-                            realization_found = True
-                            realization_coord = cubes[j].coord('realization')
-                            break
-                    # If there is add model_realization coord
-                    # and realization coord if necessary.
-                    if realization_found:
-                        if len(cube.coord('model_id').points) != 1:
-                            msg = ("Model_id has more than one point")
-                            raise ValueError(msg)
-                        else:
-                            model_id_val = cube.coord('model_id').points[0]
-                        if cube.coords('realization'):
-                            unmatch = unmatching_coords[i]['realization']
-                            data_dims = unmatch['data_dims']
-                            new_model_real_coord = (
-                                build_coordinate(
-                                    cube.coord('realization').points +
-                                    model_id_val,
-                                    long_name='model_realization'))
-                            cube.add_aux_coord(new_model_real_coord,
-                                               data_dims=data_dims)
-                        else:
-                            new_model_real_coord = (
-                                build_coordinate(
-                                    [model_id_val],
-                                    long_name='model_realization'))
-                            cube.add_aux_coord(new_model_real_coord)
-                            new_realization_coord = (
-                                build_coordinate(
-                                    [0],
-                                    template_coord=realization_coord))
-                            cube.add_aux_coord(new_realization_coord)
-
-                # if mismatching is a dimension coord add to list to
-                # slice over.
-                if unmatching_coords[i][key]['data_dims'] is not None:
-                    slice_over_keys.append(key)
-                if unmatching_coords[i][key]['aux_dims'] is not None:
-                    slice_over_keys.append(key)
-
-            if len(slice_over_keys) > 0:
-                for slice_cube in cube.slices_over(slice_over_keys):
-                    cubelist.append(slice_cube)
-            else:
-                cubelist.append(cube)
-
-    return cubelist
-
-
-def _check_coord_bounds(cubes):
-    """
-    Function to check for dimension coordinate bounds that do not match.
-    If a coordinate is not present in all cubes, it is ignored.
-
-    Args:
-        cubes (iris.cube.CubeList):
-            List of cubes to check the cell methods and revise.
-            These are modified in place.
-
-    Raises:
-        ValueError:
-            If some but not all cubes have bounds on a shared dimension
-            coordinate.
-        ValueError:
-            If existing bounds values on shared dimension coordinates do not
-            match.
-    """
-    # Check each cube against all remaining cubes
-    msg = 'Cubes with mismatching {} bounds are not compatible'
-    for i, this_cube in enumerate(cubes):
-        for later_cube in cubes[i+1:]:
-            for coord in this_cube.coords(dim_coords=True):
-                try:
-                    match_coord = later_cube.coord(coord)
-                except CoordinateNotFoundError:
-                    continue
-                if coord.bounds is None and match_coord.bounds is None:
-                    continue
-                elif coord.bounds is None and match_coord.bounds is not None:
-                    raise ValueError(msg.format(coord.name()))
-                elif coord.bounds is not None and match_coord.bounds is None:
-                    raise ValueError(msg.format(coord.name()))
-                else:
-                    if np.allclose(np.array(coord.bounds),
-                                   np.array(match_coord.bounds)):
+            # throw an error for specific coordinate mismatches
+            for error_key in self.coord_mismatch_error_keys:
+                # if necessary, translate threshold coordinate name
+                if error_key == "threshold":
+                    try:
+                        error_key = find_threshold_coordinate(cubes[0]).name()
+                    except CoordinateNotFoundError:
                         continue
-                    else:
+                # loop over mismatched coordinates
+                for key in ([keyval for cube_dict in unmatching_coords
+                             for keyval in cube_dict]):
+                    if error_key in key:
+                        msg = ("{} ".format(error_key) +
+                               "coordinates must match to merge")
+                        raise ValueError(msg)
+
+            # slice over any remaining mismatched non-scalar coordinates
+            cubelist = iris.cube.CubeList([])
+            for i, cube in enumerate(cubes):
+                slice_over_keys = []
+                for key in unmatching_coords[i]:
+                    # If mismatching is a dimension coord add to list to
+                    # slice over (supports time lagging with different
+                    # realizations).  Note this will not prevent failure to
+                    # merge if the coordinate (eg realization) is not present
+                    # on all input cubes.
+                    if unmatching_coords[i][key]['data_dims'] is not None:
+                        slice_over_keys.append(key)
+                    if unmatching_coords[i][key]['aux_dims'] is not None:
+                        slice_over_keys.append(key)
+
+                if len(slice_over_keys) > 0:
+                    for slice_cube in cube.slices_over(slice_over_keys):
+                        cubelist.append(slice_cube)
+                else:
+                    cubelist.append(cube)
+        else:
+            cubelist = cubes
+
+        return cubelist
+
+    @staticmethod
+    def _check_dim_coord_bounds(cubes):
+        """
+        Function to check for dimension coordinate bounds that do not match.
+        This prevents the creation of anonymous auxiliary coordinates by
+        iris.merge_cube(). If a coordinate is not present in all cubes, it is
+        ignored here.
+
+        Args:
+            cubes (iris.cube.CubeList):
+                List of cubes to check the cell methods and revise.
+                These are modified in place.
+
+        Raises:
+            ValueError:
+                If some but not all cubes have bounds on a shared dimension
+                coordinate.
+            ValueError:
+                If existing bounds values on shared dimension coordinates do
+                not match.
+        """
+        # Check each cube against all remaining cubes
+        msg = 'Cubes with mismatching {} bounds are not compatible'
+        for i, this_cube in enumerate(cubes):
+            for later_cube in cubes[i+1:]:
+                for coord in this_cube.coords(dim_coords=True):
+                    try:
+                        match_coord = later_cube.coord(coord)
+                    except CoordinateNotFoundError:
+                        continue
+                    if coord.bounds is None and match_coord.bounds is None:
+                        continue
+                    elif (coord.bounds is None and
+                          match_coord.bounds is not None):
                         raise ValueError(msg.format(coord.name()))
+                    elif (coord.bounds is not None and
+                          match_coord.bounds is None):
+                        raise ValueError(msg.format(coord.name()))
+                    else:
+                        if np.allclose(np.array(coord.bounds),
+                                       np.array(match_coord.bounds)):
+                            continue
+                        else:
+                            raise ValueError(msg.format(coord.name()))
 
+    @staticmethod
+    def _equalise_cell_methods(cubes):
+        """
+        Function to equalise cell methods that do not match.
 
-def _check_bounds_ranges(cube, coord_list):
-    """
-    Check the bounds ranges on a given list of coordinates match at each
-    point along that dimension.  For example: to check time and forecast period
-    ranges for accumulations to avoid blending 1 hr with 3 hr accumulations.
-
-    Args:
-        cube (iris.cube.Cube):
-            Input cube with dimensional coordinates in coord_list
-        coord_list (list):
-            List of string coordinate names to check bounds
-
-    Raises:
-        ValueError:
-            If bounds ranges at different points are incompatible
-    """
-    for name in coord_list:
-        coord = cube.coord(name)
-        if coord.bounds is None:
-            continue
-        if len(coord.points) == 1:
-            continue
-
-        bounds_ranges = np.abs(np.diff(coord.bounds))
-        reference_range = bounds_ranges[0]
-        if not np.all(np.isclose(bounds_ranges, reference_range)):
-            msg = ('Cube with mismatching {} bounds ranges '
-                   'cannot be blended'.format(name))
-            raise ValueError(msg)
-
-
-def _equalise_cell_methods(cubes):
-    """
-    Function to equalise cell methods that do not match.
-
-    Args:
-        cubes (iris.cube.CubeList):
-            List of cubes to check the cell methods and revise.
-    Returns:
-        cubelist (iris.cube.CubeList):
-            List of cubes with revised cell methods.
-            Currently the cell methods are simply deleted if
-            they do not match.
-    Warns:
-        Warning: If only a single cube.
-
-    """
-    if len(cubes) == 1:
-        msg = ('Only a single cube so no differences will be found '
-               'in cell methods')
-        warnings.warn(msg)
-        cubelist = cubes
-    else:
+        Args:
+            cubes (iris.cube.CubeList):
+                List of cubes to check the cell methods and revise.
+        Returns:
+            cubelist (iris.cube.CubeList):
+                List of cubes with revised cell methods.
+                Currently the cell methods are simply deleted if
+                they do not match.
+        """
         cell_methods = cubes[0].cell_methods
         for cube in cubes[1:]:
             cell_methods = list(set(cell_methods) & set(cube.cell_methods))
         cubelist = cubes
         for cube in cubelist:
             cube.cell_methods = tuple(cell_methods)
-    return cubelist
+        return cubelist
+
+    @staticmethod
+    def _check_time_bounds_ranges(cube):
+        """
+        Check the bounds on any dimensional time coordinates after merging.
+        If points on the coordinate are not compatible, raise an error.
+
+        Args:
+            cube (iris.cube.Cube):
+                Merged cube
+        """
+        for name in ["time", "forecast_period"]:
+            try:
+                coord = cube.coord(name)
+            except CoordinateNotFoundError:
+                continue
+
+            if coord.bounds is None:
+                continue
+            if len(coord.points) == 1:
+                continue
+
+            bounds_ranges = np.abs(np.diff(coord.bounds))
+            reference_range = bounds_ranges[0]
+            if not np.all(np.isclose(bounds_ranges, reference_range)):
+                msg = ('Cube with mismatching {} bounds ranges '
+                       'cannot be blended'.format(name))
+                raise ValueError(msg)
+
+    def process(self, cubes_in, check_time_bounds_ranges=False):
+        """
+        Function to merge cubes, accounting for differences in attributes and
+        coordinates.
+
+        Args:
+            cubes (iris.cube.CubeList or iris.cube.Cube):
+                Cubes to be merged.
+
+        Kwargs:
+            check_time_bounds_ranges (bool):
+                Flag to check whether scalar time bounds ranges match.
+                This is for when we are expecting to create a new "time" axis
+                through merging for eg precipitation accumulations, where we
+                want to make sure that the bounds match so that we are not eg
+                combining 1 hour with 3 hour accumulations.
+
+        Returns:
+            iris.cube.Cube:
+                Merged cube.
+        """
+        # if input is already a single cube, return unchanged
+        if isinstance(cubes_in, iris.cube.Cube):
+            return cubes_in
+
+        # create copies of input cubes so as not to modify in place
+        cubelist = iris.cube.CubeList([])
+        for cube in cubes_in:
+            cubelist.append(cube.copy())
+
+        # equalise cube attributes and coordinates
+        cubelist = self._equalise_cubes(cubelist)
+
+        # demote single-point dimensions to scalar coordinates
+        for i, cube in enumerate(cubelist):
+            cubelist[i] = iris.util.squeeze(cube)
+
+        # merge resulting cubelist
+        result = cubelist.merge_cube()
+
+        # check time bounds if required
+        if check_time_bounds_ranges:
+            self._check_time_bounds_ranges(result)
+
+        return result
+
+
+def merge_cubes(cubes):
+    """
+    Wrapper for MergeCubes().process()
+
+    Args:
+        cubes (Iris cubelist or Iris cube):
+            Cubes to be merged.
+
+    Returns:
+        result (Iris cube):
+            Merged cube.
+    """
+    result = MergeCubes().process(cubes)
+    return result
+
+
+# TODO move this class into improver.blending.weighted_blend
+class MergeCubesForWeightedBlending():
+    """Prepares cubes for cycle and grid blending"""
+
+    def __init__(self, model_id_attr=None):
+        """
+        Initialise the class
+
+        Kwargs:
+            model_id_attr (str or None):
+                Name of attribute used to identify model for grid blending.
+                None for cycle blending.
+        """
+        self.model_id_attr = model_id_attr
+
+    def _create_model_coordinates(self, cubelist):
+        """
+        Adds numerical model ID and string model configuration scalar
+        coordinates to input cubes if self.model_id_attr is specified.
+        Sets the original attribute value to "blend", in anticipation.
+        Modifies cubes in place.
+
+        Args:
+            cubelist (iris.cube.CubeList):
+                List of cubes to be merged for blending
+
+        Raises:
+            ValueError:
+                If self.model_id_attr is not present on all cubes
+        """
+        if self.model_id_attr is None:
+            return cubelist
+
+        for i, cube in enumerate(cubelist):
+            if self.model_id_attr not in cube.attributes:
+                msg = ('Cannot create model ID coordinate for grid blending '
+                       'as the model ID attribute specified is not found '
+                       'within the cube attributes')
+                raise ValueError(msg)
+
+            model_title = cube.attributes.pop(self.model_id_attr)
+            cube.attributes[self.model_id_attr] = "blend"
+
+            new_model_id_coord = build_coordinate([1000 * i],
+                                                  long_name='model_id',
+                                                  data_type=np.int32)
+            new_model_coord = (
+                build_coordinate([model_title],
+                                 long_name='model_configuration',
+                                 coord_type=AuxCoord,
+                                 data_type=np.str))
+
+            cube.add_aux_coord(new_model_id_coord)
+            cube.add_aux_coord(new_model_coord)
+
+    def process(self, cubes_in, blend_coord, cycletime=None,
+                weighting_coord=None):
+        """
+        Prepares merged input cube for cycle and grid blending
+
+        Args:
+            cubes (iris.cube.CubeList or iris.cube.Cube):
+                Cubes to be merged.
+            blend_coord (str):
+                Name of coordinate over which blending will be performed.
+
+        Kwargs:
+            cycletime (str or None):
+                The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
+                Required for rationalise_blend_time_coordinates.
+            weighting_coord (str or None):
+                The coordinate across which weights will be scaled in a
+                multi-model blend.  Required for
+                rationalise_blend_time_coordinates.
+
+        Returns:
+            iris.cube.Cube:
+                Merged cube.
+
+        Raises:
+            ValueError:
+                If trying to blend over model when model_id_attr is not set
+        """
+        # if input is already a single cube, return unchanged
+        if isinstance(cubes_in, iris.cube.Cube):
+            return cubes_in
+
+        # test for model blend
+        if "model" in blend_coord and self.model_id_attr is None:
+            raise ValueError(
+                "model_id_attr required to blend over {}".format(blend_coord))
+
+        # create copies of input cubes so as not to modify in place
+        cubelist = iris.cube.CubeList([])
+        for cube in cubes_in:
+            cubelist.append(cube.copy())
+
+        # TODO move rationalise_blend_time_coords into this class
+        rationalise_blend_time_coords(
+            cubelist, blend_coord, cycletime=cycletime,
+            weighting_coord=weighting_coord)
+
+        # create model ID and model configuration coordinates if blending
+        # different models
+        self._create_model_coordinates(cubelist)
+
+        # merge resulting cubelist
+        result = MergeCubes().process(cubelist, check_time_bounds_ranges=True)
+
+        return result
 
 
 def get_filtered_attributes(cube, attribute_filter=None):
