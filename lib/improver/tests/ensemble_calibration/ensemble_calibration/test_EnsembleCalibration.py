@@ -295,7 +295,7 @@ class Test_process(IrisTest):
         distribution = "truncated gaussian"
         desired_units = "m s^-1"
         plugin = Plugin(calibration_method, distribution, desired_units)
-        result = plugin.process(
+        calibrated_predictor, calibrated_variance = plugin.process(
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
@@ -345,7 +345,7 @@ class Test_process(IrisTest):
         plugin = Plugin(
             calibration_method, distribution, desired_units,
             predictor_of_mean_flag=predictor_of_mean_flag)
-        result = plugin.process(
+        calibrated_predictor, calibrated_variance = plugin.process(
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
