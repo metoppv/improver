@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "spot-extract nearest temperatures" {
+@test "spot-extract try to extract percentile from deterministic input - warnings suppressed" {
   improver_check_skip_acceptance
   KGO="spot-extract/outputs/nearest_uk_temperatures.nc"
 

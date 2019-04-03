@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "spot-extract nearest temperatures" {
+@test "spot-extract try to extract unavailable percentile from percentile input" {
   improver_check_skip_acceptance
 
   # Run spot extract processing and check it passes.

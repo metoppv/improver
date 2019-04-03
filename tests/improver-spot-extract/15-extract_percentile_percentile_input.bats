@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "spot-extract nearest temperatures" {
+@test "spot-extract extract percentiles from percentile input" {
   improver_check_skip_acceptance
   KGO="spot-extract/outputs/extract_percentile_kgo.nc"
 

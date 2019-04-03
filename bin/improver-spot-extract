@@ -136,6 +136,15 @@ def main():
         "of the returned netCDF file. Defaults to None.")
 
     output_group = parser.add_argument_group("Suppress Verbose output")
+    # This CLI may be used to prepare data for verification without knowing the
+    # form of the input, be it deterministic, realizations or probabilistic.
+    # A warning is normally raised when attempting to extract a percentile from
+    # deterministic data as this is not possible; the spot-extraction of the
+    # entire cube is returned. When preparing data for verification we know
+    # that we will produce a large number of these warnings when passing in
+    # deterministic data. This option to suppress warnings is provided to
+    # reduce the amount of unneeded logging information that is written out.
+
     output_group.add_argument(
         "--suppress_warnings", default=False, action="store_true",
         help="Suppress warning output. This option should only be used if "
