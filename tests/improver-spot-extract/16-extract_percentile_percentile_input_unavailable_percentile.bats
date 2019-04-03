@@ -29,19 +29,20 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "spot-extract no arguments" {
-  run improver spot-extract
-  [[ "$status" -eq 2 ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "spot-extract try to extract unavailable percentile from percentile input" {
+  improver_check_skip_acceptance
+
+  # Run spot extract processing and check it passes.
+  run improver spot-extract \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/all_methods_uk.nc" \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/enukx_temperature_percentiles.nc" \
+      "$TEST_DIR/output.nc" --extract_percentiles 45
+  echo "status = ${status}"
+  [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-spot-extract [-h] [--profile] [--profile_file PROFILE_FILE]
-                             [--land_constraint] [--minimum_dz]
-                             [--extract_percentiles EXTRACT_PERCENTILES [EXTRACT_PERCENTILES ...]]
-                             [--ecc_bounds_warning]
-                             [--temperature_lapse_rate_filepath TEMPERATURE_LAPSE_RATE_FILEPATH]
-                             [--grid_metadata_identifier GRID_METADATA_IDENTIFIER]
-                             [--json_file JSON_FILE] [--suppress_warnings]
-                             NEIGHBOUR_FILEPATH DIAGNOSTIC_FILEPATH
-                             OUTPUT_FILEPATH
+ValueError: The percentile diagnostic cube does not contain the requested percentile value.
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }
