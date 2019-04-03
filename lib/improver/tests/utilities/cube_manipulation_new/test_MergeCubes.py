@@ -37,7 +37,6 @@ import numpy as np
 from datetime import datetime as dt
 
 import iris
-from iris.coords import DimCoord
 from iris.exceptions import DuplicateDataError, MergeError
 from iris.tests import IrisTest
 
@@ -231,7 +230,6 @@ class Test__equalise_cell_methods(IrisTest):
             [0.9*np.ones((3, 3)), 0.5*np.ones((3, 3)), 0.1*np.ones((3, 3))],
             dtype=np.float32)
         thresholds = np.array([273., 275., 277.], dtype=np.float32)
-        time_point = dt(2015, 11, 23, 7)
         self.cube = set_up_probability_cube(data.copy(), thresholds)
         self.cell_method1 = iris.coords.CellMethod("mean", "realization")
         self.cell_method2 = iris.coords.CellMethod("mean", "time")
