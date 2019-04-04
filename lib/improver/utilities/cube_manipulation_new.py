@@ -546,6 +546,17 @@ class MergeCubes():
         for cube in cubes_in:
             cubelist.append(cube.copy())
 
+        # if coord_mismatch_error_keys includes "threshold", replace entry with
+        # standard name of threshold-type coordinate on input cubes
+        if "threshold" in self.coord_mismatch_error_keys:
+            try:
+                coord_name = find_threshold_coordinate(cubelist[0]).name()
+            except CoordinateNotFoundError:
+                pass
+            else:
+                self.coord_mismatch_error_keys.pop("threshold")
+                self.coord_mismatch_error_keys.append(coord_name)
+
         # equalise cube attributes and coordinates
         cubelist = self._equalise_cubes(cubelist)
 
