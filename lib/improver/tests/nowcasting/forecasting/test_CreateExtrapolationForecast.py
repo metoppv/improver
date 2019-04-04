@@ -115,7 +115,7 @@ class Test__init__(SetUpCubes):
         message = ("For precipitation fields, orographic enhancement cube "
                    "must be supplied.")
         with self.assertRaisesRegex(ValueError, message):
-            plugin = CreateExtrapolationForecast(
+            CreateExtrapolationForecast(
                 self.precip_cube, self.vel_x, self.vel_y)
 
     def test_orographic_enhancement(self):
