@@ -92,6 +92,6 @@ def calculate_uv_index(uv_upward, uv_downward, scale_factor=3.6):
         uv_index = uv_upward.copy()
         uv_index.data = (uv_upward.data +
                          uv_downward.data) * scale_factor
-        uv_index.standard_name = "ultraviolet_index"
+        uv_index.rename("ultraviolet_index")
         uv_index.units = Unit("1")
         return uv_index
