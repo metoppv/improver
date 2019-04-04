@@ -152,7 +152,7 @@ class Test_generate_file_name(IrisTest):
             name, "20151119T0030Z-PT0000H15M-air_temperature-PT15M.nc")
 
     def test_no_bounds_exception(self):
-        """Test that an exception is raised forecast_period and time
+        """Test that an exception is raised if the forecast_period and time
         coordinates provided do not have bounds."""
         self.cube1h15m.coord("forecast_period").bounds = None
         self.cube1h15m.coord("time").bounds = None
