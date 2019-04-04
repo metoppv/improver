@@ -44,7 +44,7 @@ from improver.utilities.cube_metadata import (
     amend_metadata, add_history_attribute)
 
 
-class AdvectField(object):
+class AdvectField():
     """
     Class to advect a 2D spatial field given velocities along the two vector
     dimensions
@@ -329,7 +329,7 @@ class AdvectField(object):
         return advected_cube
 
 
-class CreateExtrapolationForecast(object):
+class CreateExtrapolationForecast():
     """
     Class to create a nowcast extrapolation forecast using advection.
     For precipitation rate forecasts orographic enhancement must be used.
@@ -338,8 +338,8 @@ class CreateExtrapolationForecast(object):
     def __init__(self, input_cube, vel_x, vel_y,
                  orographic_enhancement_cube=None, metadata_dict=None):
         """
-        Initialises the plugin.
-        This includses checking if orographic enhancement is provided and
+        Initialises the object.
+        This includes checking if orographic enhancement is provided and
         removing the orographic enhancement from the input file ready for
         extrapolation.
         An error is raised if the input cube is precipitation rate but no
@@ -354,7 +354,6 @@ class CreateExtrapolationForecast(object):
             vel_y (iris.cube.Cube):
                 Cube containing a 2D array of velocities along the y
                 coordinate axis
-
 
         Keyword Args:
             orographic_enhancement_cube (iris.cube.Cube):
@@ -390,16 +389,16 @@ class CreateExtrapolationForecast(object):
                       self.advection_plugin))
         return result
 
-    def extrapolate(self, leadtime_hours=None):
+    def extrapolate(self, leadtime_minutes=None):
         """
         Produce a new forecast cube for the supplied lead time. Creates a new
         advected forecast and then reapplies the orographic enhancement if it
         is supplied.
 
         Args:
-            leadtime_hours (float):
+            leadtime_minutes (float):
                 The forecast leadtime we want to generate a forecast for
-                in hours.
+                in minutes.
 
         Returns:
             advected_cube (iris.cube.Cube):
@@ -409,14 +408,14 @@ class CreateExtrapolationForecast(object):
                 the cube domain).
 
         Raises:
-            ValueError: If no leadtime_hours are provided.
+            ValueError: If no leadtime_minutes are provided.
         """
-        if leadtime_hours is None:
-            message = ("leadtime_hours must be provided in order to produce an"
-                       " extrapolated forecast")
+        if leadtime_minutes is None:
+            message = ("leadtime_minutes must be provided in order to produce"
+                       " an extrapolated forecast")
             raise ValueError(message)
         # cast to float as datetime.timedelta cannot accept np.int
-        timestep = datetime.timedelta(seconds=60.*leadtime_hours)
+        timestep = datetime.timedelta(minutes=1.0*leadtime_minutes)
         forecast_cube = self.advection_plugin.process(
             self.input_cube, timestep)
         if self.orographic_enhancement_cube:

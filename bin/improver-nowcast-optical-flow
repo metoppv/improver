@@ -175,7 +175,7 @@ def main():
         # extrapolate input data to required lead times
         for i, lead_time in enumerate(lead_times):
             forecast_cube = forecast_plugin.extrapolate(
-                leadtime_hours=lead_time)
+                leadtime_minutes=lead_time)
 
             # save to a suitably-named output file
             if args.nowcast_filepaths:
