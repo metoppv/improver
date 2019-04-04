@@ -325,12 +325,17 @@ class MergeCubes():
     """
     def __init__(self):
         """Initialise constants"""
+        # List of attributes to remove silently if unmatched
         self.silent_attributes = ["history", "title", "mosg__grid_version"]
+        # List of coordinates that must strictly match on the input cubes.  If
+        # unmatched, an exception will be raised.
         self.coord_mismatch_error_keys = ["threshold"]
 
     def _equalise_cubes(self, cubelist):
         """
-        Function to equalise cubes where they do not match.
+        Function to equalise cubes where the attributes, coordinates or cell
+        methods do not match.  Note this function cannot equalise cubes where
+        different coordinates are present on each cube.
 
         Args:
             cubelist (iris.cube.CubeList):
@@ -367,7 +372,7 @@ class MergeCubes():
 
         Raises:
             ValueError:
-                If coordinates in error_keys do not match.
+                If coordinates in self.coord_mismatch_error_keys do not match.
         """
         # check for unmatching coords (returns a list of dictionaries, each
         # with an entry for each mismatched coord.  If all coords match,
@@ -392,8 +397,8 @@ class MergeCubes():
                 for key in ([keyval for cube_dict in unmatching_coords
                              for keyval in cube_dict]):
                     if error_key in key:
-                        msg = ("{} ".format(error_key) +
-                               "coordinates must match to merge")
+                        msg = ("{} coordinates must match "
+                               "to merge".format(error_key))
                         raise ValueError(msg)
 
             # slice over any remaining mismatched non-scalar coordinates
@@ -451,20 +456,15 @@ class MergeCubes():
                         match_coord = later_cube.coord(coord)
                     except CoordinateNotFoundError:
                         continue
+
                     if coord.bounds is None and match_coord.bounds is None:
                         continue
-                    elif (coord.bounds is None and
-                          match_coord.bounds is not None):
-                        raise ValueError(msg.format(coord.name()))
                     elif (coord.bounds is not None and
-                          match_coord.bounds is None):
-                        raise ValueError(msg.format(coord.name()))
-                    else:
+                          match_coord.bounds is not None):
                         if np.allclose(np.array(coord.bounds),
                                        np.array(match_coord.bounds)):
                             continue
-                        else:
-                            raise ValueError(msg.format(coord.name()))
+                    raise ValueError(msg.format(coord.name()))
 
     @staticmethod
     def _equalise_cell_methods(cubes):
@@ -492,7 +492,9 @@ class MergeCubes():
     def _check_time_bounds_ranges(cube):
         """
         Check the bounds on any dimensional time coordinates after merging.
-        If points on the coordinate are not compatible, raise an error.
+        For example, to check time and forecast period ranges for accumulations
+        to avoid blending 1 hr with 3 hr accumulations.  If points on the
+        coordinate are not compatible, raise an error.
 
         Args:
             cube (iris.cube.Cube):
@@ -518,8 +520,10 @@ class MergeCubes():
 
     def process(self, cubes_in, check_time_bounds_ranges=False):
         """
-        Function to merge cubes, accounting for differences in attributes and
-        coordinates.
+        Function to merge cubes, accounting for differences in attributes,
+        coordinates and cell methods.  Note that cubes with different sets
+        of coordinates (as opposed to cubes with the same coordinates with
+        different values) cannot be merged.
 
         Args:
             cubes (iris.cube.CubeList or iris.cube.Cube):
@@ -554,7 +558,7 @@ class MergeCubes():
             except CoordinateNotFoundError:
                 pass
             else:
-                self.coord_mismatch_error_keys.pop("threshold")
+                self.coord_mismatch_error_keys.remove("threshold")
                 self.coord_mismatch_error_keys.append(coord_name)
 
         # equalise cube attributes and coordinates
@@ -626,8 +630,8 @@ class MergeCubesForWeightedBlending():
         for i, cube in enumerate(cubelist):
             if self.model_id_attr not in cube.attributes:
                 msg = ('Cannot create model ID coordinate for grid blending '
-                       'as the model ID attribute specified is not found '
-                       'within the cube attributes')
+                       'as "model_id_attr={}" was not found within the cube '
+                       'attributes'.format(self.model_id_attr))
                 raise ValueError(msg)
 
             model_title = cube.attributes.pop(self.model_id_attr)

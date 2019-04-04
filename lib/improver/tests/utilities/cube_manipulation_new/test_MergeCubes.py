@@ -157,7 +157,7 @@ class Test__equalise_cube_coords(IrisTest):
 
 
 class Test__check_dim_coord_bounds(IrisTest):
-    """Test the _check_coord_bounds method"""
+    """Test the _check_dim_coord_bounds method"""
 
     def setUp(self):
         """Set up accumulation cubelist for testing"""
