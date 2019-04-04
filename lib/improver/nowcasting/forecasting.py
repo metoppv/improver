@@ -369,39 +369,6 @@ class CreateExtrapolationForecast(object):
                 dictionary.
         """
         self.orographic_enhancement_cube = orographic_enhancement_cube
-        self.input_cube = self._remove_orographic_enhancement(input_cube)
-        self.advection_plugin = AdvectField(
-                    vel_x, vel_y, metadata_dict=metadata_dict)
-
-    def __repr__(self):
-        """Represent the plugin instance as a string."""
-        result = ('<CreateExtrapolationForecast: input_cube = {},'
-                  'orographic_enhancement_cube = {},'
-                  'advection_plugin = {}'.format(
-                     self.input_cube, self.orographic_enhancement_cube,
-                     self.advection_plugin))
-        return result
-
-    def _remove_orographic_enhancement(self, input_cube):
-        """
-        Remove the orographic enhancement from the input cube ahead of
-        advection if provided. It also raises an error if no orographic
-        enhancement cube has been provided with a preicipitation rate input
-        cube.
-
-        Args:
-            input_cube (iris.cube.Cube):
-                A 2D cube containing data to be advected.
-
-        Returns:
-            input_cube (iris.cube.Cube):
-                A 2D cube containing data to be advected with the orographic
-                enhancement removed.
-
-        Raises:
-            ValueError: If no orographic enhancement is provided for a
-                        precipitation rate input cube.
-        """
         if self.orographic_enhancement_cube:
             input_cube, = ApplyOrographicEnhancement("subtract").process(
                 input_cube, self.orographic_enhancement_cube)
@@ -409,7 +376,19 @@ class CreateExtrapolationForecast(object):
             msg = ("For precipitation fields, orographic enhancement "
                    "cube must be supplied.")
             raise ValueError(msg)
-        return input_cube
+        self.input_cube = input_cube
+        self.advection_plugin = AdvectField(
+            vel_x, vel_y, metadata_dict=metadata_dict)
+
+    def __repr__(self):
+        """Represent the plugin instance as a string."""
+        result = ('<CreateExtrapolationForecast: input_cube = {}, '
+                  'orographic_enhancement_cube = {}, '
+                  'advection_plugin = {}>'.format(
+                      self.input_cube.name(),
+                      self.orographic_enhancement_cube.name(),
+                      self.advection_plugin))
+        return result
 
     def extrapolate(self, leadtime_hours=None):
         """
@@ -418,7 +397,7 @@ class CreateExtrapolationForecast(object):
         is supplied.
 
         Args:
-            leadtime_hours (int):
+            leadtime_hours (float):
                 The forecast leadtime we want to generate a forecast for
                 in hours.
 
