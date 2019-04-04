@@ -159,7 +159,7 @@ class Test_extrapolate(SetUpCubes):
     def test_without_orographic_enhancement(self):
         """Test plugin returns the correct advected forecast cube.
         In this case we have 600m grid spacing in our cubes, and 1m/s
-        advection velocities in the x and y direction, so after 10 hours,
+        advection velocities in the x and y direction, so after 10 minutes,
         our precipitation will have moved exactly one grid square along"""
         input_cube = self.precip_cube.copy()
         input_cube.rename("air_temperature")
@@ -188,7 +188,7 @@ class Test_extrapolate(SetUpCubes):
         """Test plugin returns the correct advected forecast cube, with
         orographic enhancement.
         In this case we have 600m grid spacing in our cubes, and 1m/s
-        advection velocities in the x and y direction, so after 10 hours,
+        advection velocities in the x and y direction, so after 10 minutes,
         our precipitation will have moved exactly one grid square along.
         The orographic enhancement has been removed before advecting, then
         added back on afterwards, leading to a different end result."""
