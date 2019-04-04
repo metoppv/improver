@@ -39,7 +39,7 @@ import iris
 from iris.coords import AuxCoord, DimCoord
 from iris.exceptions import CoordinateNotFoundError
 from improver.utilities.cube_checker import (
-    check_cube_coordinates, check_cube_not_float64)
+    check_cube_coordinates, check_cube_not_float64, find_threshold_coordinate)
 
 
 def _associate_any_coordinate_with_master_coordinate(
@@ -155,7 +155,9 @@ def strip_var_names(cubes):
     for cube in cubes:
         cube.var_name = None
         for coord in cube.coords():
-            coord.var_name = None
+            # retain var name required for threshold coordinate
+            if coord.var_name != "threshold":
+                coord.var_name = None
     return cubes
 
 
@@ -904,8 +906,15 @@ def enforce_coordinate_ordering(
         if cube.coords(coord_name):
             full_coord_name = coord_name
         else:
-            coord = [coord for coord in cube.coords()
-                     if coord_name in coord.name()]
+            # Handle "threshold" as an argument
+            if coord_name == "threshold":
+                try:
+                    coord = [find_threshold_coordinate(cube)]
+                except CoordinateNotFoundError:
+                    coord = []
+            else:
+                coord = [coord for coord in cube.coords()
+                         if coord_name in coord.name()]
             # If the coordinate is desired, raise an exception
             # if the coordinate is missing.
             if len(coord) == 0:

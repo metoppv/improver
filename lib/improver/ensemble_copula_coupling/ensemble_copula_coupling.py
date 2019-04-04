@@ -51,8 +51,8 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
 from improver.utilities.cube_manipulation import (
     concatenate_cubes, enforce_coordinate_ordering)
 from improver.utilities.cube_checker import (
-    find_percentile_coordinate, check_for_x_and_y_axes,
-    check_cube_coordinates)
+    find_percentile_coordinate, find_threshold_coordinate,
+    check_for_x_and_y_axes, check_cube_coordinates)
 from improver.utilities.indexing_operations import choose
 
 
@@ -424,8 +424,8 @@ class GeneratePercentilesFromProbabilities(object):
                 air_temperature at the required percentiles.
 
         """
-        threshold_coord = forecast_probabilities.coord("threshold")
-        threshold_unit = forecast_probabilities.coord("threshold").units
+        threshold_coord = find_threshold_coordinate(forecast_probabilities)
+        threshold_unit = threshold_coord.units
         threshold_points = threshold_coord.points
 
         # Ensure that the percentile dimension is first, so that the
@@ -550,12 +550,12 @@ class GeneratePercentilesFromProbabilities(object):
                 "Cannot specify both no_of_percentiles and percentiles to "
                 "GeneratePercentilesFromProbabilities")
 
+        threshold_coord = find_threshold_coordinate(forecast_probabilities)
         forecast_probabilities = concatenate_cubes(
             forecast_probabilities,
-            coords_to_slice_over="threshold",
+            coords_to_slice_over=threshold_coord,
             coordinates_for_association=[])
 
-        threshold_coord = forecast_probabilities.coord("threshold")
         phenom_name = (
             forecast_probabilities.name().replace(
                 "probability_of_", "").replace("_above_threshold", "").replace(
@@ -810,7 +810,8 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
         Raises:
             ValueError: If units of input cubes are not compatible.
         """
-        threshold_units = probability_cube_template.coord('threshold').units
+        threshold_units = (
+            find_threshold_coordinate(probability_cube_template).units)
 
         try:
             mean_values.convert_units(threshold_units)
@@ -844,7 +845,8 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
                 the provided thresholds in the way described by
                 relative_to_threshold.
         """
-        thresholds = probability_cube_template.coord('threshold').points
+        thresholds = (
+            find_threshold_coordinate(probability_cube_template).points)
         relative_to_threshold = (
             probability_cube_template.attributes['relative_to_threshold'])
 

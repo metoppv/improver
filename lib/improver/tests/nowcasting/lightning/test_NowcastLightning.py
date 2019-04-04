@@ -210,7 +210,7 @@ class Test__update_metadata(IrisTest):
         """Test that the method raises an error in Iris if the cube doesn't
         have a threshold coordinate to remove."""
         self.cube.remove_coord('threshold')
-        msg = ("Expected to find exactly 1 threshold coordinate, but found no")
+        msg = "No threshold coord found"
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             self.plugin._update_metadata(self.cube)
 
@@ -870,7 +870,7 @@ class Test_process(IrisTest):
         """Test that the method raises an error if the threshold coord is
         omitted from the precip_cube"""
         self.precip_cube.remove_coord('threshold')
-        msg = (r"Expected to find exactly 1 threshold coordinate, but found n")
+        msg = "No threshold coord found"
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             self.plugin.process(CubeList([
                 self.fg_cube,
