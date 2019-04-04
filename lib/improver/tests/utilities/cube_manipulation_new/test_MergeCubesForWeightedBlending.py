@@ -204,9 +204,7 @@ class Test_process(IrisTest):
         an error is thrown"""
         plugin = MergeCubesForWeightedBlending(
             model_id_attr='non_matching_model_config')
-        msg = ('Cannot create model ID coordinate for grid blending '
-               'as the model ID attribute specified is not found '
-               'within the cube attributes')
+        msg = 'Cannot create model ID coordinate'
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(
                 [self.cube_non_mo_ens, self.cube_non_mo_det], "model")
@@ -220,9 +218,7 @@ class Test_process(IrisTest):
             'non_matching_model_config'] = 'non_uk_det'
         plugin = MergeCubesForWeightedBlending(
             model_id_attr='non_matching_model_config')
-        msg = ('Cannot create model ID coordinate for grid blending '
-               'as the model ID attribute specified is not found '
-               'within the cube attributes')
+        msg = 'Cannot create model ID coordinate'
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(
                 [self.cube_non_mo_ens, self.cube_non_mo_det], "model")
