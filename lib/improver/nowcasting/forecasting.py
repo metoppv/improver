@@ -385,9 +385,9 @@ class CreateExtrapolationForecast():
         result = ('<CreateExtrapolationForecast: input_cube = {}, '
                   'orographic_enhancement_cube = {}, '
                   'advection_plugin = {}>'.format(
-                      self.input_cube.name(),
-                      self.orographic_enhancement_cube.name(),
-                      self.advection_plugin))
+                      repr(self.input_cube),
+                      repr(self.orographic_enhancement_cube),
+                      repr(self.advection_plugin)))
         return result
 
     def extrapolate(self, leadtime_minutes=None):
@@ -416,7 +416,7 @@ class CreateExtrapolationForecast():
                        " an extrapolated forecast")
             raise ValueError(message)
         # cast to float as datetime.timedelta cannot accept np.int
-        timestep = datetime.timedelta(minutes=1.0*leadtime_minutes)
+        timestep = datetime.timedelta(minutes=float(leadtime_minutes))
         forecast_cube = self.advection_plugin.process(
             self.input_cube, timestep)
         if self.orographic_enhancement_cube:

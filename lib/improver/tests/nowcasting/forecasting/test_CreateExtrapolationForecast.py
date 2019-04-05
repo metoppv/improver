@@ -149,11 +149,13 @@ class Test__repr__(SetUpCubes):
                 orographic_enhancement_cube=self.oe_cube)
         result = str(plugin)
         expected_result = (
-            '<CreateExtrapolationForecast: input_cube = '
-            'lwe_precipitation_rate, orographic_enhancement_cube = '
-            'orographic_enhancement, advection_plugin = <AdvectField: '
-            'vel_x=advection_velocity_x, vel_y=advection_velocity_y, '
-            'metadata_dict={}>>'
+            "<CreateExtrapolationForecast: input_cube = <iris 'Cube' of "
+            "lwe_precipitation_rate / (mm/hr) (projection_y_coordinate: 4; "
+            "projection_x_coordinate: 3)>, orographic_enhancement_cube = "
+            "<iris 'Cube' of orographic_enhancement / (mm/hr) "
+            "(projection_y_coordinate: 4; projection_x_coordinate: 3)>, "
+            "advection_plugin = <AdvectField: vel_x=advection_velocity_x, "
+            "vel_y=advection_velocity_y, metadata_dict={}>>"
             )
         self.assertEqual(result, expected_result)
 
@@ -165,7 +167,8 @@ class Test_extrapolate(SetUpCubes):
         """Test plugin returns the correct advected forecast cube.
         In this case we have 600m grid spacing in our cubes, and 1m/s
         advection velocities in the x and y direction, so after 10 minutes,
-        our precipitation will have moved exactly one grid square along"""
+        our precipitation will have moved exactly one grid square along
+        each axis."""
         input_cube = self.precip_cube.copy()
         input_cube.rename("air_temperature")
         input_cube.units = "K"
@@ -194,7 +197,8 @@ class Test_extrapolate(SetUpCubes):
         orographic enhancement.
         In this case we have 600m grid spacing in our cubes, and 1m/s
         advection velocities in the x and y direction, so after 10 minutes,
-        our precipitation will have moved exactly one grid square along.
+        our precipitation will have moved exactly one grid square along
+        each axis.
         The orographic enhancement has been removed before advecting, then
         added back on afterwards, leading to a different end result."""
         plugin = CreateExtrapolationForecast(
