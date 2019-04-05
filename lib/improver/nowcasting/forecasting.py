@@ -31,18 +31,20 @@
 """
 This module defines plugins used to create nowcast extrapolation forecasts.
 """
+import datetime
 import warnings
 import numpy as np
 
 from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 
+from improver.nowcasting.optical_flow import check_input_coords
+from improver.nowcasting.utilities import ApplyOrographicEnhancement
 from improver.utilities.cube_metadata import (
     amend_metadata, add_history_attribute)
-from improver.nowcasting.optical_flow import check_input_coords
 
 
-class AdvectField(object):
+class AdvectField():
     """
     Class to advect a 2D spatial field given velocities along the two vector
     dimensions
@@ -99,7 +101,7 @@ class AdvectField(object):
         """Represent the plugin instance as a string."""
         result = ('<AdvectField: vel_x={}, vel_y={}, '
                   'metadata_dict={}>'.format(
-                      self.vel_x.name(), self.vel_y.name(),
+                      repr(self.vel_x), repr(self.vel_y),
                       self.metadata_dict))
         return result
 
@@ -244,6 +246,7 @@ class AdvectField(object):
                 are filled with np.nan and masked where source data were
                 out of bounds (ie where data could not be advected from outside
                 the cube domain).
+
         """
         # check that the input cube has precisely two non-scalar dimension
         # coordinates (spatial x/y) and a scalar time coordinate
@@ -324,3 +327,101 @@ class AdvectField(object):
 
         advected_cube = amend_metadata(advected_cube, **self.metadata_dict)
         return advected_cube
+
+
+class CreateExtrapolationForecast():
+    """
+    Class to create a nowcast extrapolation forecast using advection.
+    For precipitation rate forecasts, orographic enhancement must be used.
+    """
+
+    def __init__(self, input_cube, vel_x, vel_y,
+                 orographic_enhancement_cube=None, metadata_dict=None):
+        """
+        Initialises the object.
+        This includes checking if orographic enhancement is provided and
+        removing the orographic enhancement from the input file ready for
+        extrapolation.
+        An error is raised if the input cube is precipitation rate but no
+        orographic enhancement cube is provided.
+
+        Args:
+            input_cube (iris.cube.Cube):
+                A 2D cube containing data to be advected.
+            vel_x (iris.cube.Cube):
+                Cube containing a 2D array of velocities along the x
+                coordinate axis
+            vel_y (iris.cube.Cube):
+                Cube containing a 2D array of velocities along the y
+                coordinate axis
+
+        Keyword Args:
+            orographic_enhancement_cube (iris.cube.Cube):
+                Cube containing the orographic enhancement fields. May have
+                data for multiple times in the cube. The orographic enhancement
+                is removed from the input_cube before advecting, and added
+                back on after advection.
+            metadata_dict (dict):
+                Dictionary containing information for amending the metadata
+                of the output cube. Please see the
+                :func:`improver.utilities.cube_metadata.amend_metadata`
+                for information regarding the allowed contents of the metadata
+                dictionary.
+        """
+        self.orographic_enhancement_cube = orographic_enhancement_cube
+        if self.orographic_enhancement_cube:
+            input_cube, = ApplyOrographicEnhancement("subtract").process(
+                input_cube, self.orographic_enhancement_cube)
+        elif "precipitation_rate" in input_cube.name():
+            msg = ("For precipitation fields, orographic enhancement "
+                   "cube must be supplied.")
+            raise ValueError(msg)
+        self.input_cube = input_cube
+        self.advection_plugin = AdvectField(
+            vel_x, vel_y, metadata_dict=metadata_dict)
+
+    def __repr__(self):
+        """Represent the plugin instance as a string."""
+        result = ('<CreateExtrapolationForecast: input_cube = {}, '
+                  'orographic_enhancement_cube = {}, '
+                  'advection_plugin = {}>'.format(
+                      repr(self.input_cube),
+                      repr(self.orographic_enhancement_cube),
+                      repr(self.advection_plugin)))
+        return result
+
+    def extrapolate(self, leadtime_minutes=None):
+        """
+        Produce a new forecast cube for the supplied lead time. Creates a new
+        advected forecast and then reapplies the orographic enhancement if it
+        is supplied.
+
+        Args:
+            leadtime_minutes (float):
+                The forecast leadtime we want to generate a forecast for
+                in minutes.
+
+        Returns:
+            advected_cube (iris.cube.Cube):
+                New cube with updated time and extrapolated data.  New data
+                are filled with np.nan and masked where source data were
+                out of bounds (ie where data could not be advected from outside
+                the cube domain).
+
+        Raises:
+            ValueError: If no leadtime_minutes are provided.
+        """
+        if leadtime_minutes is None:
+            message = ("leadtime_minutes must be provided in order to produce"
+                       " an extrapolated forecast")
+            raise ValueError(message)
+        # cast to float as datetime.timedelta cannot accept np.int
+        timestep = datetime.timedelta(minutes=float(leadtime_minutes))
+        forecast_cube = self.advection_plugin.process(
+            self.input_cube, timestep)
+        if self.orographic_enhancement_cube:
+            # Add orographic enhancement.
+            forecast_cube, = ApplyOrographicEnhancement("add").process(
+                forecast_cube, self.orographic_enhancement_cube)
+
+        return forecast_cube

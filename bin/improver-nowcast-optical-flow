@@ -32,17 +32,15 @@
 """Script to calculate optical flow advection velocities with option to
 extrapolate."""
 
-import datetime
 import os
+import json
 import iris
 import numpy as np
-import json
 
 from improver.argparser import ArgParser
+from improver.nowcasting.forecasting import CreateExtrapolationForecast
 from improver.nowcasting.optical_flow import OpticalFlow
-from improver.nowcasting.forecasting import AdvectField
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
-from improver.utilities.cube_manipulation import merge_cubes, strip_var_names
 from improver.utilities.filename import generate_file_name
 from improver.utilities.load import load_cube, load_cubelist
 from improver.utilities.save import save_netcdf
@@ -67,11 +65,11 @@ def main():
                         " or only advection velocity components if "
                         "NOWCAST_FILEPATHS is specified.")
     parser.add_argument("--nowcast_filepaths", nargs="+", type=str,
-                        default=None,  help="Optional list of full paths to "
+                        default=None, help="Optional list of full paths to "
                         "output nowcast files. Overrides OUTPUT_DIR. Ignored "
                         "unless '--extrapolate' is set.")
     parser.add_argument("--orographic_enhancement_filepaths", nargs="+",
-                        type=str, default=None,  help="List or wildcarded "
+                        type=str, default=None, help="List or wildcarded "
                         "file specification to the input orographic "
                         "enhancement files. Orographic enhancement files are "
                         "compulsory for precipitation fields.")
@@ -106,14 +104,15 @@ def main():
     args = parser.parse_args()
 
     # read input data
-    cube_list = load_cubelist(args.input_filepaths)
+    original_cube_list = load_cubelist(args.input_filepaths)
 
     if args.orographic_enhancement_filepaths:
         # Subtract orographic enhancement
         oe_cube = load_cube(args.orographic_enhancement_filepaths)
         cube_list = ApplyOrographicEnhancement("subtract").process(
-            cube_list, oe_cube)
+            original_cube_list, oe_cube)
     else:
+        cube_list = original_cube_list
         if any("precipitation_rate" in cube.name() for cube in cube_list):
             cube_names = [cube.name() for cube in cube_list]
             msg = ("For precipitation fields, orographic enhancement "
@@ -143,12 +142,12 @@ def main():
         vcubes.append(vcube)
 
     # average optical flow velocity components
-    ucube = merge_cubes(ucubes)
+    ucube = ucubes.merge_cube()
     umean = ucube.collapsed("time", iris.analysis.MEAN)
     umean.coord("time").points = time_coord.points
     umean.coord("time").units = time_coord.units
 
-    vcube = merge_cubes(vcubes)
+    vcube = vcubes.merge_cube()
     vmean = vcube.collapsed("time", iris.analysis.MEAN)
     vmean.coord("time").points = time_coord.points
     vmean.coord("time").units = time_coord.units
@@ -160,8 +159,6 @@ def main():
 
     # advect latest input data to the required lead times
     if args.extrapolate:
-        advection_plugin = (
-            AdvectField(umean, vmean, metadata_dict=metadata_dict))
 
         # generate list of lead times in minutes
         lead_times = np.arange(0, args.max_lead_time+1,
@@ -172,21 +169,13 @@ def main():
                 raise ValueError("Require exactly one output file name for "
                                  "each forecast lead time")
 
+        forecast_plugin = CreateExtrapolationForecast(
+            original_cube_list[-1], umean, vmean,
+            orographic_enhancement_cube=oe_cube, metadata_dict=metadata_dict)
+        # extrapolate input data to required lead times
         for i, lead_time in enumerate(lead_times):
-            # cast to float as datetime.timedelta cannot accept np.int
-            timestep = datetime.timedelta(seconds=60.*lead_time)
-            # Strip the var_names for the cubes within cube_list.
-            # This is required because merge_cubes has already stripped the
-            # var_names from umean and vmean, however, the cubes in cube_list
-            # can still have var_names, which can cause coordinates to mismatch
-            # within the advection plugin.
-            cube_list = strip_var_names(cube_list)
-            forecast_cube = advection_plugin.process(cube_list[-1], timestep)
-
-            if args.orographic_enhancement_filepaths:
-                # Re-add orographic enhancement.
-                forecast_cube, = ApplyOrographicEnhancement("add").process(
-                    forecast_cube, oe_cube)
+            forecast_cube = forecast_plugin.extrapolate(
+                leadtime_minutes=lead_time)
 
             # save to a suitably-named output file
             if args.nowcast_filepaths:
