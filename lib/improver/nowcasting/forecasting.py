@@ -101,7 +101,7 @@ class AdvectField():
         """Represent the plugin instance as a string."""
         result = ('<AdvectField: vel_x={}, vel_y={}, '
                   'metadata_dict={}>'.format(
-                      self.vel_x.name(), self.vel_y.name(),
+                      repr(self.vel_x), repr(self.vel_y),
                       self.metadata_dict))
         return result
 

@@ -95,8 +95,12 @@ class Test__repr__(IrisTest):
         vel_y = set_up_xy_velocity_cube("advection_velocity_y")
         result = str(AdvectField(vel_x, vel_y))
         expected_result = (
-            '<AdvectField: vel_x=advection_velocity_x, '
-            'vel_y=advection_velocity_y, metadata_dict={}>')
+            "<AdvectField: vel_x=<iris 'Cube' of advection_velocity_x / "
+            "(m s-1) (projection_y_coordinate: 4; "
+            "projection_x_coordinate: 3)>, vel_y=<iris 'Cube' of "
+            "advection_velocity_y / (m s-1) (projection_y_coordinate: 4; "
+            "projection_x_coordinate: 3)>, metadata_dict={}>"
+            )
         self.assertEqual(result, expected_result)
 
 

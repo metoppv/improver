@@ -154,8 +154,12 @@ class Test__repr__(SetUpCubes):
             "projection_x_coordinate: 3)>, orographic_enhancement_cube = "
             "<iris 'Cube' of orographic_enhancement / (mm/hr) "
             "(projection_y_coordinate: 4; projection_x_coordinate: 3)>, "
-            "advection_plugin = <AdvectField: vel_x=advection_velocity_x, "
-            "vel_y=advection_velocity_y, metadata_dict={}>>"
+            "advection_plugin = <AdvectField: vel_x=<iris "
+            "'Cube' of advection_velocity_x / (m s-1) "
+            "(projection_y_coordinate: 4; projection_x_coordinate: 3)>, "
+            "vel_y=<iris 'Cube' of advection_velocity_y / (m s-1) "
+            "(projection_y_coordinate: 4; projection_x_coordinate: 3)>, "
+            "metadata_dict={}>>"
             )
         self.assertEqual(result, expected_result)
 
