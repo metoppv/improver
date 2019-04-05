@@ -67,6 +67,11 @@ def setup_precipitation_cube():
 
 
 class SetUpCubes(IrisTest):
+    """
+    Set up a base class with a setUp method that can be inherited by all
+    the other unit test classes. This means they can all share the same
+    setUp method.
+    """
     def setUp(self):
         """Set up cubes needed for the __init__ method """
         self.precip_cube = setup_precipitation_cube()
@@ -90,7 +95,7 @@ class Test__init__(SetUpCubes):
         plugin = CreateExtrapolationForecast(
             input_cube.copy(), self.vel_x, self.vel_y)
         self.assertEqual(input_cube, plugin.input_cube)
-        self.assertEqual(plugin.orographic_enhancement_cube, None)
+        self.assertIsNone(plugin.orographic_enhancement_cube)
         self.assertIsInstance(plugin.advection_plugin, AdvectField)
 
     def test_basic_with_metadata_dict(self):

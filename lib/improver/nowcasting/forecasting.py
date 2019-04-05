@@ -332,7 +332,7 @@ class AdvectField():
 class CreateExtrapolationForecast():
     """
     Class to create a nowcast extrapolation forecast using advection.
-    For precipitation rate forecasts orographic enhancement must be used.
+    For precipitation rate forecasts, orographic enhancement must be used.
     """
 
     def __init__(self, input_cube, vel_x, vel_y,
@@ -358,9 +358,10 @@ class CreateExtrapolationForecast():
         Keyword Args:
             orographic_enhancement_cube (iris.cube.Cube):
                 Cube containing the orographic enhancement fields. May have
-                data for multiple times in the cube. This is removed from the
-                input_cube before advecting, and added back on after advection.
-            metadata_dict (Dictionary):
+                data for multiple times in the cube. The orographic enhancement
+                is removed from the input_cube before advecting, and added
+                back on after advection.
+            metadata_dict (dict):
                 Dictionary containing information for amending the metadata
                 of the output cube. Please see the
                 :func:`improver.utilities.cube_metadata.amend_metadata`
