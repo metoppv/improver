@@ -283,10 +283,10 @@ class RoughnessCorrectionUtilities(object):
         h_over_2 is calculated from the standard deviation of height in
         a grid cell, sigma, as:
 
-        .. math
+        .. math::
           :label:
 
-            h_over_2 = sqrt(2) * \\rm{sigma}
+            \\rm{h\\_over\\_2} = \\sqrt{2} * \\rm{sigma}
 
         which is based on the assumptions of sine waves, see
         sigma2hover2.
