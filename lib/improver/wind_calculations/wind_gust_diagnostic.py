@@ -95,8 +95,7 @@ class WindGustDiagnostic(object):
 
         """
         result = cube
-        result.standard_name = "wind_speed_of_gust"
-        result.long_name = "wind_gust_diagnostic"
+        result.rename("wind_speed_of_gust")
         if self.percentile_gust == 50.0 and self.percentile_windspeed == 95.0:
             diagnostic_txt = 'Typical gusts'
         elif (self.percentile_gust == 95.0 and

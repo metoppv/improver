@@ -119,7 +119,6 @@ class Test_add_metadata(IrisTest):
         plugin = WindGustDiagnostic(50.0, 80.0)
         result = plugin.add_metadata(self.cube_wg)
         self.assertEqual(result.standard_name, "wind_speed_of_gust")
-        self.assertEqual(result.long_name, "wind_gust_diagnostic")
         msg = ('<WindGustDiagnostic: wind-gust perc=50.0, '
                'wind-speed perc=80.0>')
         self.assertEqual(result.attributes['wind_gust_diagnostic'], msg)
