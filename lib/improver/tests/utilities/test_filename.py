@@ -77,7 +77,7 @@ class Test_generate_file_name(IrisTest):
     def test_input_cube_unmodified(self):
         """Test the function does not modify the input cube"""
         reference_cube = self.cube15m.copy()
-        _ = generate_file_name(self.cube15m)
+        generate_file_name(self.cube15m)
         self.assertArrayAlmostEqual(self.cube15m.data, reference_cube.data)
         self.assertEqual(self.cube15m.metadata, reference_cube.metadata)
 
@@ -98,7 +98,7 @@ class Test_generate_file_name(IrisTest):
         """Test error is raised if "time" coordinate is missing"""
         self.cube15m.remove_coord("time")
         with self.assertRaises(CoordinateNotFoundError):
-            _ = generate_file_name(self.cube15m)
+            generate_file_name(self.cube15m)
 
     def test_funny_cube_name(self):
         """Test cube names are correctly parsed to remove spaces, brackets,

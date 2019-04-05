@@ -63,8 +63,11 @@ def generate_file_name(cube, parameter=None, include_period=False):
             File base name to which to write
 
     Raises:
-        iris.exceptions.CoordinateNotFoundError:
-            If the input cube has no "time" coordinate
+        ValueError: In order to calculate the period, either the
+            forecast_period or the time coordinate must have bounds.
+        ValueError: The period deduced by the coordinate bounds must be either
+            less than 1 hour or in terms of whole hours.
+
     """
 
     vtime = (cube.coord('time').units).num2date(cube.coord('time').points)[0]
@@ -91,6 +94,13 @@ def generate_file_name(cube, parameter=None, include_period=False):
 
     period_string = None
     if include_period:
+        # If a period should be included within the filename, then check the
+        # forecast_period and time coordinates for bounds that can be used
+        # to define the period. Depending upon the bounds specified by the
+        # coordinates, the format of the period will either be 'PT??M'
+        # to represent a period in minutes, where ?? will be replaced by the
+        # actual minutes, or 'PT??H' to represent a period in hours, where ??
+        # will be replaced by the actual hours.
         coord_units = {"forecast_period": "seconds",
                        "time": "seconds since 1970-01-01 00:00:00"}
         for coord_name in ["forecast_period", "time"]:
