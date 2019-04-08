@@ -39,7 +39,8 @@ from iris.tests import IrisTest
 
 from improver.utilities.cube_manipulation_new import (
     MergeCubesForWeightedBlending)
-from improver.tests.set_up_test_cubes import set_up_probability_cube
+from improver.tests.set_up_test_cubes import (
+    set_up_probability_cube, set_up_variable_cube)
 
 
 class Test__init__(IrisTest):
@@ -47,14 +48,25 @@ class Test__init__(IrisTest):
 
     def test_basic(self):
         """Test default initialisation"""
-        plugin = MergeCubesForWeightedBlending()
+        plugin = MergeCubesForWeightedBlending("realization")
+        self.assertEqual(plugin.blend_coord, "realization")
+        self.assertIsNone(plugin.weighting_coord)
         self.assertIsNone(plugin.model_id_attr)
 
-    def test_model(self):
-        """Test model ID attribute setting"""
+    def test_optional_args(self):
+        """Test model ID and weighting coordinate setting"""
         plugin = MergeCubesForWeightedBlending(
+            "model_id", weighting_coord="forecast_period",
             model_id_attr="mosg__model_configuration")
+        self.assertEqual(plugin.weighting_coord, "forecast_period")
         self.assertEqual(plugin.model_id_attr, "mosg__model_configuration")
+
+    def test_error_missing_model_id_attr(self):
+        """Test exception is raised if blending over model with no identifying
+        attribute"""
+        msg = "model_id_attr required to blend over model_id"
+        with self.assertRaisesRegex(ValueError, msg):
+            MergeCubesForWeightedBlending("model_id")
 
 
 class Test__create_model_coordinates(IrisTest):
@@ -79,6 +91,7 @@ class Test__create_model_coordinates(IrisTest):
             time=time_point, frt=dt(2015, 11, 23, 3))
 
         self.plugin = MergeCubesForWeightedBlending(
+            "model", weighting_coord="forecast_period",
             model_id_attr="mosg__model_configuration")
 
     def test_basic(self):
@@ -95,7 +108,7 @@ class Test__create_model_coordinates(IrisTest):
 
     def test_null(self):
         """Test no effect if model_id_attr is not set"""
-        plugin = MergeCubesForWeightedBlending()
+        plugin = MergeCubesForWeightedBlending("realization")
         cubelist = iris.cube.CubeList([
             self.cube_enuk.copy(), self.cube_ukv.copy()])
         plugin._create_model_coordinates(cubelist)
@@ -136,6 +149,8 @@ class Test_process(IrisTest):
             data.copy(), thresholds, standard_grid_metadata='uk_det',
             time=time_point, frt=dt(2015, 11, 23, 3), time_bounds=time_bounds)
 
+        self.cubelist = iris.cube.CubeList([self.cube_enuk, self.cube_ukv])
+
         # set up some non-UK test cubes
         self.cube_non_mo_ens = self.cube_enuk.copy()
         self.cube_non_mo_ens.attributes.pop("mosg__model_configuration")
@@ -144,32 +159,31 @@ class Test_process(IrisTest):
         self.cube_non_mo_det.attributes.pop("mosg__model_configuration")
         self.cube_non_mo_det.attributes['non_mo_model_config'] = 'non_uk_det'
 
+        # set up plugin for multi-model blending weighted by forecast period
         self.plugin = MergeCubesForWeightedBlending(
+            "model", weighting_coord="forecast_period",
             model_id_attr="mosg__model_configuration")
 
     def test_basic(self):
         """Test single cube is returned unmodified"""
         cube = self.cube_enuk.copy()
-        result = self.plugin.process(cube, "model")
+        result = self.plugin.process(cube)
         self.assertArrayAlmostEqual(result.data, self.cube_enuk.data)
         self.assertEqual(result.metadata, self.cube_enuk.metadata)
 
     def test_multi_model_merge(self):
         """Test models merge OK and have expected model coordinates"""
-        cubes = iris.cube.CubeList([self.cube_enuk, self.cube_ukv])
-        result = self.plugin.process(cubes, "model")
+        result = self.plugin.process(self.cubelist)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(
             result.coord("model_id").points, [0, 1000])
         self.assertArrayEqual(
             result.coord("model_configuration").points, ["uk_ens", "uk_det"])
 
-    def test_rationalise_time_coords(self):
+    def test_time_coords(self):
         """Test merged cube has scalar time coordinates if weighting models
         by forecast period"""
-        cubes = iris.cube.CubeList([self.cube_enuk, self.cube_ukv])
-        result = self.plugin.process(
-            cubes, "model", weighting_coord="forecast_period")
+        result = self.plugin.process(self.cubelist)
         # test resulting cube has single 4 hour (shorter) forecast period
         self.assertEqual(result.coord("forecast_period").points, [4*3600])
         # check time and frt points are also consistent with the UKV input cube
@@ -179,21 +193,25 @@ class Test_process(IrisTest):
             result.coord("forecast_reference_time").points,
             self.cube_ukv.coord("forecast_reference_time").points)
 
-    def test_no_model_id_attr(self):
-        """Test multi model blending fails if no model_id_attr is specified"""
-        plugin = MergeCubesForWeightedBlending()
-        cubes = iris.cube.CubeList([self.cube_enuk, self.cube_ukv])
-        msg = "model_id_attr required to blend over model"
-        with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(cubes, "model")
+    def test_cycletime(self):
+        """Test merged cube has updated forecast reference time and forecast
+        period if specified using the 'cycletime' argument"""
+        result = self.plugin.process(self.cubelist, cycletime="20151123T0600Z")
+        # test resulting cube has forecast period consistent with cycletime
+        self.assertEqual(result.coord("forecast_period").points, [3600])
+        self.assertEqual(
+            result.coord("forecast_reference_time").points,
+            self.cube_ukv.coord("forecast_reference_time").points + 3*3600)
+        # check validity time is unchanged
+        self.assertEqual(
+            result.coord("time").points, self.cube_ukv.coord("time").points)
 
     def test_non_mo_model_id(self):
         """Test that a model ID attribute string can be specified when
         merging multi model cubes"""
         plugin = MergeCubesForWeightedBlending(
-            model_id_attr='non_mo_model_config')
-        result = plugin.process(
-            [self.cube_non_mo_ens, self.cube_non_mo_det], "model")
+            "model", model_id_attr="non_mo_model_config")
+        result = plugin.process([self.cube_non_mo_ens, self.cube_non_mo_det])
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(
             result.coord("model_id").points, [0, 1000])
@@ -203,25 +221,23 @@ class Test_process(IrisTest):
         not match the model ID attribute key name on both cubes to be merged,
         an error is thrown"""
         plugin = MergeCubesForWeightedBlending(
-            model_id_attr='non_matching_model_config')
-        msg = 'Cannot create model ID coordinate'
+            "model", model_id_attr="non_matching_model_config")
+        msg = "Cannot create model ID coordinate"
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(
-                [self.cube_non_mo_ens, self.cube_non_mo_det], "model")
+            plugin.process([self.cube_non_mo_ens, self.cube_non_mo_det])
 
     def test_model_id_attr_mismatch_one_cube(self):
         """Test that when a model ID attribute string is specified that only
         matches the model ID attribute key name on one of the cubes to be
         merged, an error is thrown"""
-        self.cube_non_mo_det.attributes.pop('non_mo_model_config')
+        self.cube_non_mo_det.attributes.pop("non_mo_model_config")
         self.cube_non_mo_det.attributes[
-            'non_matching_model_config'] = 'non_uk_det'
+            "non_matching_model_config"] = "non_uk_det"
         plugin = MergeCubesForWeightedBlending(
-            model_id_attr='non_matching_model_config')
-        msg = 'Cannot create model ID coordinate'
+            "model", model_id_attr="non_matching_model_config")
+        msg = "Cannot create model ID coordinate"
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(
-                [self.cube_non_mo_ens, self.cube_non_mo_det], "model")
+            plugin.process([self.cube_non_mo_ens, self.cube_non_mo_det])
 
     def test_time_bounds_mismatch(self):
         """Test failure for cycle blending when time bounds ranges are not
@@ -237,8 +253,28 @@ class Test_process(IrisTest):
             cube2.coord("forecast_period").bounds[0, 1]]
         msg = "Cube with mismatching time bounds ranges cannot be blended"
         with self.assertRaisesRegex(ValueError, msg):
-            MergeCubesForWeightedBlending().process(
-                [self.cube_ukv, cube2], "forecast_reference_time")
+            MergeCubesForWeightedBlending("forecast_reference_time").process(
+                [self.cube_ukv, cube2])
+
+    def test_blend_coord_not_present(self):
+        """Test exception when blend coord is not present on inputs"""
+        msg = "realization coordinate is not present on all input cubes"
+        with self.assertRaisesRegex(ValueError, msg):
+            MergeCubesForWeightedBlending("realization").process(self.cubelist)
+
+    def test_blend_realizations(self):
+        """Test processing works for merging over coordinates that don't
+        require specific setup"""
+        data = np.ones((1, 3, 3), dtype=np.float32)
+        cube1 = set_up_variable_cube(data, realizations=np.array([0]))
+        cube2 = set_up_variable_cube(data, realizations=np.array([1]))
+        plugin = MergeCubesForWeightedBlending("realization")
+        result = plugin.process([cube1, cube2])
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayEqual(
+            result.coord("realization").points, np.array([0, 1]))
+        self.assertEqual(result[0].metadata, cube1.metadata)
+        self.assertEqual(result[1].metadata, cube2.metadata)
 
 
 if __name__ == '__main__':
