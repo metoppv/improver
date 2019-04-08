@@ -42,7 +42,6 @@ from iris.tests import IrisTest
 
 from improver.utilities.cube_manipulation_new import MergeCubes
 from improver.utilities.warnings_handler import ManageWarnings
-
 from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, set_up_probability_cube)
 

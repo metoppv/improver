@@ -622,6 +622,14 @@ class MergeCubesForWeightedBlending():
         if "model" in blend_coord and model_id_attr is None:
             raise ValueError(
                 "model_id_attr required to blend over {}".format(blend_coord))
+
+        # ensure model coordinates are not created for non-model blending
+        if "model" not in blend_coord and model_id_attr is not None:
+            warnings.warn(
+                "model_id_attr not required for blending over {} - "
+                "will be ignored".format(blend_coord))
+            model_id_attr = None
+
         self.blend_coord = blend_coord
         self.weighting_coord = weighting_coord
         self.model_id_attr = model_id_attr
