@@ -191,6 +191,22 @@ class Test_process(IrisTest):
             result.coord("forecast_reference_time").points,
             self.cube_ukv.coord("forecast_reference_time").points)
 
+    def test_cycle_blend(self):
+        """Test merge for blending over forecast_reference_time"""
+        cube = self.cube_ukv.copy()
+        cube.coord("forecast_reference_time").points = (
+            cube.coord("forecast_reference_time").points + 3600)
+        cube.coord("forecast_period").points = (
+            cube.coord("forecast_reference_time").points - 3600)
+        plugin = MergeCubesForWeightedBlending("forecast_reference_time")
+        result = plugin.process([self.cube_ukv, cube])
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertIn(result.coord("forecast_reference_time"),
+                      result.coords(dim_coords=True))
+        # check forecast period coordinate has been removed
+        with self.assertRaises(iris.exceptions.CoordinateNotFoundError):
+            result.coord("forecast_period")
+
     def test_cycletime(self):
         """Test merged cube has updated forecast reference time and forecast
         period if specified using the 'cycletime' argument"""
