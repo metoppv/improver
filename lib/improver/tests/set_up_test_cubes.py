@@ -341,7 +341,7 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
     Kwargs:
         variable_name (str):
             Name of the underlying variable to which the probability field
-            applies
+            applies, eg "air_temperature".  NOT name of probability field.
         threshold_units (str):
             Units of the underlying variable / threshold.
         spatial_grid (str):
@@ -371,15 +371,10 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
     else:
         attributes['relative_to_threshold'] = relative_to_threshold
 
-    if variable_name.startswith('probability_of_'):
-        name_prefix = ''
-    else:
-        name_prefix = 'probability_of_'
-
     if relative_to_threshold == 'above':
-        name = name_prefix + '{}_above_threshold'.format(variable_name)
+        name = 'probability_of_{}_above_threshold'.format(variable_name)
     elif relative_to_threshold == 'below':
-        name = name_prefix + '{}_below_threshold'.format(variable_name)
+        name = 'probability_of_{}_below_threshold'.format(variable_name)
     else:
         msg = 'The relative_to_threshold attribute MUST be set for ' \
               'IMPROVER probability cubes'

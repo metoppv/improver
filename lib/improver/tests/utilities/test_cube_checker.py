@@ -464,10 +464,9 @@ class Test_find_threshold_coordinate(IrisTest):
         self.threshold_points = np.array([276, 277, 278], dtype=np.float32)
         cube = set_up_probability_cube(data, self.threshold_points)
 
-        self.cube_old = cube.copy()  # TODO update these with setup utility
         self.cube_new = cube.copy()
-        self.cube_new.coord("threshold").rename("air_temperature")
-        self.cube_new.coord("air_temperature").var_name = "threshold"
+        self.cube_old = cube.copy()
+        self.cube_old.coord("air_temperature").rename("threshold")
 
     def test_basic(self):
         """Test function returns an iris.coords.Coord"""

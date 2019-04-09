@@ -348,14 +348,6 @@ class test_set_up_probability_cube(IrisTest):
         self.assertEqual(len(result.attributes), 1)
         self.assertEqual(result.attributes['relative_to_threshold'], 'above')
 
-    def test_probability_of_name(self):
-        """Test a name with "probability" at the start is correctly parsed"""
-        result = set_up_probability_cube(
-            self.data, self.thresholds,
-            variable_name='probability_of_air_temperature')
-        self.assertEqual(
-            result.name(), 'probability_of_air_temperature_above_threshold')
-
     def test_relative_to_threshold(self):
         """Test ability to reset the "relative_to_threshold" attribute"""
         data = np.flipud(self.data)
