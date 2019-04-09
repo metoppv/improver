@@ -115,11 +115,13 @@ class WeatherSymbols(object):
                 # Then we check if the required threshold is present in the
                 # cube, and that the thresholding is relative to it correctly.
                 threshold = threshold.points.item()
+                threshold_name = find_threshold_coordinate(
+                    matched_cube[0]).name()
                 test_condition = (
                     iris.Constraint(
-                        threshold=lambda cell: (
+                        coord_values={threshold_name: lambda cell: (
                             threshold * (1. - self.float_tolerance) < cell <
-                            threshold * (1. + self.float_tolerance)),
+                            threshold * (1. + self.float_tolerance))},
                         cube_func=lambda cube: (
                             cube.attributes['relative_to_threshold'] ==
                             condition)))
