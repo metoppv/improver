@@ -604,7 +604,11 @@ class MergeCubesForWeightedBlending():
 
         Args:
             blend_coord (str):
-                Name of coordinate over which blending will be performed.
+                Name of coordinate over which blending will be performed.  For
+                multi-model blending this is flexible to any string containing
+                "model".  For all other coordinates this is prescriptive:
+                cube.coord(blend_coord) must return an iris.coords.Coord
+                instance for all cubes passed into the "process" method.
 
         Kwargs:
             weighting_coord (str or None):

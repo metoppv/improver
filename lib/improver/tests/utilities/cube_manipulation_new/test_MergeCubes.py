@@ -378,6 +378,27 @@ class Test_process(IrisTest):
         with self.assertRaises(MergeError):
             self.plugin.process(cubes)
 
+    def test_check_time_bounds_ranges(self):
+        """Test optional failure when time bounds ranges are not matched
+        (eg if merging cubes with different accumulation periods)"""
+        time_point = dt(2015, 11, 23, 7)
+        time_bounds = [dt(2015, 11, 23, 4), time_point]
+        cube1 = set_up_variable_cube(
+            self.cube_ukv.data.copy(), standard_grid_metadata='uk_det',
+            time=time_point, frt=dt(2015, 11, 23, 3), time_bounds=time_bounds)
+        cube2 = cube1.copy()
+        cube2.coord("forecast_reference_time").points = (
+            cube2.coord("forecast_reference_time").points + 3600)
+        cube2.coord("time").bounds = [
+            cube2.coord("time").bounds[0, 0] + 3600,
+            cube2.coord("time").bounds[0, 1]]
+        cube2.coord("forecast_period").bounds = [
+            cube2.coord("forecast_period").bounds[0, 0] + 3600,
+            cube2.coord("forecast_period").bounds[0, 1]]
+        msg = "Cube with mismatching time bounds ranges cannot be blended"
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin.process([cube1, cube2], check_time_bounds_ranges=True)
+
 
 if __name__ == '__main__':
     unittest.main()
