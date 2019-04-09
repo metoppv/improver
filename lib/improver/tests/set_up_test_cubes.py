@@ -391,8 +391,9 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
         realizations=thresholds, attributes=attributes,
         include_scalar_coords=include_scalar_coords,
         standard_grid_metadata=standard_grid_metadata)
-    cube.coord("realization").rename("threshold")
-    cube.coord("threshold").units = Unit(threshold_units)
+    cube.coord("realization").rename(variable_name)
+    cube.coord(variable_name).var_name = "threshold"
+    cube.coord(variable_name).units = Unit(threshold_units)
     return cube
 
 
