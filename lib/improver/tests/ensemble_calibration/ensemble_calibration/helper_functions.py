@@ -57,10 +57,16 @@ def set_up_probability_threshold_cube(
             phenomenon_standard_name, relative_to_threshold))
     cube = Cube(data, long_name=cube_long_name,
                 units=1)
-    coord_long_name = "threshold"
-    cube.add_dim_coord(
-        DimCoord(forecast_thresholds, long_name=coord_long_name,
-                 units=phenomenon_units), 0)
+
+    try:
+        cube.add_dim_coord(
+            DimCoord(forecast_thresholds, phenomenon_standard_name,
+                     units=phenomenon_units, var_name="threshold"), 0)
+    except ValueError:
+        cube.add_dim_coord(
+            DimCoord(forecast_thresholds, long_name=phenomenon_standard_name,
+                     units=phenomenon_units, var_name="threshold"), 0)
+
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
@@ -108,10 +114,16 @@ def set_up_probability_above_threshold_spot_cube(
         "probability_of_{}_above_threshold".format(phenomenon_standard_name))
     cube = Cube(data, long_name=cube_long_name,
                 units=1)
-    coord_long_name = "threshold"
-    cube.add_dim_coord(
-        DimCoord(forecast_thresholds, long_name=coord_long_name,
-                 units=phenomenon_units), 0)
+
+    try:
+        cube.add_dim_coord(
+            DimCoord(forecast_thresholds, phenomenon_standard_name,
+                     units=phenomenon_units, var_name="threshold"), 0)
+    except ValueError:
+        cube.add_dim_coord(
+            DimCoord(forecast_thresholds, long_name=phenomenon_standard_name,
+                     units=phenomenon_units, var_name="threshold"), 0)     
+
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)

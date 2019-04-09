@@ -40,6 +40,7 @@ from iris.tests import IrisTest
 from iris.coords import AuxCoord
 from cf_units import Unit
 
+from improver.utilities.cube_checker import find_threshold_coordinate
 from improver.wxcode.weather_symbols import WeatherSymbols
 from improver.wxcode.wxcode_utilities import WX_DICT
 from improver.tests.ensemble_calibration.ensemble_calibration. \
@@ -266,7 +267,8 @@ class Test_check_input_cubes(IrisTest):
         plugin = WeatherSymbols()
 
         msg = "Unable to convert from"
-        self.cubes[0].coord('threshold').units = Unit('mm kg-1')
+        threshold_coord = find_threshold_coordinate(self.cubes[0])
+        self.cubes[0].coord(threshold_coord).units = Unit('mm kg-1')
         with self.assertRaisesRegex(ValueError, msg):
             plugin.check_input_cubes(self.cubes)
 
