@@ -36,6 +36,8 @@ import copy
 import iris
 
 from improver.utilities.cube_checker import find_threshold_coordinate
+from improver.utilities.cube_metadata import extract_diagnostic_name
+
 from improver.wxcode.wxcode_utilities import (add_wxcode_metadata,
                                               expand_nested_lists,
                                               update_daynight)
@@ -73,6 +75,9 @@ class WeatherSymbols(object):
         else:
             self.queries = wxcode_decision_tree()
         self.float_tolerance = 0.01
+        # flag to indicate whether to expect "threshold" as a coordinate name
+        # (defaults to False, checked on reading input cubes)
+        self.threshold_name = False
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -81,7 +86,9 @@ class WeatherSymbols(object):
     def check_input_cubes(self, cubes):
         """
         Check that the input cubes contain all the diagnostics and thresholds
-        required by the decision tree.
+        required by the decision tree.  Sets self.threshold_name to "True" if
+        threshold-type coordinates have the name "threshold" (as opposed to
+        the standard name of the diagnostic), for backward-compatibility.
 
         Args:
             cubes (iris.cube.CubeList):
@@ -117,6 +124,11 @@ class WeatherSymbols(object):
                 threshold = threshold.points.item()
                 threshold_name = find_threshold_coordinate(
                     matched_cube[0]).name()
+
+                # Set flag to check for old threshold coordinate names
+                if threshold_name == "threshold" and not self.threshold_name:
+                    self.threshold_name = True
+
                 test_condition = (
                     iris.Constraint(
                         coord_values={threshold_name: lambda cell: (
@@ -234,8 +246,7 @@ class WeatherSymbols(object):
             return ('({}) | '*len(conditions)).format(*conditions).strip('| ')
         return ('({}) & '*len(conditions)).format(*conditions).strip('& ')
 
-    @staticmethod
-    def create_condition_chain(test_conditions):
+    def create_condition_chain(self, test_conditions):
         """
         A wrapper to call the construct_condition function for all the
         conditions specified in a single query.
@@ -274,7 +285,7 @@ class WeatherSymbols(object):
             loop += 1
 
             extract_constraint = WeatherSymbols.construct_extract_constraint(
-                diagnostic, d_threshold)
+                diagnostic, d_threshold, self.threshold_name)
             conditions.append(
                 WeatherSymbols.construct_condition(
                     extract_constraint, test_conditions['threshold_condition'],
@@ -285,7 +296,7 @@ class WeatherSymbols(object):
         return [condition_chain]
 
     @staticmethod
-    def construct_extract_constraint(diagnostics, thresholds):
+    def construct_extract_constraint(diagnostics, thresholds, threshold_name):
         """
         Construct an iris constraint.
 
@@ -293,13 +304,19 @@ class WeatherSymbols(object):
             diagnostics (string or list of strings):
                 The names of the diagnostics to be extracted from the CubeList.
             thresholds (iris.AuxCoord or list of iris.AuxCoord):
-                A thresholds within the given diagnostic cubes that are needed.
-                Including units.
+                All thresholds within the given diagnostic cubes that are
+                needed, including units.  Note these are NOT coords from the
+                original cubes, just constructs to associate units with values.
+            threshold_name (bool):
+                If true, use old naming convention for threshold coordinates
+                (coord.long_name=threshold).  Otherwise extract threshold
+                coordinate name from diagnostic name
+
         Returns:
             string or list of strings:
                 String, or list of strings, encoding iris cube constraints.
         """
-        def _constraint_string(diagnostic, threshold):
+        def _constraint_string(diagnostic, threshold_name, threshold_val):
             """
             Return iris constraint as a string for deferred creation of the
             lambda functions.
@@ -308,22 +325,37 @@ class WeatherSymbols(object):
                 threshold (float)
             Returns: (string)
             """
-            return ("iris.Constraint(name='{diagnostic}', threshold="
-                    "lambda cell: {threshold} * {float_min} < cell < "
-                    "{threshold} * {float_max})".format(
-                        diagnostic=diagnostic, threshold=threshold,
+            return ("iris.Constraint(name='{diagnostic}', {threshold_name}="
+                    "lambda cell: {threshold_val} * {float_min} < cell < "
+                    "{threshold_val} * {float_max})".format(
+                        diagnostic=diagnostic, threshold_name=threshold_name,
+                        threshold_val=threshold_val,
                         float_min=(1. - WeatherSymbols().float_tolerance),
                         float_max=(1. + WeatherSymbols().float_tolerance)))
 
+        # if input is list, loop over and return a list of strings
         if isinstance(diagnostics, list):
             constraints = []
             for diagnostic, threshold in zip(diagnostics, thresholds):
-                threshold = threshold.points.item()
+                if threshold_name:
+                    threshold_coord_name = "threshold"
+                else:
+                    threshold_coord_name = extract_diagnostic_name(diagnostic)
+                threshold_val = threshold.points.item()
                 constraints.append(
-                    _constraint_string(diagnostic, threshold))
+                    _constraint_string(
+                        diagnostic, threshold_coord_name, threshold_val))
             return constraints
-        threshold = thresholds.points.item()
-        return _constraint_string(diagnostics, threshold)
+
+        # otherwise, return a string
+        if threshold_name:
+            threshold_coord_name = "threshold"
+        else:
+            threshold_coord_name = extract_diagnostic_name(diagnostics)
+        threshold_val = thresholds.points.item()
+        constraint = _constraint_string(
+            diagnostics, threshold_coord_name, threshold_val)
+        return constraint
 
     @staticmethod
     def find_all_routes(graph, start, end, route=None):

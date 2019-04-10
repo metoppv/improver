@@ -50,7 +50,8 @@ from improver.utilities.cube_metadata import (
     update_cell_methods,
     update_coord,
     update_stage_v110_metadata,
-    in_vicinity_name_format)
+    in_vicinity_name_format,
+    extract_diagnostic_name)
 from improver.utilities.warnings_handler import ManageWarnings
 
 from improver.tests.set_up_test_cubes import (
@@ -843,6 +844,33 @@ class Test_in_vicinity_name_format(IrisTest):
         msg = "Cube name already contains 'in_vicinity'"
         with self.assertRaisesRegex(ValueError, msg):
             in_vicinity_name_format(self.cube.name())
+
+
+class Test_extract_diagnostic_name(IrisTest):
+
+    def test_basic(self):
+        """Test correct name is returned from a standard diagnostic"""
+        result = extract_diagnostic_name(
+            'probability_of_air_temperature_above_threshold')
+        self.assertEqual(result, 'air_temperature')
+
+    def test_below_threshold(self):
+        """Test correct name is returned from a standard diagnostic"""
+        result = extract_diagnostic_name(
+            'probability_of_air_temperature_below_threshold')
+        self.assertEqual(result, 'air_temperature')
+
+    def test_in_vicinity(self):
+        """Test correct name is returned from an "in vicinity" diagnostic"""
+        diagnostic = 'lwe_precipitation_rate_in_vicinity'
+        result = extract_diagnostic_name(
+            'probability_of_{}_above_threshold'.format(diagnostic))
+        self.assertEqual(result, diagnostic)
+
+    def test_error_not_probability(self):
+        """Test exception if input is not a probability cube name"""
+        with self.assertRaises(ValueError):
+            extract_diagnostic_name('lwe_precipitation_rate')
 
 
 if __name__ == '__main__':

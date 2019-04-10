@@ -426,13 +426,34 @@ class Test_create_condition_chain(IrisTest):
         test_condition = self.dummy_queries['significant_precipitation']
         result = plugin.create_condition_chain(test_condition)
         expected = ("(cubes.extract(iris.Constraint(name='probability_of_"
-                    "rainfall_rate_above_threshold', threshold=lambda cell: "
-                    "0.03 * {t_min} < "
+                    "rainfall_rate_above_threshold', rainfall_rate=lambda "
+                    "cell: 0.03 * {t_min} < "
                     "cell < 0.03 * {t_max}))[0].data >= 0.5) | (cubes.extract"
                     "(iris.Constraint("
                     "name='probability_of_lwe_snowfall_rate_above_threshold',"
-                    " threshold=lambda cell: 0.03 * {t_min} < cell < 0.03 * "
-                    "{t_max}))[0].data >= 0.5)".format(
+                    " lwe_snowfall_rate=lambda cell: 0.03 * {t_min} < cell < "
+                    "0.03 * {t_max}))[0].data >= 0.5)".format(
+                        t_min=(1. - WeatherSymbols().float_tolerance),
+                        t_max=(1. + WeatherSymbols().float_tolerance)))
+        self.assertIsInstance(result, list)
+        self.assertIsInstance(result[0], str)
+        self.assertEqual(result[0], expected)
+
+    def test_old_naming_convention(self):
+        """Test create_condition_chain can return conditions using old
+        threshold coordinate name"""
+        plugin = WeatherSymbols()
+        plugin.threshold_name = True
+        test_condition = self.dummy_queries['significant_precipitation']
+        result = plugin.create_condition_chain(test_condition)
+        expected = ("(cubes.extract(iris.Constraint(name='probability_of_"
+                    "rainfall_rate_above_threshold', threshold=lambda "
+                    "cell: 0.03 * {t_min} < "
+                    "cell < 0.03 * {t_max}))[0].data >= 0.5) | (cubes.extract"
+                    "(iris.Constraint("
+                    "name='probability_of_lwe_snowfall_rate_above_threshold',"
+                    " threshold=lambda cell: 0.03 * {t_min} < cell < "
+                    "0.03 * {t_max}))[0].data >= 0.5)".format(
                         t_min=(1. - WeatherSymbols().float_tolerance),
                         t_max=(1. + WeatherSymbols().float_tolerance)))
         self.assertIsInstance(result, list)
@@ -450,7 +471,24 @@ class Test_construct_extract_constraint(IrisTest):
         diagnostic = 'probability_of_rainfall_rate_above_threshold'
         threshold = AuxCoord(0.03, units='mm hr-1')
         result = plugin.construct_extract_constraint(diagnostic,
-                                                     threshold)
+                                                     threshold, False)
+        expected = ("iris.Constraint("
+                    "name='probability_of_rainfall_rate_above_threshold', "
+                    "rainfall_rate=lambda cell: 0.03 * {t_min} < cell < 0.03 * "
+                    "{t_max})".format(
+                        t_min=(1. - WeatherSymbols().float_tolerance),
+                        t_max=(1. + WeatherSymbols().float_tolerance)))
+        self.assertIsInstance(result, str)
+        self.assertEqual(result, expected)
+
+    def test_old_naming_convention(self):
+        """Test construct_extract_constraint can return a constraint with a
+        "threshold" coordinate"""
+        plugin = WeatherSymbols()
+        diagnostic = 'probability_of_rainfall_rate_above_threshold'
+        threshold = AuxCoord(0.03, units='mm hr-1')
+        result = plugin.construct_extract_constraint(diagnostic,
+                                                     threshold, True)
         expected = ("iris.Constraint("
                     "name='probability_of_rainfall_rate_above_threshold', "
                     "threshold=lambda cell: 0.03 * {t_min} < cell < 0.03 * "
@@ -469,12 +507,12 @@ class Test_construct_extract_constraint(IrisTest):
         thresholds = [AuxCoord(0.03, units='mm hr-1'),
                       AuxCoord(0.03, units='mm hr-1')]
         result = plugin.construct_extract_constraint(diagnostics,
-                                                     thresholds)
+                                                     thresholds, False)
 
         expected = ("iris.Constraint("
                     "name='probability_of_lwe_snowfall_rate_above_threshold', "
-                    "threshold=lambda cell: 0.03 * {t_min} < cell < 0.03 * "
-                    "{t_max})".format(
+                    "lwe_snowfall_rate=lambda cell: 0.03 * {t_min} < cell "
+                    "< 0.03 * {t_max})".format(
                         t_min=(1. - WeatherSymbols().float_tolerance),
                         t_max=(1. + WeatherSymbols().float_tolerance)))
         self.assertIsInstance(result, list)
