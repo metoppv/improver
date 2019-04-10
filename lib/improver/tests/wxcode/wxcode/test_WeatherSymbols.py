@@ -474,8 +474,8 @@ class Test_construct_extract_constraint(IrisTest):
                                                      threshold, False)
         expected = ("iris.Constraint("
                     "name='probability_of_rainfall_rate_above_threshold', "
-                    "rainfall_rate=lambda cell: 0.03 * {t_min} < cell < 0.03 * "
-                    "{t_max})".format(
+                    "rainfall_rate=lambda cell: 0.03 * {t_min} < cell < "
+                    "0.03 * {t_max})".format(
                         t_min=(1. - WeatherSymbols().float_tolerance),
                         t_max=(1. + WeatherSymbols().float_tolerance)))
         self.assertIsInstance(result, str)

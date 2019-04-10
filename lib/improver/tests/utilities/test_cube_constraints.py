@@ -35,6 +35,7 @@ import unittest
 import iris
 from iris.tests import IrisTest
 
+from improver.utilities.cube_checker import find_threshold_coordinate
 from improver.utilities.cube_constraints import create_sorted_lambda_constraint
 from improver.tests.utilities.test_cube_extraction import (
     set_up_precip_probability_cube)
@@ -45,28 +46,27 @@ class Test_create_sorted_lambda_constraint(IrisTest):
     def setUp(self):
         """Set up cube with testing lambda constraint."""
         self.precip_cube = set_up_precip_probability_cube()
-        self.precip_cube.coord("threshold").convert_units("mm h-1")
+        self.coord_name = find_threshold_coordinate(self.precip_cube).name()
+        self.precip_cube.coord(self.coord_name).convert_units("mm h-1")
         self.expected_data = self.precip_cube[:2].data
 
     def test_basic_ascending(self):
         """Test that a constraint is created, if the input coordinates are
         ascending."""
-        coord_name = "threshold"
         values = [0.03, 0.1]
-        result = create_sorted_lambda_constraint(coord_name, values)
+        result = create_sorted_lambda_constraint(self.coord_name, values)
         self.assertIsInstance(result, iris.Constraint)
-        self.assertEqual(list(result._coord_values.keys()), ["threshold"])
+        self.assertEqual(list(result._coord_values.keys()), [self.coord_name])
         result_cube = self.precip_cube.extract(result)
         self.assertArrayAlmostEqual(result_cube.data, self.expected_data)
 
     def test_basic_descending(self):
         """Test that a constraint is created, if the input coordinates are
         descending."""
-        coord_name = "threshold"
         values = [0.1, 0.03]
-        result = create_sorted_lambda_constraint(coord_name, values)
+        result = create_sorted_lambda_constraint(self.coord_name, values)
         self.assertIsInstance(result, iris.Constraint)
-        self.assertEqual(list(result._coord_values.keys()), ["threshold"])
+        self.assertEqual(list(result._coord_values.keys()), [self.coord_name])
         result_cube = self.precip_cube.extract(result)
         self.assertArrayAlmostEqual(result_cube.data, self.expected_data)
 
