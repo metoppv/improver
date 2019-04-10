@@ -41,6 +41,7 @@ from iris.exceptions import DuplicateDataError, MergeError
 from iris.tests import IrisTest
 import numpy as np
 
+from improver.utilities.cube_checker import find_threshold_coordinate
 from improver.utilities.cube_manipulation import merge_cubes
 
 from improver.tests.ensemble_calibration.ensemble_calibration.\
@@ -215,7 +216,8 @@ class Test_merge_cubes(IrisTest):
     def test_one_threshold_data(self):
         """Test threshold data where one cube has single threshold as dim"""
         ukv_prob = self.prob_ukv[0]
-        ukv_prob = iris.util.new_axis(ukv_prob, 'threshold')
+        threshold_coord = find_threshold_coordinate(ukv_prob).name()
+        ukv_prob = iris.util.new_axis(ukv_prob, threshold_coord)
         enuk_prob = self.prob_enuk[0]
         cubes = iris.cube.CubeList([ukv_prob, enuk_prob])
         result = merge_cubes(cubes, model_id_attr='mosg__model_configuration')

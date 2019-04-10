@@ -39,6 +39,7 @@ from iris.coords import DimCoord
 from iris.tests import IrisTest
 import numpy as np
 
+from improver.utilities.cube_checker import find_threshold_coordinate
 from improver.utilities.cube_manipulation_new import _equalise_cube_coords
 
 from improver.tests.ensemble_calibration.ensemble_calibration.\
@@ -74,9 +75,9 @@ class Test__equalise_cube_coords(IrisTest):
         cube = set_up_probability_above_threshold_temperature_cube()
         cube1 = cube.copy()
         cube2 = cube.copy()
-        cube2.remove_coord("threshold")
+        cube2.remove_coord(find_threshold_coordinate(cube2))
         cubes = iris.cube.CubeList([cube1, cube2])
-        msg = "threshold coordinates must match to merge"
+        msg = "air_temperature coordinates must match to merge"
         with self.assertRaisesRegex(ValueError, msg):
             _equalise_cube_coords(cubes)
 
