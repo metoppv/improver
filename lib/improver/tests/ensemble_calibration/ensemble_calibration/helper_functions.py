@@ -122,7 +122,7 @@ def set_up_probability_above_threshold_spot_cube(
     except ValueError:
         cube.add_dim_coord(
             DimCoord(forecast_thresholds, long_name=phenomenon_standard_name,
-                     units=phenomenon_units, var_name="threshold"), 0)     
+                     units=phenomenon_units, var_name="threshold"), 0)
 
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
