@@ -847,6 +847,7 @@ class Test_in_vicinity_name_format(IrisTest):
 
 
 class Test_extract_diagnostic_name(IrisTest):
+    """Test utility to extract diagnostic name from probability cube name"""
 
     def test_basic(self):
         """Test correct name is returned from a standard diagnostic"""
