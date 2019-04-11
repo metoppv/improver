@@ -61,6 +61,12 @@ class test_construct_xy_coords(IrisTest):
         self.assertEqual(len(y_coord.points), 4)
         self.assertEqual(len(x_coord.points), 3)
 
+    def test_lat_lon_values(self):
+        """Test latitude and longitude point values are as expected"""
+        y_coord, x_coord = construct_xy_coords(3, 3, 'latlon')
+        self.assertArrayAlmostEqual(x_coord.points, [-20., 0., 20.])
+        self.assertArrayAlmostEqual(y_coord.points, [40., 60., 80.])
+
     def test_proj_xy(self):
         """Test coordinates created for an equal area grid"""
         y_coord, x_coord = construct_xy_coords(4, 3, 'equalarea')
