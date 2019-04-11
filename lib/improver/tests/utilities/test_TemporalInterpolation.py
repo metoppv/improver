@@ -316,12 +316,12 @@ class Test_calc_lats_lons(IrisTest):
 
     def test_lat_lon(self):
         """Test that the function returns the lats and lons expected."""
-        expected_lats = np.array([[-20.0, -20.0, -20.0],
-                                  [0.0, 0.0, 0.0],
-                                  [20.0, 20.0, 20.0]])
-        expected_lons = np.array([[40.0, 60.0, 80.0],
-                                  [40.0, 60.0, 80.0],
-                                  [40.0, 60.0, 80.0]])
+        expected_lons = np.array([[-20.0, 0.0, 20.0],
+                                  [-20.0, 0.0, 20.0],
+                                  [-20.0, 0.0, 20.0]])
+        expected_lats = np.array([[40.0, 40.0, 40.0],
+                                  [60.0, 60.0, 60.0],
+                                  [80.0, 80.0, 80.0]])
         plugin = TemporalInterpolation(interval_in_minutes=60,
                                        interpolation_method='solar')
         result_lats, result_lons = plugin.calc_lats_lons(self.cube)
@@ -358,16 +358,17 @@ class Test_solar_interpolation(IrisTest):
     """Test Solar interpolation."""
 
     def setUp(self):
-        """Set up the test inputs."""
-        self.time_0 = datetime.datetime(2017, 11, 1, 0)
-        self.time_mid = datetime.datetime(2017, 11, 1, 2)
-        self.time_1 = datetime.datetime(2017, 11, 1, 4)
+        """Set up the test inputs spanning sunrise."""
+        self.time_0 = datetime.datetime(2017, 11, 1, 6)
+        self.time_mid = datetime.datetime(2017, 11, 1, 8)
+        self.time_1 = datetime.datetime(2017, 11, 1, 10)
         self.npoints = 5
-        self.expected = np.array([[0., 0., 0.12744346, 0.21436146, 0.27826712],
-                                  [0., 0., 0.09709296, 0.19533251, 0.26546416],
-                                  [0., 0., 0.06369251, 0.17498626, 0.25200856],
-                                  [0., 0., 0.02425379, 0.15172799, 0.23691504],
-                                  [0., 0., 0., 0.12301967, 0.21869522]])
+        self.expected = np.array([
+            [0.02358028, 0.15887623, 0.2501732, 0.32049885, 0.3806127],
+            [0., 0.09494493, 0.21051247, 0.2947393, 0.36431003],
+            [0., 0., 0.11747278, 0.23689085, 0.32841164],
+            [0., 0., 0., 0., 0.15872595],
+            [0., 0., 0., 0., 0.]])
 
         data_time_0 = np.zeros((self.npoints, self.npoints), dtype=np.float32)
         data_time_1 = np.ones((self.npoints, self.npoints),
@@ -426,7 +427,6 @@ class Test_solar_interpolation(IrisTest):
                                        times=[self.time_mid])
         result, = plugin.solar_interpolate(self.cube,
                                            self.interpolated_cube)
-
         self.assertArrayAlmostEqual(result.data, self.expected)
         self.assertArrayAlmostEqual(result.coord('time').points,
                                     expected_time)
@@ -457,20 +457,20 @@ class Test_daynight_interpolation(IrisTest):
     """Test daynight interpolation."""
 
     def setUp(self):
-        """Set up the test inputs."""
-        self.time_0 = datetime.datetime(2017, 11, 1, 0)
-        self.time_mid = datetime.datetime(2017, 11, 1, 2)
+        """Set up the test inputs spanning sunrise."""
+        self.time_0 = datetime.datetime(2017, 11, 1, 6)
+        self.time_mid = datetime.datetime(2017, 11, 1, 8)
         self.npoints = 10
-        self.daynight_mask = np.array([[0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+        self.daynight_mask = np.array([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                                       [0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                                       [0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                                       [0, 0, 1, 1, 1, 1, 1, 1, 1, 1],
                                        [0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
-                                       [0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
                                        [0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
-                                       [0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
-                                       [0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
-                                       [0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
-                                       [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
-                                       [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
-                                       [0, 0, 0, 0, 0, 1, 1, 1, 1, 1]])
+                                       [0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
+                                       [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                                       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
 
         data_time_mid = np.ones((self.npoints, self.npoints),
                                 dtype=np.float32) * 4
@@ -654,7 +654,10 @@ class Test_process(IrisTest):
         plugin = TemporalInterpolation(times=[self.time_extra],
                                        interpolation_method='daynight')
         result, = plugin.process(self.cube_time_0, self.cube_time_1)
-        expected_data = np.ones((self.npoints, self.npoints)) * 4
+        expected_data = np.zeros((self.npoints, self.npoints))
+        expected_data[:2, 7:] = 4.
+        expected_data[2, 8:] = 4.
+        expected_data[3, 9] = 4.
         expected_time = self.time_extra.timestamp()
         expected_fp = 3 * 3600
 

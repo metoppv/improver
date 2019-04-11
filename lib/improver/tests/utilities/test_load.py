@@ -122,9 +122,9 @@ class Test_load_cube(IrisTest):
         have the expected values, if multiple constraints are specified
         when loading a cube from a file."""
         realization_points = np.array([0])
-        latitude_points = np.array([0])
+        longitude_points = np.array([0])
         constr1 = iris.Constraint(realization=0)
-        constr2 = iris.Constraint(latitude=lambda cell: -0.1 < cell < 0.1)
+        constr2 = iris.Constraint(longitude=lambda cell: -0.1 < cell < 0.1)
         constr = constr1 & constr2
         result = load_cube(self.filepath, constraints=constr)
         self.assertArrayAlmostEqual(
@@ -132,9 +132,9 @@ class Test_load_cube(IrisTest):
         self.assertArrayAlmostEqual(
             result.coord("time").points, self.time_points)
         self.assertArrayAlmostEqual(
-            result.coord("latitude").points, latitude_points)
+            result.coord("latitude").points, self.latitude_points)
         self.assertArrayAlmostEqual(
-            result.coord("longitude").points, self.longitude_points)
+            result.coord("longitude").points, longitude_points)
 
     def test_ordering_for_realization_coordinate(self):
         """Test that the cube has been reordered, if it is originally in an
