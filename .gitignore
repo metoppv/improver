@@ -14,7 +14,7 @@
 \#*
 \.\#*
 *.swp
-*.nfs
+*.nfsc*
 
 # Site-specific setup
 etc/site-init
