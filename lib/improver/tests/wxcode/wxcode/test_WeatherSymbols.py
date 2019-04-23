@@ -443,7 +443,7 @@ class Test_create_condition_chain(IrisTest):
         """Test create_condition_chain can return conditions using old
         threshold coordinate name"""
         plugin = WeatherSymbols()
-        plugin.threshold_name = True
+        plugin.coord_named_threshold = True
         test_condition = self.dummy_queries['significant_precipitation']
         result = plugin.create_condition_chain(test_condition)
         expected = ("(cubes.extract(iris.Constraint(name='probability_of_"

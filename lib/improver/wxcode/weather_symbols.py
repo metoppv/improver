@@ -77,7 +77,7 @@ class WeatherSymbols(object):
         self.float_tolerance = 0.01
         # flag to indicate whether to expect "threshold" as a coordinate name
         # (defaults to False, checked on reading input cubes)
-        self.threshold_name = False
+        self.coord_named_threshold = False
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -126,8 +126,9 @@ class WeatherSymbols(object):
                     matched_cube[0]).name()
 
                 # Set flag to check for old threshold coordinate names
-                if threshold_name == "threshold" and not self.threshold_name:
-                    self.threshold_name = True
+                if (threshold_name == "threshold" and
+                        not self.coord_named_threshold):
+                    self.coord_named_threshold = True
 
                 test_condition = (
                     iris.Constraint(
@@ -285,7 +286,7 @@ class WeatherSymbols(object):
             loop += 1
 
             extract_constraint = WeatherSymbols.construct_extract_constraint(
-                diagnostic, d_threshold, self.threshold_name)
+                diagnostic, d_threshold, self.coord_named_threshold)
             conditions.append(
                 WeatherSymbols.construct_condition(
                     extract_constraint, test_conditions['threshold_condition'],
@@ -296,7 +297,8 @@ class WeatherSymbols(object):
         return [condition_chain]
 
     @staticmethod
-    def construct_extract_constraint(diagnostics, thresholds, threshold_name):
+    def construct_extract_constraint(
+            diagnostics, thresholds, coord_named_threshold):
         """
         Construct an iris constraint.
 
@@ -307,7 +309,7 @@ class WeatherSymbols(object):
                 All thresholds within the given diagnostic cubes that are
                 needed, including units.  Note these are NOT coords from the
                 original cubes, just constructs to associate units with values.
-            threshold_name (bool):
+            coord_named_threshold (bool):
                 If true, use old naming convention for threshold coordinates
                 (coord.long_name=threshold).  Otherwise extract threshold
                 coordinate name from diagnostic name
@@ -321,8 +323,12 @@ class WeatherSymbols(object):
             Return iris constraint as a string for deferred creation of the
             lambda functions.
             Args:
-                diagnostic (string)
-                threshold (float)
+                diagnostic (string):
+                    Name of diagnostic
+                threshold_name (string):
+                    Name of threshold coordinate on input cubes
+                threshold_val (float):
+                    Value of threshold coordinate required
             Returns: (string)
             """
             return ("iris.Constraint(name='{diagnostic}', {threshold_name}="
@@ -337,7 +343,7 @@ class WeatherSymbols(object):
         if isinstance(diagnostics, list):
             constraints = []
             for diagnostic, threshold in zip(diagnostics, thresholds):
-                if threshold_name:
+                if coord_named_threshold:
                     threshold_coord_name = "threshold"
                 else:
                     threshold_coord_name = extract_diagnostic_name(diagnostic)
@@ -348,7 +354,7 @@ class WeatherSymbols(object):
             return constraints
 
         # otherwise, return a string
-        if threshold_name:
+        if coord_named_threshold:
             threshold_coord_name = "threshold"
         else:
             threshold_coord_name = extract_diagnostic_name(diagnostics)
