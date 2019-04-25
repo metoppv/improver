@@ -179,6 +179,7 @@ class Test_create_coefficients_cube(IrisTest):
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def setUp(self):
+        """Set up the plugin and cubes for testing."""
         data = np.ones((3, 3), dtype=np.float32)
         self.current_forecast = set_up_variable_cube(
             data, standard_grid_metadata="uk_det")
@@ -220,30 +221,62 @@ class Test_create_coefficients_cube(IrisTest):
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_basic(self):
-        expected = ["gamma", "delta", "a", "beta"]
+    def test_coefficients_from_mean(self):
+        """Test that the expected coefficient cube is returned when the
+        ensemble mean is used as the predictor."""
+        expected_coeff_names = ["gamma", "delta", "a", "beta"]
         result = self.plugin.create_coefficients_cube(
             self.optimised_coeffs, self.current_forecast)
         self.assertEqual(result, self.expected)
         self.assertEqual(
-            self.plugin.coeff_names, expected)
+            self.plugin.coeff_names, expected_coeff_names)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficients_from_realizations(self):
-        expected = ["gamma", "delta", "a", "beta0", "beta1", "beta2"]
+        """Test that the expected coefficient cube is returned when the
+        ensemble realizations are used as the predictor."""
+        expected_coeff_names = (
+            ["gamma", "delta", "a", "beta0", "beta1", "beta2"])
         predictor_of_mean_flag = "realizations"
         optimised_coeffs = [0, 1, 2, 3, 4, 5]
+
+        # Set up an expected cube.
+        coefficient_index = iris.coords.DimCoord(
+            optimised_coeffs, long_name="coefficient_index", units="1")
+        dim_coords_and_dims = [(coefficient_index, 0)]
+
+        coefficient_name = iris.coords.AuxCoord(
+            expected_coeff_names, long_name="coefficient_name",
+            units="no_unit")
+
+        aux_coords_and_dims = [
+            (coefficient_name, 0),
+            (self.current_forecast.coord("time"), None),
+            (self.current_forecast.coord("forecast_reference_time"), None),
+            (self.current_forecast.coord("forecast_period"), None)]
+
+        attributes = {"mosg__model_configuration": "uk_det",
+                      "diagnostic_standard_name": "air_temperature"}
+
+        expected = iris.cube.Cube(
+            optimised_coeffs, long_name="emos_coefficients", units="1",
+            dim_coords_and_dims=dim_coords_and_dims,
+            aux_coords_and_dims=aux_coords_and_dims, attributes=attributes)
+
         plugin = Plugin(distribution=self.distribution,
                         desired_units=self.desired_units,
                         predictor_of_mean_flag=predictor_of_mean_flag)
-        plugin.create_coefficients_cube(
+        result = plugin.create_coefficients_cube(
             optimised_coeffs, self.current_forecast_with_realizations)
-        self.assertEqual(plugin.coeff_names, expected)
+        self.assertEqual(result, expected)
+        self.assertEqual(plugin.coeff_names, expected_coeff_names)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_forecast_period_coordinate_not_present(self):
+        """Test that the coefficients cube is created correctly when the
+        forecast_period coordinate is not present within the input cube."""
         expected = self.expected.copy()
         expected.remove_coord("forecast_period")
         self.current_forecast.remove_coord("forecast_period")
@@ -254,6 +287,8 @@ class Test_create_coefficients_cube(IrisTest):
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_model_configuration_not_present(self):
+        """Test that the coefficients cube is created correctly when a
+        model_configuration coordinate is not present within the input cube."""
         expected = self.expected.copy()
         expected.attributes.pop("mosg__model_configuration")
         self.current_forecast.attributes.pop("mosg__model_configuration")
@@ -264,6 +299,9 @@ class Test_create_coefficients_cube(IrisTest):
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_mismatching_number_of_coefficients(self):
+        """Test that an exception is raised if the number of coefficients
+        provided for creating the coefficients cube is not equal to the
+        number of coefficient names."""
         distribution = "truncated_gaussian"
         desired_units = "Fahrenheit"
         predictor_of_mean_flag = "realizations"
