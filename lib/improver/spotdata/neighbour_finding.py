@@ -521,8 +521,9 @@ class NeighbourSelection:
         vertical_displacements = (site_altitudes -
                                   orography.data[tuple(nearest_indices.T)])
 
-        # Create a list of WMO IDs if available.
-        wmo_ids = [site.get('wmo_id', None) for site in sites]
+        # Create a list of WMO IDs if available. These are stored as strings
+        # to accommodate the use of 'None' for unset IDs.
+        wmo_ids = [str(site.get('wmo_id', None)) for site in sites]
 
         # Construct a name to describe the neighbour finding method employed
         method_name = self.neighbour_finding_method_name()
