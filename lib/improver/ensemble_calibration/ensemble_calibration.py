@@ -40,6 +40,7 @@ import warnings
 
 import cf_units as unit
 import iris
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     convert_cube_data_to_2d, check_predictor_of_mean_flag)
@@ -349,6 +350,11 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         self.desired_units = desired_units
         self.predictor_of_mean_flag = predictor_of_mean_flag
         self.minimiser = ContinuousRankedProbabilityScoreMinimisers()
+        # Setting default values for coeff_names. Beta is the final
+        # coefficient name in the list, as there can potentially be
+        # multiple beta coefficients if the ensemble realizations, rather
+        # than the ensemble mean, are provided as the predictor.
+        self.coeff_names = ["gamma", "delta", "a", "beta"]
 
         import imp
         try:
@@ -377,6 +383,64 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         return result.format(
             self.distribution, self.desired_units,
             self.predictor_of_mean_flag, self.minimiser)
+
+    def create_coefficients_cube(
+            self, optimised_coeffs, current_forecast):
+        """Create a cube for storing the coefficients computed using EMOS.
+
+        Args:
+            optimised_coeffs (list):
+                List of optimised coefficients.
+                Order of coefficients is [c, d, a, b].
+            current_forecast (iris.cube.Cube):
+                The cube containing the current forecast.
+
+        Returns:
+            cube (iris.cube.Cube):
+                Cube constructed using the coefficients provided and using
+                metadata from the current_forecast cube. The cube contains
+                a coefficient_index dimension coordinate and a
+                coefficient_name auxiliary coordinate.
+
+        """
+        if self.predictor_of_mean_flag.lower() in ["realizations"]:
+            realization_coeffs = []
+            for realization in current_forecast.coord("realization").points:
+                realization_coeffs.append(
+                    "{}{}".format(self.coeff_names[-1], np.int32(realization)))
+            self.coeff_names = self.coeff_names[:-1] + realization_coeffs
+
+        if len(optimised_coeffs) != len(self.coeff_names):
+            msg = ("The number of coefficients in {} must equal the "
+                   "number of coefficient names {}.".format(
+                        optimised_coeffs, self.coeff_names))
+            raise ValueError(msg)
+
+        coefficient_index = iris.coords.DimCoord(
+            list(range(len(optimised_coeffs))),
+            long_name="coefficient_index", units="1")
+        coefficient_name = iris.coords.AuxCoord(
+            self.coeff_names, long_name="coefficient_name", units="no_unit")
+        dim_coords_and_dims = [(coefficient_index, 0)]
+        aux_coords_and_dims = [(coefficient_name, 0)]
+        for coord_name in (
+                ["time", "forecast_period", "forecast_reference_time"]):
+            try:
+                aux_coords_and_dims.append(
+                    (current_forecast.coord(coord_name), None))
+            except CoordinateNotFoundError:
+                pass
+        attributes = {"diagnostic_standard_name": current_forecast.name()}
+        for attribute in current_forecast.attributes.keys():
+            for allowed_attribute in ["model_configuration"]:
+                if attribute.endswith(allowed_attribute):
+                    attributes[attribute] = (
+                        current_forecast.attributes[attribute])
+        cube = iris.cube.Cube(
+            optimised_coeffs, long_name="emos_coefficients", units="1",
+            dim_coords_and_dims=dim_coords_and_dims,
+            aux_coords_and_dims=aux_coords_and_dims, attributes=attributes)
+        return cube
 
     def compute_initial_guess(
             self, truth, forecast_predictor, predictor_of_mean_flag,
@@ -541,9 +605,8 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         # Ensure predictor_of_mean_flag is valid.
         check_predictor_of_mean_flag(self.predictor_of_mean_flag)
 
-        # Setting default values for optimised_coeffs and coeff_names.
+        # Setting default values for optimised_coeffs.
         optimised_coeffs = {}
-        coeff_names = ["gamma", "delta", "a", "beta"]
 
         # Set default values for whether there are NaN values within the
         # initial guess.
@@ -560,9 +623,9 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 msg = ("{} is not a Cube or CubeList."
                        "Returning default values for optimised_coeffs {} "
                        "and coeff_names {}.").format(
-                           var, optimised_coeffs, coeff_names)
+                           var, optimised_coeffs, self.coeff_names)
                 warnings.warn(msg)
-                return optimised_coeffs, coeff_names
+                return optimised_coeffs, self.coeff_names
 
         current_forecast_cubes = (
             convert_to_cubelist(
@@ -582,7 +645,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                        len(current_forecast_cubes),
                        len(historic_forecast_cubes), len(truth_cubes)))
             warnings.warn(msg)
-            return optimised_coeffs, coeff_names
+            return optimised_coeffs, self.coeff_names
 
         current_forecast_cubes = concatenate_cubes(
             current_forecast_cubes)
@@ -661,7 +724,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             else:
                 optimised_coeffs[date] = initial_guess
 
-        return optimised_coeffs, coeff_names
+        return optimised_coeffs, self.coeff_names
 
 
 class ApplyCoefficientsFromEnsembleCalibration(object):

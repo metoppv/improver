@@ -47,6 +47,7 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import (set_up_temperature_cube, set_up_wind_speed_cube,
                              add_forecast_reference_time_and_forecast_period,
                              _create_historic_forecasts, _create_truth)
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
 IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate.",
@@ -169,6 +170,111 @@ class Test__init__(IrisTest):
                                 for item in warning_list))
             self.assertTrue(any(warning_msg in str(item)
                                 for item in warning_list))
+
+
+class Test_create_coefficients_cube(IrisTest):
+
+    """Test the create_coefficients_cube method."""
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def setUp(self):
+        data = np.ones((3, 3), dtype=np.float32)
+        self.current_forecast = set_up_variable_cube(
+            data, standard_grid_metadata="uk_det")
+        data_with_realizations = np.ones((3, 3, 3), dtype=np.float32)
+        self.current_forecast_with_realizations = set_up_variable_cube(
+            data_with_realizations, realizations=[0, 1, 2],
+            standard_grid_metadata="uk_det")
+        self.optimised_coeffs = [0, 1, 2, 3]
+        coeff_names = ["gamma", "delta", "a", "beta"]
+
+        coefficient_index = iris.coords.DimCoord(
+            self.optimised_coeffs, long_name="coefficient_index", units="1")
+        dim_coords_and_dims = [(coefficient_index, 0)]
+
+        coefficient_name = iris.coords.AuxCoord(
+            coeff_names, long_name="coefficient_name", units="no_unit")
+
+        aux_coords_and_dims = [
+            (coefficient_name, 0),
+            (self.current_forecast.coord("time"), None),
+            (self.current_forecast.coord("forecast_reference_time"), None),
+            (self.current_forecast.coord("forecast_period"), None)]
+
+        attributes = {"mosg__model_configuration": "uk_det",
+                      "diagnostic_standard_name": "air_temperature"}
+
+        self.expected = iris.cube.Cube(
+            self.optimised_coeffs, long_name="emos_coefficients", units="1",
+            dim_coords_and_dims=dim_coords_and_dims,
+            aux_coords_and_dims=aux_coords_and_dims, attributes=attributes)
+
+        self.distribution = "gaussian"
+        self.desired_units = "degreesC"
+        self.predictor_of_mean_flag = "mean"
+        self.plugin = (
+            Plugin(distribution=self.distribution,
+                   desired_units=self.desired_units,
+                   predictor_of_mean_flag=self.predictor_of_mean_flag))
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_basic(self):
+        expected = ["gamma", "delta", "a", "beta"]
+        result = self.plugin.create_coefficients_cube(
+            self.optimised_coeffs, self.current_forecast)
+        self.assertEqual(result, self.expected)
+        self.assertEqual(
+            self.plugin.coeff_names, expected)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_coefficients_from_realizations(self):
+        expected = ["gamma", "delta", "a", "beta0", "beta1", "beta2"]
+        predictor_of_mean_flag = "realizations"
+        optimised_coeffs = [0, 1, 2, 3, 4, 5]
+        plugin = Plugin(distribution=self.distribution,
+                        desired_units=self.desired_units,
+                        predictor_of_mean_flag=predictor_of_mean_flag)
+        plugin.create_coefficients_cube(
+            optimised_coeffs, self.current_forecast_with_realizations)
+        self.assertEqual(plugin.coeff_names, expected)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_forecast_period_coordinate_not_present(self):
+        expected = self.expected.copy()
+        expected.remove_coord("forecast_period")
+        self.current_forecast.remove_coord("forecast_period")
+        result = self.plugin.create_coefficients_cube(
+            self.optimised_coeffs, self.current_forecast)
+        self.assertEqual(result, expected)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_model_configuration_not_present(self):
+        expected = self.expected.copy()
+        expected.attributes.pop("mosg__model_configuration")
+        self.current_forecast.attributes.pop("mosg__model_configuration")
+        result = self.plugin.create_coefficients_cube(
+            self.optimised_coeffs, self.current_forecast)
+        self.assertEqual(result, expected)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_mismatching_number_of_coefficients(self):
+        distribution = "truncated_gaussian"
+        desired_units = "Fahrenheit"
+        predictor_of_mean_flag = "realizations"
+        optimised_coeffs = [1, 2, 3, 4, 5]
+        plugin = Plugin(distribution=distribution,
+                        desired_units=desired_units,
+                        predictor_of_mean_flag=predictor_of_mean_flag)
+        msg = "The number of coefficients in"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.create_coefficients_cube(
+                optimised_coeffs, self.current_forecast_with_realizations)
 
 
 class Test_compute_initial_guess(IrisTest):
