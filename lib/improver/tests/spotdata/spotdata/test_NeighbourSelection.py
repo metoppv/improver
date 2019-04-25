@@ -656,7 +656,7 @@ class Test_process(Test_NeighbourSelection):
         plugin = NeighbourSelection()
         sites = self.global_sites + [self.global_sites.copy()[0].copy()]
         sites[1]['wmo_id'] = None
-        expected = [1, None]
+        expected = ['1', 'None']
 
         result = plugin.process(sites, self.global_orography,
                                 self.global_land_mask)
