@@ -34,16 +34,15 @@ Unit tests for the `ensemble_calibration.EnsembleCalibration` class.
 """
 import unittest
 
-from iris.cube import CubeList
+import iris
 from iris.tests import IrisTest
 import numpy as np
 
 from improver.ensemble_calibration.ensemble_calibration import (
     EnsembleCalibration as Plugin)
 from improver.tests.ensemble_calibration.ensemble_calibration.\
-    helper_functions import (set_up_temperature_cube, set_up_wind_speed_cube,
-                             add_forecast_reference_time_and_forecast_period,
-                             _create_historic_forecasts, _create_truth)
+    helper_functions import _create_historic_forecasts, _create_truth
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
 IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate.",
@@ -75,9 +74,14 @@ class Test_process(IrisTest):
         # Note: test_temperature_realizations_data_check produces ~0.5K
         # different results when the temperature forecast cube is float32
         # below. A bug?
-        self.current_temperature_forecast_cube = (
-            add_forecast_reference_time_and_forecast_period(
-                set_up_temperature_cube()))
+        data = (np.tile(np.linspace(-45.0, 45.0, 9), 3).reshape(3, 3, 3) +
+                273.15)
+        data[0] -= 2
+        data[1] += 2
+        data[2] += 4
+        data = data.astype(np.float32)
+        self.current_temperature_forecast_cube = set_up_variable_cube(
+            data, units="Kelvin", realizations=[0, 1, 2])
 
         self.historic_temperature_forecast_cube = (
             _create_historic_forecasts(self.current_temperature_forecast_cube))
@@ -85,9 +89,12 @@ class Test_process(IrisTest):
         self.temperature_truth_cube = (
             _create_truth(self.current_temperature_forecast_cube))
 
-        self.current_wind_speed_forecast_cube = (
-            add_forecast_reference_time_and_forecast_period(
-                set_up_wind_speed_cube()))
+        data = np.tile(np.linspace(0, 60, 9), 3).reshape(3, 3, 3)
+        data[1] += 2
+        data[2] += 4
+        data = data.astype(np.float32)
+        self.current_wind_speed_forecast_cube = set_up_variable_cube(
+            data, name="wind_speed", units="m s-1", realizations=[0, 1, 2])
 
         self.historic_wind_speed_forecast_cube = (
             _create_historic_forecasts(self.current_wind_speed_forecast_cube))
@@ -369,6 +376,8 @@ class Test_process(IrisTest):
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
         self.assertIsInstance(result, tuple)
+        self.assertIsInstance(result[0], iris.cube.Cube)
+        self.assertIsInstance(result[1], iris.cube.Cube)
 
     def test_unknown_calibration_method(self):
         """

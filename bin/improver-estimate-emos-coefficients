@@ -37,6 +37,7 @@ from improver.argparser import ArgParser
 from improver.ensemble_calibration.ensemble_calibration import (
     EstimateCoefficientsForEnsembleCalibration)
 from improver.utilities.load import load_cube
+from improver.utilities.save import save_netcdf
 
 
 def main():
@@ -53,14 +54,6 @@ def main():
     # Arguments for estimating coefficients for for Ensemble Model Output
     # Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
     # Regression (NGR)
-    parser.add_argument('calibration_method',
-                        metavar='ENSEMBLE_CALIBRATION_METHOD',
-                        choices=['ensemble model output statistics',
-                                 'nonhomogeneous gaussian regression'],
-                        help='The calibration method that will be applied. '
-                             'Supported methods are: "emos" (ensemble model '
-                             'output statistics) and "ngr" (nonhomogeneous '
-                             'gaussian regression).')
     parser.add_argument('units', metavar='UNITS_TO_CALIBRATE_IN',
                         help='The unit that calibration should be undertaken '
                              'in. The current forecast, historical forecast '
@@ -102,8 +95,8 @@ def main():
     coefficients = (
         estcoeffs.estimate_coefficients_for_ngr(historic_forecast, truth))
 
-    with open(output_filepath) as f:
-        json.dump(coefficients)
+    save_netcdf(coefficients, args.output_filepath)
+
 
 
 if __name__ == "__main__":
