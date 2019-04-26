@@ -34,7 +34,7 @@ Unit tests for the `ensemble_calibration.EnsembleCalibration` class.
 """
 import unittest
 
-from iris.cube import CubeList
+import iris
 from iris.tests import IrisTest
 import numpy as np
 
@@ -376,6 +376,8 @@ class Test_process(IrisTest):
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
         self.assertIsInstance(result, tuple)
+        self.assertIsInstance(result[0], iris.cube.Cube)
+        self.assertIsInstance(result[1], iris.cube.Cube)
 
     def test_unknown_calibration_method(self):
         """
