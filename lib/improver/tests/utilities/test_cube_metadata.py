@@ -850,19 +850,20 @@ class Test_extract_diagnostic_name(IrisTest):
     """Test utility to extract diagnostic name from probability cube name"""
 
     def test_basic(self):
-        """Test correct name is returned from a standard diagnostic"""
+        """Test correct name is returned from a standard (above threshold)
+        probability field"""
         result = extract_diagnostic_name(
             'probability_of_air_temperature_above_threshold')
         self.assertEqual(result, 'air_temperature')
 
     def test_below_threshold(self):
-        """Test correct name is returned from a standard diagnostic"""
+        """Test correct name is returned from a probability below threshold"""
         result = extract_diagnostic_name(
             'probability_of_air_temperature_below_threshold')
         self.assertEqual(result, 'air_temperature')
 
     def test_in_vicinity(self):
-        """Test correct name is returned from an "in vicinity" diagnostic"""
+        """Test correct name is returned from an "in vicinity" probability"""
         diagnostic = 'lwe_precipitation_rate_in_vicinity'
         result = extract_diagnostic_name(
             'probability_of_{}_above_threshold'.format(diagnostic))
