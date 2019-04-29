@@ -1155,7 +1155,7 @@ class EnsembleCalibration(object):
                 ec = EstimateCoefficientsForEnsembleCalibration(
                     self.distribution, self.desired_units,
                     predictor_of_mean_flag=self.predictor_of_mean_flag)
-                optimised_coeffs, coeff_names = (
+                optimised_coeffs = (
                     ec.estimate_coefficients_for_ngr(
                         current_forecast, historic_forecast, truth))
         else:
@@ -1164,7 +1164,7 @@ class EnsembleCalibration(object):
                        format_calibration_method(self.calibration_method)))
             raise ValueError(msg)
         ac = ApplyCoefficientsFromEnsembleCalibration(
-            current_forecast, optimised_coeffs, coeff_names,
+            current_forecast, optimised_coeffs, ec.coeff_names,
             predictor_of_mean_flag=self.predictor_of_mean_flag)
         (calibrated_forecast_predictor, calibrated_forecast_variance,
          calibrated_forecast_coefficients) = ac.apply_params_entry()

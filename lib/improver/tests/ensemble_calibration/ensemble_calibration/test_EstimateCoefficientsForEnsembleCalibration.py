@@ -227,10 +227,6 @@ class Test_create_coefficients_cube(IrisTest):
         expected_coeff_names = ["gamma", "delta", "a", "beta"]
         result = self.plugin.create_coefficients_cube(
             self.optimised_coeffs, self.current_forecast)
-        print("result")
-        print(result)
-        print(result.coord("coefficient_index"))
-        print(result.coord("coefficient_name"))
         self.assertEqual(result, self.expected)
         self.assertEqual(
             self.plugin.coeff_names, expected_coeff_names)
@@ -274,7 +270,8 @@ class Test_create_coefficients_cube(IrisTest):
         result = plugin.create_coefficients_cube(
             optimised_coeffs, self.current_forecast_with_realizations)
         self.assertEqual(result, expected)
-        self.assertEqual(plugin.coeff_names, expected_coeff_names)
+        self.assertArrayEqual(
+            result.coord("coefficient_name").points, expected_coeff_names)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
