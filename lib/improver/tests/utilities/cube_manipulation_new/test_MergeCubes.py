@@ -40,6 +40,7 @@ import iris
 from iris.exceptions import DuplicateDataError, MergeError
 from iris.tests import IrisTest
 
+from improver.utilities.cube_checker import find_threshold_coordinate
 from improver.utilities.cube_manipulation_new import MergeCubes
 from improver.utilities.warnings_handler import ManageWarnings
 from improver.tests.set_up_test_cubes import (
@@ -133,9 +134,10 @@ class Test__equalise_cube_coords(IrisTest):
     def test_threshold_exception(self):
         """Test that an exception is raised if a threshold coordinate is
         unmatched."""
-        self.cubelist[1].coord("threshold").points = (
-            self.cubelist[1].coord("threshold").points + 2.)
-        msg = "threshold coordinates must match to merge"
+        threshold_coord = find_threshold_coordinate(self.cubelist[1]).name()
+        self.cubelist[1].coord(threshold_coord).points = (
+            self.cubelist[1].coord(threshold_coord).points + 2.)
+        msg = "{} coordinates must match to merge".format(threshold_coord)
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin._equalise_cube_coords(self.cubelist)
 
@@ -144,7 +146,7 @@ class Test__equalise_cube_coords(IrisTest):
         non-threshold dimensions"""
         lagged_cubelist = iris.cube.CubeList([])
         for cube in self.cubelist:
-            cube.coord("threshold").rename("realization")
+            find_threshold_coordinate(cube).rename("realization")
             lagged_cubelist.append(cube)
         lagged_cubelist[0].coord("realization").points = np.array([0, 1, 2])
         lagged_cubelist[1].coord("realization").points = np.array([3, 4, 5])
