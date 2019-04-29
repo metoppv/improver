@@ -64,8 +64,10 @@ class Test_apply_params_entry(IrisTest):
 
         optimised_coeffs = [4.55819380e-06, -8.02401974e-09,
                             1.66667055e+00, 1.00000011e+00]
+        current_cycle = "20171110T0000Z"
         estimator = (
-            EstimateCoefficientsForEnsembleCalibration("gaussian", "Celsius"))
+            EstimateCoefficientsForEnsembleCalibration(
+                "gaussian", current_cycle, desired_units="Celsius"))
         self.coeffs_from_mean = (
             estimator.create_coefficients_cube(
                 optimised_coeffs, self.current_temperature_forecast_cube))
@@ -75,7 +77,8 @@ class Test_apply_params_entry(IrisTest):
             1.00000011e+00, 1.00000011e+00])
         estimator = (
             EstimateCoefficientsForEnsembleCalibration(
-                "gaussian", "Celsius", predictor_of_mean_flag="realizations"))
+                "gaussian", current_cycle, desired_units="Celsius",
+                predictor_of_mean_flag="realizations"))
         self.coeffs_from_realizations = (
             estimator.create_coefficients_cube(
                 optimised_coeffs, self.current_temperature_forecast_cube))
@@ -155,8 +158,10 @@ class Test__apply_params(IrisTest):
 
         optimised_coeffs = [4.55819380e-06, -8.02401974e-09,
                             1.66667055e+00, 1.00000011e+00]
+        current_cycle = "20171110T0000Z"
         estimator = (
-            EstimateCoefficientsForEnsembleCalibration("gaussian", "Celsius"))
+            EstimateCoefficientsForEnsembleCalibration(
+                "gaussian", current_cycle, desired_units="Celsius"))
         self.coeffs_from_mean = (
             estimator.create_coefficients_cube(
                 optimised_coeffs, self.current_temperature_forecast_cube))
@@ -164,7 +169,8 @@ class Test__apply_params(IrisTest):
         optimised_coeffs = np.array([5, 1, 0, 0.57, 0.6, 0.6])
         estimator = (
             EstimateCoefficientsForEnsembleCalibration(
-                "gaussian", "Celsius", predictor_of_mean_flag="realizations"))
+                "gaussian", current_cycle, desired_units="Celsius",
+                predictor_of_mean_flag="realizations"))
         self.coeffs_from_realizations = (
             estimator.create_coefficients_cube(
                 optimised_coeffs, self.current_temperature_forecast_cube))

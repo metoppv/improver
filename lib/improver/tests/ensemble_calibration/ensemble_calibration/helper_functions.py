@@ -267,9 +267,13 @@ def _create_historic_forecasts(cube, number_of_days=5):
         num=number_of_days, endpoint=True)
     for index in time_range:
         temp_cube = cube.copy()
-        temp_cube.coord("forecast_reference_time").points = (
-            temp_cube.coord("forecast_reference_time").points - index)
-        temp_cube.coord("time").points = temp_cube.coord("time").points - index
+        for coord_name in ["forecast_reference_time", "time"]:
+            orig_units = temp_cube.coord(coord_name).units
+            temp_cube.coord(coord_name).convert_units(
+                "hours since 1970-01-01 00:00:00")
+            temp_cube.coord(coord_name).points = (
+                temp_cube.coord(coord_name).points - index)
+            temp_cube.coord(coord_name).convert_units(orig_units)
         temp_cube.data -= 2
         historic_forecasts.append(temp_cube)
     historic_forecast = concatenate_cubes(historic_forecasts)

@@ -32,21 +32,20 @@
 This module defines all the "plugins" specific for ensemble calibration.
 
 """
+import datetime
 import numpy as np
 from scipy import stats
 from scipy.optimize import minimize
 from scipy.stats import norm
 import warnings
 
-import cf_units as unit
 import iris
-from iris.exceptions import CoordinateNotFoundError
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     convert_cube_data_to_2d, check_predictor_of_mean_flag)
-from improver.utilities.cube_manipulation import (
-    concatenate_cubes, enforce_coordinate_ordering)
-from improver.utilities.temporal import iris_time_to_datetime
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+from improver.utilities.temporal import (
+    cycletime_to_datetime, cycletime_to_number, datetime_to_iris_time)
 
 
 class ContinuousRankedProbabilityScoreMinimisers(object):
@@ -325,7 +324,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
     # ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False.
     ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = True
 
-    def __init__(self, distribution, desired_units,
+    def __init__(self, distribution, current_cycle, desired_units=None,
                  predictor_of_mean_flag="mean"):
         """
         Create an ensemble calibration plugin that, for Nonhomogeneous Gaussian
@@ -336,6 +335,10 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             distribution (str):
                 Name of distribution. Assume that the current forecast can be
                 represented using this distribution.
+            current_cycle (str):
+                The current cycle in YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
+
+        Kwargs:
             desired_units (str or cf_units.Unit):
                 The unit that you would like the calibration to be undertaken
                 in. The current forecast, historical forecast and truth will be
@@ -347,6 +350,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
 
         """
         self.distribution = distribution
+        self.current_cycle = current_cycle
         self.desired_units = desired_units
         # Ensure predictor_of_mean_flag is valid.
         check_predictor_of_mean_flag(predictor_of_mean_flag)
@@ -360,10 +364,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
 
         import imp
         try:
-            statsmodels_found = imp.find_module('statsmodels')
-            statsmodels_found = True
-            import statsmodels.api as sm
-            self.sm = sm
+            imp.find_module('statsmodels')
         except ImportError:
             statsmodels_found = False
             if predictor_of_mean_flag.lower() in ["realizations"]:
@@ -374,6 +375,10 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                     "A default initial guess will be used without "
                     "estimating coefficients from a linear model.")
                 warnings.warn(msg, ImportWarning)
+        else:
+            statsmodels_found = True
+            import statsmodels.api as sm
+            self.sm = sm
         self.statsmodels_found = statsmodels_found
 
     def __str__(self):
@@ -387,27 +392,27 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             self.predictor_of_mean_flag, self.minimiser)
 
     def create_coefficients_cube(
-            self, optimised_coeffs, current_forecast):
+            self, optimised_coeffs, historic_forecast):
         """Create a cube for storing the coefficients computed using EMOS.
 
         Args:
             optimised_coeffs (list):
                 List of optimised coefficients.
                 Order of coefficients is [c, d, a, b].
-            current_forecast (iris.cube.Cube):
-                The cube containing the current forecast.
+            historic_forecast (iris.cube.Cube):
+                The cube containing the historic forecast.
 
         Returns:
             cube (iris.cube.Cube):
                 Cube constructed using the coefficients provided and using
-                metadata from the current_forecast cube. The cube contains
+                metadata from the historic_forecast cube. The cube contains
                 a coefficient_index dimension coordinate and a
                 coefficient_name auxiliary coordinate.
 
         """
         if self.predictor_of_mean_flag.lower() in ["realizations"]:
             realization_coeffs = []
-            for realization in current_forecast.coord("realization").points:
+            for realization in historic_forecast.coord("realization").points:
                 realization_coeffs.append(
                     "{}{}".format(self.coeff_names[-1], np.int32(realization)))
             self.coeff_names = self.coeff_names[:-1] + realization_coeffs
@@ -425,19 +430,35 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             self.coeff_names, long_name="coefficient_name", units="no_unit")
         dim_coords_and_dims = [(coefficient_index, 0)]
         aux_coords_and_dims = [(coefficient_name, 0)]
-        for coord_name in (
-                ["time", "forecast_period", "forecast_reference_time"]):
-            try:
-                aux_coords_and_dims.append(
-                    (current_forecast.coord(coord_name), None))
-            except CoordinateNotFoundError:
-                pass
-        attributes = {"diagnostic_standard_name": current_forecast.name()}
-        for attribute in current_forecast.attributes.keys():
+
+        # Create a forecast_reference_time coordinate.
+        frt_point = cycletime_to_datetime(self.current_cycle)
+        try:
+            frt_coord = historic_forecast.coord("forecast_reference_time").copy(frt_point)
+        except CoordinateNotFoundError:
+            aux_coords_and_dims.append((frt_coord, None))
+
+        # Create a forecast_period and a time coordinate.
+        try:
+            fp_point, = (
+                np.unique(historic_forecast.coord("forecast_period").points))
+        except CoordinateNotFoundError:
+            pass
+        else:
+            frt_point = cycletime_to_datetime(self.current_cycle)
+            time_point = (
+                frt_point + datetime.timedelta(seconds=float(fp_point)))
+            time_point = datetime_to_iris_time(time_point, time_units="seconds")
+            if historic_forecast.coords("time"):
+                time_coord = historic_forecast.coord("time").copy(time_point)
+                aux_coords_and_dims.append((time_coord, None))
+
+        attributes = {"diagnostic_standard_name": historic_forecast.name()}
+        for attribute in historic_forecast.attributes.keys():
             for allowed_attribute in ["model_configuration"]:
                 if attribute.endswith(allowed_attribute):
                     attributes[attribute] = (
-                        current_forecast.attributes[attribute])
+                        historic_forecast.attributes[attribute])
         cube = iris.cube.Cube(
             optimised_coeffs, long_name="emos_coefficients", units="1",
             dim_coords_and_dims=dim_coords_and_dims,
@@ -536,8 +557,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                         [1, 1, 0] + np.repeat(1, no_of_realizations).tolist())
         return np.array(initial_guess, dtype=np.float32)
 
-    def estimate_coefficients_for_ngr(
-            self, current_forecast, historic_forecast, truth):
+    def estimate_coefficients_for_ngr(self, historic_forecast, truth):
         """
         Using Nonhomogeneous Gaussian Regression/Ensemble Model Output
         Statistics, estimate the required coefficients from historical
@@ -562,9 +582,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
            5. Perform minimisation.
 
         Args:
-            current_forecast (iris.cube.Cube):
-                The cube containing the current forecast.
-            historical_forecast (iris.cube.Cube):
+            historic_forecast (iris.cube.Cube):
                 The cube containing the historical forecasts used
                 for calibration.
             truth (iris.cube.Cube:
@@ -585,8 +603,9 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         nan_in_initial_guess = False
 
         # Make sure inputs have the same units.
-        historic_forecast.convert_units(self.desired_units)
-        truth.convert_units(self.desired_units)
+        if self.desired_units:
+            historic_forecast.convert_units(self.desired_units)
+            truth.convert_units(self.desired_units)
 
         if self.predictor_of_mean_flag.lower() in ["mean"]:
             no_of_realizations = None
@@ -626,7 +645,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             optimised_coeffs = initial_guess
 
         coefficients_cube = (
-            self.create_coefficients_cube(optimised_coeffs, current_forecast))
+            self.create_coefficients_cube(optimised_coeffs, historic_forecast))
         return coefficients_cube
 
 
@@ -771,7 +790,6 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
         return calibrated_forecast_predictor, calibrated_forecast_var
 
 
-
 class EnsembleCalibration(object):
     """
     Plugin to wrap the core EMOS processes:
@@ -779,7 +797,7 @@ class EnsembleCalibration(object):
     2. Apply optimised EMOS coefficients for future dates.
 
     """
-    def __init__(self, calibration_method, distribution, desired_units,
+    def __init__(self, calibration_method, distribution, desired_units=None,
                  predictor_of_mean_flag="mean"):
         """
         Create an ensemble calibration plugin that, for Nonhomogeneous Gaussian
@@ -787,7 +805,7 @@ class EnsembleCalibration(object):
         applies the coefficients to the current forecast.
 
         Args:
-            calibration_method (String):
+            calibration_method (str):
                 The calibration method that will be applied.
                 Supported methods are:
 
@@ -799,16 +817,17 @@ class EnsembleCalibration(object):
                     logistic regression
                     bayesian model averaging
 
-            distribution (String):
+            distribution (str):
                 The distribution that will be used for calibration. This will
                 be dependent upon the input phenomenon. This has to be
                 supported by the minimisation functions in
                 ContinuousRankedProbabilityScoreMinimisers.
-            desired_units (String or cf_units.Unit):
+        Kwargs:
+            desired_units (str or cf_units.Unit):
                 The unit that you would like the calibration to be undertaken
                 in. The current forecast, historical forecast and truth will be
                 converted as required.
-            predictor_of_mean_flag (String):
+            predictor_of_mean_flag (str):
                 String to specify the input to calculate the calibrated mean.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
@@ -835,14 +854,14 @@ class EnsembleCalibration(object):
         2. Apply optimised coefficients to current forecast.
 
         Args:
-            current_forecast (Iris Cube or CubeList):
-                The Cube or CubeList that provides the input forecast for
+            current_forecast (iris.cube.Cube):
+                The cube that provides the input forecast for
                 the current cycle.
-            historic_forecast (Iris Cube or CubeList):
-                The Cube or CubeList that provides the input historic forecasts
+            historic_forecast (iris.cube.Cube):
+                The cube that provides the input historic forecasts
                 for calibration.
-            truth (Iris Cube or CubeList):
-                The Cube or CubeList that provides the input truth for
+            truth (iris.cube.Cube):
+                The cube that provides the input truth for
                 calibration with dates matching the historic forecasts.
 
         Returns:
@@ -870,7 +889,7 @@ class EnsembleCalibration(object):
                     predictor_of_mean_flag=self.predictor_of_mean_flag)
                 coefficient_cube = (
                     ec.estimate_coefficients_for_ngr(
-                        current_forecast, historic_forecast, truth))
+                        historic_forecast, truth))
         else:
             msg = ("Other calibration methods are not available. "
                    "{} is not available".format(
