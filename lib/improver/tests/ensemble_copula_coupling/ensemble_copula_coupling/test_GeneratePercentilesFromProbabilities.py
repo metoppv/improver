@@ -49,6 +49,7 @@ from improver.tests.ensemble_calibration.ensemble_calibration. \
         set_up_probability_threshold_cube,
         set_up_probability_above_threshold_temperature_cube,
         set_up_probability_above_threshold_spot_temperature_cube)
+from improver.utilities.cube_checker import find_threshold_coordinate
 from improver.utilities.warnings_handler import ManageWarnings
 
 
@@ -64,16 +65,17 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         self.current_temperature_forecast_cube = (
             add_forecast_reference_time_and_forecast_period(
                 set_up_probability_above_threshold_temperature_cube()))
+        self.threshold_points = find_threshold_coordinate(
+            self.current_temperature_forecast_cube).points
 
     def test_basic(self):
         """Test that the plugin returns two numpy arrays."""
         cube = self.current_temperature_forecast_cube
-        threshold_points = cube.coord("threshold").points
         probabilities_for_cdf = cube.data.reshape(3, 9)
         bounds_pairing = (-40, 50)
         plugin = Plugin()
         result = plugin._add_bounds_to_thresholds_and_probabilities(
-            threshold_points, probabilities_for_cdf, bounds_pairing)
+            self.threshold_points, probabilities_for_cdf, bounds_pairing)
         self.assertIsInstance(result[0], np.ndarray)
         self.assertIsInstance(result[1], np.ndarray)
 
@@ -84,12 +86,11 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         the bounds_pairing.
         """
         cube = self.current_temperature_forecast_cube
-        threshold_points = cube.coord("threshold").points
         probabilities_for_cdf = cube.data.reshape(3, 9)
         bounds_pairing = (-40, 50)
         plugin = Plugin()
         result = plugin._add_bounds_to_thresholds_and_probabilities(
-            threshold_points, probabilities_for_cdf, bounds_pairing)
+            self.threshold_points, probabilities_for_cdf, bounds_pairing)
         self.assertArrayAlmostEqual(result[0][0], bounds_pairing[0])
         self.assertArrayAlmostEqual(result[0][-1], bounds_pairing[1])
 
@@ -100,14 +101,13 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         represent the extreme ends of the Cumulative Distribution Function.
         """
         cube = self.current_temperature_forecast_cube
-        threshold_points = cube.coord("threshold").points
         probabilities_for_cdf = cube.data.reshape(3, 9)
         zero_array = np.zeros(probabilities_for_cdf[:, 0].shape)
         one_array = np.ones(probabilities_for_cdf[:, 0].shape)
         bounds_pairing = (-40, 50)
         plugin = Plugin()
         result = plugin._add_bounds_to_thresholds_and_probabilities(
-            threshold_points, probabilities_for_cdf, bounds_pairing)
+            self.threshold_points, probabilities_for_cdf, bounds_pairing)
         self.assertArrayAlmostEqual(result[1][:, 0], zero_array)
         self.assertArrayAlmostEqual(result[1][:, -1], one_array)
 
@@ -434,8 +434,10 @@ class Test__probabilities_to_percentiles(IrisTest):
                            [44.75, 45.33333333, 41.6],
                            [41.6, 29., 3.2]]]], dtype=np.float32)
 
+        threshold_coord = find_threshold_coordinate(
+            self.current_temperature_forecast_cube)
         for acube in self.current_temperature_forecast_cube.slices_over(
-                "threshold"):
+                threshold_coord):
             cube = acube
             break
         percentiles = [10, 50, 90]

@@ -40,6 +40,7 @@ import iris
 from iris.tests import IrisTest
 
 from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
+from improver.utilities.cube_checker import find_threshold_coordinate
 from improver.utilities.temporal import iris_time_to_datetime
 from improver.tests.set_up_test_cubes import (
     construct_xy_coords, construct_scalar_time_coords, set_up_variable_cube,
@@ -342,22 +343,16 @@ class test_set_up_probability_cube(IrisTest):
         """Test default arguments produce cube with expected dimensions
         and metadata"""
         result = set_up_probability_cube(self.data, self.thresholds)
-        thresh_coord = result.coord("threshold")
+        thresh_coord = find_threshold_coordinate(result)
         self.assertEqual(
             result.name(), 'probability_of_air_temperature_above_threshold')
         self.assertEqual(result.units, '1')
         self.assertArrayEqual(thresh_coord.points, self.thresholds)
+        self.assertEqual(thresh_coord.name(), 'air_temperature')
+        self.assertEqual(thresh_coord.var_name, 'threshold')
         self.assertEqual(thresh_coord.units, 'K')
         self.assertEqual(len(result.attributes), 1)
         self.assertEqual(result.attributes['relative_to_threshold'], 'above')
-
-    def test_probability_of_name(self):
-        """Test a name with "probability" at the start is correctly parsed"""
-        result = set_up_probability_cube(
-            self.data, self.thresholds,
-            variable_name='probability_of_air_temperature')
-        self.assertEqual(
-            result.name(), 'probability_of_air_temperature_above_threshold')
 
     def test_relative_to_threshold(self):
         """Test ability to reset the "relative_to_threshold" attribute"""

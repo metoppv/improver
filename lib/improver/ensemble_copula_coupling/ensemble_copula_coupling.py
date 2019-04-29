@@ -780,14 +780,19 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
         """
         check_for_x_and_y_axes(cube, require_dim_coords=True)
         dim_coords = [coord.name() for coord in cube.coords(dim_coords=True)]
-
-        if 'threshold' in dim_coords and len(dim_coords) < 4:
-            enforce_coordinate_ordering(cube, 'threshold')
-            return
-
         msg = ('GenerateProbabilitiesFromMeanAndVariance expects a cube with '
                'only a leading threshold dimension, followed by spatial (y/x) '
                'dimensions. Got dimensions: {}'.format(dim_coords))
+
+        try:
+            threshold_coord = find_threshold_coordinate(cube)
+        except CoordinateNotFoundError:
+            raise ValueError(msg)
+
+        if len(dim_coords) < 4:
+            enforce_coordinate_ordering(cube, threshold_coord.name())
+            return
+
         raise ValueError(msg)
 
     @staticmethod

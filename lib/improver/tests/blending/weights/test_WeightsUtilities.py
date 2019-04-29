@@ -40,6 +40,7 @@ import iris
 from iris.tests import IrisTest
 
 from improver.blending.weights import WeightsUtilities
+from improver.utilities.cube_checker import find_threshold_coordinate
 from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, add_coordinate)
 from improver.tests.utilities.test_cube_metadata import (
@@ -324,7 +325,7 @@ class Test_build_weights_cube(IrisTest):
         scalar."""
 
         weights = [1.0]
-        blending_coord = 'threshold'
+        blending_coord = find_threshold_coordinate(self.cube).name()
         cube = iris.util.squeeze(self.cube)
 
         plugin = WeightsUtilities.build_weights_cube
