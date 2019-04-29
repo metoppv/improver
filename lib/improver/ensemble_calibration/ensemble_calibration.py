@@ -388,9 +388,9 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             self, optimised_coeffs, current_forecast):
         """Create a cube for storing the coefficients computed using EMOS.
 
-        # .. See the documentation for examples of these cubes.
-        # .. include:: extended_documentation/ensemble_calibration/
-        #    ensemble_calibration/ensemble_calibration_examples.rst
+        .. See the documentation for examples of these cubes.
+        .. include:: extended_documentation/ensemble_calibration/
+           ensemble_calibration/create_coefficients_cube.rst
 
         Args:
             optimised_coeffs (list):
