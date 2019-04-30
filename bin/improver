@@ -113,4 +113,4 @@ export PYTHONPATH="$IMPROVER_DIR/lib/:${PYTHONPATH:-}"
 export PATH="$IMPROVER_DIR/bin/:$PATH"
 
 OPER_ARGS=( "$@" )
-improver_exec $OPER "${OPER_ARGS[@]}"
+improver_exec $OPER "${OPER_ARGS[@]:-}"
