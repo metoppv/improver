@@ -750,16 +750,16 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
         Function to apply EMOS coefficients to all required dates.
 
         Args:
-            forecast_predictors (Iris cube):
+            forecast_predictors (iris.cube.Cube):
                 Cube containing the forecast predictor e.g. ensemble mean
                 or ensemble realizations.
-            forecast_vars (Iris cube.):
+            forecast_vars (iris.cube.Cube):
                 Cube containing the forecast variance e.g. ensemble variance.
-            optimised_coeffs (List):
+            optimised_coeffs (dict):
                 Coefficients for all dates.
             coeff_names (List):
                 Coefficient names.
-            predictor_of_mean_flag (String):
+            predictor_of_mean_flag (str):
                 String to specify the input to calculate the calibrated mean.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.

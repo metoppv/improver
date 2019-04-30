@@ -697,8 +697,7 @@ class Test__apply_params(IrisTest):
 
         optimised_coeffs = {}
         the_date = datetime_from_timestamp(cube.coord("time").points)
-        optimised_coeffs[the_date] = np.array(
-            [5, 1, 0, 0.57, 0.6, 0.6], dtype=np.float32)
+        optimised_coeffs[the_date] = self.default_optimised_coeffs
 
         predictor_cube = cube.collapsed("realization", iris.analysis.MEAN)
         variance_cube = cube.collapsed("realization", iris.analysis.VARIANCE)
