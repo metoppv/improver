@@ -23,5 +23,5 @@ An example of the coefficient_index coordinate is::
 
 An example of the coefficient_name coordinate is::
 
- AuxCoord(array(['gamma', 'delta', 'a', 'beta'], dtype='<U5'), standard_name=None, units=Unit('no_unit'), long_name='coefficient_name')
+ AuxCoord(array(['gamma', 'delta', 'alpha', 'beta'], dtype='<U5'), standard_name=None, units=Unit('no_unit'), long_name='coefficient_name')
 

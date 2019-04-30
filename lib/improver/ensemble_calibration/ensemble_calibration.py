@@ -354,7 +354,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         # coefficient name in the list, as there can potentially be
         # multiple beta coefficients if the ensemble realizations, rather
         # than the ensemble mean, are provided as the predictor.
-        self.coeff_names = ["gamma", "delta", "a", "beta"]
+        self.coeff_names = ["gamma", "delta", "alpha", "beta"]
 
         import imp
         try:
@@ -409,7 +409,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 the coordinate are e.g. gamma, delta, alpha, beta.
 
         """
-        if self.predictor_of_mean_flag.lower() in ["realizations"]:
+        if self.predictor_of_mean_flag.lower() == "realizations":
             realization_coeffs = []
             for realization in current_forecast.coord("realization").points:
                 realization_coeffs.append(
@@ -993,7 +993,7 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                 if predictor_of_mean_flag.lower() in ["mean"]:
                     # Calculate predicted mean = a + b*X, where X is the
                     # raw ensemble mean. In this case, b = beta.
-                    beta = [optimised_coeffs_at_date["a"],
+                    beta = [optimised_coeffs_at_date["alpha"],
                             optimised_coeffs_at_date["beta"]]
                     forecast_predictor_flat = (
                         forecast_predictor_at_date.data.flatten())
@@ -1008,7 +1008,7 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                     # Calculate predicted mean = a + b*X, where X is the
                     # raw ensemble mean. In this case, b = beta^2.
                     beta = np.concatenate(
-                        [[optimised_coeffs_at_date["a"]],
+                        [[optimised_coeffs_at_date["alpha"]],
                          optimised_coeffs_at_date["beta"]**2])
                     forecast_predictor = (
                         enforce_coordinate_ordering(
