@@ -95,6 +95,14 @@ fi
 OPER=$1
 shift
 
+function improver_exec {
+    EXEC_OPER=$1
+    shift
+    EXEC_OPER_ARGS=( "$@" )
+
+    exec improver-$EXEC_OPER "${EXEC_OPER_ARGS[@]}"
+}
+
 # Apply site-specific setup if necessary.
 if [[ -f "${IMPROVER_SITE_INIT:=$IMPROVER_DIR/etc/site-init}" ]]; then
     . "$IMPROVER_SITE_INIT"
@@ -104,4 +112,5 @@ fi
 export PYTHONPATH="$IMPROVER_DIR/lib/:${PYTHONPATH:-}"
 export PATH="$IMPROVER_DIR/bin/:$PATH"
 
-exec improver-$OPER "$@"
+OPER_ARGS=( "$@" )
+improver_exec $OPER "${OPER_ARGS[@]}"
