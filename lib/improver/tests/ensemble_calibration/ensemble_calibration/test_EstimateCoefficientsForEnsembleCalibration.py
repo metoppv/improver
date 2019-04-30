@@ -257,16 +257,6 @@ class Test_create_coefficients_cube(IrisTest):
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_single_historic_forecast(self):
-        """Test that the expected coefficient cube is returned when the
-        ensemble mean is used as the predictor."""
-        msg = "More than one historical forecast"
-        with self.assertRaisesRegex(ValueError, msg):
-            self.plugin.create_coefficients_cube(
-                self.optimised_coeffs, self.historic_forecast[0])
-
-    @ManageWarnings(
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficients_from_realizations(self):
         """Test that the expected coefficient cube is returned when the
         ensemble realizations are used as the predictor."""
@@ -288,6 +278,7 @@ class Test_create_coefficients_cube(IrisTest):
         forecast_period coordinate is not present within the input cube."""
         expected = self.expected.copy()
         expected.remove_coord("forecast_period")
+        expected.remove_coord("time")
         self.historic_forecast.remove_coord("forecast_period")
         result = self.plugin.create_coefficients_cube(
             self.optimised_coeffs, self.historic_forecast)
@@ -576,9 +567,9 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         truth = self.temperature_truth_cube
 
         distribution = "gaussian"
-        desired_units = "degreesC"
+        current_cycle = "20171110T0000Z"
 
-        plugin = Plugin(distribution, desired_units)
+        plugin = Plugin(distribution, current_cycle)
         result = plugin.estimate_coefficients_for_ngr(
             historic_forecast, truth)
         self.assertIsInstance(result, iris.cube.Cube)
@@ -601,9 +592,11 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         truth = self.temperature_truth_cube
 
         distribution = "gaussian"
-        desired_units = "degreesC"
+        current_cycle = "20171110T0000Z"
+        desired_units = "Celsius"
 
-        plugin = Plugin(distribution, desired_units)
+        plugin = Plugin(
+            distribution, current_cycle, desired_units=desired_units)
         result = plugin.estimate_coefficients_for_ngr(
             historic_forecast, truth)
 
@@ -627,9 +620,9 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         truth = self.wind_speed_truth_cube
 
         distribution = "truncated gaussian"
-        desired_units = "m s^-1"
+        current_cycle = "20171110T0000Z"
 
-        plugin = Plugin(distribution, desired_units)
+        plugin = Plugin(distribution, current_cycle)
         result = plugin.estimate_coefficients_for_ngr(
             historic_forecast, truth)
 
@@ -647,7 +640,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         """
         import imp
         try:
-            statsmodels_found = imp.find_module('statsmodels')
+            imp.find_module('statsmodels')
             statsmodels_found = True
         except ImportError:
             statsmodels_found = False
@@ -663,12 +656,14 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         truth = self.temperature_truth_cube
 
         distribution = "gaussian"
-        desired_units = "degreesC"
+        current_cycle = "20171110T0000Z"
+        desired_units = "Celsius"
         predictor_of_mean_flag = "realizations"
         expected_coeff_names = (
             ['gamma', 'delta', 'a', 'beta0', 'beta1', 'beta2'])
 
-        plugin = Plugin(distribution, desired_units,
+        plugin = Plugin(distribution, current_cycle,
+                        desired_units=desired_units,
                         predictor_of_mean_flag=predictor_of_mean_flag)
         result = plugin.estimate_coefficients_for_ngr(
             historic_forecast, truth)
@@ -687,7 +682,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         """
         import imp
         try:
-            statsmodels_found = imp.find_module('statsmodels')
+            imp.find_module('statsmodels')
             statsmodels_found = True
         except ImportError:
             statsmodels_found = False
@@ -704,12 +699,12 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         truth = self.wind_speed_truth_cube
 
         distribution = "truncated gaussian"
-        desired_units = "m s^-1"
+        current_cycle = "20171110T0000Z"
         predictor_of_mean_flag = "realizations"
         expected_coeff_names = (
             ['gamma', 'delta', 'a', 'beta0', 'beta1', 'beta2'])
 
-        plugin = Plugin(distribution, desired_units,
+        plugin = Plugin(distribution, current_cycle,
                         predictor_of_mean_flag=predictor_of_mean_flag)
         result = plugin.estimate_coefficients_for_ngr(
             historic_forecast, truth)
@@ -730,9 +725,9 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         truth = self.temperature_truth_cube
 
         distribution = "fake"
-        desired_units = "degreesC"
+        current_cycle = "20171110T0000Z"
 
-        plugin = Plugin(distribution, desired_units)
+        plugin = Plugin(distribution, current_cycle)
         msg = "Distribution requested"
         with self.assertRaisesRegex(KeyError, msg):
             plugin.estimate_coefficients_for_ngr(
@@ -754,9 +749,11 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         truth.convert_units("Fahrenheit")
 
         distribution = "gaussian"
+        current_cycle = "20171110T0000Z"
         desired_units = "degreesC"
 
-        plugin = Plugin(distribution, desired_units)
+        plugin = Plugin(
+            distribution, current_cycle, desired_units=desired_units)
         result = plugin.estimate_coefficients_for_ngr(
             historic_forecast, truth)
 
@@ -779,9 +776,11 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         truth = self.temperature_truth_cube
 
         distribution = "gaussian"
+        current_cycle = "20171110T0000Z"
         desired_units = "degreesC"
 
-        plugin = Plugin(distribution, desired_units)
+        plugin = Plugin(
+            distribution, current_cycle, desired_units=desired_units)
         result = plugin.estimate_coefficients_for_ngr(
             historic_forecast, truth)
 

@@ -61,7 +61,7 @@ def cycletime_to_datetime(cycletime, cycletime_format="%Y%m%dT%H%MZ"):
 
      Keyword Args:
          cycletime_format (string):
-             String containg the appropriate directives to indicate how
+             String containing the appropriate directives to indicate how
              the output datetime should display.
 
     Returns:
@@ -69,6 +69,23 @@ def cycletime_to_datetime(cycletime, cycletime_format="%Y%m%dT%H%MZ"):
             A correctly formatted datetime object.
     """
     return datetime.strptime(cycletime, cycletime_format)
+
+
+def datetime_to_cycletime(adatetime, cycletime_format="%Y%m%dT%H%MZ"):
+    """Convert a cycletime of the format YYYYMMDDTHHMMZ into a datetime object.
+     Args:
+         adatetime (string):
+             A datetime that can be converted into a cycletime using the
+             cycletime_format supplied.
+     Keyword Args:
+         cycletime_format (string):
+             String containing the appropriate directives to indicate how
+             the output datetime should display.
+    Returns:
+        str:
+            A correctly formatted string.
+    """
+    return datetime.strftime(adatetime, cycletime_format)
 
 
 def cycletime_to_number(

@@ -40,12 +40,14 @@ from scipy.stats import norm
 import warnings
 
 import iris
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     convert_cube_data_to_2d, check_predictor_of_mean_flag)
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.temporal import (
-    cycletime_to_datetime, cycletime_to_number, datetime_to_iris_time)
+    cycletime_to_datetime, datetime_to_cycletime, datetime_to_iris_time,
+    iris_time_to_datetime)
 
 
 class ContinuousRankedProbabilityScoreMinimisers(object):
@@ -433,9 +435,14 @@ class EstimateCoefficientsForEnsembleCalibration(object):
 
         # Create a forecast_reference_time coordinate.
         frt_point = cycletime_to_datetime(self.current_cycle)
+
         try:
-            frt_coord = historic_forecast.coord("forecast_reference_time").copy(frt_point)
+            frt_coord = (
+                historic_forecast.coord("forecast_reference_time").copy(
+                    datetime_to_iris_time(frt_point, time_units="seconds")))
         except CoordinateNotFoundError:
+            pass
+        else:
             aux_coords_and_dims.append((frt_coord, None))
 
         # Create a forecast_period and a time coordinate.
@@ -445,10 +452,14 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         except CoordinateNotFoundError:
             pass
         else:
+            fp_coord = (
+                historic_forecast.coord("forecast_period").copy(fp_point))
+            aux_coords_and_dims.append((fp_coord, None))
             frt_point = cycletime_to_datetime(self.current_cycle)
             time_point = (
                 frt_point + datetime.timedelta(seconds=float(fp_point)))
-            time_point = datetime_to_iris_time(time_point, time_units="seconds")
+            time_point = datetime_to_iris_time(
+                time_point, time_units="seconds")
             if historic_forecast.coords("time"):
                 time_coord = historic_forecast.coord("time").copy(time_point)
                 aux_coords_and_dims.append((time_coord, None))
@@ -884,8 +895,12 @@ class EnsembleCalibration(object):
                  "nonhomogeneous gaussian regression"]):
             if (format_calibration_method(self.distribution) in
                     ["gaussian", "truncated gaussian"]):
+                current_cycle = datetime_to_cycletime(
+                    iris_time_to_datetime(
+                        current_forecast.coord("time"))[0])
                 ec = EstimateCoefficientsForEnsembleCalibration(
-                    self.distribution, self.desired_units,
+                    self.distribution, current_cycle=current_cycle,
+                    desired_units=self.desired_units,
                     predictor_of_mean_flag=self.predictor_of_mean_flag)
                 coefficient_cube = (
                     ec.estimate_coefficients_for_ngr(
