@@ -32,20 +32,22 @@
 This module defines all the "plugins" specific for ensemble calibration.
 
 """
+import datetime
 import numpy as np
 from scipy import stats
 from scipy.optimize import minimize
 from scipy.stats import norm
 import warnings
 
-import cf_units as unit
 import iris
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     convert_cube_data_to_2d, check_predictor_of_mean_flag)
-from improver.utilities.cube_manipulation import (
-    concatenate_cubes, enforce_coordinate_ordering)
-from improver.utilities.temporal import iris_time_to_datetime
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+from improver.utilities.temporal import (
+    cycletime_to_datetime, datetime_to_cycletime, datetime_to_iris_time,
+    iris_time_to_datetime)
 
 
 class ContinuousRankedProbabilityScoreMinimisers(object):
@@ -324,7 +326,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
     # ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False.
     ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = True
 
-    def __init__(self, distribution, desired_units,
+    def __init__(self, distribution, current_cycle, desired_units=None,
                  predictor_of_mean_flag="mean"):
         """
         Create an ensemble calibration plugin that, for Nonhomogeneous Gaussian
@@ -332,30 +334,39 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         applies the coefficients to the current forecast.
 
         Args:
-            distribution (String):
+            distribution (str):
                 Name of distribution. Assume that the current forecast can be
                 represented using this distribution.
-            desired_units (String or cf_units.Unit):
+            current_cycle (str):
+                The current cycle in YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
+
+        Kwargs:
+            desired_units (str or cf_units.Unit):
                 The unit that you would like the calibration to be undertaken
                 in. The current forecast, historical forecast and truth will be
                 converted as required.
-            predictor_of_mean_flag (String):
+            predictor_of_mean_flag (str):
                 String to specify the input to calculate the calibrated mean.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
 
         """
         self.distribution = distribution
+        self.current_cycle = current_cycle
         self.desired_units = desired_units
+        # Ensure predictor_of_mean_flag is valid.
+        check_predictor_of_mean_flag(predictor_of_mean_flag)
         self.predictor_of_mean_flag = predictor_of_mean_flag
         self.minimiser = ContinuousRankedProbabilityScoreMinimisers()
+        # Setting default values for coeff_names. Beta is the final
+        # coefficient name in the list, as there can potentially be
+        # multiple beta coefficients if the ensemble realizations, rather
+        # than the ensemble mean, are provided as the predictor.
+        self.coeff_names = ["gamma", "delta", "a", "beta"]
 
         import imp
         try:
-            statsmodels_found = imp.find_module('statsmodels')
-            statsmodels_found = True
-            import statsmodels.api as sm
-            self.sm = sm
+            imp.find_module('statsmodels')
         except ImportError:
             statsmodels_found = False
             if predictor_of_mean_flag.lower() in ["realizations"]:
@@ -366,6 +377,10 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                     "A default initial guess will be used without "
                     "estimating coefficients from a linear model.")
                 warnings.warn(msg, ImportWarning)
+        else:
+            statsmodels_found = True
+            import statsmodels.api as sm
+            self.sm = sm
         self.statsmodels_found = statsmodels_found
 
     def __str__(self):
@@ -377,6 +392,89 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         return result.format(
             self.distribution, self.desired_units,
             self.predictor_of_mean_flag, self.minimiser)
+
+    def create_coefficients_cube(
+            self, optimised_coeffs, historic_forecast):
+        """Create a cube for storing the coefficients computed using EMOS.
+
+        Args:
+            optimised_coeffs (list):
+                List of optimised coefficients.
+                Order of coefficients is [c, d, a, b].
+            historic_forecast (iris.cube.Cube):
+                The cube containing the historic forecast.
+
+        Returns:
+            cube (iris.cube.Cube):
+                Cube constructed using the coefficients provided and using
+                metadata from the historic_forecast cube. The cube contains
+                a coefficient_index dimension coordinate and a
+                coefficient_name auxiliary coordinate.
+
+        """
+        if self.predictor_of_mean_flag.lower() in ["realizations"]:
+            realization_coeffs = []
+            for realization in historic_forecast.coord("realization").points:
+                realization_coeffs.append(
+                    "{}{}".format(self.coeff_names[-1], np.int32(realization)))
+            self.coeff_names = self.coeff_names[:-1] + realization_coeffs
+
+        if len(optimised_coeffs) != len(self.coeff_names):
+            msg = ("The number of coefficients in {} must equal the "
+                   "number of coefficient names {}.".format(
+                        optimised_coeffs, self.coeff_names))
+            raise ValueError(msg)
+
+        coefficient_index = iris.coords.DimCoord(
+            list(range(len(optimised_coeffs))),
+            long_name="coefficient_index", units="1")
+        coefficient_name = iris.coords.AuxCoord(
+            self.coeff_names, long_name="coefficient_name", units="no_unit")
+        dim_coords_and_dims = [(coefficient_index, 0)]
+        aux_coords_and_dims = [(coefficient_name, 0)]
+
+        # Create a forecast_reference_time coordinate.
+        frt_point = cycletime_to_datetime(self.current_cycle)
+
+        try:
+            frt_coord = (
+                historic_forecast.coord("forecast_reference_time").copy(
+                    datetime_to_iris_time(frt_point, time_units="seconds")))
+        except CoordinateNotFoundError:
+            pass
+        else:
+            aux_coords_and_dims.append((frt_coord, None))
+
+        # Create a forecast_period and a time coordinate.
+        try:
+            fp_point, = (
+                np.unique(historic_forecast.coord("forecast_period").points))
+        except CoordinateNotFoundError:
+            pass
+        else:
+            fp_coord = (
+                historic_forecast.coord("forecast_period").copy(fp_point))
+            aux_coords_and_dims.append((fp_coord, None))
+            frt_point = cycletime_to_datetime(self.current_cycle)
+            time_point = (
+                frt_point + datetime.timedelta(seconds=float(fp_point)))
+            time_point = datetime_to_iris_time(
+                time_point, time_units="seconds")
+            if historic_forecast.coords("time"):
+                time_coord = historic_forecast.coord("time").copy(time_point)
+                aux_coords_and_dims.append((time_coord, None))
+
+        attributes = {"diagnostic_standard_name": historic_forecast.name()}
+        for attribute in historic_forecast.attributes.keys():
+            for allowed_attribute in ["model_configuration"]:
+                if attribute.endswith(allowed_attribute):
+                    attributes[attribute] = (
+                        historic_forecast.attributes[attribute])
+        cube = iris.cube.Cube(
+            optimised_coeffs, long_name="emos_coefficients", units="1",
+            dim_coords_and_dims=dim_coords_and_dims,
+            aux_coords_and_dims=aux_coords_and_dims, attributes=attributes)
+        return cube
 
     def compute_initial_guess(
             self, truth, forecast_predictor, predictor_of_mean_flag,
@@ -393,24 +491,24 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         Documents Confluence page.
 
         Args:
-            truth (Iris cube):
+            truth (iris.cube.Cube):
                 Cube containing the field, which will be used as truth.
-            forecast_predictor (Iris cube):
+            forecast_predictor (iris.cube.Cube):
                 Cube containing the fields to be used as the predictor,
                 either the ensemble mean or the ensemble realizations.
-            predictor_of_mean_flag (String):
+            predictor_of_mean_flag (str):
                 String to specify the input to calculate the calibrated mean.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
-            estimate_coefficients_from_linear_model_flag (Logical):
+            estimate_coefficients_from_linear_model_flag (bool):
                 Flag whether coefficients should be estimated from
                 the linear regression, or static estimates should be used.
-            no_of_realizations (Int):
+            no_of_realizations (int):
                 Number of realizations, if ensemble realizations are to be
                 used as predictors. Default is None.
 
         Returns:
-            initial_guess (List):
+            initial_guess (list):
                 List of coefficients to be used as initial guess.
                 Order of coefficients is [c, d, a, b].
 
@@ -470,8 +568,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                         [1, 1, 0] + np.repeat(1, no_of_realizations).tolist())
         return np.array(initial_guess, dtype=np.float32)
 
-    def estimate_coefficients_for_ngr(
-            self, current_forecast, historic_forecast, truth):
+    def estimate_coefficients_for_ngr(self, historic_forecast, truth):
         """
         Using Nonhomogeneous Gaussian Regression/Ensemble Model Output
         Statistics, estimate the required coefficients from historical
@@ -496,172 +593,71 @@ class EstimateCoefficientsForEnsembleCalibration(object):
            5. Perform minimisation.
 
         Args:
-            current_forecast (Iris Cube or CubeList):
-                The cube containing the current forecast.
-            historical_forecast (Iris Cube or CubeList):
-                The cube or cubelist containing the historical forecasts used
+            historic_forecast (iris.cube.Cube):
+                The cube containing the historical forecasts used
                 for calibration.
-            truth (Iris Cube or CubeList):
-                The cube or cubelist containing the truth used for calibration.
+            truth (iris.cube.Cube:
+                The cube containing the truth used for calibration.
 
         Returns:
-            (tuple): tuple containing:
-                **optimised_coeffs** (Dictionary):
-                    Dictionary containing a list of the optimised coefficients
-                    for each date.
-                **coeff_names** (List):
-                    The name of each coefficient.
+            coefficients_cube (iris.cube.Cube):
+                Cube containing the coefficients estimated using EMOS.
+                The cube contains a coefficient_index dimension coordinate
+                and a coefficient_name auxiliary coordinate.
 
         """
-        def convert_to_cubelist(cubes, cube_type="forecast"):
-            """
-            Convert cube to cubelist, if necessary.
-
-            Args:
-                cubes (Iris Cube or Iris CubeList):
-                    Cube to be converted to CubeList.
-                cube_type (String):
-                    String to describe the cube, which is being converted to a
-                    CubeList.
-
-            Raises
-            ------
-            TypeError: The input cube is not an Iris cube.
-
-            """
-            if not isinstance(cubes, iris.cube.CubeList):
-                cubes = iris.cube.CubeList([cubes])
-            for cube in cubes:
-                if not isinstance(cube, iris.cube.Cube):
-                    msg = ("The input data within the {} "
-                           "is not an Iris Cube.".format(cube_type))
-                    raise TypeError(msg)
-            return cubes
-
         # Ensure predictor_of_mean_flag is valid.
         check_predictor_of_mean_flag(self.predictor_of_mean_flag)
-
-        # Setting default values for optimised_coeffs and coeff_names.
-        optimised_coeffs = {}
-        coeff_names = ["gamma", "delta", "a", "beta"]
 
         # Set default values for whether there are NaN values within the
         # initial guess.
         nan_in_initial_guess = False
 
-        for var in [current_forecast, historic_forecast,
-                    truth]:
-            if (isinstance(var, iris.cube.Cube) or
-                    isinstance(var, iris.cube.CubeList)):
-                current_forecast_cubes = current_forecast
-                historic_forecast_cubes = historic_forecast
-                truth_cubes = truth
-            else:
-                msg = ("{} is not a Cube or CubeList."
-                       "Returning default values for optimised_coeffs {} "
-                       "and coeff_names {}.").format(
-                           var, optimised_coeffs, coeff_names)
-                warnings.warn(msg)
-                return optimised_coeffs, coeff_names
+        # Make sure inputs have the same units.
+        if self.desired_units:
+            historic_forecast.convert_units(self.desired_units)
+            truth.convert_units(self.desired_units)
 
-        current_forecast_cubes = (
-            convert_to_cubelist(
-                current_forecast_cubes, cube_type="current forecast"))
-        historic_forecast_cubes = (
-            convert_to_cubelist(
-                historic_forecast_cubes, cube_type="historic forecast"))
-        truth_cubes = convert_to_cubelist(truth_cubes, cube_type="truth")
+        if self.predictor_of_mean_flag.lower() in ["mean"]:
+            no_of_realizations = None
+            forecast_predictor = historic_forecast.collapsed(
+                "realization", iris.analysis.MEAN)
+        elif self.predictor_of_mean_flag.lower() in ["realizations"]:
+            no_of_realizations = len(
+                historic_forecast.coord("realization").points)
+            forecast_predictor = historic_forecast
 
-        if (len(current_forecast_cubes) == 0 or
-                len(historic_forecast_cubes) == 0 or len(truth_cubes) == 0):
-            msg = ("Insufficient input data present to estimate "
-                   "coefficients using NGR. "
-                   "\nNumber of current_forecast_cubes: {}"
-                   "\nNumber of historic_forecast_cubes: {}"
-                   "\nNumber of truth_cubes: {}".format(
-                       len(current_forecast_cubes),
-                       len(historic_forecast_cubes), len(truth_cubes)))
-            warnings.warn(msg)
-            return optimised_coeffs, coeff_names
+        forecast_var = historic_forecast.collapsed(
+            "realization", iris.analysis.VARIANCE)
 
-        current_forecast_cubes = concatenate_cubes(
-            current_forecast_cubes)
-        historic_forecast_cubes = concatenate_cubes(
-            historic_forecast_cubes)
-        truth_cubes = concatenate_cubes(truth_cubes)
+        # Computing initial guess for EMOS coefficients
+        # If no initial guess from a previous iteration, or if there
+        # are NaNs in the initial guess, calculate an initial guess.
+        if "initial_guess" not in locals() or nan_in_initial_guess:
+            initial_guess = self.compute_initial_guess(
+                truth, forecast_predictor, self.predictor_of_mean_flag,
+                self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
+                no_of_realizations=no_of_realizations)
 
-        for current_forecast_cube in current_forecast_cubes.slices_over(
-                "time"):
-            date = unit.num2date(
-                current_forecast_cube.coord("time").points,
-                current_forecast_cube.coord("time").units.name,
-                current_forecast_cube.coord("time").units.calendar)[0]
-            # Extract desired forecast_period from historic_forecast_cubes.
-            forecast_period_constr = iris.Constraint(
-                forecast_period=current_forecast_cube.coord(
-                    "forecast_period").points)
-            historic_forecast_cube = historic_forecast_cubes.extract(
-                forecast_period_constr)
+        if np.any(np.isnan(initial_guess)):
+            nan_in_initial_guess = True
 
-            # Extract truth matching the time of the historic forecast.
-            reference_time = iris_time_to_datetime(
-                historic_forecast_cube.coord("time").copy())
-            truth_constr = iris.Constraint(
-                forecast_reference_time=reference_time)
-            truth_cube = truth_cubes.extract(truth_constr)
-
-            if truth_cube is None:
-                msg = ("Unable to calibrate for the time points {} "
-                       "as no truth data is available."
-                       "Moving on to try to calibrate "
-                       "next time point.".format(
-                           historic_forecast_cube.coord("time").points))
-                warnings.warn(msg)
-                continue
-
-            # Make sure inputs have the same units.
-            historic_forecast_cube.convert_units(self.desired_units)
-            truth_cube.convert_units(self.desired_units)
-
-            if self.predictor_of_mean_flag.lower() in ["mean"]:
-                no_of_realizations = None
-                forecast_predictor = historic_forecast_cube.collapsed(
-                    "realization", iris.analysis.MEAN)
-            elif self.predictor_of_mean_flag.lower() in ["realizations"]:
-                no_of_realizations = len(
-                    historic_forecast_cube.coord("realization").points)
-                forecast_predictor = historic_forecast_cube
-
-            forecast_var = historic_forecast_cube.collapsed(
-                "realization", iris.analysis.VARIANCE)
-
-            # Computing initial guess for EMOS coefficients
-            # If no initial guess from a previous iteration, or if there
-            # are NaNs in the initial guess, calculate an initial guess.
-            if "initial_guess" not in locals() or nan_in_initial_guess:
-                initial_guess = self.compute_initial_guess(
-                    truth_cube, forecast_predictor,
+        if not nan_in_initial_guess:
+            # Need to access the x attribute returned by the
+            # minimisation function.
+            optimised_coeffs = (
+                self.minimiser.crps_minimiser_wrapper(
+                    initial_guess, forecast_predictor,
+                    truth, forecast_var,
                     self.predictor_of_mean_flag,
-                    self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
-                    no_of_realizations=no_of_realizations)
+                    self.distribution.lower()))
+            initial_guess = optimised_coeffs
+        else:
+            optimised_coeffs = initial_guess
 
-            if np.any(np.isnan(initial_guess)):
-                nan_in_initial_guess = True
-
-            if not nan_in_initial_guess:
-                # Need to access the x attribute returned by the
-                # minimisation function.
-                optimised_coeffs[date] = (
-                    self.minimiser.crps_minimiser_wrapper(
-                        initial_guess, forecast_predictor,
-                        truth_cube, forecast_var,
-                        self.predictor_of_mean_flag,
-                        self.distribution.lower()))
-                initial_guess = optimised_coeffs[date]
-            else:
-                optimised_coeffs[date] = initial_guess
-
-        return optimised_coeffs, coeff_names
+        coefficients_cube = (
+            self.create_coefficients_cube(optimised_coeffs, historic_forecast))
+        return coefficients_cube
 
 
 class ApplyCoefficientsFromEnsembleCalibration(object):
@@ -670,7 +666,7 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
 
     """
     def __init__(
-            self, current_forecast, optimised_coeffs, coeff_names,
+            self, current_forecast, coefficients_cube,
             predictor_of_mean_flag="mean"):
         """
         Create an ensemble calibration plugin that, for Nonhomogeneous Gaussian
@@ -678,116 +674,23 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
         and applies the coefficients to the current forecast.
 
         Args:
-            current_forecast (Iris Cube or CubeList):
-                The Cube or CubeList containing the current forecast.
-            optimised_coeffs (Dictionary):
-                Dictionary containing a list of the optimised coefficients
-                for each date.
-            coeff_names (List):
-                The name of each coefficient.
-            predictor_of_mean_flag (String):
+            current_forecast (iris.cube.Cube):
+                The cube containing the current forecast.
+            coefficients_cube (iris.cube.Cube):
+                Cube containing the coefficients estimated using EMOS.
+                The cube contains a coefficient_index dimension coordinate
+                and a coefficient_name auxiliary coordinate.
+            predictor_of_mean_flag (str):
                 String to specify the input to calculate the calibrated mean.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
 
         """
         self.current_forecast = current_forecast
-        self.optimised_coeffs = optimised_coeffs
-        self.coeff_names = coeff_names
+        self.coefficients_cube = coefficients_cube
+        # Ensure predictor_of_mean_flag is valid.
+        check_predictor_of_mean_flag(predictor_of_mean_flag)
         self.predictor_of_mean_flag = predictor_of_mean_flag
-
-    def _find_coords_of_length_one(self, cube, add_dimension=True):
-        """
-        Function to find all coordinates with a length of 1.
-
-        Args:
-            cube (Iris cube):
-                Cube
-            add_dimension (Logical):
-                Adds a dimension of 0 to each coordinate. A tuple is appended.
-
-        Returns:
-            length_one_coords (List or List of tuples):
-                List of length one coordinates or list of tuples containing
-                length one coordinates and the dimension.
-
-        """
-        length_one_coords = []
-        for coord in cube.coords():
-            if len(coord.points) == 1:  # Find length one coordinates
-                if add_dimension:
-                    length_one_coords.append((coord, 0))
-                else:
-                    length_one_coords.append(coord)
-        return length_one_coords
-
-    def _separate_length_one_coords_into_aux_and_dim(
-            self, length_one_coords, dim_coords=["time"]):
-        """
-        Function to separate coordinates into auxiliary and dimension
-        coordinates.
-
-        Args:
-            length_one_coords (Iterable of coordinates):
-                The coordinates to be checked for length one coordinates.
-            dim_coords (List of coordinates):
-                The length one coordinates to be made dimension coordinates.
-
-        Returns:
-            (tuple) : tuple containing:
-                **length_one_coords_for_aux_coords** (List):
-                    List of length one coordinates to be auxiliary coordinates,
-                    i.e. not in the dim_coords list.
-                    **length_one_coords_for_dim_coords** (List):
-                    List of length one coordinates to be dimension coordinates,
-                    according to dim_coords list.
-
-        """
-        length_one_coords_for_aux_coords = []
-        length_one_coords_for_dim_coords = []
-        for coord in length_one_coords:
-            if coord[0].name() in dim_coords:
-                length_one_coords_for_dim_coords.append(coord)
-            else:
-                length_one_coords_for_aux_coords.append(coord)
-        return (
-            length_one_coords_for_aux_coords,
-            length_one_coords_for_dim_coords)
-
-    def _create_coefficient_cube(
-            self, cube, optimised_coeffs_at_date, coeff_names):
-        """
-        Function to create a cube to store the coefficients used in the
-        ensemble calibration.
-
-        Args:
-            cube (Iterable of coordinates):
-                The coordinates to be checked for length one coordinates.
-            optimised_coeffs_at_date (List of coefficients):
-                Optimised coefficients for a particular date.
-            coeff_names (List):
-                List of coefficient names.
-
-
-        Returns:
-            coeff_cubes (Iris cube):
-                Cube containing the coefficient value as the data array.
-
-        """
-        length_one_coords = self._find_coords_of_length_one(cube)
-
-        length_one_coords_for_aux_coords, length_one_coords_for_dim_coords = (
-            self._separate_length_one_coords_into_aux_and_dim(
-                length_one_coords))
-
-        coeff_cubes = iris.cube.CubeList([])
-        for coeff, coeff_name in zip(optimised_coeffs_at_date, coeff_names):
-            cube = iris.cube.Cube(
-                [coeff], long_name=coeff_name, attributes=cube.attributes,
-                aux_coords_and_dims=length_one_coords_for_aux_coords,
-                dim_coords_and_dims=length_one_coords_for_dim_coords)
-            coeff_cubes.append(cube)
-        return coeff_cubes
 
     def apply_params_entry(self):
         """
@@ -796,197 +699,106 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
 
         Returns:
             (tuple) : tuple containing:
-                **calibrated_forecast_predictor** (CubeList):
-                    CubeList containing both the calibrated version of the
-                    ensemble predictor, either the ensemble mean/realizations.
-                **calibrated_forecast_variance** (CubeList):
-                    CubeList containing both the calibrated version of the
-                    ensemble variance, either the ensemble mean/realizations.
-                **calibrated_forecast_coefficients** (CubeList):
-                    CubeList containing both the coefficients for calibrating
-                    the ensemble.
+                **calibrated_forecast_predictor** (iris.cube.Cube):
+                    Cube containing the calibrated version of the
+                    ensemble predictor, either the ensemble mean or
+                    the ensemble realizations.
+                **calibrated_forecast_variance** (iris.cube.Cube):
+                    Cube containing the calibrated version of the
+                    ensemble variance, either the ensemble mean or
+                    the ensemble realizations.
 
         """
-        # Ensure predictor_of_mean_flag is valid.
-        check_predictor_of_mean_flag(self.predictor_of_mean_flag)
-
-        current_forecast_cubes = concatenate_cubes(
-            self.current_forecast)
-
         if self.predictor_of_mean_flag.lower() in ["mean"]:
-            forecast_predictors = current_forecast_cubes.collapsed(
+            forecast_predictors = self.current_forecast.collapsed(
                 "realization", iris.analysis.MEAN)
         elif self.predictor_of_mean_flag.lower() in ["realizations"]:
-            forecast_predictors = current_forecast_cubes
+            forecast_predictors = self.current_forecast
 
-        forecast_vars = current_forecast_cubes.collapsed(
+        forecast_vars = self.current_forecast.collapsed(
             "realization", iris.analysis.VARIANCE)
 
-        (calibrated_forecast_predictor, calibrated_forecast_var,
-         calibrated_forecast_coefficients) = self._apply_params(
-             forecast_predictors, forecast_vars, self.optimised_coeffs,
-             self.coeff_names, self.predictor_of_mean_flag)
-        return (calibrated_forecast_predictor,
-                calibrated_forecast_var,
-                calibrated_forecast_coefficients)
+        calibrated_forecast_predictor, calibrated_forecast_var = (
+            self._apply_params(forecast_predictors, forecast_vars))
+        return calibrated_forecast_predictor, calibrated_forecast_var
 
-    def _apply_params(
-            self, forecast_predictors, forecast_vars, optimised_coeffs,
-            coeff_names, predictor_of_mean_flag):
+    def _apply_params(self, forecast_predictors, forecast_vars):
         """
         Function to apply EMOS coefficients to all required dates.
 
         Args:
-            forecast_predictors (Iris cube):
+            forecast_predictors (iris.cube.Cube):
                 Cube containing the forecast predictor e.g. ensemble mean
                 or ensemble realizations.
-            forecast_vars (Iris cube.):
+            forecast_vars (iris.cube.Cube):
                 Cube containing the forecast variance e.g. ensemble variance.
-            optimised_coeffs (List):
-                Coefficients for all dates.
-            coeff_names (List):
-                Coefficient names.
-            predictor_of_mean_flag (String):
-                String to specify the input to calculate the calibrated mean.
-                Currently the ensemble mean ("mean") and the ensemble
-                realizations ("realizations") are supported as the predictors.
 
         Returns:
             (tuple) : tuple containing:
-                **calibrated_forecast_predictor_all_dates** (CubeList):
-                    List of cubes containing the calibrated forecast predictor.
-                **calibrated_forecast_var_all_dates** (CubeList):
-                    List of cubes containing the calibrated forecast variance.
-                **calibrated_forecast_coefficients_all_dates** (CubeList):
-                    List of cubes containing the coefficients used for
-                    calibration.
-
+                **calibrated_forecast_predictor** (iris.cube.Cube):
+                    Cube containing the calibrated version of the
+                    ensemble predictor, either the ensemble mean or
+                    the ensemble realizations.
+                **calibrated_forecast_variance** (iris.cube.Cube):
+                    Cube containing the calibrated version of the
+                    ensemble variance, either the ensemble mean or
+                    the ensemble realizations.
         """
-        calibrated_forecast_predictor_all_dates = iris.cube.CubeList()
-        calibrated_forecast_var_all_dates = iris.cube.CubeList()
-        calibrated_forecast_coefficients_all_dates = iris.cube.CubeList()
+        optimised_coeffs = (
+            dict(zip(self.coefficients_cube.coord("coefficient_name").points,
+                     self.coefficients_cube.data)))
 
-        for forecast_predictor, forecast_var in zip(
-                forecast_predictors.slices_over("time"),
-                forecast_vars.slices_over("time")):
+        # Calculate the predicted mean based on whether the coefficients
+        # were estimated using the mean as the predictor or using the
+        # ensemble realizations as the predictor.
+        if self.predictor_of_mean_flag.lower() in ["mean"]:
+            # Calculate predicted mean = a + b*X, where X is the
+            # raw ensemble mean. In this case, b = beta.
+            a_and_b = [optimised_coeffs["a"], optimised_coeffs["beta"]]
+            forecast_predictor_flat = forecast_predictors.data.flatten()
+            col_of_ones = (
+                np.ones(forecast_predictor_flat.shape, dtype=np.float32))
+            ones_and_mean = (
+                np.column_stack((col_of_ones, forecast_predictor_flat)))
+            predicted_mean = np.dot(ones_and_mean, a_and_b)
+            calibrated_forecast_predictor = forecast_predictors
+        elif self.predictor_of_mean_flag.lower() in ["realizations"]:
+            # Calculate predicted mean = a + b*X, where X is the
+            # raw ensemble mean. In this case, b = beta^2.
+            beta_values = np.array([], dtype=np.float32)
+            for key in optimised_coeffs.keys():
+                if key.startswith("beta"):
+                    beta_values = np.append(beta_values, optimised_coeffs[key])
+            a_and_b = np.append(optimised_coeffs["a"], beta_values**2)
+            forecast_predictor_flat = (
+                convert_cube_data_to_2d(forecast_predictors))
+            forecast_var_flat = forecast_vars.data.flatten()
+            col_of_ones = np.ones(forecast_var_flat.shape, dtype=np.float32)
+            ones_and_mean = (
+                np.column_stack((col_of_ones, forecast_predictor_flat)))
+            predicted_mean = np.dot(ones_and_mean, a_and_b)
 
-            date = iris_time_to_datetime(
-                forecast_predictor.coord("time").copy())[0]
-            constr = iris.Constraint(time=date)
-            forecast_predictor_at_date = forecast_predictor.extract(constr)
-            forecast_var_at_date = forecast_var.extract(constr)
+            # Calculate mean of ensemble realizations, as only the
+            # calibrated ensemble mean will be returned.
+            calibrated_forecast_predictor = (
+                forecast_predictors.collapsed(
+                    "realization", iris.analysis.MEAN))
 
-            # If the coefficients are not available for the date, use the
-            # raw ensemble forecast as the calibrated ensemble forecast.
-            if date not in optimised_coeffs.keys():
-                msg = ("Ensemble calibration not available "
-                       "for forecasts with start time of {}. "
-                       "Coefficients not available".format(
-                           date.strftime("%Y%m%d%H%M")))
-                warnings.warn(msg)
-                calibrated_forecast_predictor_at_date = (
-                    forecast_predictor_at_date.copy())
-                calibrated_forecast_var_at_date = forecast_var_at_date.copy()
-                optimised_coeffs[date] = np.full(len(coeff_names), np.nan)
-                coeff_cubes = self._create_coefficient_cube(
-                    forecast_predictor_at_date, optimised_coeffs, coeff_names)
-            else:
-                optimised_coeffs_at_date = (
-                    optimised_coeffs[date])
+        xlen = len(forecast_predictors.coord(axis="x").points)
+        ylen = len(forecast_predictors.coord(axis="y").points)
 
-                # Assigning coefficients to coefficient names.
-                if len(optimised_coeffs_at_date) == len(coeff_names):
-                    optimised_coeffs_at_date = dict(
-                        zip(coeff_names, optimised_coeffs_at_date))
-                elif len(optimised_coeffs_at_date) > len(coeff_names):
-                    excess_beta = (
-                        optimised_coeffs_at_date[len(coeff_names):].tolist())
-                    optimised_coeffs_at_date = (
-                        dict(list(zip(coeff_names, optimised_coeffs_at_date))))
-                    optimised_coeffs_at_date["beta"] = np.array(
-                        [optimised_coeffs_at_date["beta"]]+excess_beta,
-                        dtype=np.float32)
-                else:
-                    msg = ("Number of coefficient names {} with names {} "
-                           "is not equal to the number of "
-                           "optimised_coeffs_at_date values {} "
-                           "with values {} or the number of "
-                           "coefficients is not greater than the "
-                           "number of coefficient names. Can not continue "
-                           "if the number of coefficient names out number "
-                           "the number of coefficients".format(
-                               len(coeff_names), coeff_names,
-                               len(optimised_coeffs_at_date),
-                               optimised_coeffs_at_date))
-                    raise ValueError(msg)
+        calibrated_forecast_predictor.data = (
+            np.reshape(predicted_mean, (ylen, xlen)))
 
-                if predictor_of_mean_flag.lower() in ["mean"]:
-                    # Calculate predicted mean = a + b*X, where X is the
-                    # raw ensemble mean. In this case, b = beta.
-                    beta = [optimised_coeffs_at_date["a"],
-                            optimised_coeffs_at_date["beta"]]
-                    forecast_predictor_flat = (
-                        forecast_predictor_at_date.data.flatten())
-                    new_col = np.ones(forecast_predictor_flat.shape,
-                                      dtype=np.float32)
-                    all_data = np.column_stack(
-                        (new_col, forecast_predictor_flat))
-                    predicted_mean = np.dot(all_data, beta)
-                    calibrated_forecast_predictor_at_date = (
-                        forecast_predictor_at_date)
-                elif predictor_of_mean_flag.lower() in ["realizations"]:
-                    # Calculate predicted mean = a + b*X, where X is the
-                    # raw ensemble mean. In this case, b = beta^2.
-                    beta = np.concatenate(
-                        [[optimised_coeffs_at_date["a"]],
-                         optimised_coeffs_at_date["beta"]**2])
-                    forecast_predictor = (
-                        enforce_coordinate_ordering(
-                            forecast_predictor, "realization"))
-                    forecast_predictor_flat = (
-                        convert_cube_data_to_2d(
-                            forecast_predictor_at_date))
-                    forecast_var_flat = forecast_var_at_date.data.flatten()
+        calibrated_forecast_var = forecast_vars
+        # Calculating the predicted variance, based on the
+        # raw variance S^2, where predicted variance = c + dS^2,
+        # where c = (gamma)^2 and d = (delta)^2
+        calibrated_forecast_var.data = (
+            optimised_coeffs["gamma"]**2 +
+            optimised_coeffs["delta"]**2 * forecast_vars.data)
 
-                    new_col = np.ones(forecast_var_flat.shape,
-                                      dtype=np.float32)
-                    all_data = (
-                        np.column_stack((new_col, forecast_predictor_flat)))
-                    predicted_mean = np.dot(all_data, beta)
-                    # Calculate mean of ensemble realizations, as only the
-                    # calibrated ensemble mean will be returned.
-                    calibrated_forecast_predictor_at_date = (
-                        forecast_predictor_at_date.collapsed(
-                            "realization", iris.analysis.MEAN))
-
-                xlen = len(forecast_predictor_at_date.coord(axis="x").points)
-                ylen = len(forecast_predictor_at_date.coord(axis="y").points)
-                predicted_mean = np.reshape(predicted_mean, (ylen, xlen))
-                calibrated_forecast_predictor_at_date.data = predicted_mean
-
-                # Calculating the predicted variance, based on the
-                # raw variance S^2, where predicted variance = c + dS^2,
-                # where c = (gamma)^2 and d = (delta)^2
-                predicted_var = (optimised_coeffs_at_date["gamma"]**2 +
-                                 optimised_coeffs_at_date["delta"]**2 *
-                                 forecast_var_at_date.data)
-
-                calibrated_forecast_var_at_date = forecast_var_at_date
-                calibrated_forecast_var_at_date.data = predicted_var
-
-                coeff_cubes = self._create_coefficient_cube(
-                    calibrated_forecast_predictor_at_date,
-                    optimised_coeffs[date], coeff_names)
-
-            calibrated_forecast_predictor_all_dates.append(
-                calibrated_forecast_predictor_at_date)
-            calibrated_forecast_var_all_dates.append(
-                calibrated_forecast_var_at_date)
-            calibrated_forecast_coefficients_all_dates.extend(coeff_cubes)
-
-        return (calibrated_forecast_predictor_all_dates,
-                calibrated_forecast_var_all_dates,
-                calibrated_forecast_coefficients_all_dates)
+        return calibrated_forecast_predictor, calibrated_forecast_var
 
 
 class EnsembleCalibration(object):
@@ -996,7 +808,7 @@ class EnsembleCalibration(object):
     2. Apply optimised EMOS coefficients for future dates.
 
     """
-    def __init__(self, calibration_method, distribution, desired_units,
+    def __init__(self, calibration_method, distribution, desired_units=None,
                  predictor_of_mean_flag="mean"):
         """
         Create an ensemble calibration plugin that, for Nonhomogeneous Gaussian
@@ -1004,7 +816,7 @@ class EnsembleCalibration(object):
         applies the coefficients to the current forecast.
 
         Args:
-            calibration_method (String):
+            calibration_method (str):
                 The calibration method that will be applied.
                 Supported methods are:
 
@@ -1016,16 +828,17 @@ class EnsembleCalibration(object):
                     logistic regression
                     bayesian model averaging
 
-            distribution (String):
+            distribution (str):
                 The distribution that will be used for calibration. This will
                 be dependent upon the input phenomenon. This has to be
                 supported by the minimisation functions in
                 ContinuousRankedProbabilityScoreMinimisers.
-            desired_units (String or cf_units.Unit):
+        Kwargs:
+            desired_units (str or cf_units.Unit):
                 The unit that you would like the calibration to be undertaken
                 in. The current forecast, historical forecast and truth will be
                 converted as required.
-            predictor_of_mean_flag (String):
+            predictor_of_mean_flag (str):
                 String to specify the input to calculate the calibrated mean.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
@@ -1052,14 +865,14 @@ class EnsembleCalibration(object):
         2. Apply optimised coefficients to current forecast.
 
         Args:
-            current_forecast (Iris Cube or CubeList):
-                The Cube or CubeList that provides the input forecast for
+            current_forecast (iris.cube.Cube):
+                The cube that provides the input forecast for
                 the current cycle.
-            historic_forecast (Iris Cube or CubeList):
-                The Cube or CubeList that provides the input historic forecasts
+            historic_forecast (iris.cube.Cube):
+                The cube that provides the input historic forecasts
                 for calibration.
-            truth (Iris Cube or CubeList):
-                The Cube or CubeList that provides the input truth for
+            truth (iris.cube.Cube):
+                The cube that provides the input truth for
                 calibration with dates matching the historic forecasts.
 
         Returns:
@@ -1082,28 +895,31 @@ class EnsembleCalibration(object):
                  "nonhomogeneous gaussian regression"]):
             if (format_calibration_method(self.distribution) in
                     ["gaussian", "truncated gaussian"]):
+                current_cycle = datetime_to_cycletime(
+                    iris_time_to_datetime(
+                        current_forecast.coord("time"))[0])
                 ec = EstimateCoefficientsForEnsembleCalibration(
-                    self.distribution, self.desired_units,
+                    self.distribution, current_cycle=current_cycle,
+                    desired_units=self.desired_units,
                     predictor_of_mean_flag=self.predictor_of_mean_flag)
-                optimised_coeffs, coeff_names = (
+                coefficient_cube = (
                     ec.estimate_coefficients_for_ngr(
-                        current_forecast, historic_forecast, truth))
+                        historic_forecast, truth))
         else:
             msg = ("Other calibration methods are not available. "
                    "{} is not available".format(
                        format_calibration_method(self.calibration_method)))
             raise ValueError(msg)
         ac = ApplyCoefficientsFromEnsembleCalibration(
-            current_forecast, optimised_coeffs, coeff_names,
+            current_forecast, coefficient_cube,
             predictor_of_mean_flag=self.predictor_of_mean_flag)
-        (calibrated_forecast_predictor, calibrated_forecast_variance,
-         calibrated_forecast_coefficients) = ac.apply_params_entry()
+        (calibrated_forecast_predictor,
+         calibrated_forecast_variance) = ac.apply_params_entry()
 
         # TODO: track down where np.float64 promotion takes place.
-        for cube in calibrated_forecast_predictor:
-            cube.data = cube.data.astype(np.float32)
-        for cube in calibrated_forecast_variance:
-            cube.data = cube.data.astype(np.float32)
+        calibrated_forecast_predictor.data = (
+            calibrated_forecast_predictor.data.astype(np.float32))
+        calibrated_forecast_variance.data = (
+            calibrated_forecast_variance.data.astype(np.float32))
 
-        return (calibrated_forecast_predictor.merge_cube(),
-                calibrated_forecast_variance.merge_cube())
+        return calibrated_forecast_predictor, calibrated_forecast_variance

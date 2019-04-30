@@ -47,6 +47,7 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import (set_up_temperature_cube, set_up_wind_speed_cube,
                              add_forecast_reference_time_and_forecast_period,
                              _create_historic_forecasts, _create_truth)
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
 IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate.",
@@ -74,6 +75,18 @@ class Test__init__(IrisTest):
     def setUp(self):
         """Set up cube for testing."""
         self.cube = set_up_temperature_cube()
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_coeff_names(self):
+        """"""
+        expected = ["gamma", "delta", "a", "beta"]
+        distribution = "gaussian"
+        desired_units = "degreesC"
+        predictor_of_mean_flag = "mean"
+        plugin = Plugin(distribution, desired_units,
+                        predictor_of_mean_flag=predictor_of_mean_flag)
+        self.assertEqual(plugin.coeff_names, expected)
 
     @ManageWarnings(
         record=True,
@@ -169,6 +182,138 @@ class Test__init__(IrisTest):
                                 for item in warning_list))
             self.assertTrue(any(warning_msg in str(item)
                                 for item in warning_list))
+
+
+class Test_create_coefficients_cube(IrisTest):
+
+    """Test the create_coefficients_cube method."""
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def setUp(self):
+        """Set up the plugin and cubes for testing."""
+        data = np.ones((3, 3), dtype=np.float32)
+        self.historic_forecast = (
+            _create_historic_forecasts(set_up_variable_cube(
+                data, standard_grid_metadata="uk_det")))
+
+        data_with_realizations = np.ones((3, 3, 3), dtype=np.float32)
+        self.historic_forecast_with_realizations = (
+            _create_historic_forecasts(set_up_variable_cube(
+                data_with_realizations, realizations=[0, 1, 2],
+                standard_grid_metadata="uk_det")))
+        self.optimised_coeffs = [0, 1, 2, 3]
+        coeff_names = ["gamma", "delta", "a", "beta"]
+
+        coefficient_index = iris.coords.DimCoord(
+            self.optimised_coeffs, long_name="coefficient_index", units="1")
+        dim_coords_and_dims = [(coefficient_index, 0)]
+
+        coefficient_name = iris.coords.AuxCoord(
+            coeff_names, long_name="coefficient_name", units="no_unit")
+
+        time_point = (
+            np.max(self.historic_forecast.coord("time").points) + 60*60*24)
+        time_coord = self.historic_forecast.coord("time").copy(time_point)
+
+        frt_orig_coord = (
+            self.historic_forecast.coord("forecast_reference_time"))
+        frt_point = np.max(frt_orig_coord.points) + 60*60*24
+        frt_coord = frt_orig_coord.copy(frt_point)
+
+        aux_coords_and_dims = [
+            (coefficient_name, 0), (time_coord, None), (frt_coord, None),
+            (self.historic_forecast[-1].coord("forecast_period"), None)]
+
+        attributes = {"mosg__model_configuration": "uk_det",
+                      "diagnostic_standard_name": "air_temperature"}
+
+        self.expected = iris.cube.Cube(
+            self.optimised_coeffs, long_name="emos_coefficients", units="1",
+            dim_coords_and_dims=dim_coords_and_dims,
+            aux_coords_and_dims=aux_coords_and_dims, attributes=attributes)
+
+        self.distribution = "gaussian"
+        self.current_cycle = "20171110T0000Z"
+        self.desired_units = "degreesC"
+        self.predictor_of_mean_flag = "mean"
+        self.plugin = (
+            Plugin(distribution=self.distribution,
+                   current_cycle=self.current_cycle,
+                   desired_units=self.desired_units,
+                   predictor_of_mean_flag=self.predictor_of_mean_flag))
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_coefficients_from_mean(self):
+        """Test that the expected coefficient cube is returned when the
+        ensemble mean is used as the predictor."""
+        expected_coeff_names = ["gamma", "delta", "a", "beta"]
+        result = self.plugin.create_coefficients_cube(
+            self.optimised_coeffs, self.historic_forecast)
+        self.assertEqual(result, self.expected)
+        self.assertEqual(
+            self.plugin.coeff_names, expected_coeff_names)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_coefficients_from_realizations(self):
+        """Test that the expected coefficient cube is returned when the
+        ensemble realizations are used as the predictor."""
+        expected = ["gamma", "delta", "a", "beta0", "beta1", "beta2"]
+        predictor_of_mean_flag = "realizations"
+        optimised_coeffs = [0, 1, 2, 3, 4, 5]
+        plugin = Plugin(distribution=self.distribution,
+                        current_cycle=self.current_cycle,
+                        desired_units=self.desired_units,
+                        predictor_of_mean_flag=predictor_of_mean_flag)
+        plugin.create_coefficients_cube(
+            optimised_coeffs, self.historic_forecast_with_realizations)
+        self.assertEqual(plugin.coeff_names, expected)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_forecast_period_coordinate_not_present(self):
+        """Test that the coefficients cube is created correctly when the
+        forecast_period coordinate is not present within the input cube."""
+        expected = self.expected.copy()
+        expected.remove_coord("forecast_period")
+        expected.remove_coord("time")
+        self.historic_forecast.remove_coord("forecast_period")
+        result = self.plugin.create_coefficients_cube(
+            self.optimised_coeffs, self.historic_forecast)
+        self.assertEqual(result, expected)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_model_configuration_not_present(self):
+        """Test that the coefficients cube is created correctly when a
+        model_configuration coordinate is not present within the input cube."""
+        expected = self.expected.copy()
+        expected.attributes.pop("mosg__model_configuration")
+        self.historic_forecast.attributes.pop("mosg__model_configuration")
+        result = self.plugin.create_coefficients_cube(
+            self.optimised_coeffs, self.historic_forecast)
+        self.assertEqual(result, expected)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_mismatching_number_of_coefficients(self):
+        """Test that an exception is raised if the number of coefficients
+        provided for creating the coefficients cube is not equal to the
+        number of coefficient names."""
+        distribution = "truncated_gaussian"
+        desired_units = "Fahrenheit"
+        predictor_of_mean_flag = "realizations"
+        optimised_coeffs = [1, 2, 3, 4, 5]
+        plugin = Plugin(distribution=distribution,
+                        current_cycle=self.current_cycle,
+                        desired_units=desired_units,
+                        predictor_of_mean_flag=predictor_of_mean_flag)
+        msg = "The number of coefficients in"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.create_coefficients_cube(
+                optimised_coeffs, self.historic_forecast_with_realizations)
 
 
 class Test_compute_initial_guess(IrisTest):
@@ -410,29 +555,25 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         self.wind_speed_truth_cube = (
             _create_truth(self.current_wind_speed_forecast_cube))
 
+        self.coeff_names = ["gamma", "delta", "a", "beta"]
+
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_basic(self):
         """Ensure that the optimised_coeffs are returned as a dictionary,
            and the coefficient names are returned as a list."""
-        current_forecast = self.current_temperature_forecast_cube
-
-        historic_forecasts = self.historic_temperature_forecast_cube
+        historic_forecast = self.historic_temperature_forecast_cube
 
         truth = self.temperature_truth_cube
 
         distribution = "gaussian"
-        desired_units = "degreesC"
+        current_cycle = "20171110T0000Z"
 
-        plugin = Plugin(distribution, desired_units)
+        plugin = Plugin(distribution, current_cycle)
         result = plugin.estimate_coefficients_for_ngr(
-            current_forecast, historic_forecasts, truth)
-        optimised_coeffs, coeff_names = result
-        self.assertIsInstance(optimised_coeffs, dict)
-        self.assertIsInstance(coeff_names, list)
-        for key in optimised_coeffs.keys():
-            self.assertEqual(
-                len(optimised_coeffs[key]), len(coeff_names))
+            historic_forecast, truth)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(len(result.data), len(self.coeff_names))
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -446,23 +587,22 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         data = [4.55819380e-06, -8.02401974e-09,
                 1.66667055e+00, 1.00000011e+00]
 
-        current_forecast = self.current_temperature_forecast_cube
-
-        historic_forecasts = self.historic_temperature_forecast_cube
+        historic_forecast = self.historic_temperature_forecast_cube
 
         truth = self.temperature_truth_cube
 
         distribution = "gaussian"
-        desired_units = "degreesC"
+        current_cycle = "20171110T0000Z"
+        desired_units = "Celsius"
 
-        plugin = Plugin(distribution, desired_units)
+        plugin = Plugin(
+            distribution, current_cycle, desired_units=desired_units)
         result = plugin.estimate_coefficients_for_ngr(
-            current_forecast, historic_forecasts, truth)
-        optimised_coeffs, coeff_names = result
+            historic_forecast, truth)
 
-        for key in optimised_coeffs.keys():
-            self.assertArrayAlmostEqual(optimised_coeffs[key], data)
-        self.assertListEqual(coeff_names, ["gamma", "delta", "a", "beta"])
+        self.assertArrayAlmostEqual(result.data, data)
+        self.assertArrayEqual(
+            result.coord("coefficient_name").points, self.coeff_names)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -475,23 +615,20 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         data = [3.16843498e-06, -5.34489037e-06,
                 9.99985648e-01, 1.00000028e+00]
 
-        current_forecast = self.current_wind_speed_forecast_cube
-
-        historic_forecasts = self.historic_wind_speed_forecast_cube
+        historic_forecast = self.historic_wind_speed_forecast_cube
 
         truth = self.wind_speed_truth_cube
 
         distribution = "truncated gaussian"
-        desired_units = "m s^-1"
+        current_cycle = "20171110T0000Z"
 
-        plugin = Plugin(distribution, desired_units)
+        plugin = Plugin(distribution, current_cycle)
         result = plugin.estimate_coefficients_for_ngr(
-            current_forecast, historic_forecasts, truth)
-        optimised_coeffs, coeff_names = result
+            historic_forecast, truth)
 
-        for key in optimised_coeffs.keys():
-            self.assertArrayAlmostEqual(optimised_coeffs[key], data)
-        self.assertListEqual(coeff_names, ["gamma", "delta", "a", "beta"])
+        self.assertArrayAlmostEqual(result.data, data)
+        self.assertArrayEqual(
+            result.coord("coefficient_name").points, self.coeff_names)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -503,7 +640,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         """
         import imp
         try:
-            statsmodels_found = imp.find_module('statsmodels')
+            imp.find_module('statsmodels')
             statsmodels_found = True
         except ImportError:
             statsmodels_found = False
@@ -514,26 +651,25 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             data = [4.30804737e-02, 1.39042785e+00, 8.99047025e-04,
                     2.02661310e-01, 9.27197381e-01, 3.17407626e-01]
 
-        current_forecast = self.current_temperature_forecast_cube
-
-        historic_forecasts = self.historic_temperature_forecast_cube
+        historic_forecast = self.historic_temperature_forecast_cube
 
         truth = self.temperature_truth_cube
 
         distribution = "gaussian"
-        desired_units = "degreesC"
+        current_cycle = "20171110T0000Z"
+        desired_units = "Celsius"
         predictor_of_mean_flag = "realizations"
+        expected_coeff_names = (
+            ['gamma', 'delta', 'a', 'beta0', 'beta1', 'beta2'])
 
-        plugin = Plugin(distribution, desired_units,
+        plugin = Plugin(distribution, current_cycle,
+                        desired_units=desired_units,
                         predictor_of_mean_flag=predictor_of_mean_flag)
         result = plugin.estimate_coefficients_for_ngr(
-            current_forecast, historic_forecasts, truth)
-        optimised_coeffs, coeff_names = result
-
-        for key in optimised_coeffs.keys():
-            self.assertArrayAlmostEqual(optimised_coeffs[key], data,
-                                        decimal=5)
-        self.assertListEqual(coeff_names, ["gamma", "delta", "a", "beta"])
+            historic_forecast, truth)
+        self.assertArrayAlmostEqual(result.data, data, decimal=5)
+        self.assertArrayEqual(
+            result.coord("coefficient_name").points, expected_coeff_names)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -546,7 +682,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         """
         import imp
         try:
-            statsmodels_found = imp.find_module('statsmodels')
+            imp.find_module('statsmodels')
             statsmodels_found = True
         except ImportError:
             statsmodels_found = False
@@ -558,24 +694,24 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             data = [2.05550997, 0.10577237, 0.00028531,
                     0.53208837, 0.67233013, 0.53704241]
 
-        current_forecast = self.current_wind_speed_forecast_cube
-
-        historic_forecasts = self.historic_wind_speed_forecast_cube
+        historic_forecast = self.historic_wind_speed_forecast_cube
 
         truth = self.wind_speed_truth_cube
 
         distribution = "truncated gaussian"
-        desired_units = "m s^-1"
+        current_cycle = "20171110T0000Z"
         predictor_of_mean_flag = "realizations"
+        expected_coeff_names = (
+            ['gamma', 'delta', 'a', 'beta0', 'beta1', 'beta2'])
 
-        plugin = Plugin(distribution, desired_units,
+        plugin = Plugin(distribution, current_cycle,
                         predictor_of_mean_flag=predictor_of_mean_flag)
         result = plugin.estimate_coefficients_for_ngr(
-            current_forecast, historic_forecasts, truth)
-        optimised_coeffs, coeff_names = result
-        for key in optimised_coeffs.keys():
-            self.assertArrayAlmostEqual(optimised_coeffs[key], data)
-        self.assertListEqual(coeff_names, ["gamma", "delta", "a", "beta"])
+            historic_forecast, truth)
+
+        self.assertArrayAlmostEqual(result.data, data)
+        self.assertArrayEqual(
+            result.coord("coefficient_name").points, expected_coeff_names)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -584,20 +720,18 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         Ensure the appropriate error is raised if the minimisation function
         requested is not available.
         """
-        current_forecast = self.current_temperature_forecast_cube
-
-        historic_forecasts = self.historic_temperature_forecast_cube
+        historic_forecast = self.historic_temperature_forecast_cube
 
         truth = self.temperature_truth_cube
 
         distribution = "fake"
-        desired_units = "degreesC"
+        current_cycle = "20171110T0000Z"
 
-        plugin = Plugin(distribution, desired_units)
+        plugin = Plugin(distribution, current_cycle)
         msg = "Distribution requested"
         with self.assertRaisesRegex(KeyError, msg):
             plugin.estimate_coefficients_for_ngr(
-                current_forecast, historic_forecasts, truth)
+                historic_forecast, truth)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -609,25 +743,21 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         data = [4.55819380e-06, -8.02401974e-09,
                 1.66667055e+00, 1.00000011e+00]
 
-        current_forecast = self.current_temperature_forecast_cube
-
-        historic_forecasts = self.historic_temperature_forecast_cube
-
+        historic_forecast = self.historic_temperature_forecast_cube
         truth = self.temperature_truth_cube
 
         truth.convert_units("Fahrenheit")
 
         distribution = "gaussian"
+        current_cycle = "20171110T0000Z"
         desired_units = "degreesC"
 
-        plugin = Plugin(distribution, desired_units)
+        plugin = Plugin(
+            distribution, current_cycle, desired_units=desired_units)
         result = plugin.estimate_coefficients_for_ngr(
-            current_forecast, historic_forecasts, truth)
-        optimised_coeffs = result[0]
+            historic_forecast, truth)
 
-        for key in optimised_coeffs.keys():
-            self.assertArrayAlmostEqual(optimised_coeffs[key], data,
-                                        decimal=5)
+        self.assertArrayAlmostEqual(result.data, data, decimal=5)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -639,284 +769,22 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         data = [4.55819380e-06, -8.02401974e-09,
                 1.66667055e+00, 1.00000011e+00]
 
-        current_forecast = self.current_temperature_forecast_cube
+        historic_forecast = self.historic_temperature_forecast_cube
 
-        historic_forecasts = self.historic_temperature_forecast_cube
-
-        historic_forecasts.convert_units("Fahrenheit")
+        historic_forecast.convert_units("Fahrenheit")
 
         truth = self.temperature_truth_cube
 
         distribution = "gaussian"
+        current_cycle = "20171110T0000Z"
         desired_units = "degreesC"
 
-        plugin = Plugin(distribution, desired_units)
+        plugin = Plugin(
+            distribution, current_cycle, desired_units=desired_units)
         result = plugin.estimate_coefficients_for_ngr(
-            current_forecast, historic_forecasts, truth)
-        optimised_coeffs = result[0]
+            historic_forecast, truth)
 
-        for key in optimised_coeffs.keys():
-            self.assertArrayAlmostEqual(
-                optimised_coeffs[key], data, decimal=5)
-
-    @ManageWarnings(
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_current_forecast_unit_conversion(self):
-        """
-        Ensure the expected optimised coefficients are generated, even if the
-        input current forecast cube has different units.
-        """
-        data = [4.55819380e-06, -8.02401974e-09,
-                1.66667055e+00, 1.00000011e+00]
-
-        current_forecast = self.current_temperature_forecast_cube
-
-        current_forecast.convert_units("Fahrenheit")
-
-        historic_forecasts = self.historic_temperature_forecast_cube
-
-        truth = self.temperature_truth_cube
-
-        distribution = "gaussian"
-        desired_units = "degreesC"
-
-        plugin = Plugin(distribution, desired_units)
-        result = plugin.estimate_coefficients_for_ngr(
-            current_forecast, historic_forecasts, truth)
-        optimised_coeffs = result[0]
-
-        for key in optimised_coeffs.keys():
-            self.assertArrayAlmostEqual(optimised_coeffs[key], data)
-
-    def test_truth_data_is_none(self):
-        """
-        Ensure that a ValueError with the expected text is generated,
-        if the input data is None, rather than a cube.
-        """
-        current_forecast = self.current_temperature_forecast_cube
-
-        historic_forecasts = self.historic_temperature_forecast_cube
-
-        truth = iris.cube.CubeList([None])
-
-        distribution = "gaussian"
-        desired_units = "degreesC"
-
-        plugin = Plugin(distribution, desired_units)
-        msg = "The input data within the"
-        with self.assertRaisesRegex(TypeError, msg):
-            plugin.estimate_coefficients_for_ngr(
-                current_forecast, historic_forecasts, truth)
-
-    @ManageWarnings(
-        ignored_messages=["Insufficient input data present"])
-    def test_historic_forecast_is_empty_cubelist(self):
-        """
-        Ensure that the expected empty list for the optimised coefficients
-        and the expected coefficient names are generated, if the input
-        cubelist for the historic_forecasts is empty.
-        """
-        desired_coeff_names = ["gamma", "delta", "a", "beta"]
-
-        current_forecast = self.current_temperature_forecast_cube
-
-        historic_forecasts = iris.cube.CubeList([])
-
-        truth = self.temperature_truth_cube
-
-        distribution = "gaussian"
-        desired_units = "degreesC"
-
-        plugin = Plugin(distribution, desired_units)
-
-        result = plugin.estimate_coefficients_for_ngr(
-            current_forecast, historic_forecasts, truth)
-        optimised_coeffs, coeff_names = result
-        self.assertFalse(optimised_coeffs)
-        self.assertCountEqual(coeff_names, desired_coeff_names)
-
-    @ManageWarnings(record=True)
-    def test_current_forecast_cubes_is_fake_catch_warning(self,
-                                                          warning_list=None):
-        """
-        Ensure that a ValueError with the expected text is generated,
-        if the input data is None, rather than a cube.
-        """
-        current_forecast = "fake"
-
-        historic_forecasts = self.historic_temperature_forecast_cube
-
-        truth = self.temperature_truth_cube
-
-        distribution = "gaussian"
-        desired_units = "degreesC"
-
-        plugin = Plugin(distribution, desired_units)
-
-        plugin.estimate_coefficients_for_ngr(
-            current_forecast, historic_forecasts, truth)
-        warning_msg = "is not a Cube or CubeList"
-        self.assertTrue(any(item.category == UserWarning
-                            for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item)
-                            for item in warning_list))
-
-    @ManageWarnings(record=True)
-    def test_historic_forecast_cubes_is_fake_catch_warning(self,
-                                                           warning_list=None):
-        """
-        Ensure that a ValueError with the expected text is generated,
-        if the input data is None, rather than a cube.
-        """
-        current_forecast = self.current_temperature_forecast_cube
-
-        historic_forecasts = "fake"
-
-        truth = self.temperature_truth_cube
-
-        distribution = "gaussian"
-        desired_units = "degreesC"
-
-        plugin = Plugin(distribution, desired_units)
-
-        plugin.estimate_coefficients_for_ngr(
-            current_forecast, historic_forecasts, truth)
-        warning_msg = "is not a Cube or CubeList"
-        self.assertTrue(any(item.category == UserWarning
-                            for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item)
-                            for item in warning_list))
-
-    @ManageWarnings(record=True)
-    def test_truth_data_is_fake_catch_warning(self, warning_list=None):
-        """
-        Ensure that a ValueError with the expected text is generated,
-        if the input data is None, rather than a cube.
-        """
-        current_forecast = self.current_temperature_forecast_cube
-
-        historic_forecasts = self.historic_temperature_forecast_cube
-
-        truth = "fake"
-
-        distribution = "gaussian"
-        desired_units = "degreesC"
-
-        plugin = Plugin(distribution, desired_units)
-
-        plugin.estimate_coefficients_for_ngr(
-            current_forecast, historic_forecasts, truth)
-        warning_msg = "is not a Cube or CubeList"
-        self.assertTrue(any(item.category == UserWarning
-                            for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item)
-                            for item in warning_list))
-
-    @ManageWarnings(record=True)
-    def test_current_forecast_cubes_len_zero_catch_warning(self,
-                                                           warning_list=None):
-        """
-        Ensure that a ValueError with the expected text is generated,
-        if the input data is None, rather than a cube.
-        """
-        current_forecast = iris.cube.CubeList([])
-
-        historic_forecasts = self.historic_temperature_forecast_cube
-
-        truth = self.temperature_truth_cube
-
-        distribution = "gaussian"
-        desired_units = "degreesC"
-
-        plugin = Plugin(distribution, desired_units)
-
-        plugin.estimate_coefficients_for_ngr(
-            current_forecast, historic_forecasts, truth)
-        warning_msg = ("Insufficient input data present to estimate "
-                       "coefficients using NGR.")
-        self.assertTrue(any(item.category == UserWarning
-                            for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item)
-                            for item in warning_list))
-
-    @ManageWarnings(record=True)
-    def test_historic_forecast_cubes_len_zero_catch_warning(self,
-                                                            warning_list=None):
-        """
-        Ensure that a ValueError with the expected text is generated,
-        if the input data is None, rather than a cube.
-        """
-        current_forecast = self.current_temperature_forecast_cube
-
-        historic_forecasts = iris.cube.CubeList([])
-
-        truth = self.temperature_truth_cube
-
-        distribution = "gaussian"
-        desired_units = "degreesC"
-
-        plugin = Plugin(distribution, desired_units)
-
-        plugin.estimate_coefficients_for_ngr(
-            current_forecast, historic_forecasts, truth)
-        warning_msg = ("Insufficient input data present to estimate "
-                       "coefficients using NGR.")
-        self.assertTrue(any(item.category == UserWarning
-                            for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item)
-                            for item in warning_list))
-
-    @ManageWarnings(record=True)
-    def test_truth_data_length_zero_catch_warning(self, warning_list=None):
-        """
-        Ensure that a ValueError with the expected text is generated,
-        if the input data is None, rather than a cube.
-        """
-        current_forecast = self.current_temperature_forecast_cube
-
-        historic_forecasts = self.historic_temperature_forecast_cube
-
-        truth = iris.cube.CubeList([])
-
-        distribution = "gaussian"
-        desired_units = "degreesC"
-
-        plugin = Plugin(distribution, desired_units)
-
-        plugin.estimate_coefficients_for_ngr(
-            current_forecast, historic_forecasts, truth)
-        warning_msg = ("Insufficient input data present to estimate "
-                       "coefficients using NGR.")
-        self.assertTrue(any(item.category == UserWarning
-                            for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item)
-                            for item in warning_list))
-
-    @ManageWarnings(record=True)
-    def test_truth_data_has_wrong_time_catch_warning(self, warning_list=None):
-        """
-        Ensure that a ValueError with the expected text is generated,
-        if the input data is None, rather than a cube.
-        """
-        current_forecast = self.current_temperature_forecast_cube
-
-        historic_forecasts = self.historic_temperature_forecast_cube
-
-        truth = self.temperature_truth_cube
-        truth.coord("forecast_reference_time").points += 10
-
-        distribution = "gaussian"
-        desired_units = "degreesC"
-
-        plugin = Plugin(distribution, desired_units)
-
-        plugin.estimate_coefficients_for_ngr(
-            current_forecast, historic_forecasts, truth)
-        warning_msg = "Unable to calibrate for the time points"
-        self.assertTrue(any(item.category == UserWarning
-                            for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item)
-                            for item in warning_list))
+        self.assertArrayAlmostEqual(result.data, data, decimal=5)
 
 
 if __name__ == '__main__':
