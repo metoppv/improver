@@ -394,7 +394,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             self.predictor_of_mean_flag, self.minimiser)
 
     def create_coefficients_cube(
-            self, optimised_coeffs, current_forecast):
+            self, optimised_coeffs, historic_forecast):
         """Create a cube for storing the coefficients computed using EMOS.
 
         .. See the documentation for examples of these cubes.
@@ -405,8 +405,8 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             optimised_coeffs (list):
                 List of optimised coefficients.
                 Order of coefficients is [gamma, delta, alpha, beta].
-            current_forecast (iris.cube.Cube):
-                The cube containing the current forecast.
+            historic_forecast (iris.cube.Cube):
+                The cube containing the historic forecast.
 
         Returns:
             cube (iris.cube.Cube):
@@ -759,7 +759,7 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
         if self.predictor_of_mean_flag.lower() in ["mean"]:
             # Calculate predicted mean = a + b*X, where X is the
             # raw ensemble mean. In this case, b = beta.
-            a_and_b = [optimised_coeffs["a"], optimised_coeffs["beta"]]
+            a_and_b = [optimised_coeffs["alpha"], optimised_coeffs["beta"]]
             forecast_predictor_flat = forecast_predictors.data.flatten()
             col_of_ones = (
                 np.ones(forecast_predictor_flat.shape, dtype=np.float32))
@@ -774,7 +774,7 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
             for key in optimised_coeffs.keys():
                 if key.startswith("beta"):
                     beta_values = np.append(beta_values, optimised_coeffs[key])
-            a_and_b = np.append(optimised_coeffs["a"], beta_values**2)
+            a_and_b = np.append(optimised_coeffs["alpha"], beta_values**2)
             forecast_predictor_flat = (
                 convert_cube_data_to_2d(forecast_predictors))
             forecast_var_flat = forecast_vars.data.flatten()
