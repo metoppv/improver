@@ -31,8 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to interpolate data between validity times"""
 
-import warnings
-
 from improver.argparser import ArgParser
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf

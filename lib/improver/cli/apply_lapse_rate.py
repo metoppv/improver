@@ -38,6 +38,7 @@ from improver.utilities.save import save_netcdf
 
 
 def main():
+    """Apply lapse rates to temperature data."""
     parser = ArgParser(description='Apply downscaling temperature adjustment '
                        'using calculated lapse rate.')
 

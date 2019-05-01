@@ -33,8 +33,7 @@
 
 from improver.argparser import ArgParser
 from improver.utilities.load import load_cube
-from improver.utilities.cube_extraction import (parse_constraint_list,
-                                                extract_subcube)
+from improver.utilities.cube_extraction import extract_subcube
 from improver.utilities.save import save_netcdf
 
 

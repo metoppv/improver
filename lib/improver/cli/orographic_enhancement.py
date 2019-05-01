@@ -32,10 +32,8 @@
 """Script to calculate orographic enhancement."""
 
 import os
-import iris
 
 from improver.argparser import ArgParser
-from improver.constants import make_constant_with_units
 from improver.wind_calculations.wind_components import ResolveWindComponents
 from improver.orographic_enhancement import OrographicEnhancement
 from improver.utilities.load import load_cube

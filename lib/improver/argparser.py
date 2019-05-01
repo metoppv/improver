@@ -31,6 +31,8 @@
 """Common option utilities for improver CLIs."""
 
 from argparse import ArgumentParser
+import pathlib
+import sys
 
 from improver.profile import profile_hook_enable
 
@@ -138,9 +140,8 @@ class ArgParser(ArgumentParser):
                              arg_name in central_arguments]
 
         if 'prog' not in kwargs:
-            import pathlib
-            import sys
-            improver_oper = pathlib.PurePosixPath(sys.argv[0]).stem.replace("_", "-")
+            improver_oper = pathlib.PurePosixPath(
+                sys.argv[0]).stem.replace("_", "-")
             kwargs['prog'] = ("improver " + improver_oper)
 
         # create instance of ArgumentParser (pass along kwargs)

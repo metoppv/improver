@@ -33,7 +33,6 @@
 orogrophy datasets."""
 
 import numpy as np
-import iris
 
 from improver.argparser import ArgParser
 from improver.lapse_rate import LapseRate
@@ -44,6 +43,7 @@ from improver.utilities.save import save_netcdf
 
 
 def main():
+    """Calculate temperature lapse rates."""
     parser = ArgParser(
         description='Calculate temperature lapse rates in units of K m-1 '
                     'over a given orography grid. ')

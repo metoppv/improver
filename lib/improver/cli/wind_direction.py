@@ -69,7 +69,7 @@ def main():
     # Returns 3 cubes - r_vals and confidence_measure cubes currently
     # only contain experimental data to be used for further research.
     bmethod = args.backup_method
-    cube_mean_wdir, cube_r_vals, cube_confidence_measure = (
+    cube_mean_wdir, _, _ = (
         WindDirection(backup_method=bmethod).process(wind_direction))
 
     save_netcdf(cube_mean_wdir, args.output_filepath)

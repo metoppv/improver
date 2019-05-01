@@ -32,8 +32,6 @@
 """Script to run neighbourhooding processing when iterating over a coordinate
 defining a series of masks."""
 
-import numpy as np
-
 from improver.argparser import ArgParser
 from improver.nbhood.use_nbhood import (
     ApplyNeighbourhoodProcessingWithAMask,

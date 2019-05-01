@@ -31,9 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to generate an ancillary "grid_with_halo" file."""
 
-import numpy as np
-import iris
-
 from improver.argparser import ArgParser
 from improver.utilities.pad_spatial import create_cube_with_halo
 from improver.utilities.load import load_cube

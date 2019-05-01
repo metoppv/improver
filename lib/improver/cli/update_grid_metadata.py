@@ -35,7 +35,6 @@ version 1.1.0 to StaGE version 1.2.0.
 """
 
 import os
-import iris
 
 from improver.argparser import ArgParser
 from improver.utilities.load import load_cube

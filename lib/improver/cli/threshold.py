@@ -35,7 +35,6 @@ from improver.argparser import ArgParser
 
 import numpy as np
 import json
-import cf_units
 import warnings
 
 from improver.threshold import BasicThreshold
@@ -176,10 +175,10 @@ def main():
         if np.ma.isMaskedArray(result_no_collapse_coord.data):
             warnings.warn("Collapse-coord option not fully tested with "
                           "masked data.")
-        """ This is where we fix values for y0val, slope and weighting_mode.
-            In this case they are fixed to the values required for realization
-            collapse. This can be changed if other functionality needs to be
-            implemented."""
+        # This is where we fix values for y0val, slope and weighting_mode.
+        # In this case they are fixed to the values required for realization
+        # collapse. This can be changed if other functionality needs to be
+        # implemented.
         weights = ChooseDefaultWeightsLinear(y0val=1.0, slope=0.0).process(
             result_no_collapse_coord, args.collapse_coord)
 
