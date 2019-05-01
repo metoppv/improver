@@ -29,10 +29,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "ensemble-calibration no arguments" {
-  run improver ensemble-calibration
+@test "estimate-emos-coefficients no arguments" {
+  run improver estimate-emos-coefficients
   [[ "$status" -eq 2 ]]
-usage: improver-estimate-emos-coefficients [-h] [--profile]
+  expected="usage: improver-estimate-emos-coefficients [-h] [--profile]
                                            [--profile_file PROFILE_FILE]
                                            [--units UNITS]
                                            [--predictor_of_mean PREDICTOR_OF_MEAN]

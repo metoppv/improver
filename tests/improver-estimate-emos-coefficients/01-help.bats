@@ -29,8 +29,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "ensemble-calibration -h" {
-  run improver ensemble-calibration -h
+@test "estimate-emos-coefficients -h" {
+  run improver estimate-emos-coefficients -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
 usage: improver-estimate-emos-coefficients [-h] [--profile]

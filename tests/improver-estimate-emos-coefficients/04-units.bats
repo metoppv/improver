@@ -31,12 +31,12 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "ensemble-calibration emos gaussian kelvin input history truth output" {
+@test "estimate-emos-coefficients Kelvin units gaussian history truth output" {
   improver_check_skip_acceptance
   KGO="estimate-emos-coefficients/gaussian/kgo.nc"
 
-  # Run ensemble calibration and check it passes.
-  run improver estimate-emos-coefficients 'truncated_gaussian' '20170605T1500Z' --units 'K' \
+  # Estimate the EMOS coefficients and check that they match the kgo.
+  run improver estimate-emos-coefficients 'gaussian' '20170605T1500Z' --units 'K' \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
       "$TEST_DIR/output.nc"
