@@ -47,6 +47,7 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import (set_up_temperature_cube, set_up_wind_speed_cube,
                              add_forecast_reference_time_and_forecast_period,
                              _create_historic_forecasts, _create_truth)
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
 IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate.",
@@ -169,6 +170,148 @@ class Test__init__(IrisTest):
                                 for item in warning_list))
             self.assertTrue(any(warning_msg in str(item)
                                 for item in warning_list))
+
+
+class Test_create_coefficients_cube(IrisTest):
+
+    """Test the create_coefficients_cube method."""
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def setUp(self):
+        """Set up the plugin and cubes for testing."""
+        data = np.ones((3, 3), dtype=np.float32)
+        self.current_forecast = set_up_variable_cube(
+            data, standard_grid_metadata="uk_det")
+        data_with_realizations = np.ones((3, 3, 3), dtype=np.float32)
+        self.current_forecast_with_realizations = set_up_variable_cube(
+            data_with_realizations, realizations=[0, 1, 2],
+            standard_grid_metadata="uk_det")
+        self.optimised_coeffs = [0, 1, 2, 3]
+        coeff_names = ["gamma", "delta", "alpha", "beta"]
+
+        coefficient_index = iris.coords.DimCoord(
+            self.optimised_coeffs, long_name="coefficient_index", units="1")
+        dim_coords_and_dims = [(coefficient_index, 0)]
+
+        coefficient_name = iris.coords.AuxCoord(
+            coeff_names, long_name="coefficient_name", units="no_unit")
+
+        aux_coords_and_dims = [
+            (coefficient_name, 0),
+            (self.current_forecast.coord("time"), None),
+            (self.current_forecast.coord("forecast_reference_time"), None),
+            (self.current_forecast.coord("forecast_period"), None)]
+
+        attributes = {"mosg__model_configuration": "uk_det",
+                      "diagnostic_standard_name": "air_temperature"}
+
+        self.expected = iris.cube.Cube(
+            self.optimised_coeffs, long_name="emos_coefficients", units="1",
+            dim_coords_and_dims=dim_coords_and_dims,
+            aux_coords_and_dims=aux_coords_and_dims, attributes=attributes)
+
+        self.distribution = "gaussian"
+        self.desired_units = "degreesC"
+        self.predictor_of_mean_flag = "mean"
+        self.plugin = (
+            Plugin(distribution=self.distribution,
+                   desired_units=self.desired_units,
+                   predictor_of_mean_flag=self.predictor_of_mean_flag))
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_coefficients_from_mean(self):
+        """Test that the expected coefficient cube is returned when the
+        ensemble mean is used as the predictor."""
+        expected_coeff_names = ["gamma", "delta", "alpha", "beta"]
+        result = self.plugin.create_coefficients_cube(
+            self.optimised_coeffs, self.current_forecast)
+        self.assertEqual(result, self.expected)
+        self.assertEqual(
+            self.plugin.coeff_names, expected_coeff_names)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_coefficients_from_realizations(self):
+        """Test that the expected coefficient cube is returned when the
+        ensemble realizations are used as the predictor."""
+        expected_coeff_names = (
+            ["gamma", "delta", "alpha", "beta0", "beta1", "beta2"])
+        predictor_of_mean_flag = "realizations"
+        optimised_coeffs = [0, 1, 2, 3, 4, 5]
+
+        # Set up an expected cube.
+        coefficient_index = iris.coords.DimCoord(
+            optimised_coeffs, long_name="coefficient_index", units="1")
+        dim_coords_and_dims = [(coefficient_index, 0)]
+
+        coefficient_name = iris.coords.AuxCoord(
+            expected_coeff_names, long_name="coefficient_name",
+            units="no_unit")
+
+        aux_coords_and_dims = [
+            (coefficient_name, 0),
+            (self.current_forecast.coord("time"), None),
+            (self.current_forecast.coord("forecast_reference_time"), None),
+            (self.current_forecast.coord("forecast_period"), None)]
+
+        attributes = {"mosg__model_configuration": "uk_det",
+                      "diagnostic_standard_name": "air_temperature"}
+
+        expected = iris.cube.Cube(
+            optimised_coeffs, long_name="emos_coefficients", units="1",
+            dim_coords_and_dims=dim_coords_and_dims,
+            aux_coords_and_dims=aux_coords_and_dims, attributes=attributes)
+
+        plugin = Plugin(distribution=self.distribution,
+                        desired_units=self.desired_units,
+                        predictor_of_mean_flag=predictor_of_mean_flag)
+        result = plugin.create_coefficients_cube(
+            optimised_coeffs, self.current_forecast_with_realizations)
+        self.assertEqual(result, expected)
+        self.assertArrayEqual(
+            result.coord("coefficient_name").points, expected_coeff_names)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_forecast_period_coordinate_not_present(self):
+        """Test that the coefficients cube is created correctly when the
+        forecast_period coordinate is not present within the input cube."""
+        self.expected.remove_coord("forecast_period")
+        self.current_forecast.remove_coord("forecast_period")
+        result = self.plugin.create_coefficients_cube(
+            self.optimised_coeffs, self.current_forecast)
+        self.assertEqual(result, self.expected)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_model_configuration_not_present(self):
+        """Test that the coefficients cube is created correctly when a
+        model_configuration coordinate is not present within the input cube."""
+        self.expected.attributes.pop("mosg__model_configuration")
+        self.current_forecast.attributes.pop("mosg__model_configuration")
+        result = self.plugin.create_coefficients_cube(
+            self.optimised_coeffs, self.current_forecast)
+        self.assertEqual(result, self.expected)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_mismatching_number_of_coefficients(self):
+        """Test that an exception is raised if the number of coefficients
+        provided for creating the coefficients cube is not equal to the
+        number of coefficient names."""
+        distribution = "truncated_gaussian"
+        desired_units = "Fahrenheit"
+        predictor_of_mean_flag = "realizations"
+        optimised_coeffs = [1, 2, 3, 4, 5]
+        plugin = Plugin(distribution=distribution,
+                        desired_units=desired_units,
+                        predictor_of_mean_flag=predictor_of_mean_flag)
+        msg = "The number of coefficients in"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.create_coefficients_cube(
+                optimised_coeffs, self.current_forecast_with_realizations)
 
 
 class Test_compute_initial_guess(IrisTest):
@@ -427,12 +570,10 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         plugin = Plugin(distribution, desired_units)
         result = plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
-        optimised_coeffs, coeff_names = result
-        self.assertIsInstance(optimised_coeffs, dict)
-        self.assertIsInstance(coeff_names, list)
-        for key in optimised_coeffs.keys():
-            self.assertEqual(
-                len(optimised_coeffs[key]), len(coeff_names))
+        self.assertIsInstance(result, dict)
+        self.assertIsInstance(plugin.coeff_names, list)
+        for key in result.keys():
+            self.assertEqual(len(result[key]), len(plugin.coeff_names))
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -458,11 +599,11 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         plugin = Plugin(distribution, desired_units)
         result = plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
-        optimised_coeffs, coeff_names = result
 
-        for key in optimised_coeffs.keys():
-            self.assertArrayAlmostEqual(optimised_coeffs[key], data)
-        self.assertListEqual(coeff_names, ["gamma", "delta", "a", "beta"])
+        for key in result.keys():
+            self.assertArrayAlmostEqual(result[key], data)
+        self.assertListEqual(
+            plugin.coeff_names, ["gamma", "delta", "alpha", "beta"])
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -487,11 +628,11 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         plugin = Plugin(distribution, desired_units)
         result = plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
-        optimised_coeffs, coeff_names = result
 
-        for key in optimised_coeffs.keys():
-            self.assertArrayAlmostEqual(optimised_coeffs[key], data)
-        self.assertListEqual(coeff_names, ["gamma", "delta", "a", "beta"])
+        for key in result.keys():
+            self.assertArrayAlmostEqual(result[key], data)
+        self.assertListEqual(
+            plugin.coeff_names, ["gamma", "delta", "alpha", "beta"])
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -528,12 +669,11 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
                         predictor_of_mean_flag=predictor_of_mean_flag)
         result = plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
-        optimised_coeffs, coeff_names = result
 
-        for key in optimised_coeffs.keys():
-            self.assertArrayAlmostEqual(optimised_coeffs[key], data,
-                                        decimal=5)
-        self.assertListEqual(coeff_names, ["gamma", "delta", "a", "beta"])
+        for key in result.keys():
+            self.assertArrayAlmostEqual(result[key], data, decimal=5)
+        self.assertListEqual(
+            plugin.coeff_names, ["gamma", "delta", "alpha", "beta"])
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -572,10 +712,10 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
                         predictor_of_mean_flag=predictor_of_mean_flag)
         result = plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
-        optimised_coeffs, coeff_names = result
-        for key in optimised_coeffs.keys():
-            self.assertArrayAlmostEqual(optimised_coeffs[key], data)
-        self.assertListEqual(coeff_names, ["gamma", "delta", "a", "beta"])
+        for key in result.keys():
+            self.assertArrayAlmostEqual(result[key], data)
+        self.assertListEqual(
+            plugin.coeff_names, ["gamma", "delta", "alpha", "beta"])
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -623,11 +763,9 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         plugin = Plugin(distribution, desired_units)
         result = plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
-        optimised_coeffs = result[0]
 
-        for key in optimised_coeffs.keys():
-            self.assertArrayAlmostEqual(optimised_coeffs[key], data,
-                                        decimal=5)
+        for key in result.keys():
+            self.assertArrayAlmostEqual(result[key], data, decimal=5)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -653,11 +791,9 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         plugin = Plugin(distribution, desired_units)
         result = plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
-        optimised_coeffs = result[0]
 
-        for key in optimised_coeffs.keys():
-            self.assertArrayAlmostEqual(
-                optimised_coeffs[key], data, decimal=5)
+        for key in result.keys():
+            self.assertArrayAlmostEqual(result[key], data, decimal=5)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -683,10 +819,9 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         plugin = Plugin(distribution, desired_units)
         result = plugin.estimate_coefficients_for_ngr(
             current_forecast, historic_forecasts, truth)
-        optimised_coeffs = result[0]
 
-        for key in optimised_coeffs.keys():
-            self.assertArrayAlmostEqual(optimised_coeffs[key], data)
+        for key in result.keys():
+            self.assertArrayAlmostEqual(result[key], data)
 
 
 if __name__ == '__main__':

@@ -45,6 +45,7 @@ from datetime import datetime
 
 from improver.blending.spatial_weights import SpatiallyVaryingWeightsFromMask
 from improver.tests.set_up_test_cubes import set_up_probability_cube
+from improver.utilities.cube_checker import find_threshold_coordinate
 from improver.utilities.warnings_handler import ManageWarnings
 
 
@@ -354,7 +355,8 @@ class Test_multiply_weights(IrisTest):
             "projection_x_coordinate")
         self.one_dimensional_weights_cube.remove_coord(
             "projection_y_coordinate")
-        self.one_dimensional_weights_cube.remove_coord("threshold")
+        self.one_dimensional_weights_cube.remove_coord(
+            find_threshold_coordinate(self.one_dimensional_weights_cube))
         self.one_dimensional_weights_cube.data = np.array(
             [0.2, 0.5, 0.3], dtype=np.float32)
         self.plugin = SpatiallyVaryingWeightsFromMask()
@@ -653,11 +655,12 @@ class Test_create_template_slice(IrisTest):
         """Test error is raised when mask varies along collapsing dim"""
         # Check fails when blending along threshold coordinate, as mask
         # varies along this coordinate.
+        threshold_coord = find_threshold_coordinate(self.cube_to_collapse)
         message = (
             "The mask on the input cube can only vary along the blend_coord")
         with self.assertRaisesRegex(ValueError, message):
             self.plugin.create_template_slice(
-                self.cube_to_collapse, "threshold")
+                self.cube_to_collapse, threshold_coord.name())
 
     def test_scalar_blend_coord_fail(self):
         """Test error is raised when blend_coord is scalar"""
@@ -747,7 +750,8 @@ class Test_process(IrisTest):
             "projection_x_coordinate")
         self.one_dimensional_weights_cube.remove_coord(
             "projection_y_coordinate")
-        self.one_dimensional_weights_cube.remove_coord("threshold")
+        self.one_dimensional_weights_cube.remove_coord(
+            find_threshold_coordinate(self.one_dimensional_weights_cube))
         self.one_dimensional_weights_cube.data = np.array(
             [0.2, 0.5, 0.3], dtype=np.float32)
         self.plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=4)

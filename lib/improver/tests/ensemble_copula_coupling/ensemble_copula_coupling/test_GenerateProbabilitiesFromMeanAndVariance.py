@@ -42,6 +42,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     GenerateProbabilitiesFromMeanAndVariance as Plugin)
 from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_probability_above_threshold_temperature_cube
+from improver.utilities.cube_checker import find_threshold_coordinate
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
@@ -78,7 +79,7 @@ class Test__check_template_cube(IrisTest):
         the leading dimension. Check that threshold is moved to be leading."""
         cube = iris.util.squeeze(self.cube)
         enforce_coordinate_ordering(cube, 'latitude')
-        expected = ['threshold', 'latitude', 'longitude']
+        expected = ['air_temperature', 'latitude', 'longitude']
         Plugin()._check_template_cube(cube)
         result = [coord.name() for coord in cube.coords(dim_coords=True)]
         self.assertListEqual(expected, result)
@@ -153,7 +154,8 @@ class Test__mean_and_variance_to_probabilities(IrisTest):
 
         # Thresholds such that we obtain probabilities of 75%, 50%, and 25% for
         # the mean and variance values set here.
-        self.template_cube.coord('threshold').points = [8.65105, 10., 11.34895]
+        threshold_coord = find_threshold_coordinate(self.template_cube)
+        threshold_coord.points = [8.65105, 10., 11.34895]
         mean_values = np.ones((3, 3)) * 10
         variance_values = np.ones((3, 3)) * 4
         self.means = self.template_cube[0, :, :].copy(data=mean_values)
@@ -191,7 +193,8 @@ class Test_process(IrisTest):
             set_up_probability_above_threshold_temperature_cube())
         self.template_cube = iris.util.squeeze(self.template_cube)
 
-        self.template_cube.coord('threshold').points = [8.65105, 10., 11.34895]
+        threshold_coord = find_threshold_coordinate(self.template_cube)
+        threshold_coord.points = [8.65105, 10., 11.34895]
         mean_values = np.ones((3, 3)) * 10
         variance_values = np.ones((3, 3)) * 4
         self.means = self.template_cube[0, :, :].copy(data=mean_values)

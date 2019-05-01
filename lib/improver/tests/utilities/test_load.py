@@ -43,6 +43,7 @@ import numpy as np
 
 from improver.utilities.load import load_cube, load_cubelist
 from improver.utilities.save import save_netcdf
+from improver.utilities.cube_checker import find_threshold_coordinate
 
 from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, set_up_percentile_cube, set_up_probability_cube,
@@ -170,7 +171,8 @@ class Test_load_cube(IrisTest):
         cube.transpose([2, 1, 0])
         save_netcdf(cube, self.filepath)
         result = load_cube(self.filepath)
-        self.assertEqual(result.coord_dims("threshold")[0], 0)
+        threshold_coord = find_threshold_coordinate(result)
+        self.assertEqual(result.coord_dims(threshold_coord)[0], 0)
         self.assertArrayAlmostEqual(result.coord_dims("latitude")[0], 1)
         self.assertArrayAlmostEqual(result.coord_dims("longitude")[0], 2)
 
@@ -188,10 +190,11 @@ class Test_load_cube(IrisTest):
         cube.transpose([4, 3, 2, 1, 0])
         save_netcdf(cube, self.filepath)
         result = load_cube(self.filepath)
+        threshold_coord = find_threshold_coordinate(result)
         self.assertEqual(result.coord_dims("realization")[0], 0)
         self.assertEqual(
             result.coord_dims("percentile_over_neighbourhood")[0], 1)
-        self.assertEqual(result.coord_dims("threshold")[0], 2)
+        self.assertEqual(result.coord_dims(threshold_coord)[0], 2)
         self.assertArrayAlmostEqual(result.coord_dims("latitude")[0], 3)
         self.assertArrayAlmostEqual(result.coord_dims("longitude")[0], 4)
 

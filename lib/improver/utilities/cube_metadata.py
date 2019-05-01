@@ -644,3 +644,32 @@ def in_vicinity_name_format(cube_name):
                          cube_name[relative_to_threshold_index:])
 
     return new_cube_name
+
+
+def extract_diagnostic_name(cube_name):
+    """
+    Extract the standard or long name X of the diagnostic from a probability
+    cube name of the form 'probability_of_X_above/below_thresold'
+
+    Args:
+        cube_name (str):
+            The probability cube name
+
+    Returns:
+        diagnostic_name (str):
+            The name of the diagnostic underlying this probability
+
+    Raises:
+        ValueError: If the input name does not contain 'probability_of_'
+    """
+    if not cube_name.startswith('probability_of_'):
+        raise ValueError(
+            'Input {} is not a valid probability cube name'.format(cube_name))
+
+    relative_to_threshold_index = max(
+        cube_name.find('_above_threshold'),
+        cube_name.find('_below_threshold'))
+
+    # 'probability_of_' is a 15-character string
+    diagnostic_name = cube_name[15:relative_to_threshold_index]
+    return diagnostic_name

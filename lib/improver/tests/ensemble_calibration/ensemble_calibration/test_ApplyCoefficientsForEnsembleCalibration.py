@@ -68,7 +68,7 @@ class Test__find_coords_of_length_one(IrisTest):
         self.cube = set_up_temperature_cube()
         self.optimised_coeffs = [4.55819380e-06, -8.02401974e-09,
                                  1.66667055e+00, 1.00000011e+00]
-        self.coeff_names = ["gamma", "delta", "a", "beta"]
+        self.coeff_names = ["gamma", "delta", "alpha", "beta"]
 
     def test_basic(self):
         """Test that the plugin returns a list."""
@@ -121,7 +121,7 @@ class Test__separate_length_one_coords_into_aux_and_dim(IrisTest):
         self.cube = set_up_temperature_cube()
         self.optimised_coeffs = [4.55819380e-06, -8.02401974e-09,
                                  1.66667055e+00, 1.00000011e+00]
-        self.coeff_names = ["gamma", "delta", "a", "beta"]
+        self.coeff_names = ["gamma", "delta", "alpha", "beta"]
         self.plugin = Plugin(self.cube, self.optimised_coeffs,
                              self.coeff_names)
 
@@ -282,7 +282,7 @@ class Test___create_coefficient_cube(IrisTest):
         self.cube = set_up_temperature_cube()
         self.optimised_coeffs = [4.55819380e-06, -8.02401974e-09,
                                  1.66667055e+00, 1.00000011e+00]
-        self.coeff_names = ["gamma", "delta", "a", "beta"]
+        self.coeff_names = ["gamma", "delta", "alpha", "beta"]
         self.plugin = Plugin(self.cube, self.optimised_coeffs,
                              self.coeff_names)
 
@@ -336,7 +336,7 @@ class Test_apply_params_entry(IrisTest):
         self.current_temperature_forecast_cube = set_up_variable_cube(
             data, realizations=[0, 1, 2])
 
-        self.coeff_names = ["gamma", "delta", "a", "beta"]
+        self.coeff_names = ["gamma", "delta", "alpha", "beta"]
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -434,7 +434,7 @@ class Test_apply_params_entry(IrisTest):
         predictor of the mean.
         """
         cube = self.current_temperature_forecast_cube
-        coeff_names = ["gamma", "delta", "a", "beta0", "beta1", "beta2"]
+        coeff_names = ["gamma", "delta", "alpha", "beta0", "beta1", "beta2"]
         optimised_coeffs = {}
         the_date = datetime_from_timestamp(cube.coord("time").points)
         optimised_coeffs[the_date] = np.array([
@@ -464,7 +464,7 @@ class Test__apply_params(IrisTest):
         self.current_temperature_forecast_cube = set_up_variable_cube(
             data, units="Kelvin", realizations=[0, 1, 2])
 
-        self.coeff_names = ["gamma", "delta", "a", "beta"]
+        self.coeff_names = ["gamma", "delta", "alpha", "beta"]
 
         self.default_optimised_coeffs = [
             4.55819380e-06, -8.02401974e-09, 1.66667055e+00, 1.00000011e+00]
@@ -603,7 +603,8 @@ class Test__apply_params(IrisTest):
         optimised_coeffs[the_date] = np.array(
             [5, 1, 0, 0.57, 0.6, 0.6], dtype=np.float32)
 
-        self.coeff_names = ["gamma", "delta", "a", "beta0", "beta1", "beta2"]
+        self.coeff_names = (
+            ["gamma", "delta", "alpha", "beta0", "beta1", "beta2"])
 
         predictor_cube = cube.copy()
         variance_cube = cube.collapsed("realization", iris.analysis.VARIANCE)
@@ -638,7 +639,8 @@ class Test__apply_params(IrisTest):
         optimised_coeffs[the_date] = np.array(
             [5, 1, 0, 0.57, 0.6, 0.6], dtype=np.float32)
 
-        self.coeff_names = ["gamma", "delta", "a", "beta0", "beta1", "beta2"]
+        self.coeff_names = (
+            ["gamma", "delta", "alpha", "beta0", "beta1", "beta2"])
 
         predictor_cube = cube.copy()
         variance_cube = cube.collapsed("realization", iris.analysis.VARIANCE)
@@ -670,7 +672,8 @@ class Test__apply_params(IrisTest):
         optimised_coeffs[the_date] = np.array(
             [5, 1, 0, 0.57, 0.6, 0.6], dtype=np.float32)
 
-        self.coeff_names = ["gamma", "delta", "a", "beta0", "beta1", "beta2"]
+        self.coeff_names = (
+            ["gamma", "delta", "alpha", "beta0", "beta1", "beta2"])
 
         predictor_cube = cube.copy()
         variance_cube = cube.collapsed("realization", iris.analysis.VARIANCE)
