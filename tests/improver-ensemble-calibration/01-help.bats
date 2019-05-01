@@ -33,7 +33,7 @@
   run improver ensemble-calibration -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-ensemble-calibration [-h] [--profile]
+usage: improver ensemble-calibration [-h] [--profile]
                                      [--profile_file PROFILE_FILE]
                                      [--predictor_of_mean CALIBRATE_MEAN_FLAG]
                                      [--save_mean MEAN_FILE]

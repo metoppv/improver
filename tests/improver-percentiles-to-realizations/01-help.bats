@@ -33,7 +33,7 @@
   run improver percentiles-to-realizations -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-percentiles-to-realizations [-h] [--profile]
+usage: improver percentiles-to-realizations [-h] [--profile]
                                             [--profile_file PROFILE_FILE]
                                             [--no_of_percentiles NUMBER_OF_PERCENTILES]
                                             [--sampling_method [PERCENTILE_SAMPLING_METHOD]]

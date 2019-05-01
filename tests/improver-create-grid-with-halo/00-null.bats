@@ -33,7 +33,7 @@
   run improver create-grid-with-halo
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-create-grid-with-halo [-h] [--profile]
+usage: improver create-grid-with-halo [-h] [--profile]
                                       [--profile_file PROFILE_FILE]
                                       [--halo_radius HALO_RADIUS]
                                       INPUT_FILE OUTPUT_FILE

@@ -53,8 +53,10 @@ export IMPROVER_DIR="$(cd $(dirname $0)/../ && pwd -P)"
 
 # List all improver subcommands or operations.
 get_operations() {
-    cd "$IMPROVER_DIR/bin/"
-    ls improver-*[^~] | sort | sed "s/^improver-//"
+    ( cd "$IMPROVER_DIR/bin/"
+      ls improver-*[^~] | sed "s/^improver-//"
+      cd "$IMPROVER_DIR/lib/improver/cli"
+      ls *.py | sed "/__init__\.py/d; s/\.py$//; s/_/-/g" ) | sort
 }
 
 # Print generic or operation specific help.
@@ -101,7 +103,11 @@ if [[ -f "${IMPROVER_SITE_INIT:=$IMPROVER_DIR/etc/site-init}" ]]; then
 fi
 
 # Put our library and scripts in the paths.
-export PYTHONPATH="$IMPROVER_DIR/lib/:${PYTHONPATH:-}"
 export PATH="$IMPROVER_DIR/bin/:$PATH"
+export PYTHONPATH="$IMPROVER_DIR/lib/:${PYTHONPATH:-}"
 
-exec improver-$OPER "$@"
+if [[ -f "$IMPROVER_DIR/bin/improver-$OPER" ]]; then
+    exec "$IMPROVER_DIR/bin/improver-$OPER" "$@"
+else
+    exec python -m improver.cli.${OPER//-/_} "$@"
+fi

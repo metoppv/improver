@@ -33,7 +33,7 @@
   run improver wind-downscaling
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-wind-downscaling [-h] [--profile]
+usage: improver wind-downscaling [-h] [--profile]
                                  [--profile_file PROFILE_FILE]
                                  [--output_height_level OUTPUT_HEIGHT_LEVEL]
                                  [--output_height_level_units OUTPUT_HEIGHT_LEVEL_UNITS]

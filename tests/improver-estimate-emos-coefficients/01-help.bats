@@ -33,7 +33,7 @@
   run improver estimate-emos-coefficients -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-estimate-emos-coefficients [-h] [--profile]
+usage: improver estimate-emos-coefficients [-h] [--profile]
                                            [--profile_file PROFILE_FILE]
                                            [--units UNITS]
                                            [--predictor_of_mean PREDICTOR_OF_MEAN]

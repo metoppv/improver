@@ -32,7 +32,7 @@
 @test "estimate-emos-coefficients no arguments" {
   run improver estimate-emos-coefficients
   [[ "$status" -eq 2 ]]
-  expected="usage: improver-estimate-emos-coefficients [-h] [--profile]
+  expected="usage: improver estimate-emos-coefficients [-h] [--profile]
                                            [--profile_file PROFILE_FILE]
                                            [--units UNITS]
                                            [--predictor_of_mean PREDICTOR_OF_MEAN]

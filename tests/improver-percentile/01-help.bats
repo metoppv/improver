@@ -33,7 +33,7 @@
   run improver percentile -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-percentile [-h] [--profile] [--profile_file PROFILE_FILE]
+usage: improver percentile [-h] [--profile] [--profile_file PROFILE_FILE]
                            [--coordinates COORDINATES_TO_COLLAPSE [COORDINATES_TO_COLLAPSE ...]]
                            [--ecc_bounds_warning]
                            [--percentiles PERCENTILES [PERCENTILES ...] |

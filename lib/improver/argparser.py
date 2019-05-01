@@ -137,6 +137,12 @@ class ArgParser(ArgumentParser):
         central_arguments = [ArgParser.CENTRALIZED_ARGUMENTS[arg_name] for
                              arg_name in central_arguments]
 
+        if 'prog' not in kwargs:
+            import pathlib
+            import sys
+            improver_oper = pathlib.PurePosixPath(sys.argv[0]).stem.replace("_", "-")
+            kwargs['prog'] = ("improver " + improver_oper)
+
         # create instance of ArgumentParser (pass along kwargs)
         super(ArgParser, self).__init__(**kwargs)
 

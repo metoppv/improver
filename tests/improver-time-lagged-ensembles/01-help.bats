@@ -33,7 +33,7 @@
   run improver time-lagged-ensembles -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-time-lagged-ensembles [-h] [--profile]
+usage: improver time-lagged-ensembles [-h] [--profile]
                                       [--profile_file PROFILE_FILE]
                                       INPUT_FILENAMES [INPUT_FILENAMES ...]
                                       OUTPUT_FILE

@@ -33,7 +33,7 @@
   run improver extract -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-extract [-h] [--profile] [--profile_file PROFILE_FILE]
+usage: improver extract [-h] [--profile] [--profile_file PROFILE_FILE]
                         [--units UNITS [UNITS ...]] [--ignore-failure]
                         INPUT_FILE OUTPUT_FILE CONSTRAINTS [CONSTRAINTS ...]
 

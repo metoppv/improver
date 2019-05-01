@@ -33,7 +33,7 @@
   run improver update-grid-metadata -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-update-grid-metadata [-h] [--profile]
+usage: improver update-grid-metadata [-h] [--profile]
                                      [--profile_file PROFILE_FILE]
                                      INPUT_FILE OUTPUT_FILE
 

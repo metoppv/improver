@@ -33,7 +33,7 @@
   run improver nowcast-extrapolate -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-nowcast-extrapolate [-h] [--profile]
+usage: improver nowcast-extrapolate [-h] [--profile]
                                     [--profile_file PROFILE_FILE]
                                     [--output_dir OUTPUT_DIR | --output_filepaths OUTPUT_FILEPATHS [OUTPUT_FILEPATHS ...]]
                                     [--eastward_advection_filepath EASTWARD_ADVECTION_FILEPATH]

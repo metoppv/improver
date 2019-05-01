@@ -33,7 +33,7 @@
   run improver temporal-interpolate
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-temporal-interpolate [-h] [--profile]
+usage: improver temporal-interpolate [-h] [--profile]
                                      [--profile_file PROFILE_FILE]
                                      (--interval_in_mins INTERVAL_IN_MINS | --times TIMES [TIMES ...])
                                      [--interpolation_method INTERPOLATION_METHOD]

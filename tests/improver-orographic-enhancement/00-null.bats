@@ -33,7 +33,7 @@
   run improver orographic-enhancement
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-orographic-enhancement [-h] [--profile]
+usage: improver orographic-enhancement [-h] [--profile]
                                        [--profile_file PROFILE_FILE]
                                        [--boundary_height BOUNDARY_HEIGHT]
                                        [--boundary_height_units BOUNDARY_HEIGHT_UNITS]

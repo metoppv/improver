@@ -33,7 +33,7 @@
   run improver nowcast-optical-flow
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-nowcast-optical-flow [-h] [--profile]
+usage: improver nowcast-optical-flow [-h] [--profile]
                                      [--profile_file PROFILE_FILE]
                                      [--output_dir OUTPUT_DIR]
                                      [--nowcast_filepaths NOWCAST_FILEPATHS [NOWCAST_FILEPATHS ...]]

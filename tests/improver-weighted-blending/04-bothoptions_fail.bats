@@ -37,7 +37,7 @@
       "NO_OUTPUT_FILE"
   [[ "${status}" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-weighted-blending [-h] [--profile]
+usage: improver weighted-blending [-h] [--profile]
                                   [--profile_file PROFILE_FILE]
                                   [--wts_calc_method WEIGHTS_CALCULATION_METHOD]
                                   [--coordinate_unit UNIT_STRING]

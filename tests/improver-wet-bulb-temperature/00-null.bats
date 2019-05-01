@@ -33,7 +33,7 @@
   run improver wet-bulb-temperature
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-wet-bulb-temperature [-h] [--profile]
+usage: improver wet-bulb-temperature [-h] [--profile]
                                      [--profile_file PROFILE_FILE]
                                      [--convergence_condition CONVERGENCE_CONDITION]
                                      TEMPERATURE RELATIVE_HUMIDITY PRESSURE

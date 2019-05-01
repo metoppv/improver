@@ -32,7 +32,7 @@
 @test "wind-gust diagnostic no arguments" {
   run improver wind-gust-diagnostic
   [[ "$status" -eq 2 ]]
-  expected="usage: improver-wind-gust-diagnostic [-h] [--profile]
+  expected="usage: improver wind-gust-diagnostic [-h] [--profile]
                                      [--profile_file PROFILE_FILE]
                                      [--percentile_gust PERCENTILE_GUST]
                                      [--percentile_ws PERCENTILE_WIND_SPEED]

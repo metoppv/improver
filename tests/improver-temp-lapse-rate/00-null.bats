@@ -33,7 +33,7 @@
   run improver temp-lapse-rate
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-temp-lapse-rate [-h] [--profile] [--profile_file PROFILE_FILE]
+usage: improver temp-lapse-rate [-h] [--profile] [--profile_file PROFILE_FILE]
                                 [--orography_filepath INPUT_OROGRAPHY_FILE]
                                 [--land_sea_mask_filepath LAND_SEA_MASK_FILE]
                                 [--max_height_diff MAX_HEIGHT_DIFF]

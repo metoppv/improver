@@ -33,7 +33,7 @@
   run improver weighted-blending -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-weighted-blending [-h] [--profile]
+usage: improver weighted-blending [-h] [--profile]
                                   [--profile_file PROFILE_FILE]
                                   [--wts_calc_method WEIGHTS_CALCULATION_METHOD]
                                   [--coordinate_unit UNIT_STRING]

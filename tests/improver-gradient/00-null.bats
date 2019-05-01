@@ -33,7 +33,7 @@
   run improver gradient
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-gradient [-h] [--profile] [--profile_file PROFILE_FILE]
+usage: improver gradient [-h] [--profile] [--profile_file PROFILE_FILE]
                          [--force]
                          INPUT_FILE OUTPUT_FILE
 __TEXT__

@@ -33,7 +33,7 @@
   run improver snow-falling-level -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-snow-falling-level [-h] [--profile]
+usage: improver snow-falling-level [-h] [--profile]
                                    [--profile_file PROFILE_FILE]
                                    [--precision NEWTON_PRECISION]
                                    [--falling_level_threshold FALLING_LEVEL_THRESHOLD]
