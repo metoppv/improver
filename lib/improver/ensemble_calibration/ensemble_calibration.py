@@ -96,7 +96,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         Args:
             initial_guess (List):
                 List of optimised coefficients.
-                Order of coefficients is [c, d, a, b].
+                Order of coefficients is [gamma, delta, alpha, beta].
             forecast_predictor (iris.cube.Cube):
                 Cube containing the fields to be used as the predictor,
                 either the ensemble mean or the ensemble realizations.
@@ -115,7 +115,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         Returns:
             optimised_coeffs (List):
                 List of optimised coefficients.
-                Order of coefficients is [c, d, a, b].
+                Order of coefficients is [gamma, delta, alpha, beta].
 
         """
         def calculate_percentage_change_in_last_iteration(allvecs):
@@ -206,7 +206,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         Args:
             initial_guess : List
                 List of optimised coefficients.
-                Order of coefficients is [c, d, a, b].
+                Order of coefficients is [gamma, delta, alpha, beta].
             forecast_predictor : Numpy array
                 Data to be used as the predictor,
                 either the ensemble mean or the ensemble realizations.
@@ -265,7 +265,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         Args:
             initial_guess (List):
                 List of optimised coefficients.
-                Order of coefficients is [c, d, a, b].
+                Order of coefficients is [gamma, delta, alpha, beta].
             forecast_predictor (Numpy array):
                 Data to be used as the predictor,
                 either the ensemble mean or the ensemble realizations.
@@ -362,7 +362,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         # coefficient name in the list, as there can potentially be
         # multiple beta coefficients if the ensemble realizations, rather
         # than the ensemble mean, are provided as the predictor.
-        self.coeff_names = ["gamma", "delta", "a", "beta"]
+        self.coeff_names = ["gamma", "delta", "alpha", "beta"]
 
         import imp
         try:
@@ -394,15 +394,19 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             self.predictor_of_mean_flag, self.minimiser)
 
     def create_coefficients_cube(
-            self, optimised_coeffs, historic_forecast):
+            self, optimised_coeffs, current_forecast):
         """Create a cube for storing the coefficients computed using EMOS.
+
+        .. See the documentation for examples of these cubes.
+        .. include:: extended_documentation/ensemble_calibration/
+           ensemble_calibration/create_coefficients_cube.rst
 
         Args:
             optimised_coeffs (list):
                 List of optimised coefficients.
-                Order of coefficients is [c, d, a, b].
-            historic_forecast (iris.cube.Cube):
-                The cube containing the historic forecast.
+                Order of coefficients is [gamma, delta, alpha, beta].
+            current_forecast (iris.cube.Cube):
+                The cube containing the current forecast.
 
         Returns:
             cube (iris.cube.Cube):
@@ -470,6 +474,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 if attribute.endswith(allowed_attribute):
                     attributes[attribute] = (
                         historic_forecast.attributes[attribute])
+
         cube = iris.cube.Cube(
             optimised_coeffs, long_name="emos_coefficients", units="1",
             dim_coords_and_dims=dim_coords_and_dims,
@@ -510,7 +515,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         Returns:
             initial_guess (list):
                 List of coefficients to be used as initial guess.
-                Order of coefficients is [c, d, a, b].
+                Order of coefficients is [gamma, delta, alpha, beta].
 
         """
 
@@ -777,7 +782,6 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
             ones_and_mean = (
                 np.column_stack((col_of_ones, forecast_predictor_flat)))
             predicted_mean = np.dot(ones_and_mean, a_and_b)
-
             # Calculate mean of ensemble realizations, as only the
             # calibrated ensemble mean will be returned.
             calibrated_forecast_predictor = (

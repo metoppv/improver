@@ -442,8 +442,13 @@ class WeightedBlendAcrossWholeDimension:
                 blending.
 
         Raises:
-            ValueError : If an invalid weighting_mode is given.
+            ValueError: If the blend coordinate is "threshold".
+            ValueError: If an invalid weighting_mode is given.
         """
+        if coord == "threshold":
+            msg = "Blending over thresholds is not supported"
+            raise ValueError(msg)
+
         self.coord = coord
         if weighting_mode not in ['weighted_maximum', 'weighted_mean']:
             msg = ("weighting_mode: {} is not recognised, must be either "

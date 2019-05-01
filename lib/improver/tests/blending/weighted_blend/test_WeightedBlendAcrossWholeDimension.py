@@ -118,6 +118,13 @@ class Test__init__(IrisTest):
         with self.assertRaisesRegex(ValueError, message):
             WeightedBlendAcrossWholeDimension('time', 'not_a_method')
 
+    def test_threshold_blending_unsupported(self):
+        """Test that the __init__ raises an error if trying to blend over
+        thresholds (which is neither supported nor sensible)."""
+        msg = "Blending over thresholds is not supported"
+        with self.assertRaisesRegex(ValueError, msg):
+            WeightedBlendAcrossWholeDimension('threshold', 'weighted_mean')
+
 
 class Test__repr__(IrisTest):
 
@@ -146,8 +153,8 @@ class Test_weighted_blend(IrisTest):
                              units='degrees')
         lon_coord = DimCoord(np.linspace(120, 180, 2), 'longitude',
                              units='degrees')
-        threshold = DimCoord([0.4, 1.0], long_name="threshold",
-                             units="kg m^-2 s^-1")
+        threshold = DimCoord([0.4, 1.0], long_name="precipitation_amount",
+                             units="kg m^-2 s^-1", var_name="threshold")
 
         data = np.zeros((3, 2, 2))
         data[0][:][:] = 1.0
@@ -378,8 +385,8 @@ class Test_shape_weights(Test_weighted_blend):
         coord = "forecast_reference_time"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
         msg = (
-            "threshold is a coordinate on the weights cube but it is not"
-            " found on the cube we are trying to collapse.")
+            "precipitation_amount is a coordinate on the weights cube but it "
+            "is not found on the cube we are trying to collapse.")
         with self.assertRaisesRegex(ValueError, msg):
             plugin.shape_weights(self.cube, self.weights_threshold)
 
@@ -675,22 +682,6 @@ class Test_weighted_mean(Test_weighted_blend):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def tests_threshold_cube_with_weights_blending_threshold(self):
-        """Test weighted_mean works collapsing a cube with a threshold
-        dimension when the blending is over the threshold coordinate. In this
-        case there is no slicing over the threshold coordinate, so we can test
-        the functionality at this level."""
-        coord = "threshold"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
-        result = plugin.weighted_mean(self.cube_threshold,
-                                      self.weights_threshold)
-
-        expected_data = np.array([0.24, 0.44, 0.64])
-        expected_array = np.broadcast_to(expected_data, (2, 2, 3)).T
-        self.assertArrayAlmostEqual(result.data, expected_array)
-
 
 class Test_weighted_maximum(Test_weighted_blend):
 
@@ -738,22 +729,6 @@ class Test_weighted_maximum(Test_weighted_blend):
 
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
-
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def tests_threshold_cube_with_weights_blending_threshold(self):
-        """Test weighted_mean works collapsing a cube with a threshold
-        dimension when the blending is over the threshold coordinate. In this
-        case there is no slicing over the threshold coordinate, so we can test
-        the functionality at this level."""
-        coord = "threshold"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_maximum')
-        result = plugin.weighted_maximum(self.cube_threshold,
-                                         self.weights_threshold)
-
-        expected_data = np.array([0.16, 0.32, 0.48])
-        expected_array = np.broadcast_to(expected_data, (2, 2, 3)).T
-        self.assertArrayAlmostEqual(result.data, expected_array)
 
 
 class Test_process(Test_weighted_blend):

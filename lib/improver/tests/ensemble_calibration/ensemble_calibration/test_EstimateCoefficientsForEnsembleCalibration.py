@@ -193,17 +193,14 @@ class Test_create_coefficients_cube(IrisTest):
     def setUp(self):
         """Set up the plugin and cubes for testing."""
         data = np.ones((3, 3), dtype=np.float32)
-        self.historic_forecast = (
-            _create_historic_forecasts(set_up_variable_cube(
-                data, standard_grid_metadata="uk_det")))
-
+        self.current_forecast = set_up_variable_cube(
+            data, standard_grid_metadata="uk_det")
         data_with_realizations = np.ones((3, 3, 3), dtype=np.float32)
-        self.historic_forecast_with_realizations = (
-            _create_historic_forecasts(set_up_variable_cube(
-                data_with_realizations, realizations=[0, 1, 2],
-                standard_grid_metadata="uk_det")))
+        self.current_forecast_with_realizations = set_up_variable_cube(
+            data_with_realizations, realizations=[0, 1, 2],
+            standard_grid_metadata="uk_det")
         self.optimised_coeffs = [0, 1, 2, 3]
-        coeff_names = ["gamma", "delta", "a", "beta"]
+        coeff_names = ["gamma", "delta", "alpha", "beta"]
 
         coefficient_index = iris.coords.DimCoord(
             self.optimised_coeffs, long_name="coefficient_index", units="1")
@@ -248,9 +245,9 @@ class Test_create_coefficients_cube(IrisTest):
     def test_coefficients_from_mean(self):
         """Test that the expected coefficient cube is returned when the
         ensemble mean is used as the predictor."""
-        expected_coeff_names = ["gamma", "delta", "a", "beta"]
+        expected_coeff_names = ["gamma", "delta", "alpha", "beta"]
         result = self.plugin.create_coefficients_cube(
-            self.optimised_coeffs, self.historic_forecast)
+            self.optimised_coeffs, self.current_forecast)
         self.assertEqual(result, self.expected)
         self.assertEqual(
             self.plugin.coeff_names, expected_coeff_names)
@@ -276,9 +273,7 @@ class Test_create_coefficients_cube(IrisTest):
     def test_forecast_period_coordinate_not_present(self):
         """Test that the coefficients cube is created correctly when the
         forecast_period coordinate is not present within the input cube."""
-        expected = self.expected.copy()
-        expected.remove_coord("forecast_period")
-        expected.remove_coord("time")
+        self.expected.remove_coord("forecast_period")
         self.historic_forecast.remove_coord("forecast_period")
         result = self.plugin.create_coefficients_cube(
             self.optimised_coeffs, self.historic_forecast)
@@ -289,12 +284,11 @@ class Test_create_coefficients_cube(IrisTest):
     def test_model_configuration_not_present(self):
         """Test that the coefficients cube is created correctly when a
         model_configuration coordinate is not present within the input cube."""
-        expected = self.expected.copy()
-        expected.attributes.pop("mosg__model_configuration")
-        self.historic_forecast.attributes.pop("mosg__model_configuration")
+        self.expected.attributes.pop("mosg__model_configuration")
+        self.current_forecast.attributes.pop("mosg__model_configuration")
         result = self.plugin.create_coefficients_cube(
             self.optimised_coeffs, self.historic_forecast)
-        self.assertEqual(result, expected)
+        self.assertEqual(result, self.expected)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -776,6 +770,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         truth = self.temperature_truth_cube
 
         distribution = "gaussian"
+
         current_cycle = "20171110T0000Z"
         desired_units = "degreesC"
 

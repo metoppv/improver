@@ -42,7 +42,8 @@ from iris.tests import IrisTest
 from iris.util import squeeze
 
 from improver.nowcasting.lightning import NowcastLightning as Plugin
-from improver.utilities.cube_checker import find_dimension_coordinate_mismatch
+from improver.utilities.cube_checker import (
+    find_dimension_coordinate_mismatch, find_threshold_coordinate)
 from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, set_up_probability_cube)
 
@@ -164,7 +165,7 @@ class Test__update_metadata(IrisTest):
         """Create a cube like this:
         probability_of_lwe_precipitation_rate_above_threshold / (1)
         Dimension coordinates:
-            threshold: 1;
+            lwe_precipitation_rate: 1;
             projection_y_coordinate: 16;
             projection_x_coordinate: 16;
         Scalar coordinates:
@@ -193,10 +194,9 @@ class Test__update_metadata(IrisTest):
         self.assertIsInstance(result, Cube)
         self.assertEqual(
             result.name(), "probability_of_rate_of_lightning_above_threshold")
-        msg = ("Expected to find exactly 1 threshold coordinate, but found "
-               "none.")
+        msg = "No threshold coord found"
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            result.coord('threshold')
+            find_threshold_coordinate(result)
         self.assertEqual(result.cell_methods, ())
 
     def test_input(self):
@@ -209,7 +209,7 @@ class Test__update_metadata(IrisTest):
     def test_missing_threshold_coord(self):
         """Test that the method raises an error in Iris if the cube doesn't
         have a threshold coordinate to remove."""
-        self.cube.remove_coord('threshold')
+        self.cube.remove_coord(find_threshold_coordinate(self.cube))
         msg = "No threshold coord found"
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             self.plugin._update_metadata(self.cube)
@@ -465,6 +465,8 @@ class Test_apply_precip(IrisTest):
         (_, self.fg_cube, _, self.precip_cube, _) = (
             set_up_lightning_test_cubes())
         self.plugin = Plugin()
+        self.precip_threshold_coord = find_threshold_coordinate(
+            self.precip_cube)
 
     def test_basic(self):
         """Test that the method returns the expected cube type"""
@@ -482,13 +484,13 @@ class Test_apply_precip(IrisTest):
     def test_nearby_threshold_low(self):
         """Test that the method accepts a threshold point within machine
         tolerance."""
-        self.precip_cube.coord('threshold').points = [0.5000000001, 7., 35.]
+        self.precip_threshold_coord.points = [0.5000000001, 7., 35.]
         self.plugin.apply_precip(self.fg_cube, self.precip_cube)
 
     def test_missing_threshold_low(self):
         """Test that the method raises an error if the precip_cube doesn't
         have a threshold coordinate for 0.5."""
-        self.precip_cube.coord('threshold').points = [1.0, 7., 35.]
+        self.precip_threshold_coord.points = [1.0, 7., 35.]
         msg = ("No matching any precip cube for")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
             self.plugin.apply_precip(self.fg_cube, self.precip_cube)
@@ -496,7 +498,7 @@ class Test_apply_precip(IrisTest):
     def test_missing_threshold_mid(self):
         """Test that the method raises an error if the precip_cube doesn't
         have a threshold coordinate for 7.0."""
-        self.precip_cube.coord('threshold').points = [0.5, 8., 35.]
+        self.precip_threshold_coord.points = [0.5, 8., 35.]
         msg = ("No matching high precip cube for")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
             self.plugin.apply_precip(self.fg_cube, self.precip_cube)
@@ -504,7 +506,7 @@ class Test_apply_precip(IrisTest):
     def test_missing_threshold_high(self):
         """Test that the method raises an error if the precip_cube doesn't
         have a threshold coordinate for 35.0."""
-        self.precip_cube.coord('threshold').points = [0.5, 7., 20.]
+        self.precip_threshold_coord.points = [0.5, 7., 20.]
         msg = ("No matching intense precip cube for")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
             self.plugin.apply_precip(self.fg_cube, self.precip_cube)
@@ -612,6 +614,7 @@ class Test_apply_ice(IrisTest):
             set_up_lightning_test_cubes(validity_time=dt(2015, 11, 23, 7),
                                         fg_frt=dt(2015, 11, 23, 7)))
         self.plugin = Plugin()
+        self.ice_threshold_coord = find_threshold_coordinate(self.ice_cube)
 
     def test_basic(self):
         """Test that the method returns the expected cube type"""
@@ -629,7 +632,7 @@ class Test_apply_ice(IrisTest):
     def test_missing_threshold_low(self):
         """Test that the method raises an error if the ice_cube doesn't
         have a threshold coordinate for 0.5."""
-        self.ice_cube.coord('threshold').points = [0.4, 1., 2.]
+        self.ice_threshold_coord.points = [0.4, 1., 2.]
         msg = (r"No matching prob\(Ice\) cube for threshold 0.5")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
             self.plugin.apply_ice(self.fg_cube, self.ice_cube)
@@ -637,7 +640,7 @@ class Test_apply_ice(IrisTest):
     def test_missing_threshold_mid(self):
         """Test that the method raises an error if the ice_cube doesn't
         have a threshold coordinate for 1.0."""
-        self.ice_cube.coord('threshold').points = [0.5, 0.9, 2.]
+        self.ice_threshold_coord.points = [0.5, 0.9, 2.]
         msg = (r"No matching prob\(Ice\) cube for threshold 1.")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
             self.plugin.apply_ice(self.fg_cube, self.ice_cube)
@@ -645,7 +648,7 @@ class Test_apply_ice(IrisTest):
     def test_missing_threshold_high(self):
         """Test that the method raises an error if the ice_cube doesn't
         have a threshold coordinate for 2.0."""
-        self.ice_cube.coord('threshold').points = [0.5, 1., 4.]
+        self.ice_threshold_coord.points = [0.5, 1., 4.]
         msg = (r"No matching prob\(Ice\) cube for threshold 2.")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
             self.plugin.apply_ice(self.fg_cube, self.ice_cube)
@@ -814,8 +817,9 @@ class Test_process(IrisTest):
             self.precip_cube]))
         self.assertIsInstance(result, Cube)
         # We expect the threshold coordinate to have been removed.
+        threshold_coord = find_threshold_coordinate(self.precip_cube).name()
         self.assertCountEqual(find_dimension_coordinate_mismatch(
-                result, self.precip_cube), ['threshold'])
+                result, self.precip_cube), [threshold_coord])
         self.assertEqual(
             result.name(), 'probability_of_rate_of_lightning_above_threshold')
         self.assertEqual(result.units, '1')
@@ -830,8 +834,9 @@ class Test_process(IrisTest):
             self.vii_cube]))
         self.assertIsInstance(result, Cube)
         # We expect the threshold coordinate to have been removed.
+        threshold_coord = find_threshold_coordinate(self.precip_cube).name()
         self.assertCountEqual(find_dimension_coordinate_mismatch(
-                result, self.precip_cube), ['threshold'])
+                result, self.precip_cube), [threshold_coord])
         self.assertEqual(
             result.name(), 'probability_of_rate_of_lightning_above_threshold')
         self.assertEqual(result.units, '1')
@@ -869,7 +874,8 @@ class Test_process(IrisTest):
     def test_precip_has_no_thresholds(self):
         """Test that the method raises an error if the threshold coord is
         omitted from the precip_cube"""
-        self.precip_cube.remove_coord('threshold')
+        threshold_coord = find_threshold_coordinate(self.precip_cube)
+        self.precip_cube.remove_coord(threshold_coord)
         msg = "No threshold coord found"
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             self.plugin.process(CubeList([

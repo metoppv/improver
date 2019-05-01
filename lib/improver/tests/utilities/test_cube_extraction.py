@@ -38,6 +38,7 @@ from iris.tests import IrisTest
 from iris.coords import DimCoord
 from iris.exceptions import CoordinateNotFoundError
 
+from improver.utilities.cube_checker import find_threshold_coordinate
 from improver.utilities.cube_extraction import (
     create_range_constraint, apply_extraction, extract_subcube,
     is_complex_parsing_required, parse_constraint_list)
@@ -60,7 +61,8 @@ def set_up_precip_probability_cube():
 
     MMH_TO_MS = 0.001 / 3600.
     threshold = DimCoord(MMH_TO_MS * np.array([0.03, 0.1, 1.0]),
-                         long_name="threshold", units="m s-1")
+                         long_name="precipitation_rate", units="m s-1",
+                         var_name="threshold")
     ycoord = DimCoord(np.arange(3), "projection_y_coordinate")
     xcoord = DimCoord(np.arange(3), "projection_x_coordinate")
 
@@ -78,27 +80,27 @@ class Test_create_range_constraint(IrisTest):
     def setUp(self):
         """Set up cube for testing range constraint."""
         self.precip_cube = set_up_precip_probability_cube()
-        self.precip_cube.coord("threshold").convert_units("mm h-1")
+        self.coord_name = find_threshold_coordinate(
+            self.precip_cube).name()
+        self.precip_cube.coord(self.coord_name).convert_units("mm h-1")
         self.expected_data = self.precip_cube[:2].data
 
     def test_basic(self):
         """Test that a constraint is formed correctly."""
-        coord_name = "threshold"
         values = "[0.03:0.1]"
-        result = create_range_constraint(coord_name, values)
+        result = create_range_constraint(self.coord_name, values)
         self.assertIsInstance(result, iris.Constraint)
-        self.assertEqual(list(result._coord_values.keys()), ["threshold"])
+        self.assertEqual(list(result._coord_values.keys()), [self.coord_name])
         result_cube = self.precip_cube.extract(result)
         self.assertArrayAlmostEqual(result_cube.data, self.expected_data)
 
     def test_without_square_brackets(self):
         """Test that a constraint is formed correctly when square brackets
         are not within the input."""
-        coord_name = "threshold"
         values = "0.03:0.1"
-        result = create_range_constraint(coord_name, values)
+        result = create_range_constraint(self.coord_name, values)
         self.assertIsInstance(result, iris.Constraint)
-        self.assertEqual(list(result._coord_values.keys()), ["threshold"])
+        self.assertEqual(list(result._coord_values.keys()), [self.coord_name])
         result_cube = self.precip_cube.extract(result)
         self.assertArrayAlmostEqual(result_cube.data, self.expected_data)
 
@@ -168,16 +170,20 @@ class Test_parse_constraint_list(IrisTest):
 
     def test_range_constraint(self):
         """ Test that a constraint passed in as a range is parsed correctly """
-        constraints = ["threshold=[0.03:0.1]"]
+        # create input cube
+        precip_cube = set_up_precip_probability_cube()
+        threshold_coord = find_threshold_coordinate(precip_cube).name()
+        precip_cube.coord(threshold_coord).convert_units("mm h-1")
+        # generate constraints
+        constraints = ["{}=[0.03:0.1]".format(threshold_coord)]
         result, _ = parse_constraint_list(constraints)
         self.assertIsInstance(result, iris._constraints.ConstraintCombination)
         cdict = result.rhs._coord_values
-        self.assertEqual(list(cdict.keys()), ["threshold"])
-        precip_cube = set_up_precip_probability_cube()
-        precip_cube.coord("threshold").convert_units("mm h-1")
+        self.assertEqual(list(cdict.keys()), [threshold_coord])
+        # extract from input cube
         result_cube = precip_cube.extract(result)
         self.assertArrayAlmostEqual(
-            result_cube.coord("threshold").points, np.array([0.03, 0.1]))
+            result_cube.coord(threshold_coord).points, np.array([0.03, 0.1]))
 
 
 class Test_apply_extraction(IrisTest):
@@ -186,7 +192,9 @@ class Test_apply_extraction(IrisTest):
     def setUp(self):
         """ Set up temporary input cube """
         self.precip_cube = set_up_precip_probability_cube()
-        self.units_dict = {"threshold": "mm h-1"}
+        self.threshold_coord = find_threshold_coordinate(
+            self.precip_cube).name()
+        self.units_dict = {self.threshold_coord: "mm h-1"}
 
     def test_basic_no_units(self):
         """ Test cube extraction for single constraint without units """
@@ -200,11 +208,11 @@ class Test_apply_extraction(IrisTest):
 
     def test_basic_with_units(self):
         """ Test cube extraction for single constraint with units """
-        constraint_dict = {"threshold": 0.1}
+        constraint_dict = {self.threshold_coord: 0.1}
         constr = iris.Constraint(**constraint_dict)
         cube = apply_extraction(self.precip_cube, constr, self.units_dict)
         self.assertIsInstance(cube, iris.cube.Cube)
-        self.assertEqual(cube.coord("threshold").units, "m s-1")
+        self.assertEqual(cube.coord(self.threshold_coord).units, "m s-1")
         reference_data = self.precip_cube.data[1, :, :]
         self.assertArrayEqual(cube.data, reference_data)
 
@@ -212,7 +220,7 @@ class Test_apply_extraction(IrisTest):
         """ Test behaviour with a list of constraints and units """
         constraint_dict = {
             "name": "probability_of_precipitation_rate_above_threshold",
-                    "threshold": 0.03}
+                    self.threshold_coord: 0.03}
         constr = iris.Constraint(**constraint_dict)
         cube = apply_extraction(self.precip_cube, constr, self.units_dict)
         self.assertIsInstance(cube, iris.cube.Cube)
@@ -234,14 +242,14 @@ class Test_apply_extraction(IrisTest):
         required """
         constraint_dict = {
             "name": "probability_of_precipitation_rate_above_threshold",
-                    "threshold": 5}
+                    self.threshold_coord: 5}
         constr = iris.Constraint(**constraint_dict)
         cube = apply_extraction(self.precip_cube, constr, self.units_dict)
         self.assertFalse(cube)
 
     def test_list_constraints(self):
         """ Test that a list of constraints behaves correctly """
-        constraint_dict = {"threshold": [0.1, 1.0]}
+        constraint_dict = {self.threshold_coord: [0.1, 1.0]}
         constr = iris.Constraint(**constraint_dict)
         cube = apply_extraction(self.precip_cube, constr, self.units_dict)
         reference_data = self.precip_cube.data[1:, :, :]
@@ -251,7 +259,8 @@ class Test_apply_extraction(IrisTest):
         """ Test that a list of constraints behaves correctly. This includes
         converting the units to the units that the constraints is
         defined in."""
-        constraint_dict = {"threshold": lambda cell: 0.03 <= cell <= 0.1}
+        constraint_dict = {
+            self.threshold_coord: lambda cell: 0.03 <= cell <= 0.1}
         constr = iris.Constraint(coord_values=constraint_dict)
         cube = apply_extraction(self.precip_cube, constr, self.units_dict)
         reference_data = self.precip_cube.data[:2, :, :]

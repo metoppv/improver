@@ -400,8 +400,12 @@ def _equalise_cube_coords(cubes):
         # Check for mismatches in dim coord bounds
         _check_coord_bounds(cubes)
 
-        # Throw an error for specific coordinate mismatches
-        error_keys = ['threshold']
+        # Throw an error for threshold coordinate mismatch
+        try:
+            error_keys = [find_threshold_coordinate(cubes[0]).name()]
+        except CoordinateNotFoundError:
+            error_keys = []
+
         for error_key in error_keys:
             for key in ([keyval for cube_dict in unmatching_coords
                          for keyval in cube_dict]):
