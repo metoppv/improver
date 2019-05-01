@@ -45,7 +45,7 @@ def main():
        Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
        Regression (NGR). 2 sources of input data must be provided: historical
        forecasts and historical truth data (to use in calibration). The
-       estimated coefficients are written to a json file.
+       estimated coefficients are written to a netCDF file.
     """
     parser = ArgParser(
         description='Estimate coefficients for for Ensemble Model Output '
@@ -95,8 +95,8 @@ def main():
 
     # Estimate coefficients using Ensemble Model Output Statistics (EMOS).
     estcoeffs = EstimateCoefficientsForEnsembleCalibration(
-        args.distribution, args.current_cycle, desired_units=args.units,
-        predictor_of_mean_flag=args.predictor_of_mean_flag)
+        args.distribution, args.cycletime, desired_units=args.units,
+        predictor_of_mean_flag=args.predictor_of_mean)
     coefficients = (
         estcoeffs.estimate_coefficients_for_ngr(historic_forecast, truth))
 
