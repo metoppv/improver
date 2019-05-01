@@ -411,29 +411,33 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         Returns:
             cube (iris.cube.Cube):
                 Cube constructed using the coefficients provided and using
-                metadata from the historic_forecast cube. The cube contains
-                a coefficient_index dimension coordinate and a
-                coefficient_name auxiliary coordinate.
+                metadata from the historic_forecast cube.  The cube contains
+                a coefficient_index dimension coordinate where the points
+                of the coordinate are integer values and a
+                coefficient_name auxiliary coordinate where the points of
+                the coordinate are e.g. gamma, delta, alpha, beta.
 
         """
-        if self.predictor_of_mean_flag.lower() in ["realizations"]:
+        if self.predictor_of_mean_flag.lower() == "realizations":
             realization_coeffs = []
             for realization in historic_forecast.coord("realization").points:
                 realization_coeffs.append(
                     "{}{}".format(self.coeff_names[-1], np.int32(realization)))
-            self.coeff_names = self.coeff_names[:-1] + realization_coeffs
+            coeff_names = self.coeff_names[:-1] + realization_coeffs
+        else:
+            coeff_names = self.coeff_names
 
-        if len(optimised_coeffs) != len(self.coeff_names):
+        if len(optimised_coeffs) != len(coeff_names):
             msg = ("The number of coefficients in {} must equal the "
                    "number of coefficient names {}.".format(
-                        optimised_coeffs, self.coeff_names))
+                        optimised_coeffs, coeff_names))
             raise ValueError(msg)
 
         coefficient_index = iris.coords.DimCoord(
             list(range(len(optimised_coeffs))),
             long_name="coefficient_index", units="1")
         coefficient_name = iris.coords.AuxCoord(
-            self.coeff_names, long_name="coefficient_name", units="no_unit")
+            coeff_names, long_name="coefficient_name", units="no_unit")
         dim_coords_and_dims = [(coefficient_index, 0)]
         aux_coords_and_dims = [(coefficient_name, 0)]
 
@@ -470,10 +474,9 @@ class EstimateCoefficientsForEnsembleCalibration(object):
 
         attributes = {"diagnostic_standard_name": historic_forecast.name()}
         for attribute in historic_forecast.attributes.keys():
-            for allowed_attribute in ["model_configuration"]:
-                if attribute.endswith(allowed_attribute):
-                    attributes[attribute] = (
-                        historic_forecast.attributes[attribute])
+            if attribute.endswith("model_configuration"):
+                attributes[attribute] = (
+                    historic_forecast.attributes[attribute])
 
         cube = iris.cube.Cube(
             optimised_coeffs, long_name="emos_coefficients", units="1",
@@ -519,15 +522,15 @@ class EstimateCoefficientsForEnsembleCalibration(object):
 
         """
 
-        if (predictor_of_mean_flag.lower() in ["mean"] and
+        if (predictor_of_mean_flag.lower() == "mean" and
                 not estimate_coefficients_from_linear_model_flag):
             initial_guess = [1, 1, 0, 1]
-        elif (predictor_of_mean_flag.lower() in ["realizations"] and
+        elif (predictor_of_mean_flag.lower() == "realizations" and
               not estimate_coefficients_from_linear_model_flag):
             initial_guess = [1, 1, 0] + np.repeat(
                 1, no_of_realizations).tolist()
         elif estimate_coefficients_from_linear_model_flag:
-            if predictor_of_mean_flag.lower() in ["mean"]:
+            if predictor_of_mean_flag.lower() == "mean":
                 # Find all values that are not NaN.
                 truth_not_nan = ~np.isnan(truth.data.flatten())
                 forecast_not_nan = ~np.isnan(forecast_predictor.data.flatten())
@@ -544,7 +547,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                                 combined_not_nan],
                             truth.data.flatten()[combined_not_nan]))
                 initial_guess = [1, 1, intercept, gradient]
-            elif predictor_of_mean_flag.lower() in ["realizations"]:
+            elif predictor_of_mean_flag.lower() == "realizations":
                 if self.statsmodels_found:
                     truth_data = truth.data.flatten()
                     forecast_predictor = (
@@ -623,11 +626,17 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             historic_forecast.convert_units(self.desired_units)
             truth.convert_units(self.desired_units)
 
-        if self.predictor_of_mean_flag.lower() in ["mean"]:
+        if historic_forecast.units != truth.units:
+            msg = ("The historic forecast units of {} do not match "
+                   "the truth units {}. These units must match, so that "
+                   "the coefficients can be estimated.")
+            raise ValueError(msg)
+
+        if self.predictor_of_mean_flag.lower() == "mean":
             no_of_realizations = None
             forecast_predictor = historic_forecast.collapsed(
                 "realization", iris.analysis.MEAN)
-        elif self.predictor_of_mean_flag.lower() in ["realizations"]:
+        elif self.predictor_of_mean_flag.lower() == "realizations":
             no_of_realizations = len(
                 historic_forecast.coord("realization").points)
             forecast_predictor = historic_forecast
@@ -684,7 +693,9 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
             coefficients_cube (iris.cube.Cube):
                 Cube containing the coefficients estimated using EMOS.
                 The cube contains a coefficient_index dimension coordinate
-                and a coefficient_name auxiliary coordinate.
+                where the points of the coordinate are integer values and a
+                coefficient_name auxiliary coordinate where the points of
+                the coordinate are e.g. gamma, delta, alpha, beta.
             predictor_of_mean_flag (str):
                 String to specify the input to calculate the calibrated mean.
                 Currently the ensemble mean ("mean") and the ensemble
@@ -714,10 +725,10 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                     the ensemble realizations.
 
         """
-        if self.predictor_of_mean_flag.lower() in ["mean"]:
+        if self.predictor_of_mean_flag.lower() == "mean":
             forecast_predictors = self.current_forecast.collapsed(
                 "realization", iris.analysis.MEAN)
-        elif self.predictor_of_mean_flag.lower() in ["realizations"]:
+        elif self.predictor_of_mean_flag.lower() == "realizations":
             forecast_predictors = self.current_forecast
 
         forecast_vars = self.current_forecast.collapsed(
@@ -756,7 +767,7 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
         # Calculate the predicted mean based on whether the coefficients
         # were estimated using the mean as the predictor or using the
         # ensemble realizations as the predictor.
-        if self.predictor_of_mean_flag.lower() in ["mean"]:
+        if self.predictor_of_mean_flag.lower() == "mean":
             # Calculate predicted mean = a + b*X, where X is the
             # raw ensemble mean. In this case, b = beta.
             a_and_b = [optimised_coeffs["alpha"], optimised_coeffs["beta"]]
@@ -767,7 +778,7 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                 np.column_stack((col_of_ones, forecast_predictor_flat)))
             predicted_mean = np.dot(ones_and_mean, a_and_b)
             calibrated_forecast_predictor = forecast_predictors
-        elif self.predictor_of_mean_flag.lower() in ["realizations"]:
+        elif self.predictor_of_mean_flag.lower() == "realizations":
             # Calculate predicted mean = a + b*X, where X is the
             # raw ensemble mean. In this case, b = beta^2.
             beta_values = np.array([], dtype=np.float32)

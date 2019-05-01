@@ -79,7 +79,8 @@ class Test__init__(IrisTest):
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coeff_names(self):
-        """"""
+        """Test that the plugin instance defines the expected
+        coefficient names."""
         expected = ["gamma", "delta", "alpha", "beta"]
         distribution = "gaussian"
         desired_units = "degreesC"
@@ -260,16 +261,50 @@ class Test_create_coefficients_cube(IrisTest):
     def test_coefficients_from_realizations(self):
         """Test that the expected coefficient cube is returned when the
         ensemble realizations are used as the predictor."""
-        expected = ["gamma", "delta", "alpha", "beta0", "beta1", "beta2"]
+        expected_coeff_names = (
+            ["gamma", "delta", "alpha", "beta0", "beta1", "beta2"])
         predictor_of_mean_flag = "realizations"
         optimised_coeffs = [0, 1, 2, 3, 4, 5]
+
+        # Set up an expected cube.
+        coefficient_index = iris.coords.DimCoord(
+            optimised_coeffs, long_name="coefficient_index", units="1")
+        dim_coords_and_dims = [(coefficient_index, 0)]
+
+        coefficient_name = iris.coords.AuxCoord(
+            expected_coeff_names, long_name="coefficient_name",
+            units="no_unit")
+
+        time_point = (
+            np.max(self.historic_forecast.coord("time").points) + 60*60*24)
+        time_coord = self.historic_forecast.coord("time").copy(time_point)
+
+        frt_orig_coord = (
+            self.historic_forecast.coord("forecast_reference_time"))
+        frt_point = np.max(frt_orig_coord.points) + 60*60*24
+        frt_coord = frt_orig_coord.copy(frt_point)
+
+        aux_coords_and_dims = [
+            (coefficient_name, 0), (time_coord, None), (frt_coord, None),
+            (self.historic_forecast[-1].coord("forecast_period"), None)]
+
+        attributes = {"mosg__model_configuration": "uk_det",
+                      "diagnostic_standard_name": "air_temperature"}
+
+        expected = iris.cube.Cube(
+            optimised_coeffs, long_name="emos_coefficients", units="1",
+            dim_coords_and_dims=dim_coords_and_dims,
+            aux_coords_and_dims=aux_coords_and_dims, attributes=attributes)
+
         plugin = Plugin(distribution=self.distribution,
                         current_cycle=self.current_cycle,
                         desired_units=self.desired_units,
                         predictor_of_mean_flag=predictor_of_mean_flag)
-        plugin.create_coefficients_cube(
+        result = plugin.create_coefficients_cube(
             optimised_coeffs, self.historic_forecast_with_realizations)
-        self.assertEqual(plugin.coeff_names, expected)
+        self.assertEqual(result, expected)
+        self.assertArrayEqual(
+            result.coord("coefficient_name").points, expected_coeff_names)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -784,6 +819,32 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             historic_forecast, truth)
 
         self.assertArrayAlmostEqual(result.data, data, decimal=5)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_non_matching_units(self):
+        """
+        Test that an exception is raised if the historic forecasts and truth
+        have non matching units.
+        """
+        data = [4.55819380e-06, -8.02401974e-09,
+                1.66667055e+00, 1.00000011e+00]
+
+        historic_forecast = self.historic_temperature_forecast_cube
+
+        historic_forecast.convert_units("Fahrenheit")
+
+        truth = self.temperature_truth_cube
+
+        distribution = "gaussian"
+
+        current_cycle = "20171110T0000Z"
+
+        plugin = Plugin(distribution, current_cycle)
+
+        msg = "The historic forecast units"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.estimate_coefficients_for_ngr(historic_forecast, truth)
 
 
 if __name__ == '__main__':
