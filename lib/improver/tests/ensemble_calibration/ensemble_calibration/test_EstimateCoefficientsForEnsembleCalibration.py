@@ -689,8 +689,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin = Plugin(distribution, current_cycle)
         result = plugin.estimate_coefficients_for_ngr(
-            self.historic_temperature_forecast_cube,
-            self.temperature_truth_cube)
+            self.historic_wind_speed_forecast_cube,
+            self.wind_speed_truth_cube)
 
         self.assertArrayAlmostEqual(result.data, data)
         self.assertArrayEqual(
