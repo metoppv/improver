@@ -50,6 +50,40 @@ from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
 
+class Test__repr__(IrisTest):
+
+    """Test the __repr__ method."""
+
+    def setUp(self):
+        """Test up test cubes."""
+        data = np.ones([2, 2], dtype=np.float32)
+        self.current_forecast = set_up_variable_cube(data)
+        self.coefficients_cube = (
+            set_up_variable_cube(data, name="emos_coefficients"))
+
+    def test_basic(self):
+        """Test without specifying keyword arguments"""
+        result = str(Plugin(self.current_forecast, self.coefficients_cube))
+        print("result = ", result)
+        msg = ("<ApplyCoefficientsFromEnsembleCalibration: "
+               "current_forecast: air_temperature; "
+               "coefficients_cube: emos_coefficients; "
+               "predictor_of_mean_flag: mean>")
+        self.assertEqual(result, msg)
+
+    def test_with_kwargs(self):
+        """Test when keyword arguments are specified."""
+        result = str(Plugin(
+            self.current_forecast, self.coefficients_cube,
+            predictor_of_mean_flag="realizations"))
+        print("result = ", result)
+        msg = ("<ApplyCoefficientsFromEnsembleCalibration: "
+               "current_forecast: air_temperature; "
+               "coefficients_cube: emos_coefficients; "
+               "predictor_of_mean_flag: realizations>")
+        self.assertEqual(result, msg)
+
+
 class Test_apply_params_entry(IrisTest):
 
     """Test the apply_params_entry plugin."""

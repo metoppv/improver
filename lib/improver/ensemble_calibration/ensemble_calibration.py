@@ -86,6 +86,15 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
             "gaussian": self.normal_crps_minimiser,
             "truncated gaussian": self.truncated_normal_crps_minimiser}
 
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = ('<ContinuousRankedProbabilityScoreMinimisers: '
+                  'minimisation_dict: {}>')
+        print_dict = {}
+        for key in self.minimisation_dict:
+            print_dict.update({key: self.minimisation_dict[key].__name__})
+        return result.format(print_dict)
+
     def crps_minimiser_wrapper(
             self, initial_guess, forecast_predictor, truth, forecast_var,
             predictor_of_mean_flag, distribution):
@@ -339,6 +348,8 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 represented using this distribution.
             current_cycle (str):
                 The current cycle in YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
+                This is used to create a forecast_reference_time coordinate
+                on the resulting EMOS coefficients cube.
 
         Kwargs:
             desired_units (str or cf_units.Unit):
@@ -383,15 +394,19 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             self.sm = sm
         self.statsmodels_found = statsmodels_found
 
-    def __str__(self):
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
         result = ('<EstimateCoefficientsForEnsembleCalibration: '
-                  'distribution: {};' +
-                  'desired_units: {}>' +
-                  'predictor_of_mean_flag: {}>' +
-                  'minimiser: {}')
+                  'distribution: {}; '
+                  'current_cycle: {}; '
+                  'desired_units: {}; '
+                  'predictor_of_mean_flag: {}; '
+                  'minimiser: {}; '
+                  'coeff_names: {}>')
         return result.format(
-            self.distribution, self.desired_units,
-            self.predictor_of_mean_flag, self.minimiser)
+            self.distribution, self.current_cycle, self.desired_units,
+            self.predictor_of_mean_flag, self.minimiser.__class__,
+            self.coeff_names)
 
     def create_coefficients_cube(
             self, optimised_coeffs, historic_forecast):
@@ -434,7 +449,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             raise ValueError(msg)
 
         coefficient_index = iris.coords.DimCoord(
-            list(range(len(optimised_coeffs))),
+            np.arange(len(optimised_coeffs)),
             long_name="coefficient_index", units="1")
         coefficient_name = iris.coords.AuxCoord(
             coeff_names, long_name="coefficient_name", units="no_unit")
@@ -455,8 +470,11 @@ class EstimateCoefficientsForEnsembleCalibration(object):
 
         # Create a forecast_period and a time coordinate.
         try:
-            fp_point, = (
-                np.unique(historic_forecast.coord("forecast_period").points))
+            # Ensure that the fp_point is determined with units of seconds.
+            copy_of_fp_coord = (
+                historic_forecast.coord(
+                    "forecast_period").copy().convert_units("seconds"))
+            fp_point, = np.unique(copy_of_fp_coord.points)
         except CoordinateNotFoundError:
             pass
         else:
@@ -464,11 +482,12 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 historic_forecast.coord("forecast_period").copy(fp_point))
             aux_coords_and_dims.append((fp_coord, None))
             frt_point = cycletime_to_datetime(self.current_cycle)
-            time_point = (
-                frt_point + datetime.timedelta(seconds=float(fp_point)))
-            time_point = datetime_to_iris_time(
-                time_point, time_units="seconds")
             if historic_forecast.coords("time"):
+                time_point = (
+                    frt_point + datetime.timedelta(seconds=float(fp_point)))
+                time_point = datetime_to_iris_time(
+                    time_point,
+                    time_units=historic_forecast.coords("time").units)
                 time_coord = historic_forecast.coord("time").copy(time_point)
                 aux_coords_and_dims.append((time_coord, None))
 
@@ -708,6 +727,16 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
         check_predictor_of_mean_flag(predictor_of_mean_flag)
         self.predictor_of_mean_flag = predictor_of_mean_flag
 
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = ('<ApplyCoefficientsFromEnsembleCalibration: '
+                  'current_forecast: {}; '
+                  'coefficients_cube: {}; '
+                  'predictor_of_mean_flag: {}>')
+        return result.format(
+            self.current_forecast.name(), self.coefficients_cube.name(),
+            self.predictor_of_mean_flag)
+
     def apply_params_entry(self):
         """
         Wrapping function to calculate the forecast predictor and forecast
@@ -863,11 +892,12 @@ class EnsembleCalibration(object):
         self.desired_units = desired_units
         self.predictor_of_mean_flag = predictor_of_mean_flag
 
-    def __str__(self):
-        result = ('<EnsembleCalibration: ' +
-                  'calibration_method: {}' +
-                  'distribution: {};' +
-                  'desired_units: {};' +
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = ('<EnsembleCalibration: '
+                  'calibration_method: {}; '
+                  'distribution: {}; '
+                  'desired_units: {}; '
                   'predictor_of_mean_flag: {};')
         return result.format(
             self.calibration_method, self.distribution, self.desired_units,
@@ -912,7 +942,7 @@ class EnsembleCalibration(object):
                     ["gaussian", "truncated gaussian"]):
                 current_cycle = datetime_to_cycletime(
                     iris_time_to_datetime(
-                        current_forecast.coord("time"))[0])
+                        current_forecast.coord("forecast_reference_time"))[0])
                 ec = EstimateCoefficientsForEnsembleCalibration(
                     self.distribution, current_cycle=current_cycle,
                     desired_units=self.desired_units,
