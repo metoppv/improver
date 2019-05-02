@@ -725,6 +725,22 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
         """
         self.current_forecast = current_forecast
         self.coefficients_cube = coefficients_cube
+        for coord_name in ["forecast_period", "time",
+                           "forecast_reference_time"]:
+            try:
+                if (self.current_forecast.coord(coord_name) !=
+                        self.coefficients_cube.coord(coord_name)):
+                    msg = ("The {} coordinate of the current forecast cube "
+                           "and coefficients cube differs. "
+                           "current forecast: {}, "
+                           "coefficients cube: {}").format(
+                                coord_name,
+                                self.current_forecast.coord(coord_name),
+                                self.coefficients_cube.coord(coord_name))
+                    raise ValueError(msg)
+            except CoordinateNotFoundError:
+                pass
+
         # Ensure predictor_of_mean_flag is valid.
         check_predictor_of_mean_flag(predictor_of_mean_flag)
         self.predictor_of_mean_flag = predictor_of_mean_flag
