@@ -358,7 +358,11 @@ class MergeCubes():
 
     def _equalise_cube_coords(self, cubes):
         """
-        Function to equalise coordinates that do not match.
+        Function to equalise coordinates that do not match, by slicing over
+        dimension coordinate values and creating a cube list which can later
+        be merged.  Raises errors if coordinates have bounds values that are
+        unmatched, or if the coordinates specified by
+        self.coord_mismatch_error_keys have differences.
 
         Args:
             cubes (iris.cube.CubeList):
@@ -371,6 +375,9 @@ class MergeCubes():
                 have been sliced over mismatching dimension coordinates.
 
         Raises:
+            ValueError:
+                If bounds on dimension coordinates do not match (through
+                self._check_dim_coord_bounds(cubes)).
             ValueError:
                 If coordinates in self.coord_mismatch_error_keys do not match.
         """
@@ -387,13 +394,6 @@ class MergeCubes():
 
             # throw an error for specific coordinate mismatches
             for error_key in self.coord_mismatch_error_keys:
-                # if necessary, translate threshold coordinate name
-                if error_key == "threshold":
-                    try:
-                        error_key = find_threshold_coordinate(cubes[0]).name()
-                    except CoordinateNotFoundError:
-                        continue
-                # loop over mismatched coordinates
                 for key in ([keyval for cube_dict in unmatching_coords
                              for keyval in cube_dict]):
                     if error_key in key:
@@ -545,6 +545,9 @@ class MergeCubes():
         if isinstance(cubes_in, iris.cube.Cube):
             return cubes_in
 
+        if len(cubes_in) == 1:
+            return cubes_in[0]
+
         # create copies of input cubes so as not to modify in place
         cubelist = iris.cube.CubeList([])
         for cube in cubes_in:
@@ -653,9 +656,6 @@ class MergeCubesForWeightedBlending():
             ValueError:
                 If self.model_id_attr is not present on all cubes
         """
-        if self.model_id_attr is None:
-            return cubelist
-
         for i, cube in enumerate(cubelist):
             if self.model_id_attr not in cube.attributes:
                 msg = ('Cannot create model ID coordinate for grid blending '
@@ -704,6 +704,9 @@ class MergeCubesForWeightedBlending():
         if isinstance(cubes_in, iris.cube.Cube):
             return cubes_in
 
+        if len(cubes_in) == 1:
+            return cubes_in[0]
+
         # create copies of input cubes so as not to modify in place
         cubelist = iris.cube.CubeList([])
         for cube in cubes_in:
@@ -721,7 +724,8 @@ class MergeCubesForWeightedBlending():
 
         # create model ID and model configuration coordinates if blending
         # different models
-        self._create_model_coordinates(cubelist)
+        if self.model_id_attr is not None:
+            self._create_model_coordinates(cubelist)
 
         # merge resulting cubelist
         result = MergeCubes().process(cubelist, check_time_bounds_ranges=True)

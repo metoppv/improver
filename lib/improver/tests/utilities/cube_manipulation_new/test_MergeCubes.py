@@ -125,6 +125,9 @@ class Test__equalise_cube_coords(IrisTest):
             time=time_point, frt=dt(2015, 11, 23, 3))
         self.cubelist = iris.cube.CubeList([cube1, cube2])
         self.plugin = MergeCubes()
+        # this would usually be done by the "process" method
+        self.plugin.coord_mismatch_error_keys = [
+            find_threshold_coordinate(cube1).name()]
 
     def test_basic(self):
         """Test that the utility returns an iris.cube.CubeList."""
@@ -325,34 +328,60 @@ class Test_process(IrisTest):
     """Test the process method (see also test_merge_cubes.py)"""
 
     def setUp(self):
-        """Use temperature cube to test with."""
-        data = 275*np.ones((3, 3, 3), dtype=np.float32)
+        """Use temperature exceedance probability cubes to test with."""
+        data = np.ones((2, 3, 3), dtype=np.float32)
+        thresholds = np.array([274, 275], dtype=np.float32)
         time_point = dt(2015, 11, 23, 7)
 
-        # set up a MOGREPS-UK cube with 7 hour forecast period
-        self.cube_enuk = set_up_variable_cube(
-            data.copy(), standard_grid_metadata='uk_ens', time=time_point,
-            frt=dt(2015, 11, 23, 0))
+        # set up some UKV cubes with 4, 5 and 6 hour forecast periods and
+        # different histories
+        self.cube_ukv = set_up_probability_cube(
+            data.copy(), thresholds.copy(), standard_grid_metadata='uk_det',
+            time=time_point, frt=dt(2015, 11, 23, 3),
+            attributes={'history': 'something'})
 
-        # set up a UKV cube with 4 hour forecast period
-        self.cube_ukv = set_up_variable_cube(
-            data[1].copy(), standard_grid_metadata='uk_det', time=time_point,
-            frt=dt(2015, 11, 23, 3))
+        self.cube_ukv_t1 = set_up_probability_cube(
+            data.copy(), thresholds.copy(), standard_grid_metadata='uk_det',
+            time=time_point, frt=dt(2015, 11, 23, 2),
+            attributes={'history': 'different'})
 
-        # set up more UKV cubes with 5 and 6 hour forecast periods
-        self.cube_ukv_t1 = set_up_variable_cube(
-            data[1].copy(), standard_grid_metadata='uk_det', time=time_point,
-            frt=dt(2015, 11, 23, 2))
-        self.cube_ukv_t2 = set_up_variable_cube(
-            data[1].copy(), standard_grid_metadata='uk_det', time=time_point,
-            frt=dt(2015, 11, 23, 1))
+        self.cube_ukv_t2 = set_up_probability_cube(
+            data.copy(), thresholds.copy(), standard_grid_metadata='uk_det',
+            time=time_point, frt=dt(2015, 11, 23, 1),
+            attributes={'history': 'entirely'})
 
         self.plugin = MergeCubes()
 
     def test_basic(self):
-        """Test that the utility returns an iris.cube.Cube."""
+        """Test that the utility returns an iris.cube.Cube"""
         result = self.plugin.process([self.cube_ukv, self.cube_ukv_t1])
         self.assertIsInstance(result, iris.cube.Cube)
+        # check coord_mismatch_error_keys is updated to match input
+        # cube threshold coordinate names
+        self.assertEqual(
+            self.plugin.coord_mismatch_error_keys, ["air_temperature"])
+
+    def test_null(self):
+        """Test single cube is returned unmodified"""
+        cube = self.cube_ukv.copy()
+        result = self.plugin.process(cube)
+        self.assertArrayAlmostEqual(result.data, self.cube_ukv.data)
+        self.assertEqual(result.metadata, self.cube_ukv.metadata)
+
+    def test_single_item_list(self):
+        """Test cube from single item list is returned unmodified"""
+        cubelist = iris.cube.CubeList([self.cube_ukv.copy()])
+        result = self.plugin.process(cubelist)
+        self.assertArrayAlmostEqual(result.data, self.cube_ukv.data)
+        self.assertEqual(result.metadata, self.cube_ukv.metadata)
+
+    def test_unmatched_attributes(self):
+        """Test that unmatched attributes are removed without modifying the
+        input cubes"""
+        result = self.plugin.process([self.cube_ukv, self.cube_ukv_t1])
+        self.assertNotIn("history", result.attributes.keys())
+        self.assertEqual(self.cube_ukv.attributes['history'], 'something')
+        self.assertEqual(self.cube_ukv_t1.attributes['history'], 'different')
 
     def test_identical_cubes(self):
         """Test that merging identical cubes fails."""
@@ -376,7 +405,10 @@ class Test_process(IrisTest):
     def test_failure_mismatched_dims(self):
         """Test that merging fails where a dimension coordinate is
         present on one cube but not on the other"""
-        cubes = iris.cube.CubeList([self.cube_enuk, self.cube_ukv])
+        cube_enuk = set_up_variable_cube(
+            self.cube_ukv.data.copy(), standard_grid_metadata='uk_ens',
+            time=dt(2015, 11, 23, 7), frt=dt(2015, 11, 23, 0))
+        cubes = iris.cube.CubeList([cube_enuk, self.cube_ukv])
         with self.assertRaises(MergeError):
             self.plugin.process(cubes)
 

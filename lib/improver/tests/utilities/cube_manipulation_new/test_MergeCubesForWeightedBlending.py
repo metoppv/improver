@@ -109,7 +109,9 @@ class Test__create_model_coordinates(IrisTest):
             model_id_attr="mosg__model_configuration")
 
     def test_basic(self):
-        """Test model ID and model configuration coords are created"""
+        """Test model ID and model configuration coords are created and that
+        the model_id_attr (in this case 'mosg__model_configuration') is
+        correctly updated"""
         self.plugin._create_model_coordinates(self.cubelist)
         for cube in self.cubelist:
             cube_coords = [coord.name() for coord in cube.coords()]
@@ -118,14 +120,16 @@ class Test__create_model_coordinates(IrisTest):
             self.assertEqual(
                 cube.attributes["mosg__model_configuration"], "blend")
 
-    def test_null(self):
-        """Test no effect if model_id_attr is not set"""
-        plugin = MergeCubesForWeightedBlending("realization")
-        plugin._create_model_coordinates(self.cubelist)
-        for cube in self.cubelist:
-            cube_coords = [coord.name() for coord in cube.coords()]
-            self.assertNotIn("model_id", cube_coords)
-            self.assertNotIn("model_configuration", cube_coords)
+    def test_values(self):
+        """Test values of model coordinates are as expected"""
+        expected_id = [0, 1000]
+        expected_config = ["uk_ens", "uk_det"]
+        self.plugin._create_model_coordinates(self.cubelist)
+        for cube, m_id, m_conf in zip(
+                self.cubelist, expected_id, expected_config):
+            self.assertEqual(cube.coord("model_id").points, [m_id])
+            self.assertEqual(
+                cube.coord("model_configuration").points, [m_conf])
 
     def test_unmatched_model_id_attr(self):
         """Test error if model_id_attr is not present on both input cubes"""
@@ -133,6 +137,19 @@ class Test__create_model_coordinates(IrisTest):
         msg = 'Cannot create model ID coordinate for grid blending '
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin._create_model_coordinates(self.cubelist)
+
+    def test_same_model_id_attr(self):
+        """Test values if input cubes have the same model ID"""
+        expected_id = [0, 1000]
+        expected_config = ["uk_ens", "uk_ens"]
+        new_cubelist = iris.cube.CubeList(
+            [self.cube_enuk.copy(), self.cube_enuk.copy()])
+        self.plugin._create_model_coordinates(new_cubelist)
+        for cube, m_id, m_conf in zip(
+                new_cubelist, expected_id, expected_config):
+            self.assertEqual(cube.coord("model_id").points, [m_id])
+            self.assertEqual(
+                cube.coord("model_configuration").points, [m_conf])
 
 
 class Test_process(IrisTest):
@@ -182,6 +199,13 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, self.cube_enuk.data)
         self.assertEqual(result.metadata, self.cube_enuk.metadata)
 
+    def test_single_item_list(self):
+        """Test cube from single item list is returned unmodified"""
+        cubelist = iris.cube.CubeList([self.cube_enuk.copy()])
+        result = self.plugin.process(cubelist)
+        self.assertArrayAlmostEqual(result.data, self.cube_enuk.data)
+        self.assertEqual(result.metadata, self.cube_enuk.metadata)
+
     def test_multi_model_merge(self):
         """Test models merge OK and have expected model coordinates"""
         result = self.plugin.process(self.cubelist)
@@ -219,6 +243,11 @@ class Test_process(IrisTest):
         # check forecast period coordinate has been removed
         with self.assertRaises(iris.exceptions.CoordinateNotFoundError):
             result.coord("forecast_period")
+        # check no model coordinates have been added
+        with self.assertRaises(iris.exceptions.CoordinateNotFoundError):
+            result.coord("model_id")
+        with self.assertRaises(iris.exceptions.CoordinateNotFoundError):
+            result.coord("model_configuration")
 
     def test_cycletime(self):
         """Test merged cube has updated forecast reference time and forecast
