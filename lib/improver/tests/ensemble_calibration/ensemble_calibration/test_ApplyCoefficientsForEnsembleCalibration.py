@@ -64,7 +64,6 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test without specifying keyword arguments"""
         result = str(Plugin(self.current_forecast, self.coefficients_cube))
-        print("result = ", result)
         msg = ("<ApplyCoefficientsFromEnsembleCalibration: "
                "current_forecast: air_temperature; "
                "coefficients_cube: emos_coefficients; "
@@ -76,7 +75,6 @@ class Test__repr__(IrisTest):
         result = str(Plugin(
             self.current_forecast, self.coefficients_cube,
             predictor_of_mean_flag="realizations"))
-        print("result = ", result)
         msg = ("<ApplyCoefficientsFromEnsembleCalibration: "
                "current_forecast: air_temperature; "
                "coefficients_cube: emos_coefficients; "

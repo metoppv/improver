@@ -171,7 +171,7 @@ class Test__init__(IrisTest):
 
         if not statsmodels_found:
             Plugin(distribution, desired_units,
-                            predictor_of_mean_flag=predictor_of_mean_flag)
+                   predictor_of_mean_flag=predictor_of_mean_flag)
             warning_msg = "The statsmodels can not be imported"
             self.assertTrue(any(item.category == ImportWarning
                                 for item in warning_list))
@@ -239,7 +239,6 @@ class Test_create_coefficients_cube(IrisTest):
         self.historic_forecast = (
             _create_historic_forecasts(set_up_variable_cube(
                 data, standard_grid_metadata="uk_det")))
-
         data_with_realizations = np.ones((3, 3, 3), dtype=np.float32)
         self.historic_forecast_with_realizations = (
             _create_historic_forecasts(set_up_variable_cube(
@@ -350,6 +349,20 @@ class Test_create_coefficients_cube(IrisTest):
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_coefficients_from_mean_non_standard_units(self):
+        """Test that the expected coefficient cube is returned when the
+        ensemble mean is used as the predictor."""
+        expected_coeff_names = ["gamma", "delta", "alpha", "beta"]
+        self.historic_forecast.coord("forecast_period").convert_units("hours")
+        self.expected.coord("forecast_period").convert_units("hours")
+        result = self.plugin.create_coefficients_cube(
+            self.optimised_coeffs, self.historic_forecast)
+        self.assertEqual(result, self.expected)
+        self.assertEqual(
+            self.plugin.coeff_names, expected_coeff_names)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_forecast_period_coordinate_not_present(self):
         """Test that the coefficients cube is created correctly when the
         forecast_period coordinate is not present within the input cube."""
@@ -409,7 +422,7 @@ class Test_compute_initial_guess(IrisTest):
         """
         current_forecast_predictor = self.cube.collapsed(
             "realization", iris.analysis.MEAN)
-        truth = cube.collapsed("realization", iris.analysis.MAX)
+        truth = self.cube.collapsed("realization", iris.analysis.MAX)
         distribution = "gaussian"
         desired_units = "degreesC"
         predictor_of_mean_flag = "mean"
@@ -430,7 +443,7 @@ class Test_compute_initial_guess(IrisTest):
         realizations are used as predictors.
         """
         current_forecast_predictor = self.cube.copy()
-        truth = cube.collapsed("realization", iris.analysis.MAX)
+        truth = self.cube.collapsed("realization", iris.analysis.MAX)
         distribution = "gaussian"
         desired_units = "degreesC"
         predictor_of_mean_flag = "realizations"

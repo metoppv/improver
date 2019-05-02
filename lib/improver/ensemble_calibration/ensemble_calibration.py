@@ -458,8 +458,8 @@ class EstimateCoefficientsForEnsembleCalibration(object):
 
         # Create a forecast_reference_time coordinate.
         frt_point = cycletime_to_datetime(self.current_cycle)
-
         try:
+
             frt_coord = (
                 historic_forecast.coord("forecast_reference_time").copy(
                     datetime_to_iris_time(frt_point, time_units="seconds")))
@@ -468,26 +468,28 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         else:
             aux_coords_and_dims.append((frt_coord, None))
 
-        # Create a forecast_period and a time coordinate.
+        # Create forecast period and time coordinates.
         try:
-            # Ensure that the fp_point is determined with units of seconds.
-            copy_of_fp_coord = (
-                historic_forecast.coord(
-                    "forecast_period").copy().convert_units("seconds"))
-            fp_point, = np.unique(copy_of_fp_coord.points)
+            fp_point, = (
+                np.unique(historic_forecast.coord("forecast_period").points))
+            fp_coord = (
+                historic_forecast.coord("forecast_period").copy(fp_point))
         except CoordinateNotFoundError:
             pass
         else:
-            fp_coord = (
-                historic_forecast.coord("forecast_period").copy(fp_point))
             aux_coords_and_dims.append((fp_coord, None))
-            frt_point = cycletime_to_datetime(self.current_cycle)
             if historic_forecast.coords("time"):
+                frt_point = cycletime_to_datetime(self.current_cycle)
+                # Ensure that the fp_point is determined with units of seconds.
+                copy_of_fp_coord = (
+                    historic_forecast.coord("forecast_period").copy())
+                copy_of_fp_coord.convert_units("seconds")
+                fp_point, = np.unique(copy_of_fp_coord.points)
                 time_point = (
                     frt_point + datetime.timedelta(seconds=float(fp_point)))
                 time_point = datetime_to_iris_time(
                     time_point,
-                    time_units=historic_forecast.coords("time").units)
+                    time_units=str(historic_forecast.coord("time").units))
                 time_coord = historic_forecast.coord("time").copy(time_point)
                 aux_coords_and_dims.append((time_coord, None))
 
