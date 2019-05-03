@@ -195,11 +195,9 @@ class Test_process(IrisTest):
         The ensemble mean is the predictor.
         """
         predictor_data = np.array(
-            [[231.150024, 242.400024, 253.650024],
-             [264.899994, 276.149994, 287.399994],
-             [298.650024, 309.900024, 321.150024]],
-            dtype=np.float32
-        )
+            [[231.15002, 242.40002, 253.65002],
+             [264.9, 276.15, 287.4],
+             [298.65, 309.9, 321.15]], dtype=np.float32)
         variance_data = np.array(
             [[2.07777316e-11, 2.07777316e-11, 2.07777316e-11],
              [2.07777316e-11, 2.07777316e-11, 2.07777316e-11],
@@ -212,7 +210,6 @@ class Test_process(IrisTest):
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-
         self.assertArrayAlmostEqual(calibrated_predictor.data, predictor_data)
         self.assertArrayAlmostEqual(calibrated_variance.data, variance_data)
 
@@ -287,11 +284,9 @@ class Test_process(IrisTest):
         The ensemble mean is the predictor.
         """
         predictor_data = np.array(
-            [[2.9999862, 10.49998827, 17.99999034],
-             [25.4999924, 32.99999447, 40.49999654],
-             [47.99999861, 55.50000068, 63.00000275]],
-            dtype=np.float32
-        )
+            [[2.9999862, 10.499988, 17.999989],
+             [25.49999, 32.999992, 40.499992],
+             [47.999996, 55.499996, 63.]], dtype=np.float32)
         variance_data = np.array(
             [[0., 0., 0.],
              [0., 0., 0.],
