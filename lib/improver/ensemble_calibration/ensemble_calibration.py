@@ -449,7 +449,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             raise ValueError(msg)
 
         coefficient_index = iris.coords.DimCoord(
-            np.arange(len(optimised_coeffs)),
+            np.arange(len(optimised_coeffs), dtype=np.int32),
             long_name="coefficient_index", units="1")
         coefficient_name = iris.coords.AuxCoord(
             coeff_names, long_name="coefficient_name", units="no_unit")
