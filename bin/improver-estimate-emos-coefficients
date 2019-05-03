@@ -62,9 +62,12 @@ def main():
                              'the minimisation functions in '
                              'ContinuousRankedProbabilityScoreMinimisers.')
     parser.add_argument('cycletime', metavar='CYCLETIME', type=str,
-                        help='The time to be used after at which the '
-                             'coefficients calculated using EMOS should be '
-                             'used. This cycletime is in the format '
+                        help='This denotes the cycle at which forecasts '
+                             'will be calibrated using the calculated '
+                             'EMOS coefficients. The validity time in the '
+                             'output coefficients cube will be calculated '
+                             'relative to this cycletime. '
+                             'This cycletime is in the format '
                              'YYYYMMDDTHHMMZ.')
     # Filepaths for historic and truth data.
     parser.add_argument('historic_filepath', metavar='HISTORIC_FILEPATH',
