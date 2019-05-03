@@ -37,8 +37,8 @@
 
   # Estimate the EMOS coefficients and check that they match the kgo.
   run improver estimate-emos-coefficients 'truncated gaussian' '20170605T1500Z' \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
+      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/truncated_gaussian/history/*.nc" \
+      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/truncated_gaussian/truth/*.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
