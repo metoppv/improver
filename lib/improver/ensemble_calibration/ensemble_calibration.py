@@ -511,89 +511,6 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             aux_coords_and_dims=aux_coords_and_dims, attributes=attributes)
         return cube
 
-    def create_coefficients_cube(
-            self, optimised_coeffs, historic_forecast):
-        """Create a cube for storing the coefficients computed using EMOS.
-
-        Args:
-            optimised_coeffs (list):
-                List of optimised coefficients.
-                Order of coefficients is [c, d, a, b].
-            historic_forecast (iris.cube.Cube):
-                The cube containing the historic forecast.
-
-        Returns:
-            cube (iris.cube.Cube):
-                Cube constructed using the coefficients provided and using
-                metadata from the historic_forecast cube. The cube contains
-                a coefficient_index dimension coordinate and a
-                coefficient_name auxiliary coordinate.
-
-        """
-        if self.predictor_of_mean_flag.lower() in ["realizations"]:
-            realization_coeffs = []
-            for realization in historic_forecast.coord("realization").points:
-                realization_coeffs.append(
-                    "{}{}".format(self.coeff_names[-1], np.int32(realization)))
-            self.coeff_names = self.coeff_names[:-1] + realization_coeffs
-
-        if len(optimised_coeffs) != len(self.coeff_names):
-            msg = ("The number of coefficients in {} must equal the "
-                   "number of coefficient names {}.".format(
-                        optimised_coeffs, self.coeff_names))
-            raise ValueError(msg)
-
-        coefficient_index = iris.coords.DimCoord(
-            np.arange(len(optimised_coeffs), dtype=np.int32),
-            long_name="coefficient_index", units="1")
-        coefficient_name = iris.coords.AuxCoord(
-            self.coeff_names, long_name="coefficient_name", units="no_unit")
-        dim_coords_and_dims = [(coefficient_index, 0)]
-        aux_coords_and_dims = [(coefficient_name, 0)]
-
-        # Create a forecast_reference_time coordinate.
-        frt_point = cycletime_to_datetime(self.current_cycle)
-
-        try:
-            frt_coord = (
-                historic_forecast.coord("forecast_reference_time").copy(
-                    datetime_to_iris_time(frt_point, time_units="seconds")))
-        except CoordinateNotFoundError:
-            pass
-        else:
-            aux_coords_and_dims.append((frt_coord, None))
-
-        # Create a forecast_period and a time coordinate.
-        try:
-            fp_point, = (
-                np.unique(historic_forecast.coord("forecast_period").points))
-        except CoordinateNotFoundError:
-            pass
-        else:
-            fp_coord = (
-                historic_forecast.coord("forecast_period").copy(fp_point))
-            aux_coords_and_dims.append((fp_coord, None))
-            frt_point = cycletime_to_datetime(self.current_cycle)
-            time_point = (
-                frt_point + datetime.timedelta(seconds=float(fp_point)))
-            time_point = datetime_to_iris_time(
-                time_point, time_units="seconds")
-            if historic_forecast.coords("time"):
-                time_coord = historic_forecast.coord("time").copy(time_point)
-                aux_coords_and_dims.append((time_coord, None))
-
-        attributes = {"diagnostic_standard_name": historic_forecast.name()}
-        for attribute in historic_forecast.attributes.keys():
-            for allowed_attribute in ["model_configuration"]:
-                if attribute.endswith(allowed_attribute):
-                    attributes[attribute] = (
-                        historic_forecast.attributes[attribute])
-        cube = iris.cube.Cube(
-            optimised_coeffs, long_name="emos_coefficients", units="1",
-            dim_coords_and_dims=dim_coords_and_dims,
-            aux_coords_and_dims=aux_coords_and_dims, attributes=attributes)
-        return cube
-
     def compute_initial_guess(
             self, truth, forecast_predictor, predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag,
@@ -929,7 +846,6 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
             ones_and_mean = (
                 np.column_stack((col_of_ones, forecast_predictor_flat)))
             predicted_mean = np.dot(ones_and_mean, a_and_b)
-
             # Calculate mean of ensemble realizations, as only the
             # calibrated ensemble mean will be returned.
             calibrated_forecast_predictor = (

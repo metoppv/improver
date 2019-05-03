@@ -239,14 +239,12 @@ class Test_create_coefficients_cube(IrisTest):
         self.historic_forecast = (
             _create_historic_forecasts(set_up_variable_cube(
                 data, standard_grid_metadata="uk_det")))
-
         data_with_realizations = np.ones((3, 3, 3), dtype=np.float32)
         self.historic_forecast_with_realizations = (
             _create_historic_forecasts(set_up_variable_cube(
                 data_with_realizations, realizations=[0, 1, 2],
                 standard_grid_metadata="uk_det")))
         self.optimised_coeffs = [0, 1, 2, 3]
-
         coeff_names = ["gamma", "delta", "alpha", "beta"]
 
         coefficient_index = iris.coords.DimCoord(
@@ -293,7 +291,6 @@ class Test_create_coefficients_cube(IrisTest):
         """Test that the expected coefficient cube is returned when the
         ensemble mean is used as the predictor."""
         expected_coeff_names = ["gamma", "delta", "alpha", "beta"]
-
         result = self.plugin.create_coefficients_cube(
             self.optimised_coeffs, self.historic_forecast)
         self.assertEqual(result, self.expected)
@@ -771,6 +768,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         predictor_of_mean_flag = "realizations"
         expected_coeff_names = (
             ['gamma', 'delta', 'alpha', 'beta0', 'beta1', 'beta2'])
+
         plugin = Plugin(distribution, current_cycle,
                         predictor_of_mean_flag=predictor_of_mean_flag)
         result = plugin.estimate_coefficients_for_ngr(
