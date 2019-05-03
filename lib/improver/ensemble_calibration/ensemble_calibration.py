@@ -282,7 +282,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
                 Data to be used as truth.
             forecast_var (np.ndarray):
                 Ensemble variance data.
-            sqrt_pi (np.ndarra):
+            sqrt_pi (np.ndarray):
                 Square root of Pi
             predictor_of_mean_flag (str):
                 String to specify the input to calculate the calibrated mean.
