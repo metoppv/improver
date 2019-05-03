@@ -351,7 +351,7 @@ class Test_create_coefficients_cube(IrisTest):
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficients_from_mean_non_standard_units(self):
         """Test that the expected coefficient cube is returned when the
-        ensemble mean is used as the predictor."""
+        historic forecast units are non-standard."""
         expected_coeff_names = ["gamma", "delta", "alpha", "beta"]
         self.historic_forecast.coord("forecast_period").convert_units("hours")
         self.expected.coord("forecast_period").convert_units("hours")
@@ -360,6 +360,19 @@ class Test_create_coefficients_cube(IrisTest):
         self.assertEqual(result, self.expected)
         self.assertEqual(
             self.plugin.coeff_names, expected_coeff_names)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_historic_forecast_with_multiple_forecast_periods(self):
+        """Test that the expected exception is raised if the
+        historic forecast cube has multiple different values for the
+        forecast period."""
+        self.historic_forecast.coord("forecast_period").points = (
+            np.array([14400., 14400., 18000, 18000, 18000]))
+        msg = "The historic forecast should only contain"
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin.create_coefficients_cube(
+                self.optimised_coeffs, self.historic_forecast)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)

@@ -551,10 +551,8 @@ class GeneratePercentilesFromProbabilities(object):
                 "GeneratePercentilesFromProbabilities")
 
         threshold_coord = find_threshold_coordinate(forecast_probabilities)
-        forecast_probabilities = concatenate_cubes(
-            forecast_probabilities,
-            coords_to_slice_over=threshold_coord,
-            coordinates_for_association=[])
+        if not isinstance(forecast_probabilities, iris.cube.Cube):
+            forecast_probabilities = forecast_probabilities.concatenate_cubes()
 
         phenom_name = (
             forecast_probabilities.name().replace(
