@@ -49,8 +49,10 @@ positional arguments:
                         This will be dependent upon the input phenomenon. This
                         has to be supported by the minimisation functions in
                         ContinuousRankedProbabilityScoreMinimisers.
-  CYCLETIME             The time to be used after at which the coefficients
-                        calculated using EMOS should be used. This cycletime
+  CYCLETIME             This denotes the cycle at which forecasts will be
+                        calibrated using the calculated EMOS coefficients. The
+                        validity time in the output coefficients cube will be
+                        calculated relative to this cycletime. This cycletime
                         is in the format YYYYMMDDTHHMMZ.
   HISTORIC_FILEPATH     A path to an input NetCDF file containing the historic
                         forecast(s) used for calibration.
