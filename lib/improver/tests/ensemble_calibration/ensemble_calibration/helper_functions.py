@@ -279,6 +279,8 @@ def _create_historic_forecasts(cube, number_of_days=5):
         num=number_of_days, endpoint=True)
     for index in time_range:
         temp_cube = cube.copy()
+        # TODO: Remove conversion to hours, once all ensemble calibration
+        # unit tests have been upgraded to use set_up_variable_cube.
         for coord_name in ["forecast_reference_time", "time"]:
             orig_units = temp_cube.coord(coord_name).units
             temp_cube.coord(coord_name).convert_units(

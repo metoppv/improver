@@ -49,6 +49,19 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
 from improver.utilities.warnings_handler import ManageWarnings
 
 
+class Test__repr__(IrisTest):
+
+    """Test the __repr__ method."""
+
+    def test_basic(self):
+        """A simple tests for the __repr__ method."""
+        result = str(Plugin())
+        msg = ("<ContinuousRankedProbabilityScoreMinimisers: "
+               "minimisation_dict: {'gaussian': 'normal_crps_minimiser', "
+               "'truncated gaussian': 'truncated_normal_crps_minimiser'}>")
+        self.assertEqual(result, msg)
+
+
 class Test_normal_crps_minimiser(IrisTest):
 
     """

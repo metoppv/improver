@@ -98,6 +98,13 @@ class Test_datetime_to_cycletime(IrisTest):
         result = datetime_to_cycletime(dt, cycletime_format="%Y%m%d%H%M")
         self.assertEqual(result, cycletime)
 
+    def test_define_cycletime_format_with_seconds(self):
+        """Test when a cycletime is defined with seconds."""
+        dt = datetime.datetime(2017, 11, 22, 1, 0)
+        cycletime = "20171122010000"
+        result = datetime_to_cycletime(dt, cycletime_format="%Y%m%d%H%M%S")
+        self.assertEqual(result, cycletime)
+
 
 class Test_cycletime_to_number(IrisTest):
 
