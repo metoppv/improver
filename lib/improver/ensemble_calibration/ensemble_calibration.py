@@ -103,7 +103,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         function to estimate optimised values for the coefficients.
 
         Args:
-            initial_guess (List):
+            initial_guess (list):
                 List of optimised coefficients.
                 Order of coefficients is [gamma, delta, alpha, beta].
             forecast_predictor (iris.cube.Cube):
@@ -113,16 +113,16 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
                 Cube containing the field, which will be used as truth.
             forecast_var (iris.cube.Cube):
                 Cube containg the field containing the ensemble variance.
-            predictor_of_mean_flag (String):
+            predictor_of_mean_flag (str):
                 String to specify the input to calculate the calibrated mean.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
-            distribution (String):
+            distribution (str):
                 String used to access the appropriate minimisation function
                 within self.minimisation_dict.
 
         Returns:
-            optimised_coeffs (List):
+            optimised_coeffs (list):
                 List of optimised coefficients.
                 Order of coefficients is [gamma, delta, alpha, beta].
 
@@ -135,7 +135,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
             the threshold, a warning message is printed.
 
             Args:
-                allvecs : List
+                allvecs (list):
                     List of numpy arrays containing the optimised coefficients,
                     after each iteration.
             """
@@ -166,11 +166,11 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         # Ensure predictor_of_mean_flag is valid.
         check_predictor_of_mean_flag(predictor_of_mean_flag)
 
-        if predictor_of_mean_flag.lower() in ["mean"]:
+        if predictor_of_mean_flag.lower() == "mean":
             forecast_predictor_data = forecast_predictor.data.flatten()
             truth_data = truth.data.flatten()
             forecast_var_data = forecast_var.data.flatten()
-        elif predictor_of_mean_flag.lower() in ["realizations"]:
+        elif predictor_of_mean_flag.lower() == "realizations":
             truth_data = truth.data.flatten()
             forecast_predictor = (
                 enforce_coordinate_ordering(
@@ -213,31 +213,31 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         Monthly Weather Review, 133(5), pp.1098-1118.
 
         Args:
-            initial_guess : List
+            initial_guess (list):
                 List of optimised coefficients.
                 Order of coefficients is [gamma, delta, alpha, beta].
-            forecast_predictor : Numpy array
+            forecast_predictor (np.ndarray):
                 Data to be used as the predictor,
                 either the ensemble mean or the ensemble realizations.
-            truth : Numpy array
+            truth (np.ndarray):
                 Data to be used as truth.
-            forecast_var : Numpy array
+            forecast_var (np.ndarray):
                 Ensemble variance data.
-            sqrt_pi : Numpy array
+            sqrt_pi (np.ndarray):
                 Square root of Pi
-            predictor_of_mean_flag : String
+            predictor_of_mean_flag (str):
                 String to specify the input to calculate the calibrated mean.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
 
         Returns:
-            result (Float):
+            result (float):
                 Minimum value for the CRPS achieved.
 
         """
-        if predictor_of_mean_flag.lower() in ["mean"]:
+        if predictor_of_mean_flag.lower() == "mean":
             beta = initial_guess[2:]
-        elif predictor_of_mean_flag.lower() in ["realizations"]:
+        elif predictor_of_mean_flag.lower() == "realizations":
             beta = np.array(
                 [initial_guess[2]]+(initial_guess[3:]**2).tolist(),
                 dtype=np.float32
@@ -272,31 +272,31 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         Series A: Statistics in Society, 173(2), pp.371-388.
 
         Args:
-            initial_guess (List):
+            initial_guess (list):
                 List of optimised coefficients.
                 Order of coefficients is [gamma, delta, alpha, beta].
-            forecast_predictor (Numpy array):
+            forecast_predictor (np.ndarray):
                 Data to be used as the predictor,
                 either the ensemble mean or the ensemble realizations.
-            truth (Numpy array):
+            truth (np.ndarray):
                 Data to be used as truth.
-            forecast_var (Numpy array):
+            forecast_var (np.ndarray):
                 Ensemble variance data.
-            sqrt_pi (Numpy array):
+            sqrt_pi (np.ndarra):
                 Square root of Pi
-            predictor_of_mean_flag (String):
+            predictor_of_mean_flag (str):
                 String to specify the input to calculate the calibrated mean.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
 
         Returns:
-            result (Float):
+            result (float):
                 Minimum value for the CRPS achieved.
 
         """
-        if predictor_of_mean_flag.lower() in ["mean"]:
+        if predictor_of_mean_flag.lower() == "mean":
             beta = initial_guess[2:]
-        elif predictor_of_mean_flag.lower() in ["realizations"]:
+        elif predictor_of_mean_flag.lower() == "realizations":
             beta = np.array(
                 [initial_guess[2]]+(initial_guess[3:]**2).tolist(),
                 dtype=np.float32
@@ -380,7 +380,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             imp.find_module('statsmodels')
         except ImportError:
             statsmodels_found = False
-            if predictor_of_mean_flag.lower() in ["realizations"]:
+            if predictor_of_mean_flag.lower() == "realizations":
                 msg = (
                     "The statsmodels can not be imported. "
                     "Will not be able to calculate an initial guess from "

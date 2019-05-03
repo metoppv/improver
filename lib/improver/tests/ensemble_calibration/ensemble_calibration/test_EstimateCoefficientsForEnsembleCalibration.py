@@ -648,8 +648,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_basic(self):
-        """Ensure that the optimised_coeffs are returned as a dictionary,
-           and the coefficient names are returned as a list."""
+        """Ensure that the optimised_coefficients are returned as a cube,
+        with the expected number of coefficients."""
         distribution = "gaussian"
         current_cycle = "20171110T0000Z"
 
@@ -663,12 +663,9 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_gaussian_distribution(self):
-        """
-        Ensure that the values generated within optimised_coeffs match the
+        """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
-        expected values.
-        """
-
+        expected values for a Gaussian distribution."""
         data = [4.55819380e-06, -8.02401974e-09,
                 1.66667055e+00, 1.00000011e+00]
 
@@ -689,11 +686,9 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_truncated_gaussian_distribution(self):
-        """
-        Ensure that the values generated within optimised_coeffs match the
+        """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
-        expected values.
-        """
+        expected values for a truncated Gaussian distribution."""
         data = [3.16843498e-06, -5.34489037e-06,
                 9.99985648e-01, 1.00000028e+00]
 
@@ -712,11 +707,10 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_gaussian_distribution_realizations(self):
-        """
-        Ensure that the values generated within optimised_coeffs match the
+        """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
-        expected values.
-        """
+        expected values for a Gaussian distribution where the
+        realizations are used as the predictor of the mean."""
         import imp
         try:
             imp.find_module('statsmodels')
@@ -751,11 +745,10 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_truncated_gaussian_distribution_realization(
             self):
-        """
-        Ensure that the values generated within optimised_coeffs match the
+        """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
-        expected values.
-        """
+        expected values for a truncated Gaussian distribution where the
+        realizations are used as the predictor of the mean."""
         import imp
         try:
             imp.find_module('statsmodels')
@@ -789,10 +782,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_fake_distribution(self):
-        """
-        Ensure the appropriate error is raised if the minimisation function
-        requested is not available.
-        """
+        """Ensure the appropriate error is raised if the minimisation function
+        requested is not available."""
         distribution = "fake"
         current_cycle = "20171110T0000Z"
 
@@ -806,10 +797,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_truth_unit_conversion(self):
-        """
-        Ensure the expected optimised coefficients are generated, even if the
-        input truth cube has different units.
-        """
+        """Ensure the expected optimised coefficients are generated,
+        even if the input truth cube has different units."""
         data = [4.55819380e-06, -8.02401974e-09,
                 1.66667055e+00, 1.00000011e+00]
 
@@ -831,10 +820,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_historic_forecast_unit_conversion(self):
-        """
-        Ensure the expected optimised coefficients are generated, even if the
-        input historic forecast cube has different units.
-        """
+        """Ensure the expected optimised coefficients are generated,
+        even if the input historic forecast cube has different units."""
         data = [4.55819380e-06, -8.02401974e-09,
                 1.66667055e+00, 1.00000011e+00]
 
@@ -857,10 +844,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_non_matching_units(self):
-        """
-        Test that an exception is raised if the historic forecasts and truth
-        have non matching units.
-        """
+        """Test that an exception is raised if the historic forecasts and truth
+        have non matching units."""
         historic_forecast = self.historic_temperature_forecast_cube
 
         historic_forecast.convert_units("Fahrenheit")

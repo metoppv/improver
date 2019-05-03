@@ -62,9 +62,7 @@ def cycletime_to_datetime(cycletime, cycletime_format="%Y%m%dT%H%MZ"):
 
      Keyword Args:
          cycletime_format (str):
-             String containing the appropriate directives to indicate how
-             the output datetime should display.
-
+             String containing the desired format for the cycletime.
     Returns:
         datetime:
             A correctly formatted datetime object.
@@ -82,8 +80,7 @@ def datetime_to_cycletime(adatetime, cycletime_format="%Y%m%dT%H%MZ"):
              cycletime_format supplied.
      Keyword Args:
          cycletime_format (str):
-             String containing the appropriate directives to indicate how
-             the output datetime should display.
+             String containing the desired format for the cycletime.
     Returns:
         str:
             A correctly formatted string.

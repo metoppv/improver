@@ -228,7 +228,7 @@ class Test_process(IrisTest):
         """
         import imp
         try:
-            statsmodels_found = imp.find_module('statsmodels')
+            imp.find_module('statsmodels')
             statsmodels_found = True
             import statsmodels.api as sm
             self.sm = sm
@@ -321,7 +321,7 @@ class Test_process(IrisTest):
         """
         import imp
         try:
-            statsmodels_found = imp.find_module('statsmodels')
+            imp.find_module('statsmodels')
             statsmodels_found = True
             import statsmodels.api as sm
             self.sm = sm
@@ -364,20 +364,20 @@ class Test_process(IrisTest):
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_alternative_calibration_name(self):
         """
-        Test that the plugin returns an iris.cube.CubeList.
-        The ensemble mean is the predictor.
+        Test that the plugin returns the calibrated predictor and the
+        calibrated variance if an alternative name for the calibration
+        is provided. The ensemble mean is the predictor.
         """
         calibration_method = "nonhomogeneous gaussian regression"
         distribution = "gaussian"
         desired_units = "degreesC"
         plugin = Plugin(calibration_method, distribution, desired_units)
-        result = plugin.process(
+        calibrated_predictor, calibrated_variance = plugin.process(
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertIsInstance(result, tuple)
-        self.assertIsInstance(result[0], iris.cube.Cube)
-        self.assertIsInstance(result[1], iris.cube.Cube)
+        self.assertIsInstance(calibrated_predictor, iris.cube.Cube)
+        self.assertIsInstance(calibrated_variance, iris.cube.Cube)
 
     def test_unknown_calibration_method(self):
         """
