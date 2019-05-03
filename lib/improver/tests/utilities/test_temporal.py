@@ -44,7 +44,8 @@ from iris.cube import Cube, CubeList
 from iris.time import PartialDateTime
 
 from improver.utilities.temporal import (
-    cycletime_to_datetime, cycletime_to_number, forecast_period_coord,
+    cycletime_to_datetime, cycletime_to_number, datetime_to_cycletime,
+    forecast_period_coord,
     iris_time_to_datetime, datetime_constraint,
     extract_cube_at_time, set_utc_offset, get_forecast_times,
     unify_forecast_reference_time, find_latest_cycletime,
@@ -75,6 +76,34 @@ class Test_cycletime_to_datetime(IrisTest):
         result = cycletime_to_datetime(
             cycletime, cycletime_format="%Y%m%d%H%M")
         self.assertEqual(result, dt)
+
+
+class Test_datetime_to_cycletime(IrisTest):
+
+    """Test that a datetime object can be converted into a cycletime
+    of a format such as YYYYMMDDTHHMMZ."""
+
+    def test_basic(self):
+        """Test that a datetime object is returned of the expected value."""
+        dt = datetime.datetime(2017, 11, 22, 1, 0)
+        cycletime = "20171122T0100Z"
+        result = datetime_to_cycletime(dt)
+        self.assertIsInstance(result, str)
+        self.assertEqual(result, cycletime)
+
+    def test_define_cycletime_format(self):
+        """Test when a cycletime is defined."""
+        dt = datetime.datetime(2017, 11, 22, 1, 0)
+        cycletime = "201711220100"
+        result = datetime_to_cycletime(dt, cycletime_format="%Y%m%d%H%M")
+        self.assertEqual(result, cycletime)
+
+    def test_define_cycletime_format_with_seconds(self):
+        """Test when a cycletime is defined with seconds."""
+        dt = datetime.datetime(2017, 11, 22, 1, 0)
+        cycletime = "20171122010000"
+        result = datetime_to_cycletime(dt, cycletime_format="%Y%m%d%H%M%S")
+        self.assertEqual(result, cycletime)
 
 
 class Test_cycletime_to_number(IrisTest):

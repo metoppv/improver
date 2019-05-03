@@ -52,7 +52,8 @@ from improver.utilities.cube_manipulation import build_coordinate
 
 
 def cycletime_to_datetime(cycletime, cycletime_format="%Y%m%dT%H%MZ"):
-    """Convert a cycletime of the format YYYYMMDDTHHMMZ into a datetime object.
+    """Convert a string representating the cycletime of the
+    format YYYYMMDDTHHMMZ into a datetime object.
 
      Args:
          cycletime (string):
@@ -60,15 +61,31 @@ def cycletime_to_datetime(cycletime, cycletime_format="%Y%m%dT%H%MZ"):
              cycletime_format supplied.
 
      Keyword Args:
-         cycletime_format (string):
-             String containg the appropriate directives to indicate how
-             the output datetime should display.
-
+         cycletime_format (str):
+             String containing the desired format for the cycletime.
     Returns:
         datetime:
             A correctly formatted datetime object.
     """
     return datetime.strptime(cycletime, cycletime_format)
+
+
+def datetime_to_cycletime(adatetime, cycletime_format="%Y%m%dT%H%MZ"):
+    """Convert a datetime object into a string representing the cycletime
+    of the format YYYYMMDDTHHMMZ.
+
+     Args:
+         adatetime (datetime.datetime):
+             A datetime that can be converted into a cycletime using the
+             cycletime_format supplied.
+     Keyword Args:
+         cycletime_format (str):
+             String containing the desired format for the cycletime.
+    Returns:
+        str:
+            A correctly formatted string.
+    """
+    return datetime.strftime(adatetime, cycletime_format)
 
 
 def cycletime_to_number(

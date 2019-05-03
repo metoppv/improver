@@ -34,324 +34,129 @@ Unit tests for the
 class.
 
 """
-import datetime
 import unittest
 
-from cf_units import Unit
 import iris
-from iris.coords import AuxCoord, DimCoord
-from iris.cube import CubeList
 from iris.tests import IrisTest
 import numpy as np
 
 from improver.ensemble_calibration.ensemble_calibration import (
     ApplyCoefficientsFromEnsembleCalibration as Plugin)
-from improver.utilities.cube_manipulation import concatenate_cubes
-from improver.tests.ensemble_calibration.ensemble_calibration.\
-    helper_functions import (set_up_temperature_cube,
-                             add_forecast_reference_time_and_forecast_period)
+
+
+from improver.ensemble_calibration.ensemble_calibration import (
+    EstimateCoefficientsForEnsembleCalibration)
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
 
-def datetime_from_timestamp(timestamp):
-    """Wrapper for timestamp to return a datetime object"""
-    return datetime.datetime.utcfromtimestamp(timestamp)
+class Test__init__(IrisTest):
 
-
-class Test__find_coords_of_length_one(IrisTest):
-
-    """Test the find length_one coords method."""
+    """Test the __init__ method."""
 
     def setUp(self):
-        """Use temperature cube to test with."""
-        self.cube = set_up_temperature_cube()
-        self.optimised_coeffs = [4.55819380e-06, -8.02401974e-09,
-                                 1.66667055e+00, 1.00000011e+00]
-        self.coeff_names = ["gamma", "delta", "alpha", "beta"]
+        """Test up test cubes."""
+        data = np.ones([2, 2], dtype=np.float32)
+        self.current_forecast = set_up_variable_cube(data)
+        self.coefficients_cube = (
+            set_up_variable_cube(data, name="emos_coefficients"))
 
     def test_basic(self):
-        """Test that the plugin returns a list."""
-        plugin = Plugin(self.cube, self.optimised_coeffs,
-                        self.coeff_names)
-        result = plugin._find_coords_of_length_one(self.cube)
-        self.assertIsInstance(result, list)
+        """Test without specifying any keyword arguments."""
+        plugin = Plugin(self.current_forecast, self.coefficients_cube)
+        self.assertEqual(plugin.current_forecast, self.current_forecast)
+        self.assertEqual(plugin.coefficients_cube, self.coefficients_cube)
 
-    def test_length_one_coords_list_of_tuples(self):
-        """Test that the plugin returns a list inside the tuple."""
-        plugin = Plugin(self.cube, self.optimised_coeffs,
-                        self.coeff_names)
-        result = plugin._find_coords_of_length_one(self.cube)
-        self.assertIsInstance(result[0], tuple)
+    def test_with_kwargs(self):
+        """Test without specifying any keyword arguments."""
+        plugin = Plugin(self.current_forecast, self.coefficients_cube,
+                        predictor_of_mean_flag="realizations")
+        self.assertEqual(plugin.current_forecast, self.current_forecast)
+        self.assertEqual(plugin.coefficients_cube, self.coefficients_cube)
 
-    def test_length_one_coords_list_of_coords(self):
-        """Test that the plugin returns a DimCoord inside the list."""
-        plugin = Plugin(self.cube, self.optimised_coeffs,
-                        self.coeff_names)
-        result = plugin._find_coords_of_length_one(
-            self.cube, add_dimension=False)
-        self.assertIsInstance(result[0], DimCoord)
-
-    def test_check_all_coords(self):
-        """Test that the plugin returns a DimCoord inside the list."""
-        current_temperature_forecast_cube = (
-            add_forecast_reference_time_and_forecast_period(
-                set_up_temperature_cube()))
-        plugin = Plugin(
-            current_temperature_forecast_cube,
-            self.optimised_coeffs, self.coeff_names)
-        results = plugin._find_coords_of_length_one(
-            current_temperature_forecast_cube, add_dimension=False)
-        coord_names = [result.name() for result in results]
-        for coord_name in ["time", "forecast_period",
-                           "forecast_reference_time"]:
-            self.assertIn(coord_name, coord_names)
-        for result in results:
-            self.assertIsInstance(result, DimCoord)
+    def test_mismatching_coordinates(self):
+        """Test if there is a mismatch in the forecast_period coordinate."""
+        self.current_forecast.coord("forecast_period").convert_units("hours")
+        msg = "The forecast_period coordinate of the current forecast cube"
+        with self.assertRaisesRegex(ValueError, msg):
+            Plugin(self.current_forecast, self.coefficients_cube)
 
 
-class Test__separate_length_one_coords_into_aux_and_dim(IrisTest):
+class Test__repr__(IrisTest):
 
-    """
-    Test the separate length one coords into aux and dim coordinates method.
-    """
+    """Test the __repr__ method."""
 
     def setUp(self):
-        """Use temperature cube to test with."""
-        self.cube = set_up_temperature_cube()
-        self.optimised_coeffs = [4.55819380e-06, -8.02401974e-09,
-                                 1.66667055e+00, 1.00000011e+00]
-        self.coeff_names = ["gamma", "delta", "alpha", "beta"]
-        self.plugin = Plugin(self.cube, self.optimised_coeffs,
-                             self.coeff_names)
-
-    def test_basic_dim_coord(self):
-        """Test that the plugin returns a list."""
-        length_one_coords = [DimCoord(
-            np.array([402192.5]), standard_name='time',
-            units=Unit('hours since 1970-01-01 00:00:00',
-                       calendar='gregorian'))]
-        result = self.plugin._separate_length_one_coords_into_aux_and_dim(
-            length_one_coords)
-        for aresult in result:
-            self.assertIsInstance(aresult, list)
-
-    def test_basic_aux_coord_and_dim_coord(self):
-        """Test that the plugin returns a list."""
-        length_one_coords = [
-            DimCoord(
-                np.array([402193]),
-                standard_name='time',
-                units=Unit('hours since 1970-01-01 00:00:00',
-                           calendar='gregorian')),
-            DimCoord(
-                np.array([402190]),
-                standard_name='forecast_reference_time',
-                units=Unit('hours since 1970-01-01 00:00:00',
-                           calendar='gregorian'))]
-        result = self.plugin._separate_length_one_coords_into_aux_and_dim(
-            length_one_coords)
-        for aresult in result:
-            self.assertIsInstance(aresult, list)
-
-    def test_multiple_dim_coords(self):
-        """
-        Test that the plugin returns a list containing no auxiliary
-        coordinates and some dimension coordinates."""
-        length_one_coords = [
-            DimCoord(
-                np.array([402193]),
-                standard_name='time',
-                units=Unit('hours since 1970-01-01 00:00:00',
-                           calendar='gregorian')),
-            DimCoord(
-                np.array([402190]),
-                standard_name='forecast_reference_time',
-                units=Unit('hours since 1970-01-01 00:00:00',
-                           calendar='gregorian'))]
-        result = self.plugin._separate_length_one_coords_into_aux_and_dim(
-            length_one_coords, dim_coords=["time", "forecast_reference_time"])
-        len_one_coords_for_aux_coords = result[0]
-        len_one_coords_for_dim_coords = result[1]
-        self.assertFalse(len_one_coords_for_aux_coords)
-        self.assertTrue(len_one_coords_for_dim_coords)
-        for coord in len_one_coords_for_dim_coords:
-            self.assertIsInstance(coord, DimCoord)
-
-    def test_multiple_aux_coord_and_dim_coord(self):
-        """
-        Test that the plugin returns a list containing no auxiliary
-        coordinates and some dimension coordinates."""
-        length_one_coords = [
-            DimCoord(
-                np.array([402193]),
-                standard_name='time',
-                units=Unit('hours since 1970-01-01 00:00:00',
-                           calendar='gregorian')),
-            DimCoord(
-                np.array([402190]),
-                standard_name='forecast_reference_time',
-                units=Unit('hours since 1970-01-01 00:00:00',
-                           calendar='gregorian')),
-            AuxCoord(
-                np.array([402187]),
-                standard_name='forecast_period',
-                units=Unit('hours'))]
-        result = self.plugin._separate_length_one_coords_into_aux_and_dim(
-            length_one_coords, dim_coords=["time", "forecast_reference_time"])
-        len_one_coords_for_aux_coords = result[0]
-        len_one_coords_for_dim_coords = result[1]
-        self.assertTrue(len_one_coords_for_dim_coords)
-        for coord in len_one_coords_for_aux_coords:
-            self.assertIsInstance(coord, AuxCoord)
-        for coord in len_one_coords_for_dim_coords:
-            self.assertIsInstance(coord, DimCoord)
-
-    def test_check_coord_names(self):
-        """
-        Test that the plugin returns a list with the auxiliary coordinates
-        within the auxiliary coordinate list and the dimension coordinate
-        within the dimension coordinate list.
-        """
-        length_one_coords = [
-            DimCoord(
-                np.array([402193]),
-                standard_name='time',
-                units=Unit('hours since 1970-01-01 00:00:00',
-                           calendar='gregorian')),
-            DimCoord(
-                np.array([402190]),
-                standard_name='forecast_reference_time',
-                units=Unit('hours since 1970-01-01 00:00:00',
-                           calendar='gregorian')),
-            AuxCoord(
-                np.array([402187]),
-                standard_name='forecast_period',
-                units=Unit('hours'))]
-        result = self.plugin._separate_length_one_coords_into_aux_and_dim(
-            length_one_coords, dim_coords=["time", "forecast_reference_time"])
-        aux_coords = result[0]
-        dim_coords = result[1]
-        aux_coord_names = [aux_coord.name() for aux_coord in aux_coords]
-        dim_coord_names = [dim_coord.name() for dim_coord in dim_coords]
-        for coord_name in ["time", "forecast_reference_time"]:
-            self.assertIn(coord_name, dim_coord_names)
-        for coord_name in ["forecast_period"]:
-            self.assertIn(coord_name, aux_coord_names)
-
-    def test_check_coord_names_tuple(self):
-        """
-        Test that the plugin returns a list wi th the auxiliary coordinates
-        within the auxiliary coordinate list and the dimension coordinate
-        within the dimension coordinate list. In this test, the returned
-        value for the dimension coordinates is a tuple.
-        """
-        length_one_coords = [
-            (DimCoord(
-                np.array([402193]),
-                standard_name='time',
-                units=Unit('hours since 1970-01-01 00:00:00',
-                           calendar='gregorian')), 0),
-            DimCoord(
-                np.array([402190]),
-                standard_name='forecast_reference_time',
-                units=Unit('hours since 1970-01-01 00:00:00',
-                           calendar='gregorian')),
-            AuxCoord(
-                np.array([402187]),
-                standard_name='forecast_period',
-                units=Unit('hours'))]
-        result = self.plugin._separate_length_one_coords_into_aux_and_dim(
-            length_one_coords, dim_coords=["time", "forecast_reference_time"])
-        aux_coords = result[0]
-        dim_coords = result[1]
-        aux_coord_names = [aux_coord.name() for aux_coord in aux_coords]
-        dim_coord_names = [dim_coord[0].name() for dim_coord in dim_coords]
-        for coord_name in ["time", "forecast_reference_time"]:
-            self.assertIn(coord_name, dim_coord_names)
-        for coord_name in ["forecast_period"]:
-            self.assertIn(coord_name, aux_coord_names)
-
-
-class Test___create_coefficient_cube(IrisTest):
-
-    """Test the __create_coefficient_cube method."""
-
-    def setUp(self):
-        """Use temperature cube to test with."""
-        self.cube = set_up_temperature_cube()
-        self.optimised_coeffs = [4.55819380e-06, -8.02401974e-09,
-                                 1.66667055e+00, 1.00000011e+00]
-        self.coeff_names = ["gamma", "delta", "alpha", "beta"]
-        self.plugin = Plugin(self.cube, self.optimised_coeffs,
-                             self.coeff_names)
+        """Test up test cubes."""
+        data = np.ones([2, 2], dtype=np.float32)
+        self.current_forecast = set_up_variable_cube(data)
+        self.coefficients_cube = (
+            set_up_variable_cube(data, name="emos_coefficients"))
 
     def test_basic(self):
-        """Test that the plugin returns a CubeList."""
-        result = self.plugin._create_coefficient_cube(
-            self.cube, self.optimised_coeffs, self.coeff_names)
-        self.assertIsInstance(result, CubeList)
+        """Test without specifying keyword arguments"""
+        result = str(Plugin(self.current_forecast, self.coefficients_cube))
+        msg = ("<ApplyCoefficientsFromEnsembleCalibration: "
+               "current_forecast: air_temperature; "
+               "coefficients_cube: emos_coefficients; "
+               "predictor_of_mean_flag: mean>")
+        self.assertEqual(result, msg)
 
-    def test_number_of_coefficients(self):
-        """
-        Test that the plugin returns the expected number of coefficient names.
-        """
-        result = self.plugin._create_coefficient_cube(
-            self.cube, self.optimised_coeffs, self.coeff_names)
-        self.assertEqual(len(result), len(self.coeff_names))
-
-    def test_coefficient_data_in_cube(self):
-        """
-        Test that the plugin returns the expected data for each coefficient.
-        """
-        self.optimised_coeffs = [4.55819380e-06, -8.02401974e-09,
-                                 1.66667055e+00]
-        self.coeff_names = ["cat", "dog", "elephant"]
-        results = self.plugin._create_coefficient_cube(
-            self.cube, self.optimised_coeffs, self.coeff_names)
-        for result, coeff in zip(results, self.optimised_coeffs):
-            self.assertEqual(result.data, coeff)
-
-    def test_coefficient_name_in_cube(self):
-        """
-        Test that the plugin returns the expected coefficient name
-        for each coefficient.
-        """
-        self.optimised_coeffs = [4.55819380e-06, -8.02401974e-09,
-                                 1.66667055e+00]
-        self.coeff_names = ["cat", "dog", "elephant"]
-        results = self.plugin._create_coefficient_cube(
-            self.cube, self.optimised_coeffs, self.coeff_names)
-        for result, coeff_name in zip(results, self.coeff_names):
-            self.assertEqual(result.long_name, coeff_name)
+    def test_with_kwargs(self):
+        """Test when keyword arguments are specified."""
+        result = str(Plugin(
+            self.current_forecast, self.coefficients_cube,
+            predictor_of_mean_flag="realizations"))
+        msg = ("<ApplyCoefficientsFromEnsembleCalibration: "
+               "current_forecast: air_temperature; "
+               "coefficients_cube: emos_coefficients; "
+               "predictor_of_mean_flag: realizations>")
+        self.assertEqual(result, msg)
 
 
 class Test_apply_params_entry(IrisTest):
 
     """Test the apply_params_entry plugin."""
 
+    @ManageWarnings(
+        ignored_messages=["The statsmodels can not be imported"],
+        warning_types=[ImportWarning])
     def setUp(self):
         """Use temperature cube to test with."""
         data = np.ones((3, 3, 3), dtype=np.float32)
         self.current_temperature_forecast_cube = set_up_variable_cube(
             data, realizations=[0, 1, 2])
 
-        self.coeff_names = ["gamma", "delta", "alpha", "beta"]
+        optimised_coeffs = [4.55819380e-06, -8.02401974e-09,
+                            1.66667055e+00, 1.00000011e+00]
+        current_cycle = "20171110T0000Z"
+        estimator = (
+            EstimateCoefficientsForEnsembleCalibration(
+                "gaussian", current_cycle, desired_units="Celsius"))
+        self.coeffs_from_mean = (
+            estimator.create_coefficients_cube(
+                optimised_coeffs, self.current_temperature_forecast_cube))
+
+        optimised_coeffs = np.array([
+            4.55819380e-06, -8.02401974e-09, 1.66667055e+00, 1.00000011e+00,
+            1.00000011e+00, 1.00000011e+00])
+        estimator = (
+            EstimateCoefficientsForEnsembleCalibration(
+                "gaussian", current_cycle, desired_units="Celsius",
+                predictor_of_mean_flag="realizations"))
+        self.coeffs_from_realizations = (
+            estimator.create_coefficients_cube(
+                optimised_coeffs, self.current_temperature_forecast_cube))
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic(self):
         """Test that the plugin returns a tuple."""
         cube = self.current_temperature_forecast_cube
-        optimised_coeffs = {}
-        the_date = datetime_from_timestamp(cube.coord("time").points)
-        optimised_coeffs[the_date] = [4.55819380e-06, -8.02401974e-09,
-                                      1.66667055e+00, 1.00000011e+00]
-        plugin = Plugin(cube, optimised_coeffs,
-                        self.coeff_names)
+        plugin = Plugin(cube, self.coeffs_from_mean)
         result = plugin.apply_params_entry()
         self.assertIsInstance(result, tuple)
-        self.assertEqual(len(result), 3)
+        self.assertEqual(len(result), 2)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -361,16 +166,11 @@ class Test_apply_params_entry(IrisTest):
         realizations as the predictor of the mean.
         """
         cube = self.current_temperature_forecast_cube
-        optimised_coeffs = {}
-        the_date = datetime_from_timestamp(cube.coord("time").points)
-        optimised_coeffs[the_date] = np.array([
-            4.55819380e-06, -8.02401974e-09, 1.66667055e+00, 1.00000011e+00,
-            1.00000011e+00, 1.00000011e+00])
-        plugin = Plugin(cube, optimised_coeffs, self.coeff_names,
+        plugin = Plugin(cube, self.coeffs_from_realizations,
                         predictor_of_mean_flag="realizations")
         result = plugin.apply_params_entry()
         self.assertIsInstance(result, tuple)
-        self.assertEqual(len(result), 3)
+        self.assertEqual(len(result), 2)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -380,12 +180,8 @@ class Test_apply_params_entry(IrisTest):
         mean cell method.
         """
         cube = self.current_temperature_forecast_cube
-        optimised_coeffs = {}
-        the_date = datetime_from_timestamp(cube.coord("time").points)
-        optimised_coeffs[the_date] = [4.55819380e-06, -8.02401974e-09,
-                                      1.66667055e+00, 1.00000011e+00]
-        plugin = Plugin(cube, optimised_coeffs, self.coeff_names)
-        forecast_predictor, _, _ = plugin.apply_params_entry()
+        plugin = Plugin(cube, self.coeffs_from_mean)
+        forecast_predictor, _ = plugin.apply_params_entry()
         for cell_method in forecast_predictor[0].cell_methods:
             self.assertEqual(cell_method.method, "mean")
 
@@ -397,62 +193,23 @@ class Test_apply_params_entry(IrisTest):
         variance cell method.
         """
         cube = self.current_temperature_forecast_cube
-        optimised_coeffs = {}
-        the_date = datetime_from_timestamp(cube.coord("time").points)
-        optimised_coeffs[the_date] = [4.55819380e-06, -8.02401974e-09,
-                                      1.66667055e+00, 1.00000011e+00]
-        plugin = Plugin(cube, optimised_coeffs, self.coeff_names)
-        _, forecast_variance, _ = plugin.apply_params_entry()
+        plugin = Plugin(cube, self.coeffs_from_mean)
+        _, forecast_variance = plugin.apply_params_entry()
         for cell_method in forecast_variance[0].cell_methods:
             self.assertEqual(cell_method.method, "variance")
-
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_output_coefficients(self):
-        """
-        Test that the plugin returns a tuple containing cubes with the
-        expected coefficient names.
-        """
-        cube = self.current_temperature_forecast_cube
-        optimised_coeffs = {}
-        the_date = datetime_from_timestamp(cube.coord("time").points)
-        optimised_coeffs[the_date] = [4.55819380e-06, -8.02401974e-09,
-                                      1.66667055e+00, 1.00000011e+00]
-        plugin = Plugin(cube, optimised_coeffs, self.coeff_names)
-        _, _, coefficients = plugin.apply_params_entry()
-        for result, coeff_name, coeff in zip(
-                coefficients, self.coeff_names, optimised_coeffs[the_date]):
-            self.assertEqual(result.long_name, coeff_name)
-            self.assertArrayAlmostEqual(result.data, coeff)
-
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_output_coefficients_realizations(self):
-        """
-        Test that the plugin returns a tuple containing cubes with the
-        expected coefficient names when using ensemble realizations as the
-        predictor of the mean.
-        """
-        cube = self.current_temperature_forecast_cube
-        coeff_names = ["gamma", "delta", "alpha", "beta0", "beta1", "beta2"]
-        optimised_coeffs = {}
-        the_date = datetime_from_timestamp(cube.coord("time").points)
-        optimised_coeffs[the_date] = np.array([
-            4.55819380e-06, -8.02401974e-09, 1.66667055e+00, 1.00000011e+00,
-            1.00000011e+00, 1.00000011e+00])
-        plugin = Plugin(cube, optimised_coeffs, self.coeff_names,
-                        predictor_of_mean_flag="realizations")
-        _, _, coefficients = plugin.apply_params_entry()
-        for result, coeff_name, coeff in zip(
-                coefficients, coeff_names, optimised_coeffs[the_date]):
-            self.assertEqual(result.long_name, coeff_name)
-            self.assertArrayAlmostEqual(result.data, coeff)
 
 
 class Test__apply_params(IrisTest):
 
     """Test the _apply_params plugin."""
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
+                          "invalid escape sequence",
+                          "can't resolve package from",
+                          "The statsmodels can not be imported"],
+        warning_types=[UserWarning, DeprecationWarning, ImportWarning,
+                       ImportWarning])
     def setUp(self):
         """Use temperature cube to test with."""
         data = (np.tile(np.linspace(-45.0, 45.0, 9), 3).reshape(3, 3, 3) +
@@ -464,10 +221,24 @@ class Test__apply_params(IrisTest):
         self.current_temperature_forecast_cube = set_up_variable_cube(
             data, units="Kelvin", realizations=[0, 1, 2])
 
-        self.coeff_names = ["gamma", "delta", "alpha", "beta"]
+        optimised_coeffs = [4.55819380e-06, -8.02401974e-09,
+                            1.66667055e+00, 1.00000011e+00]
+        current_cycle = "20171110T0000Z"
+        estimator = (
+            EstimateCoefficientsForEnsembleCalibration(
+                "gaussian", current_cycle, desired_units="Celsius"))
+        self.coeffs_from_mean = (
+            estimator.create_coefficients_cube(
+                optimised_coeffs, self.current_temperature_forecast_cube))
 
-        self.default_optimised_coeffs = [
-            4.55819380e-06, -8.02401974e-09, 1.66667055e+00, 1.00000011e+00]
+        optimised_coeffs = np.array([5, 1, 0, 0.57, 0.6, 0.6])
+        estimator = (
+            EstimateCoefficientsForEnsembleCalibration(
+                "gaussian", current_cycle, desired_units="Celsius",
+                predictor_of_mean_flag="realizations"))
+        self.coeffs_from_realizations = (
+            estimator.create_coefficients_cube(
+                optimised_coeffs, self.current_temperature_forecast_cube))
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -475,22 +246,15 @@ class Test__apply_params(IrisTest):
         warning_types=[UserWarning, DeprecationWarning])
     def test_basic(self):
         """Test that the plugin returns a tuple."""
-        optimised_coeffs = {}
         cube = self.current_temperature_forecast_cube
-        the_date = datetime_from_timestamp(cube.coord("time").points)
-        optimised_coeffs[the_date] = self.default_optimised_coeffs
 
         predictor_cube = cube.collapsed("realization", iris.analysis.MEAN)
         variance_cube = cube.collapsed("realization", iris.analysis.VARIANCE)
 
-        predictor_of_mean_flag = "mean"
-
-        plugin = Plugin(cube, optimised_coeffs, self.coeff_names)
-        result = plugin._apply_params(
-            predictor_cube, variance_cube, optimised_coeffs,
-            self.coeff_names, predictor_of_mean_flag)
+        plugin = Plugin(cube, self.coeffs_from_mean)
+        result = plugin._apply_params(predictor_cube, variance_cube)
         self.assertIsInstance(result, tuple)
-        self.assertEqual(len(result), 3)
+        self.assertEqual(len(result), 2)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -507,20 +271,12 @@ class Test__apply_params(IrisTest):
              [298.6500101, 309.90001134, 321.15001258]]
         )
         cube = self.current_temperature_forecast_cube
-
-        optimised_coeffs = {}
-        the_date = datetime_from_timestamp(cube.coord("time").points)
-        optimised_coeffs[the_date] = self.default_optimised_coeffs
-
         predictor_cube = cube.collapsed("realization", iris.analysis.MEAN)
         variance_cube = cube.collapsed("realization", iris.analysis.VARIANCE)
 
-        predictor_of_mean_flag = "mean"
-
-        plugin = Plugin(cube, optimised_coeffs, self.coeff_names)
-        forecast_predictor, _, _ = plugin._apply_params(
-            predictor_cube, variance_cube, optimised_coeffs,
-            self.coeff_names, predictor_of_mean_flag)
+        plugin = Plugin(cube, self.coeffs_from_mean)
+        forecast_predictor, _ = (
+            plugin._apply_params(predictor_cube, variance_cube))
         self.assertArrayAlmostEqual(forecast_predictor.data, data)
 
     @ManageWarnings(
@@ -538,48 +294,13 @@ class Test__apply_params(IrisTest):
 
         cube = self.current_temperature_forecast_cube
 
-        optimised_coeffs = {}
-        the_date = datetime_from_timestamp(cube.coord("time").points)
-        optimised_coeffs[the_date] = self.default_optimised_coeffs
-
         predictor_cube = cube.collapsed("realization", iris.analysis.MEAN)
         variance_cube = cube.collapsed("realization", iris.analysis.VARIANCE)
 
-        predictor_of_mean_flag = "mean"
-
-        plugin = Plugin(cube, optimised_coeffs, self.coeff_names)
-        _, forecast_variance, _ = plugin._apply_params(
-            predictor_cube, variance_cube, optimised_coeffs,
-            self.coeff_names, predictor_of_mean_flag)
+        plugin = Plugin(cube, self.coeffs_from_mean)
+        _, forecast_variance = (
+            plugin._apply_params(predictor_cube, variance_cube))
         self.assertArrayAlmostEqual(forecast_variance.data, data)
-
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate.",
-                          "invalid escape sequence"],
-        warning_types=[UserWarning, DeprecationWarning])
-    def test_coefficients(self):
-        """
-        Test that the plugin returns values for the coefficients,
-        which match the expected values.
-        """
-        data = np.array([4.55819380e-06])
-
-        cube = self.current_temperature_forecast_cube
-
-        optimised_coeffs = {}
-        the_date = datetime_from_timestamp(cube.coord("time").points)
-        optimised_coeffs[the_date] = self.default_optimised_coeffs
-
-        predictor_cube = cube.collapsed("realization", iris.analysis.MEAN)
-        variance_cube = cube.collapsed("realization", iris.analysis.VARIANCE)
-
-        predictor_of_mean_flag = "mean"
-
-        plugin = Plugin(cube, optimised_coeffs, self.coeff_names)
-        _, _, coefficients = plugin._apply_params(
-            predictor_cube, variance_cube, optimised_coeffs,
-            self.coeff_names, predictor_of_mean_flag)
-        self.assertArrayAlmostEqual(coefficients[0].data, data)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -598,23 +319,13 @@ class Test__apply_params(IrisTest):
 
         cube = self.current_temperature_forecast_cube
 
-        optimised_coeffs = {}
-        the_date = datetime_from_timestamp(cube.coord("time").points)
-        optimised_coeffs[the_date] = np.array(
-            [5, 1, 0, 0.57, 0.6, 0.6], dtype=np.float32)
-
-        self.coeff_names = (
-            ["gamma", "delta", "alpha", "beta0", "beta1", "beta2"])
-
         predictor_cube = cube.copy()
         variance_cube = cube.collapsed("realization", iris.analysis.VARIANCE)
 
-        predictor_of_mean_flag = "realizations"
-
-        plugin = Plugin(cube, optimised_coeffs, self.coeff_names)
-        forecast_predictor, _, _ = plugin._apply_params(
-            predictor_cube, variance_cube, optimised_coeffs,
-            self.coeff_names, predictor_of_mean_flag)
+        plugin = Plugin(cube, self.coeffs_from_realizations,
+                        predictor_of_mean_flag="realizations")
+        forecast_predictor, _ = plugin._apply_params(
+            predictor_cube, variance_cube)
         self.assertArrayAlmostEqual(forecast_predictor.data, data,
                                     decimal=4)
 
@@ -634,86 +345,15 @@ class Test__apply_params(IrisTest):
 
         cube = self.current_temperature_forecast_cube
 
-        optimised_coeffs = {}
-        the_date = datetime_from_timestamp(cube.coord("time").points)
-        optimised_coeffs[the_date] = np.array(
-            [5, 1, 0, 0.57, 0.6, 0.6], dtype=np.float32)
-
-        self.coeff_names = (
-            ["gamma", "delta", "alpha", "beta0", "beta1", "beta2"])
-
         predictor_cube = cube.copy()
         variance_cube = cube.collapsed("realization", iris.analysis.VARIANCE)
 
-        predictor_of_mean_flag = "realizations"
-
-        plugin = Plugin(cube, optimised_coeffs, self.coeff_names)
-        _, forecast_variance, _ = plugin._apply_params(
-            predictor_cube, variance_cube, optimised_coeffs,
-            self.coeff_names, predictor_of_mean_flag)
+        plugin = Plugin(cube, self.coeffs_from_realizations,
+                        predictor_of_mean_flag="realizations")
+        _, forecast_variance = plugin._apply_params(
+            predictor_cube, variance_cube)
         self.assertArrayAlmostEqual(forecast_variance.data, data,
                                     decimal=4)
-
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate.",
-                          "invalid escape sequence"],
-        warning_types=[UserWarning, DeprecationWarning])
-    def test_coefficients_realizations(self):
-        """
-        Test that the plugin returns values for the calibrated forecasts,
-        which match the expected values when the individual ensemble
-        realizations are used as the predictor.
-        """
-        data = np.array([5.0])
-        cube = self.current_temperature_forecast_cube
-
-        optimised_coeffs = {}
-        the_date = datetime_from_timestamp(cube.coord("time").points)
-        optimised_coeffs[the_date] = np.array(
-            [5, 1, 0, 0.57, 0.6, 0.6], dtype=np.float32)
-
-        self.coeff_names = (
-            ["gamma", "delta", "alpha", "beta0", "beta1", "beta2"])
-
-        predictor_cube = cube.copy()
-        variance_cube = cube.collapsed("realization", iris.analysis.VARIANCE)
-
-        predictor_of_mean_flag = "realizations"
-
-        plugin = Plugin(cube, optimised_coeffs, self.coeff_names)
-        _, _, coefficients = plugin._apply_params(
-            predictor_cube, variance_cube, optimised_coeffs,
-            self.coeff_names, predictor_of_mean_flag)
-        self.assertArrayAlmostEqual(coefficients[0].data, data)
-
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate.",
-                          "invalid escape sequence"],
-        warning_types=[UserWarning, DeprecationWarning])
-    def test_too_many_coefficients(self):
-        """
-        Test that the plugin returns values for the coefficients,
-        which match the expected values.
-        """
-
-        cube = self.current_temperature_forecast_cube
-
-        optimised_coeffs = {}
-        the_date = datetime_from_timestamp(cube.coord("time").points)
-        optimised_coeffs[the_date] = self.default_optimised_coeffs
-
-        predictor_cube = cube.collapsed("realization", iris.analysis.MEAN)
-        variance_cube = cube.collapsed("realization", iris.analysis.VARIANCE)
-
-        coeff_names = ["cat", "dog", "elephant", "frog", "giraffe"]
-        predictor_of_mean_flag = "mean"
-
-        plugin = Plugin(cube, optimised_coeffs, coeff_names)
-        msg = "Number of coefficient names"
-        with self.assertRaisesRegex(ValueError, msg):
-            plugin._apply_params(
-                predictor_cube, variance_cube, optimised_coeffs,
-                coeff_names, predictor_of_mean_flag)
 
 
 if __name__ == '__main__':
