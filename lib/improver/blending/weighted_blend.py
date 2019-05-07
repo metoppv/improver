@@ -137,6 +137,7 @@ def conform_metadata(
     """
     # unify time coordinates for cycle and grid (model) blends
     if coord in ["forecast_reference_time", "model"]:
+        # if cycle blending, update forecast reference time and remove bounds
         if cube.coords("forecast_reference_time"):
             if cycletime is None:
                 new_cycletime = (
@@ -155,17 +156,15 @@ def conform_metadata(
             cube.coord("forecast_reference_time").points = new_cycletime
             cube.coord("forecast_reference_time").bounds = None
 
+        # recalculate forecast period coordainte
         if cube.coords("forecast_period"):
-            forecast_period = (
-                forecast_period_coord(cube,
-                                      force_lead_time_calculation=True))
-            forecast_period.bounds = None
+            forecast_period = forecast_period_coord(
+                cube, force_lead_time_calculation=True)
             forecast_period.convert_units(cube.coord("forecast_period").units)
             forecast_period.var_name = cube.coord("forecast_period").var_name
             cube.replace_coord(forecast_period)
         elif cube.coords("forecast_reference_time") and cube.coords("time"):
-            forecast_period = (
-                forecast_period_coord(cube))
+            forecast_period = forecast_period_coord(cube)
             ndim = cube.coord_dims("time")
             cube.add_aux_coord(forecast_period, data_dims=ndim)
 

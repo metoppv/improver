@@ -41,8 +41,10 @@ from cf_units import Unit
 from improver.argparser import ArgParser
 from improver.utilities.load import load_cubelist
 from improver.utilities.save import save_netcdf
-from improver.utilities.cube_manipulation import (
-    merge_cubes, sort_coord_in_cube)
+from improver.utilities.cube_manipulation import sort_coord_in_cube
+from improver.utilities.cube_manipulation_new import (
+    MergeCubesForWeightedBlending)
+
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells)
 
@@ -52,8 +54,7 @@ from improver.blending.weights import (
 from improver.blending.spatial_weights import (
     SpatiallyVaryingWeightsFromMask)
 from improver.blending.weighted_blend import (
-    conform_metadata, rationalise_blend_time_coords,
-    WeightedBlendAcrossWholeDimension)
+    conform_metadata, WeightedBlendAcrossWholeDimension)
 
 
 def calculate_blending_weights(cube, blend_coord, method, wts_dict=None,
@@ -314,13 +315,11 @@ def main():
     weighting_coord = (args.weighting_coord if args.weighting_coord
                        else "forecast_period")
 
-    # ensure time coordinates are blendable
-    rationalise_blend_time_coords(
-        cubelist, blend_coord, cycletime=args.cycletime,
-        weighting_coord=weighting_coord)
-
-    # merge cube list
-    cube = merge_cubes(cubelist, model_id_attr=args.model_id_attr)
+    # prepare cubes for weighted blending
+    merger = MergeCubesForWeightedBlending(
+        blend_coord, weighting_coord=weighting_coord,
+        model_id_attr=args.model_id_attr)
+    cube = merger.process(cubelist, cycletime=args.cycletime)
 
     # if the coord for blending does not exist or has only one value,
     # update metadata only
