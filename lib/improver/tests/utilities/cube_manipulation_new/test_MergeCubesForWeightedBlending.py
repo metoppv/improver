@@ -138,18 +138,13 @@ class Test__create_model_coordinates(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin._create_model_coordinates(self.cubelist)
 
-    def test_same_model_id_attr(self):
-        """Test values if input cubes have the same model ID"""
-        expected_id = [0, 1000]
-        expected_config = ["uk_ens", "uk_ens"]
+    def test_error_same_model(self):
+        """Test error if input cubes are from the same model"""
         new_cubelist = iris.cube.CubeList(
             [self.cube_enuk.copy(), self.cube_enuk.copy()])
-        self.plugin._create_model_coordinates(new_cubelist)
-        for cube, m_id, m_conf in zip(
-                new_cubelist, expected_id, expected_config):
-            self.assertEqual(cube.coord("model_id").points, [m_id])
-            self.assertEqual(
-                cube.coord("model_configuration").points, [m_conf])
+        msg = 'Cannot create model dimension'
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin._create_model_coordinates(new_cubelist)
 
 
 class Test_process(IrisTest):

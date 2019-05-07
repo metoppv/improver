@@ -655,7 +655,10 @@ class MergeCubesForWeightedBlending():
         Raises:
             ValueError:
                 If self.model_id_attr is not present on all cubes
+            ValueError:
+                If input cubelist contains cubes from the same model
         """
+        model_titles = []
         for i, cube in enumerate(cubelist):
             if self.model_id_attr not in cube.attributes:
                 msg = ('Cannot create model ID coordinate for grid blending '
@@ -664,6 +667,10 @@ class MergeCubesForWeightedBlending():
                 raise ValueError(msg)
 
             model_title = cube.attributes.pop(self.model_id_attr)
+            if model_title in model_titles:
+                raise ValueError('Cannot create model dimension coordinate '
+                                 'with duplicate points')
+            model_titles.append(model_title)
             cube.attributes[self.model_id_attr] = "blend"
 
             new_model_id_coord = build_coordinate([1000 * i],

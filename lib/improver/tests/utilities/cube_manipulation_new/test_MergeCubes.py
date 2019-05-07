@@ -106,6 +106,22 @@ class Test__equalise_cubes(IrisTest):
         for cube in result:
             self.assertIsNone(cube.coord("time").var_name)
 
+    def test_float64_demotion(self):
+        """Test that float64 data is cast to float32"""
+        for cube in self.cubelist:
+            cube.data = cube.data.astype(np.float64)
+        result = self.plugin._equalise_cubes(self.cubelist)
+        for cube in result:
+            self.assertEqual(cube.dtype, np.float32)
+
+    def test_integer_retention(self):
+        """Test that int64 data is not promoted to float"""
+        for cube in self.cubelist:
+            cube.data = cube.data.astype(np.int64)
+        result = self.plugin._equalise_cubes(self.cubelist)
+        for cube in result:
+            self.assertEqual(cube.dtype, np.int64)
+
 
 class Test__equalise_cube_coords(IrisTest):
     """Test the _equalise_cube_coords method"""
