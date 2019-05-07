@@ -110,7 +110,7 @@ def main():
         units = Unit(args.units, args.calendar)
     else:
         units = args.units
- 
+
     cubelist = load_cubelist(args.input_filepaths)
 
     if (args.blend_time_using_forecast_period and
