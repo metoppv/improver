@@ -546,6 +546,10 @@ class MergeCubes():
             return cubes_in
 
         if len(cubes_in) == 1:
+            # iris merges cubelist into shortest list possible on load
+            # - may already have collapsed across invalid time bounds
+            if check_time_bounds_ranges:
+                self._check_time_bounds_ranges(cubes_in[0])
             return cubes_in[0]
 
         # create copies of input cubes so as not to modify in place

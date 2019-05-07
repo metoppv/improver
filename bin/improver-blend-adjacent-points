@@ -37,7 +37,7 @@ from cf_units import Unit
 from improver.blending.blend_across_adjacent_points import \
     TriangularWeightedBlendAcrossAdjacentPoints
 from improver.argparser import ArgParser
-from improver.utilities.cube_manipulation import merge_cubes
+from improver.utilities.cube_manipulation_new import MergeCubes
 from improver.utilities.load import load_cubelist
 from improver.utilities.save import save_netcdf
 
@@ -110,18 +110,18 @@ def main():
         units = Unit(args.units, args.calendar)
     else:
         units = args.units
-
+ 
     cubelist = load_cubelist(args.input_filepaths)
 
     if (args.blend_time_using_forecast_period and
             args.coordinate == 'forecast_period'):
-        cube = merge_cubes(cubelist, blend_coord='time')
+        cube = MergeCubes().process(cubelist, check_time_bounds_ranges=True)
     elif args.blend_time_using_forecast_period:
         msg = ('"--blend_time_using_forecast_period" can only be used with '
                '"forecast_period" coordinate')
         raise ValueError(msg)
     else:
-        cube = merge_cubes(cubelist, blend_coord=args.coordinate)
+        cube = MergeCubes().process(cubelist)
 
     BlendingPlugin = TriangularWeightedBlendAcrossAdjacentPoints(
         args.coordinate, args.central_point, units, args.width,
