@@ -244,7 +244,7 @@ class Test_create_coefficients_cube(IrisTest):
             _create_historic_forecasts(set_up_variable_cube(
                 data_with_realizations, realizations=[0, 1, 2],
                 standard_grid_metadata="uk_det")))
-        self.optimised_coeffs = [0, 1, 2, 3]
+        self.optimised_coeffs = np.array([0, 1, 2, 3], np.int32)
         coeff_names = ["gamma", "delta", "alpha", "beta"]
 
         coefficient_index = iris.coords.DimCoord(

@@ -324,6 +324,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
             initial_guess, forecast_predictor, truth, forecast_variance,
             predictor_of_mean_flag, distribution)
         self.assertIsInstance(result, np.ndarray)
+        self.assertEqual(result.dtype, np.float32)
         self.assertArrayAlmostEqual(
             result, [-0.059093, -0.099905, 0.008257, 1.009563])
 
@@ -352,6 +353,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
             initial_guess, forecast_predictor, truth, forecast_variance,
             predictor_of_mean_flag, distribution)
         self.assertIsInstance(result, np.ndarray)
+        self.assertEqual(result.dtype, np.float32)
         self.assertArrayAlmostEqual(
             result, [6.24021609e+00, 1.35694934e+00, 1.84642787e-03,
                      5.55444682e-01, 5.04367388e-01, 6.68575194e-01])

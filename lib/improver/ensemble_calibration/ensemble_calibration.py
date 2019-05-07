@@ -197,7 +197,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
                        self.MAX_ITERATIONS, optimised_coeffs.message))
             warnings.warn(msg)
         calculate_percentage_change_in_last_iteration(optimised_coeffs.allvecs)
-        return optimised_coeffs.x
+        return optimised_coeffs.x.astype(np.float32)
 
     def normal_crps_minimiser(
             self, initial_guess, forecast_predictor, truth, forecast_var,
@@ -449,7 +449,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             raise ValueError(msg)
 
         coefficient_index = iris.coords.DimCoord(
-            np.arange(len(optimised_coeffs)),
+            np.arange(len(optimised_coeffs), dtype=np.int32),
             long_name="coefficient_index", units="1")
         coefficient_name = iris.coords.AuxCoord(
             coeff_names, long_name="coefficient_name", units="no_unit")
