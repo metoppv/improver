@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "estimate-emos-coefficients gaussian realizations history truth output" {
+@test "estimate-emos-coefficients using non-default predictor 'realizations'" {
   improver_check_skip_acceptance
   KGO="estimate-emos-coefficients/realizations/kgo.nc"
 

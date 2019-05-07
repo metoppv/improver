@@ -65,14 +65,14 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
-  --units UNITS         The unit that calibration should be undertaken in. The
-                        current forecast, historical forecast and truth will
-                        be converted as required.
+  --units UNITS         The units that calibration should be undertaken in.
+                        The historical forecast and truth will be converted as
+                        required.
   --predictor_of_mean PREDICTOR_OF_MEAN
-                        String to specify the input to calculate the
-                        calibrated mean. Currently the ensemble mean ("mean")
+                        String to specify the predictor used to calibrate the
+                        forecast mean. Currently the ensemble mean ("mean")
                         and the ensemble realizations ("realizations") are
-                        supported as the predictors. Default: "mean".
+                        supported as options. Default: "mean".
 __HELP__
   [[ "$output" == "$expected" ]]
 }

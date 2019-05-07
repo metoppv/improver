@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "estimate-emos-coefficients Kelvin units gaussian history truth output" {
+@test "estimate-emos-coefficients in prescribed units that may not match inputs" {
   improver_check_skip_acceptance
   KGO="estimate-emos-coefficients/gaussian/kgo.nc"
 

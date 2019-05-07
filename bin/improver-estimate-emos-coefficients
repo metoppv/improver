@@ -51,9 +51,6 @@ def main():
         description='Estimate coefficients for for Ensemble Model Output '
                     'Statistics (EMOS), otherwise known as Non-homogeneous '
                     'Gaussian Regression (NGR)')
-    # Arguments for estimating coefficients for for Ensemble Model Output
-    # Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
-    # Regression (NGR)
     parser.add_argument('distribution', metavar='DISTRIBUTION',
                         choices=['gaussian', 'truncated gaussian'],
                         help='The distribution that will be used for '
@@ -80,16 +77,16 @@ def main():
                         help='The output path for the processed NetCDF')
     # Optional arguments.
     parser.add_argument('--units', metavar='UNITS',
-                        help='The unit that calibration should be undertaken '
-                             'in. The current forecast, historical forecast '
-                             'and truth will be converted as required.')
+                        help='The units that calibration should be undertaken '
+                             'in. The historical forecast and truth will be '
+                             'converted as required.')
     parser.add_argument('--predictor_of_mean', metavar='PREDICTOR_OF_MEAN',
                         choices=['mean', 'realizations'], default='mean',
-                        help='String to specify the input to calculate the '
-                             'calibrated mean. Currently the ensemble mean '
-                             '("mean") and the ensemble realizations '
-                             '("realizations") are supported as the '
-                             'predictors. Default: "mean".')
+                        help='String to specify the predictor used to '
+                             'calibrate the forecast mean. Currently the '
+                             'ensemble mean ("mean") and the ensemble '
+                             'realizations ("realizations") are supported as '
+                             'options. Default: "mean".')
 
     args = parser.parse_args()
 

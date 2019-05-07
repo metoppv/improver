@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "estimate-emos-coefficients gaussian history truth output" {
+@test "estimate-emos-coefficients for diagnostic with assumed gaussian distribution" {
   improver_check_skip_acceptance
   KGO="estimate-emos-coefficients/gaussian/kgo.nc"
 
