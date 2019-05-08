@@ -55,7 +55,7 @@ usage: improver weighted-blending [-h] [--profile]
                                   COORDINATE_TO_AVERAGE_OVER
                                   WEIGHTED_BLEND_MODE INPUT_FILES
                                   [INPUT_FILES ...] OUTPUT_FILE
-improver-weighted-blending: error: Method: non-linear does not accept arguments: y0val, ynval
+improver weighted-blending: error: Method: non-linear does not accept arguments: y0val, ynval
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

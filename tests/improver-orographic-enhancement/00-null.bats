@@ -41,7 +41,7 @@ usage: improver orographic-enhancement [-h] [--profile]
                                        PRESSURE_FILEPATH WINDSPEED_FILEPATH
                                        WINDDIR_FILEPATH OROGRAPHY_FILEPATH
                                        OUTPUT_DIR
-improver-orographic-enhancement: error: the following arguments are required: TEMPERATURE_FILEPATH, HUMIDITY_FILEPATH, PRESSURE_FILEPATH, WINDSPEED_FILEPATH, WINDDIR_FILEPATH, OROGRAPHY_FILEPATH, OUTPUT_DIR
+improver orographic-enhancement: error: the following arguments are required: TEMPERATURE_FILEPATH, HUMIDITY_FILEPATH, PRESSURE_FILEPATH, WINDSPEED_FILEPATH, WINDDIR_FILEPATH, OROGRAPHY_FILEPATH, OUTPUT_DIR
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

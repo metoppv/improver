@@ -36,7 +36,7 @@
 usage: improver update-grid-metadata [-h] [--profile]
                                      [--profile_file PROFILE_FILE]
                                      INPUT_FILE OUTPUT_FILE
-improver-update-grid-metadata: error: the following arguments are required: INPUT_FILE, OUTPUT_FILE
+improver update-grid-metadata: error: the following arguments are required: INPUT_FILE, OUTPUT_FILE
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

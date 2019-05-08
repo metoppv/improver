@@ -40,7 +40,7 @@ usage: improver temporal-interpolate [-h] [--profile]
                                      --output_files OUTPUT_FILES
                                      [OUTPUT_FILES ...]
                                      INFILES INFILES
-improver-temporal-interpolate: error: the following arguments are required: INFILES, --output_files
+improver temporal-interpolate: error: the following arguments are required: INFILES, --output_files
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

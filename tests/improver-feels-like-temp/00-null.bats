@@ -36,7 +36,7 @@
 usage: improver feels-like-temp [-h] [--profile] [--profile_file PROFILE_FILE]
                                 TEMPERATURE WIND_SPEED RELATIVE_HUMIDITY
                                 PRESSURE OUTPUT_FILE
-improver-feels-like-temp: error: the following arguments are required: TEMPERATURE, WIND_SPEED, RELATIVE_HUMIDITY, PRESSURE, OUTPUT_FILE
+improver feels-like-temp: error: the following arguments are required: TEMPERATURE, WIND_SPEED, RELATIVE_HUMIDITY, PRESSURE, OUTPUT_FILE
 
 __TEXT__
   [[ "$output" =~ "$expected" ]]

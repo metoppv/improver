@@ -54,7 +54,7 @@ usage: improver weighted-blending [-h] [--profile]
                                   COORDINATE_TO_AVERAGE_OVER
                                   WEIGHTED_BLEND_MODE INPUT_FILES
                                   [INPUT_FILES ...] OUTPUT_FILE
-improver-weighted-blending: error: argument --wts_calc_method: invalid choice: 'linear nonlinear' (choose from 'linear', 'nonlinear', 'dict')
+improver weighted-blending: error: argument --wts_calc_method: invalid choice: 'linear nonlinear' (choose from 'linear', 'nonlinear', 'dict')
 
 __TEXT__
   [[ "$output" =~ "$expected" ]]

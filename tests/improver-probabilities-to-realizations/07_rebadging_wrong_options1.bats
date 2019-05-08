@@ -45,6 +45,6 @@ usage: improver probabilities-to-realizations [-h] [--profile]
                                               [--raw_forecast_filepath RAW_FORECAST_FILE]
                                               [--random_seed RANDOM_SEED]
                                               INPUT_FILE OUTPUT_FILE
-improver-probabilities-to-realizations: error: Method: rebadging does not accept arguments: raw_forecast_filepath, random_seed
+improver probabilities-to-realizations: error: Method: rebadging does not accept arguments: raw_forecast_filepath, random_seed
 __TEXT__
 }
