@@ -128,7 +128,8 @@ class Test_add_coord(IrisTest):
         self.changes = {
             'points': [2.0],
             'bounds': [0.1, 2.0],
-            'units': 'mm'
+            'units': 'mm',
+            'var_name': 'threshold'
             }
         cube = create_cube_with_threshold()
         self.coord_name = find_threshold_coordinate(cube).name()
@@ -136,14 +137,20 @@ class Test_add_coord(IrisTest):
         self.cube = iris.util.squeeze(cube)
 
     def test_basic(self):
-        """Test that add_coord returns a Cube and adds coord correctly. """
+        """Test that add_coord returns a Cube and adds coord correctly"""
         result = add_coord(self.cube, self.coord_name, self.changes)
+        result_coord = result.coord(self.coord_name)
         self.assertIsInstance(result, Cube)
-        self.assertArrayEqual(result.coord(self.coord_name).points,
-                              np.array([2.0]))
-        self.assertArrayEqual(result.coord(self.coord_name).bounds,
-                              np.array([[0.1, 2.0]]))
-        self.assertEqual(str(result.coord(self.coord_name).units), 'mm')
+        self.assertArrayEqual(result_coord.points, np.array([2.0]))
+        self.assertArrayEqual(result_coord.bounds,np.array([[0.1, 2.0]]))
+        self.assertEqual(str(result_coord.units), 'mm')
+        self.assertEqual(result_coord.var_name, "threshold")
+
+    def test_standard_name(self):
+        """Test default is for coordinate to be added as standard name"""
+        result = add_coord(self.cube, self.coord_name, self.changes)
+        self.assertEqual(
+            result.coord(self.coord_name).standard_name, self.coord_name)
 
     def test_long_name(self):
         """Test a coordinate can be added with a name that is not standard"""
