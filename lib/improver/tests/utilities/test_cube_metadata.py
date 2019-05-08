@@ -142,7 +142,7 @@ class Test_add_coord(IrisTest):
         result_coord = result.coord(self.coord_name)
         self.assertIsInstance(result, Cube)
         self.assertArrayEqual(result_coord.points, np.array([2.0]))
-        self.assertArrayEqual(result_coord.bounds,np.array([[0.1, 2.0]]))
+        self.assertArrayEqual(result_coord.bounds, np.array([[0.1, 2.0]]))
         self.assertEqual(str(result_coord.units), 'mm')
         self.assertEqual(result_coord.var_name, "threshold")
 
