@@ -193,7 +193,7 @@ class ConcatenateCubes():
                     cube.add_aux_coord(
                         temp_aux_coord,
                         data_dims=coord_names.index(self.master_coord))
-      
+
         return cube
 
     @staticmethod
