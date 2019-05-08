@@ -39,7 +39,7 @@ from iris.tests import IrisTest
 from iris.coords import AuxCoord
 import numpy as np
 
-from improver.utilities.cube_manipulation import sort_coord_in_cube
+from improver.utilities.cube_manipulation_new import sort_coord_in_cube
 
 from improver.tests.utilities.test_mathematical_operations import (
     set_up_height_cube)

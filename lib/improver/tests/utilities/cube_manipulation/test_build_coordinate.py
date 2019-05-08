@@ -41,7 +41,7 @@ from iris.coord_systems import TransverseMercator
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.utilities.cube_manipulation import build_coordinate
+from improver.utilities.cube_manipulation_new import build_coordinate
 
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import set_up_temperature_cube

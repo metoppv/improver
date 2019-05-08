@@ -38,7 +38,7 @@ import numpy as np
 import iris
 from iris.tests import IrisTest
 
-from improver.utilities.cube_manipulation import compare_attributes
+from improver.utilities.cube_manipulation_new import compare_attributes
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import set_up_temperature_cube
 from improver.utilities.warnings_handler import ManageWarnings

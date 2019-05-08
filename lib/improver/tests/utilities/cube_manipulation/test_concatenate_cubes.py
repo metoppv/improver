@@ -42,7 +42,7 @@ from iris.exceptions import ConcatenateError
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.utilities.cube_manipulation import concatenate_cubes
+from improver.utilities.cube_manipulation_new import concatenate_cubes
 
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import set_up_temperature_cube
@@ -185,6 +185,7 @@ class Test_concatenate_cubes(IrisTest):
         """
         cube1 = self.cube.copy()
         cube2 = self.cube.copy()
+
         cube2.coord("time").points = np.array([412230.0], dtype=np.float64)
         time_origin = "hours since 1970-01-01 00:00:00"
         calendar = "gregorian"
@@ -193,10 +194,10 @@ class Test_concatenate_cubes(IrisTest):
             DimCoord([412227.0], "forecast_reference_time", units=tunit))
         cube2.add_aux_coord(
             DimCoord([412230.0], "forecast_reference_time", units=tunit))
-
         cubelist = iris.cube.CubeList([cube1, cube2])
 
-        result = concatenate_cubes(cubelist)
+        result = concatenate_cubes(
+            cubelist, coordinates_for_association=["forecast_reference_time"])
         self.assertArrayAlmostEqual(
             result.coord("forecast_reference_time").points,
             [412227.0, 412230.0])

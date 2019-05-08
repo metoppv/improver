@@ -40,7 +40,7 @@ from iris.coords import AuxCoord, DimCoord
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.utilities.cube_manipulation import compare_coords
+from improver.utilities.cube_manipulation_new import compare_coords
 
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import set_up_temperature_cube
