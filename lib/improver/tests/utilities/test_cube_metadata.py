@@ -81,11 +81,6 @@ def create_cube_with_threshold(data=None, threshold_values=None):
         cube, time_points, "time", order=[1, 0, 2, 3], is_datetime=True)
 
     cube.data = data
-
-    # HACK re-cast threshold coordinate back to old format until var_name and
-    # standard_name are supported by update_coord and resolve_metadata_diffs
-    cube.coord(find_threshold_coordinate(cube)).rename("threshold")
-
     return cube
 
 
@@ -130,52 +125,50 @@ class Test_add_coord(IrisTest):
 
     def setUp(self):
         """Set up information for testing."""
-        self.cube = create_cube_with_threshold()
         self.changes = {
             'points': [2.0],
             'bounds': [0.1, 2.0],
             'units': 'mm'
             }
-        self.coord_name = find_threshold_coordinate(self.cube).name()
+        cube = create_cube_with_threshold()
+        self.coord_name = find_threshold_coordinate(cube).name()
+        cube.remove_coord(self.coord_name)
+        self.cube = iris.util.squeeze(cube)
 
     def test_basic(self):
         """Test that add_coord returns a Cube and adds coord correctly. """
-        self.cube.remove_coord(self.coord_name)
-        cube = iris.util.squeeze(self.cube)
-        result = add_coord(cube, self.coord_name, self.changes)
+        result = add_coord(self.cube, self.coord_name, self.changes)
         self.assertIsInstance(result, Cube)
         self.assertArrayEqual(result.coord(self.coord_name).points,
                               np.array([2.0]))
         self.assertArrayEqual(result.coord(self.coord_name).bounds,
                               np.array([[0.1, 2.0]]))
-        self.assertEqual(str(result.coord(self.coord_name).units),
-                         'mm')
+        self.assertEqual(str(result.coord(self.coord_name).units), 'mm')
+
+    def test_long_name(self):
+        """Test a coordinate can be added with a name that is not standard"""
+        result = add_coord(self.cube, "threshold", self.changes)
+        self.assertEqual(result.coord("threshold").long_name, "threshold")
 
     def test_fails_no_points(self):
         """Test that add_coord fails if points not included in metadata """
-        self.cube.remove_coord(self.coord_name)
-        cube = iris.util.squeeze(self.cube)
         changes = {'bounds': [0.1, 2.0], 'units': 'mm'}
         msg = 'Trying to add new coord but no points defined'
         with self.assertRaisesRegex(ValueError, msg):
-            add_coord(cube, self.coord_name, changes)
+            add_coord(self.cube, self.coord_name, changes)
 
     def test_fails_points_greater_than_1(self):
         """Test that add_coord fails if points greater than 1 """
-        self.cube.remove_coord(self.coord_name)
-        cube = iris.util.squeeze(self.cube)
         changes = {'points': [0.1, 2.0]}
         msg = 'Can not add a coordinate of length > 1'
         with self.assertRaisesRegex(ValueError, msg):
-            add_coord(cube, self.coord_name, changes)
+            add_coord(self.cube, self.coord_name, changes)
 
     @ManageWarnings(record=True)
     def test_warning_messages(self, warning_list=None):
         """Test that warning messages is raised correctly. """
-        self.cube.remove_coord(self.coord_name)
-        cube = iris.util.squeeze(self.cube)
         warning_msg = "Adding new coordinate"
-        add_coord(cube, self.coord_name, self.changes, warnings_on=True)
+        add_coord(self.cube, self.coord_name, self.changes, warnings_on=True)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         self.assertTrue(any(warning_msg in str(item)

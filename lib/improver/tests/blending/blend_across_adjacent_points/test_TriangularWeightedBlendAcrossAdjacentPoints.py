@@ -248,11 +248,12 @@ class Test_process(IrisTest):
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_input_cube_no_change(self):
-        """Test that the plugin does not change the origonal input cube."""
+        """Test that the plugin does not change the original input cube."""
 
         # Add threshold axis to standard input cube.
-        changes = {'points': [0.5], 'units': '1'}
-        cube_with_thresh = add_coord(self.cube.copy(), 'threshold', changes)
+        changes = {'points': [0], 'units': '1', 'var_name': 'threshold'}
+        cube_with_thresh = add_coord(
+            self.cube.copy(), 'precipitation_amount', changes)
         original_cube = cube_with_thresh.copy()
 
         width = 2.0
@@ -278,11 +279,13 @@ class Test_process(IrisTest):
         expected_cube = self.cube[0].copy(data.astype(np.float32))
 
         # Add threshold axis to expected output cube.
-        changes = {'points': [0.5], 'units': '1'}
-        expected_cube = add_coord(expected_cube, 'threshold', changes)
+        changes = {'points': [0.5], 'units': '1', 'var_name': 'threshold'}
+        expected_cube = add_coord(
+            expected_cube, 'precipitation_amount', changes)
 
         # Add threshold axis to standard input cube.
-        cube_with_thresh = add_coord(self.cube.copy(), 'threshold', changes)
+        cube_with_thresh = add_coord(
+            self.cube.copy(), 'precipitation_amount', changes)
 
         width = 2.0
         plugin = TriangularWeightedBlendAcrossAdjacentPoints(
@@ -292,8 +295,8 @@ class Test_process(IrisTest):
 
         # Test that the result cube retains threshold co-ordinates
         # from original cube.
-        self.assertEqual(expected_cube.coord('threshold'),
-                         result.coord('threshold'))
+        self.assertEqual(expected_cube.coord('precipitation_amount'),
+                         result.coord('precipitation_amount'))
         self.assertArrayEqual(expected_cube.data, result.data)
         self.assertEqual(expected_cube, result)
 
@@ -307,20 +310,23 @@ class Test_process(IrisTest):
         thresh_cube = self.cube.copy()
         thresh_cube.remove_coord("forecast_reference_time")
 
-        changes = {'points': [0.25], 'units': '1'}
-        cube_with_thresh1 = add_coord(thresh_cube.copy(), 'threshold', changes)
+        changes = {'points': [0.25], 'units': '1', 'var_name': 'threshold'}
+        cube_with_thresh1 = add_coord(
+            thresh_cube.copy(), 'precipitation_amount', changes)
 
-        changes = {'points': [0.5], 'units': '1'}
-        cube_with_thresh2 = add_coord(thresh_cube.copy(), 'threshold', changes)
+        changes = {'points': [0.5], 'units': '1', 'var_name': 'threshold'}
+        cube_with_thresh2 = add_coord(
+            thresh_cube.copy(), 'precipitation_amount', changes)
 
-        changes = {'points': [0.75], 'units': '1'}
-        cube_with_thresh3 = add_coord(thresh_cube.copy(), 'threshold', changes)
+        changes = {'points': [0.75], 'units': '1', 'var_name': 'threshold'}
+        cube_with_thresh3 = add_coord(
+            thresh_cube.copy(), 'precipitation_amount', changes)
 
         cubelist = iris.cube.CubeList([cube_with_thresh1, cube_with_thresh2,
                                        cube_with_thresh3])
 
-        thresh_cubes = concatenate_cubes(cubelist,
-                                         coords_to_slice_over='threshold')
+        thresh_cubes = concatenate_cubes(
+            cubelist, coords_to_slice_over='precipitation_amount')
 
         plugin = TriangularWeightedBlendAcrossAdjacentPoints(
             'forecast_period', self.forecast_period, 'hours', width,
@@ -329,8 +335,8 @@ class Test_process(IrisTest):
 
         # Test that the result cube retains threshold co-ordinates
         # from original cube.
-        self.assertEqual(thresh_cubes.coord('threshold'),
-                         result.coord('threshold'))
+        self.assertEqual(thresh_cubes.coord('precipitation_amount'),
+                         result.coord('precipitation_amount'))
 
 
 if __name__ == '__main__':
