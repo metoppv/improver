@@ -37,7 +37,7 @@ import unittest
 from iris.cube import Cube
 from iris.tests import IrisTest
 
-from improver.utilities.cube_manipulation_new import clip_cube_data
+from improver.utilities.cube_manipulation import clip_cube_data
 
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import (

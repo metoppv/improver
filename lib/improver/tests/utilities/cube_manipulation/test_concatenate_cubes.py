@@ -42,7 +42,7 @@ from iris.exceptions import ConcatenateError
 from iris.tests import IrisTest
 import numpy as np
 
-from improver.utilities.cube_manipulation_new import concatenate_cubes
+from improver.utilities.cube_manipulation import concatenate_cubes
 
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import set_up_temperature_cube

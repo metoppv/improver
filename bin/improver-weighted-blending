@@ -41,9 +41,8 @@ from cf_units import Unit
 from improver.argparser import ArgParser
 from improver.utilities.load import load_cubelist
 from improver.utilities.save import save_netcdf
-from improver.utilities.cube_manipulation import sort_coord_in_cube
-from improver.utilities.cube_manipulation_new import (
-    MergeCubesForWeightedBlending)
+from improver.utilities.cube_manipulation import (
+    sort_coord_in_cube, MergeCubesForWeightedBlending)
 
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells)

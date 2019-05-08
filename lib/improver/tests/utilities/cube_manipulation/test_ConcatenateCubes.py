@@ -40,7 +40,7 @@ import iris
 from iris.coords import DimCoord
 from iris.tests import IrisTest
 
-from improver.utilities.cube_manipulation_new import ConcatenateCubes
+from improver.utilities.cube_manipulation import ConcatenateCubes
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 

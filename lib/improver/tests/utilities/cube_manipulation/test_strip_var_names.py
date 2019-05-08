@@ -37,7 +37,7 @@ import unittest
 import iris
 from iris.tests import IrisTest
 
-from improver.utilities.cube_manipulation_new import strip_var_names
+from improver.utilities.cube_manipulation import strip_var_names
 
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import set_up_temperature_cube
