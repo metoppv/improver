@@ -41,8 +41,7 @@ from cf_units import Unit
 from improver.argparser import ArgParser
 from improver.utilities.load import load_cubelist
 from improver.utilities.save import save_netcdf
-from improver.utilities.cube_manipulation import (
-    sort_coord_in_cube, MergeCubesForWeightedBlending)
+from improver.utilities.cube_manipulation import sort_coord_in_cube
 
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells)
@@ -53,7 +52,8 @@ from improver.blending.weights import (
 from improver.blending.spatial_weights import (
     SpatiallyVaryingWeightsFromMask)
 from improver.blending.weighted_blend import (
-    conform_metadata, WeightedBlendAcrossWholeDimension)
+    MergeCubesForWeightedBlending, conform_metadata,
+    WeightedBlendAcrossWholeDimension)
 
 
 def calculate_blending_weights(cube, blend_coord, method, wts_dict=None,

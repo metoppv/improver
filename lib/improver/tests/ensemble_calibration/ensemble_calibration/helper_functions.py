@@ -290,7 +290,10 @@ def _create_historic_forecasts(cube, number_of_days=5):
             temp_cube.coord(coord_name).convert_units(orig_units)
         temp_cube.data -= 2
         historic_forecasts.append(temp_cube)
-    historic_forecast = concatenate_cubes(historic_forecasts)
+
+    historic_forecast = concatenate_cubes(
+        historic_forecasts,
+        coordinates_for_association=["forecast_reference_time"])
     return historic_forecast
 
 
@@ -313,7 +316,8 @@ def _create_truth(cube):
         temp_cube.remove_coord("realization")
         temp_cube.cell_methods = {}
         truth.append(temp_cube)
-    truth = concatenate_cubes(truth)
+    truth = concatenate_cubes(
+        truth, coordinates_for_association=["forecast_reference_time"])
     return truth
 
 

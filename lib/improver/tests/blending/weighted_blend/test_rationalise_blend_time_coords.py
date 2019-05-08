@@ -37,8 +37,6 @@ from datetime import datetime
 import iris
 from iris.tests import IrisTest
 
-from improver.utilities.cube_manipulation import merge_cubes
-from improver.utilities.warnings_handler import ManageWarnings
 from improver.blending.weighted_blend import rationalise_blend_time_coords
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 
@@ -68,8 +66,6 @@ class Test_rationalise_blend_time_coords(IrisTest):
         # make a cube list and merged cube containing the two model cubes, for
         # use in defining reference coordinates for tests below
         self.cubelist = iris.cube.CubeList([self.ukv_cube, self.enuk_cube])
-        self.cube = merge_cubes(
-            self.cubelist, model_id_attr='mosg__model_configuration')
 
     def test_null_irrelevant_coord(self):
         """Test function does nothing if not given a relevant coord"""
@@ -91,15 +87,12 @@ class Test_rationalise_blend_time_coords(IrisTest):
         rationalise_blend_time_coords(self.cubelist, "model")
         self.assertEqual(self.cubelist, reference_cubelist)
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Do not know what to do with mosg__model_configuration"])
     def test_remove_fp(self):
         """Test function removes forecast_period coord if blending over
         forecast_reference_time"""
         rationalise_blend_time_coords(self.cubelist, "forecast_reference_time")
-        merged_cube = merge_cubes(self.cubelist)
-        self.assertTrue("forecast_period" not in merged_cube.coords())
+        for cube in self.cubelist:
+            self.assertTrue("forecast_period" not in cube.coords())
 
     def test_unify_frt(self):
         """Test function equalises forecast reference times if weighting a
@@ -108,15 +101,11 @@ class Test_rationalise_blend_time_coords(IrisTest):
         expected_fp = 3 * 3600
         rationalise_blend_time_coords(
             self.cubelist, "model", weighting_coord="forecast_period")
-        merged_cube = merge_cubes(
-            self.cubelist, model_id_attr="mosg__model_configuration")
-        for coord in ["forecast_reference_time", "forecast_period"]:
-            self.assertEqual(len(merged_cube.coord(coord).points), 1)
-        self.assertEqual(
-            merged_cube.coord("forecast_reference_time").points[0],
-            expected_frt)
-        self.assertEqual(
-            merged_cube.coord("forecast_period").points[0], expected_fp)
+        for cube in self.cubelist:
+            self.assertEqual(
+                cube.coord("forecast_reference_time").points[0], expected_frt)
+            self.assertEqual(
+                cube.coord("forecast_period").points[0], expected_fp)
 
     def test_cycletime(self):
         """Test function sets different cycle time if passed in as argument"""
@@ -128,15 +117,11 @@ class Test_rationalise_blend_time_coords(IrisTest):
         rationalise_blend_time_coords(
             self.cubelist, "model", weighting_coord="forecast_period",
             cycletime='20170109T2100Z')
-        merged_cube = merge_cubes(
-            self.cubelist, model_id_attr="mosg__model_configuration")
-        for coord in ["forecast_reference_time", "forecast_period"]:
-            self.assertEqual(len(merged_cube.coord(coord).points), 1)
-        self.assertEqual(
-            merged_cube.coord("forecast_reference_time").points[0],
-            expected_frt)
-        self.assertEqual(
-            merged_cube.coord("forecast_period").points[0], expected_fp)
+        for cube in self.cubelist:
+            self.assertEqual(
+                cube.coord("forecast_reference_time").points[0], expected_frt)
+            self.assertEqual(
+                cube.coord("forecast_period").points[0], expected_fp)
 
     def test_error_frt_dim(self):
         """Test an error is raised if forecast reference time is a dimension

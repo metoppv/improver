@@ -37,7 +37,7 @@ from datetime import datetime as dt
 import iris
 from iris.tests import IrisTest
 
-from improver.utilities.cube_manipulation import MergeCubesForWeightedBlending
+from improver.blending.weighted_blend import MergeCubesForWeightedBlending
 from improver.utilities.warnings_handler import ManageWarnings
 from improver.tests.set_up_test_cubes import (
     set_up_probability_cube, set_up_variable_cube)
