@@ -32,18 +32,23 @@
    whole dimension."""
 
 import numpy as np
+import warnings
+
 import iris
 from iris.analysis import Aggregator
+from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.utilities.cube_checker import find_percentile_coordinate
-from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+from improver.utilities.cube_manipulation import (
+    enforce_coordinate_ordering, sort_coord_in_cube, build_coordinate,
+    MergeCubes)
 from improver.utilities.temporal import (
     cycletime_to_datetime, cycletime_to_number, forecast_period_coord,
     unify_forecast_reference_time, find_latest_cycletime)
 
 
+# TODO move into MergeCubesForWeightedBlending class
 def rationalise_blend_time_coords(
         cubelist, blend_coord, cycletime=None, weighting_coord=None):
     """
@@ -88,6 +93,148 @@ def rationalise_blend_time_coords(
         else:
             cycletime = cycletime_to_datetime(cycletime)
         cubelist = unify_forecast_reference_time(cubelist, cycletime)
+
+
+class MergeCubesForWeightedBlending():
+    """Prepares cubes for cycle and grid blending"""
+
+    def __init__(self, blend_coord, weighting_coord=None, model_id_attr=None):
+        """
+        Initialise the class
+
+        Args:
+            blend_coord (str):
+                Name of coordinate over which blending will be performed.  For
+                multi-model blending this is flexible to any string containing
+                "model".  For all other coordinates this is prescriptive:
+                cube.coord(blend_coord) must return an iris.coords.Coord
+                instance for all cubes passed into the "process" method.
+
+        Kwargs:
+            weighting_coord (str or None):
+                The coordinate across which weights will be scaled in a
+                multi-model blend.  Required for
+                rationalise_blend_time_coordinates.
+            model_id_attr (str or None):
+                Name of attribute used to identify model for grid blending.
+                None for cycle blending.
+
+        Raises:
+            ValueError:
+                If trying to blend over model when model_id_attr is not set
+        """
+        if "model" in blend_coord and model_id_attr is None:
+            raise ValueError(
+                "model_id_attr required to blend over {}".format(blend_coord))
+
+        # ensure model coordinates are not created for non-model blending
+        if "model" not in blend_coord and model_id_attr is not None:
+            warnings.warn(
+                "model_id_attr not required for blending over {} - "
+                "will be ignored".format(blend_coord))
+            model_id_attr = None
+
+        self.blend_coord = blend_coord
+        self.weighting_coord = weighting_coord
+        self.model_id_attr = model_id_attr
+
+    def _create_model_coordinates(self, cubelist):
+        """
+        Adds numerical model ID and string model configuration scalar
+        coordinates to input cubes if self.model_id_attr is specified.
+        Sets the original attribute value to "blend", in anticipation.
+        Modifies cubes in place.
+
+        Args:
+            cubelist (iris.cube.CubeList):
+                List of cubes to be merged for blending
+
+        Raises:
+            ValueError:
+                If self.model_id_attr is not present on all cubes
+            ValueError:
+                If input cubelist contains cubes from the same model
+        """
+        model_titles = []
+        for i, cube in enumerate(cubelist):
+            if self.model_id_attr not in cube.attributes:
+                msg = ('Cannot create model ID coordinate for grid blending '
+                       'as "model_id_attr={}" was not found within the cube '
+                       'attributes'.format(self.model_id_attr))
+                raise ValueError(msg)
+
+            model_title = cube.attributes.pop(self.model_id_attr)
+            if model_title in model_titles:
+                raise ValueError('Cannot create model dimension coordinate '
+                                 'with duplicate points')
+            model_titles.append(model_title)
+            cube.attributes[self.model_id_attr] = "blend"
+
+            new_model_id_coord = build_coordinate([1000 * i],
+                                                  long_name='model_id',
+                                                  data_type=np.int32)
+            new_model_coord = (
+                build_coordinate([model_title],
+                                 long_name='model_configuration',
+                                 coord_type=AuxCoord,
+                                 data_type=np.str))
+
+            cube.add_aux_coord(new_model_id_coord)
+            cube.add_aux_coord(new_model_coord)
+
+    def process(self, cubes_in, cycletime=None):
+        """
+        Prepares merged input cube for cycle and grid blending
+
+        Args:
+            cubes (iris.cube.CubeList or iris.cube.Cube):
+                Cubes to be merged.
+
+        Kwargs:
+            cycletime (str or None):
+                The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
+                Can be used in rationalise_blend_time_coordinates.
+
+        Returns:
+            iris.cube.Cube:
+                Merged cube.
+
+        Raises:
+            ValueError:
+                If self.blend_coord is not present on all cubes (unless
+                blending over models)
+        """
+        # if input is already a single cube, return unchanged
+        if isinstance(cubes_in, iris.cube.Cube):
+            return cubes_in
+
+        if len(cubes_in) == 1:
+            return cubes_in[0]
+
+        # create copies of input cubes so as not to modify in place
+        cubelist = iris.cube.CubeList([])
+        for cube in cubes_in:
+            if ("model" not in self.blend_coord and
+                    not cube.coords(self.blend_coord)):
+                raise ValueError(
+                    "{} coordinate is not present on all input "
+                    "cubes".format(self.blend_coord))
+            cubelist.append(cube.copy())
+
+        # TODO move rationalise_blend_time_coords into this class
+        rationalise_blend_time_coords(
+            cubelist, self.blend_coord, cycletime=cycletime,
+            weighting_coord=self.weighting_coord)
+
+        # create model ID and model configuration coordinates if blending
+        # different models
+        if self.model_id_attr is not None:
+            self._create_model_coordinates(cubelist)
+
+        # merge resulting cubelist
+        result = MergeCubes().process(cubelist, check_time_bounds_ranges=True)
+
+        return result
 
 
 def conform_metadata(
@@ -137,6 +284,7 @@ def conform_metadata(
     """
     # unify time coordinates for cycle and grid (model) blends
     if coord in ["forecast_reference_time", "model"]:
+        # if cycle blending, update forecast reference time and remove bounds
         if cube.coords("forecast_reference_time"):
             if cycletime is None:
                 new_cycletime = (
@@ -155,17 +303,15 @@ def conform_metadata(
             cube.coord("forecast_reference_time").points = new_cycletime
             cube.coord("forecast_reference_time").bounds = None
 
+        # recalculate forecast period coordainte
         if cube.coords("forecast_period"):
-            forecast_period = (
-                forecast_period_coord(cube,
-                                      force_lead_time_calculation=True))
-            forecast_period.bounds = None
+            forecast_period = forecast_period_coord(
+                cube, force_lead_time_calculation=True)
             forecast_period.convert_units(cube.coord("forecast_period").units)
             forecast_period.var_name = cube.coord("forecast_period").var_name
             cube.replace_coord(forecast_period)
         elif cube.coords("forecast_reference_time") and cube.coords("time"):
-            forecast_period = (
-                forecast_period_coord(cube))
+            forecast_period = forecast_period_coord(cube)
             ndim = cube.coord_dims("time")
             cube.add_aux_coord(forecast_period, data_dims=ndim)
 

@@ -472,12 +472,6 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         try:
             fp_point = (
                 np.unique(historic_forecast.coord("forecast_period").points))
-            if len(fp_point) > 1:
-                msg = ("The historic forecast should only contain "
-                       "one unique forecast period. "
-                       "The unique forecast periods in the "
-                       "historic forecast were {}".format(fp_point))
-                raise ValueError(msg)
             fp_coord = (
                 historic_forecast.coord("forecast_period").copy(fp_point))
         except CoordinateNotFoundError:

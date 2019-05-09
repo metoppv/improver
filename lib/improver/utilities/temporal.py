@@ -155,6 +155,7 @@ def forecast_period_coord(
         fp_type = cube.coord("forecast_period").dtype
     else:
         fp_type = np.int32
+
     if cube.coords("forecast_period") and not force_lead_time_calculation:
         result_coord = cube.coord("forecast_period").copy()
         try:

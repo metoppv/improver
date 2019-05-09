@@ -41,7 +41,6 @@ from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
 from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
     set_up_cube)
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test__repr__(IrisTest):
@@ -193,19 +192,12 @@ class Test_process(IrisTest):
         expected_attributes = {'institution': 'Met Office'}
         self.assertEqual(result.attributes, expected_attributes)
 
-    @ManageWarnings(record=True)
-    def test_single_cube(self, warning_list=None):
-        """Test only one input cube returns cube unchanged.
-           Also test the warning that is raised."""
+    def test_single_cube(self):
+        """Test only one input cube returns cube unchanged"""
         input_cubelist = iris.cube.CubeList([self.input_cube])
         expected_cube = self.input_cube.copy()
         result = GenerateTimeLaggedEnsemble().process(input_cubelist)
         self.assertEqual(result, expected_cube)
-        warning_msg = "Only a single cube so no differences will be found"
-        self.assertTrue(any(item.category == UserWarning
-                            for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item)
-                            for item in warning_list))
 
 
 if __name__ == '__main__':
