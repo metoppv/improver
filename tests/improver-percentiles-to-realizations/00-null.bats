@@ -33,7 +33,7 @@
   run improver percentiles-to-realizations
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-percentiles-to-realizations [-h] [--profile]
+usage: improver percentiles-to-realizations [-h] [--profile]
                                             [--profile_file PROFILE_FILE]
                                             [--no_of_percentiles NUMBER_OF_PERCENTILES]
                                             [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
@@ -44,7 +44,7 @@ usage: improver-percentiles-to-realizations [-h] [--profile]
                                             [--random_seed RANDOM_SEED]
                                             [--realization_numbers REALIZATION_NUMBERS [REALIZATION_NUMBERS ...]]
                                             INPUT_FILE OUTPUT_FILE
-improver-percentiles-to-realizations: error: the following arguments are required: INPUT_FILE, OUTPUT_FILE
+improver percentiles-to-realizations: error: the following arguments are required: INPUT_FILE, OUTPUT_FILE
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

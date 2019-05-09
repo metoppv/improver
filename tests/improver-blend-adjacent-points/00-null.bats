@@ -33,7 +33,7 @@
   run improver blend-adjacent-points
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-blend-adjacent-points [-h] [--profile]
+usage: improver blend-adjacent-points [-h] [--profile]
                                       [--profile_file PROFILE_FILE] --units
                                       UNIT_STRING [--calendar CALENDAR]
                                       --width TRIANGLE_WIDTH

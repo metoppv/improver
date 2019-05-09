@@ -33,7 +33,7 @@
   run improver combine -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-combine [-h] [--profile] [--profile_file PROFILE_FILE]
+usage: improver combine [-h] [--profile] [--profile_file PROFILE_FILE]
                         [--operation OPERATION] [--new-name NEW_NAME]
                         [--metadata_jsonfile METADATA_JSONFILE]
                         [--warnings_on]

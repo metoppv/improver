@@ -33,7 +33,7 @@
   run improver wind-gust-diagnostic -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-wind-gust-diagnostic [-h] [--profile]
+usage: improver wind-gust-diagnostic [-h] [--profile]
                                      [--profile_file PROFILE_FILE]
                                      [--percentile_gust PERCENTILE_GUST]
                                      [--percentile_ws PERCENTILE_WIND_SPEED]

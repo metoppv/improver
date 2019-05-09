@@ -33,11 +33,11 @@
   run improver time-lagged-ensembles
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-time-lagged-ensembles [-h] [--profile]
+usage: improver time-lagged-ensembles [-h] [--profile]
                                       [--profile_file PROFILE_FILE]
                                       INPUT_FILENAMES [INPUT_FILENAMES ...]
                                       OUTPUT_FILE
-improver-time-lagged-ensembles: error: the following arguments are required: INPUT_FILENAMES, OUTPUT_FILE
+improver time-lagged-ensembles: error: the following arguments are required: INPUT_FILENAMES, OUTPUT_FILE
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

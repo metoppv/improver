@@ -33,7 +33,7 @@
   run improver uv-index -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-uv-index [-h] [--profile] [--profile_file PROFILE_FILE]
+usage: improver uv-index [-h] [--profile] [--profile_file PROFILE_FILE]
                          RADIATION_FLUX_UPWARD RADIATION_FLUX_DOWNWARD
                          OUTPUT_FILE
 

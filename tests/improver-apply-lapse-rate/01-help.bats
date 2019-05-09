@@ -33,7 +33,7 @@
   run improver apply-lapse-rate -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-apply-lapse-rate [-h] [--profile]
+usage: improver apply-lapse-rate [-h] [--profile]
                                  [--profile_file PROFILE_FILE]
                                  TEMPERATURE_FILEPATH LAPSE_RATE_FILEPATH
                                  SOURCE_OROG_FILE TARGET_OROG_FILE OUTPUT_FILE

@@ -33,7 +33,7 @@
   run improver standardise -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-standardise [-h] [--profile] [--profile_file PROFILE_FILE]
+usage: improver standardise [-h] [--profile] [--profile_file PROFILE_FILE]
                             [--output_filepath OUTPUT_FILE]
                             [--target_grid_filepath TARGET_GRID]
                             [--regrid_mode {bilinear,nearest,nearest-with-mask}]

@@ -33,7 +33,7 @@
   run improver wind-direction -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-wind-direction [-h] [--profile] [--profile_file PROFILE_FILE]
+usage: improver wind-direction [-h] [--profile] [--profile_file PROFILE_FILE]
                                [--backup_method {neighbourhood,first_realization}]
                                INPUT_FILE OUTPUT_FILE
 

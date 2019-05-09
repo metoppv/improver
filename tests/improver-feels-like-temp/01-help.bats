@@ -33,7 +33,7 @@
   run improver feels-like-temp -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-feels-like-temp [-h] [--profile] [--profile_file PROFILE_FILE]
+usage: improver feels-like-temp [-h] [--profile] [--profile_file PROFILE_FILE]
                                 TEMPERATURE WIND_SPEED RELATIVE_HUMIDITY
                                 PRESSURE OUTPUT_FILE
 

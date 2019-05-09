@@ -38,13 +38,13 @@
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-probabilities-to-realizations [-h] [--profile]
+usage: improver probabilities-to-realizations [-h] [--profile]
                                               [--profile_file PROFILE_FILE]
                                               [--no_of_realizations NUMBER_OF_REALIZATIONS]
                                               (--reordering | --rebadging)
                                               [--raw_forecast_filepath RAW_FORECAST_FILE]
                                               [--random_seed RANDOM_SEED]
                                               INPUT_FILE OUTPUT_FILE
-improver-probabilities-to-realizations: error: Method: rebadging does not accept arguments: raw_forecast_filepath, random_seed
+improver probabilities-to-realizations: error: Method: rebadging does not accept arguments: raw_forecast_filepath, random_seed
 __TEXT__
 }

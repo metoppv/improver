@@ -33,7 +33,7 @@
   run improver wxcode -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-wxcode [-h] [--profile] [--profile_file PROFILE_FILE]
+usage: improver wxcode [-h] [--profile] [--profile_file PROFILE_FILE]
                        [--wxtree WXTREE]
                        INPUT_FILES [INPUT_FILES ...] OUTPUT_FILE
 

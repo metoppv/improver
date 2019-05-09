@@ -33,7 +33,7 @@
   run improver recursive-filter -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-recursive-filter [-h] [--profile]
+usage: improver recursive-filter [-h] [--profile]
                                  [--profile_file PROFILE_FILE]
                                  [--input_filepath_alphas_x ALPHAS_X_FILE]
                                  [--input_filepath_alphas_y ALPHAS_Y_FILE]

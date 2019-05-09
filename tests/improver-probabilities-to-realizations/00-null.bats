@@ -33,7 +33,7 @@
   run improver probabilities-to-realizations
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-probabilities-to-realizations [-h] [--profile]
+usage: improver probabilities-to-realizations [-h] [--profile]
                                               [--profile_file PROFILE_FILE]
                                               [--no_of_realizations NUMBER_OF_REALIZATIONS]
                                               (--reordering | --rebadging)

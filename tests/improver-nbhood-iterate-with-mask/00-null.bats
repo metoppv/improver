@@ -33,7 +33,7 @@
   run improver nbhood-iterate-with-mask
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-nbhood-iterate-with-mask [-h] [--profile]
+usage: improver nbhood-iterate-with-mask [-h] [--profile]
                                          [--profile_file PROFILE_FILE]
                                          [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
                                          [--sum_or_fraction {sum,fraction}]

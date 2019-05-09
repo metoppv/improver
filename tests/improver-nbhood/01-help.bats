@@ -33,7 +33,7 @@
   run improver nbhood -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-nbhood [-h] [--profile] [--profile_file PROFILE_FILE]
+usage: improver nbhood [-h] [--profile] [--profile_file PROFILE_FILE]
                        [--radius RADIUS | --radii-by-lead-time RADII_BY_LEAD_TIME LEAD_TIME_IN_HOURS]
                        [--degrees_as_complex] [--weighted_mode]
                        [--sum_or_fraction {sum,fraction}] [--re_mask]

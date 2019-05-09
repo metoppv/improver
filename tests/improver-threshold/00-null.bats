@@ -32,7 +32,7 @@
 @test "threshold no arguments" {
   run improver threshold
   [[ "$status" -eq 2 ]]
-  expected="usage: improver-threshold [-h] [--profile] [--profile_file PROFILE_FILE]
+  expected="usage: improver threshold [-h] [--profile] [--profile_file PROFILE_FILE]
                           [--threshold_config THRESHOLD_CONFIG]
                           [--threshold_units THRESHOLD_UNITS]
                           [--below_threshold] [--fuzzy_factor FUZZY_FACTOR]

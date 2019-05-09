@@ -34,7 +34,7 @@
   run improver spot-extract -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver-spot-extract [-h] [--profile] [--profile_file PROFILE_FILE]
+usage: improver spot-extract [-h] [--profile] [--profile_file PROFILE_FILE]
                              [--land_constraint] [--minimum_dz]
                              [--extract_percentiles EXTRACT_PERCENTILES [EXTRACT_PERCENTILES ...]]
                              [--ecc_bounds_warning]

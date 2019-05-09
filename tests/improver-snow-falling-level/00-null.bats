@@ -32,7 +32,7 @@
 @test "snow-falling-level no arguments" {
   run improver snow-falling-level
   [[ "$status" -eq 2 ]]
-  expected="usage: improver-snow-falling-level [-h] [--profile]
+  expected="usage: improver snow-falling-level [-h] [--profile]
                                    [--profile_file PROFILE_FILE]
                                    [--precision NEWTON_PRECISION]
                                    [--falling_level_threshold FALLING_LEVEL_THRESHOLD]

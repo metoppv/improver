@@ -31,6 +31,8 @@
 """Common option utilities for improver CLIs."""
 
 from argparse import ArgumentParser
+import pathlib
+import sys
 
 from improver.profile import profile_hook_enable
 
@@ -136,6 +138,11 @@ class ArgParser(ArgumentParser):
         # get argspecs of the central arguments from the list of keys passed in
         central_arguments = [ArgParser.CENTRALIZED_ARGUMENTS[arg_name] for
                              arg_name in central_arguments]
+
+        if 'prog' not in kwargs:
+            improver_oper = pathlib.PurePosixPath(
+                sys.argv[0]).stem.replace("_", "-")
+            kwargs['prog'] = ("improver " + improver_oper)
 
         # create instance of ArgumentParser (pass along kwargs)
         super(ArgParser, self).__init__(**kwargs)

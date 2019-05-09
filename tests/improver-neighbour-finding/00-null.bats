@@ -33,7 +33,7 @@
   run improver neighbour-finding
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-neighbour-finding [-h] [--profile]
+usage: improver neighbour-finding [-h] [--profile]
                                   [--profile_file PROFILE_FILE]
                                   [--all_methods] [--land_constraint]
                                   [--minimum_dz]

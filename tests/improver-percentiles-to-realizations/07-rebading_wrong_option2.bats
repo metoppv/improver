@@ -41,7 +41,7 @@
 
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-percentiles-to-realizations [-h] [--profile]
+usage: improver percentiles-to-realizations [-h] [--profile]
                                             [--profile_file PROFILE_FILE]
                                             [--no_of_percentiles NUMBER_OF_PERCENTILES]
                                             [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
@@ -52,7 +52,7 @@ usage: improver-percentiles-to-realizations [-h] [--profile]
                                             [--random_seed RANDOM_SEED]
                                             [--realization_numbers REALIZATION_NUMBERS [REALIZATION_NUMBERS ...]]
                                             INPUT_FILE OUTPUT_FILE
-improver-percentiles-to-realizations: error: Method: rebadging does not accept arguments: raw_forecast_filepath, random_ordering
+improver percentiles-to-realizations: error: Method: rebadging does not accept arguments: raw_forecast_filepath, random_ordering
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

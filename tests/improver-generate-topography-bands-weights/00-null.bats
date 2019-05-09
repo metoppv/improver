@@ -4,7 +4,7 @@
   run improver generate-topography-bands-weights
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver-generate-topography-bands-weights [-h] [--profile]
+usage: improver generate-topography-bands-weights [-h] [--profile]
                                                   [--profile_file PROFILE_FILE]
                                                   [--input_filepath_landmask INPUT_FILE_LAND]
                                                   [--force]
