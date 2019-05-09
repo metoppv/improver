@@ -40,7 +40,7 @@ from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
 
-def main():
+def main(argv=None):
     """Load in arguments for estimating coefficients for Ensemble Model Output
        Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
        Regression (NGR). 2 sources of input data must be provided: historical
@@ -88,7 +88,7 @@ def main():
                              'realizations ("realizations") are supported as '
                              'options. Default: "mean".')
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     historic_forecast = load_cube(args.historic_filepath)
     truth = load_cube(args.truth_filepath)

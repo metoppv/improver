@@ -38,7 +38,7 @@ from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
 
-def main():
+def main(argv=None):
     """Extend radar mask based on coverage data."""
     parser = ArgParser(description="Extend radar mask based on coverage "
                        "data.")
@@ -56,7 +56,7 @@ def main():
                              "this option an exception will be raised if "
                              "float64 data is found but no fix applied.")
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     # load data
     radar_data = load_cube(args.radar_data_filepath)

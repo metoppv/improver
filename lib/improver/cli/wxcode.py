@@ -99,7 +99,7 @@ def interrogate_decision_tree(wxtree):
     return output
 
 
-def main():
+def main(argv=None):
     """Parser to accept input data and an output destination before invoking
     the weather symbols plugin.
     """
@@ -133,7 +133,7 @@ def main():
                         "Choices are high_resolution or global.\n"
                         "Default=high_resolution.", type=str)
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     cubes = load_cubelist(args.input_filepaths)
 

@@ -42,7 +42,7 @@ from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
 
-def main():
+def main(argv=None):
     """Load in arguments for the cube combiner plugin.
     """
     parser = ArgParser(
@@ -80,7 +80,7 @@ def main():
                         "Warning messages where metadata do not match "
                         "will be given. Default=False", default=False)
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
     # Load the cubes
     cubes = iris.cube.CubeList([])
     new_cube_name = args.new_name

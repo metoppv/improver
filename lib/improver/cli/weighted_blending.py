@@ -131,7 +131,7 @@ def calculate_blending_weights(cube, blend_coord, method, wts_dict=None,
     return weights
 
 
-def main():
+def main(argv=None):
     """Load in arguments and ensure they are set correctly.
        Then load in the data to blend and calculate default weights
        using the method chosen before carrying out the blending."""
@@ -267,7 +267,7 @@ def main():
                           'scaled. This coordinate must be avilable in the '
                           'weights dictionary.')
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     # if the linear weights method is called with non-linear args or vice
     # versa, exit with error

@@ -37,7 +37,7 @@ from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
 
-def main():
+def main(argv=None):
     """Generate target grid with a halo around the source file grid."""
 
     parser = ArgParser(description='Generate grid with halo from a source '
@@ -49,7 +49,7 @@ def main():
     parser.add_argument('--halo_radius', metavar='HALO_RADIUS', default=162000,
                         type=float, help="Size of halo (in m) with which to "
                         "pad the input grid.  Default is 162 000 m.")
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     cube = load_cube(args.input_file)
     halo_cube = create_cube_with_halo(cube, args.halo_radius)

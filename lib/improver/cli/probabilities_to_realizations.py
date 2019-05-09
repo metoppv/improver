@@ -40,7 +40,7 @@ from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
 
-def main():
+def main(argv=None):
     """Convert from probabilities to ensemble realizations via a CLI."""
 
     cli_specific_arguments = [
@@ -102,7 +102,7 @@ def main():
              'output before realizations) exceed the ECC bounds range, raise '
              'a warning rather than an exception.')
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     # CLI argument checking:
     # Can only do one of reordering or rebadging: if options are passed which

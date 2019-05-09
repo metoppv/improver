@@ -39,7 +39,7 @@ from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
 
-def main():
+def main(argv=None):
     """Load in arguments and get going."""
     parser = ArgParser(
         description="Calculate the continuous falling snow level ")
@@ -82,7 +82,7 @@ def main():
                               "snow is deemed to have melted to become rain. "
                               "The default value is 90.0, an empirically "
                               "derived value."))
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     temperature = load_cube(args.temperature, no_lazy_load=True)
     relative_humidity = load_cube(args.relative_humidity, no_lazy_load=True)

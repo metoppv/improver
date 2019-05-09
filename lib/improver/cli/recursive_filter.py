@@ -38,7 +38,7 @@ from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
 
-def main():
+def main(argv=None):
     """Load in arguments and get going."""
     parser = ArgParser(
         description="Run a recursive filter to convert a square neighbourhood "
@@ -84,7 +84,7 @@ def main():
     parser.add_argument("--re_mask", action='store_true', default=False,
                         help="Re-apply mask to recursively filtered output.")
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     cube = load_cube(args.input_filepath)
     if args.input_mask_filepath:

@@ -50,7 +50,7 @@ THRESHOLDS_DICT = {'bounds': [[-500., 50.], [50., 100.], [100., 150.],
                    'units': 'm'}
 
 
-def main():
+def main(argv=None):
     """Load in arguments and get going."""
     parser = ArgParser(
         description=('Reads input orography and landmask fields. Creates a '
@@ -87,7 +87,7 @@ def main():
                               "[250., 300.], [300., 400.], [400., 500.], "
                               "[500., 650.],[650., 800.], [800., 950.], "
                               "[950., 6000.]], 'units': 'm'}"))
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     if args.thresholds_filepath:
         with open(args.thresholds_filepath, 'r') as filehandle:

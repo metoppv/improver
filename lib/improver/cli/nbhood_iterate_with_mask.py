@@ -40,7 +40,7 @@ from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
 
-def main():
+def main(argv=None):
     """Load in arguments for applying neighbourhood processing when using a
     mask."""
     parser = ArgParser(
@@ -128,7 +128,7 @@ def main():
                              'before collapsing the extra dimension is saved '
                              'in the given filepath.')
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     cube = load_cube(args.input_filepath)
     mask_cube = load_cube(args.input_mask_filepath)

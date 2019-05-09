@@ -37,7 +37,7 @@ from improver.utilities.save import save_netcdf
 from improver.feels_like_temperature import calculate_feels_like_temperature
 
 
-def main():
+def main(argv=None):
     """ Load in the arguments for feels like temperature and ensure they are
     set correctly. Then calculate the feels like temperature using the data
     in the input cubes."""
@@ -59,7 +59,7 @@ def main():
     parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
                         help="The output path for the processed NetCDF")
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     temperature = load_cube(args.temperature)
     wind_speed = load_cube(args.wind_speed)

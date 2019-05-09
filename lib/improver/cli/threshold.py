@@ -46,7 +46,7 @@ from improver.blending.weights import ChooseDefaultWeightsLinear
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
 
 
-def main():
+def main(argv=None):
     """Load in arguments and get going."""
     parser = ArgParser(
         description="Calculate the threshold truth value of input data "
@@ -110,7 +110,7 @@ def main():
                         " distance in metres used to define the vicinity "
                         "within which to search for an occurrence.")
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     # Deal with mutual-exclusions that ArgumentParser can't handle:
     if args.threshold_values and args.threshold_config:

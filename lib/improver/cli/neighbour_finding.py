@@ -55,7 +55,7 @@ PROJECTION_LIST = [
     'SouthPolarStereo', 'Stereographic', 'TransverseMercator', 'UTM']
 
 
-def main():
+def main(argv=None):
     """Load in arguments and get going."""
     description = (
         "Determine grid point coordinates within the provided cubes that "
@@ -147,7 +147,7 @@ def main():
         " to Met Office Standard Grid attributes which should be copied"
         " across.")
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     # Open input files
     with open(args.site_list_filepath, 'r') as site_file:

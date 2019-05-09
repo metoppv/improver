@@ -42,7 +42,7 @@ from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
 
-def main():
+def main(argv=None):
     """Calculate temperature lapse rates."""
     parser = ArgParser(
         description='Calculate temperature lapse rates in units of K m-1 '
@@ -84,7 +84,7 @@ def main():
                              'adiabatic lapse rate rather than calculating '
                              'the true lapse rate.')
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     if args.min_lapse_rate > args.max_lapse_rate:
         msg = 'Minimum lapse rate specified is greater than the maximum.'

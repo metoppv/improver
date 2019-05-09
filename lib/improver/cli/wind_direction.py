@@ -38,7 +38,7 @@ from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
 
-def main():
+def main(argv=None):
     """Load in arguments to calculate mean wind direction from ensemble
        realizations."""
 
@@ -62,7 +62,7 @@ def main():
                                       ' wind direction from '
                                       'ensemble realizations')}
 
-    args = ArgParser(**cli_definition).parse_args()
+    args = ArgParser(**cli_definition).parse_args(args=argv)
 
     wind_direction = load_cube(args.input_filepath)
 

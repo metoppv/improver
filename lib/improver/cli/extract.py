@@ -37,7 +37,7 @@ from improver.utilities.cube_extraction import extract_subcube
 from improver.utilities.save import save_netcdf
 
 
-def main():
+def main(argv=None):
     """Invoke data extraction."""
 
     parser = ArgParser(description='Extracts subset of data from a single '
@@ -65,7 +65,7 @@ def main():
     parser.add_argument('--ignore-failure', action='store_true', default=False,
                         help='Option to ignore constraint match failure and '
                         'return the input cube.')
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     cube = load_cube(args.input_file)
 

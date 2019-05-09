@@ -38,7 +38,7 @@ from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
 
-def main():
+def main(argv=None):
     """Load in arguments for wind-gust diagnostic.
     Wind-gust and Wind-speed data should be supplied along with the required
     percentile value. The wind-gust diagnostic will be the Max of the specified
@@ -81,7 +81,7 @@ def main():
                         help="Percentile of wind-speed required."
                         " Default=95.0", type=float)
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
     cube_wg = load_cube(args.input_filegust)
     cube_ws = load_cube(args.input_filews)
     result = (

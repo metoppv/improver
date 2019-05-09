@@ -40,7 +40,7 @@ from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
 
-def main():
+def main(argv=None):
     """Load in arguments and get going."""
     parser = ArgParser(
         description=('Read the input landmask, and correct '
@@ -55,7 +55,7 @@ def main():
                         help='A path to an input NetCDF file to be processed')
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF')
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     # Check if improver ancillary already exists.
     if not os.path.exists(args.output_filepath) or args.force:

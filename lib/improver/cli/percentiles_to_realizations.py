@@ -39,7 +39,7 @@ from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
 
-def main():
+def main(argv=None):
     """
     Load in the arguments and apply the requested variant of Ensemble
     Copula Coupling for converting percentile data to realizations.
@@ -127,7 +127,7 @@ def main():
                                 'use when rebadging the percentiles '
                                 'into realizations.')
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     # CLI argument checking:
     # Can only do one of reordering or rebadging: if options are passed which

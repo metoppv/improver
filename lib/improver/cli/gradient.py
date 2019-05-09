@@ -41,7 +41,7 @@ from improver.utilities.save import save_netcdf
 from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
 
 
-def main():
+def main(argv=None):
     """Load in arguments to calculate the gradient between adjacent grid cells
        and save the output gradient fields."""
 
@@ -58,7 +58,7 @@ def main():
                       'description': ('Read the input field, and calculate '
                                       'the gradient in x and y directions.')}
 
-    args = ArgParser(**cli_definition).parse_args()
+    args = ArgParser(**cli_definition).parse_args(args=argv)
 
     # Check if improver ancillary already exists.
     if not os.path.exists(args.output_filepath) or args.force:

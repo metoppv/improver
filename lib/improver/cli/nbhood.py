@@ -42,7 +42,7 @@ from improver.utilities.save import save_netcdf
 from improver.wind_calculations.wind_direction import WindDirection
 
 
-def main():
+def main(argv=None):
     """Load in arguments and get going."""
     parser = ArgParser(
         description='Apply the requested neighbourhood method via '
@@ -178,7 +178,7 @@ def main():
                         help='Number of times to apply the filter, default=1 '
                         '(typically < 5)')
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     if (args.neighbourhood_output == "percentiles" and
             args.neighbourhood_shape == "square"):

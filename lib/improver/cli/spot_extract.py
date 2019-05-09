@@ -52,7 +52,7 @@ from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
 
-def main():
+def main(argv=None):
     """Load in arguments and start spotdata extraction process."""
     parser = ArgParser(
         description="Extract diagnostic data from gridded fields for spot data"
@@ -151,7 +151,7 @@ def main():
         "it is known that warnings will be generated but they are not "
         "required.")
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
     neighbour_cube = load_cube(args.neighbour_filepath)
     diagnostic_cube = load_cube(args.diagnostic_filepath)
 

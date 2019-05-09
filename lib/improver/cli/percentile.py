@@ -45,7 +45,7 @@ from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
 
-def main():
+def main(argv=None):
     """Load in arguments and get going."""
     parser = ArgParser(
         description="Calculate percentiled data over a given coordinate by "
@@ -87,7 +87,7 @@ def main():
                        "to be generated, these distributed regularly with the "
                        "aim of dividing into blocks of equal probability.")
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
     cube = load_cube(args.input_filepath)
     percentiles = args.percentiles
     if args.no_of_percentiles is not None:

@@ -50,7 +50,7 @@ from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
 
-def main():
+def main(argv=None):
     """Do ensemble calibration using the EnsembleCalibration plugin.
     """
     parser = ArgParser(
@@ -161,7 +161,7 @@ def main():
                              'is converted to percentiles, as part of '
                              'converting the input probabilities into '
                              'realizations.')
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     current_forecast = load_cube(args.input_filepath)
     historic_forecast = load_cube(args.historic_filepath)

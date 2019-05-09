@@ -37,7 +37,7 @@ from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
 
-def main():
+def main(argv=None):
     """Apply lapse rates to temperature data."""
     parser = ArgParser(description='Apply downscaling temperature adjustment '
                        'using calculated lapse rate.')
@@ -55,7 +55,7 @@ def main():
     parser.add_argument('output_file', metavar='OUTPUT_FILE', help='File name '
                         'to write lapse rate adjusted temperature data')
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     # read cubes
     temperature = load_cube(args.temperature_filepath)

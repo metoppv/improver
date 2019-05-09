@@ -39,7 +39,7 @@ from improver.utilities.temporal import (
 from improver.utilities.temporal_interpolation import TemporalInterpolation
 
 
-def main():
+def main(argv=None):
     """
     Interpolate data to intermediate times between the validity times of two
     cubes. This can be used to fill in missing data (e.g. for radar fields) or
@@ -97,7 +97,7 @@ def main():
                         " earliest to latest "
                         " regardless of the order of the infiles.")
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     cube_0 = load_cube(args.infiles[0])
     cube_1 = load_cube(args.infiles[1])

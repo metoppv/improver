@@ -75,7 +75,7 @@ def load_and_extract(cube_filepath, height_value, units):
             cube_filepath, height_value, units))
 
 
-def main():
+def main(argv=None):
     """Calculate orographic enhancement of precipitation from model pressure,
     temperature, relative humidity and wind input files"""
 
@@ -116,7 +116,7 @@ def main():
                         help='Units of the boundary height specified for '
                         'extracting model levels.')
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     constraint_info = (args.boundary_height, args.boundary_height_units)
 

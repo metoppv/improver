@@ -44,7 +44,7 @@ from improver.utilities.cube_metadata import amend_metadata
 from improver.utilities.spatial import RegridLandSea
 
 
-def main():
+def main(argv=None):
     """
     Standardise a source cube. Available options are regridding (bilinear or
     nearest-neighbour, optionally with land-mask awareness), updating meta-data
@@ -132,7 +132,7 @@ def main():
                              'changes that will be applied '
                              'to the metadata. Defaults to None.')
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     if args.target_grid_filepath or args.json_file or args.fix_float64:
         if not args.output_filepath:

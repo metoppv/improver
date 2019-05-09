@@ -37,7 +37,7 @@ from improver.utilities.save import save_netcdf
 from improver.uv_index import calculate_uv_index
 
 
-def main():
+def main(argv=None):
     """ Calculate the UV index using the data
     in the input cubes."""
     parser = ArgParser(
@@ -53,7 +53,7 @@ def main():
     parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
                         help="The output path for the processed NetCDF")
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     rad_uv_up = load_cube(args.radiation_flux_upward)
     rad_uv_down = load_cube(args.radiation_flux_downward)

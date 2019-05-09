@@ -46,7 +46,7 @@ from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
 
-def main():
+def main(argv=None):
     """Load in arguments for applying neighbourhood processing when using a
     mask."""
     parser = ArgParser(
@@ -112,7 +112,7 @@ def main():
                         'will not be produced if no topographic masked '
                         'neighbourhood processing occurs.')
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     cube = load_cube(args.input_filepath)
     mask = load_cube(args.input_mask_filepath, no_lazy_load=True)

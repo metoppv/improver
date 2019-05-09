@@ -44,7 +44,7 @@ from improver.utilities.save import save_netcdf
 from improver.utilities.cube_extraction import apply_extraction
 
 
-def main():
+def main(argv=None):
     """Load in arguments and get going."""
     parser = ArgParser(
         description='Run wind downscaling to apply roughness correction and'
@@ -97,7 +97,7 @@ def main():
                         metavar='VEGETATIVE_ROUGHNESS_LENGTH_FILE',
                         help='Location of vegetative roughness length file.'
                              ' Units of field: m')
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     if args.output_height_level_units and not args.output_height_level:
         warnings.warn('--output_height_level_units has been set but no '

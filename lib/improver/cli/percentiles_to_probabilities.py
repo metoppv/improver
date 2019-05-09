@@ -39,7 +39,7 @@ from improver.utilities.statistical_operations import \
     ProbabilitiesFromPercentiles2D
 
 
-def main():
+def main(argv=None):
     r"""
     Load arguments and run ProbabilitiesFromPercentiles plugin.
 
@@ -82,7 +82,7 @@ def main():
                         metavar="OUTPUT_DIAGNOSTIC_NAME", type=str,
                         help="Name for data in output file e.g. "
                         "probability_of_snow_falling_level_below_ground_level")
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     threshold_cube = load_cube(args.threshold_filepath)
     percentiles_cube = load_cube(args.percentiles_filepath)

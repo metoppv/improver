@@ -42,7 +42,7 @@ from improver.utilities.load import load_cubelist
 from improver.utilities.save import save_netcdf
 
 
-def main():
+def main(argv=None):
     """Load in arguments and ensure they are set correctly.
        Then run Triangular weighted blending across the given coordinate."""
     parser = ArgParser(
@@ -95,7 +95,7 @@ def main():
     parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
                         help='The output path for the processed NetCDF.')
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     # TriangularWeightedBlendAcrossAdjacentPoints can't currently handle
     # blending over times where iris reads the coordinate points as datetime

@@ -46,7 +46,7 @@ from improver.utilities.load import load_cube, load_cubelist
 from improver.utilities.save import save_netcdf
 
 
-def main():
+def main(argv=None):
     """Calculate optical flow advection velocities and (optionally)
     extrapolate data."""
 
@@ -101,7 +101,7 @@ def main():
                         help="Interval between required lead times (mins). "
                         "Ignored unless '--extrapolate' is set.")
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     # read input data
     original_cube_list = load_cubelist(args.input_filepaths)

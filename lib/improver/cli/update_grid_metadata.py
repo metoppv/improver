@@ -42,7 +42,7 @@ from improver.utilities.save import save_netcdf
 from improver.utilities.cube_metadata import update_stage_v110_metadata
 
 
-def main():
+def main(argv=None):
     """
     Translate meta-data relating to thte grid_id attribute from StaGE version
     1.1.0 to StaGE version 1.2.0.
@@ -60,7 +60,7 @@ def main():
                                       'same and contain a cube with non '
                                       'v1.1.0 meta-data')}
 
-    args = ArgParser(**cli_definition).parse_args()
+    args = ArgParser(**cli_definition).parse_args(args=argv)
 
     cube = load_cube(args.input_filepath)
     cube_changed = update_stage_v110_metadata(cube)

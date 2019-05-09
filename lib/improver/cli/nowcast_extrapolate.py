@@ -44,7 +44,7 @@ from improver.utilities.save import save_netcdf
 from improver.wind_calculations.wind_components import ResolveWindComponents
 
 
-def main():
+def main(argv=None):
     """Extrapolate data forward in time."""
 
     parser = ArgParser(
@@ -100,7 +100,7 @@ def main():
                         help="Maximum lead time required (mins).")
     parser.add_argument("--lead_time_interval", type=int, default=15,
                         help="Interval between required lead times (mins).")
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     upath, vpath = (args.eastward_advection_filepath,
                     args.northward_advection_filepath)

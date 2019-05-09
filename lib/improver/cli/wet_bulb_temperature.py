@@ -40,7 +40,7 @@ from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
 
-def main():
+def main(argv=None):
     """Parser to accept input data and an output destination before invoking
     the wet bulb temperature plugin. Also accepted is an optional
     convergence_condition argument that can be used to specify the tolerance of
@@ -70,7 +70,7 @@ def main():
                         'stops changing by more than this amount between'
                         ' iterations, the solution is accepted.')
 
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
     temperature = load_cube(args.temperature)
     relative_humidity = load_cube(args.relative_humidity)
     pressure = load_cube(args.pressure)

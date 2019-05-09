@@ -40,7 +40,7 @@ from improver.utilities.save import save_netcdf
 from improver.utilities.time_lagging import GenerateTimeLaggedEnsemble
 
 
-def main():
+def main(argv=None):
     """Load in the arguments and ensure they are set correctly. Then run
     the time-lagged ensembles on the input cubes."""
     parser = ArgParser(
@@ -55,7 +55,7 @@ def main():
                         'ensemble to combine the realizations.')
     parser.add_argument('output_file', metavar='OUTPUT_FILE',
                         help='The output file for the processed NetCDF.')
-    args = parser.parse_args()
+    args = parser.parse_args(args=argv)
 
     # Load the cubes
     cubes = iris.cube.CubeList([])
