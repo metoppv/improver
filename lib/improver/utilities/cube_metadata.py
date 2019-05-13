@@ -104,7 +104,10 @@ def add_coord(cube, coord_name, changes, warnings_on=False):
         coord_name (string):
             Name of the coordinate being added.
         changes (dict):
-            Details on coordinate to be added to the cube.
+            Details of coordinate to be added to the cube, with string keys.
+            Valid keys are 'metatype' (which should have value 'DimCoord' or
+            'AuxCoord'), 'points', 'bounds', 'units' and 'var_name'. Any other
+            key strings in the dictionary are ignored.
 
     Keyword Args:
         warnings_on (bool):
@@ -145,11 +148,23 @@ def add_coord(cube, coord_name, changes, warnings_on=False):
         bounds = changes['bounds']
     units = None
     if 'units' in changes:
-        units = changes["units"]
-    new_coord = new_coord_method(long_name=coord_name,
-                                 points=points,
-                                 bounds=bounds,
-                                 units=units)
+        units = changes['units']
+    var_name = None
+    if 'var_name' in changes:
+        var_name = changes['var_name']
+
+    try:
+        new_coord = new_coord_method(
+            standard_name=coord_name, var_name=var_name, points=points,
+            bounds=bounds, units=units)
+    except ValueError as cause:
+        if 'is not a valid standard_name' in str(cause):
+            new_coord = new_coord_method(
+                long_name=coord_name, var_name=var_name, points=points,
+                bounds=bounds, units=units)
+        else:
+            raise ValueError(cause)
+
     result.add_aux_coord(new_coord)
     if metatype == 'DimCoord':
         result = iris.util.new_axis(result, coord_name)
@@ -541,6 +556,8 @@ def resolve_metadata_diff(cube1, cube2, warnings_on=False):
                     coord_dict['bounds'] = result1.coord(coord).bounds
                     coord_dict['units'] = result1.coord(coord).units
                     coord_dict['metatype'] = 'DimCoord'
+                    if result1.coord(coord).var_name is not None:
+                        coord_dict['var_name'] = result1.coord(coord).var_name
                     result2 = add_coord(result2, coord, coord_dict,
                                         warnings_on=warnings_on)
                     result2 = iris.util.as_compatible_shape(result2,
