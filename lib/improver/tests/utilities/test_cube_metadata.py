@@ -157,6 +157,14 @@ class Test_add_coord(IrisTest):
         result = add_coord(self.cube, "threshold", self.changes)
         self.assertEqual(result.coord("threshold").long_name, "threshold")
 
+    def test_non_name_value_error(self):
+        """Test value errors thrown by iris.Coord (eg invalid units) are
+        still raised"""
+        self.changes['units'] = 'narwhal'
+        msg = 'Failed to parse unit "narwhal"'
+        with self.assertRaisesRegex(ValueError, msg):
+            add_coord(self.cube, self.coord_name, self.changes)
+
     def test_fails_no_points(self):
         """Test that add_coord fails if points not included in metadata """
         changes = {'bounds': [0.1, 2.0], 'units': 'mm'}

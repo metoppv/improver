@@ -104,7 +104,10 @@ def add_coord(cube, coord_name, changes, warnings_on=False):
         coord_name (string):
             Name of the coordinate being added.
         changes (dict):
-            Details on coordinate to be added to the cube.
+            Details of coordinate to be added to the cube, with string keys.
+            Valid keys are 'metatype' (which should have value 'DimCoord' or
+            'AuxCoord'), 'points', 'bounds', 'units' and 'var_name'. Any other
+            key strings in the dictionary are ignored.
 
     Keyword Args:
         warnings_on (bool):
