@@ -132,6 +132,9 @@ class ConcatenateCubes():
         self.coords_to_slice_over = coords_to_slice_over
 
         if self.coords_to_slice_over is None:
+            # the order of this list reflects the order in which dimension
+            # coordinates will appear on the concatenated cube
+            # TODO I don't like this - default to empty list
             self.coords_to_slice_over = ["realization", "time"]
         if self.coords_to_associate is None and self.master_coord == "time":
             self.coords_to_associate = ["forecast_period"]
@@ -327,9 +330,6 @@ class MergeCubes():
         """Initialise constants"""
         # List of attributes to remove silently if unmatched
         self.silent_attributes = ["history", "title", "mosg__grid_version"]
-        # List of coordinates that must strictly match on the input cubes.  If
-        # unmatched, an exception will be raised.
-        self.coord_mismatch_error_keys = ["threshold"]
 
     def _equalise_cubes(self, cubelist):
         """
@@ -358,11 +358,9 @@ class MergeCubes():
 
     def _equalise_cube_coords(self, cubes):
         """
-        Function to equalise coordinates that do not match, by slicing over
-        dimension coordinate values and creating a cube list which can later
-        be merged.  Raises errors if coordinates have bounds values that are
-        unmatched, or if the coordinates specified by
-        self.coord_mismatch_error_keys have differences.
+        Function to equalise realization coordinates that do not match, by
+        slicing over the realization dimension and creating a cube list which
+        can later be merged.
 
         Args:
             cubes (iris.cube.CubeList):
@@ -372,14 +370,12 @@ class MergeCubes():
             cubelist (iris.cube.CubeList):
                 List of cubes with revised coords. The number of cubes in this
                 list may be greater than the original number of cubes if they
-                have been sliced over mismatching dimension coordinates.
+                have been sliced over mismatching realization coordinates.
 
         Raises:
             ValueError:
-                If bounds on dimension coordinates do not match (through
-                self._check_dim_coord_bounds(cubes)).
-            ValueError:
-                If coordinates in self.coord_mismatch_error_keys do not match.
+                If any dimension coordinate other than "realization" does not
+                match
         """
         # check for unmatching coords (returns a list of dictionaries, each
         # with an entry for each mismatched coord.  If all coords match,
@@ -388,83 +384,31 @@ class MergeCubes():
 
         # continue only if the list contains non-empty dictionaries
         if bool(unmatching_coords[0]):
-
-            # check for mismatches in dim coord bounds
-            self._check_dim_coord_bounds(cubes)
-
-            # throw an error for specific coordinate mismatches
-            for error_key in self.coord_mismatch_error_keys:
-                for key in ([keyval for cube_dict in unmatching_coords
-                             for keyval in cube_dict]):
-                    if error_key in key:
-                        msg = ("{} coordinates must match "
-                               "to merge".format(error_key))
-                        raise ValueError(msg)
-
-            # slice over any remaining mismatched non-scalar coordinates
             cubelist = iris.cube.CubeList([])
             for i, cube in enumerate(cubes):
                 slice_over_keys = []
                 for key in unmatching_coords[i]:
-                    # If mismatching is a dimension coord add to list to
-                    # slice over (supports time lagging with different
-                    # realizations).  Note this will not prevent failure to
-                    # merge if the coordinate (eg realization) is not present
-                    # on all input cubes.
+                    # extract differing dimensional coordinates
                     if unmatching_coords[i][key]['data_dims'] is not None:
                         slice_over_keys.append(key)
                     if unmatching_coords[i][key]['aux_dims'] is not None:
                         slice_over_keys.append(key)
 
-                if len(slice_over_keys) > 0:
+                if (len(slice_over_keys) == 1 and
+                        "realization" in slice_over_keys):
+                    # slice over realization only
                     for slice_cube in cube.slices_over(slice_over_keys):
                         cubelist.append(slice_cube)
+                elif len(slice_over_keys) > 0:
+                    msg = "{} coordinates must match to merge"
+                    raise ValueError(msg.format(slice_over_keys))
                 else:
+                    # we don't care if non-dimension coordinates differ
                     cubelist.append(cube)
         else:
             cubelist = cubes
 
         return cubelist
-
-    @staticmethod
-    def _check_dim_coord_bounds(cubes):
-        """
-        Function to check for dimension coordinate bounds that do not match.
-        This prevents the creation of anonymous auxiliary coordinates by
-        iris.merge_cube(). If a coordinate is not present in all cubes, it is
-        ignored here.
-
-        Args:
-            cubes (iris.cube.CubeList):
-                List of cubes to check the cell methods and revise.
-                These are modified in place.
-
-        Raises:
-            ValueError:
-                If some but not all cubes have bounds on a shared dimension
-                coordinate.
-            ValueError:
-                If existing bounds values on shared dimension coordinates do
-                not match.
-        """
-        # Check each cube against all remaining cubes
-        msg = 'Cubes with mismatching {} bounds are not compatible'
-        for i, this_cube in enumerate(cubes):
-            for later_cube in cubes[i+1:]:
-                for coord in this_cube.coords(dim_coords=True):
-                    try:
-                        match_coord = later_cube.coord(coord)
-                    except CoordinateNotFoundError:
-                        continue
-
-                    if coord.bounds is None and match_coord.bounds is None:
-                        continue
-                    elif (coord.bounds is not None and
-                          match_coord.bounds is not None):
-                        if np.allclose(np.array(coord.bounds),
-                                       np.array(match_coord.bounds)):
-                            continue
-                    raise ValueError(msg.format(coord.name()))
 
     @staticmethod
     def _equalise_cell_methods(cubes):
@@ -556,17 +500,6 @@ class MergeCubes():
         cubelist = iris.cube.CubeList([])
         for cube in cubes_in:
             cubelist.append(cube.copy())
-
-        # if coord_mismatch_error_keys includes "threshold", replace entry with
-        # standard name of threshold-type coordinate on input cubes
-        if "threshold" in self.coord_mismatch_error_keys:
-            try:
-                coord_name = find_threshold_coordinate(cubelist[0]).name()
-            except CoordinateNotFoundError:
-                pass
-            else:
-                self.coord_mismatch_error_keys.remove("threshold")
-                self.coord_mismatch_error_keys.append(coord_name)
 
         # equalise cube attributes and coordinates
         cubelist = self._equalise_cubes(cubelist)
