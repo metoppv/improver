@@ -31,16 +31,17 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "estimate-emos-coefficients using non-default predictor 'realizations'" {
+@test "apply-emos-coefficients using non-default predictor 'realizations'" {
   improver_check_skip_acceptance
-  KGO="estimate-emos-coefficients/realizations/kgo.nc"
+  KGO="apply-emos-coefficients/realizations/kgo.nc"
 
-  # Estimate the EMOS coefficients and check that they match the kgo.
-  run improver estimate-emos-coefficients 'gaussian' '20170605T0300Z' \
+  # Apply EMOS coefficients to calibrate the input forecast
+  # and check that the calibrated forecast matches the kgo.
+  run improver apply-emos-coefficients \
+      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/input.nc" \
+      "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/realizations/kgo.nc" \
       --predictor_of_mean 'realizations' \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
-      "$TEST_DIR/output.nc"
+      "$TEST_DIR/output.nc" --random_seed 0
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
