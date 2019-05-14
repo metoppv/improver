@@ -81,6 +81,108 @@ class Test__init__(IrisTest):
         self.assertIsNone(plugin.model_id_attr)
 
 
+class Test__rationalise_blend_time_coords(IrisTest):
+    """Tests for the _rationalise_cycle_blend_time_coords method"""
+
+    def setUp(self):
+        """Set up a list of cubes from different models with some probability
+        data in them."""
+
+        # make a cube with a forecast reference time and period labelled as
+        # coming from the UKV
+        data = np.full((3, 3), 0.6, dtype=np.float32)
+        self.ukv_cube = set_up_variable_cube(
+            data, name='probability_of_air_temperature_above_threshold',
+            units='1', time=dt(2017, 1, 10, 3, 0), frt=dt(2017, 1, 9, 23, 0),
+            standard_grid_metadata='uk_det')
+
+        # make a cube labelled as coming from MOGREPS-UK, with a different
+        # forecast reference time from the UKV cube
+        self.enuk_cube = set_up_variable_cube(
+            data, name='probability_of_air_temperature_above_threshold',
+            units='1', time=dt(2017, 1, 10, 3, 0), frt=dt(2017, 1, 10, 0, 0),
+            standard_grid_metadata='uk_ens')
+
+        # make a cube list and merged cube containing the two model cubes, for
+        # use in defining reference coordinates for tests below
+        self.cubelist = iris.cube.CubeList([self.ukv_cube, self.enuk_cube])
+
+        # set up a plugin for multi-model blending
+        self.plugin = MergeCubesForWeightedBlending(
+            "model", weighting_coord="forecast_period",
+            model_id_attr="mosg__model_configuration")
+
+    def test_null_irrelevant_coord(self):
+        """Test function does nothing if not given a relevant coord"""
+        reference_cubelist = self.cubelist.copy()
+        plugin = MergeCubesForWeightedBlending("realization")
+        plugin._rationalise_blend_time_coords(self.cubelist)
+        self.assertEqual(self.cubelist, reference_cubelist)
+
+    def test_null_cubes_have_fp(self):
+        """Test function does nothing if blending over forecast_reference_time
+        where a forecast period coordinate exists"""
+        reference_cubelist = self.cubelist.copy()
+        plugin = MergeCubesForWeightedBlending("forecast_reference_time")
+        plugin._rationalise_blend_time_coords(self.cubelist)
+        self.assertEqual(self.cubelist, reference_cubelist)
+
+    def test_null_model_no_fp(self):
+        """Test function does nothing if blending over models but not weighting
+        by forecast period"""
+        reference_cubelist = self.cubelist.copy()
+        self.plugin._rationalise_blend_time_coords(self.cubelist)
+        self.assertEqual(self.cubelist, reference_cubelist)
+
+    def test_remove_fp(self):
+        """Test function removes forecast_period coord if blending over
+        forecast_reference_time"""
+        plugin = MergeCubesForWeightedBlending("forecast_reference_time")
+        plugin._rationalise_blend_time_coords(self.cubelist)
+        for cube in self.cubelist:
+            self.assertTrue("forecast_period" not in cube.coords())
+
+    def test_unify_frt(self):
+        """Test function equalises forecast reference times if weighting a
+        model blend by forecast_period"""
+        expected_frt, = self.enuk_cube.coord("forecast_reference_time").points
+        expected_fp = 3 * 3600
+        self.plugin._rationalise_blend_time_coords(self.cubelist)
+        for cube in self.cubelist:
+            self.assertEqual(
+                cube.coord("forecast_reference_time").points[0], expected_frt)
+            self.assertEqual(
+                cube.coord("forecast_period").points[0], expected_fp)
+
+    def test_cycletime(self):
+        """Test function sets different cycle time if passed in as argument"""
+        expected_frt, = (
+            self.enuk_cube.coord("forecast_reference_time").points -
+            (3 * 3600)
+        )
+        expected_fp = 6 * 3600
+        self.plugin._rationalise_blend_time_coords(
+            self.cubelist, cycletime='20170109T2100Z')
+        for cube in self.cubelist:
+            self.assertEqual(
+                cube.coord("forecast_reference_time").points[0], expected_frt)
+            self.assertEqual(
+                cube.coord("forecast_period").points[0], expected_fp)
+
+    def test_error_frt_dim(self):
+        """Test an error is raised if forecast reference time is a dimension
+        coordinate on any of the model input cubes"""
+        ukv_cube_2 = self.ukv_cube.copy()
+        ukv_cube_2.coord("forecast_reference_time").points = [
+            ukv_cube_2.coord("forecast_reference_time").points[0] + 3600]
+        ukv_cube_2.coord("forecast_period").points = [
+            ukv_cube_2.coord("forecast_period").points[0] + 3600]
+        ukv_cubelist = iris.cube.CubeList([self.ukv_cube, ukv_cube_2]).merge()
+        msg = 'Expecting scalar forecast_reference_time'
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin._rationalise_blend_time_coords(ukv_cubelist)
+
+
 class Test__create_model_coordinates(IrisTest):
     """Test the _create_model_coordinates method"""
 
