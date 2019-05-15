@@ -207,7 +207,8 @@ class Test__repr__(IrisTest):
                "minimiser: <class 'improver.ensemble_calibration."
                "ensemble_calibration."
                "ContinuousRankedProbabilityScoreMinimisers'>; "
-               "coeff_names: ['gamma', 'delta', 'alpha', 'beta']>")
+               "coeff_names: ['gamma', 'delta', 'alpha', 'beta'];"
+               "max_iterations: 200>")
         self.assertEqual(result, msg)
 
     @ManageWarnings(
@@ -216,7 +217,8 @@ class Test__repr__(IrisTest):
         """Test when keyword arguments are specified."""
         result = str(Plugin(
             self.distribution, self.current_cycle,
-            desired_units="Kelvin", predictor_of_mean_flag="realizations"))
+            desired_units="Kelvin", predictor_of_mean_flag="realizations",
+            max_iterations=10))
         msg = ("<EstimateCoefficientsForEnsembleCalibration: "
                "distribution: gaussian; "
                "current_cycle: 20171110T0000Z; "
@@ -225,7 +227,8 @@ class Test__repr__(IrisTest):
                "minimiser: <class 'improver.ensemble_calibration."
                "ensemble_calibration."
                "ContinuousRankedProbabilityScoreMinimisers'>; "
-               "coeff_names: ['gamma', 'delta', 'alpha', 'beta']>")
+               "coeff_names: ['gamma', 'delta', 'alpha', 'beta'];"
+               "max_iterations: 10>")
         self.assertEqual(result, msg)
 
 
@@ -494,7 +497,10 @@ class Test_compute_initial_guess(IrisTest):
         using a linear model, the default values for the initial guess
         are used.
         """
-        data = [1, 1, 0, 1, 1, 1]
+        no_of_realizations = 3
+        data = [1, 1, 0,
+                1./no_of_realizations, 1./no_of_realizations,
+                1./no_of_realizations]
 
         current_forecast_predictor = self.cube.collapsed(
             "realization", iris.analysis.MEAN)
@@ -545,9 +551,10 @@ class Test_compute_initial_guess(IrisTest):
         for the calibration coefficients, when the ensemble mean is used
         as the predictor. The coefficients are estimated using a linear model.
         """
+        no_of_realizations = 3
         import imp
         try:
-            statsmodels_found = imp.find_module('statsmodels')
+            imp.find_module('statsmodels')
             statsmodels_found = True
         except ImportError:
             statsmodels_found = False
@@ -556,14 +563,15 @@ class Test_compute_initial_guess(IrisTest):
             data = [1., 1., 0.13559322, -0.11864407,
                     0.42372881, 0.69491525]
         else:
-            data = [1, 1, 0, 1, 1, 1]
+            data = [1, 1, 0,
+                    1./no_of_realizations, 1./no_of_realizations,
+                    1./no_of_realizations]
 
         current_forecast_predictor = self.cube
         truth = self.cube.collapsed("realization", iris.analysis.MAX)
         distribution = "gaussian"
         desired_units = "degreesC"
         predictor_of_mean_flag = "realizations"
-        no_of_realizations = 3
         estimate_coefficients_from_linear_model_flag = True
 
         plugin = Plugin(distribution, desired_units)
@@ -736,8 +744,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         if statsmodels_found:
             data = [-0.00114, -0.00006, 1.00037, -0.00196, 0.99999, -0.00315]
         else:
-            data = [4.30804737e-02, 1.39042785e+00, 8.99047025e-04,
-                    2.02661310e-01, 9.27197381e-01, 3.17407626e-01]
+            data = [0.9287, -0.0567, -0.00926, 0.16589, 0.74932, 0.64316]
 
         distribution = "gaussian"
         current_cycle = "20171110T0000Z"
@@ -775,8 +782,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             data = [0.11821805, -0.00474737, 0.17631301, 0.17178835,
                     0.66749225, 0.72287342]
         else:
-            data = [2.05550997, 0.10577237, 0.00028531,
-                    0.53208837, 0.67233013, 0.53704241]
+            data = [-0.057994, -0.084585, -0.001147,
+                    0.406686,  0.564365,  0.724325]
 
         distribution = "truncated gaussian"
         current_cycle = "20171110T0000Z"

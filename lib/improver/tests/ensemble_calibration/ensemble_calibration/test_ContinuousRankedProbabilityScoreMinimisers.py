@@ -58,7 +58,17 @@ class Test__repr__(IrisTest):
         result = str(Plugin())
         msg = ("<ContinuousRankedProbabilityScoreMinimisers: "
                "minimisation_dict: {'gaussian': 'normal_crps_minimiser', "
-               "'truncated gaussian': 'truncated_normal_crps_minimiser'}>")
+               "'truncated gaussian': 'truncated_normal_crps_minimiser'}; "
+               "max_iterations: 200>")
+        self.assertEqual(result, msg)
+
+    def test_update_max_iterations(self):
+        """A test to update the max_iterations keyword argument."""
+        result = str(Plugin(max_iterations=10))
+        msg = ("<ContinuousRankedProbabilityScoreMinimisers: "
+               "minimisation_dict: {'gaussian': 'normal_crps_minimiser', "
+               "'truncated gaussian': 'truncated_normal_crps_minimiser'}; "
+               "max_iterations: 10>")
         self.assertEqual(result, msg)
 
 
