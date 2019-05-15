@@ -314,6 +314,41 @@ class Test_load_cubelist(IrisTest):
         self.assertArrayAlmostEqual(
             result[0].coord("longitude").points, self.longitude_points)
 
+    def test_no_partial_merge_single_arg(self):
+        """Test that we can load three files independently when a wildcarded
+        filepath is provided, even if two of the cubes could be merged"""
+        low_cloud_cube = self.cube.copy()
+        low_cloud_cube.rename("low_type_cloud_area_fraction")
+        low_cloud_cube.coord("time").points = (
+            low_cloud_cube.coord("time").points + 3600)
+        low_cloud_cube.coord("forecast_period").points = (
+            low_cloud_cube.coord("forecast_period").points - 3600)
+        save_netcdf(low_cloud_cube, self.low_cloud_filepath)
+        medium_cloud_cube = self.cube.copy()
+        medium_cloud_cube.rename("medium_type_cloud_area_fraction")
+        save_netcdf(medium_cloud_cube, self.med_cloud_filepath)
+        fileglob = os.path.join(self.directory, "*.nc")
+        result = load_cubelist(fileglob)
+        self.assertEqual(len(result), 3)
+
+    def test_no_partial_merge_list_args(self):
+        """As above, but where input is from parsed from a multi-value argument
+        (and is therefore provided as a list containing a single wildcarded
+        path)"""
+        low_cloud_cube = self.cube.copy()
+        low_cloud_cube.rename("low_type_cloud_area_fraction")
+        low_cloud_cube.coord("time").points = (
+            low_cloud_cube.coord("time").points + 3600)
+        low_cloud_cube.coord("forecast_period").points = (
+            low_cloud_cube.coord("forecast_period").points - 3600)
+        save_netcdf(low_cloud_cube, self.low_cloud_filepath)
+        medium_cloud_cube = self.cube.copy()
+        medium_cloud_cube.rename("medium_type_cloud_area_fraction")
+        save_netcdf(medium_cloud_cube, self.med_cloud_filepath)
+        fileglob = os.path.join(self.directory, "*.nc")
+        result = load_cubelist([fileglob])
+        self.assertEqual(len(result), 3)
+
     def test_no_lazy_load(self):
         """Test that the cubelist returned upon loading does not contain
         lazy data."""

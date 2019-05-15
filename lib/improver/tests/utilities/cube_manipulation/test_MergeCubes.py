@@ -55,6 +55,13 @@ class Test__init__(IrisTest):
         plugin = MergeCubes()
         self.assertSequenceEqual(plugin.silent_attributes,
                                  ["history", "title", "mosg__grid_version"])
+        self.assertEqual(plugin.coords_to_equalise, ["realization"])
+
+    def test_coords_to_equalise(self):
+        """Test different equalisation coordinates can be set"""
+        plugin = MergeCubes(coords_to_equalise=["neighbour_selection_method"])
+        self.assertEqual(
+            plugin.coords_to_equalise, ["neighbour_selection_method"])
 
 
 class Test__equalise_cubes(IrisTest):
@@ -146,7 +153,7 @@ class Test__equalise_cube_coords(IrisTest):
         self.assertIsInstance(result, iris.cube.CubeList)
 
     def test_threshold_exception(self):
-        """Test that an exception is raised if a threshold coordinate is
+        """Test that an exception is raised if a non-permitted coordinate is
         unmatched."""
         threshold_coord = find_threshold_coordinate(self.cubelist[1]).name()
         self.cubelist[1].coord(threshold_coord).points = (
@@ -156,8 +163,8 @@ class Test__equalise_cube_coords(IrisTest):
             self.plugin._equalise_cube_coords(self.cubelist)
 
     def test_coord_slicing(self):
-        """Test that the coords are equalised by slicing over eg unmatched
-        non-threshold dimensions"""
+        """Test that the coords are equalised by slicing over realization
+        dimensions"""
         lagged_cubelist = iris.cube.CubeList([])
         for cube in self.cubelist:
             find_threshold_coordinate(cube).rename("realization")
