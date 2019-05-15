@@ -394,7 +394,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         Test that the plugin returns a list of coefficients
         equal to specific values, when the ensemble mean is the predictor
         assuming a normal distribution and the value specified for the
-        MAX_ITERATIONS is overriden. The coefficients are calculated by
+        max_iterations is overridden. The coefficients are calculated by
         minimising the CRPS and using a set default value for the
         initial guess.
         """
@@ -408,9 +408,9 @@ class Test_crps_minimiser_wrapper(IrisTest):
         truth = cube.collapsed("realization", iris.analysis.MAX)
 
         predictor_of_mean_flag = "mean"
+        max_iterations = 400
 
-        plugin = Plugin()
-        plugin.MAX_ITERATIONS = 400
+        plugin = Plugin(max_iterations=max_iterations)
         distribution = "gaussian"
         result = plugin.crps_minimiser_wrapper(
             initial_guess, forecast_predictor, truth, forecast_variance,
@@ -440,9 +440,9 @@ class Test_crps_minimiser_wrapper(IrisTest):
         truth = cube.collapsed("realization", iris.analysis.MAX)
 
         predictor_of_mean_flag = "realizations"
+        max_iterations = 400
 
-        plugin = Plugin()
-        plugin.MAX_ITERATIONS = 400
+        plugin = Plugin(max_iterations=max_iterations)
         distribution = "gaussian"
         result = plugin.crps_minimiser_wrapper(
             initial_guess, forecast_predictor, truth, forecast_variance,
@@ -639,7 +639,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         Test that the plugin returns a list of coefficients
         equal to specific values, when the ensemble mean is the predictor
         assuming a truncated normal distribution and the value specified
-        for the MAX_ITERATIONS is overriden. The coefficients are
+        for the max_iterations is overridden. The coefficients are
         calculated by minimising the CRPS and using a set default value for
         the initial guess.
         """
@@ -653,9 +653,9 @@ class Test_crps_minimiser_wrapper(IrisTest):
         truth = cube.collapsed("realization", iris.analysis.MAX)
 
         predictor_of_mean_flag = "mean"
+        max_iterations = 400
 
-        plugin = Plugin()
-        plugin.MAX_ITERATIONS = 400
+        plugin = Plugin(max_iterations=max_iterations)
         distribution = "truncated gaussian"
         result = plugin.crps_minimiser_wrapper(
             initial_guess, forecast_predictor, truth, forecast_variance,
@@ -671,7 +671,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         Test that the plugin returns a list of coefficients
         equal to specific values, when the ensemble realizations are the
         predictor assuming a truncated normal distribution and the value
-        specified for the MAX_ITERATIONS is overriden. The coefficients are
+        specified for the max_iterations is overridden. The coefficients are
         calculated by minimising the CRPS and using a set default value for
         the initial guess.
         """
@@ -685,9 +685,9 @@ class Test_crps_minimiser_wrapper(IrisTest):
         truth = cube.collapsed("realization", iris.analysis.MAX)
 
         predictor_of_mean_flag = "realizations"
+        max_iterations = 400
 
-        plugin = Plugin()
-        plugin.MAX_ITERATIONS = 400
+        plugin = Plugin(max_iterations=max_iterations)
         distribution = "truncated gaussian"
         result = plugin.crps_minimiser_wrapper(
             initial_guess, forecast_predictor, truth, forecast_variance,

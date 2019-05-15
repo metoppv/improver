@@ -36,10 +36,11 @@
   KGO="estimate-emos-coefficients/realizations/kgo.nc"
 
   # Estimate the EMOS coefficients and check that they match the kgo.
-  run improver estimate-emos-coefficients 'gaussian' '20170605T1500Z' \
+  run improver estimate-emos-coefficients 'gaussian' '20170605T0300Z' \
       --predictor_of_mean 'realizations' \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
+      --max_iterations 600 \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

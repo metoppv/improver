@@ -33,6 +33,8 @@
 Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
 Regression (NGR)."""
 
+import numpy as np
+
 from improver.argparser import ArgParser
 from improver.ensemble_calibration.ensemble_calibration import (
     EstimateCoefficientsForEnsembleCalibration)
@@ -87,6 +89,15 @@ def main(argv=None):
                              'ensemble mean ("mean") and the ensemble '
                              'realizations ("realizations") are supported as '
                              'options. Default: "mean".')
+    parser.add_argument('--max_iterations', metavar='MAX_ITERATIONS',
+                        type=np.int32, default=200,
+                        help='The maximum number of iterations allowed '
+                             'until the minimisation has converged to a '
+                             'stable solution. If the maximum of iterations '
+                             'is reached, but then the minimisation has '
+                             'not yet converged to a stable solution, then '
+                             'the available solution is used anyway, '
+                             'and a warning is raised.')
 
     args = parser.parse_args(args=argv)
 
@@ -96,7 +107,8 @@ def main(argv=None):
     # Estimate coefficients using Ensemble Model Output Statistics (EMOS).
     estcoeffs = EstimateCoefficientsForEnsembleCalibration(
         args.distribution, args.cycletime, desired_units=args.units,
-        predictor_of_mean_flag=args.predictor_of_mean)
+        predictor_of_mean_flag=args.predictor_of_mean,
+        max_iterations=args.max_iterations)
     coefficients = (
         estcoeffs.estimate_coefficients_for_ngr(historic_forecast, truth))
 
