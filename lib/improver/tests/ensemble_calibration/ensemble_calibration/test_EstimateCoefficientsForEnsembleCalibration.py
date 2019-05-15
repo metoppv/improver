@@ -87,8 +87,10 @@ class Test__init__(IrisTest):
         distribution = "gaussian"
         desired_units = "degreesC"
         predictor_of_mean_flag = "mean"
+        max_iterations = 10
         plugin = Plugin(distribution, desired_units,
-                        predictor_of_mean_flag=predictor_of_mean_flag)
+                        predictor_of_mean_flag=predictor_of_mean_flag,
+                        max_iterations=max_iterations)
         self.assertEqual(plugin.coeff_names, expected)
 
     @ManageWarnings(
@@ -669,6 +671,32 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         self.assertArrayAlmostEqual(result.data, data)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, self.coeff_names)
+
+        @ManageWarnings(
+            ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+        def test_coefficient_values_for_gaussian_distribution_max_iterations(
+                self):
+            """Ensure that the values for the optimised_coefficients match the
+            expected values, and the coefficient names also match
+            expected values for a Gaussian distribution."""
+            data = [4.55819380e-06, -8.02401974e-09,
+                    1.66667055e+00, 1.00000011e+00]
+
+            distribution = "gaussian"
+            current_cycle = "20171110T0000Z"
+            desired_units = "Celsius"
+            max_iterations = 10
+
+            plugin = Plugin(
+                distribution, current_cycle, desired_units=desired_units,
+                max_iterations=max_iterations)
+            result = plugin.estimate_coefficients_for_ngr(
+                self.historic_temperature_forecast_cube,
+                self.temperature_truth_cube)
+
+            self.assertArrayAlmostEqual(result.data, data)
+            self.assertArrayEqual(
+                result.coord("coefficient_name").points, self.coeff_names)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
