@@ -492,7 +492,10 @@ class Test_compute_initial_guess(IrisTest):
         using a linear model, the default values for the initial guess
         are used.
         """
-        data = [1, 1, 0, 1, 1, 1]
+        no_of_realizations = 3
+        data = [1, 1, 0,
+                1./no_of_realizations, 1./no_of_realizations,
+                1./no_of_realizations]
 
         current_forecast_predictor = self.cube.collapsed(
             "realization", iris.analysis.MEAN)
@@ -500,7 +503,6 @@ class Test_compute_initial_guess(IrisTest):
         distribution = "gaussian"
         desired_units = "degreesC"
         predictor_of_mean_flag = "realizations"
-        no_of_realizations = 3
         estimate_coefficients_from_linear_model_flag = False
 
         plugin = Plugin(distribution, desired_units)
@@ -543,9 +545,10 @@ class Test_compute_initial_guess(IrisTest):
         for the calibration coefficients, when the ensemble mean is used
         as the predictor. The coefficients are estimated using a linear model.
         """
+        no_of_realizations = 3
         import imp
         try:
-            statsmodels_found = imp.find_module('statsmodels')
+            imp.find_module('statsmodels')
             statsmodels_found = True
         except ImportError:
             statsmodels_found = False
@@ -554,14 +557,15 @@ class Test_compute_initial_guess(IrisTest):
             data = [1., 1., 0.13559322, -0.11864407,
                     0.42372881, 0.69491525]
         else:
-            data = [1, 1, 0, 1, 1, 1]
+            data = [1, 1, 0,
+                    1./no_of_realizations, 1./no_of_realizations,
+                    1./no_of_realizations]
 
         current_forecast_predictor = self.cube
         truth = self.cube.collapsed("realization", iris.analysis.MAX)
         distribution = "gaussian"
         desired_units = "degreesC"
         predictor_of_mean_flag = "realizations"
-        no_of_realizations = 3
         estimate_coefficients_from_linear_model_flag = True
 
         plugin = Plugin(distribution, desired_units)

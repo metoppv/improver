@@ -197,6 +197,8 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
                        self.MAX_ITERATIONS, optimised_coeffs.message))
             warnings.warn(msg)
         calculate_percentage_change_in_last_iteration(optimised_coeffs.allvecs)
+        print(optimised_coeffs.x.astype(np.float32))
+        print(sum(optimised_coeffs.x.astype(np.float32)[3:]**2))
         return optimised_coeffs.x.astype(np.float32)
 
     def normal_crps_minimiser(
@@ -255,6 +257,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
             sigma * (xz * (2 * normal_cdf - 1) + 2 * normal_pdf - 1 / sqrt_pi))
         if not np.isfinite(np.min(mu/sigma)):
             result = self.BAD_VALUE
+        #print("initial_guess = ", initial_guess)
         return result
 
     def truncated_normal_crps_minimiser(
@@ -549,7 +552,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         elif (predictor_of_mean_flag.lower() == "realizations" and
               not estimate_coefficients_from_linear_model_flag):
             initial_guess = [1, 1, 0] + np.repeat(
-                1, no_of_realizations).tolist()
+                1./no_of_realizations, no_of_realizations).tolist()
         elif estimate_coefficients_from_linear_model_flag:
             if predictor_of_mean_flag.lower() == "mean":
                 # Find all values that are not NaN.
@@ -594,7 +597,9 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                     initial_guess = [1, 1, intercept]+gradient.tolist()
                 else:
                     initial_guess = (
-                        [1, 1, 0] + np.repeat(1, no_of_realizations).tolist())
+                        [1, 1, 0] +
+                        np.repeat(1./no_of_realizations,
+                                  no_of_realizations).tolist())
         return np.array(initial_guess, dtype=np.float32)
 
     def estimate_coefficients_for_ngr(self, historic_forecast, truth):
@@ -818,12 +823,16 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
             # Calculate predicted mean = a + b*X, where X is the
             # raw ensemble mean. In this case, b = beta.
             a_and_b = [optimised_coeffs["alpha"], optimised_coeffs["beta"]]
+            print("a_and_b = ", a_and_b)
             forecast_predictor_flat = forecast_predictors.data.flatten()
+            print("forecast_predictor_flat = ", forecast_predictor_flat)
             col_of_ones = (
                 np.ones(forecast_predictor_flat.shape, dtype=np.float32))
             ones_and_mean = (
                 np.column_stack((col_of_ones, forecast_predictor_flat)))
             predicted_mean = np.dot(ones_and_mean, a_and_b)
+            print("predicted_mean = ", predicted_mean)
+            print("predicted_mean = ", len(predicted_mean))
             calibrated_forecast_predictor = forecast_predictors
         elif self.predictor_of_mean_flag.lower() == "realizations":
             # Calculate predicted mean = a + b*X, where X is the
@@ -833,13 +842,18 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                 if key.startswith("beta"):
                     beta_values = np.append(beta_values, optimised_coeffs[key])
             a_and_b = np.append(optimised_coeffs["alpha"], beta_values**2)
+            print("Sum of beta values = ", sum(beta_values**2))
+            print("a_and_b = ", a_and_b)
             forecast_predictor_flat = (
                 convert_cube_data_to_2d(forecast_predictors))
+            print("forecast_predictor_flat = ", forecast_predictor_flat)
             forecast_var_flat = forecast_vars.data.flatten()
             col_of_ones = np.ones(forecast_var_flat.shape, dtype=np.float32)
             ones_and_predictor = (
                 np.column_stack((col_of_ones, forecast_predictor_flat)))
             predicted_mean = np.dot(ones_and_predictor, a_and_b)
+            print("predicted_mean = ", predicted_mean)
+            print("predicted_mean = ", len(predicted_mean))
             # Calculate mean of ensemble realizations, as only the
             # calibrated ensemble mean will be returned.
             calibrated_forecast_predictor = (
