@@ -340,11 +340,10 @@ class MergeCubes():
 
         Kwargs:
             coords_to_equalise (list):
-                List of coordinates to equalise before merging.  The default
-                "realization" is required for time-lagging.
+                List of coordinates to equalise before merging.
         """
         if coords_to_equalise is None:
-            self.coords_to_equalise = ["realization"]
+            self.coords_to_equalise = []
         else:
             self.coords_to_equalise = coords_to_equalise
 

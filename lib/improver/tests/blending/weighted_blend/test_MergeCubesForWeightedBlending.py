@@ -419,7 +419,9 @@ class Test_process(IrisTest):
         require specific setup"""
         data = np.ones((1, 3, 3), dtype=np.float32)
         cube1 = set_up_variable_cube(data, realizations=np.array([0]))
+        cube1 = iris.util.squeeze(cube1)
         cube2 = set_up_variable_cube(data, realizations=np.array([1]))
+        cube2 = iris.util.squeeze(cube2)
         plugin = MergeCubesForWeightedBlending("realization")
         result = plugin.process([cube1, cube2])
         self.assertIsInstance(result, iris.cube.Cube)

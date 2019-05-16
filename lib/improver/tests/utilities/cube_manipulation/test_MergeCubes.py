@@ -55,7 +55,7 @@ class Test__init__(IrisTest):
         plugin = MergeCubes()
         self.assertSequenceEqual(plugin.silent_attributes,
                                  ["history", "title", "mosg__grid_version"])
-        self.assertEqual(plugin.coords_to_equalise, ["realization"])
+        self.assertFalse(plugin.coords_to_equalise)
 
     def test_coords_to_equalise(self):
         """Test different equalisation coordinates can be set"""
@@ -79,9 +79,9 @@ class Test__equalise_cubes(IrisTest):
         cube1.attributes["history"] = (
             "2017-01-18T08:59:53: StaGE Decoupler")
 
-        # set up a 2D cube with 4 hour forecast period
+        # set up a 3D cube with 4 hour forecast period
         cube2 = set_up_variable_cube(
-            data[1].copy(), standard_grid_metadata='uk_ens', time=time_point,
+            data.copy(), standard_grid_metadata='uk_ens', time=time_point,
             frt=dt(2015, 11, 23, 3))
         cube2.attributes["history"] = (
             "2017-01-19T08:59:53: StaGE Decoupler")
@@ -155,7 +155,8 @@ class Test__equalise_cube_coords(IrisTest):
             lagged_cubelist.append(cube)
         lagged_cubelist[0].coord("realization").points = np.array([0, 1, 2])
         lagged_cubelist[1].coord("realization").points = np.array([3, 4, 5])
-        result = self.plugin._equalise_cubes(lagged_cubelist)
+        plugin = MergeCubes(coords_to_equalise=["realization"])
+        result = plugin._equalise_cubes(lagged_cubelist)
         self.assertEqual(len(result), 6)
         for cube in result:
             self.assertTrue(cube.coord("realization"))
