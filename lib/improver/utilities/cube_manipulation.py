@@ -60,6 +60,14 @@ def equalise_cube_attributes(cubes, silent=None):
         UserWarning:
             If an unmatched attribute is not in the "silent" list,
             a warning will be raised.
+
+    NOTE 16/05/19: iris.experimental now has an equalise_attributes function,
+    which removes any unmatched attributes without raising a warning.
+
+    TODO replace this function with the iris version once it is promoted into
+    the standard iris package.  At that time, the silent_attributes member of
+    the MergeCubes and ConcatenateCubes classes becomes obsolete and should be
+    removed.
     """
     if silent is None:
         silent = []
@@ -364,8 +372,6 @@ class MergeCubes():
 
         cubelist = self._equalise_cube_coords(cubelist)
         cubelist = self._equalise_cell_methods(cubelist)
-        for cube in cubelist:
-            check_cube_not_float64(cube, fix=True)  # TODO why here?
         return cubelist
 
     def _equalise_cube_coords(self, cubes):
