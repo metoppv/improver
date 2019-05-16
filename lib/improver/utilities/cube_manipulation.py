@@ -335,26 +335,15 @@ class MergeCubes():
     Accounts for differences in attributes and coordinates to avoid merge
     failures and anonymous dimensions.
     """
-    def __init__(self, coords_to_equalise=None):
-        """Initialise constants
-
-        Kwargs:
-            coords_to_equalise (list):
-                List of coordinates to equalise before merging.
-        """
-        if coords_to_equalise is None:
-            self.coords_to_equalise = []
-        else:
-            self.coords_to_equalise = coords_to_equalise
-
+    def __init__(self):
+        """Initialise constants"""
         # List of attributes to remove silently if unmatched
         self.silent_attributes = ["history", "title", "mosg__grid_version"]
 
     def _equalise_cubes(self, cubelist):
         """
-        Function to equalise cubes where the attributes, coordinates or cell
-        methods do not match.  Note this function cannot equalise cubes where
-        different coordinates are present on each cube.
+        Function to equalise cubes where the attributes or cell methods do not
+        match.
 
         Args:
             cubelist (iris.cube.CubeList):
@@ -368,63 +357,7 @@ class MergeCubes():
         """
         equalise_cube_attributes(cubelist, silent=self.silent_attributes)
         strip_var_names(cubelist)
-
-        cubelist = self._equalise_cube_coords(cubelist)
         cubelist = self._equalise_cell_methods(cubelist)
-        return cubelist
-
-    def _equalise_cube_coords(self, cubes):
-        """
-        Function to equalise coordinates that do not match, by slicing over
-        the dimension and creating a cube list which can later be merged.  May
-        only slice over coordinates in self.coords_to_equalise.
-
-        Args:
-            cubes (iris.cube.CubeList):
-                List of cubes to check the coords and revise.
-
-        Returns:
-            cubelist (iris.cube.CubeList):
-                List of cubes with revised coords. The number of cubes in this
-                list may be greater than the original number of cubes if they
-                have been sliced over mismatched coordinates.
-
-        Raises:
-            ValueError:
-                If any dimension coordinate not in self.coord_to_equalise does
-                not match
-        """
-        # check for unmatching coords (returns a list of dictionaries, each
-        # with an entry for each mismatched coord.  If all coords match,
-        # returns a list of empty dictionaries.)
-        unmatching_coords = compare_coords(cubes)
-
-        # continue only if the list contains non-empty dictionaries
-        if bool(unmatching_coords[0]):
-            cubelist = iris.cube.CubeList([])
-            for i, cube in enumerate(cubes):
-                slice_over_keys = []
-                for key in unmatching_coords[i]:
-                    # extract differing dimensional coordinates
-                    if unmatching_coords[i][key]['data_dims'] is not None:
-                        slice_over_keys.append(key)
-                    if unmatching_coords[i][key]['aux_dims'] is not None:
-                        slice_over_keys.append(key)
-
-                # check that all differing dimensions are permitted
-                if not all(key in self.coords_to_equalise
-                           for key in slice_over_keys):
-                    msg = "{} coordinates must match to merge"
-                    raise ValueError(msg.format(slice_over_keys))
-                elif len(slice_over_keys) > 0:
-                    for slice_cube in cube.slices_over(slice_over_keys):
-                        cubelist.append(slice_cube)
-                else:
-                    # we don't care if non-dimension coordinates differ
-                    cubelist.append(cube)
-        else:
-            cubelist = cubes
-
         return cubelist
 
     @staticmethod
@@ -520,10 +453,6 @@ class MergeCubes():
 
         # equalise cube attributes and coordinates
         cubelist = self._equalise_cubes(cubelist)
-
-        # demote single-point dimensions to scalar coordinates
-        for i, cube in enumerate(cubelist):
-            cubelist[i] = iris.util.squeeze(cube)
 
         # merge resulting cubelist
         result = cubelist.merge_cube()

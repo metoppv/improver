@@ -55,13 +55,6 @@ class Test__init__(IrisTest):
         plugin = MergeCubes()
         self.assertSequenceEqual(plugin.silent_attributes,
                                  ["history", "title", "mosg__grid_version"])
-        self.assertFalse(plugin.coords_to_equalise)
-
-    def test_coords_to_equalise(self):
-        """Test different equalisation coordinates can be set"""
-        plugin = MergeCubes(coords_to_equalise=["neighbour_selection_method"])
-        self.assertEqual(
-            plugin.coords_to_equalise, ["neighbour_selection_method"])
 
 
 class Test__equalise_cubes(IrisTest):
@@ -110,57 +103,6 @@ class Test__equalise_cubes(IrisTest):
         result = self.plugin._equalise_cubes(cubelist)
         for cube in result:
             self.assertIsNone(cube.coord("time").var_name)
-
-
-class Test__equalise_cube_coords(IrisTest):
-    """Test the _equalise_cube_coords method"""
-
-    def setUp(self):
-        """Set up temperature probability cubes and plugin instance"""
-        data = np.array(
-            [0.9*np.ones((3, 3)), 0.5*np.ones((3, 3)), 0.1*np.ones((3, 3))],
-            dtype=np.float32)
-        thresholds = np.array([273., 275., 277.], dtype=np.float32)
-        time_point = dt(2015, 11, 23, 7)
-        cube1 = set_up_probability_cube(
-            data.copy(), thresholds, standard_grid_metadata='uk_det',
-            time=time_point, frt=dt(2015, 11, 23, 0))
-        cube2 = set_up_probability_cube(
-            data.copy(), thresholds, standard_grid_metadata='uk_det',
-            time=time_point, frt=dt(2015, 11, 23, 3))
-        self.cubelist = iris.cube.CubeList([cube1, cube2])
-        self.plugin = MergeCubes()
-
-    def test_basic(self):
-        """Test that the utility returns an iris.cube.CubeList."""
-        result = self.plugin._equalise_cube_coords(self.cubelist)
-        self.assertIsInstance(result, iris.cube.CubeList)
-
-    def test_threshold_exception(self):
-        """Test that an exception is raised if a non-permitted coordinate is
-        unmatched."""
-        threshold_coord = find_threshold_coordinate(self.cubelist[1]).name()
-        self.cubelist[1].coord(threshold_coord).points = (
-            self.cubelist[1].coord(threshold_coord).points + 2.)
-        msg = "coordinates must match to merge"
-        with self.assertRaisesRegex(ValueError, msg):
-            self.plugin._equalise_cube_coords(self.cubelist)
-
-    def test_coord_slicing(self):
-        """Test that the coords are equalised by slicing over realization
-        dimensions"""
-        lagged_cubelist = iris.cube.CubeList([])
-        for cube in self.cubelist:
-            find_threshold_coordinate(cube).rename("realization")
-            lagged_cubelist.append(cube)
-        lagged_cubelist[0].coord("realization").points = np.array([0, 1, 2])
-        lagged_cubelist[1].coord("realization").points = np.array([3, 4, 5])
-        plugin = MergeCubes(coords_to_equalise=["realization"])
-        result = plugin._equalise_cubes(lagged_cubelist)
-        self.assertEqual(len(result), 6)
-        for cube in result:
-            self.assertTrue(cube.coord("realization"))
-            self.assertEqual(len(cube.coord("realization").points), 1)
 
 
 class Test__equalise_cell_methods(IrisTest):
@@ -334,17 +276,6 @@ class Test_process(IrisTest):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
             result.coord("forecast_period").points, expected_fp_points)
-
-    @ManageWarnings(ignored_messages=["Deleting unmatched attribute"])
-    def test_failure_mismatched_dims(self):
-        """Test that merging fails where a dimension coordinate is
-        present on one cube but not on the other"""
-        cube_enuk = set_up_variable_cube(
-            self.cube_ukv.data.copy(), standard_grid_metadata='uk_ens',
-            time=dt(2015, 11, 23, 7), frt=dt(2015, 11, 23, 0))
-        cubes = iris.cube.CubeList([cube_enuk, self.cube_ukv])
-        with self.assertRaises(ValueError):
-            self.plugin.process(cubes)
 
     def test_check_time_bounds_ranges(self):
         """Test optional failure when time bounds ranges are not matched
