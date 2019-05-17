@@ -161,6 +161,15 @@ def main(argv=None):
                              'is converted to percentiles, as part of '
                              'converting the input probabilities into '
                              'realizations.')
+    parser.add_argument('--max_iterations', metavar='MAX_ITERATIONS',
+                        type=np.int32, default=1000,
+                        help='The maximum number of iterations allowed '
+                             'until the minimisation has converged to a '
+                             'stable solution. If the maximum number '
+                             'of iterations is reached, but the '
+                             'minimisation has not yet converged to a '
+                             'stable solution, then the available solution '
+                             'is used anyway, and a warning is raised.')
     args = parser.parse_args(args=argv)
 
     current_forecast = load_cube(args.input_filepath)
@@ -213,7 +222,8 @@ def main(argv=None):
     # Ensemble-Calibration to calculate the mean and variance.
     forecast_predictor, forecast_variance = EnsembleCalibration(
         args.calibration_method, args.distribution, args.units,
-        predictor_of_mean_flag=args.predictor_of_mean).process(
+        predictor_of_mean_flag=args.predictor_of_mean,
+        max_iterations=args.max_iterations).process(
             current_forecast, historic_forecast, truth)
 
     # If required, save the mean and variance.

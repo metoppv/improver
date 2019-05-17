@@ -40,7 +40,7 @@
       'gaussian' "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/rebadged_percentiles/input.nc" \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
-      "$TEST_DIR/output.nc"
+      "$TEST_DIR/output.nc" --max_iterations 200
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
