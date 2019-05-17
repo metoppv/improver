@@ -212,7 +212,7 @@ def main(argv=None):
     # Check whether a lapse rate cube has been provided and we are dealing with
     # temperature data.
     if (args.temperature_lapse_rate_filepath and
-            diagnostic_cube.name() == "air_temperature"):
+            result.name() == "air_temperature"):
 
         lapse_rate_cube = load_cube(args.temperature_lapse_rate_filepath)
         try:
