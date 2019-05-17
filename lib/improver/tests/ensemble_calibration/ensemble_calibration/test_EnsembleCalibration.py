@@ -45,6 +45,13 @@ from improver.tests.ensemble_calibration.ensemble_calibration.\
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
+try:
+    import statsmodels
+    STATSMODELS_FOUND = True
+except ImportError:
+    STATSMODELS_FOUND = False
+
+
 IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate.",
                     "Not importing directory .*sphinxcontrib'",
                     "The pandas.core.datetools module is deprecated",
@@ -52,20 +59,21 @@ IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate.",
                     "The statsmodels can not be imported",
                     "invalid escape sequence",
                     "can't resolve package from",
-                    "Collapsing a non-contiguous coordinate.",
                     "Minimisation did not result in"
                     " convergence",
                     "\nThe final iteration resulted in a percentage "
                     "change that is greater than the"
-                    " accepted threshold "]
+                    " accepted threshold ",
+                    "divide by zero encountered in true_divide",
+                    "invalid value encountered in"]
 WARNING_TYPES = [UserWarning, ImportWarning, FutureWarning, RuntimeWarning,
                  ImportWarning, DeprecationWarning, ImportWarning, UserWarning,
-                 UserWarning, UserWarning]
+                 UserWarning, RuntimeWarning, RuntimeWarning]
 
 
-class Test_process(IrisTest):
+class SetupCubes(IrisTest):
 
-    """Test the process plugin."""
+    """Set up cubes for class."""
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -74,11 +82,17 @@ class Test_process(IrisTest):
         # Note: test_temperature_realizations_data_check produces ~0.5K
         # different results when the temperature forecast cube is float32
         # below. A bug?
-        data = (np.tile(np.linspace(-45.0, 45.0, 9), 3).reshape(3, 3, 3) +
-                273.15)
-        data[0] -= 2
-        data[1] += 2
-        data[2] += 4
+        self.calibration_method = "ensemble model output_statistics"
+        data = np.array([[[1., 2., 3.],
+                          [4., 5., 6.],
+                          [7., 8., 9.]],
+                         [[1., 2., 3],
+                          [4., 5., 6.],
+                          [7., 8., 9.]],
+                         [[1., 2., 3.],
+                          [4., 5., 6.],
+                          [7., 8., 9.]]])
+        data = data + 273.15
         data = data.astype(np.float32)
         self.current_temperature_forecast_cube = set_up_variable_cube(
             data, units="Kelvin", realizations=[0, 1, 2])
@@ -89,9 +103,26 @@ class Test_process(IrisTest):
         self.temperature_truth_cube = (
             _create_truth(self.current_temperature_forecast_cube))
 
-        data = np.tile(np.linspace(0, 60, 9), 3).reshape(3, 3, 3)
-        data[1] += 2
-        data[2] += 4
+        self.expected_temperature_predictor_data = np.array(
+            [[273.15, 274.15, 275.15],
+             [276.15, 277.15, 278.15],
+             [279.15, 280.15, 281.15]], dtype=np.float32)
+
+        self.expected_temperature_variance_data = np.array(
+            [[0., 0., 0.],
+             [0., 0., 0.],
+             [0., 0., 0.]])
+
+        # Create a cube for testing wind speed.
+        data = np.array([[[1., 2., 3.],
+                          [4., 5., 6.],
+                          [7., 8., 9.]],
+                         [[1., 2., 3],
+                          [4., 5., 6.],
+                          [7., 8., 9.]],
+                         [[1., 2., 3.],
+                          [4., 5., 6.],
+                          [7., 8., 9.]]])
         data = data.astype(np.float32)
         self.current_wind_speed_forecast_cube = set_up_variable_cube(
             data, name="wind_speed", units="m s-1", realizations=[0, 1, 2])
@@ -102,6 +133,96 @@ class Test_process(IrisTest):
         self.wind_speed_truth_cube = (
             _create_truth(self.current_wind_speed_forecast_cube))
 
+        self.expected_wind_speed_predictor_data = np.array(
+            [[0., 1., 2.],
+             [3., 4., 5.],
+             [6., 7., 8.]], dtype=np.float32)
+
+        self.expected_wind_speed_variance_data = np.array(
+            [[0., 0., 0.],
+             [0., 0., 0.],
+             [0., 0., 0.]],
+            dtype=np.float32
+        )
+
+
+class SetupCubesWithVariance(IrisTest):
+
+    """Set up cubes for class."""
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def setUp(self):
+        """Set up temperature and wind speed cubes for testing."""
+        # Note: test_temperature_realizations_data_check produces ~0.5K
+        # different results when the temperature forecast cube is float32
+        # below. A bug?
+        self.calibration_method = "ensemble model output_statistics"
+        data = np.array([[[0., 1., 2.],
+                          [3., 4., 5.],
+                          [6., 7., 8.]],
+                         [[1., 2., 3],
+                          [4., 5., 6.],
+                          [7., 8., 9.]],
+                         [[2., 3., 4.],
+                          [5., 6., 7.],
+                          [8., 9., 10.]]])
+        data = data + 273.15
+        data = data.astype(np.float32)
+        self.current_temperature_forecast_cube = set_up_variable_cube(
+            data, units="Kelvin", realizations=[0, 1, 2])
+
+        self.historic_temperature_forecast_cube = (
+            _create_historic_forecasts(self.current_temperature_forecast_cube))
+
+        self.temperature_truth_cube = (
+            _create_truth(self.current_temperature_forecast_cube))
+
+        self.expected_temperature_predictor_data = np.array(
+            [[273.15, 274.15, 275.15],
+             [276.15, 277.15, 278.15],
+             [279.15, 280.15, 281.15]], dtype=np.float32)
+
+        self.expected_temperature_variance_data = np.array(
+            [[0., 0., 0.],
+             [0., 0., 0.],
+             [0., 0., 0.]], dtype=np.float32)
+
+        # Create a cube for testing wind speed.
+        data = np.array([[[0., 1., 2.],
+                          [3., 4., 5.],
+                          [6., 7., 8.]],
+                         [[1., 2., 3],
+                          [4., 5., 6.],
+                          [7., 8., 9.]],
+                         [[2., 3., 4.],
+                          [5., 6., 7.],
+                          [8., 9., 10.]]])
+        data = data.astype(np.float32)
+        self.current_wind_speed_forecast_cube = set_up_variable_cube(
+            data, name="wind_speed", units="m s-1", realizations=[0, 1, 2])
+
+        self.historic_wind_speed_forecast_cube = (
+            _create_historic_forecasts(self.current_wind_speed_forecast_cube))
+
+        self.wind_speed_truth_cube = (
+            _create_truth(self.current_wind_speed_forecast_cube))
+
+        self.expected_wind_speed_predictor_data = np.array(
+            [[0., 1., 2.],
+             [3., 4., 5.],
+             [6., 7., 8.]], dtype=np.float32)
+
+        self.expected_wind_speed_variance_data = np.array(
+            [[0., 0., 0.],
+             [0., 0., 0.],
+             [0., 0., 0.]], dtype=np.float32)
+
+
+class Test_process_basic(SetupCubes):
+
+    """Test the basic output from the process method."""
+
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_basic_temperature(self):
@@ -110,10 +231,9 @@ class Test_process(IrisTest):
         with the desired length.
         The ensemble mean is the predictor.
         """
-        calibration_method = "ensemble model output statistics"
         distribution = "gaussian"
         desired_units = "degreesC"
-        plugin = Plugin(calibration_method, distribution, desired_units)
+        plugin = Plugin(self.calibration_method, distribution, desired_units)
         result = plugin.process(
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
@@ -129,12 +249,11 @@ class Test_process(IrisTest):
         with the desired length.
         The ensemble realizations is the predictor.
         """
-        calibration_method = "ensemble model output statistics"
         distribution = "gaussian"
         desired_units = "degreesC"
         predictor_of_mean_flag = "realizations"
         plugin = Plugin(
-            calibration_method, distribution, desired_units,
+            self.calibration_method, distribution, desired_units,
             predictor_of_mean_flag=predictor_of_mean_flag)
         result = plugin.process(
             self.current_temperature_forecast_cube,
@@ -151,10 +270,9 @@ class Test_process(IrisTest):
         with the desired length.
         The ensemble mean is the predictor.
         """
-        calibration_method = "ensemble model output_statistics"
         distribution = "truncated gaussian"
         desired_units = "m s^-1"
-        plugin = Plugin(calibration_method, distribution, desired_units)
+        plugin = Plugin(self.calibration_method, distribution, desired_units)
         result = plugin.process(
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
@@ -170,12 +288,11 @@ class Test_process(IrisTest):
         with the desired length.
         The ensemble realizations is the predictor.
         """
-        calibration_method = "ensemble model output_statistics"
         distribution = "truncated gaussian"
         desired_units = "m s^-1"
         predictor_of_mean_flag = "realizations"
         plugin = Plugin(
-            calibration_method, distribution, desired_units,
+            self.calibration_method, distribution, desired_units,
             predictor_of_mean_flag=predictor_of_mean_flag)
         result = plugin.process(
             self.current_wind_speed_forecast_cube,
@@ -183,243 +300,6 @@ class Test_process(IrisTest):
             self.wind_speed_truth_cube)
         self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 2)
-
-    @ManageWarnings(
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_temperature_data_check(self):
-        """
-        Test that the plugin returns an iris.cube.CubeList
-        of temperature cubes with the expected data, where the plugin
-        returns a cubelist of, firstly, the predictor and, secondly the
-        variance.
-        The ensemble mean is the predictor.
-        """
-        predictor_data = np.array(
-            [[231.15002, 242.40002, 253.65002],
-             [264.9, 276.15, 287.4],
-             [298.65, 309.9, 321.15]], dtype=np.float32)
-        variance_data = np.array(
-            [[2.07777316e-11, 2.07777316e-11, 2.07777316e-11],
-             [2.07777316e-11, 2.07777316e-11, 2.07777316e-11],
-             [2.07777316e-11, 2.07777316e-11, 2.07777316e-11]])
-        calibration_method = "ensemble model output_statistics"
-        distribution = "gaussian"
-        desired_units = "degreesC"
-        plugin = Plugin(calibration_method, distribution, desired_units)
-        calibrated_predictor, calibrated_variance = plugin.process(
-            self.current_temperature_forecast_cube,
-            self.historic_temperature_forecast_cube,
-            self.temperature_truth_cube)
-        self.assertArrayAlmostEqual(calibrated_predictor.data, predictor_data)
-        self.assertArrayAlmostEqual(calibrated_variance.data, variance_data)
-
-    @ManageWarnings(
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_temperature_data_check_max_iterations(self):
-        """
-        Test that the plugin returns an iris.cube.CubeList
-        of temperature cubes with the expected data, where the plugin
-        returns a cubelist of, firstly, the predictor and, secondly the
-        variance when the maximum number of iterations is specified.
-        The ensemble mean is the predictor.
-        """
-        predictor_data = np.array(
-            [[231.15004, 242.38078, 253.61153],
-             [264.84225, 276.073, 287.3037],
-             [298.53445, 309.7652, 320.99594]], dtype=np.float32)
-        variance_data = np.array(
-            [[2.9209013, 2.9209013, 2.9209013],
-             [2.9209008, 2.9209008, 2.9209008],
-             [2.9209008, 2.9209008, 2.9209008]])
-        calibration_method = "ensemble model output_statistics"
-        distribution = "gaussian"
-        desired_units = "degreesC"
-        plugin = Plugin(calibration_method, distribution, desired_units,
-                        max_iterations=10)
-        calibrated_predictor, calibrated_variance = plugin.process(
-            self.current_temperature_forecast_cube,
-            self.historic_temperature_forecast_cube,
-            self.temperature_truth_cube)
-        self.assertArrayAlmostEqual(calibrated_predictor.data,
-                                    predictor_data)
-        self.assertArrayAlmostEqual(calibrated_variance.data,
-                                    variance_data)
-
-    @ManageWarnings(
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_temperature_realizations_data_check(self):
-        """
-        Test that the plugin returns an iris.cube.CubeList
-        of temperature cubes with the expected data, where the plugin
-        returns a cubelist of, firstly, the predictor and, secondly the
-        variance.
-        The ensemble realizations is the predictor.
-        """
-        import imp
-        try:
-            imp.find_module('statsmodels')
-            statsmodels_found = True
-            import statsmodels.api as sm
-            self.sm = sm
-        except ImportError:
-            statsmodels_found = False
-        if statsmodels_found:
-            predictor_data = np.array(
-                [[231.1493, 242.3992, 253.6492],
-                 [264.8991, 276.149, 287.399],
-                 [298.649, 309.8989, 321.1488]],
-                dtype=np.float32
-            )
-            variance_data = np.array(
-                [[0.000001, 0.000001, 0.000001],
-                 [0.000001, 0.000001, 0.000001],
-                 [0.000001, 0.000001, 0.000001]],
-                dtype=np.float32
-            )
-        else:
-            predictor_data = np.array(
-                [[231.46936, 242.74925, 254.02914],
-                 [265.30902, 276.5889, 287.8688],
-                 [299.14868, 310.42856, 321.70844]],
-                dtype=np.float32
-            )
-            variance_data = np.array(
-                [[0.89248854, 0.89248854, 0.89248854],
-                 [0.89248854, 0.89248854, 0.89248854],
-                 [0.89248854, 0.89248854, 0.89248854]],
-                dtype=np.float32
-            )
-        calibration_method = "ensemble model output_statistics"
-        distribution = "gaussian"
-        desired_units = "degreesC"
-        predictor_of_mean_flag = "realizations"
-        plugin = Plugin(
-            calibration_method, distribution, desired_units,
-            predictor_of_mean_flag=predictor_of_mean_flag)
-        calibrated_predictor, calibrated_variance = plugin.process(
-            self.current_temperature_forecast_cube,
-            self.historic_temperature_forecast_cube,
-            self.temperature_truth_cube)
-        self.assertArrayAlmostEqual(calibrated_predictor.data, predictor_data,
-                                    decimal=4)
-        self.assertArrayAlmostEqual(calibrated_variance.data, variance_data,
-                                    decimal=4)
-
-    @ManageWarnings(
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_wind_speed_data_check(self):
-        """
-        Test that the plugin returns an iris.cube.CubeList
-        of wind_speed cubes with the expected data, where the plugin
-        returns a cubelist of, firstly, the predictor and, secondly the
-        variance.
-        The ensemble mean is the predictor.
-        """
-        predictor_data = np.array(
-            [[2.9999862, 10.499988, 17.999989],
-             [25.49999, 32.999992, 40.499992],
-             [47.999996, 55.499996, 63.]], dtype=np.float32)
-        variance_data = np.array(
-            [[0., 0., 0.],
-             [0., 0., 0.],
-             [0., 0., 0.]],
-            dtype=np.float32
-        )
-        calibration_method = "ensemble model output_statistics"
-        distribution = "truncated gaussian"
-        desired_units = "m s^-1"
-        plugin = Plugin(calibration_method, distribution, desired_units)
-        calibrated_predictor, calibrated_variance = plugin.process(
-            self.current_wind_speed_forecast_cube,
-            self.historic_wind_speed_forecast_cube,
-            self.wind_speed_truth_cube)
-        self.assertArrayAlmostEqual(calibrated_predictor.data, predictor_data)
-        self.assertArrayAlmostEqual(calibrated_variance.data, variance_data)
-
-    @ManageWarnings(
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_wind_speed_data_check_max_iterations(self):
-        """
-        Test that the plugin returns an iris.cube.CubeList
-        of wind_speed cubes with the expected data, where the plugin
-        returns a cubelist of, firstly, the predictor and, secondly the
-        variance when the maximum number of iterations is specified.
-        The ensemble mean is the predictor.
-        """
-        predictor_data = np.array(
-            [[3.1675692, 10.681027, 18.194487],
-             [25.707945, 33.2214, 40.73486],
-             [48.248318, 55.761776, 63.275234]], dtype=np.float32)
-        variance_data = np.array(
-            [[2.8555098, 2.8555098, 2.8555098],
-             [2.8555098, 2.8555098, 2.8555098],
-             [2.8555098, 2.8555098, 2.8555098]],
-            dtype=np.float32
-        )
-        calibration_method = "ensemble model output_statistics"
-        distribution = "truncated gaussian"
-        desired_units = "m s^-1"
-        plugin = Plugin(calibration_method, distribution, desired_units,
-                        max_iterations=10)
-        calibrated_predictor, calibrated_variance = plugin.process(
-            self.current_wind_speed_forecast_cube,
-            self.historic_wind_speed_forecast_cube,
-            self.wind_speed_truth_cube)
-        self.assertArrayAlmostEqual(calibrated_predictor.data,
-                                    predictor_data)
-        self.assertArrayAlmostEqual(calibrated_variance.data,
-                                    variance_data)
-
-    @ManageWarnings(
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_wind_speed_realizations_data_check(self):
-        """
-        Test that the plugin returns an iris.cube.CubeList
-        of wind_speed cubes with the expected data, where the plugin
-        returns a cubelist of, firstly, the predictor and, secondly the
-        variance.
-        The ensemble realizations is the predictor.
-        """
-        import imp
-        try:
-            imp.find_module('statsmodels')
-            statsmodels_found = True
-            import statsmodels.api as sm
-            self.sm = sm
-        except ImportError:
-            statsmodels_found = False
-        if statsmodels_found:
-            predictor_data = np.array(
-                [[3.15758874, 10.63961216, 18.12163557],
-                 [25.60365899, 33.08568241, 40.56770583],
-                 [48.04972924, 55.53175266, 63.01377608]])
-            variance_data = np.array(
-                [[0.01406566, 0.01406566, 0.01406566],
-                 [0.01406566, 0.01406566, 0.01406566],
-                 [0.01406566, 0.01406566, 0.01406566]])
-        else:
-            predictor_data = np.array(
-                [[2.7344577, 10.298571, 17.862682],
-                 [25.426796, 32.99091, 40.55502],
-                 [48.119133, 55.683247, 63.24736]])
-            variance_data = np.array(
-                [[0.03198197, 0.03198197, 0.03198197],
-                 [0.03198197, 0.03198197, 0.03198197],
-                 [0.03198197, 0.03198197, 0.03198197]])
-        calibration_method = "ensemble model output_statistics"
-        distribution = "truncated gaussian"
-        desired_units = "m s^-1"
-        predictor_of_mean_flag = "realizations"
-        plugin = Plugin(
-            calibration_method, distribution, desired_units,
-            predictor_of_mean_flag=predictor_of_mean_flag)
-        calibrated_predictor, calibrated_variance = plugin.process(
-            self.current_wind_speed_forecast_cube,
-            self.historic_wind_speed_forecast_cube,
-            self.wind_speed_truth_cube)
-        self.assertArrayAlmostEqual(calibrated_predictor.data, predictor_data,
-                                    decimal=4)
-        self.assertArrayAlmostEqual(calibrated_variance.data, variance_data)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -456,6 +336,393 @@ class Test_process(IrisTest):
                 self.current_temperature_forecast_cube,
                 self.historic_temperature_forecast_cube,
                 self.temperature_truth_cube)
+
+
+class Test_process_check_data(SetupCubes):
+
+    """Test the data output from the process method."""
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_temperature_data_check(self):
+        """
+        Test that the plugin returns an iris.cube.CubeList
+        of temperature cubes with the expected data, where the plugin
+        returns a cubelist of, firstly, the predictor and, secondly the
+        variance.
+        The ensemble mean is the predictor.
+        """
+        distribution = "gaussian"
+        desired_units = "degreesC"
+        plugin = Plugin(self.calibration_method, distribution, desired_units)
+        calibrated_predictor, calibrated_variance = plugin.process(
+            self.current_temperature_forecast_cube,
+            self.historic_temperature_forecast_cube,
+            self.temperature_truth_cube)
+        self.assertArrayAlmostEqual(
+            calibrated_predictor.data,
+            self.expected_temperature_predictor_data, decimal=3)
+        self.assertArrayAlmostEqual(
+            calibrated_variance.data,
+            self.expected_temperature_variance_data, decimal=3)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_temperature_data_check_max_iterations(self):
+        """
+        Test that the plugin returns an iris.cube.CubeList
+        of temperature cubes with the expected data, where the plugin
+        returns a cubelist of, firstly, the predictor and, secondly the
+        variance when the maximum number of iterations is specified.
+        The ensemble mean is the predictor.
+        """
+        distribution = "gaussian"
+        desired_units = "degreesC"
+        plugin = Plugin(self.calibration_method, distribution, desired_units,
+                        max_iterations=100)
+        calibrated_predictor, calibrated_variance = plugin.process(
+            self.current_temperature_forecast_cube,
+            self.historic_temperature_forecast_cube,
+            self.temperature_truth_cube)
+        self.assertArrayAlmostEqual(
+            calibrated_predictor.data,
+            self.expected_temperature_predictor_data, decimal=3)
+        self.assertArrayAlmostEqual(
+            calibrated_variance.data,
+            self.expected_temperature_variance_data, decimal=3)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_wind_speed_data_check(self):
+        """
+        Test that the plugin returns an iris.cube.CubeList
+        of wind_speed cubes with the expected data, where the plugin
+        returns a cubelist of, firstly, the predictor and, secondly the
+        variance.
+        The ensemble mean is the predictor.
+        """
+        distribution = "truncated gaussian"
+        desired_units = "m s^-1"
+        plugin = Plugin(self.calibration_method, distribution, desired_units)
+        calibrated_predictor, calibrated_variance = plugin.process(
+            self.current_wind_speed_forecast_cube,
+            self.historic_wind_speed_forecast_cube,
+            self.wind_speed_truth_cube)
+        self.assertArrayAlmostEqual(
+            calibrated_predictor.data,
+            self.expected_wind_speed_predictor_data, decimal=3)
+        self.assertArrayAlmostEqual(
+            calibrated_variance.data,
+            self.expected_wind_speed_variance_data, decimal=3)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_wind_speed_data_check_max_iterations(self):
+        """
+        Test that the plugin returns an iris.cube.CubeList
+        of wind_speed cubes with the expected data, where the plugin
+        returns a cubelist of, firstly, the predictor and, secondly the
+        variance when the maximum number of iterations is specified.
+        The ensemble mean is the predictor.
+        """
+        predictor_data = np.array(
+            [[0., 1., 2.],
+             [3., 4., 5.],
+             [6., 7., 8.]], dtype=np.float32)
+        variance_data = np.array(
+            [[0., 0., 0.],
+             [0., 0., 0.],
+             [0., 0., 0.]],
+            dtype=np.float32
+        )
+        distribution = "truncated gaussian"
+        desired_units = "m s^-1"
+        plugin = Plugin(self.calibration_method, distribution, desired_units,
+                        max_iterations=100)
+        calibrated_predictor, calibrated_variance = plugin.process(
+            self.current_wind_speed_forecast_cube,
+            self.historic_wind_speed_forecast_cube,
+            self.wind_speed_truth_cube)
+        self.assertArrayAlmostEqual(calibrated_predictor.data,
+                                    predictor_data, decimal=3)
+        self.assertArrayAlmostEqual(calibrated_variance.data,
+                                    variance_data, decimal=3)
+
+
+class Test_process_check_data_with_variance(SetupCubesWithVariance):
+
+    """Test the data with variance output from the process method."""
+
+    def setUp(self):
+        super().setUp()
+        self.expected_temperature_predictor_data = np.array(
+            [[274.14844, 275.14844, 276.14844],
+             [277.14844, 278.1484, 279.1484],
+             [280.1484, 281.1484, 282.1484]], dtype=np.float32)
+
+        self.expected_temperature_variance_data = np.array(
+            [[0.00000326, 0.00000326, 0.00000326],
+             [0.00000326, 0.00000326, 0.00000326],
+             [0.00000326, 0.00000326, 0.00000326]], dtype=np.float32)
+
+        self.expected_wind_speed_predictor_data = np.array(
+            [[1.7818475, 2.5791492, 3.376451],
+             [4.173753, 4.9710546, 5.768356],
+             [6.5656576, 7.3629594, 8.160261]], dtype=np.float32)
+
+        self.expected_wind_speed_variance_data = np.array(
+            [[0.08528984, 0.08528984, 0.08528984],
+             [0.08528984, 0.08528984, 0.08528984],
+             [0.08528984, 0.08528984, 0.08528984]], dtype=np.float32)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_temperature_data_check(self):
+        """
+        Test that the plugin returns an iris.cube.CubeList
+        of temperature cubes with the expected data, where the plugin
+        returns a cubelist of, firstly, the predictor and, secondly the
+        variance.
+        The ensemble mean is the predictor.
+        """
+        distribution = "gaussian"
+        desired_units = "degreesC"
+        plugin = Plugin(self.calibration_method, distribution,
+                        desired_units)
+        calibrated_predictor, calibrated_variance = plugin.process(
+            self.current_temperature_forecast_cube,
+            self.historic_temperature_forecast_cube,
+            self.temperature_truth_cube)
+        self.assertArrayAlmostEqual(
+            calibrated_predictor.data,
+            self.expected_temperature_predictor_data, decimal=3)
+        self.assertArrayAlmostEqual(
+            calibrated_variance.data,
+            self.expected_temperature_variance_data, decimal=3)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_temperature_data_check_max_iterations(self):
+        """
+        Test that the plugin returns an iris.cube.CubeList
+        of temperature cubes with the expected data, where the plugin
+        returns a cubelist of, firstly, the predictor and, secondly the
+        variance when the maximum number of iterations is specified.
+        The ensemble mean is the predictor.
+        """
+        distribution = "gaussian"
+        desired_units = "degreesC"
+        plugin = Plugin(self.calibration_method, distribution,
+                        desired_units,
+                        max_iterations=10000)
+        calibrated_predictor, calibrated_variance = plugin.process(
+            self.current_temperature_forecast_cube,
+            self.historic_temperature_forecast_cube,
+            self.temperature_truth_cube)
+        self.assertArrayAlmostEqual(
+            calibrated_predictor.data,
+            self.expected_temperature_predictor_data, decimal=3)
+        self.assertArrayAlmostEqual(
+            calibrated_variance.data,
+            self.expected_temperature_variance_data, decimal=3)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_wind_speed_data_check(self):
+        """
+        Test that the plugin returns an iris.cube.CubeList
+        of wind_speed cubes with the expected data, where the plugin
+        returns a cubelist of, firstly, the predictor and, secondly the
+        variance.
+        The ensemble mean is the predictor.
+        """
+        distribution = "truncated gaussian"
+        desired_units = "m s^-1"
+        plugin = Plugin(self.calibration_method, distribution,
+                        desired_units)
+        calibrated_predictor, calibrated_variance = plugin.process(
+            self.current_wind_speed_forecast_cube,
+            self.historic_wind_speed_forecast_cube,
+            self.wind_speed_truth_cube)
+        self.assertArrayAlmostEqual(
+            calibrated_predictor.data,
+            self.expected_wind_speed_predictor_data, decimal=3)
+        self.assertArrayAlmostEqual(
+            calibrated_variance.data,
+            self.expected_wind_speed_variance_data, decimal=3)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_wind_speed_data_check_max_iterations(self):
+        """
+        Test that the plugin returns an iris.cube.CubeList
+        of wind_speed cubes with the expected data, where the plugin
+        returns a cubelist of, firstly, the predictor and, secondly the
+        variance when the maximum number of iterations is specified.
+        The ensemble mean is the predictor.
+        """
+        distribution = "truncated gaussian"
+        desired_units = "m s^-1"
+        plugin = Plugin(self.calibration_method, distribution,
+                        desired_units,
+                        max_iterations=10000)
+        calibrated_predictor, calibrated_variance = plugin.process(
+            self.current_wind_speed_forecast_cube,
+            self.historic_wind_speed_forecast_cube,
+            self.wind_speed_truth_cube)
+        self.assertArrayAlmostEqual(
+            calibrated_predictor.data,
+            self.expected_wind_speed_predictor_data, decimal=3)
+        self.assertArrayAlmostEqual(
+            calibrated_variance.data,
+            self.expected_wind_speed_variance_data, decimal=3)
+
+
+@unittest.skipIf(
+    STATSMODELS_FOUND is False, "statsmodels module not available.")
+class Test_process_with_statsmodels(SetupCubes):
+
+    """Additional tests for the process method when the statsmodels module
+    is available. The statsmodels module is used for creating an initial
+    guess for the coefficients that will be solved as part of the
+    calibration."""
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_temperature_realizations_data_check(self):
+        """
+        Test that the plugin returns an iris.cube.CubeList
+        of temperature cubes with the expected data, where the plugin
+        returns a cubelist of, firstly, the predictor and, secondly the
+        variance.
+        The ensemble realizations is the predictor.
+        """
+        distribution = "gaussian"
+        desired_units = "degreesC"
+        predictor_of_mean_flag = "realizations"
+        plugin = Plugin(
+            self.calibration_method, distribution, desired_units,
+            predictor_of_mean_flag=predictor_of_mean_flag,
+            max_iterations=10000)
+        calibrated_predictor, calibrated_variance = plugin.process(
+            self.current_temperature_forecast_cube,
+            self.historic_temperature_forecast_cube,
+            self.temperature_truth_cube)
+        self.assertArrayAlmostEqual(
+            calibrated_predictor.data,
+            self.expected_temperature_predictor_data, decimal=3)
+        self.assertArrayAlmostEqual(
+            calibrated_variance.data,
+            self.expected_temperature_variance_data, decimal=3)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_wind_speed_realizations_data_check(self):
+        """
+        Test that the plugin returns an iris.cube.CubeList
+        of wind_speed cubes with the expected data, where the plugin
+        returns a cubelist of, firstly, the predictor and, secondly the
+        variance.
+        The ensemble realizations is the predictor.
+        """
+        expected_wind_speed_predictor_data = np.array(
+            [[1.3333356, 2.0000021, 2.6666684],
+             [3.3333352, 4.0000014, 4.666668],
+             [5.3333344, 6.000001, 6.6666675]], dtype=np.float32)
+        expected_wind_speed_variance_data = np.array(
+            [[0., 0., 0.],
+             [0., 0., 0.],
+             [0., 0., 0.]], dtype=np.float32)
+        distribution = "truncated gaussian"
+        desired_units = "m s^-1"
+        predictor_of_mean_flag = "realizations"
+        plugin = Plugin(
+            self.calibration_method, distribution, desired_units,
+            predictor_of_mean_flag=predictor_of_mean_flag,
+            max_iterations=10000)
+        calibrated_predictor, calibrated_variance = plugin.process(
+            self.current_wind_speed_forecast_cube,
+            self.historic_wind_speed_forecast_cube,
+            self.wind_speed_truth_cube)
+        self.assertArrayAlmostEqual(
+            calibrated_predictor.data, expected_wind_speed_predictor_data,
+            decimal=3)
+        self.assertArrayAlmostEqual(
+            calibrated_variance.data, expected_wind_speed_variance_data,
+            decimal=3)
+
+
+@unittest.skipIf(
+    STATSMODELS_FOUND is True, "statsmodels module is available.")
+class Test_process_without_statsmodels(SetupCubes):
+
+    """Additional tests for the process method when the statsmodels module
+    is not available. A simple initial guess will be used for the
+    coefficients that will be solved as part of the calibration."""
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_temperature_realizations_data_check(self):
+        """
+        Test that the plugin returns an iris.cube.CubeList
+        of temperature cubes with the expected data, where the plugin
+        returns a cubelist of, firstly, the predictor and, secondly the
+        variance.
+        The ensemble realizations is the predictor.
+        """
+        distribution = "gaussian"
+        desired_units = "degreesC"
+        predictor_of_mean_flag = "realizations"
+        plugin = Plugin(
+            self.calibration_method, distribution, desired_units,
+            predictor_of_mean_flag=predictor_of_mean_flag,
+            max_iterations=10000)
+        calibrated_predictor, calibrated_variance = plugin.process(
+            self.current_temperature_forecast_cube,
+            self.historic_temperature_forecast_cube,
+            self.temperature_truth_cube)
+        self.assertArrayAlmostEqual(
+            calibrated_predictor.data,
+            self.expected_temperature_predictor_data, decimal=3)
+        self.assertArrayAlmostEqual(
+            calibrated_variance.data,
+            self.expected_temperature_variance_data, decimal=3)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_wind_speed_realizations_data_check(self):
+        """
+        Test that the plugin returns an iris.cube.CubeList
+        of wind_speed cubes with the expected data, where the plugin
+        returns a cubelist of, firstly, the predictor and, secondly the
+        variance.
+        The ensemble realizations is the predictor.
+        """
+        predictor_data = np.array(
+            [[0.773847, 1.5344661, 2.2950854],
+             [3.0557044, 3.8163238, 4.5769424],
+             [5.3375616, 6.098181, 6.8588]], dtype=np.float32)
+        variance_data = np.array(
+            [[2.7587156, 2.7587156, 2.7587156],
+             [2.7587156, 2.7587156, 2.7587156],
+             [2.7587156, 2.7587156, 2.7587156]],
+            dtype=np.float32
+        )
+        distribution = "truncated gaussian"
+        desired_units = "m s^-1"
+        predictor_of_mean_flag = "realizations"
+        plugin = Plugin(
+            self.calibration_method, distribution, desired_units,
+            predictor_of_mean_flag=predictor_of_mean_flag,
+            max_iterations=10000)
+        calibrated_predictor, calibrated_variance = plugin.process(
+            self.current_wind_speed_forecast_cube,
+            self.historic_wind_speed_forecast_cube,
+            self.wind_speed_truth_cube)
+        self.assertArrayAlmostEqual(
+            calibrated_predictor.data, predictor_data, decimal=3)
+        self.assertArrayAlmostEqual(
+            calibrated_variance.data, variance_data, decimal=3)
 
 
 if __name__ == '__main__':
