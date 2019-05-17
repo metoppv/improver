@@ -215,6 +215,11 @@ def main(argv=None):
             result.name() == "air_temperature"):
 
         lapse_rate_cube = load_cube(args.temperature_lapse_rate_filepath)
+        if not lapse_rate_cube.name() == 'air_temperature_lapse_rate':
+            msg = ("A cube has been provided as a lapserate cube but does "
+                   "not have the expected name air_temperature_lapse_rate: "
+                   "{}".format(lapse_rate_cube.name()))
+            raise ValueError(msg)
         try:
             lapse_rate_height_coord = lapse_rate_cube.coord("height")
         except (ValueError, CoordinateNotFoundError):
