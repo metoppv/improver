@@ -104,5 +104,5 @@ class GenerateTimeLaggedEnsemble(object):
                 first_realization = first_realization + n_realization
 
         lagged_ensemble = concatenate_cubes(
-            cubelist, master_coord="realization", coords_to_slice_over=[])
+            cubelist, master_coord="realization")
         return lagged_ensemble

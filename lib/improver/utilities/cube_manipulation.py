@@ -134,16 +134,13 @@ class ConcatenateCubes():
                 OR "forecast_period", NOT both.
             coords_to_slice_over (list):
                 Dimension coordinates to slice over before concatenation.
+                May cause the dimension order to change from input to output
+                cubes.
         """
         self.master_coord = master_coord
         self.coords_to_associate = coords_to_associate
         self.coords_to_slice_over = coords_to_slice_over
 
-        if self.coords_to_slice_over is None:
-            # the order of this list reflects the order in which dimension
-            # coordinates will appear on the concatenated cube
-            # TODO I don't like this - default to empty list
-            self.coords_to_slice_over = ["realization", "time"]
         if self.coords_to_associate is None and self.master_coord == "time":
             self.coords_to_associate = ["forecast_period"]
 
@@ -250,7 +247,7 @@ class ConcatenateCubes():
         for concatenating cubes with differently numbered realizations).
 
         Args:
-            cubes_in (iris.cube.CubeList):
+            cubes_in (iris.cube.CubeList or iris.cube.Cube):
                 Cube or list of cubes to be concatenated
 
         Returns:
@@ -261,6 +258,13 @@ class ConcatenateCubes():
             ValueError:
                 If master coordinate is not present on all "cubes_in"
         """
+        # if input is a single cube or list of length 1, return unchanged
+        if isinstance(cubes_in, iris.cube.Cube):
+            return cubes_in
+
+        if len(cubes_in) == 1:
+            return cubes_in[0]
+
         # create copies of input cubes so as not to modify in place
         if isinstance(cubes_in, iris.cube.Cube):
             cubes = iris.cube.CubeList([cubes_in.copy()])
@@ -276,8 +280,9 @@ class ConcatenateCubes():
                     self.master_coord))
 
         # slice over requested coordinates
-        for coord_to_slice_over in self.coords_to_slice_over:
-            cubes = self._slice_over_coordinate(cubes, coord_to_slice_over)
+        if self.coords_to_slice_over is not None:
+            for coord_to_slice_over in self.coords_to_slice_over:
+                cubes = self._slice_over_coordinate(cubes, coord_to_slice_over)
 
         # remove unmatched attributes
         equalise_cube_attributes(cubes, silent=self.silent_attributes)
@@ -293,6 +298,7 @@ class ConcatenateCubes():
 
         # concatenate cube
         result = associated_master_cubelist.concatenate_cube()
+
         return result
 
 

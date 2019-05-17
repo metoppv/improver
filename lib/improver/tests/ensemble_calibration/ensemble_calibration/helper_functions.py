@@ -292,7 +292,7 @@ def _create_historic_forecasts(cube, number_of_days=5):
         historic_forecasts.append(temp_cube)
 
     historic_forecast = concatenate_cubes(
-        historic_forecasts,
+        historic_forecasts, coords_to_slice_over=["time"],
         coordinates_for_association=["forecast_reference_time"])
     return historic_forecast
 
@@ -317,7 +317,8 @@ def _create_truth(cube):
         temp_cube.cell_methods = {}
         truth.append(temp_cube)
     truth = concatenate_cubes(
-        truth, coordinates_for_association=["forecast_reference_time"])
+        truth, coords_to_slice_over=["time"],
+        coordinates_for_association=["forecast_reference_time"])
     return truth
 
 
