@@ -338,8 +338,8 @@ class MergeCubes():
     """
     Class adding functionality to iris.merge_cubes()
 
-    Accounts for differences in attributes and coordinates to avoid merge
-    failures and anonymous dimensions.
+    Accounts for differences in attributes, cell methods and bounds ranges to
+    avoid merge failures and anonymous dimensions.
     """
     def __init__(self):
         """Initialise constants"""
