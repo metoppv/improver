@@ -332,9 +332,10 @@ class Test_load_cubelist(IrisTest):
         self.assertEqual(len(result), 3)
 
     def test_no_partial_merge_list_args(self):
-        """As above, but where input is from parsed from a multi-value argument
-        (and is therefore provided as a list containing a single wildcarded
-        path)"""
+        """Test that we can load three files independently when a wildcarded
+        filepath is provided in a single-item list.  This is the form in which
+        multi-item arguments ("nargs=+") are provided via "argparse" from the
+        loading CLIs."""
         low_cloud_cube = self.cube.copy()
         low_cloud_cube.rename("low_type_cloud_area_fraction")
         low_cloud_cube.coord("time").points = (

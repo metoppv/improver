@@ -246,6 +246,9 @@ class ConcatenateCubes():
         over any requested dimensions to avoid coordinate mismatch errors (eg
         for concatenating cubes with differently numbered realizations).
 
+        If the input is a single Cube or CubeList of length 1, the input cube
+        is returned unmodified.
+
         Args:
             cubes_in (iris.cube.CubeList or iris.cube.Cube):
                 Cube or list of cubes to be concatenated
@@ -346,47 +349,21 @@ class MergeCubes():
         # List of attributes to remove silently if unmatched
         self.silent_attributes = ["history", "title", "mosg__grid_version"]
 
-    def _equalise_cubes(self, cubelist):
-        """
-        Function to equalise cubes where the attributes or cell methods do not
-        match.
-
-        Args:
-            cubelist (iris.cube.CubeList):
-                List of cubes to check and equalise.
-
-        Returns:
-            cubelist (iris.cube.CubeList):
-                List of cubes with revised cubes. The number of cubes in this
-                list may be greater than the original number of cubes if they
-                have been sliced over mismatching dimension coordinates.
-        """
-        equalise_cube_attributes(cubelist, silent=self.silent_attributes)
-        strip_var_names(cubelist)
-        cubelist = self._equalise_cell_methods(cubelist)
-        return cubelist
-
     @staticmethod
-    def _equalise_cell_methods(cubes):
+    def _equalise_cell_methods(cubelist):
         """
-        Function to equalise cell methods that do not match.
+        Function to equalise cell methods that do not match.  Modifies cubes
+        in place.
 
         Args:
-            cubes (iris.cube.CubeList):
-                List of cubes to check the cell methods and revise.
-        Returns:
             cubelist (iris.cube.CubeList):
-                List of cubes with revised cell methods.
-                Currently the cell methods are simply deleted if
-                they do not match.
+                List of cubes to check the cell methods and revise.
         """
-        cell_methods = cubes[0].cell_methods
-        for cube in cubes[1:]:
+        cell_methods = cubelist[0].cell_methods
+        for cube in cubelist[1:]:
             cell_methods = list(set(cell_methods) & set(cube.cell_methods))
-        cubelist = cubes
         for cube in cubelist:
             cube.cell_methods = tuple(cell_methods)
-        return cubelist
 
     @staticmethod
     def _check_time_bounds_ranges(cube):
@@ -425,6 +402,11 @@ class MergeCubes():
         of coordinates (as opposed to cubes with the same coordinates with
         different values) cannot be merged.
 
+        If the input is a single Cube, this is returned unmodified.  A
+        CubeList of length 1 is checked for mistmatched time bounds before
+        returning the single Cube (since a CubeList of this form may be the
+        result of premature iris merging on load).
+
         Args:
             cubes (iris.cube.CubeList or iris.cube.Cube):
                 Cubes to be merged.
@@ -457,8 +439,10 @@ class MergeCubes():
         for cube in cubes_in:
             cubelist.append(cube.copy())
 
-        # equalise cube attributes and coordinates
-        cubelist = self._equalise_cubes(cubelist)
+        # equalise cube attributes, cell methods and coordinate names
+        equalise_cube_attributes(cubelist, silent=self.silent_attributes)
+        strip_var_names(cubelist)
+        self._equalise_cell_methods(cubelist)
 
         # merge resulting cubelist
         result = cubelist.merge_cube()

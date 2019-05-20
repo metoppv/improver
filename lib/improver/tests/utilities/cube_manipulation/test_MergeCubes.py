@@ -57,54 +57,6 @@ class Test__init__(IrisTest):
                                  ["history", "title", "mosg__grid_version"])
 
 
-class Test__equalise_cubes(IrisTest):
-    """Test the _equalise_cubes method"""
-
-    def setUp(self):
-        """Use temperature cube to test with."""
-        data = 275*np.ones((3, 3, 3), dtype=np.float32)
-        time_point = dt(2015, 11, 23, 7)
-
-        # set up a 3D cube with 7 hour forecast period
-        cube1 = set_up_variable_cube(
-            data.copy(), standard_grid_metadata='uk_ens', time=time_point,
-            frt=dt(2015, 11, 23, 0))
-        cube1.attributes["history"] = (
-            "2017-01-18T08:59:53: StaGE Decoupler")
-
-        # set up a 3D cube with 4 hour forecast period
-        cube2 = set_up_variable_cube(
-            data.copy(), standard_grid_metadata='uk_ens', time=time_point,
-            frt=dt(2015, 11, 23, 3))
-        cube2.attributes["history"] = (
-            "2017-01-19T08:59:53: StaGE Decoupler")
-
-        self.cubelist = iris.cube.CubeList([cube1, cube2])
-        self.plugin = MergeCubes()
-
-    def test_basic(self):
-        """Test that the utility returns an iris.cube.CubeList."""
-        result = self.plugin._equalise_cubes(self.cubelist)
-        self.assertIsInstance(result, iris.cube.CubeList)
-
-    def test_equalise_attributes(self):
-        """Test that the utility equalises the attributes as expected"""
-        result = self.plugin._equalise_cubes(self.cubelist)
-        for cube in result:
-            self.assertNotIn("history", cube.attributes.keys())
-
-    def test_strip_var_names(self):
-        """Test that the utility removes var names"""
-        cube1 = self.cubelist[0].copy()
-        cube2 = self.cubelist[0].copy()
-        cube1.coord("time").var_name = "time_0"
-        cube2.coord("time").var_name = "time_1"
-        cubelist = iris.cube.CubeList([cube1, cube2])
-        result = self.plugin._equalise_cubes(cubelist)
-        for cube in result:
-            self.assertIsNone(cube.coord("time").var_name)
-
-
 class Test__equalise_cell_methods(IrisTest):
     """Test the _equalise_cell_methods method"""
 
@@ -122,11 +74,11 @@ class Test__equalise_cell_methods(IrisTest):
 
     def test_basic(self):
         """Test returns an iris.cube.CubeList."""
-        result = self.plugin._equalise_cell_methods(
-            iris.cube.CubeList([self.cube, self.cube]))
-        self.assertIsInstance(result, iris.cube.CubeList)
-        self.assertEqual(len(result), 2)
-        self.assertTrue(result[0].is_compatible(result[1]))
+        cubelist = iris.cube.CubeList([self.cube, self.cube])
+        self.plugin._equalise_cell_methods(cubelist)
+        self.assertIsInstance(cubelist, iris.cube.CubeList)
+        self.assertEqual(len(cubelist), 2)
+        self.assertTrue(cubelist[0].is_compatible(cubelist[1]))
 
     def test_different_cell_methods(self):
         """Test returns an iris.cube.CubeList with matching cell methods."""
@@ -137,11 +89,11 @@ class Test__equalise_cell_methods(IrisTest):
         cube2.cell_methods = tuple([self.cell_method1, self.cell_method2,
                                     self.cell_method3])
         cube3.cell_methods = tuple([self.cell_method1, self.cell_method3])
-        result = self.plugin._equalise_cell_methods(
-            iris.cube.CubeList([cube1, cube2, cube3]))
-        self.assertIsInstance(result, iris.cube.CubeList)
-        self.assertEqual(len(result[0].cell_methods), 1)
-        check = result[1].cell_methods[0] == self.cell_method1
+        cubelist = iris.cube.CubeList([cube1, cube2, cube3])
+        self.plugin._equalise_cell_methods(cubelist)
+        self.assertIsInstance(cubelist, iris.cube.CubeList)
+        self.assertEqual(len(cubelist[0].cell_methods), 1)
+        check = cubelist[1].cell_methods[0] == self.cell_method1
         self.assertTrue(check)
 
 
