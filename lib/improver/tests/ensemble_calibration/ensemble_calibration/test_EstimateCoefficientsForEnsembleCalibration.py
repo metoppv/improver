@@ -757,8 +757,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         expected values, and the coefficient names also match
         expected values for a Gaussian distribution where the
         realizations are used as the predictor of the mean."""
-        data = np.array([0.0450917,  123.35383, -0.943704, -0.747887,
-                         -0.0180841, -0.655514], dtype=np.float32)
+        data = np.array([0., 130.56305, -1., -0.39057, 0.2216, -0.8935],
+                        dtype=np.float32)
 
         predictor_of_mean_flag = "realizations"
         expected_coeff_names = (
@@ -766,7 +766,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin = Plugin(self.distribution, self.current_cycle,
                         desired_units=self.desired_units,
-                        predictor_of_mean_flag=predictor_of_mean_flag)
+                        predictor_of_mean_flag=predictor_of_mean_flag,
+                        max_iterations=2000)
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
@@ -817,7 +818,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             ['gamma', 'delta', 'alpha', 'beta0', 'beta1', 'beta2'])
 
         plugin = Plugin(distribution, self.current_cycle,
-                        predictor_of_mean_flag=predictor_of_mean_flag)
+                        predictor_of_mean_flag=predictor_of_mean_flag,
+                        max_iterations=2000)
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
