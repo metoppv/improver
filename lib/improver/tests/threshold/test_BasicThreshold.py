@@ -120,15 +120,36 @@ class Test__repr__(IrisTest):
 class Test__add_threshold_coord(IrisTest):
     """Test the _add_threshold_coord method"""
 
+    def setUp(self):
+        """Test a scalar threshold coordinate is created"""
+        self.cube = set_up_variable_cube(np.ones((3, 3), dtype=np.float32))
+        self.plugin = Threshold([1])
+        self.plugin.threshold_coord_name = self.cube.name()
+
     def test_basic(self):
         """Test a scalar threshold coordinate is created"""
-        cube = set_up_variable_cube(np.ones((3, 3), dtype=np.float32))
-        plugin = Threshold([1])
-        result = plugin._add_threshold_coord(cube, 1)
+        result = self.plugin._add_threshold_coord(self.cube, 1)
         self.assertEqual(result.ndim, 3)
-        self.assertIn("threshold", [coord.name() for coord in
-                                    result.coords(dim_coords=True)])
-        self.assertAlmostEqual(result.coord("threshold").points[0], 1)
+        self.assertIn("air_temperature", [coord.standard_name for coord in
+                                          result.coords(dim_coords=True)])
+        threshold_coord = result.coord("air_temperature")
+        self.assertEqual(threshold_coord.var_name, "threshold")
+        self.assertAlmostEqual(threshold_coord.points[0], 1)
+        self.assertEqual(threshold_coord.units, self.cube.units)
+
+    def test_long_name(self):
+        """Test coordinate is created with non-standard diagnostic name"""
+        self.cube.rename("sky_temperature")
+        self.plugin.threshold_coord_name = self.cube.name()
+        result = self.plugin._add_threshold_coord(self.cube, 1)
+        self.assertIn("sky_temperature", [coord.long_name for coord in
+                                          result.coords(dim_coords=True)])
+
+    def test_value_error(self):
+        """Test method catches ValueErrors unrelated to name, by passing it a
+        list of values where a scalar is required"""
+        with self.assertRaises(ValueError):
+            self.plugin._add_threshold_coord(self.cube, [1, 1])
 
 
 class Test_process(IrisTest):
@@ -210,23 +231,14 @@ class Test_process(IrisTest):
         expected_attribute = "above"
         expected_units = 1
         expected_coord = DimCoord(np.array([0.1], dtype=np.float32),
-                                  long_name='threshold',
+                                  standard_name=self.cube.name(),
+                                  var_name='threshold',
                                   units=self.cube.units)
         self.assertEqual(result.name(), expected_name)
         self.assertEqual(result.attributes['relative_to_threshold'],
                          expected_attribute)
         self.assertEqual(result.units, expected_units)
-        self.assertEqual(result.coord('threshold'),
-                         expected_coord)
-
-    def test_threshold_dimension_added(self):
-        """Test that a threshold dimension coordinate is added."""
-        plugin = Threshold(0.1)
-        result = plugin.process(self.cube)
-        expected_coord = DimCoord(np.array([0.1], dtype=np.float32),
-                                  long_name='threshold',
-                                  units=self.cube.units)
-        self.assertEqual(result.coord('threshold'), expected_coord)
+        self.assertEqual(result.coord(self.cube.name()), expected_coord)
 
     def test_threshold(self):
         """Test the basic threshold functionality."""

@@ -122,6 +122,9 @@ class BasicThreshold(object):
         else:
             self.threshold_units = Unit(threshold_units)
 
+        # initialise threshold coordinate name as None
+        self.threshold_coord_name = None
+
         # read fuzzy factor or set (default) to 1 (no smoothing)
         fuzzy_factor_loc = 1.
         if fuzzy_factor is not None:
@@ -182,7 +185,7 @@ class BasicThreshold(object):
 
     def _add_threshold_coord(self, cube, threshold):
         """
-        Add a scalar "threshold" dimension to a cube containing thresholded
+        Add a scalar threshold-type dimension to a cube containing thresholded
         data.
 
         Args:
@@ -195,12 +198,22 @@ class BasicThreshold(object):
             iris.cube.Cube:
                 With new "threshold" axis
         """
-        coord = iris.coords.DimCoord(
-            np.array([threshold], dtype=np.float32),
-            long_name="threshold",
-            units=cube.units)
+        try:
+            coord = iris.coords.DimCoord(
+                np.array([threshold], dtype=np.float32),
+                standard_name=self.threshold_coord_name,
+                var_name="threshold", units=cube.units)
+        except ValueError as cause:
+            if 'is not a valid standard_name' in str(cause):
+                coord = iris.coords.DimCoord(
+                    np.array([threshold], dtype=np.float32),
+                    long_name=self.threshold_coord_name,
+                    var_name="threshold", units=cube.units)
+            else:
+                raise ValueError(cause)
+
         cube.add_aux_coord(coord)
-        return iris.util.new_axis(cube, 'threshold')
+        return iris.util.new_axis(cube, coord)
 
     def process(self, input_cube):
         """Convert each point to a truth value based on provided threshold
