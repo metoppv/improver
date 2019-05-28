@@ -721,7 +721,7 @@ class Test_process_without_statsmodels(SetupCubes):
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
         self.assertArrayAlmostEqual(
-            calibrated_predictor.data, predictor_data, decimal=3)
+            calibrated_predictor.data, predictor_data, decimal=2)
         self.assertArrayAlmostEqual(
             calibrated_variance.data, variance_data, decimal=3)
 
