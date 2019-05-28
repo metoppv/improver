@@ -32,6 +32,7 @@
 Unit tests for the `ensemble_calibration.EnsembleCalibration` class.
 
 """
+import imp
 import unittest
 
 import iris
@@ -46,7 +47,7 @@ from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
 try:
-    import statsmodels
+    imp.find_module('statsmodels')
     STATSMODELS_FOUND = True
 except ImportError:
     STATSMODELS_FOUND = False
