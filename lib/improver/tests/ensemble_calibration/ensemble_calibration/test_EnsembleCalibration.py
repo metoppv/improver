@@ -604,7 +604,7 @@ class Test_process_with_statsmodels(SetupCubes):
         plugin = Plugin(
             self.calibration_method, distribution, desired_units,
             predictor_of_mean_flag=predictor_of_mean_flag,
-            max_iterations=10000)
+            max_iterations=300)
         calibrated_predictor, calibrated_variance = plugin.process(
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
@@ -640,7 +640,7 @@ class Test_process_with_statsmodels(SetupCubes):
         plugin = Plugin(
             self.calibration_method, distribution, desired_units,
             predictor_of_mean_flag=predictor_of_mean_flag,
-            max_iterations=10000)
+            max_iterations=300)
         calibrated_predictor, calibrated_variance = plugin.process(
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
@@ -677,7 +677,7 @@ class Test_process_without_statsmodels(SetupCubes):
         plugin = Plugin(
             self.calibration_method, distribution, desired_units,
             predictor_of_mean_flag=predictor_of_mean_flag,
-            max_iterations=10000)
+            max_iterations=2000)
         calibrated_predictor, calibrated_variance = plugin.process(
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
@@ -715,7 +715,7 @@ class Test_process_without_statsmodels(SetupCubes):
         plugin = Plugin(
             self.calibration_method, distribution, desired_units,
             predictor_of_mean_flag=predictor_of_mean_flag,
-            max_iterations=10000)
+            max_iterations=2000)
         calibrated_predictor, calibrated_variance = plugin.process(
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
