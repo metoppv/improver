@@ -35,6 +35,7 @@
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
 usage: improver spot-extract [-h] [--profile] [--profile_file PROFILE_FILE]
+                             [--apply_lapse_rate_correction]
                              [--land_constraint] [--minimum_dz]
                              [--extract_percentiles EXTRACT_PERCENTILES [EXTRACT_PERCENTILES ...]]
                              [--ecc_bounds_warning]
@@ -65,6 +66,11 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
+  --apply_lapse_rate_correction
+                        If the option is set and a lapse rate cube has been
+                        provided, extracted screen temperatures will be
+                        adjusted to better match the altitude of the spot site
+                        for which they have been extracted.
   --ecc_bounds_warning  If True, where calculated percentiles are outside the
                         ECC bounds range, raise a warning rather than an
                         exception.

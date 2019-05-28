@@ -40,7 +40,8 @@
       "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/all_methods_uk.nc" \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_temperature.nc" \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_lapse_rate.nc" \
-      "$TEST_DIR/output.nc"
+      "$TEST_DIR/output.nc" \
+      --apply_lapse_rate_correction
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

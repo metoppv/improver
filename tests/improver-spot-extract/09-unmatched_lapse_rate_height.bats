@@ -40,7 +40,8 @@
       "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/all_methods_uk.nc" \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_temperature.nc" \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_lapse_rate_2m.nc" \
-      "$TEST_DIR/output.nc"
+      "$TEST_DIR/output.nc" \
+      --apply_lapse_rate_correction
   echo "status = ${status}"
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__TEXT__' || true

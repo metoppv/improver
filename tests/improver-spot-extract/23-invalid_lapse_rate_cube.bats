@@ -39,11 +39,12 @@
       "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/all_methods_uk.nc" \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_temperature.nc" \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_temperature.nc" \
-      "$TEST_DIR/output.nc"
+      "$TEST_DIR/output.nc" \
+      --apply_lapse_rate_correction
   echo "status = ${status}"
   [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-ValueError: A cube has been provided as a lapserate cube but does not have the expected name air_temperature_lapse_rate: air_temperature
+ValueError: A cube has been provided as a lapse rate cube but does not have the expected name air_temperature_lapse_rate: air_temperature
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

@@ -31,19 +31,22 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "spot-extract test non-default metadata can be used" {
+@test "spot-extract lapse rate cube not provided by option enabled" {
   improver_check_skip_acceptance
-  KGO="spot-extract/outputs/nearest_uk_temperatures_alternate_metadata.nc"
+  KGO="spot-extract/outputs/nearest_uk_temperatures.nc"
 
   # Run spot extract processing and check it passes.
   run improver spot-extract \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/all_methods_uk_alternate_metadata.nc" \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_temperature_alternate_metadata.nc" \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_lapse_rate_alternate_metadata.nc" \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/all_methods_uk.nc" \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_temperature.nc" \
       "$TEST_DIR/output.nc" \
-      --apply_lapse_rate_correction \
-      --grid_metadata_identifier my_grid_metadata
+      --apply_lapse_rate_correction
+  echo "status = ${status}"
   [[ "$status" -eq 0 ]]
+  read -d '' expected <<'__TEXT__' || true
+UserWarning: A lapse rate cube was not provided, but the option to apply the lapse rate correction was enabled. No lapse rate correction could be applied.
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
 
