@@ -102,6 +102,8 @@ class Test__init__(IrisTest):
                         max_iterations=max_iterations)
         self.assertEqual(plugin.coeff_names, expected)
 
+    @unittest.skipIf(
+        STATSMODELS_FOUND is True, "statsmodels module is available.")
     @ManageWarnings(
         record=True,
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -122,11 +124,12 @@ class Test__init__(IrisTest):
 
         predictor_of_mean_flag = "mean"
 
-        if not STATSMODELS_FOUND:
-            Plugin(self.distribution, self.desired_units,
-                   predictor_of_mean_flag=predictor_of_mean_flag)
-            self.assertTrue(len(warning_list) == 0)
+        Plugin(self.distribution, self.desired_units,
+               predictor_of_mean_flag=predictor_of_mean_flag)
+        self.assertTrue(len(warning_list) == 0)
 
+    @unittest.skipIf(
+        STATSMODELS_FOUND is True, "statsmodels module is available.")
     @ManageWarnings(
         record=True,
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -162,14 +165,13 @@ class Test__init__(IrisTest):
 
         predictor_of_mean_flag = "realizations"
 
-        if not STATSMODELS_FOUND:
-            Plugin(self.distribution, self.desired_units,
-                   predictor_of_mean_flag=predictor_of_mean_flag)
-            warning_msg = "The statsmodels can not be imported"
-            self.assertTrue(any(item.category == ImportWarning
-                                for item in warning_list))
-            self.assertTrue(any(warning_msg in str(item)
-                                for item in warning_list))
+        Plugin(self.distribution, self.desired_units,
+               predictor_of_mean_flag=predictor_of_mean_flag)
+        warning_msg = "The statsmodels can not be imported"
+        self.assertTrue(any(item.category == ImportWarning
+                            for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
 
 
 class Test__repr__(IrisTest):
