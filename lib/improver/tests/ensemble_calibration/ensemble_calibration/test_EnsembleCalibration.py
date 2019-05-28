@@ -723,7 +723,7 @@ class Test_process_without_statsmodels(SetupCubes):
         self.assertArrayAlmostEqual(
             calibrated_predictor.data, predictor_data, decimal=2)
         self.assertArrayAlmostEqual(
-            calibrated_variance.data, variance_data, decimal=3)
+            calibrated_variance.data, variance_data, decimal=1)
 
 
 if __name__ == '__main__':
