@@ -40,6 +40,7 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.threshold import BasicThreshold as Threshold
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
 class Test__repr__(IrisTest):
@@ -114,6 +115,20 @@ class Test__repr__(IrisTest):
                'below_thresh_ok: {}>'.format(
                    threshold, fuzzy_bounds, below_thresh_ok))
         self.assertEqual(result, msg)
+
+
+class Test__add_threshold_coord(IrisTest):
+    """Test the _add_threshold_coord method"""
+
+    def test_basic(self):
+        """Test a scalar threshold coordinate is created"""
+        cube = set_up_variable_cube(np.ones((3, 3), dtype=np.float32))
+        plugin = Threshold([1])
+        result = plugin._add_threshold_coord(cube, 1)
+        self.assertEqual(result.ndim, 3)
+        self.assertIn("threshold", [coord.name() for coord in
+                                    result.coords(dim_coords=True)])
+        self.assertAlmostEqual(result.coord("threshold").points[0], 1)
 
 
 class Test_process(IrisTest):

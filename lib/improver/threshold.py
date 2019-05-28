@@ -180,6 +180,28 @@ class BasicThreshold(object):
         ).format(self.thresholds, self.fuzzy_bounds,
                  self.below_thresh_ok)
 
+    def _add_threshold_coord(self, cube, threshold):
+        """
+        Add a scalar "threshold" dimension to a cube containing thresholded
+        data.
+
+        Args:
+            cube (iris.cube.Cube):
+                Cube containing thresholded data (1s and 0s)
+            threshold (np.float32):
+                Value at which the data has been thresholded
+
+        Returns:
+            iris.cube.Cube:
+                With new "threshold" axis
+        """
+        coord = iris.coords.DimCoord(
+            np.array([threshold], dtype=np.float32),
+            long_name="threshold",
+            units=cube.units)
+        cube.add_aux_coord(coord)
+        return iris.util.new_axis(cube, 'threshold')
+
     def process(self, input_cube):
         """Convert each point to a truth value based on provided threshold
         values. The truth value may or may not be fuzzy depending upon if
@@ -228,6 +250,9 @@ class BasicThreshold(object):
                 self.threshold_units.convert(threshold, input_cube.units)
                 for threshold in bounds]) for bounds in self.fuzzy_bounds]
 
+        # set name of threshold coordinate
+        self.threshold_coord_name = input_cube.name()
+
         # apply fuzzy thresholding
         for threshold, bounds in zip(self.thresholds, self.fuzzy_bounds):
             cube = input_cube.copy()
@@ -261,12 +286,7 @@ class BasicThreshold(object):
             if np.ma.is_masked(cube.data):
                 cube.data[input_cube.data.mask] = (
                     input_cube.data[input_cube.data.mask])
-            coord = iris.coords.DimCoord(
-                np.array([threshold], dtype=np.float32),
-                long_name="threshold",
-                units=cube.units)
-            cube.add_aux_coord(coord)
-            cube = iris.util.new_axis(cube, 'threshold')
+            cube = self._add_threshold_coord(cube, threshold)
             thresholded_cubes.append(cube)
 
         cube, = thresholded_cubes.concatenate()
