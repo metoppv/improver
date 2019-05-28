@@ -757,7 +757,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         expected values, and the coefficient names also match
         expected values for a Gaussian distribution where the
         realizations are used as the predictor of the mean."""
-        data = np.array([0., 130.56305, -1., -0.39057, 0.2216, -0.8935],
+        data = np.array([1.08333e+00, 1.09167e+00, 3.61111e-04,
+                         4.61880e-01, 5.74143e-01, 5.29238e-01],
                         dtype=np.float32)
 
         predictor_of_mean_flag = "realizations"
@@ -767,7 +768,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         plugin = Plugin(self.distribution, self.current_cycle,
                         desired_units=self.desired_units,
                         predictor_of_mean_flag=predictor_of_mean_flag,
-                        max_iterations=2000)
+                        max_iterations=10)
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
@@ -810,7 +811,8 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         expected values, and the coefficient names also match
         expected values for a truncated Gaussian distribution where the
         realizations are used as the predictor of the mean."""
-        data = [1.660938, 3.388195, 0.013228, -0.514865, -0.38911, 0.586623]
+        data = [1.122222e+00, 1.091667e+00, 6.527778e-04, 4.506539e-01,
+                4.955590e-01, 5.404640e-01]
 
         distribution = "truncated gaussian"
         predictor_of_mean_flag = "realizations"
@@ -819,12 +821,12 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin = Plugin(distribution, self.current_cycle,
                         predictor_of_mean_flag=predictor_of_mean_flag,
-                        max_iterations=2000)
+                        max_iterations=10)
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
 
-        self.assertArrayAlmostEqual(result.data, data)
+        self.assertArrayAlmostEqual(result.data, data, decimal=5)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, expected_coeff_names)
 
