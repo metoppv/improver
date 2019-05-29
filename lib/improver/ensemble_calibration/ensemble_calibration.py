@@ -75,7 +75,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
     # as part of the minimisation.
     BAD_VALUE = np.float64(999999)
 
-    def __init__(self, max_iterations=200):
+    def __init__(self, max_iterations=1000):
         """
         Initialise class for performing minimisation of the Continuous
         Ranked Probability Score (CRPS).
@@ -84,9 +84,12 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
             max_iterations (int):
                 The maximum number of iterations allowed until the
                 minimisation has converged to a stable solution. If the
-                maximum of iterations is reached, but then the minimisation
+                maximum number of iterations is reached, but the minimisation
                 has not yet converged to a stable solution, then the available
-                solution is used anyway, and a warning is raised.
+                solution is used anyway, and a warning is raised. If the
+                predictor_of_mean is "realizations", then the number of
+                iterations may require increasing, as there will be
+                more coefficients to solve for.
 
         """
         # Dictionary containing the minimisation functions, which will
@@ -347,7 +350,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
     ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = True
 
     def __init__(self, distribution, current_cycle, desired_units=None,
-                 predictor_of_mean_flag="mean", max_iterations=200):
+                 predictor_of_mean_flag="mean", max_iterations=1000):
         """
         Create an ensemble calibration plugin that, for Nonhomogeneous Gaussian
         Regression, calculates coefficients based on historical forecasts and
@@ -374,9 +377,12 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             max_iterations (int):
                 The maximum number of iterations allowed until the
                 minimisation has converged to a stable solution. If the
-                maximum of iterations is reached, but then the minimisation
+                maximum number of iterations is reached, but the minimisation
                 has not yet converged to a stable solution, then the available
-                solution is used anyway, and a warning is raised.
+                solution is used anyway, and a warning is raised. If the
+                predictor_of_mean is "realizations", then the number of
+                iterations may require increasing, as there will be
+                more coefficients to solve for.
 
         """
         self.distribution = distribution
@@ -569,7 +575,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         elif (predictor_of_mean_flag.lower() == "realizations" and
               not estimate_coefficients_from_linear_model_flag):
             initial_guess = [1, 1, 0] + np.repeat(
-                1./no_of_realizations, no_of_realizations).tolist()
+                np.sqrt(1. / no_of_realizations), no_of_realizations).tolist()
         elif estimate_coefficients_from_linear_model_flag:
             if predictor_of_mean_flag.lower() == "mean":
                 # Find all values that are not NaN.
@@ -587,7 +593,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                             forecast_predictor.data.flatten()[
                                 combined_not_nan],
                             truth.data.flatten()[combined_not_nan]))
-                initial_guess = [1, 1, intercept, gradient]
+                initial_guess = [0, 1, intercept, gradient]
             elif predictor_of_mean_flag.lower() == "realizations":
                 if self.statsmodels_found:
                     truth_data = truth.data.flatten()
@@ -615,7 +621,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 else:
                     initial_guess = (
                         [1, 1, 0] +
-                        np.repeat(1./no_of_realizations,
+                        np.repeat(np.sqrt(1./no_of_realizations),
                                   no_of_realizations).tolist())
         return np.array(initial_guess, dtype=np.float32)
 
@@ -711,7 +717,6 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             initial_guess = optimised_coeffs
         else:
             optimised_coeffs = initial_guess
-
         coefficients_cube = (
             self.create_coefficients_cube(optimised_coeffs, historic_forecast))
         return coefficients_cube
@@ -893,7 +898,7 @@ class EnsembleCalibration(object):
 
     """
     def __init__(self, calibration_method, distribution, desired_units=None,
-                 predictor_of_mean_flag="mean", max_iterations=200):
+                 predictor_of_mean_flag="mean", max_iterations=1000):
         """
         Create an ensemble calibration plugin that, for Nonhomogeneous Gaussian
         Regression, calculates coefficients based on historical forecasts and
@@ -929,9 +934,12 @@ class EnsembleCalibration(object):
             max_iterations (int):
                 The maximum number of iterations allowed until the
                 minimisation has converged to a stable solution. If the
-                maximum of iterations is reached, but then the minimisation
+                maximum number of iterations is reached, but the minimisation
                 has not yet converged to a stable solution, then the available
-                solution is used anyway, and a warning is raised.
+                solution is used anyway, and a warning is raised. If the
+                predictor_of_mean is "realizations", then the number of
+                iterations may require increasing, as there will be
+                more coefficients to solve for.
         """
         self.calibration_method = calibration_method
         self.distribution = distribution

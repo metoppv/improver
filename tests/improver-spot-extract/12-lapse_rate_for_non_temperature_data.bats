@@ -33,24 +33,18 @@
 
 @test "spot-extract lapse rates provided for non-temperature diagnostic" {
   improver_check_skip_acceptance
-  KGO="spot-extract/outputs/nearest_uk_pmsl.nc"
 
   # Run spot extract processing and check it passes.
   run improver spot-extract \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/all_methods_uk.nc" \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_pmsl.nc" \
-      --temperature_lapse_rate_filepath "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_lapse_rate.nc" \
-      "$TEST_DIR/output.nc"
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_lapse_rate.nc" \
+      "$TEST_DIR/output.nc" \
+      --apply_lapse_rate_correction
   echo "status = ${status}"
-  [[ "$status" -eq 0 ]]
+  [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-UserWarning: A lapse rate cube was provided, but the diagnostic being processed is not air temperature. The lapse rate cube was not used.
+ValueError: A lapse rate cube was provided, but the diagnostic being processed is not air temperature and cannot be adjusted.
 __TEXT__
   [[ "$output" =~ "$expected" ]]
-
-  improver_check_recreate_kgo "output.nc" $KGO
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

@@ -59,7 +59,7 @@ class Test__repr__(IrisTest):
         msg = ("<ContinuousRankedProbabilityScoreMinimisers: "
                "minimisation_dict: {'gaussian': 'normal_crps_minimiser', "
                "'truncated gaussian': 'truncated_normal_crps_minimiser'}; "
-               "max_iterations: 200>")
+               "max_iterations: 1000>")
         self.assertEqual(result, msg)
 
     def test_update_max_iterations(self):
@@ -317,6 +317,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         Test that the plugin returns a numpy float value.
         The ensemble mean is the predictor.
         """
+        expected = [0.303724, -0.019689, 0.011536, 1.00955]
         initial_guess = [5, 1, 0, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_temperature_cube()
@@ -335,8 +336,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
             predictor_of_mean_flag, distribution)
         self.assertIsInstance(result, np.ndarray)
         self.assertEqual(result.dtype, np.float32)
-        self.assertArrayAlmostEqual(
-            result, [-0.059093, -0.099905, 0.008257, 1.009563])
+        self.assertArrayAlmostEqual(result, expected)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -346,6 +346,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         Test that the plugin returns a numpy array.
         The ensemble realizations are the predictor.
         """
+        expected = [4.727276, 1.398342, 0.004771, 0.146797, 0.840691, 0.526558]
         initial_guess = [5, 1, 0, 1, 1, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_temperature_cube()
@@ -364,9 +365,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
             predictor_of_mean_flag, distribution)
         self.assertIsInstance(result, np.ndarray)
         self.assertEqual(result.dtype, np.float32)
-        self.assertArrayAlmostEqual(
-            result, [6.24021609e+00, 1.35694934e+00, 1.84642787e-03,
-                     5.55444682e-01, 5.04367388e-01, 6.68575194e-01])
+        self.assertArrayAlmostEqual(result, expected, decimal=4)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -408,6 +407,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         minimising the CRPS and using a set default value for the
         initial guess.
         """
+        expected = [-0.279861, -0.043563, 0.00839, 1.009562]
         initial_guess = [5, 1, 0, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_temperature_cube()
@@ -425,8 +425,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         result = plugin.crps_minimiser_wrapper(
             initial_guess, forecast_predictor, truth, forecast_variance,
             predictor_of_mean_flag, distribution)
-        self.assertArrayAlmostEqual(
-            result, [-0.279861, -0.043563, 0.00839, 1.009562])
+        self.assertArrayAlmostEqual(result, expected)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -440,6 +439,8 @@ class Test_crps_minimiser_wrapper(IrisTest):
         calculated by minimising the CRPS and using a set default value for
         the initial guess.
         """
+        expected = [5.375955e+00, 1.457850e+00, 2.566869e-03,
+                    1.934232e-01, 5.540603e-01, 8.115994e-01]
         initial_guess = [5, 1, 0, 1, 1, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_temperature_cube()
@@ -457,9 +458,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         result = plugin.crps_minimiser_wrapper(
             initial_guess, forecast_predictor, truth, forecast_variance,
             predictor_of_mean_flag, distribution)
-        self.assertArrayAlmostEqual(
-            result, [5.375955e+00, 1.457850e+00, 2.566869e-03,
-                     1.934232e-01, 5.540603e-01, 8.115994e-01])
+        self.assertArrayAlmostEqual(result, expected)
 
     @ManageWarnings(
         record=True,
@@ -481,10 +480,10 @@ class Test_crps_minimiser_wrapper(IrisTest):
 
         predictor_of_mean_flag = "mean"
 
-        plugin = Plugin()
+        plugin = Plugin(max_iterations=10)
         distribution = "gaussian"
 
-        result = plugin.crps_minimiser_wrapper(
+        plugin.crps_minimiser_wrapper(
             initial_guess, forecast_predictor, truth, forecast_variance,
             predictor_of_mean_flag, distribution)
         warning_msg = "Minimisation did not result in convergence after"
@@ -516,9 +515,9 @@ class Test_crps_minimiser_wrapper(IrisTest):
 
         predictor_of_mean_flag = "mean"
 
-        plugin = Plugin()
+        plugin = Plugin(max_iterations=5)
         distribution = "gaussian"
-        result = plugin.crps_minimiser_wrapper(
+        plugin.crps_minimiser_wrapper(
             initial_guess, forecast_predictor, truth, forecast_variance,
             predictor_of_mean_flag, distribution)
         warning_msg_min = "Minimisation did not result in convergence after"
@@ -539,6 +538,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         Test that the plugin returns a numpy float value.
         The ensemble mean is the predictor.
         """
+        expected = [0.303724, -0.019689, 0.011536, 1.00955]
         initial_guess = [5, 1, 0, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_temperature_cube()
@@ -556,14 +556,14 @@ class Test_crps_minimiser_wrapper(IrisTest):
             initial_guess, forecast_predictor, truth, forecast_variance,
             predictor_of_mean_flag, distribution)
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(
-            result, [-0.059093, -0.099905, 0.008257, 1.009563])
+        self.assertArrayAlmostEqual(result, expected)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
                           "Minimisation did not result in convergence"])
     def test_basic_truncated_normal_realizations_predictor(self):
         """Test that the plugin returns a numpy array."""
+        expected = [4.727276, 1.398342, 0.004771, 0.146797, 0.840691, 0.526558]
         initial_guess = [5, 1, 0, 1, 1, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_temperature_cube()
@@ -581,9 +581,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
             initial_guess, forecast_predictor, truth, forecast_variance,
             predictor_of_mean_flag, distribution)
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(
-            result, [6.24021609e+00, 1.35694934e+00, 1.84642787e-03,
-                     5.55444682e-01, 5.04367388e-01, 6.68575194e-01])
+        self.assertArrayAlmostEqual(result, expected, decimal=4)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -653,6 +651,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         calculated by minimising the CRPS and using a set default value for
         the initial guess.
         """
+        expected = [-0.279861, -0.043563, 0.00839, 1.009562]
         initial_guess = [5, 1, 0, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_temperature_cube()
@@ -670,8 +669,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         result = plugin.crps_minimiser_wrapper(
             initial_guess, forecast_predictor, truth, forecast_variance,
             predictor_of_mean_flag, distribution)
-        self.assertArrayAlmostEqual(
-            result, [-0.279861, -0.043563, 0.00839, 1.009562])
+        self.assertArrayAlmostEqual(result, expected)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -685,6 +683,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         calculated by minimising the CRPS and using a set default value for
         the initial guess.
         """
+        expected = [5.375955, 1.45785, 0.002567, 0.193423, 0.55406, 0.811599]
         initial_guess = [5, 1, 0, 1, 1, 1]
         initial_guess = np.array(initial_guess, dtype=np.float32)
         cube = set_up_temperature_cube()
@@ -702,9 +701,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
         result = plugin.crps_minimiser_wrapper(
             initial_guess, forecast_predictor, truth, forecast_variance,
             predictor_of_mean_flag, distribution)
-        self.assertArrayAlmostEqual(
-            result, [5.375955, 1.45785, 0.002567,
-                     0.193423, 0.55406, 0.811599])
+        self.assertArrayAlmostEqual(result, expected)
 
     @ManageWarnings(
         record=True,
@@ -726,9 +723,9 @@ class Test_crps_minimiser_wrapper(IrisTest):
 
         predictor_of_mean_flag = "mean"
 
-        plugin = Plugin()
+        plugin = Plugin(max_iterations=10)
         distribution = "truncated gaussian"
-        result = plugin.crps_minimiser_wrapper(
+        plugin.crps_minimiser_wrapper(
             initial_guess, forecast_predictor, truth, forecast_variance,
             predictor_of_mean_flag, distribution)
         warning_msg = "Minimisation did not result in convergence after"
@@ -762,9 +759,9 @@ class Test_crps_minimiser_wrapper(IrisTest):
 
         predictor_of_mean_flag = "mean"
 
-        plugin = Plugin()
+        plugin = Plugin(max_iterations=5)
         distribution = "truncated gaussian"
-        result = plugin.crps_minimiser_wrapper(
+        plugin.crps_minimiser_wrapper(
             initial_guess, forecast_predictor, truth, forecast_variance,
             predictor_of_mean_flag, distribution)
         warning_msg_min = "Minimisation did not result in convergence after"

@@ -29,23 +29,28 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "ensemble-calibration no arguments" {
-  run improver ensemble-calibration
-  [[ "$status" -eq 2 ]]
-  expected="usage: improver ensemble-calibration [-h] [--profile]
-                                     [--profile_file PROFILE_FILE]
-                                     [--predictor_of_mean CALIBRATE_MEAN_FLAG]
-                                     [--save_mean MEAN_FILE]
-                                     [--save_variance VARIANCE_FILE]
-                                     [--num_realizations NUMBER_OF_REALIZATIONS]
-                                     [--random_ordering]
-                                     [--random_seed RANDOM_SEED]
-                                     [--ecc_bounds_warning]
-                                     [--max_iterations MAX_ITERATIONS]
-                                     ENSEMBLE_CALIBRATION_METHOD
-                                     UNITS_TO_CALIBRATE_IN DISTRIBUTION
-                                     INPUT_FILE HISTORIC_DATA_FILE
-                                     TRUTH_DATA_FILE OUTPUT_FILE
-"
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "spot-extract lapse rate cube not provided by option enabled" {
+  improver_check_skip_acceptance
+  KGO="spot-extract/outputs/nearest_uk_temperatures.nc"
+
+  # Run spot extract processing and check it passes.
+  run improver spot-extract \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/all_methods_uk.nc" \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_temperature.nc" \
+      "$TEST_DIR/output.nc" \
+      --apply_lapse_rate_correction
+  echo "status = ${status}"
+  [[ "$status" -eq 0 ]]
+  read -d '' expected <<'__TEXT__' || true
+UserWarning: A lapse rate cube was not provided, but the option to apply the lapse rate correction was enabled. No lapse rate correction could be applied.
+__TEXT__
   [[ "$output" =~ "$expected" ]]
+
+  improver_check_recreate_kgo "output.nc" $KGO
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

@@ -68,8 +68,24 @@ def main(argv=None):
     parser.add_argument("diagnostic_filepath", metavar="DIAGNOSTIC_FILEPATH",
                         help="Path to a NetCDF file containing the diagnostic "
                              "data to be extracted.")
+    parser.add_argument("temperature_lapse_rate_filepath",
+                        metavar="LAPSE_RATE_FILEPATH", nargs='?',
+                        help="(Optional) Filepath to a NetCDF file containing"
+                        " temperature lapse rates. If this cube is provided,"
+                        " and a screen temperature cube is being processed,"
+                        " the lapse rates will be used to adjust the"
+                        " temperatures to better represent each spot's"
+                        " site-altitude.")
     parser.add_argument("output_filepath", metavar="OUTPUT_FILEPATH",
                         help="The output path for the resulting NetCDF")
+
+    parser.add_argument(
+        "--apply_lapse_rate_correction",
+        default=False, action="store_true",
+        help="If the option is set and a lapse rate cube has been "
+        "provided, extracted screen temperatures will be adjusted to "
+        "better match the altitude of the spot site for which they have "
+        "been extracted.")
 
     method_group = parser.add_argument_group(
         title="Neighbour finding method",
@@ -109,15 +125,6 @@ def main(argv=None):
         "--ecc_bounds_warning", default=False, action="store_true",
         help="If True, where calculated percentiles are outside the ECC "
         "bounds range, raise a warning rather than an exception.")
-
-    lapse_group = parser.add_argument_group(
-        "Temperature lapse rate adjustment")
-    lapse_group.add_argument(
-        "--temperature_lapse_rate_filepath",
-        help="Filepath to a NetCDF file containing temperature lapse rates. "
-        "If this cube is provided, and a screen temperature cube is being "
-        "processed, the lapse rates will be used to adjust the temperatures "
-        "to better represent each spot's site-altitude.")
 
     meta_group = parser.add_argument_group("Metadata")
     meta_group.add_argument(
@@ -211,11 +218,22 @@ def main(argv=None):
                 raise ValueError(msg)
 
     # Check whether a lapse rate cube has been provided and we are dealing with
-    # temperature data.
+    # temperature data and the lapse-rate option is enabled.
     if (args.temperature_lapse_rate_filepath and
-            diagnostic_cube.name() == "air_temperature"):
+            args.apply_lapse_rate_correction):
+
+        if not result.name() == "air_temperature":
+            msg = ("A lapse rate cube was provided, but the diagnostic being "
+                   "processed is not air temperature and cannot be adjusted.")
+            raise ValueError(msg)
 
         lapse_rate_cube = load_cube(args.temperature_lapse_rate_filepath)
+        if not lapse_rate_cube.name() == 'air_temperature_lapse_rate':
+            msg = ("A cube has been provided as a lapse rate cube but does "
+                   "not have the expected name air_temperature_lapse_rate: "
+                   "{}".format(lapse_rate_cube.name()))
+            raise ValueError(msg)
+
         try:
             lapse_rate_height_coord = lapse_rate_cube.coord("height")
         except (ValueError, CoordinateNotFoundError):
@@ -239,10 +257,11 @@ def main(argv=None):
                    "were not adjusted with the lapse rates.")
             if not args.suppress_warnings:
                 warnings.warn(msg)
-    elif args.temperature_lapse_rate_filepath:
-        msg = ("A lapse rate cube was provided, but the diagnostic being "
-               "processed is not air temperature. The lapse rate cube was "
-               "not used.")
+    elif (args.apply_lapse_rate_correction and
+            not args.temperature_lapse_rate_filepath):
+        msg = ("A lapse rate cube was not provided, but the option to "
+               "apply the lapse rate correction was enabled. No lapse rate "
+               "correction could be applied.")
         if not args.suppress_warnings:
             warnings.warn(msg)
 
