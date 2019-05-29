@@ -756,7 +756,13 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
         expected values for a Gaussian distribution where the
-        realizations are used as the predictor of the mean."""
+        realizations are used as the predictor of the mean.
+        The choice to specify a maximum number of iterations of 10
+        means that the solution does not fully converge. This choice for the
+        maximum number of iterations is to try to ensure convergence
+        to a common solution across different package versions and
+        processors.
+        """
         data = np.array([1.08333e+00, 1.09167e+00, 3.61111e-04,
                          4.61880e-01, 5.74143e-01, 5.29238e-01],
                         dtype=np.float32)
@@ -810,7 +816,12 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
         expected values for a truncated Gaussian distribution where the
-        realizations are used as the predictor of the mean."""
+        realizations are used as the predictor of the mean.
+        The choice to specify a maximum number of iterations of 10
+        means that the solution does not fully converge. This choice for the
+        maximum number of iterations is to try to ensure convergence
+        to a common solution across different package versions and
+        processors."""
         data = [1.122222e+00, 1.091667e+00, 6.527778e-04, 4.506539e-01,
                 4.955590e-01, 5.404640e-01]
 
