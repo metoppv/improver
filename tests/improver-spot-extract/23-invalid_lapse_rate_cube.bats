@@ -31,23 +31,20 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "spot-extract test non-default metadata can be used" {
+@test "spot-extract lapse rate cube has no height coordinate" {
   improver_check_skip_acceptance
-  KGO="spot-extract/outputs/nearest_uk_temperatures_alternate_metadata.nc"
 
   # Run spot extract processing and check it passes.
   run improver spot-extract \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/all_methods_uk_alternate_metadata.nc" \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_temperature_alternate_metadata.nc" \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_lapse_rate_alternate_metadata.nc" \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/all_methods_uk.nc" \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_temperature.nc" \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_temperature.nc" \
       "$TEST_DIR/output.nc" \
-      --apply_lapse_rate_correction \
-      --grid_metadata_identifier my_grid_metadata
-  [[ "$status" -eq 0 ]]
-
-  improver_check_recreate_kgo "output.nc" $KGO
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
+      --apply_lapse_rate_correction
+  echo "status = ${status}"
+  [[ "$status" -eq 1 ]]
+  read -d '' expected <<'__TEXT__' || true
+ValueError: A cube has been provided as a lapse rate cube but does not have the expected name air_temperature_lapse_rate: air_temperature
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
 }
