@@ -208,8 +208,20 @@ class Test_process(IrisTest):
 
     def test_basic(self):
         """Test that the utility returns an iris.cube.Cube."""
-        result = self.plugin.process(self.cube)
+        result = self.plugin.process(self.cubelist)
         self.assertIsInstance(result, iris.cube.Cube)
+
+    def test_single_cube(self):
+        """Test a single cube is returned unchanged"""
+        result = self.plugin.process(self.cube)
+        self.assertArrayAlmostEqual(result.data, self.cube.data)
+        self.assertEqual(result.metadata, self.cube.metadata)
+
+    def test_single_item_cubelist(self):
+        """Test a single item cubelist returns the cube unchanged"""
+        result = self.plugin.process([self.cube])
+        self.assertArrayAlmostEqual(result.data, self.cube.data)
+        self.assertEqual(result.metadata, self.cube.metadata)
 
     def test_missing_master_coord(self):
         """Test error is raised if the master coordinate is missing"""

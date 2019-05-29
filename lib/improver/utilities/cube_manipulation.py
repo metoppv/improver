@@ -269,12 +269,9 @@ class ConcatenateCubes():
             return cubes_in[0]
 
         # create copies of input cubes so as not to modify in place
-        if isinstance(cubes_in, iris.cube.Cube):
-            cubes = iris.cube.CubeList([cubes_in.copy()])
-        else:
-            cubes = iris.cube.CubeList([])
-            for cube in cubes_in:
-                cubes.append(cube.copy())
+        cubes = iris.cube.CubeList([])
+        for cube in cubes_in:
+            cubes.append(cube.copy())
 
         # check master coordinate is on cubes - if not, throw error
         if not all(cube.coords(self.master_coord) for cube in cubes):
