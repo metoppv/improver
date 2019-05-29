@@ -696,8 +696,7 @@ class Test_process_without_statsmodels(SetupCubes):
         Test that the plugin returns an iris.cube.CubeList
         of wind_speed cubes with the expected data, where the plugin
         returns a cubelist of, firstly, the predictor and, secondly the
-        variance.
-        The ensemble realizations is the predictor.
+        variance. The ensemble realizations are the predictor.
         """
         predictor_data = np.array(
             [[0.773847, 1.5344661, 2.2950854],
@@ -723,7 +722,7 @@ class Test_process_without_statsmodels(SetupCubes):
         self.assertArrayAlmostEqual(
             calibrated_predictor.data, predictor_data, decimal=2)
         self.assertArrayAlmostEqual(
-            calibrated_variance.data, variance_data, decimal=1)
+            calibrated_variance.data, variance_data, decimal=2)
 
 
 if __name__ == '__main__':
