@@ -618,40 +618,6 @@ class Test_process_with_statsmodels(SetupCubes):
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_wind_speed_data_check_max_iterations(self):
-        """
-        Test that the plugin returns an iris.cube.CubeList
-        of wind_speed cubes with the expected data, where the plugin
-        returns a cubelist of, firstly, the predictor and, secondly the
-        variance when the maximum number of iterations is specified.
-        The ensemble mean is the predictor.
-        """
-        predictor_data = np.array(
-            [[3.1675692, 10.681027, 18.194487],
-             [25.707945, 33.2214, 40.73486],
-             [48.248318, 55.761776, 63.275234]], dtype=np.float32)
-        variance_data = np.array(
-            [[2.8555098, 2.8555098, 2.8555098],
-             [2.8555098, 2.8555098, 2.8555098],
-             [2.8555098, 2.8555098, 2.8555098]],
-            dtype=np.float32
-        )
-        calibration_method = "ensemble model output_statistics"
-        distribution = "truncated gaussian"
-        desired_units = "m s^-1"
-        plugin = Plugin(calibration_method, distribution, desired_units,
-                        max_iterations=10)
-        calibrated_predictor, calibrated_variance = plugin.process(
-            self.current_wind_speed_forecast_cube,
-            self.historic_wind_speed_forecast_cube,
-            self.wind_speed_truth_cube)
-        self.assertArrayAlmostEqual(calibrated_predictor.data,
-                                    predictor_data)
-        self.assertArrayAlmostEqual(calibrated_variance.data,
-                                    variance_data)
-
-    @ManageWarnings(
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_wind_speed_realizations_data_check(self):
         """
         Test that the plugin returns an iris.cube.CubeList
