@@ -697,15 +697,19 @@ class Test_process_without_statsmodels(SetupCubes):
         of wind_speed cubes with the expected data, where the plugin
         returns a cubelist of, firstly, the predictor and, secondly the
         variance. The ensemble realizations are the predictor.
+        The choice to assert that the arrays are almost equal to only 2
+        decimal places is to avoid sensitive tests that are overly
+        dependent upon package versions and processor optimisation, in order
+        to converge to a stable solution.
         """
         predictor_data = np.array(
-            [[0.773847, 1.5344661, 2.2950854],
-             [3.0557044, 3.8163238, 4.5769424],
-             [5.3375616, 6.098181, 6.8588]], dtype=np.float32)
+            [[0.77, 1.53, 2.30],
+             [3.06, 3.82, 4.58],
+             [5.34, 6.10, 6.86]], dtype=np.float32)
         variance_data = np.array(
-            [[2.7587156, 2.7587156, 2.7587156],
-             [2.7587156, 2.7587156, 2.7587156],
-             [2.7587156, 2.7587156, 2.7587156]],
+            [[2.76, 2.76, 2.76],
+             [2.76, 2.76, 2.76],
+             [2.76, 2.76, 2.76]],
             dtype=np.float32
         )
         distribution = "truncated gaussian"
