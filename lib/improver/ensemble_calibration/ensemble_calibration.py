@@ -86,7 +86,10 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
                 minimisation has converged to a stable solution. If the
                 maximum number of iterations is reached, but the minimisation
                 has not yet converged to a stable solution, then the available
-                solution is used anyway, and a warning is raised.
+                solution is used anyway, and a warning is raised. If the
+                predictor_of_mean is "realizations", then the number of
+                iterations may require increasing, as there will be
+                more coefficients to solve for.
 
         """
         # Dictionary containing the minimisation functions, which will
@@ -376,7 +379,10 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 minimisation has converged to a stable solution. If the
                 maximum number of iterations is reached, but the minimisation
                 has not yet converged to a stable solution, then the available
-                solution is used anyway, and a warning is raised.
+                solution is used anyway, and a warning is raised. If the
+                predictor_of_mean is "realizations", then the number of
+                iterations may require increasing, as there will be
+                more coefficients to solve for.
 
         """
         self.distribution = distribution
@@ -930,7 +936,10 @@ class EnsembleCalibration(object):
                 minimisation has converged to a stable solution. If the
                 maximum number of iterations is reached, but the minimisation
                 has not yet converged to a stable solution, then the available
-                solution is used anyway, and a warning is raised.
+                solution is used anyway, and a warning is raised. If the
+                predictor_of_mean is "realizations", then the number of
+                iterations may require increasing, as there will be
+                more coefficients to solve for.
         """
         self.calibration_method = calibration_method
         self.distribution = distribution
