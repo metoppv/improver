@@ -107,7 +107,6 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         # Maximum iterations for minimisation using Nelder-Mead.
         self.max_iterations = max_iterations
         self.decimals = decimals
-        print("decimals = ", decimals)
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -214,17 +213,17 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         sqrt_pi = np.around(sqrt_pi, decimals=self.decimals)
         initial_guess = np.around(initial_guess, decimals=self.decimals)
         #print("initial_guess {}, initial_guess.dtype {} = ".format(initial_guess, initial_guess.dtype))
-        # print("forecast_predictor_data {}, forecast_predictor_data.dtype {} = ".format(forecast_predictor_data, forecast_predictor_data.dtype))
-        # print("forecast_var {}, forecast_var.dtype {} = ".format(forecast_var_data, forecast_var_data.dtype))
-        # print("truth_data {}, truth_data.dtype {} = ".format(truth_data, truth_data.dtype))
-        # print("sqrt_pi {}, sqrt_pi.dtype {} = ".format(sqrt_pi, sqrt_pi.dtype))
+        #print("forecast_predictor_data {}, forecast_predictor_data.dtype {} = ".format(forecast_predictor_data, forecast_predictor_data.dtype))
+        #print("forecast_var {}, forecast_var.dtype {} = ".format(forecast_var_data, forecast_var_data.dtype))
+        #print("truth_data {}, truth_data.dtype {} = ".format(truth_data, truth_data.dtype))
+        #print("sqrt_pi {}, sqrt_pi.dtype {} = ".format(sqrt_pi, sqrt_pi.dtype))
         optimised_coeffs = minimize(
             minimisation_function, initial_guess,
             args=(forecast_predictor_data, truth_data,
                   forecast_var_data, sqrt_pi, predictor_of_mean_flag),
             method="Nelder-Mead",
             options={"maxiter": self.max_iterations, "return_all": True})
-        #print("optimised_coeffs.x {}, optimised_coeffs.x.dtype {} = ".format(optimised_coeffs, optimised_coeffs.x.dtype))
+        #print("optimised_coeffs.x {}, optimised_coeffs.x.dtype {} = ".format(optimised_coeffs.x, optimised_coeffs.x.dtype))
         if not optimised_coeffs.success:
             msg = ("Minimisation did not result in convergence after "
                    "{} iterations. \n{}".format(
@@ -702,7 +701,8 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         # Set default values for whether there are NaN values within the
         # initial guess.
         nan_in_initial_guess = False
-
+        #print("historic_forecast = ", historic_forecast)
+        #print("self.desired_units = ", self.desired_units)
         # Make sure inputs have the same units.
         if self.desired_units:
             historic_forecast.convert_units(self.desired_units)
@@ -728,7 +728,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         forecast_var = historic_forecast.collapsed(
             "realization", iris.analysis.VARIANCE)
         # print("forecast_var {}, forecast_var.dtype {} = ".format(forecast_var.data, forecast_var.data.dtype))
-
+        #print("forecast_predictor = ", forecast_predictor)
         # Computing initial guess for EMOS coefficients
         # If no initial guess from a previous iteration, or if there
         # are NaNs in the initial guess, calculate an initial guess.

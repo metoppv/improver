@@ -607,7 +607,6 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         """Set up multiple cubes for testing."""
         self.current_cycle = "20171110T0000Z"
         self.distribution = "gaussian"
-        self.desired_units = "degreesC"
         data = np.array([[[0., 1.1, 3.],
                           [4., 5.3, 6.],
                           [7., 8.2, 9.]],
@@ -651,7 +650,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         self.coeff_names = ["gamma", "delta", "alpha", "beta"]
 
         self.expected_mean_predictor_gaussian = (
-            [0., 1., -0.31411, 0.91596])
+            [0., 1., 25.46763, 0.90561])
         self.expected_mean_predictor_truncated_gaussian = (
             [0., 1.05, -0.31411, 0.90561])
 
@@ -673,9 +672,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
         expected values for a Gaussian distribution."""
-        plugin = Plugin(
-            self.distribution, self.current_cycle,
-            desired_units=self.desired_units)
+        plugin = Plugin(self.distribution, self.current_cycle)
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
@@ -683,6 +680,24 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         self.assertArrayAlmostEqual(
             result.data, self.expected_mean_predictor_gaussian,
             decimal=5)
+        self.assertArrayEqual(
+            result.coord("coefficient_name").points, self.coeff_names)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_coefficients_gaussian_distribution_default_initial_guess(self):
+        """Ensure that the values for the optimised_coefficients match the
+        expected values, and the coefficient names also match
+        expected values for a Gaussian distribution."""
+        expected = (
+            [0.229261, 0.762192, -0.075077, 0.997546])
+        plugin = Plugin(self.distribution, self.current_cycle)
+        plugin.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
+        result = plugin.estimate_coefficients_for_ngr(
+            self.historic_temperature_forecast_cube,
+            self.temperature_truth_cube)
+
+        self.assertArrayAlmostEqual(result.data, expected, decimal=5)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, self.coeff_names)
 
@@ -697,7 +712,6 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
 
         plugin = Plugin(
             self.distribution, self.current_cycle,
-            desired_units=self.desired_units,
             max_iterations=max_iterations)
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
@@ -726,6 +740,25 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         self.assertArrayEqual(
             result.coord("coefficient_name").points, self.coeff_names)
 
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_coefficients_truncated_gaussian_default_initial_guess(self):
+        """Ensure that the values for the optimised_coefficients match the
+        expected values, and the coefficient names also match
+        expected values for a truncated Gaussian distribution."""
+        expected = [0., 1.05, 0., 1.]
+        distribution = "truncated gaussian"
+
+        plugin = Plugin(distribution, self.current_cycle)
+        plugin.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
+        result = plugin.estimate_coefficients_for_ngr(
+            self.historic_wind_speed_forecast_cube,
+            self.wind_speed_truth_cube)
+
+        self.assertArrayAlmostEqual(result.data, expected)
+        self.assertArrayEqual(
+            result.coord("coefficient_name").points, self.coeff_names)
+
     @unittest.skipIf(
         STATSMODELS_FOUND is False, "statsmodels module not available.")
     @ManageWarnings(
@@ -742,7 +775,6 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             ['gamma', 'delta', 'alpha', 'beta0', 'beta1', 'beta2'])
 
         plugin = Plugin(self.distribution, self.current_cycle,
-                        desired_units=self.desired_units,
                         predictor_of_mean_flag=predictor_of_mean_flag)
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
@@ -774,7 +806,6 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             ['gamma', 'delta', 'alpha', 'beta0', 'beta1', 'beta2'])
 
         plugin = Plugin(self.distribution, self.current_cycle,
-                        desired_units=self.desired_units,
                         predictor_of_mean_flag=predictor_of_mean_flag,
                         max_iterations=10)
         result = plugin.estimate_coefficients_for_ngr(
@@ -862,12 +893,12 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         """Ensure the expected optimised coefficients are generated,
         even if the input truth cube has different units."""
         truth = self.temperature_truth_cube
-
         truth.convert_units("Fahrenheit")
+        desired_units = "Kelvin"
 
         plugin = Plugin(
             self.distribution, self.current_cycle,
-            desired_units=self.desired_units, max_iterations=1000)
+            desired_units=desired_units, max_iterations=1000)
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube, truth)
 
@@ -880,12 +911,12 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         """Ensure the expected optimised coefficients are generated,
         even if the input historic forecast cube has different units."""
         historic_forecast = self.historic_temperature_forecast_cube
-
         historic_forecast.convert_units("Fahrenheit")
+        desired_units = "Kelvin"
 
         plugin = Plugin(
             self.distribution, self.current_cycle,
-            desired_units=self.desired_units, max_iterations=1000)
+            desired_units=desired_units, max_iterations=1000)
         result = plugin.estimate_coefficients_for_ngr(
             historic_forecast, self.temperature_truth_cube)
 

@@ -306,7 +306,12 @@ class Test_truncated_normal_crps_minimiser(IrisTest):
 
 
 class SetupCubes(IrisTest):
+
     """Create a class for setting up cubes for testing."""
+
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."],
+        warning_types=[UserWarning])
     def setUp(self):
         """Set up expected output."""
         data = np.array([[[0., 1.1, 3.],
@@ -386,7 +391,9 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupCubes):
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
-                          "Minimisation did not result in convergence"])
+                          "Minimisation did not result in convergence",
+                          "divide by zero encountered in"],
+        warning_types=[UserWarning, UserWarning, RuntimeWarning])
     def test_basic_mean_predictor(self):
         """
         Test that the plugin returns a numpy float value.
@@ -408,7 +415,9 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupCubes):
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
-                          "Minimisation did not result in convergence"])
+                          "Minimisation did not result in convergence",
+                          "divide by zero encountered in"],
+        warning_types=[UserWarning, UserWarning, RuntimeWarning])
     def test_basic_realizations_predictor(self):
         """
         Test that the plugin returns a numpy array.
@@ -451,7 +460,9 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupCubes):
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
-                          "Minimisation did not result in convergence"])
+                          "Minimisation did not result in convergence",
+                          "divide by zero encountered in"],
+        warning_types=[UserWarning, UserWarning, RuntimeWarning])
     def test_mean_predictor_max_iterations(self):
         """
         Test that the plugin returns a list of coefficients
@@ -476,7 +487,9 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupCubes):
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
-                          "Minimisation did not result in convergence"])
+                          "Minimisation did not result in convergence",
+                          "divide by zero encountered in"],
+        warning_types=[UserWarning, UserWarning, RuntimeWarning])
     def test_realizations_predictor_max_iterations(self):
         """
         Test that the plugin returns a list of coefficients
@@ -501,7 +514,9 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupCubes):
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
-                          "Minimisation did not result in convergence"])
+                          "Minimisation did not result in convergence",
+                          "divide by zero encountered in"],
+        warning_types=[UserWarning, UserWarning, RuntimeWarning])
     def test_mean_predictor_decimals(self):
         """
         Test that the plugin returns a list of coefficients
@@ -514,7 +529,7 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupCubes):
         """
         predictor_of_mean_flag = "mean"
         distribution = "gaussian"
-        decimals = 2
+        decimals = 4
 
         plugin = Plugin(decimals=decimals)
         result = plugin.crps_minimiser_wrapper(
@@ -591,14 +606,18 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupCubes):
     def setUp(self):
         """Set up expected output."""
         super().setUp()
-        self.expected_mean_coefficients = [0., 1.00625, 0., 1.04375]
+        self.expected_mean_coefficients = [0., 1.05, 0., 1.]
         self.expected_realizations_coefficients = (
-            [0., 1., 0., 0.5774, 0.5774, 0.6062])
+            [0., 1.05, 0., 0.57735, 0.57735, 0.57735])
 
     """Test minimising the CRPS for a truncated_normal distribution."""
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
-                          "Minimisation did not result in convergence"])
+                          "Minimisation did not result in convergence",
+                          "invalid value encountered in",
+                          "divide by zero encountered in"],
+        warning_types=[UserWarning, UserWarning, RuntimeWarning,
+                       RuntimeWarning])
     def test_basic_mean_predictor(self):
         """
         Test that the plugin returns a numpy float value.
@@ -618,7 +637,11 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupCubes):
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
-                          "Minimisation did not result in convergence"])
+                          "Minimisation did not result in convergence",
+                          "invalid value encountered in",
+                          "divide by zero encountered in"],
+        warning_types=[UserWarning, UserWarning, RuntimeWarning,
+                       RuntimeWarning])
     def test_basic_realizations_predictor(self):
         """Test that the plugin returns a numpy array."""
         predictor_of_mean_flag = "realizations"
@@ -632,7 +655,7 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupCubes):
             predictor_of_mean_flag, distribution)
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(
-            result, self.expected_mean_coefficients, decimal=4)
+            result, self.expected_realizations_coefficients, decimal=4)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -676,7 +699,11 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupCubes):
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
-                          "Minimisation did not result in convergence"])
+                          "Minimisation did not result in convergence",
+                          "invalid value encountered in",
+                          "divide by zero encountered in"],
+        warning_types=[UserWarning, UserWarning, RuntimeWarning,
+                       RuntimeWarning])
     def test_mean_predictor_max_iterations(self):
         """
         Test that the plugin returns a list of coefficients
@@ -700,7 +727,11 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupCubes):
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
-                          "Minimisation did not result in convergence"])
+                          "Minimisation did not result in convergence",
+                          "invalid value encountered in",
+                          "divide by zero encountered in"],
+        warning_types=[UserWarning, UserWarning, RuntimeWarning,
+                       RuntimeWarning])
     def test_realizations_predictor_max_iterations(self):
         """
         Test that the plugin returns a list of coefficients
@@ -725,7 +756,11 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupCubes):
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
-                          "Minimisation did not result in convergence"])
+                          "Minimisation did not result in convergence",
+                          "invalid value encountered in",
+                          "divide by zero encountered in"],
+        warning_types=[UserWarning, UserWarning, RuntimeWarning,
+                       RuntimeWarning])
     def test_mean_predictor_decimals(self):
         """
         Test that the plugin returns a list of coefficients
