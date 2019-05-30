@@ -362,10 +362,10 @@ class Test_process_check_data(SetupCubes):
             self.temperature_truth_cube)
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
-            self.expected_temperature_predictor_data, decimal=3)
+            self.expected_temperature_predictor_data)
         self.assertArrayAlmostEqual(
             calibrated_variance.data,
-            self.expected_temperature_variance_data, decimal=3)
+            self.expected_temperature_variance_data)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -380,17 +380,42 @@ class Test_process_check_data(SetupCubes):
         distribution = "gaussian"
         desired_units = "degreesC"
         plugin = Plugin(self.calibration_method, distribution, desired_units,
-                        max_iterations=100)
+                        max_iterations=10)
         calibrated_predictor, calibrated_variance = plugin.process(
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
-            self.expected_temperature_predictor_data, decimal=3)
+            self.expected_temperature_predictor_data, decimal=4)
         self.assertArrayAlmostEqual(
             calibrated_variance.data,
-            self.expected_temperature_variance_data, decimal=3)
+            self.expected_temperature_variance_data, decimal=4)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_temperature_data_check_decimals(self):
+        """
+        Test that the plugin returns an iris.cube.CubeList
+        of temperature cubes with the expected data, where the plugin
+        returns a cubelist of, firstly, the predictor and, secondly the
+        variance when the maximum number of iterations is specified.
+        The ensemble mean is the predictor.
+        """
+        distribution = "gaussian"
+        desired_units = "degreesC"
+        plugin = Plugin(self.calibration_method, distribution, desired_units,
+                        decimals=2)
+        calibrated_predictor, calibrated_variance = plugin.process(
+            self.current_temperature_forecast_cube,
+            self.historic_temperature_forecast_cube,
+            self.temperature_truth_cube)
+        self.assertArrayAlmostEqual(
+            calibrated_predictor.data,
+            self.expected_temperature_predictor_data)
+        self.assertArrayAlmostEqual(
+            calibrated_variance.data,
+            self.expected_temperature_variance_data)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -411,10 +436,10 @@ class Test_process_check_data(SetupCubes):
             self.wind_speed_truth_cube)
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
-            self.expected_wind_speed_predictor_data, decimal=3)
+            self.expected_wind_speed_predictor_data)
         self.assertArrayAlmostEqual(
             calibrated_variance.data,
-            self.expected_wind_speed_variance_data, decimal=3)
+            self.expected_wind_speed_variance_data)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -439,15 +464,48 @@ class Test_process_check_data(SetupCubes):
         distribution = "truncated gaussian"
         desired_units = "m s^-1"
         plugin = Plugin(self.calibration_method, distribution, desired_units,
-                        max_iterations=100)
+                        max_iterations=10)
         calibrated_predictor, calibrated_variance = plugin.process(
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
         self.assertArrayAlmostEqual(calibrated_predictor.data,
-                                    predictor_data, decimal=3)
+                                    predictor_data)
         self.assertArrayAlmostEqual(calibrated_variance.data,
-                                    variance_data, decimal=3)
+                                    variance_data)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_wind_speed_data_check_decimals(self):
+        """
+        Test that the plugin returns an iris.cube.CubeList
+        of wind_speed cubes with the expected data, where the plugin
+        returns a cubelist of, firstly, the predictor and, secondly the
+        variance when the maximum number of iterations is specified.
+        The ensemble mean is the predictor.
+        """
+        predictor_data = np.array(
+            [[0., 1., 2.],
+             [3., 4., 5.],
+             [6., 7., 8.]], dtype=np.float32)
+        variance_data = np.array(
+            [[0., 0., 0.],
+             [0., 0., 0.],
+             [0., 0., 0.]],
+            dtype=np.float32
+        )
+        distribution = "truncated gaussian"
+        desired_units = "m s^-1"
+        plugin = Plugin(self.calibration_method, distribution, desired_units,
+                        decimals=2)
+        calibrated_predictor, calibrated_variance = plugin.process(
+            self.current_wind_speed_forecast_cube,
+            self.historic_wind_speed_forecast_cube,
+            self.wind_speed_truth_cube)
+        self.assertArrayAlmostEqual(calibrated_predictor.data,
+                                    predictor_data)
+        self.assertArrayAlmostEqual(calibrated_variance.data,
+                                    variance_data)
 
 
 class Test_process_check_data_with_variance(SetupCubesWithVariance):
@@ -457,14 +515,14 @@ class Test_process_check_data_with_variance(SetupCubesWithVariance):
     def setUp(self):
         super().setUp()
         self.expected_temperature_predictor_data = np.array(
-            [[274.14844, 275.14844, 276.14844],
-             [277.14844, 278.1484, 279.1484],
-             [280.1484, 281.1484, 282.1484]], dtype=np.float32)
+            [[274.0577, 275.05737, 276.057],
+             [277.05667, 278.05634, 279.056],
+             [280.05563, 281.0553, 282.05496]], dtype=np.float32)
 
         self.expected_temperature_variance_data = np.array(
-            [[0.00000326, 0.00000326, 0.00000326],
-             [0.00000326, 0.00000326, 0.00000326],
-             [0.00000326, 0.00000326, 0.00000326]], dtype=np.float32)
+            [[0.000002, 0.000002, 0.000002],
+             [0.000002, 0.000002, 0.000002],
+             [0.000002, 0.000002, 0.000002]], dtype=np.float32)
 
         self.expected_wind_speed_predictor_data = np.array(
             [[1.7818475, 2.5791492, 3.376451],
@@ -489,17 +547,17 @@ class Test_process_check_data_with_variance(SetupCubesWithVariance):
         distribution = "gaussian"
         desired_units = "degreesC"
         plugin = Plugin(self.calibration_method, distribution,
-                        desired_units)
+                        desired_units, decimals=5)
         calibrated_predictor, calibrated_variance = plugin.process(
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
-            self.expected_temperature_predictor_data, decimal=3)
+            self.expected_temperature_predictor_data)
         self.assertArrayAlmostEqual(
             calibrated_variance.data,
-            self.expected_temperature_variance_data, decimal=3)
+            self.expected_temperature_variance_data)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -522,10 +580,10 @@ class Test_process_check_data_with_variance(SetupCubesWithVariance):
             self.temperature_truth_cube)
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
-            self.expected_temperature_predictor_data, decimal=3)
+            self.expected_temperature_predictor_data)
         self.assertArrayAlmostEqual(
             calibrated_variance.data,
-            self.expected_temperature_variance_data, decimal=3)
+            self.expected_temperature_variance_data)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -547,10 +605,10 @@ class Test_process_check_data_with_variance(SetupCubesWithVariance):
             self.wind_speed_truth_cube)
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
-            self.expected_wind_speed_predictor_data, decimal=3)
+            self.expected_wind_speed_predictor_data)
         self.assertArrayAlmostEqual(
             calibrated_variance.data,
-            self.expected_wind_speed_variance_data, decimal=3)
+            self.expected_wind_speed_variance_data)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -573,10 +631,10 @@ class Test_process_check_data_with_variance(SetupCubesWithVariance):
             self.wind_speed_truth_cube)
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
-            self.expected_wind_speed_predictor_data, decimal=3)
+            self.expected_wind_speed_predictor_data)
         self.assertArrayAlmostEqual(
             calibrated_variance.data,
-            self.expected_wind_speed_variance_data, decimal=3)
+            self.expected_wind_speed_variance_data)
 
 
 @unittest.skipIf(
@@ -604,7 +662,7 @@ class Test_process_with_statsmodels(SetupCubes):
         plugin = Plugin(
             self.calibration_method, distribution, desired_units,
             predictor_of_mean_flag=predictor_of_mean_flag,
-            max_iterations=300)
+            max_iterations=400)
         calibrated_predictor, calibrated_variance = plugin.process(
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
@@ -640,17 +698,17 @@ class Test_process_with_statsmodels(SetupCubes):
         plugin = Plugin(
             self.calibration_method, distribution, desired_units,
             predictor_of_mean_flag=predictor_of_mean_flag,
-            max_iterations=300)
+            max_iterations=400)
         calibrated_predictor, calibrated_variance = plugin.process(
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
         self.assertArrayAlmostEqual(
             calibrated_predictor.data, expected_wind_speed_predictor_data,
-            decimal=3)
+            decimal=5)
         self.assertArrayAlmostEqual(
             calibrated_variance.data, expected_wind_speed_variance_data,
-            decimal=3)
+            decimal=5)
 
 
 @unittest.skipIf(
@@ -684,10 +742,10 @@ class Test_process_without_statsmodels(SetupCubes):
             self.temperature_truth_cube)
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
-            self.expected_temperature_predictor_data, decimal=3)
+            self.expected_temperature_predictor_data, decimal=4)
         self.assertArrayAlmostEqual(
             calibrated_variance.data,
-            self.expected_temperature_variance_data, decimal=3)
+            self.expected_temperature_variance_data, decimal=4)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
