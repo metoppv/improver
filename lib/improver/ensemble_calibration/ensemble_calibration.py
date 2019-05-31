@@ -286,8 +286,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
             sigma * (xz * (2 * normal_cdf - 1) + 2 * normal_pdf - 1 / sqrt_pi))
         if not np.isfinite(np.min(mu/sigma)):
             result = self.BAD_VALUE
-        # print("coeffs = ", initial_guess)
-        # print("CRPS = ", result)
+
         return result
 
     def truncated_normal_crps_minimiser(
@@ -720,8 +719,6 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 historic_forecast.coord("realization").points)
             forecast_predictor = historic_forecast
 
-        # print("historic_forecast {}, historic_forecast.dtype {} = ".format(
-        #     historic_forecast.data, historic_forecast.data.dtype))
         forecast_var = historic_forecast.collapsed(
             "realization", iris.analysis.VARIANCE)
 

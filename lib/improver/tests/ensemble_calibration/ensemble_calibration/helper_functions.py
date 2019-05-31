@@ -394,6 +394,7 @@ def _create_truth(cube):
         truth.append(temp_cube)
     truth = concatenate_cubes(
         truth, coordinates_for_association=["forecast_reference_time"])
+    truth.data = truth.data.data
     return truth
 
 
