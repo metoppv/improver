@@ -230,6 +230,7 @@ class Test_process_check_data(SetupCubes, SetupExpectedResults):
         """
         distribution = "gaussian"
         plugin = Plugin(self.calibration_method, distribution)
+
         calibrated_predictor, calibrated_variance = plugin.process(
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
@@ -328,24 +329,24 @@ class Test_process_with_statsmodels(SetupCubes, SetupExpectedResults):
         """Set up temperature and wind speed cubes for testing."""
         super().setUp()
         self.expected_specific_temperature_predictor_data = np.array(
-            [[274.19583, 275.15402, 275.31442],
-             [277.03394, 277.4055, 278.3714],
-             [280.06595, 280.30804, 281.2208]], dtype=np.float32)
+            [[273.86142, 274.81866, 274.97934],
+             [276.69644, 277.0681, 278.03275],
+             [279.7245, 279.96674, 280.87842]], dtype=np.float32)
 
         self.expected_specific_temperature_variance_data = np.array(
-            [[0.89734596, 0.90739626, 0.05357203],
-             [0.10380029, 0.09040731, 0.05357203],
-             [0.2444245, 0.01339514, 0.00334887]], dtype=np.float32)
+            [[0.89703304, 0.9070798, 0.05355331],
+             [0.10376406, 0.09037575, 0.05355331],
+             [0.24433926, 0.01339043, 0.00334767]], dtype=np.float32)
 
         self.expected_specific_wind_speed_predictor_data = np.array(
-            [[1.0959406, 2.043556, 2.2561445],
-             [3.8869126, 4.308816, 5.229468],
-             [6.7901444, 7.0756545, 7.9622397]], dtype=np.float32)
+            [[1.188099, 2.1237986, 2.2544427],
+             [3.9671648, 4.3037915, 5.263716],
+             [6.973962, 7.1881437, 8.087225]], dtype=np.float32)
 
         self.expected_specific_wind_speed_variance_data = np.array(
-            [[1.5079881, 1.5248687, 0.09002924],
-             [0.17443168, 0.15192421, 0.09002924],
-             [0.4107582, 0.0225073, 0.00562692]], dtype=np.float32)
+            [[1.2159258, 1.2295369, 0.07259262],
+             [0.14064826, 0.12249996, 0.07259262],
+             [0.3312038, 0.01814811, 0.00453707]], dtype=np.float32)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -362,7 +363,7 @@ class Test_process_with_statsmodels(SetupCubes, SetupExpectedResults):
         plugin = Plugin(
             self.calibration_method, distribution,
             predictor_of_mean_flag=predictor_of_mean_flag,
-            max_iterations=2000)
+            max_iterations=15)
         calibrated_predictor, calibrated_variance = plugin.process(
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
@@ -395,7 +396,7 @@ class Test_process_with_statsmodels(SetupCubes, SetupExpectedResults):
         plugin = Plugin(
             self.calibration_method, distribution,
             predictor_of_mean_flag=predictor_of_mean_flag,
-            max_iterations=400)
+            max_iterations=15)
         calibrated_predictor, calibrated_variance = plugin.process(
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
@@ -427,24 +428,25 @@ class Test_process_without_statsmodels(SetupCubes, SetupExpectedResults):
         """Set up temperature and wind speed cubes for testing."""
         super().setUp()
         self.expected_specific_temperature_predictor_data = np.array(
-            [[273.6069, 274.5989, 275.27478],
-             [276.86993, 277.62445, 278.48648],
-             [279.79132, 280.4114, 281.3137]], dtype=np.float32)
+            [[274.1831, 275.1831, 276.01642],
+             [277.5831, 278.44977, 279.28308],
+             [280.4831, 281.21643, 282.11642]], dtype=np.float32)
 
         self.expected_specific_temperature_variance_data = np.array(
-            [[1.2898316, 1.3042778, 0.07700347],
-             [0.14920083, 0.12994996, 0.07700346],
-             [0.351332, 0.0192538, 0.00481345]], dtype=np.float32)
+            [[0.9848877, 0.9959185, 0.0587982],
+             [0.11392655, 0.099227, 0.05879819],
+             [0.26826957, 0.01470179, 0.00367545]], dtype=np.float32)
 
         self.expected_specific_wind_speed_predictor_data = np.array(
-            [[0.93635756, 1.6808116, 2.3318303],
-             [3.820501, 4.3862634, 5.1313596],
-             [6.44708, 6.968665, 7.713064]], dtype=np.float32)
+            [[0.9008325, 1.782031, 2.536477],
+             [3.9281034, 4.7007966, 5.437016],
+             [6.501492, 7.1597147, 7.955351]], dtype=np.float32)
 
         self.expected_specific_wind_speed_variance_data = np.array(
-            [[1.5596627, 1.576899, 0.11182244],
-             [0.19800353, 0.17502174, 0.11182244],
-             [0.43931028, 0.04287757, 0.02564146]], dtype=np.float32)
+            [[0.9966598, 1.0078166, 0.05950218],
+             [0.11528546, 0.10040981, 0.05950218],
+             [0.2714784, 0.01487557, 0.00371899]], dtype=np.float32)
+
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_temperature_realizations_data_check(self):
@@ -460,7 +462,7 @@ class Test_process_without_statsmodels(SetupCubes, SetupExpectedResults):
         plugin = Plugin(
             self.calibration_method, distribution,
             predictor_of_mean_flag=predictor_of_mean_flag,
-            max_iterations=2000)
+            max_iterations=5)
         calibrated_predictor, calibrated_variance = plugin.process(
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
@@ -496,7 +498,7 @@ class Test_process_without_statsmodels(SetupCubes, SetupExpectedResults):
         plugin = Plugin(
             self.calibration_method, distribution,
             predictor_of_mean_flag=predictor_of_mean_flag,
-            max_iterations=2000)
+            max_iterations=5)
         calibrated_predictor, calibrated_variance = plugin.process(
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,

@@ -395,6 +395,7 @@ def _create_truth(cube):
     truth = concatenate_cubes(
         truth, coords_to_slice_over=["time"],
         coordinates_for_association=["forecast_reference_time"])
+    truth.data = truth.data.data
     return truth
 
 

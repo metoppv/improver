@@ -555,7 +555,7 @@ class Test_compute_initial_guess(IrisTest):
         """
         no_of_realizations = 3
 
-        data = [1., 1., 0.333333, 0., 0.333333, 0.666667]
+        data = [0., 1., 0.333333, 0., 0.333333, 0.666667]
 
         current_forecast_predictor = self.cube
         truth = self.cube.collapsed("realization", iris.analysis.MAX)
@@ -730,14 +730,15 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
         expected values, and the coefficient names also match
         expected values for a Gaussian distribution where the
         realizations are used as the predictor of the mean."""
-        data = [0.00001, -0.25516, -1., 0.66631, 0.55059, 0.50287]
+        data = [0., 1., -0.31216, -0.09061, 0.34935, 0.776475]
 
         predictor_of_mean_flag = "realizations"
         expected_coeff_names = (
             ['gamma', 'delta', 'alpha', 'beta0', 'beta1', 'beta2'])
 
         plugin = Plugin(self.distribution, self.current_cycle,
-                        predictor_of_mean_flag=predictor_of_mean_flag)
+                        predictor_of_mean_flag=predictor_of_mean_flag,
+                        max_iterations=5)
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
@@ -760,7 +761,7 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
         to a common solution across different package versions and
         processors.
         """
-        data = np.array([0.00007, 1.01415, 0.00007, 0.58065, 0.57505, 0.57254],
+        data = np.array([0., 1.05, 0., 0.57735, 0.57735, 0.57735],
                         dtype=np.float32)
 
         predictor_of_mean_flag = "realizations"
@@ -769,7 +770,7 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
 
         plugin = Plugin(self.distribution, self.current_cycle,
                         predictor_of_mean_flag=predictor_of_mean_flag,
-                        max_iterations=10)
+                        max_iterations=5)
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
@@ -786,7 +787,7 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
         expected values, and the coefficient names also match
         expected values for a truncated Gaussian distribution where the
         realizations are used as the predictor of the mean."""
-        data = [-0., 2.907516, 0.666669, 0.774827, -0.040465, 0.254308]
+        data = [0.000005, 1.059259, -0.758778, -0.084672, 0.370073, 0.783322]
 
         distribution = "truncated gaussian"
         predictor_of_mean_flag = "realizations"
@@ -794,7 +795,8 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
             ['gamma', 'delta', 'alpha', 'beta0', 'beta1', 'beta2'])
 
         plugin = Plugin(distribution, self.current_cycle,
-                        predictor_of_mean_flag=predictor_of_mean_flag)
+                        predictor_of_mean_flag=predictor_of_mean_flag,
+                        max_iterations=5)
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
@@ -817,7 +819,7 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
         maximum number of iterations is to try to ensure convergence
         to a common solution across different package versions and
         processors."""
-        data = [0.00013, 1.15, 0.00036, 0.52924, 0.46188, 0.57414]
+        data = [0.00028, 1.05625, 0.00028, 0.55931, 0.53405, 0.53766]
 
         distribution = "truncated gaussian"
         predictor_of_mean_flag = "realizations"
@@ -826,7 +828,7 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
 
         plugin = Plugin(distribution, self.current_cycle,
                         predictor_of_mean_flag=predictor_of_mean_flag,
-                        max_iterations=10)
+                        max_iterations=5)
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)

@@ -352,7 +352,7 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupInputs):
         self.expected_mean_coefficients = (
             [-0.000236, 0.797574, 0.000423, 0.997329])
         self.expected_realizations_coefficients = (
-            [-0.000006, 1.2016, 0.000040, 0.50111, 0.54699, 0.6685])
+            [0., 1.05, 0., 0.5774, 0.5774, 0.5774])
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -366,7 +366,6 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupInputs):
         """
         predictor_of_mean_flag = "mean"
         distribution = "gaussian"
-
         plugin = Plugin()
         result = plugin.crps_minimiser_wrapper(
             self.initial_guess_for_mean,
@@ -381,8 +380,10 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupInputs):
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
                           "Minimisation did not result in convergence",
-                          "divide by zero encountered in"],
-        warning_types=[UserWarning, UserWarning, RuntimeWarning])
+                          "divide by zero encountered in",
+                          "invalid value encountered in"],
+        warning_types=[UserWarning, UserWarning, RuntimeWarning,
+                       RuntimeWarning])
     def test_basic_realizations_predictor(self):
         """
         Test that the plugin returns a numpy array.
@@ -390,8 +391,7 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupInputs):
         """
         predictor_of_mean_flag = "realizations"
         distribution = "gaussian"
-
-        plugin = Plugin()
+        plugin = Plugin(max_iterations=5)
         result = plugin.crps_minimiser_wrapper(
             self.initial_guess_for_realization,
             self.temperature_forecast_predictor_realizations,
@@ -454,8 +454,10 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupInputs):
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
                           "Minimisation did not result in convergence",
-                          "divide by zero encountered in"],
-        warning_types=[UserWarning, UserWarning, RuntimeWarning])
+                          "divide by zero encountered in",
+                          "invalid value encountered in"],
+        warning_types=[UserWarning, UserWarning, RuntimeWarning,
+                       RuntimeWarning])
     def test_realizations_predictor_max_iterations(self):
         """
         Test that the plugin returns a list of coefficients
@@ -466,7 +468,7 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupInputs):
         the initial guess.
         """
         predictor_of_mean_flag = "realizations"
-        max_iterations = 400
+        max_iterations = 5
         distribution = "gaussian"
 
         plugin = Plugin(max_iterations=max_iterations)
@@ -476,7 +478,7 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupInputs):
             self.temperature_truth_cube,  self.temperature_forecast_variance,
             predictor_of_mean_flag, distribution)
         self.assertArrayAlmostEqual(
-            result, self.expected_realizations_coefficients, decimal=5)
+            result, self.expected_realizations_coefficients, decimal=4)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -575,7 +577,7 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupInputs):
         self.expected_mean_coefficients = (
             [-0.14688, 1.386366, -0.080467, 0.866662])
         self.expected_realizations_coefficients = (
-            [-0.141053, 1.312867, -0.120514, 0.658704, -0.013513, 0.664249])
+            [0.000281, 1.05625, 0.000281, 0.559308, 0.534049, 0.537657])
 
     """Test minimising the CRPS for a truncated_normal distribution."""
     @ManageWarnings(
@@ -614,7 +616,7 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupInputs):
         predictor_of_mean_flag = "realizations"
         distribution = "truncated gaussian"
 
-        plugin = Plugin()
+        plugin = Plugin(max_iterations=5)
         result = plugin.crps_minimiser_wrapper(
             self.initial_guess_for_realization,
             self.wind_speed_forecast_predictor_realizations,
@@ -709,7 +711,7 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupInputs):
         the initial guess.
         """
         predictor_of_mean_flag = "realizations"
-        max_iterations = 800
+        max_iterations = 5
         distribution = "truncated gaussian"
 
         plugin = Plugin(max_iterations=max_iterations)
