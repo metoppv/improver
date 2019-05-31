@@ -48,7 +48,7 @@ from improver.ensemble_calibration.ensemble_calibration import (
     ContinuousRankedProbabilityScoreMinimisers)
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import (set_up_temperature_cube,
-                             _create_historic_forecasts, _create_truth)
+                             _create_historic_forecasts, SetupCubes)
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
@@ -597,7 +597,7 @@ class Test_compute_initial_guess(IrisTest):
         self.assertArrayAlmostEqual(result, data)
 
 
-class Test_estimate_coefficients_for_ngr(IrisTest):
+class Test_estimate_coefficients_for_ngr(SetupCubes):
 
     """Test the estimate_coefficients_for_ngr plugin."""
 
@@ -605,54 +605,16 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def setUp(self):
         """Set up multiple cubes for testing."""
+        super().setUp()
         self.current_cycle = "20171110T0000Z"
         self.distribution = "gaussian"
-        data = np.array([[[0., 1.1, 3.],
-                          [4., 5.3, 6.],
-                          [7., 8.2, 9.]],
-                         [[1., 2., 3],
-                          [4., 5.6, 6.],
-                          [7., 8., 9.]],
-                         [[2., 3., 3.],
-                          [4.8, 5., 6.],
-                          [7.9, 8., 9.]]])
-        data = data + 273.15
-        data = data.astype(np.float32)
-        self.current_temperature_forecast_cube = set_up_variable_cube(
-            data, units="Kelvin", realizations=[0, 1, 2])
-
-        self.historic_temperature_forecast_cube = (
-            _create_historic_forecasts(self.current_temperature_forecast_cube))
-
-        self.temperature_truth_cube = (
-            _create_truth(self.current_temperature_forecast_cube))
-
-        # Create a cube for testing wind speed.
-        data = np.array([[[0., 1.1, 3.],
-                          [4., 5.3, 6.],
-                          [7., 8.2, 9.]],
-                         [[1., 2., 3],
-                          [4., 5.6, 6.],
-                          [7., 8., 9.]],
-                         [[2., 3., 3.],
-                          [4.8, 5., 6.],
-                          [7.9, 8., 9.]]])
-        data = data.astype(np.float32)
-        self.current_wind_speed_forecast_cube = set_up_variable_cube(
-            data, name="wind_speed", units="m s-1", realizations=[0, 1, 2])
-
-        self.historic_wind_speed_forecast_cube = (
-            _create_historic_forecasts(self.current_wind_speed_forecast_cube))
-
-        self.wind_speed_truth_cube = (
-            _create_truth(self.current_wind_speed_forecast_cube))
 
         self.coeff_names = ["gamma", "delta", "alpha", "beta"]
 
         self.expected_mean_predictor_gaussian = (
-            [0., 1., 25.46763, 0.90561])
+            [-0.00304, 0.48848, 23.45157, 0.91286])
         self.expected_mean_predictor_truncated_gaussian = (
-            [0., 1.05, -0.31411, 0.90561])
+            [-0.004465, 1.543353, -0.513725, 0.939933])
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -690,14 +652,14 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         expected values, and the coefficient names also match
         expected values for a Gaussian distribution."""
         expected = (
-            [0.229261, 0.762192, -0.075077, 0.997546])
+            [-0.000236, 0.797574, 0.000423, 0.997329])
         plugin = Plugin(self.distribution, self.current_cycle)
         plugin.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
 
-        self.assertArrayAlmostEqual(result.data, expected, decimal=5)
+        self.assertArrayAlmostEqual(result.data, expected)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, self.coeff_names)
 
@@ -708,7 +670,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
         expected values for a Gaussian distribution."""
-        max_iterations = 10
+        max_iterations = 800
 
         plugin = Plugin(
             self.distribution, self.current_cycle,
@@ -746,7 +708,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
         expected values for a truncated Gaussian distribution."""
-        expected = [0., 1.05, 0., 1.]
+        expected = [-0.14688, 1.386366, -0.080467, 0.866662]
         distribution = "truncated gaussian"
 
         plugin = Plugin(distribution, self.current_cycle)
@@ -798,7 +760,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         to a common solution across different package versions and
         processors.
         """
-        data = np.array([0., 1., 0., 0.57735, 0.57735, 0.57735],
+        data = np.array([0.00007, 1.01415, 0.00007, 0.58065, 0.57505, 0.57254],
                         dtype=np.float32)
 
         predictor_of_mean_flag = "realizations"
@@ -855,7 +817,7 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         maximum number of iterations is to try to ensure convergence
         to a common solution across different package versions and
         processors."""
-        data = [0., 1.05, 0., 0.57735, 0.57735, 0.57735]
+        data = [0.00013, 1.15, 0.00036, 0.52924, 0.46188, 0.57414]
 
         distribution = "truncated gaussian"
         predictor_of_mean_flag = "realizations"

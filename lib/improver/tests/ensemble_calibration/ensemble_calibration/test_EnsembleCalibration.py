@@ -42,8 +42,7 @@ import numpy as np
 from improver.ensemble_calibration.ensemble_calibration import (
     EnsembleCalibration as Plugin)
 from improver.tests.ensemble_calibration.ensemble_calibration.\
-    helper_functions import _create_historic_forecasts, _create_truth
-from improver.tests.set_up_test_cubes import set_up_variable_cube
+    helper_functions import SetupCubes
 from improver.utilities.warnings_handler import ManageWarnings
 
 try:
@@ -72,60 +71,6 @@ WARNING_TYPES = [UserWarning, ImportWarning, FutureWarning, RuntimeWarning,
                  UserWarning, RuntimeWarning, RuntimeWarning]
 
 
-class SetupCubes(IrisTest):
-
-    """Set up cubes for testing."""
-
-    @ManageWarnings(
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def setUp(self):
-        """Set up temperature and wind speed cubes for testing."""
-        # Note: test_temperature_realizations_data_check produces ~0.5K
-        # different results when the temperature forecast cube is float32
-        # below. A bug?
-        super().setUp()
-        self.calibration_method = "ensemble model output_statistics"
-        data = np.array([[[0.3, 1.1, 2.6],
-                          [4.2, 5.3, 6.],
-                          [7.1, 8.2, 9.]],
-                         [[0.7, 2., 3],
-                          [4.3, 5.6, 6.4],
-                          [7., 8., 9.]],
-                         [[2.1, 3., 3.],
-                          [4.8, 5., 6.],
-                          [7.9, 8., 8.9]]])
-        data = data + 273.15
-        data = data.astype(np.float32)
-        self.current_temperature_forecast_cube = set_up_variable_cube(
-            data, units="Kelvin", realizations=[0, 1, 2])
-
-        self.historic_temperature_forecast_cube = (
-            _create_historic_forecasts(self.current_temperature_forecast_cube))
-
-        self.temperature_truth_cube = (
-            _create_truth(self.current_temperature_forecast_cube))
-
-        # Create a cube for testing wind speed.
-        data = np.array([[[0.3, 1.1, 2.6],
-                          [4.2, 5.3, 6.],
-                          [7.1, 8.2, 9.]],
-                         [[0.7, 2., 3],
-                          [4.3, 5.6, 6.4],
-                          [7., 8., 9.]],
-                         [[2.1, 3., 3.],
-                          [4.8, 5., 6.],
-                          [7.9, 8., 8.9]]])
-        data = data.astype(np.float32)
-        self.current_wind_speed_forecast_cube = set_up_variable_cube(
-            data, name="wind_speed", units="m s-1", realizations=[0, 1, 2])
-
-        self.historic_wind_speed_forecast_cube = (
-            _create_historic_forecasts(self.current_wind_speed_forecast_cube))
-
-        self.wind_speed_truth_cube = (
-            _create_truth(self.current_wind_speed_forecast_cube))
-
-
 class SetupExpectedResults(IrisTest):
 
     """Set up expected results."""
@@ -136,7 +81,7 @@ class SetupExpectedResults(IrisTest):
         """Set up temperature and wind speed cubes for testing."""
         super().setUp()
         self.expected_temperature_predictor_data = np.array(
-            [[273.74304, 274.6559 , 275.41663],
+            [[273.74304, 274.6559, 275.41663],
              [276.84677, 277.63788, 278.39862],
              [279.49405, 280.16348, 280.98505]], dtype=np.float32)
 
@@ -151,9 +96,10 @@ class SetupExpectedResults(IrisTest):
              [6.379119, 7.0684023, 7.914342]], dtype=np.float32)
 
         self.expected_wind_speed_variance_data = np.array(
-            [[2.1278856 , 2.151705  , 0.12705675],
-             [0.24615386, 0.2143944 , 0.12705675],
-             [0.5796253 , 0.03177907, 0.0079598]], dtype=np.float32)
+            [[2.1278856, 2.151705, 0.12705675],
+             [0.24615386, 0.2143944, 0.12705675],
+             [0.5796253, 0.03177907, 0.0079598]], dtype=np.float32)
+
 
 class Test_process_basic(SetupCubes):
 
