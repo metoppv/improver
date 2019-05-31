@@ -31,9 +31,10 @@
 """Unit tests for the cube_metadata utilities."""
 
 import unittest
-import numpy as np
 from copy import copy, deepcopy
 from datetime import datetime as dt
+
+import numpy as np
 
 import iris
 from iris.cube import Cube
@@ -52,8 +53,7 @@ from improver.utilities.cube_metadata import (
     update_stage_v110_metadata,
     in_vicinity_name_format,
     extract_diagnostic_name,
-    generate_hash,
-    create_coordinate_hash)
+    generate_hash)
 from improver.utilities.warnings_handler import ManageWarnings
 
 from improver.tests.set_up_test_cubes import (
@@ -954,6 +954,16 @@ class Test_generate_hash(IrisTest):
         result32 = generate_hash(hash_input32)
         result64 = generate_hash(hash_input64)
         self.assertNotEqual(result32, result64)
+
+    def test_equivalent_input_gives_equivalent_hash(self):
+        """Test that creating a hash twice using the same input results in the
+        same hash being generated."""
+
+        cube = set_up_variable_cube(np.ones((3, 3)).astype(np.float32))
+        hash_input = cube.coord('latitude')
+        result1 = generate_hash(hash_input)
+        result2 = generate_hash(hash_input)
+        self.assertEqual(result1, result2)
 
 
 class Test_create_coordinate_hash(IrisTest):
