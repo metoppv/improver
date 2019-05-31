@@ -37,6 +37,7 @@
                                            [--units UNITS]
                                            [--predictor_of_mean PREDICTOR_OF_MEAN]
                                            [--max_iterations MAX_ITERATIONS]
+                                           [--decimals DECIMALS]
                                            DISTRIBUTION CYCLETIME
                                            HISTORIC_FILEPATH TRUTH_FILEPATH
                                            OUTPUT_FILEPATH

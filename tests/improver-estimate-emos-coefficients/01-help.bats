@@ -38,6 +38,7 @@ usage: improver estimate-emos-coefficients [-h] [--profile]
                                            [--units UNITS]
                                            [--predictor_of_mean PREDICTOR_OF_MEAN]
                                            [--max_iterations MAX_ITERATIONS]
+                                           [--decimals DECIMALS]
                                            DISTRIBUTION CYCLETIME
                                            HISTORIC_FILEPATH TRUTH_FILEPATH
                                            OUTPUT_FILEPATH
@@ -84,6 +85,13 @@ optional arguments:
                         "realizations", then the number of iterations may
                         require increasing, as there will be more coefficients
                         to solve for.
+  --decimals DECIMALS   Integer to define how many decimals the inputs to the
+                        minimisation will be rounded to. This is for the
+                        purpose of obtaining consistent output from the
+                        minimisation across different packages and processors,
+                        where differences at the machine precision level will
+                        cause the minimisation to go in different directions
+                        and reach different solutions.
 __HELP__
   [[ "$output" == "$expected" ]]
 }
