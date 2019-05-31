@@ -42,6 +42,7 @@
                                      [--random_seed RANDOM_SEED]
                                      [--ecc_bounds_warning]
                                      [--max_iterations MAX_ITERATIONS]
+                                     [--decimals DECIMALS]
                                      ENSEMBLE_CALIBRATION_METHOD
                                      UNITS_TO_CALIBRATE_IN DISTRIBUTION
                                      INPUT_FILE HISTORIC_DATA_FILE
