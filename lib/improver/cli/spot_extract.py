@@ -246,7 +246,7 @@ def main(argv=None):
             if not args.suppress_warnings:
                 warnings.warn(msg)
     elif (args.apply_lapse_rate_correction and
-            not args.temperature_lapse_rate_filepath):
+          not args.temperature_lapse_rate_filepath):
         msg = ("A lapse rate cube was not provided, but the option to "
                "apply the lapse rate correction was enabled. No lapse rate "
                "correction could be applied.")
@@ -259,7 +259,10 @@ def main(argv=None):
             metadata_dict = json.load(input_file)
         result = amend_metadata(result, **metadata_dict)
 
-    # Save the spot data cube
+    # Remove the internal model_grid_hash attribute if present.
+    result.attributes.pop('model_grid_hash', None)
+
+    # Save the spot data cube.
     save_netcdf(result, args.output_filepath)
 
 
