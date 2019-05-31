@@ -38,9 +38,85 @@ from cf_units import Unit
 import iris
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube, CubeList
+from iris.tests import IrisTest
 import numpy as np
 
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import concatenate_cubes
+from improver.utilities.warnings_handler import ManageWarnings
+
+
+IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate.",
+                    "Not importing directory .*sphinxcontrib'",
+                    "The pandas.core.datetools module is deprecated",
+                    "numpy.dtype size changed",
+                    "The statsmodels can not be imported",
+                    "invalid escape sequence",
+                    "can't resolve package from",
+                    "Minimisation did not result in"
+                    " convergence",
+                    "\nThe final iteration resulted in a percentage "
+                    "change that is greater than the"
+                    " accepted threshold ",
+                    "divide by zero encountered in true_divide",
+                    "invalid value encountered in"]
+WARNING_TYPES = [UserWarning, ImportWarning, FutureWarning, RuntimeWarning,
+                 ImportWarning, DeprecationWarning, ImportWarning, UserWarning,
+                 UserWarning, RuntimeWarning, RuntimeWarning]
+
+
+class SetupCubes(IrisTest):
+
+    """Set up cubes for testing."""
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def setUp(self):
+        """Set up temperature and wind speed cubes for testing."""
+        # Note: test_temperature_realizations_data_check produces ~0.5K
+        # different results when the temperature forecast cube is float32
+        # below. A bug?
+        super().setUp()
+        self.calibration_method = "ensemble model output_statistics"
+        data = np.array([[[0.3, 1.1, 2.6],
+                          [4.2, 5.3, 6.],
+                          [7.1, 8.2, 9.]],
+                         [[0.7, 2., 3],
+                          [4.3, 5.6, 6.4],
+                          [7., 8., 9.]],
+                         [[2.1, 3., 3.],
+                          [4.8, 5., 6.],
+                          [7.9, 8., 8.9]]])
+        data = data + 273.15
+        data = data.astype(np.float32)
+        self.current_temperature_forecast_cube = set_up_variable_cube(
+            data, units="Kelvin", realizations=[0, 1, 2])
+
+        self.historic_temperature_forecast_cube = (
+            _create_historic_forecasts(self.current_temperature_forecast_cube))
+
+        self.temperature_truth_cube = (
+            _create_truth(self.current_temperature_forecast_cube))
+
+        # Create a cube for testing wind speed.
+        data = np.array([[[0.3, 1.1, 2.6],
+                          [4.2, 5.3, 6.],
+                          [7.1, 8.2, 9.]],
+                         [[0.7, 2., 3],
+                          [4.3, 5.6, 6.4],
+                          [7., 8., 9.]],
+                         [[2.1, 3., 3.],
+                          [4.8, 5., 6.],
+                          [7.9, 8., 8.9]]])
+        data = data.astype(np.float32)
+        self.current_wind_speed_forecast_cube = set_up_variable_cube(
+            data, name="wind_speed", units="m s-1", realizations=[0, 1, 2])
+
+        self.historic_wind_speed_forecast_cube = (
+            _create_historic_forecasts(self.current_wind_speed_forecast_cube))
+
+        self.wind_speed_truth_cube = (
+            _create_truth(self.current_wind_speed_forecast_cube))
 
 
 def set_up_probability_threshold_cube(

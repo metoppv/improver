@@ -45,10 +45,9 @@ from improver.ensemble_calibration.ensemble_calibration import (
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     convert_cube_data_to_2d)
 from improver.tests.ensemble_calibration.ensemble_calibration.\
-    helper_functions import (set_up_temperature_cube, set_up_wind_speed_cube,
-                             _create_historic_forecasts, _create_truth)
-from improver.tests.set_up_test_cubes import set_up_variable_cube
-
+    helper_functions import set_up_temperature_cube, set_up_wind_speed_cube
+from improver.tests.ensemble_calibration.ensemble_calibration.\
+    helper_functions import SetupCubes
 from improver.utilities.warnings_handler import ManageWarnings
 
 
@@ -305,7 +304,7 @@ class Test_truncated_normal_crps_minimiser(IrisTest):
         self.assertAlmostEqual(result, plugin.BAD_VALUE)
 
 
-class SetupCubes(IrisTest):
+class SetupInputs(SetupCubes):
 
     """Create a class for setting up cubes for testing."""
 
@@ -314,22 +313,7 @@ class SetupCubes(IrisTest):
         warning_types=[UserWarning])
     def setUp(self):
         """Set up expected output."""
-        data = np.array([[[0., 1.1, 3.],
-                          [4., 5.3, 6.],
-                          [7., 8.2, 9.]],
-                         [[1., 2., 3],
-                          [4., 5.6, 6.],
-                          [7., 8., 9.]],
-                         [[2., 3., 3.],
-                          [4.8, 5., 6.],
-                          [7.9, 8., 9.]]])
-        data = data + 273.15
-        data = data.astype(np.float32)
-        current_temperature_forecast_cube = set_up_variable_cube(
-            data, units="Kelvin", realizations=[0, 1, 2])
-
-        self.historic_temperature_forecast_cube = (
-            _create_historic_forecasts(current_temperature_forecast_cube))
+        super().setUp()
         self.temperature_forecast_predictor_mean = (
             self.historic_temperature_forecast_cube.collapsed(
                 "realization", iris.analysis.MEAN))
@@ -339,24 +323,7 @@ class SetupCubes(IrisTest):
             self.historic_temperature_forecast_cube.collapsed(
                 "realization", iris.analysis.VARIANCE))
 
-        self.temperature_truth = (
-            _create_truth(current_temperature_forecast_cube))
-
         # Create a cube for testing wind speed.
-        data = np.array([[[0., 1.1, 3.],
-                          [4., 5.3, 6.],
-                          [7., 8.2, 9.]],
-                         [[1., 2., 3],
-                          [4., 5.6, 6.],
-                          [7., 8., 9.]],
-                         [[2., 3., 3.],
-                          [4.8, 5., 6.],
-                          [7.9, 8., 9.]]])
-        data = data.astype(np.float32)
-        current_wind_speed_forecast_cube = set_up_variable_cube(
-            data, name="wind_speed", units="m s-1", realizations=[0, 1, 2])
-        self.historic_wind_speed_forecast_cube = (
-            _create_historic_forecasts(current_wind_speed_forecast_cube))
         self.wind_speed_forecast_predictor_mean = (
             self.historic_wind_speed_forecast_cube.collapsed(
                 "realization", iris.analysis.MEAN))
@@ -365,8 +332,6 @@ class SetupCubes(IrisTest):
         self.wind_speed_forecast_variance = (
             self.historic_wind_speed_forecast_cube.collapsed(
                 "realization", iris.analysis.VARIANCE))
-        self.wind_speed_truth = (
-            _create_truth(current_wind_speed_forecast_cube))
 
         self.initial_guess_for_mean = np.array([0, 1, 0, 1], dtype=np.float32)
         self.initial_guess_for_realization = (
@@ -374,7 +339,7 @@ class SetupCubes(IrisTest):
                      dtype=np.float32))
 
 
-class Test_crps_minimiser_wrapper_gaussian_distribution(SetupCubes):
+class Test_crps_minimiser_wrapper_gaussian_distribution(SetupInputs):
 
     """
     Test minimising the CRPS for a normal distribution.
@@ -385,9 +350,9 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupCubes):
         """Set up expected output."""
         super().setUp()
         self.expected_mean_coefficients = (
-            [0.229261, 0.762192, -0.075077, 0.997546])
+            [-0.000236, 0.797574, 0.000423, 0.997329])
         self.expected_realizations_coefficients = (
-            [-0.00007, 0.7703,  0.00074,  0.45828,  0.61952, 0.63493])
+            [-0.000006, 1.2016, 0.000040, 0.50111, 0.54699, 0.6685])
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -406,7 +371,7 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupCubes):
         result = plugin.crps_minimiser_wrapper(
             self.initial_guess_for_mean,
             self.temperature_forecast_predictor_mean,
-            self.temperature_truth,  self.temperature_forecast_variance,
+            self.temperature_truth_cube,  self.temperature_forecast_variance,
             predictor_of_mean_flag, distribution)
         self.assertIsInstance(result, np.ndarray)
         self.assertEqual(result.dtype, np.float32)
@@ -430,7 +395,7 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupCubes):
         result = plugin.crps_minimiser_wrapper(
             self.initial_guess_for_realization,
             self.temperature_forecast_predictor_realizations,
-            self.temperature_truth,  self.temperature_forecast_variance,
+            self.temperature_truth_cube,  self.temperature_forecast_variance,
             predictor_of_mean_flag, distribution)
         self.assertIsInstance(result, np.ndarray)
         self.assertEqual(result.dtype, np.float32)
@@ -455,7 +420,8 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupCubes):
             plugin.crps_minimiser_wrapper(
                 self.initial_guess_for_mean,
                 self.temperature_forecast_predictor_mean,
-                self.temperature_truth, self.temperature_forecast_variance,
+                self.temperature_truth_cube,
+                self.temperature_forecast_variance,
                 predictor_of_mean_flag, distribution)
 
     @ManageWarnings(
@@ -480,7 +446,7 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupCubes):
         result = plugin.crps_minimiser_wrapper(
             self.initial_guess_for_mean,
             self.temperature_forecast_predictor_mean,
-            self.temperature_truth,  self.temperature_forecast_variance,
+            self.temperature_truth_cube,  self.temperature_forecast_variance,
             predictor_of_mean_flag, distribution)
         self.assertArrayAlmostEqual(
             result, self.expected_mean_coefficients)
@@ -507,7 +473,7 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupCubes):
         result = plugin.crps_minimiser_wrapper(
             self.initial_guess_for_realization,
             self.temperature_forecast_predictor_realizations,
-            self.temperature_truth,  self.temperature_forecast_variance,
+            self.temperature_truth_cube,  self.temperature_forecast_variance,
             predictor_of_mean_flag, distribution)
         self.assertArrayAlmostEqual(
             result, self.expected_realizations_coefficients, decimal=5)
@@ -535,10 +501,10 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupCubes):
         result = plugin.crps_minimiser_wrapper(
             self.initial_guess_for_mean,
             self.temperature_forecast_predictor_mean,
-            self.temperature_truth,  self.temperature_forecast_variance,
+            self.temperature_truth_cube,  self.temperature_forecast_variance,
             predictor_of_mean_flag, distribution)
         self.assertArrayAlmostEqual(
-            result, self.expected_mean_coefficients, decimal=2)
+            result, self.expected_mean_coefficients, decimal=3)
 
     @ManageWarnings(
         record=True,
@@ -556,7 +522,7 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupCubes):
         plugin.crps_minimiser_wrapper(
             self.initial_guess_for_mean,
             self.temperature_forecast_predictor_mean,
-            self.temperature_truth,  self.temperature_forecast_variance,
+            self.temperature_truth_cube,  self.temperature_forecast_variance,
             predictor_of_mean_flag, distribution)
         warning_msg = "Minimisation did not result in convergence after"
         self.assertTrue(any(item.category == UserWarning
@@ -584,7 +550,7 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupCubes):
         plugin.crps_minimiser_wrapper(
             initial_guess,
             self.temperature_forecast_predictor_mean,
-            self.temperature_truth,  self.temperature_forecast_variance,
+            self.temperature_truth_cube,  self.temperature_forecast_variance,
             predictor_of_mean_flag, distribution)
         warning_msg_min = "Minimisation did not result in convergence after"
         warning_msg_iter = "The final iteration resulted in a percentage "
@@ -596,7 +562,7 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupCubes):
                             for item in warning_list))
 
 
-class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupCubes):
+class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupInputs):
 
     """
     Test minimising the CRPS for a normal distribution.
@@ -606,9 +572,10 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupCubes):
     def setUp(self):
         """Set up expected output."""
         super().setUp()
-        self.expected_mean_coefficients = [0., 1.05, 0., 1.]
+        self.expected_mean_coefficients = (
+            [-0.14688, 1.386366, -0.080467, 0.866662])
         self.expected_realizations_coefficients = (
-            [0., 1.05, 0., 0.57735, 0.57735, 0.57735])
+            [-0.141053, 1.312867, -0.120514, 0.658704, -0.013513, 0.664249])
 
     """Test minimising the CRPS for a truncated_normal distribution."""
     @ManageWarnings(
@@ -630,7 +597,7 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupCubes):
         result = plugin.crps_minimiser_wrapper(
             self.initial_guess_for_mean,
             self.wind_speed_forecast_predictor_mean,
-            self.wind_speed_truth,  self.wind_speed_forecast_variance,
+            self.wind_speed_truth_cube,  self.wind_speed_forecast_variance,
             predictor_of_mean_flag, distribution)
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, self.expected_mean_coefficients)
@@ -651,11 +618,11 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupCubes):
         result = plugin.crps_minimiser_wrapper(
             self.initial_guess_for_realization,
             self.wind_speed_forecast_predictor_realizations,
-            self.wind_speed_truth,  self.wind_speed_forecast_variance,
+            self.wind_speed_truth_cube,  self.wind_speed_forecast_variance,
             predictor_of_mean_flag, distribution)
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(
-            result, self.expected_realizations_coefficients, decimal=4)
+            result, self.expected_realizations_coefficients)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -674,7 +641,7 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupCubes):
             plugin.crps_minimiser_wrapper(
                 self.initial_guess_for_mean,
                 self.wind_speed_forecast_predictor_mean,
-                self.wind_speed_truth, self.wind_speed_forecast_variance,
+                self.wind_speed_truth_cube, self.wind_speed_forecast_variance,
                 predictor_of_mean_flag, distribution)
 
     @ManageWarnings(
@@ -694,7 +661,7 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupCubes):
             plugin.crps_minimiser_wrapper(
                 self.initial_guess_for_realization,
                 self.wind_speed_forecast_predictor_realizations,
-                self.wind_speed_truth, self.wind_speed_forecast_variance,
+                self.wind_speed_truth_cube, self.wind_speed_forecast_variance,
                 predictor_of_mean_flag, distribution)
 
     @ManageWarnings(
@@ -721,7 +688,7 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupCubes):
         result = plugin.crps_minimiser_wrapper(
             self.initial_guess_for_mean,
             self.wind_speed_forecast_predictor_mean,
-            self.wind_speed_truth, self.wind_speed_forecast_variance,
+            self.wind_speed_truth_cube, self.wind_speed_forecast_variance,
             predictor_of_mean_flag, distribution)
         self.assertArrayAlmostEqual(result, self.expected_mean_coefficients)
 
@@ -742,14 +709,14 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupCubes):
         the initial guess.
         """
         predictor_of_mean_flag = "realizations"
-        max_iterations = 400
+        max_iterations = 800
         distribution = "truncated gaussian"
 
         plugin = Plugin(max_iterations=max_iterations)
         result = plugin.crps_minimiser_wrapper(
             self.initial_guess_for_realization,
             self.wind_speed_forecast_predictor_realizations,
-            self.wind_speed_truth,  self.wind_speed_forecast_variance,
+            self.wind_speed_truth_cube,  self.wind_speed_forecast_variance,
             predictor_of_mean_flag, distribution)
         self.assertArrayAlmostEqual(
             result, self.expected_realizations_coefficients)
@@ -772,17 +739,17 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupCubes):
         the initial guess.
         """
         predictor_of_mean_flag = "mean"
-        decimals = 2
+        decimals = 4
         distribution = "truncated gaussian"
 
         plugin = Plugin(decimals=decimals)
         result = plugin.crps_minimiser_wrapper(
             self.initial_guess_for_mean,
             self.wind_speed_forecast_predictor_mean,
-            self.wind_speed_truth, self.wind_speed_forecast_variance,
+            self.wind_speed_truth_cube, self.wind_speed_forecast_variance,
             predictor_of_mean_flag, distribution)
         self.assertArrayAlmostEqual(
-            result, self.expected_mean_coefficients)
+            result, self.expected_mean_coefficients, decimal=1)
 
     @ManageWarnings(
         record=True,
@@ -800,7 +767,7 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupCubes):
         plugin.crps_minimiser_wrapper(
             self.initial_guess_for_mean,
             self.wind_speed_forecast_predictor_mean,
-            self.wind_speed_truth, self.wind_speed_forecast_variance,
+            self.wind_speed_truth_cube, self.wind_speed_forecast_variance,
             predictor_of_mean_flag, distribution)
         warning_msg = "Minimisation did not result in convergence after"
         self.assertTrue(any(item.category == UserWarning
@@ -831,7 +798,7 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupCubes):
 
         plugin.crps_minimiser_wrapper(
             initial_guess, self.wind_speed_forecast_predictor_mean,
-            self.wind_speed_truth, self.wind_speed_forecast_variance,
+            self.wind_speed_truth_cube, self.wind_speed_forecast_variance,
             predictor_of_mean_flag, distribution)
         warning_msg_min = "Minimisation did not result in convergence after"
         warning_msg_iter = "The final iteration resulted in a percentage "
