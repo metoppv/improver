@@ -789,12 +789,10 @@ class Test_process(Test_weighted_blend):
         cube1 = self.cube[0].copy()
         model_crd1 = iris.coords.DimCoord([0], long_name='model', units=1)
         cube1.add_aux_coord(model_crd1)
-        cube1 = iris.util.new_axis(cube1, scalar_coord=model_crd1)
 
         cube2 = self.cube[0].copy()
         model_crd2 = iris.coords.DimCoord([1], long_name='model', units=1)
         cube2.add_aux_coord(model_crd2)
-        cube2 = iris.util.new_axis(cube2, scalar_coord=model_crd2)
 
         cubes = iris.cube.CubeList([cube1, cube2])
         cube = merge_cubes(cubes)

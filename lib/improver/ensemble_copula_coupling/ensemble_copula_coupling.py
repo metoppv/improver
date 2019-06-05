@@ -978,8 +978,9 @@ class EnsembleReordering(object):
                 raw_forecast_realization.coord("realization").points = index
                 raw_forecast_realizations_extended.append(
                     raw_forecast_realization)
-            raw_forecast_realizations = (
-                concatenate_cubes(raw_forecast_realizations_extended))
+            raw_forecast_realizations = concatenate_cubes(
+                raw_forecast_realizations_extended,
+                coords_to_slice_over=["realization", "time"])
         return raw_forecast_realizations
 
     @staticmethod

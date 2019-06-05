@@ -73,8 +73,7 @@ class Test__init__(IrisTest):
         self.assertEqual(plugin.master_coord, "time")
         self.assertSequenceEqual(
             plugin.coords_to_associate, ["forecast_period"])
-        self.assertSequenceEqual(
-            plugin.coords_to_slice_over, ["realization", "time"])
+        self.assertFalse(plugin.coords_to_slice_over)
 
     def test_arguments(self):
         """Test custom arguments"""
@@ -209,15 +208,27 @@ class Test_process(IrisTest):
 
     def test_basic(self):
         """Test that the utility returns an iris.cube.Cube."""
-        result = self.plugin.process(self.cube)
+        result = self.plugin.process(self.cubelist)
         self.assertIsInstance(result, iris.cube.Cube)
+
+    def test_single_cube(self):
+        """Test a single cube is returned unchanged"""
+        result = self.plugin.process(self.cube)
+        self.assertArrayAlmostEqual(result.data, self.cube.data)
+        self.assertEqual(result.metadata, self.cube.metadata)
+
+    def test_single_item_cubelist(self):
+        """Test a single item cubelist returns the cube unchanged"""
+        result = self.plugin.process([self.cube])
+        self.assertArrayAlmostEqual(result.data, self.cube.data)
+        self.assertEqual(result.metadata, self.cube.metadata)
 
     def test_missing_master_coord(self):
         """Test error is raised if the master coordinate is missing"""
         self.cube.remove_coord("time")
         msg = "Master coordinate time is not present"
         with self.assertRaisesRegex(ValueError, msg):
-            self.plugin.process(self.cube)
+            self.plugin.process([self.cube, self.cube])
 
     def test_identical_cubes(self):
         """
@@ -259,7 +270,8 @@ class Test_process(IrisTest):
 
         cubelist = iris.cube.CubeList([cube2, cube3])
 
-        result = self.plugin.process(cubelist)
+        result = ConcatenateCubes(
+            "time", coords_to_slice_over=["realization"]).process(cubelist)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
             result.coord("realization").points, [0, 1, 2])

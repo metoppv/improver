@@ -42,8 +42,8 @@ from improver.argparser import ArgParser, safe_eval
 from improver.spotdata.neighbour_finding import NeighbourSelection
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
-from improver.utilities.cube_manipulation import (merge_cubes,
-                                                  enforce_coordinate_ordering)
+from improver.utilities.cube_manipulation import (
+    merge_cubes, enforce_coordinate_ordering)
 
 PROJECTION_LIST = [
     'AlbersEqualArea', 'AzimuthalEquidistant', 'EuroPP', 'Geocentric',
@@ -192,9 +192,11 @@ def main(argv=None):
         for method in methods:
             all_methods.append(NeighbourSelection(**method).process(*fargs))
 
+        squeezed_cubes = iris.cube.CubeList([])
         for index, cube in enumerate(all_methods):
             cube.coord('neighbour_selection_method').points = index
-        result = merge_cubes(all_methods)
+            squeezed_cubes.append(iris.util.squeeze(cube))
+        result = merge_cubes(squeezed_cubes)
     else:
         result = NeighbourSelection(**kwargs).process(*fargs)
 
