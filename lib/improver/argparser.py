@@ -185,6 +185,12 @@ class ArgParser(ArgumentParser):
             argflags, argkwargs = argspec
             self.add_argument(*argflags, **argkwargs)
 
+    def _parse_optional(self, arg_string):
+        """Wrap it in order to pass through non-strings as arguments."""
+        if not isinstance(arg_string, str):
+            return None
+        return super(ArgParser, self)._parse_optional(arg_string)
+
     def parse_args(self, args=None, namespace=None):
         """Wrap in order to implement some compulsory behaviour."""
         args = super(ArgParser, self).parse_args(args=args,

@@ -67,12 +67,17 @@ def load_cube(filepath, constraints=None, no_lazy_load=False):
 
     # Load each file individually to avoid partial merging (not used
     # iris.load_raw() due to issues with time representation)
-    if isinstance(filepath, str):
-        cubes = iris.load(filepath, constraints=constraints)
-    else:
-        cubes = iris.cube.CubeList([])
-        for item in filepath:
-            cubes.extend(iris.load(item, constraints=constraints))
+    cubes = iris.cube.CubeList([])
+    if not isinstance(filepath, (list, tuple)):
+        filepath = [filepath]
+    for item in filepath:
+        if isinstance(item, iris.cube.Cube):
+            item = iris.cube.CubeList([item])
+        if isinstance(item, iris.cube.CubeList):
+            item = item.extract(constraints)
+        else:
+            item = iris.load(item, constraints=constraints)
+        cubes.extend(item)
 
     # Merge loaded cubes
     if not cubes:
