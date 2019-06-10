@@ -64,13 +64,14 @@ class Test__repr__(IrisTest):
                "max_iterations: 1000>")
         self.assertEqual(result, msg)
 
-    def test_update_max_iterations(self):
-        """A test to update the max_iterations keyword argument."""
-        result = str(Plugin(max_iterations=10))
+    def test_update_max_iterations_and_decimals(self):
+        """A test to update the max_iterations and decimals
+        keyword argument."""
+        result = str(Plugin(max_iterations=10, decimals=2))
         msg = ("<ContinuousRankedProbabilityScoreMinimisers: "
                "minimisation_dict: {'gaussian': 'normal_crps_minimiser', "
                "'truncated gaussian': 'truncated_normal_crps_minimiser'}; "
-               "max_iterations: 10>")
+               "max_iterations: 10; decimals: 2>")
         self.assertEqual(result, msg)
 
 

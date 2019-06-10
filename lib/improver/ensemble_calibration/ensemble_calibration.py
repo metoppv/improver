@@ -111,7 +111,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = ('<ContinuousRankedProbabilityScoreMinimisers: '
-                  'minimisation_dict: {}; max_iterations: {}>')
+                  'minimisation_dict: {}; max_iterations: {}; decimals: {}>')
         print_dict = {}
         for key in self.minimisation_dict:
             print_dict.update({key: self.minimisation_dict[key].__name__})
