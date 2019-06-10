@@ -33,7 +33,11 @@
 
 @test "estimate-emos-coefficients using non-default predictor 'realizations'" {
   improver_check_skip_acceptance
-  KGO="estimate-emos-coefficients/realizations/kgo.nc"
+  if python -c "import statsmodels" 2&>1 /dev/null; then
+      KGO="estimate-emos-coefficients/realizations/with_statsmodels_kgo.nc"
+  else
+      KGO="estimate-emos-coefficients/realizations/without_statsmodels_kgo.nc"
+  fi
 
   # Estimate the EMOS coefficients and check that they match the kgo.
   run improver estimate-emos-coefficients 'gaussian' '20170605T0300Z' \

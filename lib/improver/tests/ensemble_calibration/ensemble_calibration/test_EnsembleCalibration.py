@@ -78,9 +78,11 @@ class SetupExpectedResults(IrisTest):
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def setUp(self):
-        """Set up temperature and wind speed cubes for testing."""
+        """Set up the expected results for the mean and variance,
+        where either a temperature or wind speed cube has been provided
+        as input."""
         super().setUp()
-        self.expected_temperature_predictor_data = np.array(
+        self.expected_temperature_mean_data = np.array(
             [[273.74304, 274.6559, 275.41663],
              [276.84677, 277.63788, 278.39862],
              [279.49405, 280.16348, 280.98505]], dtype=np.float32)
@@ -90,7 +92,7 @@ class SetupExpectedResults(IrisTest):
              [0.02466668, 0.02148522, 0.01273511],
              [0.05807154, 0.00319121, 0.00080475]], dtype=np.float32)
 
-        self.expected_wind_speed_predictor_data = np.array(
+        self.expected_wind_speed_mean_data = np.array(
             [[0.45753962, 1.3974727, 2.1807506],
              [3.6533124, 4.4679203, 5.251199],
              [6.379119, 7.0684023, 7.914342]], dtype=np.float32)
@@ -237,7 +239,7 @@ class Test_process_check_data(SetupCubes, SetupExpectedResults):
             self.temperature_truth_cube)
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
-            self.expected_temperature_predictor_data)
+            self.expected_temperature_mean_data)
         self.assertArrayAlmostEqual(
             calibrated_variance.data,
             self.expected_temperature_variance_data)
@@ -261,7 +263,7 @@ class Test_process_check_data(SetupCubes, SetupExpectedResults):
             self.temperature_truth_cube)
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
-            self.expected_temperature_predictor_data)
+            self.expected_temperature_mean_data)
         self.assertArrayAlmostEqual(
             calibrated_variance.data,
             self.expected_temperature_variance_data)
@@ -284,7 +286,7 @@ class Test_process_check_data(SetupCubes, SetupExpectedResults):
             self.wind_speed_truth_cube)
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
-            self.expected_wind_speed_predictor_data)
+            self.expected_wind_speed_mean_data)
         self.assertArrayAlmostEqual(
             calibrated_variance.data,
             self.expected_wind_speed_variance_data)
@@ -308,7 +310,7 @@ class Test_process_check_data(SetupCubes, SetupExpectedResults):
             self.wind_speed_truth_cube)
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
-            self.expected_wind_speed_predictor_data)
+            self.expected_wind_speed_mean_data)
         self.assertArrayAlmostEqual(
             calibrated_variance.data,
             self.expected_wind_speed_variance_data)
@@ -376,7 +378,7 @@ class Test_process_with_statsmodels(SetupCubes, SetupExpectedResults):
             self.expected_specific_temperature_variance_data)
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
-            self.expected_temperature_predictor_data, decimal=0)
+            self.expected_temperature_mean_data, decimal=0)
         self.assertArrayAlmostEqual(
             calibrated_variance.data,
             self.expected_temperature_variance_data, decimal=0)
@@ -409,7 +411,7 @@ class Test_process_with_statsmodels(SetupCubes, SetupExpectedResults):
             self.expected_specific_wind_speed_variance_data)
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
-            self.expected_wind_speed_predictor_data, decimal=0)
+            self.expected_wind_speed_mean_data, decimal=0)
         self.assertArrayAlmostEqual(
             calibrated_variance.data,
             self.expected_wind_speed_variance_data, decimal=0)
@@ -475,7 +477,7 @@ class Test_process_without_statsmodels(SetupCubes, SetupExpectedResults):
             self.expected_specific_temperature_variance_data)
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
-            self.expected_temperature_predictor_data, decimal=0)
+            self.expected_temperature_mean_data, decimal=0)
         self.assertArrayAlmostEqual(
             calibrated_variance.data,
             self.expected_temperature_variance_data, decimal=0)
@@ -511,7 +513,7 @@ class Test_process_without_statsmodels(SetupCubes, SetupExpectedResults):
             self.expected_specific_wind_speed_variance_data)
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
-            self.expected_wind_speed_predictor_data, decimal=0)
+            self.expected_wind_speed_mean_data, decimal=0)
         self.assertArrayAlmostEqual(
             calibrated_variance.data,
             self.expected_wind_speed_variance_data, decimal=0)
