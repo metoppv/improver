@@ -121,7 +121,9 @@ def main(argv=None):
             revised_attributes=new_attr,
             expanded_coord=expanded_coord))
 
-    save_netcdf(result, args.output_filepath)
+    if args.output_filepath:
+        save_netcdf(result, args.output_filepath)
+    return result
 
 
 if __name__ == "__main__":

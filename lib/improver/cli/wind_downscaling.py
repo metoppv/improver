@@ -156,7 +156,9 @@ def main(argv=None):
                     wind_speed.coord('height').units))
         wind_speed = single_level
 
-    save_netcdf(wind_speed, args.output_filepath)
+    if args.output_filepath:
+        save_netcdf(wind_speed, args.output_filepath)
+    return wind_speed
 
 
 if __name__ == "__main__":

@@ -91,7 +91,9 @@ def main(argv=None):
                                             args.output_diagnostic_name)
     probability_cube = result.process(threshold_cube)
 
-    save_netcdf(probability_cube, args.output_filepath)
+    if args.output_filepath:
+        save_netcdf(probability_cube, args.output_filepath)
+    return probability_cube
 
 
 if __name__ == "__main__":

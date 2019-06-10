@@ -205,7 +205,9 @@ def main(argv=None):
         ['spot_index', 'neighbour_selection_method', 'grid_attributes'])
 
     # Save the neighbour cube
-    save_netcdf(result, args.output_filepath)
+    if args.output_filepath:
+        save_netcdf(result, args.output_filepath)
+    return result
 
 
 if __name__ == "__main__":

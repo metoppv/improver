@@ -152,7 +152,9 @@ def main(argv=None):
         weights = load_cube(args.weights_for_collapsing_dim)
         result = CollapseMaskedNeighbourhoodCoordinate(
             args.coord_for_masking, weights=weights).process(result)
-    save_netcdf(result, args.output_filepath)
+    if args.output_filepath:
+        save_netcdf(result, args.output_filepath)
+    return result
 
 
 if __name__ == "__main__":

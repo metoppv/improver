@@ -72,7 +72,9 @@ def main(argv=None):
     cube_mean_wdir, _, _ = (
         WindDirection(backup_method=bmethod).process(wind_direction))
 
-    save_netcdf(cube_mean_wdir, args.output_filepath)
+    if args.output_filepath:
+        save_netcdf(cube_mean_wdir, args.output_filepath)
+    return cube_mean_wdir
 
 
 if __name__ == "__main__":

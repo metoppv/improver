@@ -68,7 +68,9 @@ def main(argv=None):
         temperature, lapse_rate, source_orog, target_orog)
 
     # save to output file
-    save_netcdf(adjusted_temperature, args.output_file)
+    if args.output_file:
+        save_netcdf(adjusted_temperature, args.output_file)
+    return adjusted_temperature
 
 
 if __name__ == "__main__":

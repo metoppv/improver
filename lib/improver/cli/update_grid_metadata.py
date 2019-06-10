@@ -68,11 +68,12 @@ def main(argv=None):
     # Create normalised file paths to make them comparable
     in_file_norm = os.path.normpath(args.input_filepath)
     out_file_norm = os.path.normpath(args.output_filepath)
-    if cube_changed or in_file_norm != out_file_norm:
-        # Ensure data are not lazy in case we are writing back to the same
-        # file.
-        cube.data
+    if args.output_filepath and cube_changed:
+        if in_file_norm == out_file_norm:
+            # Ensure no lazy data if writing back to the same file.
+            cube.data
         save_netcdf(cube, args.output_filepath)
+    return cube
 
 
 if __name__ == "__main__":

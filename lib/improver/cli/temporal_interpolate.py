@@ -127,14 +127,15 @@ def main(argv=None):
 
     len_files = len(args.output_files)
     len_cubes = len(interpolated_cubes)
-    if len_files == len_cubes:
-        for i, cube_out in enumerate(interpolated_cubes):
-            save_netcdf(cube_out, args.output_files[i])
-    else:
+    if args.output_files and len_files != len_cubes:
         msg = ("Output_files do not match cubes created. "
                "{} files given but {} required.".format(len_files,
                                                         len_cubes))
         raise ValueError(msg)
+    if args.output_files:
+        for i, cube_out in enumerate(interpolated_cubes):
+            save_netcdf(cube_out, args.output_files[i])
+    return interpolated_cubes
 
 
 if __name__ == "__main__":

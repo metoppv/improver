@@ -59,7 +59,9 @@ def main(argv=None):
     rad_uv_down = load_cube(args.radiation_flux_downward)
 
     result = calculate_uv_index(rad_uv_up, rad_uv_down)
-    save_netcdf(result, args.output_filepath)
+    if args.output_filepath:
+        save_netcdf(result, args.output_filepath)
+    return result
 
 
 if __name__ == "__main__":

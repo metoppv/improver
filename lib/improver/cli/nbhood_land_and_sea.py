@@ -210,7 +210,9 @@ def main(argv=None):
         combined_data = result_land.data.filled(0) + result_sea.data.filled(0)
         result = result_land.copy(data=combined_data)
 
-    save_netcdf(result, args.output_filepath)
+    if args.output_filepath:
+        save_netcdf(result, args.output_filepath)
+    return result
 
 
 if __name__ == "__main__":

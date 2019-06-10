@@ -105,7 +105,9 @@ def main(argv=None):
             cube, alphas_x=alphas_x_cube, alphas_y=alphas_y_cube,
             mask_cube=mask_cube)
 
-    save_netcdf(result, args.output_filepath)
+    if args.output_filepath:
+        save_netcdf(result, args.output_filepath)
+    return result
 
 
 if __name__ == "__main__":

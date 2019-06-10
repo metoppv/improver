@@ -215,6 +215,7 @@ def main(argv=None):
 
     if args.output_filepath:
         save_netcdf(output_data, args.output_filepath)
+    return output_data
 
 
 if __name__ == "__main__":

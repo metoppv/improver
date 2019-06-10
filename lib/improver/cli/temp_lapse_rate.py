@@ -120,7 +120,9 @@ def main(argv=None):
                   "history": "delete", "um_version": "delete"}
     result = amend_metadata(result, attributes=attributes)
 
-    save_netcdf(result, args.output_filepath)
+    if args.output_filepath:
+        save_netcdf(result, args.output_filepath)
+    return result
 
 
 if __name__ == "__main__":

@@ -53,7 +53,9 @@ def main(argv=None):
 
     cube = load_cube(args.input_file)
     halo_cube = create_cube_with_halo(cube, args.halo_radius)
-    save_netcdf(halo_cube, args.output_file)
+    if args.output_file:
+        save_netcdf(halo_cube, args.output_file)
+    return halo_cube
 
 
 if __name__ == '__main__':

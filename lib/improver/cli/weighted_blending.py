@@ -357,7 +357,9 @@ def main(argv=None):
             cycletime=args.cycletime)
         result = BlendingPlugin.process(cube, weights=weights)
 
-    save_netcdf(result, args.output_filepath)
+    if args.output_filepath:
+        save_netcdf(result, args.output_filepath)
+    return result
 
 
 if __name__ == "__main__":

@@ -67,7 +67,7 @@ def main(argv=None):
     if len(cubes) == 1:
         warnings.warn('Only a single cube input, so time lagging will have '
                       'no effect.')
-        save_netcdf(cubes[0], args.output_file)
+        result = cubes[0]
     # Raises an error if the validity times do not match
     else:
         for i, this_cube in enumerate(cubes):
@@ -79,7 +79,10 @@ def main(argv=None):
                            "compatible.")
                     raise ValueError(msg)
         result = GenerateTimeLaggedEnsemble().process(cubes)
+
+    if args.output_file:
         save_netcdf(result, args.output_file)
+    return result
 
 
 if __name__ == "__main__":

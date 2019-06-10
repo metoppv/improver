@@ -168,9 +168,9 @@ def main(argv=None):
 
         result_no_collapse_coord.rename(new_cube_name)
 
-    if args.collapse_coord == "None":
-        save_netcdf(result_no_collapse_coord, args.output_filepath)
-    else:
+    result = result_no_collapse_coord
+
+    if args.collapse_coord != "None":
         # Raise warning if result_no_collapse_coord is masked array
         if np.ma.isMaskedArray(result_no_collapse_coord.data):
             warnings.warn("Collapse-coord option not fully tested with "
@@ -184,10 +184,12 @@ def main(argv=None):
 
         BlendingPlugin = WeightedBlendAcrossWholeDimension(
             args.collapse_coord, weighting_mode='weighted_mean')
-        result_collapse_coord = BlendingPlugin.process(
+        result = BlendingPlugin.process(
             result_no_collapse_coord, weights)
 
-        save_netcdf(result_collapse_coord, args.output_filepath)
+    if args.output_filepath:
+        save_netcdf(result, args.output_filepath)
+    return result
 
 
 if __name__ == "__main__":

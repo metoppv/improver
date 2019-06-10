@@ -68,7 +68,9 @@ def main(argv=None):
 
     result = calculate_feels_like_temperature(temperature, wind_speed,
                                               relative_humidity, pressure)
-    save_netcdf(result, args.output_filepath)
+    if args.output_filepath:
+        save_netcdf(result, args.output_filepath)
+    return result
 
 
 if __name__ == "__main__":

@@ -150,7 +150,9 @@ def main(argv=None):
                 cube, no_of_percentiles=args.no_of_realizations)
         cube = RebadgePercentilesAsRealizations().process(cube)
 
-    save_netcdf(cube, args.output_filepath)
+    if args.output_filepath:
+        save_netcdf(cube, args.output_filepath)
+    return cube
 
 
 if __name__ == '__main__':

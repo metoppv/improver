@@ -69,7 +69,9 @@ def main(argv=None):
     check_cube_not_float64(remasked_data, fix=args.fix_float64)
 
     # save output file
-    save_netcdf(remasked_data, args.output_filepath)
+    if args.output_filepath:
+        save_netcdf(remasked_data, args.output_filepath)
+    return remasked_data
 
 
 if __name__ == "__main__":

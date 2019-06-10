@@ -127,7 +127,9 @@ def main(argv=None):
         args.coordinate, args.central_point, units, args.width,
         args.weighting_mode)
     result = BlendingPlugin.process(cube)
-    save_netcdf(result, args.output_filepath)
+    if args.output_filepath:
+        save_netcdf(result, args.output_filepath)
+    return result
 
 
 if __name__ == "__main__":

@@ -99,7 +99,9 @@ def main(argv=None):
             orog,
             land_sea)
 
-    save_netcdf(result, args.output_filepath)
+    if args.output_filepath:
+        save_netcdf(result, args.output_filepath)
+    return result
 
 
 if __name__ == "__main__":

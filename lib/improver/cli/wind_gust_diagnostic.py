@@ -87,7 +87,9 @@ def main(argv=None):
     result = (
         WindGustDiagnostic(args.percentile_gust,
                            args.percentile_ws).process(cube_wg, cube_ws))
-    save_netcdf(result, args.output_filepath)
+    if args.output_filepath:
+        save_netcdf(result, args.output_filepath)
+    return result
 
 
 if __name__ == "__main__":

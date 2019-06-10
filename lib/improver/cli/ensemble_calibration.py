@@ -243,7 +243,9 @@ def main(argv=None):
             percentiles, current_forecast,
             random_ordering=args.random_ordering,
             random_seed=args.random_seed)
-    save_netcdf(result, args.output_filepath)
+    if args.output_filepath:
+        save_netcdf(result, args.output_filepath)
+    return result
 
 
 if __name__ == "__main__":

@@ -100,7 +100,9 @@ def main(argv=None):
     coefficients = (
         estcoeffs.estimate_coefficients_for_ngr(historic_forecast, truth))
 
-    save_netcdf(coefficients, args.output_filepath)
+    if args.output_filepath:
+        save_netcdf(coefficients, args.output_filepath)
+    return coefficients
 
 
 if __name__ == "__main__":

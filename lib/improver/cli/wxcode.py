@@ -145,7 +145,9 @@ def main(argv=None):
         raise argparse.ArgumentTypeError(msg)
 
     result = (WeatherSymbols(wxtree=args.wxtree).process(cubes))
-    save_netcdf(result, args.output_filepath)
+    if args.output_filepath:
+        save_netcdf(result, args.output_filepath)
+    return result
 
 
 if __name__ == "__main__":

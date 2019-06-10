@@ -125,7 +125,9 @@ def main(argv=None):
             args.coordinates, percentiles=percentiles,
             fast_percentile_method=fast_percentile_method).process(cube)
 
-    save_netcdf(result, args.output_filepath)
+    if args.output_filepath:
+        save_netcdf(result, args.output_filepath)
+    return result
 
 
 if __name__ == "__main__":

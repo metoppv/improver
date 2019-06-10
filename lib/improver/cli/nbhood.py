@@ -273,7 +273,9 @@ def main(argv=None):
     if args.halo_radius is not None:
         result = remove_cube_halo(result, args.halo_radius)
 
-    save_netcdf(result, args.output_filepath)
+    if args.output_filepath:
+        save_netcdf(result, args.output_filepath)
+    return result
 
 
 if __name__ == "__main__":

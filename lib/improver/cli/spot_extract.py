@@ -272,7 +272,9 @@ def main(argv=None):
         result = amend_metadata(result, **metadata_dict)
 
     # Save the spot data cube
-    save_netcdf(result, args.output_filepath)
+    if args.output_filepath:
+        save_netcdf(result, args.output_filepath)
+    return result
 
 
 if __name__ == "__main__":
