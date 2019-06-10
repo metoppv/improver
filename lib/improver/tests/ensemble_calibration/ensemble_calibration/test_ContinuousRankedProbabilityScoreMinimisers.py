@@ -61,7 +61,7 @@ class Test__repr__(IrisTest):
         msg = ("<ContinuousRankedProbabilityScoreMinimisers: "
                "minimisation_dict: {'gaussian': 'normal_crps_minimiser', "
                "'truncated gaussian': 'truncated_normal_crps_minimiser'}; "
-               "max_iterations: 1000>")
+               "max_iterations: 1000; decimals: 5>")
         self.assertEqual(result, msg)
 
     def test_update_max_iterations_and_decimals(self):
