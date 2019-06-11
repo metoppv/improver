@@ -53,7 +53,8 @@ from improver.utilities.cube_metadata import (
     update_stage_v110_metadata,
     in_vicinity_name_format,
     extract_diagnostic_name,
-    generate_hash)
+    generate_hash,
+    create_coordinate_hash)
 from improver.utilities.warnings_handler import ManageWarnings
 
 from improver.tests.set_up_test_cubes import (
@@ -974,8 +975,8 @@ class Test_create_coordinate_hash(IrisTest):
         """Test the expected hash is returned for a given cube."""
 
         hash_input = set_up_variable_cube(np.zeros((3, 3)).astype(np.float32))
-        result = generate_hash(hash_input)
-        expected = "6b38ed4d0863afe91f0e756b9482c947"
+        result = create_coordinate_hash(hash_input)
+        expected = "fd40f6d5a8e0a347f181d87bcfd445fa"
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -991,8 +992,8 @@ class Test_create_coordinate_hash(IrisTest):
         hash_input2.remove_coord("latitude")
         hash_input2.add_dim_coord(latitude, 0)
 
-        result1 = generate_hash(hash_input1)
-        result2 = generate_hash(hash_input2)
+        result1 = create_coordinate_hash(hash_input1)
+        result2 = create_coordinate_hash(hash_input2)
         self.assertNotEqual(result1, result2)
 
 
