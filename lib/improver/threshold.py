@@ -180,6 +180,40 @@ class BasicThreshold(object):
         ).format(self.thresholds, self.fuzzy_bounds,
                  self.below_thresh_ok)
 
+    @staticmethod
+    def _add_threshold_coord(cube, threshold):
+        """
+        Add a scalar threshold-type dimension coordinate to a cube containing
+        thresholded data and promote the new dimension coordinate to be
+        the leading dimension of the cube.
+
+        Args:
+            cube (iris.cube.Cube):
+                Cube containing thresholded data (1s and 0s)
+            threshold (np.float32):
+                Value at which the data has been thresholded
+
+        Returns:
+            iris.cube.Cube:
+                With new "threshold" axis
+        """
+        try:
+            coord = iris.coords.DimCoord(
+                np.array([threshold], dtype=np.float32),
+                standard_name=cube.name(),
+                var_name="threshold", units=cube.units)
+        except ValueError as cause:
+            if 'is not a valid standard_name' in str(cause):
+                coord = iris.coords.DimCoord(
+                    np.array([threshold], dtype=np.float32),
+                    long_name=cube.name(),
+                    var_name="threshold", units=cube.units)
+            else:
+                raise ValueError(cause)
+
+        cube.add_aux_coord(coord)
+        return iris.util.new_axis(cube, coord)
+
     def process(self, input_cube):
         """Convert each point to a truth value based on provided threshold
         values. The truth value may or may not be fuzzy depending upon if
@@ -261,12 +295,7 @@ class BasicThreshold(object):
             if np.ma.is_masked(cube.data):
                 cube.data[input_cube.data.mask] = (
                     input_cube.data[input_cube.data.mask])
-            coord = iris.coords.DimCoord(
-                np.array([threshold], dtype=np.float32),
-                long_name="threshold",
-                units=cube.units)
-            cube.add_aux_coord(coord)
-            cube = iris.util.new_axis(cube, 'threshold')
+            cube = self._add_threshold_coord(cube, threshold)
             thresholded_cubes.append(cube)
 
         cube, = thresholded_cubes.concatenate()
