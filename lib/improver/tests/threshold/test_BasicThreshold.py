@@ -121,10 +121,9 @@ class Test__add_threshold_coord(IrisTest):
     """Test the _add_threshold_coord method"""
 
     def setUp(self):
-        """Test a scalar threshold coordinate is created"""
+        """Set up a cube and plugin for testing."""
         self.cube = set_up_variable_cube(np.ones((3, 3), dtype=np.float32))
         self.plugin = Threshold([1])
-        self.plugin.threshold_coord_name = self.cube.name()
 
     def test_basic(self):
         """Test a scalar threshold coordinate is created"""
@@ -140,7 +139,6 @@ class Test__add_threshold_coord(IrisTest):
     def test_long_name(self):
         """Test coordinate is created with non-standard diagnostic name"""
         self.cube.rename("sky_temperature")
-        self.plugin.threshold_coord_name = self.cube.name()
         result = self.plugin._add_threshold_coord(self.cube, 1)
         self.assertIn("sky_temperature", [coord.long_name for coord in
                                           result.coords(dim_coords=True)])

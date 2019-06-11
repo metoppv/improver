@@ -122,9 +122,6 @@ class BasicThreshold(object):
         else:
             self.threshold_units = Unit(threshold_units)
 
-        # initialise threshold coordinate name as None
-        self.threshold_coord_name = None
-
         # read fuzzy factor or set (default) to 1 (no smoothing)
         fuzzy_factor_loc = 1.
         if fuzzy_factor is not None:
@@ -183,10 +180,12 @@ class BasicThreshold(object):
         ).format(self.thresholds, self.fuzzy_bounds,
                  self.below_thresh_ok)
 
-    def _add_threshold_coord(self, cube, threshold):
+    @staticmethod
+    def _add_threshold_coord(cube, threshold):
         """
-        Add a scalar threshold-type dimension to a cube containing thresholded
-        data.
+        Add a scalar threshold-type dimension coordinate to a cube containing
+        thresholded data and promote the new dimension coordinate to be
+        the leading dimension of the cube.
 
         Args:
             cube (iris.cube.Cube):
@@ -201,13 +200,13 @@ class BasicThreshold(object):
         try:
             coord = iris.coords.DimCoord(
                 np.array([threshold], dtype=np.float32),
-                standard_name=self.threshold_coord_name,
+                standard_name=cube.name(),
                 var_name="threshold", units=cube.units)
         except ValueError as cause:
             if 'is not a valid standard_name' in str(cause):
                 coord = iris.coords.DimCoord(
                     np.array([threshold], dtype=np.float32),
-                    long_name=self.threshold_coord_name,
+                    long_name=cube.name(),
                     var_name="threshold", units=cube.units)
             else:
                 raise ValueError(cause)
@@ -262,9 +261,6 @@ class BasicThreshold(object):
             self.fuzzy_bounds = [tuple([
                 self.threshold_units.convert(threshold, input_cube.units)
                 for threshold in bounds]) for bounds in self.fuzzy_bounds]
-
-        # set name of threshold coordinate
-        self.threshold_coord_name = input_cube.name()
 
         # apply fuzzy thresholding
         for threshold, bounds in zip(self.thresholds, self.fuzzy_bounds):
