@@ -174,16 +174,6 @@ def main(argv=None):
                              'then the number of iterations may require '
                              'increasing, as there will be more coefficients '
                              'to solve for.')
-    parser.add_argument('--decimals', metavar='DECIMALS',
-                        type=np.int32, default=5,
-                        help='Integer to define how many decimals the inputs '
-                             'to the minimisation will be rounded to. This is '
-                             'for the purpose of obtaining consistent output '
-                             'from the minimisation across different packages '
-                             'and processors, where differences at the '
-                             'machine precision level will cause the '
-                             'minimisation to go in different directions and '
-                             'reach different solutions.')
     args = parser.parse_args(args=argv)
 
     current_forecast = load_cube(args.input_filepath)

@@ -75,7 +75,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
     # as part of the minimisation.
     BAD_VALUE = np.float64(999999)
 
-    def __init__(self, max_iterations=1000, decimals=5):
+    def __init__(self, max_iterations=1000):
         """
         Initialise class for performing minimisation of the Continuous
         Ranked Probability Score (CRPS).
@@ -90,13 +90,6 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
                 predictor_of_mean is "realizations", then the number of
                 iterations may require increasing, as there will be
                 more coefficients to solve for.
-            decimals (int):
-                Integer to define how many decimals the inputs to the
-                minimisation will be rounded to. This is for the purpose
-                of obtaining consistent output from the minimisation
-                across different packages and processors, where differences
-                at the machine precision level will cause the minimisation
-                to go in different directions and reach different solutions.
 
         """
         # Dictionary containing the minimisation functions, which will
@@ -106,16 +99,15 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
             "truncated gaussian": self.truncated_normal_crps_minimiser}
         # Maximum iterations for minimisation using Nelder-Mead.
         self.max_iterations = max_iterations
-        self.decimals = decimals
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = ('<ContinuousRankedProbabilityScoreMinimisers: '
-                  'minimisation_dict: {}; max_iterations: {}; decimals: {}>')
+                  'minimisation_dict: {}; max_iterations: {}>')
         print_dict = {}
         for key in self.minimisation_dict:
             print_dict.update({key: self.minimisation_dict[key].__name__})
-        return result.format(print_dict, self.max_iterations, self.decimals)
+        return result.format(print_dict, self.max_iterations)
 
     def crps_minimiser_wrapper(
             self, initial_guess, forecast_predictor, truth, forecast_var,
@@ -166,7 +158,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
             if (np.any(last_iteration_percentage_change >
                        self.TOLERATED_PERCENTAGE_CHANGE)):
                 np.set_printoptions(suppress=True)
-                msg = ("\nThe final iteration resulted in a percentage change "
+                msg = ("The final iteration resulted in a percentage change "
                        "that is greater than the accepted threshold of 5% "
                        "i.e. {}. "
                        "\nA satisfactory minimisation has not been achieved. "
@@ -201,19 +193,11 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
                 forecast_predictor)
             forecast_var_data = forecast_var.data.flatten()
 
-        initial_guess = np.array(initial_guess, dtype=np.float32)
-        forecast_predictor_data = forecast_predictor_data.astype(np.float32)
-        forecast_var_data = forecast_var_data.astype(np.float32)
-        truth_data = truth_data.astype(np.float32)
-        sqrt_pi = np.sqrt(np.pi).astype(np.float32)
-
-        forecast_predictor_data = (
-            np.around(forecast_predictor_data, decimals=self.decimals))
-        forecast_var_data = np.around(
-            forecast_var_data, decimals=self.decimals)
-        truth_data = np.around(truth_data, decimals=self.decimals)
-        sqrt_pi = np.around(sqrt_pi, decimals=self.decimals)
-        initial_guess = np.around(initial_guess, decimals=self.decimals)
+        initial_guess = np.array(initial_guess, dtype=np.float64)
+        forecast_predictor_data = forecast_predictor_data.astype(np.float64)
+        forecast_var_data = forecast_var_data.astype(np.float64)
+        truth_data = truth_data.astype(np.float64)
+        sqrt_pi = np.sqrt(np.pi).astype(np.float64)
 
         optimised_coeffs = minimize(
             minimisation_function, initial_guess,
@@ -368,8 +352,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
     ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = True
 
     def __init__(self, distribution, current_cycle, desired_units=None,
-                 predictor_of_mean_flag="mean", max_iterations=1000,
-                 decimals=5):
+                 predictor_of_mean_flag="mean", max_iterations=1000):
         """
         Create an ensemble calibration plugin that, for Nonhomogeneous Gaussian
         Regression, calculates coefficients based on historical forecasts and
@@ -402,13 +385,6 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 predictor_of_mean is "realizations", then the number of
                 iterations may require increasing, as there will be
                 more coefficients to solve for.
-            decimals (int):
-                Integer to define how many decimals the inputs to the
-                minimisation will be rounded to. This is for the purpose
-                of obtaining consistent output from the minimisation
-                across different packages and processors, where differences
-                at the machine precision level will cause the minimisation
-                to go in different directions and reach different solutions.
 
         """
         self.distribution = distribution
@@ -418,9 +394,8 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         check_predictor_of_mean_flag(predictor_of_mean_flag)
         self.predictor_of_mean_flag = predictor_of_mean_flag
         self.max_iterations = max_iterations
-        self.decimals = decimals
         self.minimiser = ContinuousRankedProbabilityScoreMinimisers(
-            max_iterations=self.max_iterations, decimals=self.decimals)
+            max_iterations=self.max_iterations)
 
         # Setting default values for coeff_names. Beta is the final
         # coefficient name in the list, as there can potentially be
@@ -456,12 +431,11 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                   'predictor_of_mean_flag: {}; '
                   'minimiser: {}; '
                   'coeff_names: {}; '
-                  'max_iterations: {}; '
-                  'decimals: {}>')
+                  'max_iterations: {}>')
         return result.format(
             self.distribution, self.current_cycle, self.desired_units,
             self.predictor_of_mean_flag, self.minimiser.__class__,
-            self.coeff_names, self.max_iterations, self.decimals)
+            self.coeff_names, self.max_iterations)
 
     def create_coefficients_cube(
             self, optimised_coeffs, historic_forecast):
@@ -970,20 +944,12 @@ class EnsembleCalibration(object):
                 predictor_of_mean is "realizations", then the number of
                 iterations may require increasing, as there will be
                 more coefficients to solve for.
-            decimals (int):
-                Integer to define how many decimals the inputs to the
-                minimisation will be rounded to. This is for the purpose
-                of obtaining consistent output from the minimisation
-                across different packages and processors, where differences
-                at the machine precision level will cause the minimisation
-                to go in different directions and reach different solutions.
         """
         self.calibration_method = calibration_method
         self.distribution = distribution
         self.desired_units = desired_units
         self.predictor_of_mean_flag = predictor_of_mean_flag
         self.max_iterations = max_iterations
-        self.decimals = decimals
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -996,7 +962,7 @@ class EnsembleCalibration(object):
                   'decimals: {}>')
         return result.format(
             self.calibration_method, self.distribution, self.desired_units,
-            self.predictor_of_mean_flag, self.max_iterations, self.decimals)
+            self.predictor_of_mean_flag, self.max_iterations)
 
     def process(self, current_forecast, historic_forecast, truth):
         """
@@ -1042,8 +1008,7 @@ class EnsembleCalibration(object):
                     self.distribution, current_cycle=current_cycle,
                     desired_units=self.desired_units,
                     predictor_of_mean_flag=self.predictor_of_mean_flag,
-                    max_iterations=self.max_iterations,
-                    decimals=self.decimals)
+                    max_iterations=self.max_iterations)
                 coefficient_cube = (
                     ec.estimate_coefficients_for_ngr(
                         historic_forecast, truth))

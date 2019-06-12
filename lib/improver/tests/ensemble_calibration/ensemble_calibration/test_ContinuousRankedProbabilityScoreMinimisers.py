@@ -61,17 +61,17 @@ class Test__repr__(IrisTest):
         msg = ("<ContinuousRankedProbabilityScoreMinimisers: "
                "minimisation_dict: {'gaussian': 'normal_crps_minimiser', "
                "'truncated gaussian': 'truncated_normal_crps_minimiser'}; "
-               "max_iterations: 1000; decimals: 5>")
+               "max_iterations: 1000>")
         self.assertEqual(result, msg)
 
-    def test_update_max_iterations_and_decimals(self):
-        """A test to update the max_iterations and decimals
+    def test_update_max_iterations(self):
+        """A test to update the max_iterations
         keyword argument."""
-        result = str(Plugin(max_iterations=10, decimals=2))
+        result = str(Plugin(max_iterations=10))
         msg = ("<ContinuousRankedProbabilityScoreMinimisers: "
                "minimisation_dict: {'gaussian': 'normal_crps_minimiser', "
                "'truncated gaussian': 'truncated_normal_crps_minimiser'}; "
-               "max_iterations: 10; decimals: 2>")
+               "max_iterations: 10>")
         self.assertEqual(result, msg)
 
 
@@ -351,9 +351,9 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupInputs):
         """Set up expected output."""
         super().setUp()
         self.expected_mean_coefficients = (
-            [-0.000236, 0.797574, 0.000423, 0.997329])
+            [-0.000235, 0.797650, 0.000423, 0.997330])
         self.expected_realizations_coefficients = (
-            [0., 1.05, 0., 0.5774, 0.5774, 0.5774])
+            [0.0226,  1.0567, -0.0039,  0.3432,  0.2542,  0.9026])
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -392,7 +392,7 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupInputs):
         """
         predictor_of_mean_flag = "realizations"
         distribution = "gaussian"
-        plugin = Plugin(max_iterations=5)
+        plugin = Plugin()
         result = plugin.crps_minimiser_wrapper(
             self.initial_guess_for_realization,
             self.temperature_forecast_predictor_realizations,
@@ -401,8 +401,7 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupInputs):
         self.assertIsInstance(result, np.ndarray)
         self.assertEqual(result.dtype, np.float32)
         self.assertArrayAlmostEqual(
-            result, self.expected_realizations_coefficients,
-            decimal=4)
+            result, self.expected_realizations_coefficients, decimal=4)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -469,7 +468,7 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupInputs):
         the initial guess.
         """
         predictor_of_mean_flag = "realizations"
-        max_iterations = 5
+        max_iterations = 1000
         distribution = "gaussian"
 
         plugin = Plugin(max_iterations=max_iterations)
@@ -480,34 +479,6 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupInputs):
             predictor_of_mean_flag, distribution)
         self.assertArrayAlmostEqual(
             result, self.expected_realizations_coefficients, decimal=4)
-
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate.",
-                          "Minimisation did not result in convergence",
-                          "divide by zero encountered in"],
-        warning_types=[UserWarning, UserWarning, RuntimeWarning])
-    def test_mean_predictor_decimals(self):
-        """
-        Test that the plugin returns a list of coefficients
-        equal to specific values, when the ensemble mean is the predictor
-        assuming a normal distribution and the value specified for the
-        decimal precision to which the inputs to the minimisation will be
-        rounded is overridden. The coefficients are calculated by
-        minimising the CRPS and using a set default value for the
-        initial guess.
-        """
-        predictor_of_mean_flag = "mean"
-        distribution = "gaussian"
-        decimals = 4
-
-        plugin = Plugin(decimals=decimals)
-        result = plugin.crps_minimiser_wrapper(
-            self.initial_guess_for_mean,
-            self.temperature_forecast_predictor_mean,
-            self.temperature_truth_cube,  self.temperature_forecast_variance,
-            predictor_of_mean_flag, distribution)
-        self.assertArrayAlmostEqual(
-            result, self.expected_mean_coefficients, decimal=3)
 
     @ManageWarnings(
         record=True,
@@ -576,14 +547,14 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupInputs):
         """Set up expected output."""
         super().setUp()
         self.expected_mean_coefficients = (
-            [-0.14688, 1.386366, -0.080467, 0.866662])
+            [0.000005, 1.543387, -0.514061, 0.939994])
         self.expected_realizations_coefficients = (
-            [0.000281, 1.05625, 0.000281, 0.559308, 0.534049, 0.537657])
+            [0.080978, 1.34056, -0.031015, 0.700256, -0.003556, 0.608326])
 
     """Test minimising the CRPS for a truncated_normal distribution."""
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
-                          "Minimisation did not result in convergence",
+                          "The final iteration resulted in",
                           "invalid value encountered in",
                           "divide by zero encountered in"],
         warning_types=[UserWarning, UserWarning, RuntimeWarning,
@@ -617,7 +588,7 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupInputs):
         predictor_of_mean_flag = "realizations"
         distribution = "truncated gaussian"
 
-        plugin = Plugin(max_iterations=5)
+        plugin = Plugin()
         result = plugin.crps_minimiser_wrapper(
             self.initial_guess_for_realization,
             self.wind_speed_forecast_predictor_realizations,
@@ -670,10 +641,11 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupInputs):
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
                           "Minimisation did not result in convergence",
+                          "The final iteration resulted in",
                           "invalid value encountered in",
                           "divide by zero encountered in"],
-        warning_types=[UserWarning, UserWarning, RuntimeWarning,
-                       RuntimeWarning])
+        warning_types=[UserWarning, UserWarning, UserWarning,
+                       RuntimeWarning, RuntimeWarning])
     def test_mean_predictor_max_iterations(self):
         """
         Test that the plugin returns a list of coefficients
@@ -712,7 +684,7 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupInputs):
         the initial guess.
         """
         predictor_of_mean_flag = "realizations"
-        max_iterations = 5
+        max_iterations = 1000
         distribution = "truncated gaussian"
 
         plugin = Plugin(max_iterations=max_iterations)
@@ -723,36 +695,6 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupInputs):
             predictor_of_mean_flag, distribution)
         self.assertArrayAlmostEqual(
             result, self.expected_realizations_coefficients)
-
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate.",
-                          "Minimisation did not result in convergence",
-                          "invalid value encountered in",
-                          "divide by zero encountered in"],
-        warning_types=[UserWarning, UserWarning, RuntimeWarning,
-                       RuntimeWarning])
-    def test_mean_predictor_decimals(self):
-        """
-        Test that the plugin returns a list of coefficients
-        equal to specific values, when the ensemble mean is the predictor
-        assuming a truncated normal distribution and the value specified
-        for the decimal precision to which the inputs to the minimisation
-        will be rounded is overridden. The coefficients are
-        calculated by minimising the CRPS and using a set default value for
-        the initial guess.
-        """
-        predictor_of_mean_flag = "mean"
-        decimals = 4
-        distribution = "truncated gaussian"
-
-        plugin = Plugin(decimals=decimals)
-        result = plugin.crps_minimiser_wrapper(
-            self.initial_guess_for_mean,
-            self.wind_speed_forecast_predictor_mean,
-            self.wind_speed_truth_cube, self.wind_speed_forecast_variance,
-            predictor_of_mean_flag, distribution)
-        self.assertArrayAlmostEqual(
-            result, self.expected_mean_coefficients, decimal=1)
 
     @ManageWarnings(
         record=True,

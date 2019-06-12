@@ -58,25 +58,22 @@ try:
 except ImportError:
     STATSMODELS_FOUND = False
 
-IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate.",
-                    "Not importing directory .*sphinxcontrib'",
-                    "The pandas.core.datetools module is deprecated",
-                    "numpy.dtype size changed",
-                    "The statsmodels can not be imported",
-                    "invalid escape sequence",
-                    "can't resolve package from",
-                    "Collapsing a non-contiguous coordinate.",
-                    "Minimisation did not result in"
-                    " convergence",
-                    "\nThe final iteration resulted in a percentage "
-                    "change that is greater than the"
-                    " accepted threshold ",
-                    "divide by zero encountered in true_divide",
-                    "invalid value encountered in",
-                    ]
-WARNING_TYPES = [UserWarning, ImportWarning, FutureWarning, RuntimeWarning,
-                 ImportWarning, DeprecationWarning, ImportWarning, UserWarning,
-                 UserWarning, UserWarning, RuntimeWarning, RuntimeWarning]
+IGNORED_MESSAGES = [
+    "Collapsing a non-contiguous coordinate",  # Originating from Iris
+    "The statsmodels can not be imported",
+    "invalid escape sequence",  # Originating from statsmodels
+    "can't resolve package from",  # Originating from statsmodels
+    "Minimisation did not result in convergence",  # From calibration code
+    "The final iteration resulted in",  # From calibration code
+]
+WARNING_TYPES = [
+    UserWarning,
+    ImportWarning,
+    DeprecationWarning,
+    ImportWarning,
+    UserWarning,
+    UserWarning,
+]
 
 
 class Test__init__(IrisTest):
@@ -201,7 +198,7 @@ class Test__repr__(IrisTest):
                "ensemble_calibration."
                "ContinuousRankedProbabilityScoreMinimisers'>; "
                "coeff_names: ['gamma', 'delta', 'alpha', 'beta']; "
-               "max_iterations: 1000; decimals: 5>")
+               "max_iterations: 1000>")
         self.assertEqual(result, msg)
 
     @ManageWarnings(
@@ -221,7 +218,7 @@ class Test__repr__(IrisTest):
                "ensemble_calibration."
                "ContinuousRankedProbabilityScoreMinimisers'>; "
                "coeff_names: ['gamma', 'delta', 'alpha', 'beta']; "
-               "max_iterations: 10; decimals: 5>")
+               "max_iterations: 10>")
         self.assertEqual(result, msg)
 
 
@@ -541,7 +538,7 @@ class Test_compute_initial_guess(IrisTest):
             truth, current_forecast_predictor, self.predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag)
 
-        self.assertArrayAlmostEqual(result, data, decimal=5)
+        self.assertArrayAlmostEqual(result, data)
 
     @unittest.skipIf(
         STATSMODELS_FOUND is False, "statsmodels module not available.")
@@ -612,9 +609,9 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
         self.coeff_names = ["gamma", "delta", "alpha", "beta"]
 
         self.expected_mean_predictor_gaussian = (
-            [-0.00304, 0.48848, 23.45157, 0.91286])
+            [0., 0.48874, 23.4357, 0.91292])
         self.expected_mean_predictor_truncated_gaussian = (
-            [-0.004465, 1.543353, -0.513725, 0.939933])
+            [-0.000041, 1.543424, -0.514009, 0.939986])
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -640,8 +637,7 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
             self.temperature_truth_cube)
 
         self.assertArrayAlmostEqual(
-            result.data, self.expected_mean_predictor_gaussian,
-            decimal=5)
+            result.data, self.expected_mean_predictor_gaussian, decimal=5)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, self.coeff_names)
 
@@ -652,7 +648,7 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
         expected values, and the coefficient names also match
         expected values for a Gaussian distribution."""
         expected = (
-            [-0.000236, 0.797574, 0.000423, 0.997329])
+            [-0.000235, 0.79765, 0.000423, 0.997329])
         plugin = Plugin(self.distribution, self.current_cycle)
         plugin.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
         result = plugin.estimate_coefficients_for_ngr(
@@ -708,7 +704,7 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
         expected values for a truncated Gaussian distribution."""
-        expected = [-0.14688, 1.386366, -0.080467, 0.866662]
+        expected = [0.000005, 1.543387, -0.514061, 0.939994]
         distribution = "truncated gaussian"
 
         plugin = Plugin(distribution, self.current_cycle)
@@ -730,15 +726,14 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
         expected values, and the coefficient names also match
         expected values for a Gaussian distribution where the
         realizations are used as the predictor of the mean."""
-        data = [0., 1., -0.31216, -0.09061, 0.34935, 0.776475]
+        data = [-0.000341,  1.002182, -0.281903, -0.077341, 0.389210, 0.916809]
 
         predictor_of_mean_flag = "realizations"
         expected_coeff_names = (
             ['gamma', 'delta', 'alpha', 'beta0', 'beta1', 'beta2'])
 
         plugin = Plugin(self.distribution, self.current_cycle,
-                        predictor_of_mean_flag=predictor_of_mean_flag,
-                        max_iterations=5)
+                        predictor_of_mean_flag=predictor_of_mean_flag)
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
@@ -761,20 +756,19 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
         to a common solution across different package versions and
         processors.
         """
-        data = np.array([0., 1.05, 0., 0.57735, 0.57735, 0.57735],
-                        dtype=np.float32)
+        data = np.array([0.022628, 1.056736, -0.00394, 0.343177, 0.254187,
+                         0.902592], dtype=np.float32)
 
         predictor_of_mean_flag = "realizations"
         expected_coeff_names = (
             ['gamma', 'delta', 'alpha', 'beta0', 'beta1', 'beta2'])
 
         plugin = Plugin(self.distribution, self.current_cycle,
-                        predictor_of_mean_flag=predictor_of_mean_flag,
-                        max_iterations=5)
+                        predictor_of_mean_flag=predictor_of_mean_flag)
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertArrayAlmostEqual(result.data, data, decimal=5)
+        self.assertArrayAlmostEqual(result.data, data)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, expected_coeff_names)
 
@@ -787,7 +781,7 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
         expected values, and the coefficient names also match
         expected values for a truncated Gaussian distribution where the
         realizations are used as the predictor of the mean."""
-        data = [0.000005, 1.059259, -0.758778, -0.084672, 0.370073, 0.783322]
+        data = [-0.007036, 1.335972, -0.501214, -0.529463, 0.000286, 0.812843]
 
         distribution = "truncated gaussian"
         predictor_of_mean_flag = "realizations"
@@ -795,12 +789,10 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
             ['gamma', 'delta', 'alpha', 'beta0', 'beta1', 'beta2'])
 
         plugin = Plugin(distribution, self.current_cycle,
-                        predictor_of_mean_flag=predictor_of_mean_flag,
-                        max_iterations=5)
+                        predictor_of_mean_flag=predictor_of_mean_flag)
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
-
         self.assertArrayAlmostEqual(result.data, data)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, expected_coeff_names)
@@ -819,7 +811,7 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
         maximum number of iterations is to try to ensure convergence
         to a common solution across different package versions and
         processors."""
-        data = [0.00028, 1.05625, 0.00028, 0.55931, 0.53405, 0.53766]
+        data = [0.080978, 1.34056, -0.031015, 0.700256, -0.003556, 0.608326]
 
         distribution = "truncated gaussian"
         predictor_of_mean_flag = "realizations"
@@ -827,13 +819,12 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
             ['gamma', 'delta', 'alpha', 'beta0', 'beta1', 'beta2'])
 
         plugin = Plugin(distribution, self.current_cycle,
-                        predictor_of_mean_flag=predictor_of_mean_flag,
-                        max_iterations=5)
+                        predictor_of_mean_flag=predictor_of_mean_flag)
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
 
-        self.assertArrayAlmostEqual(result.data, data, decimal=5)
+        self.assertArrayAlmostEqual(result.data, data)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, expected_coeff_names)
 
@@ -861,8 +852,7 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
         desired_units = "Kelvin"
 
         plugin = Plugin(
-            self.distribution, self.current_cycle,
-            desired_units=desired_units, max_iterations=1000)
+            self.distribution, self.current_cycle, desired_units=desired_units)
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube, truth)
 
@@ -879,8 +869,7 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
         desired_units = "Kelvin"
 
         plugin = Plugin(
-            self.distribution, self.current_cycle,
-            desired_units=desired_units, max_iterations=1000)
+            self.distribution, self.current_cycle, desired_units=desired_units)
         result = plugin.estimate_coefficients_for_ngr(
             historic_forecast, self.temperature_truth_cube)
 
