@@ -43,7 +43,6 @@ usage: improver ensemble-calibration [-h] [--profile]
                                      [--random_seed RANDOM_SEED]
                                      [--ecc_bounds_warning]
                                      [--max_iterations MAX_ITERATIONS]
-                                     [--decimals DECIMALS]
                                      ENSEMBLE_CALIBRATION_METHOD
                                      UNITS_TO_CALIBRATE_IN DISTRIBUTION
                                      INPUT_FILE HISTORIC_DATA_FILE
@@ -143,13 +142,6 @@ optional arguments:
                         "realizations", then the number of iterations may
                         require increasing, as there will be more coefficients
                         to solve for.
-  --decimals DECIMALS   Integer to define how many decimals the inputs to the
-                        minimisation will be rounded to. This is for the
-                        purpose of obtaining consistent output from the
-                        minimisation across different packages and processors,
-                        where differences at the machine precision level will
-                        cause the minimisation to go in different directions
-                        and reach different solutions.
 __HELP__
   [[ "$output" == "$expected" ]]
 }
