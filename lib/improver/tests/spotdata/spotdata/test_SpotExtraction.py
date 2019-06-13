@@ -38,6 +38,7 @@ from iris.tests import IrisTest
 
 from improver.spotdata.spot_extraction import SpotExtraction
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
+from improver.utilities.cube_metadata import create_coordinate_hash
 
 
 class Test_SpotExtraction(IrisTest):
@@ -66,23 +67,20 @@ class Test_SpotExtraction(IrisTest):
         ycoord = iris.coords.DimCoord(
             np.linspace(0, 40, 5), standard_name='latitude', units='degrees')
 
+        attributes = {
+            'mosg__grid_domain': 'global',
+            'mosg__grid_type': 'standard'}
+
         diagnostic_cube_xy = iris.cube.Cube(
             diagnostic_data, standard_name="air_temperature", units='K',
             dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)],
-            attributes={
-                'mosg__grid_domain': 'global',
-                'mosg__grid_type': 'standard',
-                'mosg__grid_version': '1.2.0',
-                'mosg__model_configuration': 'gl_det'})
-
+            attributes=attributes)
         diagnostic_cube_yx = iris.cube.Cube(
             diagnostic_data.T, standard_name="air_temperature", units='K',
             dim_coords_and_dims=[(ycoord, 0), (xcoord, 1)],
-            attributes={
-                'mosg__grid_domain': 'global',
-                'mosg__grid_type': 'standard',
-                'mosg__grid_version': '1.2.0',
-                'mosg__model_configuration': 'gl_det'})
+            attributes=attributes)
+
+        diagnostic_cube_hash = create_coordinate_hash(diagnostic_cube_yx)
 
         # neighbours, each group is for a point under two methods, e.g.
         # [ 0.  0.  0.] is the nearest point to the first spot site, whilst
@@ -105,6 +103,7 @@ class Test_SpotExtraction(IrisTest):
             neighbours, 'grid_neighbours', 1, altitudes, latitudes,
             longitudes, wmo_ids, grid_attributes=grid_attributes,
             neighbour_methods=neighbour_methods)
+        neighbour_cube.attributes['model_grid_hash'] = diagnostic_cube_hash
 
         coordinate_cube = neighbour_cube.extract(
             iris.Constraint(neighbour_selection_method_name='nearest') &
@@ -128,18 +127,15 @@ class Test__repr__(IrisTest):
         """Test that the __repr__ returns the expected string with defaults."""
         plugin = SpotExtraction()
         result = str(plugin)
-        msg = ('<SpotExtraction: neighbour_selection_method: nearest, '
-               'grid_metadata_identifier: mosg>')
+        msg = '<SpotExtraction: neighbour_selection_method: nearest>'
         self.assertEqual(result, msg)
 
     def test_non_default(self):
         """Test that the __repr__ returns the expected string with non-default
         options."""
-        plugin = SpotExtraction(neighbour_selection_method='nearest_land',
-                                grid_metadata_identifier='bom')
+        plugin = SpotExtraction(neighbour_selection_method='nearest_land')
         result = str(plugin)
-        msg = ('<SpotExtraction: neighbour_selection_method: nearest_land, '
-               'grid_metadata_identifier: bom>')
+        msg = '<SpotExtraction: neighbour_selection_method: nearest_land>'
         self.assertEqual(result, msg)
 
 
@@ -217,42 +213,45 @@ class Test_process(Test_SpotExtraction):
 
     def test_unmatched_cube_error(self):
         """Test that an error is raised if the neighbour cube and diagnostic
-        cube do not have the expected attributes matching."""
-        plugin = SpotExtraction(grid_metadata_identifier='mosg')
-        msg = 'Cubes do not share the metadata identified '
+        cube do not have matching grids."""
+        self.neighbour_cube.attributes['model_grid_hash'] = '123'
+        plugin = SpotExtraction()
+        msg = ("Cubes do not share or originate from the same grid, so cannot "
+               "be used together.")
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(self.neighbour_cube, self.diagnostic_cube_xy)
 
     def test_returned_cube_nearest(self):
         """Test that data within the returned cube is as expected for the
         nearest neigbours."""
-        plugin = SpotExtraction(grid_metadata_identifier=None)
+        plugin = SpotExtraction()
         expected = [0, 0, 12, 12]
         result = plugin.process(self.neighbour_cube, self.diagnostic_cube_xy)
         self.assertArrayEqual(result.data, expected)
         self.assertEqual(result.name(), self.diagnostic_cube_xy.name())
         self.assertEqual(result.units, self.diagnostic_cube_xy.units)
-        self.assertDictEqual(result.attributes,
-                             self.diagnostic_cube_xy.attributes)
         self.assertArrayEqual(result.coord('latitude').points, self.latitudes)
         self.assertArrayEqual(result.coord('longitude').points,
                               self.longitudes)
+        result.attributes.pop('model_grid_hash')
+        self.assertDictEqual(result.attributes,
+                             self.diagnostic_cube_xy.attributes)
 
     def test_returned_cube_nearest_land(self):
         """Test that data within the returned cube is as expected for the
         nearest land neighbours."""
-        plugin = SpotExtraction(grid_metadata_identifier=None,
-                                neighbour_selection_method='nearest_land')
+        plugin = SpotExtraction(neighbour_selection_method='nearest_land')
         expected = [6, 6, 12, 12]
         result = plugin.process(self.neighbour_cube, self.diagnostic_cube_xy)
         self.assertArrayEqual(result.data, expected)
         self.assertEqual(result.name(), self.diagnostic_cube_xy.name())
         self.assertEqual(result.units, self.diagnostic_cube_xy.units)
-        self.assertDictEqual(result.attributes,
-                             self.diagnostic_cube_xy.attributes)
         self.assertArrayEqual(result.coord('latitude').points, self.latitudes)
         self.assertArrayEqual(result.coord('longitude').points,
                               self.longitudes)
+        result.attributes.pop('model_grid_hash')
+        self.assertDictEqual(result.attributes,
+                             self.diagnostic_cube_xy.attributes)
 
     def test_cube_with_leading_dimensions(self):
         """Test that a cube with a leading dimension such as realization or
@@ -270,7 +269,7 @@ class Test_process(Test_SpotExtraction):
         cubes = iris.cube.CubeList([cube0, cube1])
         cube = cubes.merge_cube()
 
-        plugin = SpotExtraction(grid_metadata_identifier=None)
+        plugin = SpotExtraction()
         expected = [[0, 0, 12, 12], [0, 0, 12, 12]]
         expected_coord = iris.coords.DimCoord(
             [0, 1], standard_name='realization', units=1)
@@ -278,11 +277,12 @@ class Test_process(Test_SpotExtraction):
         self.assertArrayEqual(result.data, expected)
         self.assertEqual(result.name(), cube.name())
         self.assertEqual(result.units, cube.units)
-        self.assertDictEqual(result.attributes, cube.attributes)
         self.assertArrayEqual(result.coord('latitude').points, self.latitudes)
         self.assertArrayEqual(result.coord('longitude').points,
                               self.longitudes)
         self.assertEqual(result.coord('realization'), expected_coord)
+        result.attributes.pop('model_grid_hash')
+        self.assertDictEqual(result.attributes, cube.attributes)
 
 
 if __name__ == '__main__':

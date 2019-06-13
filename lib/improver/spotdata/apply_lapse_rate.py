@@ -45,15 +45,8 @@ class SpotLapseRateAdjust:
     orography.
     """
 
-    def __init__(self, grid_metadata_identifier,
-                 neighbour_selection_method='nearest'):
+    def __init__(self, neighbour_selection_method='nearest'):
         """
-        Args:
-            grid_metadata_identifier (str or None):
-                A string to search for in the input cube's attributes that
-                can be used to ensure that the cubes being used are for the
-                same model/grid. This test can be bypassed by setting this to
-                None.
         Keyword Args:
             neighbour_selection_method (str):
                 The neighbour cube may contain one or several sets of grid
@@ -72,14 +65,12 @@ class SpotLapseRateAdjust:
                 options that were specified when it was created.
         """
         self.neighbour_selection_method = neighbour_selection_method
-        self.grid_metadata_identifier = grid_metadata_identifier
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        return ('<SpotLapseRateAdjust: neighbour_selection_method: {}, '
-                'grid_metadata_identifier: {}>'.format(
-                    self.neighbour_selection_method,
-                    self.grid_metadata_identifier))
+        return ('<SpotLapseRateAdjust: neighbour_selection_method: {}'
+                '>'.format(
+                    self.neighbour_selection_method))
 
     def process(self, spot_data_cube, neighbour_cube, gridded_lapse_rate_cube):
         """
@@ -114,14 +105,12 @@ class SpotLapseRateAdjust:
                 temperatures.
         """
         # Check the cubes are compatible.
-        check_grid_match(self.grid_metadata_identifier,
-                         [spot_data_cube, neighbour_cube,
+        check_grid_match([neighbour_cube, spot_data_cube,
                           gridded_lapse_rate_cube])
 
         # Extract the lapse rates that correspond to the spot sites.
         extraction_plugin = SpotExtraction(
-            neighbour_selection_method=self.neighbour_selection_method,
-            grid_metadata_identifier=self.grid_metadata_identifier)
+            neighbour_selection_method=self.neighbour_selection_method)
         spot_lapse_rate = extraction_plugin.process(neighbour_cube,
                                                     gridded_lapse_rate_cube)
 
