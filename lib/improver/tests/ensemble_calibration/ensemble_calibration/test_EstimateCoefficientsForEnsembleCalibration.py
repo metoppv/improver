@@ -48,7 +48,8 @@ from improver.ensemble_calibration.ensemble_calibration import (
     ContinuousRankedProbabilityScoreMinimisers)
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import (set_up_temperature_cube,
-                             _create_historic_forecasts, SetupCubes)
+                             _create_historic_forecasts, SetupCubes,
+                             EnsembleCalibrationAssertions)
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
@@ -594,7 +595,8 @@ class Test_compute_initial_guess(IrisTest):
         self.assertArrayAlmostEqual(result, data)
 
 
-class Test_estimate_coefficients_for_ngr(SetupCubes):
+class Test_estimate_coefficients_for_ngr(
+        SetupCubes, EnsembleCalibrationAssertions):
 
     """Test the estimate_coefficients_for_ngr plugin."""
 
@@ -636,8 +638,8 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
 
-        self.assertArrayAlmostEqual(
-            result.data, self.expected_mean_predictor_gaussian, decimal=5)
+        self.assertArrayAlmostEqualLowerPrecision(
+            result.data, self.expected_mean_predictor_gaussian)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, self.coeff_names)
 
@@ -655,7 +657,7 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
 
-        self.assertArrayAlmostEqual(result.data, expected)
+        self.assertArrayAlmostEqualLowerPrecision(result.data, expected)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, self.coeff_names)
 
@@ -675,8 +677,8 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
 
-        self.assertArrayAlmostEqual(
-            result.data, self.expected_mean_predictor_gaussian, decimal=5)
+        self.assertArrayAlmostEqualLowerPrecision(
+            result.data, self.expected_mean_predictor_gaussian)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, self.coeff_names)
 
@@ -693,7 +695,7 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
 
-        self.assertArrayAlmostEqual(
+        self.assertArrayAlmostEqualLowerPrecision(
             result.data, self.expected_mean_predictor_truncated_gaussian)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, self.coeff_names)
@@ -713,7 +715,7 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
 
-        self.assertArrayAlmostEqual(result.data, expected)
+        self.assertArrayAlmostEqualLowerPrecision(result.data, expected)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, self.coeff_names)
 
@@ -737,7 +739,7 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertArrayAlmostEqual(result.data, data)
+        self.assertArrayAlmostEqualLowerPrecision(result.data, data)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, expected_coeff_names)
 
@@ -768,7 +770,7 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertArrayAlmostEqual(result.data, data)
+        self.assertArrayAlmostEqualLowerPrecision(result.data, data)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, expected_coeff_names)
 
@@ -793,7 +795,7 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
-        self.assertArrayAlmostEqual(result.data, data)
+        self.assertArrayAlmostEqualLowerPrecision(result.data, data)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, expected_coeff_names)
 
@@ -824,7 +826,7 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
 
-        self.assertArrayAlmostEqual(result.data, data)
+        self.assertArrayAlmostEqualLowerPrecision(result.data, data)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, expected_coeff_names)
 
@@ -856,8 +858,8 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube, truth)
 
-        self.assertArrayAlmostEqual(
-            result.data, self.expected_mean_predictor_gaussian, decimal=5)
+        self.assertArrayAlmostEqualLowerPrecision(
+            result.data, self.expected_mean_predictor_gaussian)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -873,8 +875,8 @@ class Test_estimate_coefficients_for_ngr(SetupCubes):
         result = plugin.estimate_coefficients_for_ngr(
             historic_forecast, self.temperature_truth_cube)
 
-        self.assertArrayAlmostEqual(
-            result.data, self.expected_mean_predictor_gaussian, decimal=5)
+        self.assertArrayAlmostEqualLowerPrecision(
+            result.data, self.expected_mean_predictor_gaussian)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)

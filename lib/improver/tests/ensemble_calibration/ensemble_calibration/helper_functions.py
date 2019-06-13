@@ -50,6 +50,30 @@ IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate"]
 WARNING_TYPES = [UserWarning]
 
 
+class EnsembleCalibrationAssertions(IrisTest):
+
+    """Additional assertions, specifically for usage in the
+    ensemble calibration unit tests."""
+
+    def assertArrayAlmostEqualLowerPrecision(self, first, second, decimal=4):
+        """Overriding of the assertArrayAlmostEqual method to check whether
+        array are matching to 4 decimal places. This is justified
+        based on the default tolerance of the minimisation using the
+        Nelder-Mead algorithm of 0.0001, so that minimisations on different
+        machines would only be aiming to match to 4 decimal places.
+
+        Args:
+            first (np.array):
+                First array to compare.
+            second (np.array):
+                Second array to compare.
+            decimal (int):
+                Number of decimal places that will be included within the
+                comparison.
+         """
+        self.assertArrayAlmostEqual(first, second, decimal=decimal)
+
+
 class SetupCubes(IrisTest):
 
     """Set up cubes for testing."""

@@ -47,7 +47,7 @@ from improver.ensemble_calibration.ensemble_calibration_utilities import (
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import set_up_temperature_cube, set_up_wind_speed_cube
 from improver.tests.ensemble_calibration.ensemble_calibration.\
-    helper_functions import SetupCubes
+    helper_functions import SetupCubes, EnsembleCalibrationAssertions
 from improver.utilities.warnings_handler import ManageWarnings
 
 
@@ -340,7 +340,8 @@ class SetupInputs(SetupCubes):
                      dtype=np.float32))
 
 
-class Test_crps_minimiser_wrapper_gaussian_distribution(SetupInputs):
+class Test_crps_minimiser_wrapper_gaussian_distribution(
+        SetupInputs, EnsembleCalibrationAssertions):
 
     """
     Test minimising the CRPS for a normal distribution.
@@ -375,7 +376,7 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupInputs):
             predictor_of_mean_flag, distribution)
         self.assertIsInstance(result, np.ndarray)
         self.assertEqual(result.dtype, np.float32)
-        self.assertArrayAlmostEqual(
+        self.assertArrayAlmostEqualLowerPrecision(
             result, self.expected_mean_coefficients)
 
     @ManageWarnings(
@@ -400,8 +401,8 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupInputs):
             predictor_of_mean_flag, distribution)
         self.assertIsInstance(result, np.ndarray)
         self.assertEqual(result.dtype, np.float32)
-        self.assertArrayAlmostEqual(
-            result, self.expected_realizations_coefficients, decimal=4)
+        self.assertArrayAlmostEqualLowerPrecision(
+            result, self.expected_realizations_coefficients)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -448,7 +449,7 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupInputs):
             self.temperature_forecast_predictor_mean,
             self.temperature_truth_cube,  self.temperature_forecast_variance,
             predictor_of_mean_flag, distribution)
-        self.assertArrayAlmostEqual(
+        self.assertArrayAlmostEqualLowerPrecision(
             result, self.expected_mean_coefficients)
 
     @ManageWarnings(
@@ -477,8 +478,8 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupInputs):
             self.temperature_forecast_predictor_realizations,
             self.temperature_truth_cube,  self.temperature_forecast_variance,
             predictor_of_mean_flag, distribution)
-        self.assertArrayAlmostEqual(
-            result, self.expected_realizations_coefficients, decimal=4)
+        self.assertArrayAlmostEqualLowerPrecision(
+            result, self.expected_realizations_coefficients)
 
     @ManageWarnings(
         record=True,
@@ -536,7 +537,8 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(SetupInputs):
                             for item in warning_list))
 
 
-class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupInputs):
+class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(
+        SetupInputs, EnsembleCalibrationAssertions):
 
     """
     Test minimising the CRPS for a normal distribution.
@@ -574,7 +576,8 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupInputs):
             self.wind_speed_truth_cube,  self.wind_speed_forecast_variance,
             predictor_of_mean_flag, distribution)
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, self.expected_mean_coefficients)
+        self.assertArrayAlmostEqualLowerPrecision(
+            result, self.expected_mean_coefficients)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -592,10 +595,10 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupInputs):
         result = plugin.crps_minimiser_wrapper(
             self.initial_guess_for_realization,
             self.wind_speed_forecast_predictor_realizations,
-            self.wind_speed_truth_cube,  self.wind_speed_forecast_variance,
+            self.wind_speed_truth_cube, self.wind_speed_forecast_variance,
             predictor_of_mean_flag, distribution)
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(
+        self.assertArrayAlmostEqualLowerPrecision(
             result, self.expected_realizations_coefficients)
 
     @ManageWarnings(
@@ -665,7 +668,8 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupInputs):
             self.wind_speed_forecast_predictor_mean,
             self.wind_speed_truth_cube, self.wind_speed_forecast_variance,
             predictor_of_mean_flag, distribution)
-        self.assertArrayAlmostEqual(result, self.expected_mean_coefficients)
+        self.assertArrayAlmostEqualLowerPrecision(
+            result, self.expected_mean_coefficients)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -693,7 +697,7 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(SetupInputs):
             self.wind_speed_forecast_predictor_realizations,
             self.wind_speed_truth_cube,  self.wind_speed_forecast_variance,
             predictor_of_mean_flag, distribution)
-        self.assertArrayAlmostEqual(
+        self.assertArrayAlmostEqualLowerPrecision(
             result, self.expected_realizations_coefficients)
 
     @ManageWarnings(

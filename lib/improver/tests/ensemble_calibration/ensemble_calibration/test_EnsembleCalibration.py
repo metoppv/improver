@@ -42,7 +42,7 @@ import numpy as np
 from improver.ensemble_calibration.ensemble_calibration import (
     EnsembleCalibration as Plugin)
 from improver.tests.ensemble_calibration.ensemble_calibration.\
-    helper_functions import SetupCubes
+    helper_functions import SetupCubes, EnsembleCalibrationAssertions
 from improver.utilities.warnings_handler import ManageWarnings
 
 try:
@@ -217,7 +217,8 @@ class Test_process_basic(SetupCubes):
                 self.temperature_truth_cube)
 
 
-class Test_process_check_data(SetupCubes, SetupExpectedResults):
+class Test_process_check_data(SetupCubes, SetupExpectedResults,
+                              EnsembleCalibrationAssertions):
 
     """Test the data with variance output from the process method."""
 
@@ -238,10 +239,10 @@ class Test_process_check_data(SetupCubes, SetupExpectedResults):
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertArrayAlmostEqual(
+        self.assertArrayAlmostEqualLowerPrecision(
             calibrated_predictor.data,
             self.expected_temperature_mean_data)
-        self.assertArrayAlmostEqual(
+        self.assertArrayAlmostEqualLowerPrecision(
             calibrated_variance.data,
             self.expected_temperature_variance_data)
 
@@ -262,10 +263,10 @@ class Test_process_check_data(SetupCubes, SetupExpectedResults):
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertArrayAlmostEqual(
+        self.assertArrayAlmostEqualLowerPrecision(
             calibrated_predictor.data,
             self.expected_temperature_mean_data)
-        self.assertArrayAlmostEqual(
+        self.assertArrayAlmostEqualLowerPrecision(
             calibrated_variance.data,
             self.expected_temperature_variance_data)
 
@@ -285,10 +286,10 @@ class Test_process_check_data(SetupCubes, SetupExpectedResults):
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
-        self.assertArrayAlmostEqual(
+        self.assertArrayAlmostEqualLowerPrecision(
             calibrated_predictor.data,
             self.expected_wind_speed_mean_data)
-        self.assertArrayAlmostEqual(
+        self.assertArrayAlmostEqualLowerPrecision(
             calibrated_variance.data,
             self.expected_wind_speed_variance_data)
 
@@ -309,17 +310,18 @@ class Test_process_check_data(SetupCubes, SetupExpectedResults):
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
-        self.assertArrayAlmostEqual(
+        self.assertArrayAlmostEqualLowerPrecision(
             calibrated_predictor.data,
             self.expected_wind_speed_mean_data)
-        self.assertArrayAlmostEqual(
+        self.assertArrayAlmostEqualLowerPrecision(
             calibrated_variance.data,
             self.expected_wind_speed_variance_data)
 
 
 @unittest.skipIf(
     STATSMODELS_FOUND is False, "statsmodels module not available.")
-class Test_process_with_statsmodels(SetupCubes, SetupExpectedResults):
+class Test_process_with_statsmodels(SetupCubes, SetupExpectedResults,
+                                    EnsembleCalibrationAssertions):
 
     """Additional tests for the process method when the statsmodels module
     is available. The statsmodels module is used for creating an initial
@@ -370,10 +372,10 @@ class Test_process_with_statsmodels(SetupCubes, SetupExpectedResults):
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertArrayAlmostEqual(
+        self.assertArrayAlmostEqualLowerPrecision(
             calibrated_predictor.data,
-            self.expected_specific_temperature_predictor_data, decimal=4)
-        self.assertArrayAlmostEqual(
+            self.expected_specific_temperature_predictor_data)
+        self.assertArrayAlmostEqualLowerPrecision(
             calibrated_variance.data,
             self.expected_specific_temperature_variance_data)
         self.assertArrayAlmostEqual(
@@ -402,10 +404,10 @@ class Test_process_with_statsmodels(SetupCubes, SetupExpectedResults):
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
-        self.assertArrayAlmostEqual(
+        self.assertArrayAlmostEqualLowerPrecision(
             calibrated_predictor.data,
             self.expected_specific_wind_speed_predictor_data)
-        self.assertArrayAlmostEqual(
+        self.assertArrayAlmostEqualLowerPrecision(
             calibrated_variance.data,
             self.expected_specific_wind_speed_variance_data)
         self.assertArrayAlmostEqual(
@@ -418,7 +420,8 @@ class Test_process_with_statsmodels(SetupCubes, SetupExpectedResults):
 
 @unittest.skipIf(
     STATSMODELS_FOUND is True, "statsmodels module is available.")
-class Test_process_without_statsmodels(SetupCubes, SetupExpectedResults):
+class Test_process_without_statsmodels(SetupCubes, SetupExpectedResults,
+                                       EnsembleCalibrationAssertions):
 
     """Additional tests for the process method when the statsmodels module
     is not available. A simple initial guess will be used for the
@@ -467,10 +470,10 @@ class Test_process_without_statsmodels(SetupCubes, SetupExpectedResults):
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertArrayAlmostEqual(
+        self.assertArrayAlmostEqualLowerPrecision(
             calibrated_predictor.data,
             self.expected_specific_temperature_predictor_data, decimal=4)
-        self.assertArrayAlmostEqual(
+        self.assertArrayAlmostEqualLowerPrecision(
             calibrated_variance.data,
             self.expected_specific_temperature_variance_data)
         self.assertArrayAlmostEqual(
@@ -502,10 +505,10 @@ class Test_process_without_statsmodels(SetupCubes, SetupExpectedResults):
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
-        self.assertArrayAlmostEqual(
+        self.assertArrayAlmostEqualLowerPrecision(
             calibrated_predictor.data,
             self.expected_specific_wind_speed_predictor_data)
-        self.assertArrayAlmostEqual(
+        self.assertArrayAlmostEqualLowerPrecision(
             calibrated_variance.data,
             self.expected_specific_wind_speed_variance_data)
         self.assertArrayAlmostEqual(
