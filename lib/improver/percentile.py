@@ -121,11 +121,11 @@ class PercentileConverter(object):
                               for test_coord in self.collapse_coord])
         # Check whether collapse_coord is a list, so that percentile_
         # over_ can be renamed easily. This uses the list to get the
-        # name of the percentile_over_ variable e.g. if the list is 
-        # ['longitude', 'latitude'] the name will be 
+        # name of the percentile_over_ variable e.g. if the list is
+        # ['longitude', 'latitude'] the name will be
         # 'percentile_over_longitude_latitude'
         name = 'percentile_over'
-        if type (self.collapse_coord) is list:
+        if type(self.collapse_coord) is list:
             i = 0
             while i < n_collapse_coords:
                 name = name + '_' + self.collapse_coord[i]
