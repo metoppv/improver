@@ -77,7 +77,7 @@ class EnsembleCalibrationAssertions(IrisTest):
         """Overriding of the assertAlmostEqual method to check whether
         array are matching to 3 decimal places. This is justified
         based on a 0.0001 precision level difference within the
-        ensemble calibration coefficients may escalate when these
+        ensemble calibration coefficients that may escalate when these
         coefficients are combined.
 
         Args:

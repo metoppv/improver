@@ -127,7 +127,7 @@ class Test_normal_crps_minimiser(
         SetupGaussianInputs, EnsembleCalibrationAssertions):
 
     """
-    Test minimising the CRPS for a normal distribution.
+    Test minimising the CRPS for a gaussian distribution.
     Either the ensemble mean or the individual ensemble realizations are
     used as the predictors.
     """
@@ -135,8 +135,8 @@ class Test_normal_crps_minimiser(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_mean_predictor(self):
         """
-        Test that the plugin returns a numpy float value with
-        mean as predictor.
+        Test that the plugin returns a numpy float value with the
+        mean as the predictor.
         """
         predictor_of_mean_flag = "mean"
 
@@ -153,8 +153,8 @@ class Test_normal_crps_minimiser(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_realizations_predictor(self):
         """
-        Test that the plugin returns a numpy float array with ensemble
-        realizations as predictor.
+        Test that the plugin returns a numpy float array with the ensemble
+        realizations as the predictor.
         """
         predictor_of_mean_flag = "realizations"
 
@@ -416,7 +416,7 @@ class Test_truncated_normal_crps_minimiser(
         SetupTruncatedGaussianInputs, EnsembleCalibrationAssertions):
 
     """
-    Test minimising the crps for a truncated normal distribution.
+    Test minimising the crps for a truncated gaussian distribution.
     Either the ensemble mean or the individual ensemble realizations are used
     as the predictors.
     """
