@@ -73,6 +73,24 @@ class EnsembleCalibrationAssertions(IrisTest):
          """
         self.assertArrayAlmostEqual(first, second, decimal=decimal)
 
+    def assertAlmostEqualLowerPrecision(self, first, second, places=3):
+        """Overriding of the assertAlmostEqual method to check whether
+        array are matching to 3 decimal places. This is justified
+        based on a 0.0001 precision level difference within the
+        ensemble calibration coefficients may escalate when these
+        coefficients are combined.
+
+        Args:
+            first (np.array):
+                First array to compare.
+            second (np.array):
+                Second array to compare.
+            places (int):
+                Number of decimal places that will be included within the
+                comparison.
+         """
+        self.assertAlmostEqual(first, second, places=places)
+
 
 class SetupCubes(IrisTest):
 
@@ -84,19 +102,18 @@ class SetupCubes(IrisTest):
         """Set up temperature and wind speed cubes for testing."""
         super().setUp()
         self.calibration_method = "ensemble model output_statistics"
-        data = np.array([[[0.3, 1.1, 2.6],
-                          [4.2, 5.3, 6.],
-                          [7.1, 8.2, 9.]],
-                         [[0.7, 2., 3],
-                          [4.3, 5.6, 6.4],
-                          [7., 8., 9.]],
-                         [[2.1, 3., 3.],
-                          [4.8, 5., 6.],
-                          [7.9, 8., 8.9]]])
-        data = data + 273.15
-        data = data.astype(np.float32)
+        base_data = np.array([[[0.3, 1.1, 2.6],
+                               [4.2, 5.3, 6.],
+                               [7.1, 8.2, 9.]],
+                              [[0.7, 2., 3],
+                               [4.3, 5.6, 6.4],
+                               [7., 8., 9.]],
+                              [[2.1, 3., 3.],
+                               [4.8, 5., 6.],
+                               [7.9, 8., 8.9]]], dtype=np.float32)
+        temperature_data = base_data + 273.15
         self.current_temperature_forecast_cube = set_up_variable_cube(
-            data, units="Kelvin", realizations=[0, 1, 2])
+            temperature_data, units="Kelvin", realizations=[0, 1, 2])
 
         self.historic_temperature_forecast_cube = (
             _create_historic_forecasts(self.current_temperature_forecast_cube))
@@ -105,18 +122,9 @@ class SetupCubes(IrisTest):
             _create_truth(self.current_temperature_forecast_cube))
 
         # Create a cube for testing wind speed.
-        data = np.array([[[0.3, 1.1, 2.6],
-                          [4.2, 5.3, 6.],
-                          [7.1, 8.2, 9.]],
-                         [[0.7, 2., 3],
-                          [4.3, 5.6, 6.4],
-                          [7., 8., 9.]],
-                         [[2.1, 3., 3.],
-                          [4.8, 5., 6.],
-                          [7.9, 8., 8.9]]])
-        data = data.astype(np.float32)
         self.current_wind_speed_forecast_cube = set_up_variable_cube(
-            data, name="wind_speed", units="m s-1", realizations=[0, 1, 2])
+            base_data, name="wind_speed", units="m s-1",
+            realizations=[0, 1, 2])
 
         self.historic_wind_speed_forecast_cube = (
             _create_historic_forecasts(self.current_wind_speed_forecast_cube))

@@ -81,22 +81,22 @@ class SetupExpectedResults(IrisTest):
         where either a temperature or wind speed cube has been provided
         as input."""
         super().setUp()
-        self.expected_temperature_mean_data = np.array(
+        self.expected_gaussian_mean_data = np.array(
             [[273.74277, 274.65567, 275.41644],
              [276.84668, 277.63785, 278.39862],
              [279.49414, 280.16364, 280.98523]], dtype=np.float32)
 
-        self.expected_temperature_variance_data = np.array(
+        self.expected_gaussian_variance_data = np.array(
             [[0.21338412, 0.21577403, 0.01273912],
              [0.02468313, 0.02149836, 0.01273912],
              [0.05812284, 0.00318527, 0.00079632]], dtype=np.float32)
 
-        self.expected_wind_speed_mean_data = np.array(
+        self.expected_truncated_gaussian_mean_data = np.array(
             [[0.45730978, 1.3972956, 2.1806173],
              [3.6532617, 4.4679155, 5.2512374],
              [6.3792205, 7.068543, 7.9145303]], dtype=np.float32)
 
-        self.expected_wind_speed_variance_data = np.array(
+        self.expected_truncated_gaussian_variance_data = np.array(
             [[2.128061, 2.1518826, 0.12704849],
              [0.24615654, 0.21439417, 0.12704849],
              [0.5796586, 0.03176204, 0.00794059]], dtype=np.float32)
@@ -108,11 +108,10 @@ class Test_process_basic(SetupCubes):
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_basic_temperature(self):
+    def test_basic_gaussian(self):
         """
         Test that the plugin returns an iris.cube.CubeList
-        with the desired length.
-        The ensemble mean is the predictor.
+        with the desired length. The ensemble mean is the predictor.
         """
         distribution = "gaussian"
         plugin = Plugin(self.calibration_method, distribution)
@@ -125,11 +124,10 @@ class Test_process_basic(SetupCubes):
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_basic_temperature_realizations(self):
+    def test_basic_gaussian_realizations(self):
         """
         Test that the plugin returns an iris.cube.CubeList
-        with the desired length.
-        The ensemble realizations is the predictor.
+        with the desired length. The ensemble realizations is the predictor.
         """
         distribution = "gaussian"
         predictor_of_mean_flag = "realizations"
@@ -145,11 +143,10 @@ class Test_process_basic(SetupCubes):
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_basic_wind_speed(self):
+    def test_basic_truncated_gaussian(self):
         """
         Test that the plugin returns an iris.cube.CubeList
-        with the desired length.
-        The ensemble mean is the predictor.
+        with the desired length. The ensemble mean is the predictor.
         """
         distribution = "truncated gaussian"
         plugin = Plugin(self.calibration_method, distribution)
@@ -162,11 +159,10 @@ class Test_process_basic(SetupCubes):
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_basic_wind_speed_realizations(self):
+    def test_basic_truncated_gaussian_realizations(self):
         """
         Test that the plugin returns an iris.cube.CubeList
-        with the desired length.
-        The ensemble realizations is the predictor.
+        with the desired length. The ensemble realizations is the predictor.
         """
         distribution = "truncated gaussian"
         predictor_of_mean_flag = "realizations"
@@ -203,8 +199,7 @@ class Test_process_basic(SetupCubes):
     def test_unknown_calibration_method(self):
         """
         Test that the plugin raises an error if an unknown calibration method
-        is requested.
-        The ensemble mean is the predictor.
+        is requested. The ensemble mean is the predictor.
         """
         calibration_method = "unknown"
         distribution = "gaussian"
@@ -224,13 +219,12 @@ class Test_process_check_data(SetupCubes, SetupExpectedResults,
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_temperature_data_check(self):
+    def test_gaussian_data_check(self):
         """
         Test that the plugin returns an iris.cube.CubeList
         of temperature cubes with the expected data, where the plugin
         returns a cubelist of, firstly, the predictor and, secondly the
-        variance.
-        The ensemble mean is the predictor.
+        variance. The ensemble mean is the predictor.
         """
         distribution = "gaussian"
         plugin = Plugin(self.calibration_method, distribution)
@@ -241,14 +235,14 @@ class Test_process_check_data(SetupCubes, SetupExpectedResults,
             self.temperature_truth_cube)
         self.assertArrayAlmostEqualLowerPrecision(
             calibrated_predictor.data,
-            self.expected_temperature_mean_data)
+            self.expected_gaussian_mean_data)
         self.assertArrayAlmostEqualLowerPrecision(
             calibrated_variance.data,
-            self.expected_temperature_variance_data)
+            self.expected_gaussian_variance_data)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_temperature_data_check_max_iterations(self):
+    def test_gaussian_data_check_max_iterations(self):
         """
         Test that the plugin returns an iris.cube.CubeList
         of temperature cubes with the expected data, where the plugin
@@ -265,20 +259,19 @@ class Test_process_check_data(SetupCubes, SetupExpectedResults,
             self.temperature_truth_cube)
         self.assertArrayAlmostEqualLowerPrecision(
             calibrated_predictor.data,
-            self.expected_temperature_mean_data)
+            self.expected_gaussian_mean_data)
         self.assertArrayAlmostEqualLowerPrecision(
             calibrated_variance.data,
-            self.expected_temperature_variance_data)
+            self.expected_gaussian_variance_data)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_wind_speed_data_check(self):
+    def test_truncated_gaussian_data_check(self):
         """
         Test that the plugin returns an iris.cube.CubeList
         of wind_speed cubes with the expected data, where the plugin
         returns a cubelist of, firstly, the predictor and, secondly the
-        variance.
-        The ensemble mean is the predictor.
+        variance. The ensemble mean is the predictor.
         """
         distribution = "truncated gaussian"
         plugin = Plugin(self.calibration_method, distribution)
@@ -288,14 +281,14 @@ class Test_process_check_data(SetupCubes, SetupExpectedResults,
             self.wind_speed_truth_cube)
         self.assertArrayAlmostEqualLowerPrecision(
             calibrated_predictor.data,
-            self.expected_wind_speed_mean_data)
+            self.expected_truncated_gaussian_mean_data)
         self.assertArrayAlmostEqualLowerPrecision(
             calibrated_variance.data,
-            self.expected_wind_speed_variance_data)
+            self.expected_truncated_gaussian_variance_data)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_wind_speed_data_check_max_iterations(self):
+    def test_truncated_gaussian_data_check_max_iterations(self):
         """
         Test that the plugin returns an iris.cube.CubeList
         of wind_speed cubes with the expected data, where the plugin
@@ -312,10 +305,10 @@ class Test_process_check_data(SetupCubes, SetupExpectedResults,
             self.wind_speed_truth_cube)
         self.assertArrayAlmostEqualLowerPrecision(
             calibrated_predictor.data,
-            self.expected_wind_speed_mean_data)
+            self.expected_truncated_gaussian_mean_data)
         self.assertArrayAlmostEqualLowerPrecision(
             calibrated_variance.data,
-            self.expected_wind_speed_variance_data)
+            self.expected_truncated_gaussian_variance_data)
 
 
 @unittest.skipIf(
@@ -333,35 +326,34 @@ class Test_process_with_statsmodels(SetupCubes, SetupExpectedResults,
     def setUp(self):
         """Set up temperature and wind speed cubes for testing."""
         super().setUp()
-        self.expected_specific_temperature_predictor_data = np.array(
-            [[274.1963, 275.15448, 275.31494],
-             [277.03445, 277.40604, 278.37195],
-             [280.06644, 280.30856, 281.2213]], dtype=np.float32)
+        self.expected_specific_gaussian_predictor_data = np.array(
+            [[274.19485, 275.15305, 275.31357],
+             [277.033, 277.4047, 278.37057],
+             [280.065, 280.3072, 281.21994]], dtype=np.float32)
 
-        self.expected_specific_temperature_variance_data = np.array(
-            [[0.8972256, 0.9072746, 0.05356484],
-             [0.10378637, 0.09039519, 0.05356484],
-             [0.24439174, 0.01339334, 0.00334842]], dtype=np.float32)
+        self.expected_specific_gaussian_variance_data = np.array(
+            [[0.89737666, 0.90740454, 0.05357252],
+             [0.10379408, 0.09040814, 0.05357251],
+             [0.24442674, 0.01339526, 0.0033489]], dtype=np.float32)
 
-        self.expected_specific_wind_speed_predictor_data = np.array(
+        self.expected_specific_truncated_gaussian_predictor_data = np.array(
             [[0.97038287, 1.7892897, 2.209787],
              [3.8476007, 4.288108, 5.145053],
              [6.708772, 7.083208, 7.9021144]], dtype=np.float32)
 
-        self.expected_specific_wind_speed_variance_data = np.array(
+        self.expected_specific_truncated_gaussian_variance_data = np.array(
             [[1.5944895, 1.6123377, 0.09524001],
              [0.18448117, 0.16068336, 0.09524001],
-             [0.4343561, 0.02384708, 0.00599896]], dtype=np.float32)
+             [0.4343561, 0.02384708, 0.0059989]], dtype=np.float32)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_temperature_realizations_data_check(self):
+    def test_gaussian_realizations_data_check(self):
         """
         Test that the plugin returns an iris.cube.CubeList
         of temperature cubes with the expected data, where the plugin
         returns a cubelist of, firstly, the predictor and, secondly the
-        variance.
-        The ensemble realizations is the predictor.
+        variance. The ensemble realizations is the predictor.
         """
         distribution = "gaussian"
         predictor_of_mean_flag = "realizations"
@@ -374,26 +366,25 @@ class Test_process_with_statsmodels(SetupCubes, SetupExpectedResults,
             self.temperature_truth_cube)
         self.assertArrayAlmostEqualLowerPrecision(
             calibrated_predictor.data,
-            self.expected_specific_temperature_predictor_data)
+            self.expected_specific_gaussian_predictor_data)
         self.assertArrayAlmostEqualLowerPrecision(
             calibrated_variance.data,
-            self.expected_specific_temperature_variance_data)
+            self.expected_specific_gaussian_variance_data)
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
-            self.expected_temperature_mean_data, decimal=0)
+            self.expected_gaussian_mean_data, decimal=0)
         self.assertArrayAlmostEqual(
             calibrated_variance.data,
-            self.expected_temperature_variance_data, decimal=0)
+            self.expected_gaussian_variance_data, decimal=0)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_wind_speed_realizations_data_check(self):
+    def test_truncated_gaussian_realizations_data_check(self):
         """
         Test that the plugin returns an iris.cube.CubeList
         of wind_speed cubes with the expected data, where the plugin
         returns a cubelist of, firstly, the predictor and, secondly the
-        variance.
-        The ensemble realizations is the predictor.
+        variance. The ensemble realizations is the predictor.
         """
         distribution = "truncated gaussian"
         predictor_of_mean_flag = "realizations"
@@ -406,16 +397,16 @@ class Test_process_with_statsmodels(SetupCubes, SetupExpectedResults,
             self.wind_speed_truth_cube)
         self.assertArrayAlmostEqualLowerPrecision(
             calibrated_predictor.data,
-            self.expected_specific_wind_speed_predictor_data)
+            self.expected_specific_truncated_gaussian_predictor_data)
         self.assertArrayAlmostEqualLowerPrecision(
             calibrated_variance.data,
-            self.expected_specific_wind_speed_variance_data)
+            self.expected_specific_truncated_gaussian_variance_data)
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
-            self.expected_wind_speed_mean_data, decimal=0)
+            self.expected_truncated_gaussian_mean_data, decimal=0)
         self.assertArrayAlmostEqual(
             calibrated_variance.data,
-            self.expected_wind_speed_variance_data, decimal=0)
+            self.expected_truncated_gaussian_variance_data, decimal=0)
 
 
 @unittest.skipIf(
@@ -429,37 +420,36 @@ class Test_process_without_statsmodels(SetupCubes, SetupExpectedResults,
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def setUp(self):
-        """Set up temperature and wind speed cubes for testing."""
+        """Set up temperature cubes for testing."""
         super().setUp()
-        self.expected_specific_temperature_predictor_data = np.array(
+        self.expected_specific_gaussian_predictor_data = np.array(
             [[274.1325, 275.0439, 275.2852],
              [277.02405, 277.4005, 278.3493],
              [280.0655, 280.34113, 281.23315]], dtype=np.float32)
 
-        self.expected_specific_temperature_variance_data = np.array(
+        self.expected_specific_gaussian_variance_data = np.array(
             [[0.9980779, 1.0092506, 0.06006714],
              [0.11590514, 0.10101636, 0.06006713],
              [0.27223495, 0.01540309, 0.00423481]], dtype=np.float32)
 
-        self.expected_specific_wind_speed_predictor_data = np.array(
+        self.expected_specific_truncated_gaussian_predictor_data = np.array(
             [[0.8932284, 1.6185861, 2.3541362],
              [3.8048353, 4.418258, 5.1315794],
              [6.3740964, 6.950509, 7.6758633]], dtype=np.float32)
 
-        self.expected_specific_wind_speed_variance_data = np.array(
+        self.expected_specific_truncated_gaussian_variance_data = np.array(
             [[1.6119667, 1.6299378, 0.10240279],
              [0.1922579, 0.16829637, 0.10240279],
              [0.4438519, 0.0305187, 0.01254779]], dtype=np.float32)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_temperature_realizations_data_check(self):
+    def test_gaussian_realizations_data_check(self):
         """
         Test that the plugin returns an iris.cube.CubeList
         of temperature cubes with the expected data, where the plugin
         returns a cubelist of, firstly, the predictor and, secondly the
-        variance.
-        The ensemble realizations is the predictor.
+        variance. The ensemble realizations is the predictor.
         """
         distribution = "gaussian"
         predictor_of_mean_flag = "realizations"
@@ -472,20 +462,20 @@ class Test_process_without_statsmodels(SetupCubes, SetupExpectedResults,
             self.temperature_truth_cube)
         self.assertArrayAlmostEqualLowerPrecision(
             calibrated_predictor.data,
-            self.expected_specific_temperature_predictor_data, decimal=4)
+            self.expected_specific_gaussian_predictor_data, decimal=4)
         self.assertArrayAlmostEqualLowerPrecision(
             calibrated_variance.data,
-            self.expected_specific_temperature_variance_data)
+            self.expected_specific_gaussian_variance_data)
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
-            self.expected_temperature_mean_data, decimal=0)
+            self.expected_gaussian_mean_data, decimal=0)
         self.assertArrayAlmostEqual(
             calibrated_variance.data,
-            self.expected_temperature_variance_data, decimal=0)
+            self.expected_gaussian_variance_data, decimal=0)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_wind_speed_realizations_data_check(self):
+    def test_truncated_gaussian_realizations_data_check(self):
         """
         Test that the plugin returns an iris.cube.CubeList
         of wind_speed cubes with the expected data, where the plugin
@@ -507,16 +497,16 @@ class Test_process_without_statsmodels(SetupCubes, SetupExpectedResults,
             self.wind_speed_truth_cube)
         self.assertArrayAlmostEqualLowerPrecision(
             calibrated_predictor.data,
-            self.expected_specific_wind_speed_predictor_data)
+            self.expected_specific_truncated_gaussian_predictor_data)
         self.assertArrayAlmostEqualLowerPrecision(
             calibrated_variance.data,
-            self.expected_specific_wind_speed_variance_data)
+            self.expected_specific_truncated_gaussian_variance_data)
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
-            self.expected_wind_speed_mean_data, decimal=0)
+            self.expected_truncated_gaussian_mean_data, decimal=0)
         self.assertArrayAlmostEqual(
             calibrated_variance.data,
-            self.expected_wind_speed_variance_data, decimal=0)
+            self.expected_truncated_gaussian_variance_data, decimal=0)
 
 
 if __name__ == '__main__':

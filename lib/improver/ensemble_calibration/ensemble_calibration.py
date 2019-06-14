@@ -901,8 +901,7 @@ class EnsembleCalibration(object):
 
     """
     def __init__(self, calibration_method, distribution, desired_units=None,
-                 predictor_of_mean_flag="mean", max_iterations=1000,
-                 decimals=5):
+                 predictor_of_mean_flag="mean", max_iterations=1000):
         """
         Create an ensemble calibration plugin that, for Nonhomogeneous Gaussian
         Regression, calculates coefficients based on historical forecasts and
@@ -958,8 +957,7 @@ class EnsembleCalibration(object):
                   'distribution: {}; '
                   'desired_units: {}; '
                   'predictor_of_mean_flag: {}; '
-                  'max_iterations: {}; '
-                  'decimals: {}>')
+                  'max_iterations: {}>')
         return result.format(
             self.calibration_method, self.distribution, self.desired_units,
             self.predictor_of_mean_flag, self.max_iterations)
