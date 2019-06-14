@@ -119,7 +119,12 @@ class PercentileConverter(object):
         n_valid_coords = sum([test_coord == coord.name()
                               for coord in cube.coords()
                               for test_coord in self.collapse_coord])
-
+        # Check whether collapse_coord is a list, so that percentile_over_
+        # can be renamed easily.
+        if type (self.collapse_coord) is list:
+            collapse = self.collapse_coord[0]
+        else:
+            collapse = self.collapse_coord
         if n_valid_coords == n_collapse_coords:
             result = cube.collapsed(
                 self.collapse_coord, iris.analysis.PERCENTILE,
@@ -128,6 +133,9 @@ class PercentileConverter(object):
             result.data = result.data.astype(data_type)
             for coord in self.collapse_coord:
                 result.remove_coord(coord)
+            old_name = 'percentile_over_' + collapse
+            result.coord(old_name).long_name = 'percentile'
+            result.coord('percentile').unit = '%'
             return result
 
         raise CoordinateNotFoundError(

@@ -182,9 +182,9 @@ def main(argv=None):
                         result)
                 # This ensures the output for percentiles derived from
                 # realization input looks like that derived from other inputs.
-                result.coord('percentile_over_realization').rename(
-                    'percentile')
-                result.coord('percentile').units = '%'
+ #               result.coord('percentile_over_realization').rename(
+ #                   'percentile')
+ #               result.coord('percentile').units = '%'
             else:
                 msg = ('Diagnostic cube is not a known probabilistic type. '
                        'The {} percentile could not be extracted. Extracting '
