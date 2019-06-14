@@ -78,8 +78,8 @@ class WeatherSymbols(object):
         # flag to indicate whether to expect "threshold" as a coordinate name
         # (defaults to False, checked on reading input cubes)
         self.coord_named_threshold = False
-        # dictionary to contain names of threshold coordinates that do not match
-        # expected convention
+        # dictionary to contain names of threshold coordinates that do not
+        # match expected convention
         self.threshold_coord_names = {}
 
     def __repr__(self):
