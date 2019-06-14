@@ -48,21 +48,22 @@ def enforce_coordinate_units_and_dtypes(cubes, coordinates, inplace=True):
         cubes (iris.cube.CubeList):
             List of cubes on which to enforce coordinate units and data types.
         coordinates (list):
-            List of coordinates for which units and dtypes shoule be enforced.
-            This is a list of names or iris coordinates.
-    Kwargs:
+            List of coordinates for which units and dtypes should be enforced.
+            This is a list of coordinate names.
+    Keyword Args:
         inplace (bool):
             If True (default) the cubes are modified in place, if False this
             function returns a modified copy of the cubes.
     Returns:
-        cubes (cubelist or insitu):
+        cubes (iris.cube.CubeList or insitu):
             The input cubes with units and data types of the chosen coordinates
             set to match the definitions in units.py.
     Raises:
         KeyError: If coordinate to enforce is not defined in units.py
         ValueError: If requested unit conversion is not possible.
-        ValueError: If a temporal unit could not be converted without losing
-                    significant information (e.g. rounding to nearest hour).
+        ValueError: If a unit data type could not be converted without losing
+                    significant information (e.g. rounding time to the nearest
+                    hour when there are sub-hourly components).
     """
     if not inplace:
         cubes = [cube.copy() for cube in cubes]
@@ -72,7 +73,6 @@ def enforce_coordinate_units_and_dtypes(cubes, coordinates, inplace=True):
             try:
                 unit = DEFAULT_UNITS[coord_name]["unit"]
                 dtype = DEFAULT_UNITS[coord_name]["dtype"]
-                utype = DEFAULT_UNITS[coord_name]["utype"]
             except KeyError:
                 msg = "Coordinate {} not defined in units.py"
                 raise KeyError(msg.format(coord_name))
@@ -81,42 +81,50 @@ def enforce_coordinate_units_and_dtypes(cubes, coordinates, inplace=True):
                 coordinate = cube.coord(coord_name)
                 coordinate.convert_units(unit)
             except ValueError:
-                msg = "{} units cannot be converted to {}"
-                raise ValueError(msg.format(coord, unit))
+                msg = '{} units cannot be converted to "{}"'
+                raise ValueError(msg.format(coord_name, unit))
             except CoordinateNotFoundError:
                 pass
             else:
-                if check_temporal_precision_loss(utype, dtype, coordinate):
+                if check_precision_loss(dtype, coordinate.points):
                     coordinate.points = coordinate.points.astype(dtype)
                 else:
-                    msg = ('Data type of temporal coordinate "{}" could not be'
+                    msg = ('Data type of coordinate "{}" could not be'
                            ' enforced without losing significant precision.')
                     raise ValueError(msg.format(coord_name))
 
     if not inplace:
         return cubes
 
-def enforce_diagnostic_units_and_dtypes(cubes, inplace=True):
+def enforce_diagnostic_units_and_dtypes(cubes, inplace=True,
+                                        check_precision=False):
     """
     Function to enforce diagnostic units and data types as defined in units.py.
 
-    By default the cube units are changed in place, but setting inplace to
-    False will return a copy of the cubes, leaving the originals unchanged.
+    By default the diagnostic units are changed in place, but setting inplace
+    to False will return a copy of the cubes, leaving the originals unchanged.
 
     Args:
         cubes (iris.cube.CubeList):
             List of cubes on which to enforce diagnostic units and data types.
-    Kwargs:
+    Keyword Args:
         inplace (bool):
             If True (default) the cubes are modified in place, if False this
             function returns a modified copy of the cubes.
+        check_precision (bool):
+            If True the change of cube units and data types is checked to
+            ensure precision is not lost, e.g. losing decimal places when
+            converting the data type. This defaults to False.
     Returns:
-        cubes (cubelist or insitu):
+        cubes (iris.cube.CubeList or insitu):
             The input cubes with units and data types of the diagnostic
             set to match the definitions in units.py.
     Raises:
         KeyError: If coordinate to enforce is not defined in units.py
         ValueError: If requested unit conversion is not possible.
+        ValueError: If a unit data type could not be converted without losing
+                    significant information (e.g. removing significant
+                    fractional components when converting to integers).
     """
     if not inplace:
         cubes = [cube.copy() for cube in cubes]
@@ -133,46 +141,55 @@ def enforce_diagnostic_units_and_dtypes(cubes, inplace=True):
         try:
             cube.convert_units(unit)
         except ValueError:
-            msg = "{} units cannot be converted to {}"
+            msg = '{} units cannot be converted to "{}"'
             raise ValueError(msg.format(diagnostic, unit))
         else:
-            cube.data = cube.data.astype(dtype)
+            if not check_precision or check_precision_loss(dtype, cube.data):
+                cube.data = cube.data.astype(dtype)
+            else:
+                msg = ('Data type of diagnostic "{}" could not be'
+                       ' enforced without losing significant precision.')
+                raise ValueError(msg.format(diagnostic))
 
     if not inplace:
         return cubes
 
-def check_temporal_precision_loss(utype, dtype, coordinate):
+def check_precision_loss(dtype, data, precision=5):
     """
-    When changing the data type time coordinates it is important to ensure
-    that the loss of decimals does not fundamentally alter the time that is
-    recorded. This function is used to check whether the conversion of a time
-    coordinate to an integer type would result in the loss of important decimal
-    information.
+    This function checks that when converting data types there is not a loss
+    of significant information. Float to integer conversion, and integer to
+    integer conversion are covered by this function. Float to float conversion
+    may be lossy if changing from 64 bit to 32 bit floats, but changes at this
+    precision are not captured here by design.
 
-    Consider a validity time of 2018-11-03 16:15:00 expressed in seconds since
-    1970-01-01 00:00:00 on an input cube.
+    If the conversion is lossless (to the defined precision) this fuction
+    returns True. If there is loss, the function returns False.
 
-    If units.py defines the fundamental units of time as hours since
-    1970-01-01 00:00:00 and the data type as int64, we can see that there is no
-    way to retain the 15 minutes, instead we would alter the validity time of
-    the cube to 16:00 by changing the data type.
+    .. See the documentation for examples of where such loss is important.
+    .. include:: extended_documentation/utilities/cube_units/
+       check_precision_loss_examples.rst
 
-    This function returns True if the coordinate being considered is not a
-    temporal coordinate or if the data type to which it is being converted is
-    not of integer type.
-
-    It returns True if there the time points are all integers to within
-    reasonable precision; decimals beyond 5 decimal places are assumed to be
-    precision errors. These values can be encoded as integers without loss of
-    information.
-
-    It returns False if the conversion would result in important decimals being
-    removed and the time being fundamentally modified.
+    Args:
+        dtype (dtype):
+            The data type to which the data is being converted.
+        data (np.ndarray):
+            The data that is to be checked for precision loss under data type
+            conversion.
+    Keyword Args:
+        precision (int):
+            The number of decimal places beyond which differences are ignored.
+    Returns:
+        bool:
+            True if the conversion is lossless to the given precision.
+            False if the conversion if lossy to the given precision.
     """
-    if not (utype is 'temporal' and np.issubdtype(dtype, np.integer)):
+    if not np.issubdtype(dtype, np.integer):
         return True
+    if np.issubdtype(data.dtype, np.integer):
+        values = dtype(data)
+        integers = data
+    else:
+        values = np.round(data, precision)
+        fractions, integers = np.modf(values)
 
-    points = coordinate.points
-    rounded_values = np.round(points, 5)
-    fractions, integers = np.modf(points)
-    return (rounded_values == integers).all()
+    return (values == integers).all()

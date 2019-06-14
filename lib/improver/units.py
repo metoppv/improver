@@ -34,22 +34,17 @@ import numpy as np
 DEFAULT_UNITS = {
     "time": {
         "unit": "seconds since 1970-01-01 00:00:00",
-        "dtype": np.int64,
-        "utype": "temporal"},
+        "dtype": np.int64},
     "forecast_reference_time": {
         "unit": "seconds since 1970-01-01 00:00:00",
-        "dtype": np.int64,
-        "utype": "temporal"},
+        "dtype": np.int64},
     "forecast_period": {
         "unit": "seconds",
-        "dtype": np.int32,
-        "utype": "temporal"},
+        "dtype": np.int32},
     "lwe_thickness_of_precipitation_amount": {
         "unit": "m",
-        "dtype": np.float32,
-        "utype": "spatial"},
+        "dtype": np.float32},
     "lwe_precipitation_rate": {
         "unit": "m s-1",
-        "dtype": np.float32,
-        "utype": "spatial"},
+        "dtype": np.float32},
 }
