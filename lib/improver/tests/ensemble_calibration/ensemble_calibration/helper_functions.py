@@ -41,6 +41,7 @@ from iris.cube import Cube, CubeList
 import numpy as np
 
 from improver.utilities.cube_manipulation import concatenate_cubes
+from improver.utilities.cube_metadata import extract_diagnostic_name
 
 
 def set_up_probability_threshold_cube(
@@ -57,14 +58,15 @@ def set_up_probability_threshold_cube(
             phenomenon_standard_name, relative_to_threshold))
     cube = Cube(data, long_name=cube_long_name,
                 units=1)
+    threshold_coord_name = extract_diagnostic_name(cube_long_name)
 
     try:
         cube.add_dim_coord(
-            DimCoord(forecast_thresholds, phenomenon_standard_name,
+            DimCoord(forecast_thresholds, threshold_coord_name,
                      units=phenomenon_units, var_name="threshold"), 0)
     except ValueError:
         cube.add_dim_coord(
-            DimCoord(forecast_thresholds, long_name=phenomenon_standard_name,
+            DimCoord(forecast_thresholds, long_name=threshold_coord_name,
                      units=phenomenon_units, var_name="threshold"), 0)
 
     time_origin = "hours since 1970-01-01 00:00:00"
