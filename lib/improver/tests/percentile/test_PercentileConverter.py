@@ -87,6 +87,7 @@ class Test_process(IrisTest):
         # Check coordinate name.
         self.assertEqual(result.coords()[0].name(),
                          'percentile')
+        # Check coordinate units.
         self.assertEqual(result.coords()[0].units, '%')
         # Check coordinate points.
         self.assertArrayEqual(
@@ -119,6 +120,8 @@ class Test_process(IrisTest):
         # Check coordinate name.
         self.assertEqual(result.coords()[0].name(),
                          'percentile')
+        # Check coordinate units.
+        self.assertEqual(result.coords()[0].units, '%')
         # Check coordinate points.
         self.assertArrayEqual(
             result.coord('percentile').points,
@@ -144,6 +147,8 @@ class Test_process(IrisTest):
         # Check coordinate name.
         self.assertEqual(result.coords()[0].name(),
                          'percentile')
+        # Check coordinate units.
+        self.assertEqual(result.coords()[0].units, '%')
         # Check coordinate points.
         self.assertArrayEqual(
             result.coord('percentile').points,
@@ -173,6 +178,8 @@ class Test_process(IrisTest):
         # Check coordinate name.
         self.assertEqual(result.coords()[0].name(),
                          'percentile')
+        # Check coordinate units.
+        self.assertEqual(result.coords()[0].units, '%')
         # Check coordinate points.
         self.assertArrayEqual(
             result.coord('percentile').points,
