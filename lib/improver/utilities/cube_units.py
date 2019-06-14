@@ -32,10 +32,10 @@
 
 import numpy as np
 
-import iris
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.units import DEFAULT_UNITS
+
 
 def enforce_coordinate_units_and_dtypes(cubes, coordinates, inplace=True):
     """
@@ -96,6 +96,7 @@ def enforce_coordinate_units_and_dtypes(cubes, coordinates, inplace=True):
     if not inplace:
         return cubes
 
+
 def enforce_diagnostic_units_and_dtypes(cubes, inplace=True,
                                         check_precision=False):
     """
@@ -154,6 +155,7 @@ def enforce_diagnostic_units_and_dtypes(cubes, inplace=True,
     if not inplace:
         return cubes
 
+
 def check_precision_loss(dtype, data, precision=5):
     """
     This function checks that when converting data types there is not a loss
@@ -190,6 +192,6 @@ def check_precision_loss(dtype, data, precision=5):
         integers = data
     else:
         values = np.round(data, precision)
-        fractions, integers = np.modf(values)
+        _, integers = np.modf(values)
 
     return (values == integers).all()

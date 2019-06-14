@@ -29,11 +29,11 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the cube_units utility."""
-import numpy as np
+
 import unittest
 from datetime import datetime
+import numpy as np
 
-import iris
 from iris.tests import IrisTest
 
 from improver.utilities import cube_units
@@ -46,7 +46,7 @@ class Test_enforce_coordinate_units_and_dtypes(IrisTest):
 
     def setUp(self):
         """Set up a cube to test."""
-        ORIGINAL_UNITS = {
+        original_units = {
             "time": {
                 "unit": "seconds since 1970-01-01 00:00:00",
                 "dtype": np.int64},
@@ -61,7 +61,7 @@ class Test_enforce_coordinate_units_and_dtypes(IrisTest):
                 "dtype": np.float32}
         }
 
-        cube_units.DEFAULT_UNITS = ORIGINAL_UNITS
+        cube_units.DEFAULT_UNITS = original_units
         self.plugin = cube_units.enforce_coordinate_units_and_dtypes
         self.cube = set_up_variable_cube(np.ones((5, 5), dtype=np.float32),
                                          spatial_grid='equalarea')
@@ -85,7 +85,7 @@ class Test_enforce_coordinate_units_and_dtypes(IrisTest):
         self.plugin([cube], [coord])
 
         self.assertEqual(cube.coord(coord).points[0], expected)
-        self.assertEqual(cube.coord(coord).units, target_units )
+        self.assertEqual(cube.coord(coord).units, target_units)
         self.assertIsInstance(cube.coord(coord).points[0], np.int64)
 
     def test_time_coordinate_to_hours_invalid(self):
@@ -162,12 +162,12 @@ class Test_enforce_coordinate_units_and_dtypes(IrisTest):
         cube = self.cube
         cube_units.DEFAULT_UNITS[coord]['unit'] = target_units
         cube_units.DEFAULT_UNITS[coord]['dtype'] = np.int32
-        expected = [-400, -200,    0,  200,  400]
+        expected = [-400, -200, 0, 200, 400]
 
         self.plugin([self.cube], [coord])
 
         self.assertArrayEqual(cube.coord(coord).points, expected)
-        self.assertEqual(cube.coord(coord).units, target_units )
+        self.assertEqual(cube.coord(coord).units, target_units)
         self.assertIsInstance(cube.coord(coord).points[0], np.int32)
 
     def test_spatial_coordinate_to_km_invalid(self):
@@ -207,7 +207,7 @@ class Test_enforce_coordinate_units_and_dtypes(IrisTest):
         cube = self.cube_non_integer_intervals
         cube_units.DEFAULT_UNITS[coord]['unit'] = target_units
         cube_units.DEFAULT_UNITS[coord]['dtype'] = np.float32
-        expected = np.array([-400.2, -200.1,    0. ,  200.1,  400.2],
+        expected = np.array([-400.2, -200.1, 0., 200.1, 400.2],
                             dtype=np.float32)
 
         self.plugin([cube], [coord])
@@ -227,7 +227,7 @@ class Test_enforce_coordinate_units_and_dtypes(IrisTest):
 
         cube_units.DEFAULT_UNITS[coord]['unit'] = target_units
         cube_units.DEFAULT_UNITS[coord]['dtype'] = np.int64
-        expected = np.array([-400200, -200100,    0. ,  200100,  400200],
+        expected = np.array([-400200, -200100, 0., 200100, 400200],
                             dtype=np.int64)
 
         self.plugin([cube], [coord])
@@ -265,7 +265,7 @@ class Test_enforce_coordinate_units_and_dtypes(IrisTest):
         self.assertEqual(cube.coord(coord).units, self.cube.coord(coord).units)
 
         self.assertEqual(result.coord(coord).points[0], expected)
-        self.assertEqual(result.coord(coord).units, target_units )
+        self.assertEqual(result.coord(coord).units, target_units)
         self.assertIsInstance(result.coord(coord).points[0], np.int64)
 
     def test_multiple_cubes(self):
@@ -280,17 +280,17 @@ class Test_enforce_coordinate_units_and_dtypes(IrisTest):
             cube_units.DEFAULT_UNITS[coord]['unit'] = target_units
             cube_units.DEFAULT_UNITS[coord]['dtype'] = np.float64
 
-        expected = {'time':[419524, 419524.5],
+        expected = {'time': [419524, 419524.5],
                     'forecast_reference_time': [419520, 419520]}
 
         self.plugin(cubes, coords)
 
         for coord in coords:
-            for ii in range(2):
-                self.assertEqual(cubes[ii].coord(coord).points[0],
-                                 expected[coord][ii])
-                self.assertEqual(cubes[ii].coord(coord).units, target_units)
-                self.assertIsInstance(cubes[ii].coord(coord).points[0],
+            for index in range(2):
+                self.assertEqual(cubes[index].coord(coord).points[0],
+                                 expected[coord][index])
+                self.assertEqual(cubes[index].coord(coord).units, target_units)
+                self.assertIsInstance(cubes[index].coord(coord).points[0],
                                       np.float64)
 
 
@@ -300,13 +300,13 @@ class Test_enforce_diagnostic_units_and_dtypes(IrisTest):
 
     def setUp(self):
         """Set up a cube to test."""
-        ORIGINAL_UNITS = {
+        original_units = {
             "air_temperature": {
                 "unit": "K",
                 "dtype": np.float32},
         }
 
-        cube_units.DEFAULT_UNITS = ORIGINAL_UNITS
+        cube_units.DEFAULT_UNITS = original_units
         self.plugin = cube_units.enforce_diagnostic_units_and_dtypes
         self.cube = set_up_variable_cube(np.ones((5, 5), dtype=np.float32),
                                          spatial_grid='equalarea')
@@ -331,7 +331,7 @@ class Test_enforce_diagnostic_units_and_dtypes(IrisTest):
         self.plugin([cube], check_precision=True)
 
         self.assertArrayEqual(cube.data, expected)
-        self.assertEqual(cube.units, target_units )
+        self.assertEqual(cube.units, target_units)
         self.assertEqual(cube.data.dtype, np.int32)
 
     def test_temperature_to_integer_kelvin_invalid(self):
@@ -396,7 +396,7 @@ class Test_enforce_diagnostic_units_and_dtypes(IrisTest):
         self.assertEqual(cube.units, self.cube.units)
 
         self.assertArrayEqual(result.data, expected)
-        self.assertEqual(result.units, target_units )
+        self.assertEqual(result.units, target_units)
         self.assertEqual(result.data.dtype, np.float32)
 
     def test_temperature_to_integer_celsius_valid(self):
@@ -417,7 +417,7 @@ class Test_enforce_diagnostic_units_and_dtypes(IrisTest):
         self.plugin([cube])
 
         self.assertArrayEqual(cube.data, expected)
-        self.assertEqual(cube.units, target_units )
+        self.assertEqual(cube.units, target_units)
         self.assertEqual(cube.data.dtype, np.int32)
 
     def test_multiple_cubes(self):
@@ -436,10 +436,10 @@ class Test_enforce_diagnostic_units_and_dtypes(IrisTest):
 
         self.plugin(cubes, check_precision=True)
 
-        for ii in range(2):
-            self.assertArrayEqual(cubes[ii].data, expected[ii])
-            self.assertEqual(cubes[ii].units, target_units)
-            self.assertEqual(cubes[ii].data.dtype, np.float64)
+        for index in range(2):
+            self.assertArrayEqual(cubes[index].data, expected[index])
+            self.assertEqual(cubes[index].units, target_units)
+            self.assertEqual(cubes[index].data.dtype, np.float64)
 
 
 class Test_check_precision_loss(IrisTest):
@@ -447,6 +447,7 @@ class Test_check_precision_loss(IrisTest):
     """Test the check_precision_loss function behaves as expected."""
 
     def setUp(self):
+        """Make an instance of the plugin that is to be tested."""
         self.plugin = cube_units.check_precision_loss
 
     def test_non_lossy_float_to_integer(self):
