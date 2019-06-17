@@ -63,7 +63,7 @@ def main(argv=None):
                                       'probabilities into one containing '
                                       'ensemble realizations.')}
     parser = ArgParser(**cli_definition)
-    # add mutually exculsive options rebadge and reorder.
+    # add mutually exclusive options rebadge and reorder.
     # If reordering add option for raw ensemble - raise error if
     # raw ens missing.
     group = parser.add_mutually_exclusive_group(required=True)

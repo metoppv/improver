@@ -114,7 +114,7 @@ class PercentileConverter(object):
         """
         # Store data type and enforce the same type on return.
         data_type = cube.dtype
-        # Test that collapse coords are present in cube before proceding.
+        # Test that collapse coords are present in cube before proceeding.
         n_collapse_coords = len(self.collapse_coord)
         n_valid_coords = sum([test_coord == coord.name()
                               for coord in cube.coords()
