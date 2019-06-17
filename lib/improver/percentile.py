@@ -131,7 +131,7 @@ class PercentileConverter(object):
                 name = name + '_' + self.collapse_coord[i]
                 i += 1
         else:
-            name = self.collapse_coord
+            name = name + '_' + self.collapse_coord
         if n_valid_coords == n_collapse_coords:
             result = cube.collapsed(
                 self.collapse_coord, iris.analysis.PERCENTILE,
