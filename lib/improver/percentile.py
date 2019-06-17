@@ -36,6 +36,7 @@ from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 
 from improver.constants import DEFAULT_PERCENTILES
+from improver.utilities.cube_checker import find_percentile_coordinate
 
 
 class PercentileConverter(object):
@@ -119,19 +120,8 @@ class PercentileConverter(object):
         n_valid_coords = sum([test_coord == coord.name()
                               for coord in cube.coords()
                               for test_coord in self.collapse_coord])
-        # Check whether collapse_coord is a list, so that percentile_
-        # over_ can be renamed easily. This uses the list to get the
-        # name of the percentile_over_ variable e.g. if the list is
-        # ['longitude', 'latitude'] the name will be
-        # 'percentile_over_longitude_latitude'
-        name = 'percentile_over'
-        if type(self.collapse_coord) is list:
-            i = 0
-            while i < n_collapse_coords:
-                name = name + '_' + self.collapse_coord[i]
-                i += 1
-        else:
-            name = name + '_' + self.collapse_coord
+        # Rename the percentile coordinate to "percentile" and also
+        # makes sure that the associated unit is %.
         if n_valid_coords == n_collapse_coords:
             result = cube.collapsed(
                 self.collapse_coord, iris.analysis.PERCENTILE,
@@ -140,8 +130,9 @@ class PercentileConverter(object):
             result.data = result.data.astype(data_type)
             for coord in self.collapse_coord:
                 result.remove_coord(coord)
-            result.coord(name).long_name = 'percentile'
-            result.coord('percentile').units = '%'
+            percentile_coord = find_percentile_coordinate(result)
+            result.coord(percentile_coord).rename('percentile')
+            result.coord(percentile_coord).units = '%'
             return result
 
         raise CoordinateNotFoundError(
