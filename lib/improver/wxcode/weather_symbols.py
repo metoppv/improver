@@ -131,9 +131,8 @@ class WeatherSymbols(object):
 
                 # Check cube and threshold coordinate names match according to
                 # expected convention.  If not, add to exception dictionary.
-                if extract_diagnostic_name(matched_cube[0].name()) != (
-                        threshold_name):
-                    self.threshold_coord_names[matched_cube[0].name()] = (
+                if extract_diagnostic_name(diagnostic) != threshold_name:
+                    self.threshold_coord_names[diagnostic] = (
                         threshold_name)
 
                 # Set flag to check for old threshold coordinate names
@@ -369,6 +368,8 @@ class WeatherSymbols(object):
         # otherwise, return a string
         if coord_named_threshold:
             threshold_coord_name = "threshold"
+        elif diagnostics in self.threshold_coord_names:
+            threshold_coord_name = self.threshold_coord_names[diagnostics]
         else:
             threshold_coord_name = extract_diagnostic_name(diagnostics)
         threshold_val = thresholds.points.item()
