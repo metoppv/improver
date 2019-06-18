@@ -315,12 +315,29 @@ class Test_fill_in_by_horizontal_interpolation(IrisTest):
         self.assertArrayEqual(snow_level_updated, expected)
 
     def test_not_enough_points_to_fill(self):
-        """Test when there are not enough points to fill the gaps"""
-        snow_level_data = np.ones((3, 3))
-        snow_level_data[0] = [np.nan, 1, np.nan]
-        snow_level_data[1] = [np.nan, np.nan, np.nan]
-        snow_level_data[2] = [np.nan, 1, np.nan]
-        print(snow_level_data)
+        """Test when there are not enough points to fill the gaps.
+           This raises a QhullError if there are less than 3 points available
+           to use for the interpolation. The QhullError is different to the one
+           raised by test_badly_arranged_valid_data"""
+        snow_level_data = np.array([[np.nan, 1, np.nan],
+                                    [np.nan, np.nan, np.nan],
+                                    [np.nan, 1, np.nan]])
+        expected = np.array([[1.0, 1.0, 1.0],
+                             [1.0, 1.0, 1.0],
+                             [1.0, 1.0, 1.0]])
+        snow_level_updated = self.plugin.fill_in_by_horizontal_interpolation(
+            snow_level_data, self.max_in_nbhood_orog, self.orog_data)
+        self.assertArrayEqual(snow_level_updated, expected)
+
+    def test_badly_arranged_valid_data(self):
+        """Test when there are enough points but they aren't in arranged in a
+           suitable way to allow horizontal interpolation. This raises a
+           QhullError that we want to ignore and use nearest neighbour
+           interpolation instead. This QhullError is different to the one
+           raised by test_not_enough_points_to_fill."""
+        snow_level_data = np.array([[np.nan, 1, np.nan],
+                                    [np.nan, 1, np.nan],
+                                    [np.nan, 1, np.nan]])
         expected = np.array([[1.0, 1.0, 1.0],
                              [1.0, 1.0, 1.0],
                              [1.0, 1.0, 1.0]])

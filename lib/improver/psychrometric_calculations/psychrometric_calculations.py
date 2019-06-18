@@ -37,6 +37,7 @@ import iris
 from stratify import interpolate
 from scipy.interpolate import griddata
 from scipy.stats import linregress
+from scipy.spatial.qhull import QhullError
 from cf_units import Unit
 
 from improver.psychrometric_calculations import svp_table
@@ -971,16 +972,20 @@ class FallingSnowLevel(object):
         snow_filled = snow_level_data
         if np.any(index):
             ynum, xnum = snow_level_data.shape
-            print(index)
             (y_points, x_points) = np.mgrid[0:ynum, 0:xnum]
             values = snow_level_data[index]
-            if np.sum(index) > 2:
+            # Try to do the horizontal interpolation to fill in any gaps,
+            # but if there are not enough points or the points are not arranged
+            # in a way that allows the horizontal interpolation, skip
+            # and use nearest neighbour intead.
+            try:
                 snow_level_data_updated = griddata(
                     np.where(index), values, (y_points, x_points),
                     method='linear')
-                snow_filled = snow_level_data_updated
-            else:
+            except QhullError:
                 snow_level_data_updated = snow_level_data
+            else:
+                snow_filled = snow_level_data_updated
             # Fill in any remaining missing points using nearest neighbour.
             # This normallly only impact points at the corners of the domain,
             # where the linear fit doesn't reach.
