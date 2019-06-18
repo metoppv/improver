@@ -30,13 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """ Unit tests for the nowcasting.Accumulation plugin """
 
-import copy
 import datetime
 import unittest
 import numpy as np
 
 import iris
-from iris.coords import DimCoord
 from iris.tests import IrisTest
 
 from improver.nowcasting.accumulation import Accumulation
@@ -48,6 +46,7 @@ class rate_cube_set_up(IrisTest):
     accumulation plugin functionality."""
 
     def setUp(self):
+        """Set up test cubes."""
         ncells = 10
         # Rates equivalent to 5.4 and 1.8 mm/hr
         rates = np.ones((ncells)) * 5.4
@@ -61,7 +60,7 @@ class rate_cube_set_up(IrisTest):
             try:
                 data[0:2, :i] = 0
                 data[2:, :i+ncells//2] = 0
-            except:
+            except IndexError:
                 pass
             mask = np.zeros((4, ncells))
             mask[1:3, ncells//2+i:ncells//2 + i + 1] = 1
@@ -140,97 +139,6 @@ class Test_sort_cubes_by_time(rate_cube_set_up):
         _, times = Accumulation.sort_cubes_by_time(self.cubes)
 
         self.assertArrayEqual(times, expected)
-
-
-class Test_create_accumulation_cube(rate_cube_set_up):
-    """Tests the creation of accumulation cubes."""
-
-    def test_returns_cube(self):
-        """Test function returns a cube."""
-
-        cube = self.cubes[0]
-        time_interval = 60
-
-        result = Accumulation.create_accumulation_cube(cube, time_interval)
-
-        self.assertIsInstance(result, iris.cube.Cube)
-
-    def test_cube_attributes(self):
-        """Test the cube created by the function has the expected
-        attributes."""
-
-        cube = self.cubes[0]
-        time_interval = 60
-
-        expected_name = 'lwe_thickness_of_precipitation_amount'
-        expected_units = 'm'
-
-        result = Accumulation.create_accumulation_cube(cube, time_interval)
-
-        self.assertEqual(result.name(), expected_name)
-        self.assertEqual(result.units, expected_units)
-
-    def test_cube_coordinates(self):
-        """Test the cube created by the function has the expected
-        coordinates."""
-
-        cube = self.cubes[1]
-        time_interval = 60
-
-        expected_time_coord = iris.coords.DimCoord(
-            1510286460, 'time', units="seconds since 1970-01-01 00:00:00",
-            bounds=[1510286460 - time_interval, 1510286460])
-        expected_fp_coord = iris.coords.DimCoord(
-            60, 'forecast_period', units="seconds",
-            bounds=[0,time_interval])
-
-        result = Accumulation.create_accumulation_cube(cube, time_interval)
-
-        self.assertEqual(result.coord('time'), expected_time_coord)
-        self.assertEqual(result.coord('forecast_period'), expected_fp_coord)
-
-
-class Test_determine_masking(IrisTest):
-    """Tests the determination of data masking."""
-
-    def setUp(self):
-        data = np.ones((3, 3), dtype=np.float32)
-        self.unmasked = set_up_variable_cube(data)
-        self.masked_no_mask = set_up_variable_cube(np.ma.MaskedArray(data))
-        self.masked = set_up_variable_cube(np.ma.MaskedArray(data, mask=data))
-
-    def test_unmasked_data(self):
-        """Test function returns an empty dictionary and an unmasked numpy
-        array type for unmasked input data."""
-
-        expected = {}
-        array_type, mask = Accumulation.determine_masking(self.unmasked)
-
-        self.assertIsInstance(array_type(1), np.ndarray)
-        self.assertEqual(mask, expected)
-
-    def test_masked_data_no_mask(self):
-        """Test function returns a dictionary containing mask=False when
-        a masked numpy array type without a set mask is used as input data. The
-        returned array type should be np.ma.MaskedArray."""
-
-        expected = {'mask': False}
-        array_type, mask = Accumulation.determine_masking(self.masked_no_mask)
-
-        self.assertIsInstance(array_type(1), np.ma.MaskedArray)
-        self.assertEqual(mask, expected)
-
-    def test_masked_data(self):
-        """Test function returns a dictionary containing the required mask when
-        a masked numpy array type with a mask is used as input data. The
-        returned array type should be np.ma.MaskedArray."""
-
-        expected = {'mask': np.ones((3, 3)).astype(bool)}
-        array_type, mask = Accumulation.determine_masking(self.masked)
-
-        self.assertIsInstance(array_type(1), np.ma.MaskedArray)
-        self.assertEqual(mask.keys(), expected.keys())
-        self.assertArrayEqual(mask['mask'], expected['mask'])
 
 
 class Test_process(rate_cube_set_up):

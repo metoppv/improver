@@ -205,6 +205,11 @@ class CubeCombiner(object):
                 Revised coordinates for combined cube.
             revised_attributes (dict or None):
                 Revised attributes for combined cube.
+            expanded_coord (dict or None):
+                Coordinates to be expanded as a key, with the value
+                indicating whether the upper or mid point of the coordinate
+                should be used as the point value, e.g.
+                {'time': 'upper'}.
 
         Returns:
             result (iris.cube.Cube):
