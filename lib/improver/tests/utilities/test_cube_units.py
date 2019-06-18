@@ -153,7 +153,7 @@ class Test_enforce_coordinate_units_and_dtypes(IrisTest):
         self.assertEqual(cube.coord(coord).units, target_units)
         self.assertIsInstance(cube.coord(coord).points[0], np.int64)
 
-    def test_spatial_coordinate_to_km_valid(self):
+    def test_basic_non_time_coordinate(self):
         """Test that a cube with a grid at km intervals expressed in metres can
         be converted to integer kilometres."""
 
@@ -169,72 +169,6 @@ class Test_enforce_coordinate_units_and_dtypes(IrisTest):
         self.assertArrayEqual(cube.coord(coord).points, expected)
         self.assertEqual(cube.coord(coord).units, target_units)
         self.assertIsInstance(cube.coord(coord).points[0], np.int32)
-
-    def test_spatial_coordinate_to_km_invalid(self):
-        """Test that a cube with a grid at intervals that fall between whole
-        kilometers cannot be converted to integer kilometres."""
-
-        target_units = "km"
-        coord = 'projection_x_coordinate'
-        cube = self.cube_non_integer_intervals
-        cube_units.DEFAULT_UNITS[coord]['unit'] = target_units
-        cube_units.DEFAULT_UNITS[coord]['dtype'] = np.int32
-
-        msg = ('Data type of coordinate "projection_x_coordinate" could not be'
-               ' enforced without losing significant precision.')
-        with self.assertRaisesRegex(ValueError, msg):
-            self.plugin([cube], [coord])
-
-    def test_spatial_coordinate_to_invalid_units(self):
-        """Test that a cube with spatial coordinates in metres cannot be
-        converted to an incompatible unit, e.g. seconds."""
-
-        target_units = "seconds"
-        coord = 'projection_x_coordinate'
-        cube = self.cube
-        cube_units.DEFAULT_UNITS[coord]['unit'] = target_units
-
-        msg = 'projection_x_coordinate units cannot be converted to "seconds"'
-        with self.assertRaisesRegex(ValueError, msg):
-            self.plugin([cube], [coord])
-
-    def test_spatial_coordinate_to_km_float(self):
-        """Test that a cube with a grid at intervals that fall between whole
-        kilometers can be converted to float kilometres."""
-
-        target_units = "km"
-        coord = 'projection_x_coordinate'
-        cube = self.cube_non_integer_intervals
-        cube_units.DEFAULT_UNITS[coord]['unit'] = target_units
-        cube_units.DEFAULT_UNITS[coord]['dtype'] = np.float32
-        expected = np.array([-400.2, -200.1, 0., 200.1, 400.2],
-                            dtype=np.float32)
-
-        self.plugin([cube], [coord])
-
-        self.assertArrayEqual(cube.coord(coord).points, expected)
-        self.assertEqual(cube.coord(coord).units, target_units)
-        self.assertIsInstance(cube.coord(coord).points[0], np.float32)
-
-    def test_spatial_coordinate_km_to_m_integer(self):
-        """Test that a cube with a grid at intervals that fall between whole
-        kilometers can be converted to integer metres."""
-
-        target_units = "m"
-        coord = 'projection_x_coordinate'
-        cube = self.cube_non_integer_intervals.copy()
-        cube.coord('projection_x_coordinate').convert_units('km')
-
-        cube_units.DEFAULT_UNITS[coord]['unit'] = target_units
-        cube_units.DEFAULT_UNITS[coord]['dtype'] = np.int64
-        expected = np.array([-400200, -200100, 0., 200100, 400200],
-                            dtype=np.int64)
-
-        self.plugin([cube], [coord])
-
-        self.assertArrayEqual(cube.coord(coord).points, expected)
-        self.assertEqual(cube.coord(coord).units, target_units)
-        self.assertIsInstance(cube.coord(coord).points[0], np.int64)
 
     def test_unavailable_coordinate(self):
         """Test application of the function to a coordinate for which the
