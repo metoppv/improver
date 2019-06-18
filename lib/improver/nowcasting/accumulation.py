@@ -32,6 +32,7 @@
 This module defines the accumulation class for calculating precipitation
 accumulations from advected radar fields.
 """
+import warnings
 import numpy as np
 
 import iris
@@ -51,13 +52,18 @@ class Accumulation:
     def __init__(self, accumulation_units='m'):
         """
         Initialise the plugin.
+
+        Args:
+            accumulation_units (str):
+                The physical units in which the accumulation should be
+                returned. The default is metres.
         """
         self.accumulation_units = accumulation_units
 
     def __repr__(self):
         """Represent the plugin instance as a string."""
-        result = '<Accumulation>'
-        return result
+        result = '<Accumulation: accumulation_units={}>'
+        return result.format(self.accumulation_units)
 
     @staticmethod
     def sort_cubes_by_time(cubes):
@@ -77,7 +83,7 @@ class Accumulation:
         times = np.array([cube.coord('time').points[0] for cube in cubes])
         time_sorted = np.argsort(times)
         times = times[time_sorted]
-        cubes = list(np.array(cubes)[time_sorted])
+        cubes = iris.cube.CubeList(np.array(cubes)[time_sorted])
         return cubes, times
 
     @staticmethod
@@ -104,8 +110,7 @@ class Accumulation:
             bounds=(validity_time - time_interval, validity_time))
         fp, = cube.coord('forecast_period').points
         fp_coordinate = cube.coord('forecast_period').copy(
-            points=validity_time,
-            bounds=(fp - time_interval, fp))
+            points=fp, bounds=(fp - time_interval, fp))
 
         accumulation_cube = cube.copy()
         accumulation_cube.rename('lwe_thickness_of_precipitation_amount')
@@ -113,6 +118,38 @@ class Accumulation:
         accumulation_cube.replace_coord(fp_coordinate)
         accumulation_cube.units = 'm'
         return accumulation_cube
+
+    @staticmethod
+    def determine_masking(cube):
+        """
+        Determine if the input cube contains a mask and if so what that mask
+        is. This is used to mask the accumulation data that is returned. If the
+        input data is not masked, the resulting accumulation data will not be
+        masked either.
+
+        Args:
+            cube (iris.cube.Cube):
+                The cube for which the masking is being checked.
+        Returns:
+            array_type (numpy class instance):
+                The array class that should be used to store the accumulation
+                data.
+            mask (dict):
+                A kwargs dictionary that includes the mask from the input cube.
+                This is returned as a dict to simplify the invocation of the
+                numpy class where this can be provided as a kwarg.
+        """
+        try:
+            input_mask = cube.data.mask
+        except AttributeError:
+            array_type = np.array
+            mask = {}
+        else:
+            array_type = np.ma.MaskedArray
+            mask = {'mask': input_mask}
+
+        return array_type, mask
+
 
     def process(self, cubes):
         """
@@ -139,15 +176,124 @@ class Accumulation:
         time_intervals = np.diff(times, axis=0)
         accumulation_cubes = iris.cube.CubeList()
 
+        # Assumes rates cubes bookend the accumulations, e.g. there is one
+        # more rates cube than expected accumulation cubes.
         iterator = zip(cubes[:-1], cubes[1:], time_intervals)
 
         # Calculate accumulations and convert to desired units.
         for start_cube, end_cube, time_interval in iterator:
             accumulation_cube = self.create_accumulation_cube(
                 end_cube, time_interval)
+
+#            cube_name = 'lwe_thickness_of_precipitation_amount'
+#            accumulation_cube = CubeCombiner('add').process(
+#                [start_cube, end_cube], cube_name,
+#                expanded_coord={'time':'upper', 'forecast_period':'upper')
+#            accumulation_cube.units = 'm'
+
+            array_type, mask = self.determine_masking(start_cube)
             accumulation_data = start_cube.data * time_interval
-            accumulation_cube.data = accumulation_data
+            accumulation_cube.data = array_type(accumulation_data, **mask)
             accumulation_cube.convert_units(self.accumulation_units)
             accumulation_cubes.append(accumulation_cube)
 
         return accumulation_cubes
+
+
+class AccumulationAggregator:
+
+    """Aggregate accumulations over short periods into longer periods."""
+
+    def __init__(self, accumulation_period=None):
+        """
+        Initialise the plugin.
+
+        Args:
+            accumulation_period (int):
+                The desired accumulation period in seconds. This period
+                must be evenly divisible by the time intervals of the input
+                cubes. The default is None, in which case an aggregation is
+                made across all input cubes.
+        """
+        self.accumulation_period = accumulation_period
+
+    def __repr__(self):
+        """Represent the plugin instance as a string."""
+        result = '<AccumulationAggregator: accumulation_period={}>'
+        return result.format(self.accumulation_period)
+
+    def check_accumulation_period(self, time_interval, ncubes):
+        """
+        """
+        fraction, integer = np.modf(self.accumulation_period / time_interval)
+        if fraction != 0:
+            msg = ("The specified accumulation period ({}) is not divisible "
+                   "by the time intervals between accumulation cubes ({}). As "
+                   "a result it is not possible to calculate the desired "
+                   "accumulation.".format(
+                       self.accumulation_period, time_interval))
+            raise ValueError(msg)
+
+        if ncubes % integer != 0:
+            msg = ("The provided cubes result in a partial period given the "
+                   "specified accumulation_period, i.e. the number of cubes "
+                   "is insufficient to give a set of complete periods. Only "
+                   "complete periods will be returned.")
+            warnings.warn(msg)
+
+        return int(integer)
+
+    @staticmethod
+    def chunk_list(cubes, cube_subset):
+        for index in range(0, len(cubes), cube_subset):
+            yield cubes[index:index + cube_subset]
+
+    def process(self, cubes):
+        """
+        Calculate aggregated accumulations over the desired accumulation period
+        after checking this is possible given the input cubes.
+
+        Args:
+            cubes (iris.cube.CubeList):
+                A cubelist containing input precipitation accumulation cubes.
+        Returns:
+            accumulation_cubes (iris.cube.CubeList):
+                A cubelist containing precipitation accumulation cubes where
+                the accumulation periods are determined by the given
+                accumulation_period unless this is None, in which case a single
+                cube will be returned covering the entire period of the input
+                cubes.
+        """
+        # Standardise inputs to expected units.
+        cubes = enforce_coordinate_units_and_dtypes(
+            cubes, ['time', 'forecast_reference_time', 'forecast_period'],
+            inplace=False)
+        enforce_diagnostic_units_and_dtypes(cubes)
+
+        # Sort cubes into time order and calculate intervals.
+        cubes, times = Accumulation.sort_cubes_by_time(cubes)
+        ncubes = len(cubes)
+
+        # Find the common time interval between accumulation cubes.
+        try:
+            time_interval, = np.unique(np.diff(times, axis=0))
+        except ValueError:
+            msg = ("AccumulationAggregator is designed to work with "
+                   "accumulation cubes at regualar time intervals. Cubes "
+                   "provided are unevenly spaced in time; time intervals are "
+                   "{}.".format(np.diff(times, axis=0)))
+            raise ValueError(msg)
+
+        cube_subset_no = self.check_accumulation_period(time_interval, ncubes)
+        cubes_to_aggregate = self.chunk_list(cubes, cube_subset_no)
+        for cube_subset in cubes_to_aggregate:
+
+            # Don't produce an accumulation cube for any incomplete periods.
+            if len(cube_subset) != cube_subset_no:
+                break
+
+            aggregated_cube = cube_subset.merge_cube()
+            aggregated_cube = aggregated_cube.collapsed('time',
+                                                        iris.analysis.SUM)
+            print(aggregated_cube)
+            print('-'*50)
