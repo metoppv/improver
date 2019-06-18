@@ -97,8 +97,7 @@ def enforce_coordinate_units_and_dtypes(cubes, coordinates, inplace=True):
         return cubes
 
 
-def enforce_diagnostic_units_and_dtypes(cubes, inplace=True,
-                                        check_precision=False):
+def enforce_diagnostic_units_and_dtypes(cubes, inplace=True):
     """
     Function to enforce diagnostic units and data types as defined in units.py.
 
@@ -112,10 +111,6 @@ def enforce_diagnostic_units_and_dtypes(cubes, inplace=True,
         inplace (bool):
             If True (default) the cubes are modified in place, if False this
             function returns a modified copy of the cubes.
-        check_precision (bool):
-            If True the change of cube units and data types is checked to
-            ensure precision is not lost, e.g. losing decimal places when
-            converting the data type. This defaults to False.
     Returns:
         cubes (iris.cube.CubeList or insitu):
             The input cubes with units and data types of the diagnostic
@@ -145,7 +140,7 @@ def enforce_diagnostic_units_and_dtypes(cubes, inplace=True,
             msg = '{} units cannot be converted to "{}"'
             raise ValueError(msg.format(diagnostic, unit))
         else:
-            if not check_precision or check_precision_loss(dtype, cube.data):
+            if check_precision_loss(dtype, cube.data):
                 cube.data = cube.data.astype(dtype)
             else:
                 msg = ('Data type of diagnostic "{}" could not be'

@@ -328,7 +328,7 @@ class Test_enforce_diagnostic_units_and_dtypes(IrisTest):
         cube_units.DEFAULT_UNITS[diagnostic]['dtype'] = np.int32
         expected = np.ones((5, 5), dtype=np.int32)
 
-        self.plugin([cube], check_precision=True)
+        self.plugin([cube])
 
         self.assertArrayEqual(cube.data, expected)
         self.assertEqual(cube.units, target_units)
@@ -349,7 +349,7 @@ class Test_enforce_diagnostic_units_and_dtypes(IrisTest):
         msg = ('Data type of diagnostic "air_temperature" could not be'
                ' enforced without losing significant precision.')
         with self.assertRaisesRegex(ValueError, msg):
-            self.plugin([cube], check_precision=True)
+            self.plugin([cube])
 
     def test_temperature_to_invalid_units(self):
         """Test that a cube with temperatures in kelvin cannot be converted
@@ -364,7 +364,7 @@ class Test_enforce_diagnostic_units_and_dtypes(IrisTest):
                ' enforced without losing significant precision.')
         msg = 'air_temperature units cannot be converted to "m"'
         with self.assertRaisesRegex(ValueError, msg):
-            self.plugin([cube], check_precision=True)
+            self.plugin([cube])
 
     def test_unavailable_diagnostic(self):
         """Test application of the function to a cube for which the default
@@ -399,26 +399,23 @@ class Test_enforce_diagnostic_units_and_dtypes(IrisTest):
         self.assertEqual(result.units, target_units)
         self.assertEqual(result.data.dtype, np.float32)
 
-    def test_temperature_to_integer_celsius_valid(self):
-        """Test that a cube with temperatures at whole kelvin intervals can
-        be converted to integer Celsius. Precision checking is not employed
-        here as the values change by the relevant conversion and may not end up
-        as integers, making such a check unhelpful. This is not a likely use
-        case unless precision loss is intentional; here the 0.15 Celsius us
-        lost from the resulting temperatures."""
+    def test_temperature_to_float_celsius_valid(self):
+        """Test that a cube with temperatures at whole kelvin intervals stored
+        as integers can be converted to float Celsius, changing units and data
+        type, whilst checking precision is not lost."""
 
         target_units = "celsius"
         diagnostic = "air_temperature"
-        cube = self.cube
+        cube = self.cube.copy(data=self.cube.data.astype(np.int))
         cube_units.DEFAULT_UNITS[diagnostic]['unit'] = target_units
-        cube_units.DEFAULT_UNITS[diagnostic]['dtype'] = np.int32
-        expected = np.full((5, 5), -272, dtype=np.int32)
+        cube_units.DEFAULT_UNITS[diagnostic]['dtype'] = np.float32
+        expected = np.full((5, 5), -272.15, dtype=np.float32)
 
         self.plugin([cube])
 
         self.assertArrayEqual(cube.data, expected)
         self.assertEqual(cube.units, target_units)
-        self.assertEqual(cube.data.dtype, np.int32)
+        self.assertEqual(cube.data.dtype, np.float32)
 
     def test_multiple_cubes(self):
         """Test that when a cube list is provided, all the cubes are modified
@@ -434,7 +431,7 @@ class Test_enforce_diagnostic_units_and_dtypes(IrisTest):
         expected = [np.ones((5, 5), dtype=np.float64),
                     np.full((5, 5), 1.5, dtype=np.float64)]
 
-        self.plugin(cubes, check_precision=True)
+        self.plugin(cubes)
 
         for index in range(2):
             self.assertArrayEqual(cubes[index].data, expected[index])
@@ -445,7 +442,6 @@ class Test_enforce_diagnostic_units_and_dtypes(IrisTest):
 class Test_check_precision_loss(IrisTest):
 
     """Test the check_precision_loss function behaves as expected."""
-
     def setUp(self):
         """Make an instance of the plugin that is to be tested."""
         self.plugin = cube_units.check_precision_loss
