@@ -139,9 +139,9 @@ class Test_enforce_coordinate_units_and_dtypes(IrisTest):
         target_units = "seconds since 1970-01-01 00:00:00"
         coord = 'time'
         cube = self.cube.copy()
-        cube.coord('time').convert_units(target_units)
+        cube.coord('time').convert_units("hours since 1970-01-01 00:00:00")
         cube.coord('forecast_reference_time').convert_units(
-            target_units)
+            "hours since 1970-01-01 00:00:00")
         cube.coord('forecast_period').convert_units("hours")
 
         cube_units.DEFAULT_UNITS[coord]['unit'] = target_units
