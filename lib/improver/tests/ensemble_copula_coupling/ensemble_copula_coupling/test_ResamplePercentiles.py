@@ -494,13 +494,6 @@ class Test_process(IrisTest):
             np.array([10, 50, 90]))
         self.percentile_cube = (
             add_forecast_reference_time_and_forecast_period(cube))
-        self.perc_coord_mismatch = "percentile"
-        cube_mismatch = set_up_cube(data, "air_temperature", "degreesC")
-        cube_mismatch.coord("realization").rename(self.perc_coord_mismatch)
-        cube_mismatch.coord(self.perc_coord_mismatch).points = (
-            np.array([10, 50, 90]))
-        self.percentile_cube_mismatch = (
-            add_forecast_reference_time_and_forecast_period(cube_mismatch))
 
     @ManageWarnings(
         ignored_messages=["Only a single cube so no differences"])
@@ -543,25 +536,6 @@ class Test_process(IrisTest):
                            [11., 11.625, 12.25]]]])
 
         cube = self.percentile_cube
-        plugin = Plugin()
-        result = plugin.process(cube)
-        self.assertArrayAlmostEqual(result.data, data)
-
-    @ManageWarnings(
-        ignored_messages=["Only a single cube so no differences"])
-    def test_ok_for_diff_percentile_coord(self):
-        """Test the plugin succeeds if percentile coord is different"""
-        data = np.array([[[[4.75, 5.375, 6.],
-                           [6.625, 7.25, 7.875],
-                           [8.5, 9.125, 9.75]]],
-                         [[[6., 6.625, 7.25],
-                           [7.875, 8.5, 9.125],
-                           [9.75, 10.375, 11.]]],
-                         [[[7.25, 7.875, 8.5],
-                           [9.125, 9.75, 10.375],
-                           [11., 11.625, 12.25]]]])
-
-        cube = self.percentile_cube_mismatch
         plugin = Plugin()
         result = plugin.process(cube)
         self.assertArrayAlmostEqual(result.data, data)

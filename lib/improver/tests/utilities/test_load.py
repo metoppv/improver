@@ -150,8 +150,7 @@ class Test_load_cube(IrisTest):
 
     def test_ordering_for_percentile_coordinate(self):
         """Test that the cube has been reordered, if it is originally in an
-        undesirable order and the cube contains a "percentile"
-        coordinate."""
+        undesirable order and the cube contains a "percentile" coordinate."""
         data = np.ones((3, 4, 5), dtype=np.float32)
         cube = set_up_percentile_cube(data, np.array([10, 50, 90]))
         cube.transpose([2, 1, 0])
