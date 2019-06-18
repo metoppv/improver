@@ -37,7 +37,6 @@ import warnings
 import numpy as np
 
 import iris
-from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 from improver.cube_combiner import CubeCombiner
 from improver.utilities.cube_units import (enforce_coordinate_units_and_dtypes,
                                            enforce_diagnostic_units_and_dtypes)
