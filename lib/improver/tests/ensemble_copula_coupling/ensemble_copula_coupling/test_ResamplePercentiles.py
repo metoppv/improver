@@ -61,8 +61,8 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         cube = set_up_cube(data, "air_temperature", "degreesC")
         self.realization_cube = (
             add_forecast_reference_time_and_forecast_period(cube.copy()))
-        cube.coord("realization").rename("percentile_over_realization")
-        cube.coord("percentile_over_realization").points = (
+        cube.coord("realization").rename("percentile")
+        cube.coord("percentile").points = (
             np.array([10, 50, 90]))
         self.percentile_cube = (
             add_forecast_reference_time_and_forecast_period(cube))
@@ -70,7 +70,7 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
     def test_basic(self):
         """Test that the plugin returns two numpy arrays."""
         cube = self.percentile_cube
-        percentiles = cube.coord("percentile_over_realization").points
+        percentiles = cube.coord("percentile").points
         forecast_at_percentiles = cube.data.reshape(3, 9)
         bounds_pairing = (-40, 50)
         plugin = Plugin()
@@ -85,7 +85,7 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         percentiles, where the percentile values have been padded with 0 and 1.
         """
         cube = self.percentile_cube
-        percentiles = cube.coord("percentile_over_realization").points
+        percentiles = cube.coord("percentile").points
         forecast_at_percentiles = cube.data.reshape(3, 9)
         bounds_pairing = (-40, 50)
         plugin = Plugin()
@@ -101,7 +101,7 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         bounds_pairing.
         """
         cube = self.percentile_cube
-        percentiles = cube.coord("percentile_over_realization").points
+        percentiles = cube.coord("percentile").points
         forecast_at_percentiles = cube.data.reshape(3, 9)
         bounds_pairing = (-40, 50)
         lower_array = np.full(
@@ -197,7 +197,7 @@ class Test__interpolate_percentiles(IrisTest):
         data[0] -= 1
         data[1] += 1
         data[2] += 3
-        self.perc_coord = "percentile_over_neighbourhood"
+        self.perc_coord = "percentile"
         cube = set_up_cube(data, "air_temperature", "degreesC")
         cube.coord("realization").rename(self.perc_coord)
         cube.coord(self.perc_coord).points = (
@@ -487,14 +487,14 @@ class Test_process(IrisTest):
         data[0] -= 1
         data[1] += 1
         data[2] += 3
-        self.perc_coord = "percentile_over_realization"
+        self.perc_coord = "percentile"
         cube = set_up_cube(data, "air_temperature", "degreesC")
         cube.coord("realization").rename(self.perc_coord)
         cube.coord(self.perc_coord).points = (
             np.array([10, 50, 90]))
         self.percentile_cube = (
             add_forecast_reference_time_and_forecast_period(cube))
-        self.perc_coord_mismatch = "percentile_over_neighbourhood"
+        self.perc_coord_mismatch = "percentile"
         cube_mismatch = set_up_cube(data, "air_temperature", "degreesC")
         cube_mismatch.coord("realization").rename(self.perc_coord_mismatch)
         cube_mismatch.coord(self.perc_coord_mismatch).points = (
