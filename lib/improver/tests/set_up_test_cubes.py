@@ -313,7 +313,8 @@ def set_up_percentile_cube(data, percentiles, name='air_temperature',
 
 
 def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
-                            threshold_units='K', relative_to_threshold='above',
+                            threshold_units='K',
+                            spp__relative_to_threshold='above',
                             spatial_grid='latlon',
                             time=datetime(2017, 11, 10, 4, 0),
                             time_bounds=None,
@@ -326,7 +327,7 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
     - leading "threshold" dimension
     - "time", "forecast_reference_time" and "forecast_period" scalar coords
     - option to specify additional scalar coordinates
-    - "relative_to_threshold" attribute (default "above")
+    - "spp__relative_to_threshold" attribute (default "above")
     - default or configurable attributes
     - configurable cube data, name conforms to
     "probability_of_X_above(or below)_threshold" convention
@@ -347,9 +348,9 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
         spatial_grid (str):
             What type of x/y coordinate values to use.  Default is "latlon",
             otherwise uses "projection_[x|y]_coordinate".
-        relative_to_threshold (str):
-            Value of the attribute "relative_to_threshold" which is required
-            for IMPROVER probability cubes.
+        spp__relative_to_threshold (str):
+            Value of the attribute "spp__relative_to_threshold" which is
+            required for IMPROVER probability cubes.
         time (datetime.datetime):
             Single cube validity time
         time_bounds (tuple or list of datetime.datetime instances):
@@ -366,17 +367,15 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
             'gl_det' or 'gl_ens'.
     """
     # create a "relative to threshold" attribute
-    if attributes is None:
-        attributes = {'relative_to_threshold': relative_to_threshold}
-    else:
-        attributes['relative_to_threshold'] = relative_to_threshold
+    coord_attributes = {
+        'spp__relative_to_threshold': spp__relative_to_threshold}
 
-    if relative_to_threshold == 'above':
+    if spp__relative_to_threshold == 'above':
         name = 'probability_of_{}_above_threshold'.format(variable_name)
-    elif relative_to_threshold == 'below':
+    elif spp__relative_to_threshold == 'below':
         name = 'probability_of_{}_below_threshold'.format(variable_name)
     else:
-        msg = 'The relative_to_threshold attribute MUST be set for ' \
+        msg = 'The spp__relative_to_threshold attribute MUST be set for ' \
               'IMPROVER probability cubes'
         raise ValueError(msg)
 
@@ -388,6 +387,7 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
         standard_grid_metadata=standard_grid_metadata)
     cube.coord("realization").rename(variable_name)
     cube.coord(variable_name).var_name = "threshold"
+    cube.coord(variable_name).attributes.update(coord_attributes)
     cube.coord(variable_name).units = Unit(threshold_units)
     return cube
 

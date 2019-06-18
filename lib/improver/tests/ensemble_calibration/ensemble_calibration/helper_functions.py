@@ -48,14 +48,14 @@ def set_up_probability_threshold_cube(
         data, phenomenon_standard_name, phenomenon_units,
         forecast_thresholds=np.array([8, 10, 12]), timesteps=1,
         y_dimension_length=3, x_dimension_length=3,
-        relative_to_threshold='above'):
+        spp__relative_to_threshold='above'):
     """
     Create a cube containing multiple probability_above/below_threshold
     values for the coordinate.
     """
     cube_long_name = (
         "probability_of_{}_{}_threshold".format(
-            phenomenon_standard_name, relative_to_threshold))
+            phenomenon_standard_name, spp__relative_to_threshold))
     cube = Cube(data, long_name=cube_long_name,
                 units=1)
     threshold_coord_name = extract_diagnostic_name(cube_long_name)
@@ -81,7 +81,9 @@ def set_up_probability_threshold_cube(
     cube.add_dim_coord(DimCoord(np.linspace(120, 180, x_dimension_length,
                                             dtype=np.float32),
                                 'longitude', units='degrees'), 3)
-    cube.attributes["relative_to_threshold"] = relative_to_threshold
+    cube.coord(
+        var_name="threshold").attributes["spp__relative_to_threshold"] = (
+            spp__relative_to_threshold)
     return cube
 
 
@@ -101,7 +103,7 @@ def set_up_probability_above_threshold_temperature_cube():
     return (
         set_up_probability_threshold_cube(
             data, "air_temperature", "degreesC",
-            relative_to_threshold='above'))
+            spp__relative_to_threshold='above'))
 
 
 def set_up_probability_above_threshold_spot_cube(
@@ -142,7 +144,9 @@ def set_up_probability_above_threshold_spot_cube(
     cube.add_aux_coord(AuxCoord(np.linspace(120, 180, x_dimension_length,
                                             dtype=np.float32),
                                 'longitude', units='degrees'), data_dims=2)
-    cube.attributes["relative_to_threshold"] = "above"
+    cube.coord(
+        var_name="threshold"
+    ).attributes["spp__relative_to_threshold"] = "above"
     return cube
 
 

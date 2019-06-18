@@ -200,7 +200,8 @@ class Test_weighted_blend(IrisTest):
         cube_threshold.add_aux_coord(time_coord)
         cube_threshold.add_aux_coord(fp_coord, data_dims=1)
 
-        cube_threshold.attributes.update({'relative_to_threshold': 'below'})
+        cube_threshold.coord(var_name="threshold").attributes.update(
+            {'spp__relative_to_threshold': 'below'})
         cube_threshold.attributes = self.attributes
         self.cube_threshold = cube_threshold
 

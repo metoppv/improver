@@ -331,7 +331,7 @@ class Test_process(IrisTest):
         """Test that the plugin raises warnings and updates metadata. """
         plugin = CubeCombiner('-', warnings_on=True)
         cubelist = iris.cube.CubeList([self.cube1, self.cube1])
-        attributes = {'relative_to_threshold': 'between'}
+        attributes = {'source': 'new_model'}
         warning_msg = "Adding or updating attribute"
         expected_data = np.zeros((1, 2, 2, 2))
         expected_data[0, 0, :, :] = 0.0

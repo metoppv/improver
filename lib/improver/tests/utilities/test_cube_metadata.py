@@ -83,6 +83,8 @@ def create_cube_with_threshold(data=None, threshold_values=None):
     cube = add_coordinate(
         cube, time_points, "time", order=[1, 0, 2, 3], is_datetime=True)
 
+    cube.attributes["attribute_to_update"] = "first_value"
+
     cube.data = data
     return cube
 
@@ -282,6 +284,14 @@ class Test_update_coord(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             update_coord(cube, self.coord_name, changes)
 
+    def test_update_attributes(self):
+        """Test update attributes associated with a coordinate."""
+        cube = create_cube_with_threshold()
+        changes = {'attributes': {'spp__relative_to_threshold'}}
+        result = update_coord(cube, self.coord_name, changes)
+        self.assertIsInstance(result, Cube)
+        self.assertEqual(result.coord(self.coord_name).attributes, changes)
+
     @ManageWarnings(record=True)
     def test_warning_messages_with_update(self, warning_list=None):
         """Test warning message is raised correctly when updating coord. """
@@ -321,18 +331,18 @@ class Test_update_attribute(IrisTest):
 
     def test_basic(self):
         """Test that update_attribute returns a Cube and updates OK. """
-        attribute_name = 'relative_to_threshold'
-        changes = 'between'
+        attribute_name = 'attribute_to_update'
+        changes = 'second_value'
         result = update_attribute(self.cube, attribute_name, changes)
         self.assertIsInstance(result, Cube)
-        self.assertEqual(result.attributes['relative_to_threshold'],
-                         'between')
+        self.assertEqual(result.attributes['attribute_to_update'],
+                         'second_value')
 
     @ManageWarnings(record=True)
     def test_attributes_updated_warnings(self, warning_list=None):
         """Test update_attribute updates attributes and gives warning. """
-        attribute_name = 'relative_to_threshold'
-        changes = 'between'
+        attribute_name = 'attribute_to_update'
+        changes = 'second_value'
         warning_msg = "Adding or updating attribute"
         result = update_attribute(self.cube, attribute_name, changes,
                                   warnings_on=True)
@@ -340,8 +350,8 @@ class Test_update_attribute(IrisTest):
                             for item in warning_list))
         self.assertTrue(any(warning_msg in str(item)
                             for item in warning_list))
-        self.assertEqual(result.attributes['relative_to_threshold'],
-                         'between')
+        self.assertEqual(result.attributes['attribute_to_update'],
+                         'second_value')
 
     def test_attributes_added(self):
         """Test update_attribute adds attribute OK. """
@@ -368,15 +378,15 @@ class Test_update_attribute(IrisTest):
 
     def test_attributes_deleted(self):
         """Test update_attribute deletes attribute OK. """
-        attribute_name = 'relative_to_threshold'
+        attribute_name = 'attribute_to_update'
         changes = 'delete'
         result = update_attribute(self.cube, attribute_name, changes)
-        self.assertFalse('relative_to_threshold' in result.attributes)
+        self.assertFalse('attribute_to_update' in result.attributes)
 
     @ManageWarnings(record=True)
     def test_attributes_deleted_warnings(self, warning_list=None):
         """Test update_attribute deletes and gives warning. """
-        attribute_name = 'relative_to_threshold'
+        attribute_name = 'attribute_to_update'
         changes = 'delete'
         warning_msg = "Deleted attribute"
         result = update_attribute(self.cube, attribute_name, changes,
@@ -385,7 +395,7 @@ class Test_update_attribute(IrisTest):
                             for item in warning_list))
         self.assertTrue(any(warning_msg in str(item)
                             for item in warning_list))
-        self.assertFalse('relative_to_threshold' in result.attributes)
+        self.assertFalse('attribute_to_update' in result.attributes)
 
     def test_attributes_deleted_when_not_present(self):
         """Test update_attribute copes when an attribute is requested to be
@@ -394,6 +404,93 @@ class Test_update_attribute(IrisTest):
         changes = 'delete'
         result = update_attribute(self.cube, attribute_name, changes)
         self.assertFalse('invalid_name' in result.attributes)
+
+
+# class Test_update_coordinate_attribute(IrisTest):
+#     """Test the update_attribute method."""
+#
+#     def setUp(self):
+#         """Set up test cube"""
+#         self.cube = create_cube_with_threshold()
+#         self.coord_name = self.cube.coord("threshold").name()
+#
+#     def test_basic(self):
+#         """Test that update_attribute returns a Cube and updates OK. """
+#         changes = {'spp__relative_to_threshold': 'between'}
+#         result = update_coordinate_attribute(
+#             self.cube, self.coord_name, changes)
+#         self.assertIsInstance(result, Cube)
+#         self.assertEqual(
+#             result.coord(self.coord_name
+#                          ).attributes['spp__relative_to_threshold'],
+#             'between')
+#
+#     @ManageWarnings(record=True)
+#     def test_attributes_updated_warnings(self, warning_list=None):
+#         """Test update_attribute updates attributes and gives warning. """
+#         changes = {'spp__relative_to_threshold': 'between'}
+#         warning_msg = "Adding or updating attribute"
+#         result = update_coordinate_attribute(
+#             self.cube, self.coord_name, changes, warnings_on=True)
+#         self.assertTrue(any(item.category == UserWarning
+#                             for item in warning_list))
+#         self.assertTrue(any(warning_msg in str(item)
+#                             for item in warning_list))
+#         self.assertEqual(
+#             result.coord(self.coord_name
+#                          ).attributes['spp__relative_to_threshold'],
+#             'between')
+#
+#     def test_attributes_added(self):
+#         """Test update_attribute adds attribute OK. """
+#         changes = {'new_attribute': 'new_value'}
+#         result = update_coordinate_attribute(
+#             self.cube, self.coord_name, changes)
+#         self.assertEqual(
+#             result.coord(self.coord_name).attributes['new_attribute'],
+#             'new_value')
+#
+#     def test_history_attribute_added(self):
+#         """Test update_attribute adds attribute OK. """
+#         changes = ['add', "Nowcast"]
+#         result = update_coordinate_attribute(
+#             self.cube, self.coord_name, changes)
+#         self.assertTrue("history" in result.attributes.keys())
+#
+#     def test_failure_to_add_history_attribute(self):
+#         """Test update_attribute doesn't adds non-history attribute. """
+#         changes = 'add'
+#         msg = "Only the history attribute can be added"
+#         with self.assertRaisesRegex(ValueError, msg):
+#             update_coordinate_attribute(self.cube, self.coord_name, changes)
+#
+#     def test_attributes_deleted(self):
+#         """Test update_attribute deletes attribute OK. """
+#         changes = {'spp__relative_to_threshold': 'delete'}
+#         result = update_coordinate_attribute(
+#             self.cube, self.coord_name, changes)
+#         self.assertFalse('spp__relative_to_threshold' in result.attributes)
+#
+#     @ManageWarnings(record=True)
+#     def test_attributes_deleted_warnings(self, warning_list=None):
+#         """Test update_attribute deletes and gives warning. """
+#         changes = {'spp__relative_to_threshold': 'delete'}
+#         warning_msg = "Deleted attribute"
+#         result = update_coordinate_attribute(
+#             self.cube, self.coord_name, changes, warnings_on=True)
+#         self.assertTrue(any(item.category == UserWarning
+#                             for item in warning_list))
+#         self.assertTrue(any(warning_msg in str(item)
+#                             for item in warning_list))
+#         self.assertFalse('spp__relative_to_threshold' in result.attributes)
+#
+#     def test_attributes_deleted_when_not_present(self):
+#         """Test update_attribute copes when an attribute is requested to be
+#         deleted, but this attribute is not available on the input cube."""
+#         changes = {'spp__relative_to_threshold': 'delete'}
+#         result = update_coordinate_attribute(
+#             self.cube, self.coord_name, changes)
+#         self.assertFalse('invalid_name' in result.attributes)
 
 
 class Test_update_cell_methods(IrisTest):
@@ -527,23 +624,23 @@ class Test_amend_metadata(IrisTest):
 
     def test_attributes_updated_and_added(self):
         """Test amend_metadata updates and adds attributes OK. """
-        attributes = {'relative_to_threshold': 'between',
+        attributes = {'attribute_to_update': 'second_value',
                       'new_attribute': 'new_value'}
         result = amend_metadata(
             self.cube, name='new_cube_name', data_type=np.dtype,
             attributes=attributes)
-        self.assertEqual(result.attributes['relative_to_threshold'],
-                         'between')
+        self.assertEqual(result.attributes['attribute_to_update'],
+                         'second_value')
         self.assertEqual(result.attributes['new_attribute'],
                          'new_value')
 
     def test_attributes_deleted(self):
         """Test amend_metadata updates attributes OK. """
-        attributes = {'relative_to_threshold': 'delete'}
+        attributes = {'attribute_to_update': 'delete'}
         result = amend_metadata(
             self.cube, name='new_cube_name', data_type=np.dtype,
             attributes=attributes)
-        self.assertFalse('relative_to_threshold' in result.attributes)
+        self.assertFalse('attribute_to_update' in result.attributes)
 
     def test_coords_updated(self):
         """Test amend_metadata returns a Cube and updates coord correctly. """
