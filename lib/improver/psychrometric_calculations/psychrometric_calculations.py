@@ -971,11 +971,16 @@ class FallingSnowLevel(object):
         snow_filled = snow_level_data
         if np.any(index):
             ynum, xnum = snow_level_data.shape
+            print(index)
             (y_points, x_points) = np.mgrid[0:ynum, 0:xnum]
             values = snow_level_data[index]
-            snow_level_data_updated = griddata(
-                np.where(index), values, (y_points, x_points), method='linear')
-            snow_filled = snow_level_data_updated
+            if np.sum(index) > 2:
+                snow_level_data_updated = griddata(
+                    np.where(index), values, (y_points, x_points),
+                    method='linear')
+                snow_filled = snow_level_data_updated
+            else:
+                snow_level_data_updated = snow_level_data
             # Fill in any remaining missing points using nearest neighbour.
             # This normallly only impact points at the corners of the domain,
             # where the linear fit doesn't reach.

@@ -314,6 +314,20 @@ class Test_fill_in_by_horizontal_interpolation(IrisTest):
             snow_level_data, self.max_in_nbhood_orog, self.orog_data)
         self.assertArrayEqual(snow_level_updated, expected)
 
+    def test_not_enough_points_to_fill(self):
+        """Test when there are not enough points to fill the gaps"""
+        snow_level_data = np.ones((3, 3))
+        snow_level_data[0] = [np.nan, 1, np.nan]
+        snow_level_data[1] = [np.nan, np.nan, np.nan]
+        snow_level_data[2] = [np.nan, 1, np.nan]
+        print(snow_level_data)
+        expected = np.array([[1.0, 1.0, 1.0],
+                             [1.0, 1.0, 1.0],
+                             [1.0, 1.0, 1.0]])
+        snow_level_updated = self.plugin.fill_in_by_horizontal_interpolation(
+            snow_level_data, self.max_in_nbhood_orog, self.orog_data)
+        self.assertArrayEqual(snow_level_updated, expected)
+
     def test_different_data(self):
         """Test when the points around the missing data have different
            values."""
