@@ -96,7 +96,6 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(
             result.coord("realization").points, np.array([0, 1, 2]))
 
-
     def test_raises_exception_if_realization_already_exists(self):
         """Check that we raise an exception if a realization coordinate already
         exists."""

@@ -601,19 +601,6 @@ class Test_process(IrisTest):
 
     @ManageWarnings(
         ignored_messages=["Only a single cube so no differences"])
-    def test_works_for_different_percentile_coord(self):
-        """Test that it still works for different percentile coordinate"""
-        cube = self.post_processed_percentiles
-        cube.coord(self.perc_coord).rename("percentile")
-        plugin = Plugin()
-        result = plugin.process(cube, self.raw_cube)
-        self.assertIsInstance(result, Cube)
-        self.assertTrue(result.coords("realization"))
-        self.assertArrayAlmostEqual(
-            result.coord("realization").points, [0, 1, 2])
-
-    @ManageWarnings(
-        ignored_messages=["Only a single cube so no differences"])
     def test_works_for_cubelist(self):
         """Test that the plugin works for a cubelist """
         plugin = Plugin()
