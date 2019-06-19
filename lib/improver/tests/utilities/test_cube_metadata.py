@@ -874,10 +874,12 @@ class Test_extract_diagnostic_name(IrisTest):
         self.assertEqual(result, 'air_temperature')
 
     def test_in_vicinity(self):
-        """Test correct name is returned from an "in vicinity" probability"""
-        diagnostic = 'lwe_precipitation_rate_in_vicinity'
+        """Test correct name is returned from an "in vicinity" probability.
+        Name "cloud_height" is used in this test to illustrate why suffix
+        cannot be removed with "rstrip"."""
+        diagnostic = 'cloud_height'
         result = extract_diagnostic_name(
-            'probability_of_{}_above_threshold'.format(diagnostic))
+            'probability_of_{}_in_vicinity_above_threshold'.format(diagnostic))
         self.assertEqual(result, diagnostic)
 
     def test_error_not_probability(self):
