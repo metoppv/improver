@@ -80,7 +80,7 @@ class SetupInputs(IrisTest):
     def setUp(self):
         """Set up inputs for testing."""
         super().setUp()
-        self.sqrt_pi = np.sqrt(np.pi).astype(np.float32)
+        self.sqrt_pi = np.sqrt(np.pi).astype(np.float64)
 
         self.initial_guess_for_mean = np.array([0, 1, 0, 1], dtype=np.float32)
         self.initial_guess_for_realization = (
@@ -111,16 +111,16 @@ class SetupGaussianInputs(SetupInputs, SetupCubes):
                 "realization", iris.analysis.MAX))
         self.forecast_predictor_data = (
             self.forecast_predictor_mean.data.flatten().astype(
-                np.float32))
+                np.float64))
         self.forecast_predictor_data_realizations = (
             convert_cube_data_to_2d(
                 self.historic_temperature_forecast_cube.copy()
-            ).astype(np.float32))
+            ).astype(np.float64))
         self.forecast_variance_data = (
             self.forecast_variance.data.flatten().astype(
-                np.float32))
+                np.float64))
         self.truth_data = self.truth.data.flatten().astype(
-            np.float32)
+            np.float64)
 
 
 class Test_normal_crps_minimiser(
@@ -136,7 +136,8 @@ class Test_normal_crps_minimiser(
     def test_basic_mean_predictor(self):
         """
         Test that the plugin returns a numpy float value with the
-        mean as the predictor.
+        mean as the predictor. The result indicates the minimum value for the
+        CRPS that was achieved by the minimisation.
         """
         predictor_of_mean_flag = "mean"
 
@@ -153,8 +154,9 @@ class Test_normal_crps_minimiser(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_realizations_predictor(self):
         """
-        Test that the plugin returns a numpy float array with the ensemble
-        realizations as the predictor.
+        Test that the plugin returns a numpy float value with the ensemble
+        realizations as the predictor. The result indicates the minimum value
+        for the CRPS that was achieved by the minimisation.
         """
         predictor_of_mean_flag = "realizations"
 
@@ -200,10 +202,12 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(
     as the predictors.
     """
     def setUp(self):
-        """Set up expected output."""
+        """Set up expected output.
+        The coefficients are in the order [gamma, delta, alpha, beta].
+        """
         super().setUp()
         self.expected_mean_coefficients = (
-            [0.0022568, 0.80696, -0.00081995, 1.0009])
+            [0.0023, 0.8070, -0.0008, 1.0009])
         self.expected_realizations_coefficients = (
             [-0.1373, 0.1141, 0.0409, 0.414, 0.2056, 0.8871])
 
@@ -214,8 +218,8 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(
         warning_types=[UserWarning, UserWarning, RuntimeWarning])
     def test_basic_mean_predictor(self):
         """
-        Test that the plugin returns a numpy float value. The ensemble mean
-        is the predictor.
+        Test that the plugin returns a numpy array with the expected
+        coefficients. The ensemble mean is the predictor.
         """
         predictor_of_mean_flag = "mean"
         distribution = "gaussian"
@@ -238,8 +242,8 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(
                        RuntimeWarning])
     def test_basic_realizations_predictor(self):
         """
-        Test that the plugin returns a numpy array. The ensemble realizations
-        are the predictor.
+        Test that the plugin returns a numpy array with the expected
+        coefficients. The ensemble realizations are the predictor.
         """
         predictor_of_mean_flag = "realizations"
         distribution = "gaussian"
@@ -310,7 +314,7 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(
         Test that the plugin returns a list of coefficients
         equal to specific values, when the ensemble realizations are the
         predictor assuming a truncated normal distribution and the value
-        specified for the MAX_ITERATIONS is overriden. The coefficients are
+        specified for the MAX_ITERATIONS is overridden. The coefficients are
         calculated by minimising the CRPS and using a set default value for
         the initial guess.
         """
@@ -401,15 +405,15 @@ class SetupTruncatedGaussianInputs(SetupInputs, SetupCubes):
                 "realization", iris.analysis.MAX))
         self.forecast_predictor_data = (
             self.forecast_predictor_mean.data.flatten().astype(
-                np.float32))
+                np.float64))
         self.forecast_predictor_data_realizations = (
             convert_cube_data_to_2d(
                 self.historic_wind_speed_forecast_cube.copy()
-            ).astype(np.float32))
+            ).astype(np.float64))
         self.forecast_variance_data = (
             self.forecast_variance.data.flatten().astype(
-                np.float32))
-        self.truth_data = self.truth.data.flatten().astype(np.float32)
+                np.float64))
+        self.truth_data = self.truth.data.flatten().astype(np.float64)
 
 
 class Test_truncated_normal_crps_minimiser(
@@ -442,8 +446,8 @@ class Test_truncated_normal_crps_minimiser(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_realizations_predictor(self):
         """
-        Test that the plugin returns a numpy array. The ensemble realizations
-        are the predictor.
+        Test that the plugin returns a numpy float value. The ensemble
+        realizations are the predictor.
         """
         predictor_of_mean_flag = "realizations"
 
@@ -504,7 +508,7 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(
                        RuntimeWarning])
     def test_basic_mean_predictor(self):
         """
-        Test that the plugin returns a numpy float value. The ensemble mean
+        Test that the plugin returns a numpy array. The ensemble mean
         is the predictor.
         """
         predictor_of_mean_flag = "mean"
@@ -527,7 +531,10 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(
         warning_types=[UserWarning, UserWarning, RuntimeWarning,
                        RuntimeWarning])
     def test_basic_realizations_predictor(self):
-        """Test that the plugin returns a numpy array."""
+        """
+        Test that the plugin returns a numpy array with the expected
+        coefficients. The ensemble realizations are the predictor.
+        """
         predictor_of_mean_flag = "realizations"
         distribution = "truncated gaussian"
 
@@ -544,9 +551,9 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_mean_predictor_keyerror(self):
         """
-        Test that the minimisation has resulted in a successful convergence,
-        and that the object returned is an OptimizeResult object, when the
-        ensemble mean is the predictor.
+        Test that an exception is raised when the distribution requested is
+        not an available option when the predictor_of_mean_flag is the
+        ensemble mean.
         """
         predictor_of_mean_flag = "mean"
         distribution = "foo"
@@ -563,9 +570,9 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_realizations_predictor_keyerror(self):
         """
-        Test that the minimisation has resulted in a successful convergence,
-        and that the object returned is an OptimizeResult object, when the
-        ensemble realizations are the predictor.
+        Test that an exception is raised when the distribution requested is
+        not an available option when the predictor_of_mean_flag is the
+        ensemble realizations.
         """
         predictor_of_mean_flag = "realizations"
         distribution = "foo"

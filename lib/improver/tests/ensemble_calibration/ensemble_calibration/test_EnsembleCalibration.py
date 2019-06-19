@@ -81,25 +81,81 @@ class SetupExpectedResults(IrisTest):
         where either a temperature or wind speed cube has been provided
         as input."""
         super().setUp()
+        # Expected values for the ensemble mean when using
+        # a Gaussian distribution using either the
+        # ensemble mean or the realizations as the predictor for both
+        # with and without the statsmodels module.
         self.expected_gaussian_mean_data = np.array(
-            [[273.74277, 274.65567, 275.41644],
-             [276.84668, 277.63785, 278.39862],
-             [279.49414, 280.16364, 280.98523]], dtype=np.float32)
+            [[273.7428, 274.6557, 275.4164],
+             [276.8467, 277.6379, 278.3986],
+             [279.4941, 280.1636, 280.9852]], dtype=np.float32)
 
+        self.expected_gaussian_realization_statsmodels = np.array(
+            [[274.1949, 275.1531, 275.3136],
+             [277.033, 277.4047, 278.3706],
+             [280.065, 280.3072, 281.2199]], dtype=np.float32)
+
+        self.expected_gaussian_realization_no_statsmodels = np.array(
+            [[274.1325, 275.0439, 275.2852],
+             [277.0241, 277.4005, 278.3493],
+             [280.0655, 280.3411, 281.2332]], dtype=np.float32)
+
+        # Expected values for the ensemble variance when using
+        # a Gaussian distribution using either the
+        # ensemble mean or the realizations as the predictor for both
+        # with and without the statsmodels module.
         self.expected_gaussian_variance_data = np.array(
-            [[0.21338412, 0.21577403, 0.01273912],
-             [0.02468313, 0.02149836, 0.01273912],
-             [0.05812284, 0.00318527, 0.00079632]], dtype=np.float32)
+            [[0.2134, 0.2158, 0.0127],
+             [0.0247, 0.0215, 0.0127],
+             [0.0581, 0.0032, 0.0008]], dtype=np.float32)
 
+        self.expected_gaussian_variance_statsmodels = np.array(
+            [[0.8974, 0.9074, 0.0536],
+             [0.1038, 0.0904, 0.0536],
+             [0.2444, 0.0134, 0.0033]], dtype=np.float32)
+
+        self.expected_gaussian_variance_no_statsmodels = np.array(
+            [[0.9981, 1.0093, 0.0601],
+             [0.1159, 0.1010, 0.0601],
+             [0.2722, 0.0154, 0.0042]], dtype=np.float32)
+
+        # Expected values for the ensemble mean when using
+        # a truncated Gaussian distribution using either the
+        # ensemble mean or the realizations as the predictor for both
+        # with and without the statsmodels module.
         self.expected_truncated_gaussian_mean_data = np.array(
-            [[0.45730978, 1.3972956, 2.1806173],
-             [3.6532617, 4.4679155, 5.2512374],
-             [6.3792205, 7.068543, 7.9145303]], dtype=np.float32)
+            [[0.4573, 1.3973, 2.1806],
+             [3.6533, 4.4679, 5.2512],
+             [6.3792, 7.0685, 7.9145]], dtype=np.float32)
+        self.expected_truncated_gaussian_realization_statsmodels = (
+            np.array(
+                [[0.9704, 1.7893, 2.2098],
+                 [3.8476, 4.2881, 5.1451],
+                 [6.7088, 7.0832, 7.9021]], dtype=np.float32))
+        self.expected_truncated_gaussian_realization_no_statsmodels = (
+            np.array(
+                [[0.8932, 1.6186, 2.3541],
+                 [3.8048, 4.4183, 5.1316],
+                 [6.3741, 6.9505, 7.6759]], dtype=np.float32))
 
+        # Expected values for the ensemble variance when using
+        # a truncated Gaussian distribution using either the
+        # ensemble mean or the realizations as the predictor for both
+        # with and without the statsmodels module.
         self.expected_truncated_gaussian_variance_data = np.array(
-            [[2.128061, 2.1518826, 0.12704849],
-             [0.24615654, 0.21439417, 0.12704849],
-             [0.5796586, 0.03176204, 0.00794059]], dtype=np.float32)
+            [[2.1281, 2.1519, 0.1270],
+             [0.2462, 0.2144, 0.1270],
+             [0.5797, 0.0318, 0.0079]], dtype=np.float32)
+        self.expected_truncated_gaussian_variance_statsmodels = (
+            np.array(
+                [[1.5945, 1.6123, 0.0952],
+                 [0.1845, 0.1607, 0.0952],
+                 [0.4344, 0.0238, 0.0060]], dtype=np.float32))
+        self.expected_truncated_gaussian_variance_no_statsmodels = (
+            np.array(
+                [[1.6120, 1.6299, 0.1024],
+                 [0.1923, 0.1683, 0.1024],
+                 [0.4439, 0.0305, 0.0125]], dtype=np.float32))
 
 
 class Test_process_basic(SetupCubes):
@@ -323,31 +379,6 @@ class Test_process_with_statsmodels(SetupCubes, SetupExpectedResults,
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def setUp(self):
-        """Set up temperature and wind speed cubes for testing."""
-        super().setUp()
-        self.expected_specific_gaussian_predictor_data = np.array(
-            [[274.19485, 275.15305, 275.31357],
-             [277.033, 277.4047, 278.37057],
-             [280.065, 280.3072, 281.21994]], dtype=np.float32)
-
-        self.expected_specific_gaussian_variance_data = np.array(
-            [[0.89737666, 0.90740454, 0.05357252],
-             [0.10379408, 0.09040814, 0.05357251],
-             [0.24442674, 0.01339526, 0.0033489]], dtype=np.float32)
-
-        self.expected_specific_truncated_gaussian_predictor_data = np.array(
-            [[0.97038287, 1.7892897, 2.209787],
-             [3.8476007, 4.288108, 5.145053],
-             [6.708772, 7.083208, 7.9021144]], dtype=np.float32)
-
-        self.expected_specific_truncated_gaussian_variance_data = np.array(
-            [[1.5944895, 1.6123377, 0.09524001],
-             [0.18448117, 0.16068336, 0.09524001],
-             [0.4343561, 0.02384708, 0.0059989]], dtype=np.float32)
-
-    @ManageWarnings(
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_gaussian_realizations_data_check(self):
         """
         Test that the plugin returns an iris.cube.CubeList
@@ -366,10 +397,10 @@ class Test_process_with_statsmodels(SetupCubes, SetupExpectedResults,
             self.temperature_truth_cube)
         self.assertArrayAlmostEqualLowerPrecision(
             calibrated_predictor.data,
-            self.expected_specific_gaussian_predictor_data)
+            self.expected_gaussian_realization_statsmodels)
         self.assertArrayAlmostEqualLowerPrecision(
             calibrated_variance.data,
-            self.expected_specific_gaussian_variance_data)
+            self.expected_gaussian_variance_statsmodels)
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
             self.expected_gaussian_mean_data, decimal=0)
@@ -397,10 +428,10 @@ class Test_process_with_statsmodels(SetupCubes, SetupExpectedResults,
             self.wind_speed_truth_cube)
         self.assertArrayAlmostEqualLowerPrecision(
             calibrated_predictor.data,
-            self.expected_specific_truncated_gaussian_predictor_data)
+            self.expected_truncated_gaussian_realization_statsmodels)
         self.assertArrayAlmostEqualLowerPrecision(
             calibrated_variance.data,
-            self.expected_specific_truncated_gaussian_variance_data)
+            self.expected_truncated_gaussian_variance_statsmodels)
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
             self.expected_truncated_gaussian_mean_data, decimal=0)
@@ -417,30 +448,6 @@ class Test_process_without_statsmodels(SetupCubes, SetupExpectedResults,
     """Additional tests for the process method when the statsmodels module
     is not available. A simple initial guess will be used for the
     coefficients that will be solved as part of the calibration."""
-    @ManageWarnings(
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def setUp(self):
-        """Set up temperature cubes for testing."""
-        super().setUp()
-        self.expected_specific_gaussian_predictor_data = np.array(
-            [[274.1325, 275.0439, 275.2852],
-             [277.02405, 277.4005, 278.3493],
-             [280.0655, 280.34113, 281.23315]], dtype=np.float32)
-
-        self.expected_specific_gaussian_variance_data = np.array(
-            [[0.9980779, 1.0092506, 0.06006714],
-             [0.11590514, 0.10101636, 0.06006713],
-             [0.27223495, 0.01540309, 0.00423481]], dtype=np.float32)
-
-        self.expected_specific_truncated_gaussian_predictor_data = np.array(
-            [[0.8932284, 1.6185861, 2.3541362],
-             [3.8048353, 4.418258, 5.1315794],
-             [6.3740964, 6.950509, 7.6758633]], dtype=np.float32)
-
-        self.expected_specific_truncated_gaussian_variance_data = np.array(
-            [[1.6119667, 1.6299378, 0.10240279],
-             [0.1922579, 0.16829637, 0.10240279],
-             [0.4438519, 0.0305187, 0.01254779]], dtype=np.float32)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -462,10 +469,10 @@ class Test_process_without_statsmodels(SetupCubes, SetupExpectedResults,
             self.temperature_truth_cube)
         self.assertArrayAlmostEqualLowerPrecision(
             calibrated_predictor.data,
-            self.expected_specific_gaussian_predictor_data, decimal=4)
+            self.expected_gaussian_realization_no_statsmodels)
         self.assertArrayAlmostEqualLowerPrecision(
             calibrated_variance.data,
-            self.expected_specific_gaussian_variance_data)
+            self.expected_gaussian_variance_no_statsmodels)
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
             self.expected_gaussian_mean_data, decimal=0)
@@ -481,10 +488,6 @@ class Test_process_without_statsmodels(SetupCubes, SetupExpectedResults,
         of wind_speed cubes with the expected data, where the plugin
         returns a cubelist of, firstly, the predictor and, secondly the
         variance. The ensemble realizations are the predictor.
-        The choice to assert that the arrays are almost equal to only 2
-        decimal places is to avoid sensitive tests that are overly
-        dependent upon package versions and processor optimisation, in order
-        to converge to a stable solution.
         """
         distribution = "truncated gaussian"
         predictor_of_mean_flag = "realizations"
@@ -497,10 +500,10 @@ class Test_process_without_statsmodels(SetupCubes, SetupExpectedResults,
             self.wind_speed_truth_cube)
         self.assertArrayAlmostEqualLowerPrecision(
             calibrated_predictor.data,
-            self.expected_specific_truncated_gaussian_predictor_data)
+            self.expected_truncated_gaussian_realization_no_statsmodels)
         self.assertArrayAlmostEqualLowerPrecision(
             calibrated_variance.data,
-            self.expected_specific_truncated_gaussian_variance_data)
+            self.expected_truncated_gaussian_variance_no_statsmodels)
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
             self.expected_truncated_gaussian_mean_data, decimal=0)

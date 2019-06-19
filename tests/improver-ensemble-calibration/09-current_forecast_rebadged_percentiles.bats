@@ -47,8 +47,11 @@
 
   # Run nccmp to compare the output calibrated realizations when the input
   # is percentiles that have been rebadged as realizations. The known good
-  # output in this case is the same as when passing in percentiles directly
-  # and check it passes.
+  # output in this case is the same as when passing in percentiles directly,
+  # apart from the output generated when the input is rebadged percentiles
+  # will contain a realization coordinate.
+  # The "-x realization" option indicates that the realization coordinate
+  # should be ignored.
   run nccmp -dmNsg -t 1e-3 -x realization "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

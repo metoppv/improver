@@ -80,7 +80,7 @@ class Test__init__(SetupCubes):
     """Test the initialisation of the class."""
 
     def setUp(self):
-        """Set up cube for testing."""
+        """Set up variables for testing."""
         self.distribution = "gaussian"
         self.desired_units = "degreesC"
 
@@ -108,10 +108,11 @@ class Test__init__(SetupCubes):
         is not found for when the predictor is the ensemble mean.
         """
         predictor_of_mean_flag = "mean"
+        statsmodels_warning = "The statsmodels can not be imported"
 
         Plugin(self.distribution, self.desired_units,
                predictor_of_mean_flag=predictor_of_mean_flag)
-        self.assertTrue(len(warning_list) == 0)
+        self.assertNotIn(statsmodels_warning, warning_list)
 
     @unittest.skipIf(
         STATSMODELS_FOUND is True, "statsmodels module is available.")
@@ -379,7 +380,7 @@ class Test_create_coefficients_cube(IrisTest):
 
 class Test_compute_initial_guess(IrisTest):
 
-    """Test the compute_initial_guess plugin."""
+    """Test the compute_initial_guess method."""
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -399,13 +400,13 @@ class Test_compute_initial_guess(IrisTest):
                           [8., 9., 10.]]])
         data = data + 273.15
         data = data.astype(np.float32)
-        self.cube = set_up_variable_cube(
+        cube = set_up_variable_cube(
             data, units="Kelvin", realizations=[0, 1, 2])
 
-        self.current_forecast_predictor_mean = self.cube.collapsed(
+        self.current_forecast_predictor_mean = cube.collapsed(
             "realization", iris.analysis.MEAN)
-        self.current_forecast_predictor_realizations = self.cube.copy()
-        self.truth = self.cube.collapsed("realization", iris.analysis.MAX)
+        self.current_forecast_predictor_realizations = cube.copy()
+        self.truth = cube.collapsed("realization", iris.analysis.MAX)
         self.no_of_realizations = 3
 
     @ManageWarnings(
@@ -497,7 +498,10 @@ class Test_compute_initial_guess(IrisTest):
         """
         Test that the plugin returns the expected values for the initial guess
         for the calibration coefficients, when the ensemble mean is used
-        as the predictor. The coefficients are estimated using a linear model.
+        as the predictor. The coefficients are estimated using a linear model,
+        where there is an offset of one between the truth and the forecast
+        during the training period. Therefore, in this case the result of the
+        linear regression is a gradient of 1 and an intercept of 1.
         """
         data = np.array([0., 1., 1., 1.], dtype=np.float32)
         estimate_coefficients_from_linear_model_flag = True
@@ -519,6 +523,9 @@ class Test_compute_initial_guess(IrisTest):
         Test that the plugin returns the expected values for the initial guess
         for the calibration coefficients, when the ensemble mean is used
         as the predictor. The coefficients are estimated using a linear model.
+        In this case, the result of the linear regression is for an intercept
+        of 0.333333 with different weights for the realizations because
+        some of the realizations are closer to the truth, in this instance.
         """
         data = [0., 1., 0.333333, 0., 0.333333, 0.666667]
         predictor_of_mean_flag = "realizations"
@@ -539,7 +546,10 @@ class Test_compute_initial_guess(IrisTest):
         Test that the plugin returns the expected values for the initial guess
         for the calibration coefficients, when the ensemble mean is used
         as the predictor, when one value from the input data is set to NaN.
-        The coefficients are estimated using a linear model.
+        The coefficients are estimated using a linear model,
+        where there is an offset of one between the truth and the forecast
+        during the training period. Therefore, in this case the result of the
+        linear regression is a gradient of 1 and an intercept of 1.
         """
         data = np.array([0., 1., 1., 1.], dtype=np.float32)
         estimate_coefficients_from_linear_model_flag = True
@@ -573,10 +583,21 @@ class Test_estimate_coefficients_for_ngr(
         self.coeff_names_realizations = (
             ['gamma', 'delta', 'alpha', 'beta0', 'beta1', 'beta2'])
 
+        # The expected coefficients for temperature in Kelvin.
         self.expected_mean_predictor_gaussian = (
             [-0., 0.4888, 23.4351, 0.9129])
+        # The expected coefficients for wind speed in m s^-1.
         self.expected_mean_predictor_truncated_gaussian = (
             [-0., 1.5434, -0.514, 0.94])
+
+        self.expected_realizations_gaussian_statsmodels = (
+            [-0.0003, 1.0023, -0.2831, -0.0774, 0.3893, 0.9168])
+        self.expected_realizations_gaussian_no_statsmodels = (
+            [0.0226, 1.0567, -0.0039, 0.3432, 0.2542, 0.9026])
+        self.expected_realizations_truncated_gaussian_statsmodels = (
+            [-0.0070, 1.3360, -0.5012, -0.5295, 0.0003, 0.8128])
+        self.expected_realizations_truncated_gaussian_no_statsmodels = (
+            [0.0810, 1.3406, -0.0310, 0.7003, -0.0036, 0.6083])
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -595,7 +616,9 @@ class Test_estimate_coefficients_for_ngr(
     def test_coefficient_values_for_gaussian_distribution(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
-        expected values for a Gaussian distribution."""
+        expected values for a Gaussian distribution. In this case,
+        a linear least-squares regression is used to construct the initial
+        guess."""
         plugin = Plugin(self.distribution, self.current_cycle)
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
@@ -611,8 +634,10 @@ class Test_estimate_coefficients_for_ngr(
     def test_coefficients_gaussian_distribution_default_initial_guess(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
-        expected values for a Gaussian distribution."""
-        expected = [-0.00023604, 0.79765, 0.00042286, 0.99733]
+        expected values for a Gaussian distribution, where the default
+        values for the initial guess are used, rather than using a linear
+        least-squares regression to construct an initial guess."""
+        expected = [-0.0002, 0.7977, 0.0004, 0.9973]
         plugin = Plugin(self.distribution, self.current_cycle)
         plugin.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
         result = plugin.estimate_coefficients_for_ngr(
@@ -629,7 +654,8 @@ class Test_estimate_coefficients_for_ngr(
             self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
-        expected values for a Gaussian distribution."""
+        expected values for a Gaussian distribution, when the max_iterations
+        argument is specified."""
         max_iterations = 800
 
         plugin = Plugin(
@@ -649,7 +675,9 @@ class Test_estimate_coefficients_for_ngr(
     def test_coefficient_values_for_truncated_gaussian_distribution(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
-        expected values for a truncated Gaussian distribution."""
+        expected values for a truncated Gaussian distribution. In this case,
+        a linear least-squares regression is used to construct the initial
+        guess."""
         distribution = "truncated gaussian"
 
         plugin = Plugin(distribution, self.current_cycle)
@@ -667,8 +695,9 @@ class Test_estimate_coefficients_for_ngr(
     def test_coefficients_truncated_gaussian_default_initial_guess(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
-        expected values for a truncated Gaussian distribution."""
-        expected = [0., 1.5434, -0.5141, 0.94]
+        expected values for a truncated Gaussian distribution, where the
+        default values for the initial guess are used, rather than using a
+        linear least-squares regression to construct an initial guess.."""
         distribution = "truncated gaussian"
 
         plugin = Plugin(distribution, self.current_cycle)
@@ -677,7 +706,8 @@ class Test_estimate_coefficients_for_ngr(
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
 
-        self.assertArrayAlmostEqualLowerPrecision(result.data, expected)
+        self.assertArrayAlmostEqualLowerPrecision(
+            result.data, self.expected_mean_predictor_truncated_gaussian)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, self.coeff_names)
 
@@ -690,7 +720,6 @@ class Test_estimate_coefficients_for_ngr(
         expected values, and the coefficient names also match
         expected values for a Gaussian distribution where the
         realizations are used as the predictor of the mean."""
-        data = [-0.0003, 1.0023, -0.2831, -0.0774, 0.3893, 0.9168]
         predictor_of_mean_flag = "realizations"
 
         plugin = Plugin(self.distribution, self.current_cycle,
@@ -698,7 +727,8 @@ class Test_estimate_coefficients_for_ngr(
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertArrayAlmostEqualLowerPrecision(result.data, data)
+        self.assertArrayAlmostEqualLowerPrecision(
+            result.data, self.expected_realizations_gaussian_statsmodels)
         self.assertArrayEqual(
             result.coord("coefficient_name").points,
             self.coeff_names_realizations)
@@ -712,14 +742,7 @@ class Test_estimate_coefficients_for_ngr(
         expected values, and the coefficient names also match
         expected values for a Gaussian distribution where the
         realizations are used as the predictor of the mean.
-        The choice to specify a maximum number of iterations of 10
-        means that the solution does not fully converge. This choice for the
-        maximum number of iterations is to try to ensure convergence
-        to a common solution across different package versions and
-        processors.
         """
-        data = np.array([0.022628, 1.056736, -0.00394, 0.343177, 0.254187,
-                         0.902592], dtype=np.float32)
         predictor_of_mean_flag = "realizations"
 
         plugin = Plugin(self.distribution, self.current_cycle,
@@ -727,7 +750,8 @@ class Test_estimate_coefficients_for_ngr(
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertArrayAlmostEqualLowerPrecision(result.data, data)
+        self.assertArrayAlmostEqualLowerPrecision(
+            result.data, self.expected_realizations_gaussian_no_statsmodels)
         self.assertArrayEqual(
             result.coord("coefficient_name").points,
             self.coeff_names_realizations)
@@ -741,7 +765,6 @@ class Test_estimate_coefficients_for_ngr(
         expected values, and the coefficient names also match
         expected values for a truncated Gaussian distribution where the
         realizations are used as the predictor of the mean."""
-        data = [-0.007036, 1.335972, -0.501214, -0.529463, 0.000286, 0.812843]
         distribution = "truncated gaussian"
         predictor_of_mean_flag = "realizations"
 
@@ -750,7 +773,9 @@ class Test_estimate_coefficients_for_ngr(
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
-        self.assertArrayAlmostEqualLowerPrecision(result.data, data)
+        self.assertArrayAlmostEqualLowerPrecision(
+            result.data,
+            self.expected_realizations_truncated_gaussian_statsmodels)
         self.assertArrayEqual(
             result.coord("coefficient_name").points,
             self.coeff_names_realizations)
@@ -763,13 +788,7 @@ class Test_estimate_coefficients_for_ngr(
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
         expected values for a truncated Gaussian distribution where the
-        realizations are used as the predictor of the mean.
-        The choice to specify a maximum number of iterations of 10
-        means that the solution does not fully converge. This choice for the
-        maximum number of iterations is to try to ensure convergence
-        to a common solution across different package versions and
-        processors."""
-        data = [0.080978, 1.34056, -0.031015, 0.700256, -0.003556, 0.608326]
+        realizations are used as the predictor of the mean."""
         distribution = "truncated gaussian"
         predictor_of_mean_flag = "realizations"
 
@@ -779,7 +798,9 @@ class Test_estimate_coefficients_for_ngr(
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
 
-        self.assertArrayAlmostEqualLowerPrecision(result.data, data)
+        self.assertArrayAlmostEqualLowerPrecision(
+            result.data,
+            self.expected_realizations_truncated_gaussian_no_statsmodels)
         self.assertArrayEqual(
             result.coord("coefficient_name").points,
             self.coeff_names_realizations)

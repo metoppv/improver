@@ -55,7 +55,7 @@ class EnsembleCalibrationAssertions(IrisTest):
     """Additional assertions, specifically for usage in the
     ensemble calibration unit tests."""
 
-    def assertArrayAlmostEqualLowerPrecision(self, first, second, decimal=4):
+    def assertArrayAlmostEqualLowerPrecision(self, first, second):
         """Overriding of the assertArrayAlmostEqual method to check whether
         array are matching to 4 decimal places. This is justified
         based on the default tolerance of the minimisation using the
@@ -67,13 +67,10 @@ class EnsembleCalibrationAssertions(IrisTest):
                 First array to compare.
             second (np.array):
                 Second array to compare.
-            decimal (int):
-                Number of decimal places that will be included within the
-                comparison.
          """
-        self.assertArrayAlmostEqual(first, second, decimal=decimal)
+        self.assertArrayAlmostEqual(first, second, decimal=4)
 
-    def assertAlmostEqualLowerPrecision(self, first, second, places=3):
+    def assertAlmostEqualLowerPrecision(self, first, second):
         """Overriding of the assertAlmostEqual method to check whether
         array are matching to 3 decimal places. This is justified
         based on a 0.0001 precision level difference within the
@@ -85,11 +82,8 @@ class EnsembleCalibrationAssertions(IrisTest):
                 First array to compare.
             second (np.array):
                 Second array to compare.
-            places (int):
-                Number of decimal places that will be included within the
-                comparison.
          """
-        self.assertAlmostEqual(first, second, places=places)
+        self.assertAlmostEqual(first, second, places=3)
 
 
 class SetupCubes(IrisTest):
@@ -409,7 +403,6 @@ def _create_truth(cube):
     truth = concatenate_cubes(
         truth, coords_to_slice_over=["time"],
         coordinates_for_association=["forecast_reference_time"])
-    truth.data = truth.data.data
     return truth
 
 

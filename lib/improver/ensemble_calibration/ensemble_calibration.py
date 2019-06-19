@@ -116,6 +116,20 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         Function to pass a given minimisation function to the scipy minimize
         function to estimate optimised values for the coefficients.
 
+        If the predictor_of_mean_flag is the ensemble mean, this function
+        estimates values for alpha, beta, gamma and delta based on the
+        equation:
+        N(alpha + beta * ensemble_mean, gamma + delta * ensemble_variance),
+        where N is a chosen distribution.
+
+        If the predictor_of_mean_flag is the ensemble realizations, this
+        function estimates values for alpha, beta, gamma and delta based on the
+        equation:
+        N(alpha + beta0 * realization0 + beta1 * realization1,
+          gamma + delta * ensemble_variance),
+        where N is a chosen distribution and the number of beta terms
+        depends on the number of realizations provided.
+
         Args:
             initial_guess (list):
                 List of optimised coefficients.
@@ -193,6 +207,8 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
                 forecast_predictor)
             forecast_var_data = forecast_var.data.flatten()
 
+        # Increased precision is needed for stable coefficient calculation.
+        # The resulting coefficients are cast to float32 prior to output.
         initial_guess = np.array(initial_guess, dtype=np.float64)
         forecast_predictor_data = forecast_predictor_data.astype(np.float64)
         forecast_var_data = forecast_var_data.astype(np.float64)
@@ -539,14 +555,36 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             estimate_coefficients_from_linear_model_flag,
             no_of_realizations=None):
         """
-        Function to compute initial guess of the a and beta components of the
-        EMOS coefficients by linear regression of the forecast predictor
-        and the truth, if requested. Otherwise, default values for a and b
-        will be used.
+        Function to compute initial guess of the alpha, beta, gamma
+        and delta components of the EMOS coefficients by linear regression
+        of the forecast predictor and the truth, if requested. Otherwise,
+        default values for the coefficients will be used.
 
-        Default values have been chosen based on Figure 8 in the
-        2017 ensemble calibration report available on the Science Plugin
-        Documents Confluence page.
+        If the predictor_of_mean_flag is "mean", then the order of
+        the initial_guess is [gamma, delta, alpha, beta]. Otherwise, if the
+        predictor_of_mean_flag is "realizations" then the order of the
+        initial_guess is [gamma, delta, alpha, beta0, beta1, beta2].
+
+        The coefficients relate to adjustments to the ensemble mean or the
+        ensemble realizations, and adjustments to the ensemble variance:
+        ::
+            alpha + beta * ensemble mean or
+            alpha + beta0 * realization1 + beta1 * realization2
+
+            gamma + delta * ensemble variance
+
+        The default values for the initial guesses are in
+        [gamma, delta, alpha, beta] ordering:
+        * For the ensemble mean, the default initial guess: [0, 1, 0, 1]
+        assumes that the raw forecast is skilful and the expected adjustments
+        are small.
+        * For the ensemble realizations, the default initial guess is
+        effectively: [0, 1, 0, 1/3., 1/3., 1/3.], such that
+        each realization is assumed to have equal weight.
+
+        If linear regression is enabled, the alpha and beta coefficients
+        associated with the ensemble mean or ensemble realizations are
+        modified based on the results from the linear regression fit.
 
         Args:
             truth (iris.cube.Cube):
