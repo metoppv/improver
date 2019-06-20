@@ -51,7 +51,7 @@ from improver.utilities.spatial import (
     DifferenceBetweenAdjacentGridSquares)
 
 
-class OrographicEnhancement(object):
+class OrographicEnhancement:
     """
     Class to calculate orographic enhancement from horizontal wind components,
     temperature and relative humidity.
@@ -291,14 +291,14 @@ class OrographicEnhancement(object):
             point_orogenh (np.ndarray):
                 Orographic enhancement values in mm/h
         """
-        mask = self._generate_mask()
+        mask = np.logical_not(self._generate_mask())
         point_orogenh = np.zeros(self.temperature.data.shape, dtype=np.float32)
 
         prefactor = 3600./R_WATER_VAPOUR
         numerator = np.multiply(self.humidity.data, self.svp.data)
         numerator = np.multiply(numerator, self.vgradz)
-        point_orogenh[~mask] = prefactor * np.divide(
-            numerator[~mask], self.temperature.data[~mask])
+        point_orogenh[mask] = prefactor * np.divide(
+            numerator[mask], self.temperature.data[mask])
         return np.where(point_orogenh > 0, point_orogenh, 0)
 
     def _get_point_distances(self, wind_speed, max_sin_cos):
@@ -441,14 +441,15 @@ class OrographicEnhancement(object):
         wind_speed = np.sqrt(np.square(self.uwind.data) +
                              np.square(self.vwind.data))
         mask = np.where(np.isclose(wind_speed, 0), True, False)
+        mask = np.logical_not(mask)
 
         sin_wind_dir = np.zeros(wind_speed.shape, dtype=np.float32)
-        sin_wind_dir[~mask] = np.divide(self.uwind.data[~mask],
-                                        wind_speed[~mask])
+        sin_wind_dir[mask] = np.divide(self.uwind.data[mask],
+                                       wind_speed[mask])
 
         cos_wind_dir = np.zeros(wind_speed.shape, dtype=np.float32)
-        cos_wind_dir[~mask] = np.divide(self.vwind.data[~mask],
-                                        wind_speed[~mask])
+        cos_wind_dir[mask] = np.divide(self.vwind.data[mask],
+                                       wind_speed[mask])
 
         max_sin_cos = np.where(abs(sin_wind_dir) > abs(cos_wind_dir),
                                abs(sin_wind_dir), abs(cos_wind_dir))
@@ -465,8 +466,8 @@ class OrographicEnhancement(object):
             point_orogenh, x_source, y_source, distance, wind_speed)
 
         # normalise by weights and scale by efficiency factor
-        orogenh[~mask] = self.efficiency_factor * np.divide(
-            orogenh[~mask], sum_of_weights[~mask])
+        orogenh[mask] = self.efficiency_factor * np.divide(
+            orogenh[mask], sum_of_weights[mask])
 
         return orogenh
 

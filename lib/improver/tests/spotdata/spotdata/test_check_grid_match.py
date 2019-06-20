@@ -37,6 +37,8 @@ from iris.tests import IrisTest
 
 from improver.spotdata.spot_extraction import check_grid_match
 from improver.tests.set_up_test_cubes import set_up_variable_cube
+from improver.spotdata.build_spotdata_cube import build_spotdata_cube
+from improver.utilities.cube_metadata import create_coordinate_hash
 
 
 class Test_check_grid_match(IrisTest):
@@ -46,56 +48,74 @@ class Test_check_grid_match(IrisTest):
     def setUp(self):
         """Set up cubes for use in testing."""
 
-        attributes = {
-            'mosg__grid_domain': 'uk',
-            'mosg__grid_type': 'standard',
-            'mosg__grid_version': '1.2.0',
-            'mosg__model_configuration': 'uk_det'}
-
         data = np.ones(9).reshape(3, 3).astype(np.float32)
-        self.reference_cube = set_up_variable_cube(data, attributes=attributes,
+        self.reference_cube = set_up_variable_cube(data,
                                                    spatial_grid="equalarea")
         self.cube1 = self.reference_cube.copy()
         self.cube2 = self.reference_cube.copy()
+        self.unmatched_cube = set_up_variable_cube(data,
+                                                   spatial_grid="latlon")
 
-    def test_matching_metadata(self):
-        """Test a case in which the grid metadata matches. There is no assert
+        self.diagnostic_cube_hash = create_coordinate_hash(self.reference_cube)
+
+        neighbours = np.array([[[0., 0., 0.]]])
+        altitudes = np.array([0])
+        latitudes = np.array([0])
+        longitudes = np.array([0])
+        wmo_ids = np.array([0])
+        grid_attributes = ['x_index', 'y_index', 'vertical_displacement']
+        neighbour_methods = ['nearest']
+        self.neighbour_cube = build_spotdata_cube(
+            neighbours, 'grid_neighbours', 1, altitudes, latitudes,
+            longitudes, wmo_ids, grid_attributes=grid_attributes,
+            neighbour_methods=neighbour_methods)
+        self.neighbour_cube.attributes['model_grid_hash'] = (
+            self.diagnostic_cube_hash)
+
+    def test_matching_grids(self):
+        """Test a case in which the grids match. There is no assert
         statement as this test is successful if no exception is raised."""
         cubes = [self.reference_cube, self.cube1, self.cube2]
-        check_grid_match('mosg', cubes)
+        check_grid_match(cubes)
 
-    def test_non_matching_metadata(self):
-        """Test a case in which the grid metadata does not match. This will
-        raise an ValueError."""
-        self.reference_cube.attributes["mosg__grid_domain"] = "eire"
-        cubes = [self.reference_cube, self.cube1, self.cube2]
-        msg = "Cubes do not share the metadata identified"
+    def test_non_matching_grids(self):
+        """Test a case in which a cube with an unmatching grid is included in
+        the comparison, raising a ValueError."""
+        cubes = [self.reference_cube, self.cube1, self.unmatched_cube]
+        msg = ("Cubes do not share or originate from the same grid, so cannot "
+               "be used together.")
         with self.assertRaisesRegex(ValueError, msg):
-            check_grid_match('mosg', cubes)
+            check_grid_match(cubes)
 
-    def test_ignore_non_matching_metadata(self):
-        """Test a case in which the grid metadata does not match but this is
-        forceably ignored by the user by setting self.grid_metadata_identifier
-        to None."""
-        self.reference_cube.attributes["mosg__grid_domain"] = "eire"
-        cubes = [self.reference_cube, self.cube1, self.cube2]
-        check_grid_match(None, cubes)
+    def test_using_model_grid_hash(self):
+        """Test a case in which one of the cubes is a spotdata cube without a
+        spatial grid. This cube includes a model_grid_hash to indicate on which
+        grid the neighbours were found."""
+        cubes = [self.reference_cube, self.neighbour_cube, self.cube2]
+        check_grid_match(cubes)
 
-    def test_no_identifier_success(self):
-        """Test case in which an empty string is provided as the identifier,
-        which matches all keys, assuming no numeric keys."""
-        cubes = [self.reference_cube, self.cube1, self.cube2]
-        check_grid_match('', cubes)
+    def test_using_model_grid_hash_reordered_cubes(self):
+        """Test as above but using the neighbour_cube as the first in the list
+        so that it acts as the reference for all the other cubes."""
+        cubes = [self.neighbour_cube, self.reference_cube, self.cube2]
+        check_grid_match(cubes)
 
-    def test_no_identifier_failure(self):
-        """Test case in which an empty string is provided as the identifier,
-        which matches all keys, assuming no numeric keys. In this case we
-        expect a failure as we add an extra attribute."""
-        self.cube1.attributes['extra_attribute'] = 'extra'
-        cubes = [self.reference_cube, self.cube1, self.cube2]
-        msg = "Cubes do not share the metadata identified"
+    def test_multiple_model_grid_hash_cubes(self):
+        """Test that a check works when all the cubes passed to the function
+        have model_grid_hashes."""
+        self.cube1.attributes["model_grid_hash"] = self.diagnostic_cube_hash
+        cubes = [self.neighbour_cube, self.cube1]
+        check_grid_match(cubes)
+
+    def test_mismatched_model_grid_hash_cubes(self):
+        """Test that a check works when all the cubes passed to the function
+        have model_grid_hashes and these do not match."""
+        self.cube1.attributes["model_grid_hash"] = "123"
+        cubes = [self.neighbour_cube, self.cube1]
+        msg = ("Cubes do not share or originate from the same grid, so cannot "
+               "be used together.")
         with self.assertRaisesRegex(ValueError, msg):
-            check_grid_match('', cubes)
+            check_grid_match(cubes)
 
 
 if __name__ == '__main__':

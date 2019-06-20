@@ -31,18 +31,17 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "spot-extract test non-default metadata can be used" {
+@test "neighbour-finding modify output cube metadata" {
   improver_check_skip_acceptance
-  KGO="spot-extract/outputs/nearest_uk_temperatures_alternate_metadata.nc"
+  KGO="neighbour-finding/outputs/modified_metadata_kgo.nc"
 
-  # Run spot extract processing and check it passes.
-  run improver spot-extract \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/all_methods_uk_alternate_metadata.nc" \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_temperature_alternate_metadata.nc" \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_lapse_rate_alternate_metadata.nc" \
+  # Run cube extraction processing and check it passes.
+  run improver neighbour-finding \
+      "$IMPROVER_ACC_TEST_DIR/neighbour-finding/inputs/uk_sites.json" \
+      "$IMPROVER_ACC_TEST_DIR/neighbour-finding/inputs/ukvx_orography.nc" \
+      "$IMPROVER_ACC_TEST_DIR/neighbour-finding/inputs/ukvx_landmask.nc" \
       "$TEST_DIR/output.nc" \
-      --apply_lapse_rate_correction \
-      --grid_metadata_identifier my_grid_metadata
+      --metadata_json "$IMPROVER_ACC_TEST_DIR/neighbour-finding/inputs/metadata.json"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

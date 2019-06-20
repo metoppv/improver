@@ -33,6 +33,8 @@
 from datetime import datetime
 from dateutil import tz
 import warnings
+import pickle
+import hashlib
 import numpy as np
 
 import iris
@@ -666,7 +668,8 @@ def in_vicinity_name_format(cube_name):
 def extract_diagnostic_name(cube_name):
     """
     Extract the standard or long name X of the diagnostic from a probability
-    cube name of the form 'probability_of_X_above/below_thresold'
+    cube name of the form 'probability_of_X_above/below_threshold', or
+    'probability_of_X_in_vicinity_above/below_threshold'.
 
     Args:
         cube_name (str):
@@ -689,4 +692,48 @@ def extract_diagnostic_name(cube_name):
 
     # 'probability_of_' is a 15-character string
     diagnostic_name = cube_name[15:relative_to_threshold_index]
+
+    # check for and remove '_in_vicinity' suffix if present
+    suffix_len = 12
+    if len(diagnostic_name) > suffix_len:
+        suffix = diagnostic_name[-suffix_len:]
+        if suffix == '_in_vicinity':
+            diagnostic_name = diagnostic_name[:-suffix_len]
+
     return diagnostic_name
+
+
+def generate_hash(data_in):
+    """
+    Generate a hash from the data_in that can be used to uniquely identify
+    equivalent data_in.
+
+    Args:
+        data_in (any):
+            The data from which a hash is to be generated. This can be of any
+            type that can be pickled.
+    Returns:
+        hash (str):
+            A hexidecimal hash representing the data.
+    """
+    hashable_type = pickle.dumps(data_in)
+    hash_result = hashlib.md5(hashable_type).hexdigest()
+    return hash_result
+
+
+def create_coordinate_hash(cube):
+    """
+    Generate a hash based on the input cube's x and y coordinates. This
+    acts as a unique identifier for the grid which can be used to allow two
+    grids to be compared.
+
+    Args:
+        cube (iris.cube.Cube):
+            The cube from which x and y coordinates will be used to
+            generate a hash.
+    Returns:
+        coordinate_hash (string):
+            A hash created using the x and y coordinates of the input cube.
+    """
+    hashable_data = [cube.coord(axis='x'), cube.coord(axis='y')]
+    return generate_hash(hashable_data)

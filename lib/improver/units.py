@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,25 +28,38 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""
+Module to contain the default units for use within IMPROVER.
 
-. $IMPROVER_DIR/tests/lib/utils
+The DEFAULT_UNITS dictionary has the following form.
 
-@test "neighbour-finding" {
-  improver_check_skip_acceptance
-  KGO="neighbour-finding/outputs/different_grid_metadata_kgo.nc"
+<str>:
+    The principle key is the name of a coordinate or diagnostic.
 
-  # Run cube extraction processing and check it passes.
-  run improver neighbour-finding \
-      "$IMPROVER_ACC_TEST_DIR/neighbour-finding/inputs/uk_sites.json" \
-      "$IMPROVER_ACC_TEST_DIR/neighbour-finding/inputs/ukvx_orography.nc" \
-      "$IMPROVER_ACC_TEST_DIR/neighbour-finding/inputs/ukvx_landmask.nc" \
-      "$TEST_DIR/output.nc" \
-      --grid_metadata_identifier institution
-  [[ "$status" -eq 0 ]]
+"unit": <str>
+    The standard/default units for the coordinate or diagnostic
+    described by the key.
+"dtype": <dtype>
+    The standard/default data type in which the coordinate points
+    or diagnostic values should be stored.
+"""
 
-  improver_check_recreate_kgo "output.nc" $KGO
+import numpy as np
 
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
+DEFAULT_UNITS = {
+    "time": {
+        "unit": "seconds since 1970-01-01 00:00:00",
+        "dtype": np.int64},
+    "forecast_reference_time": {
+        "unit": "seconds since 1970-01-01 00:00:00",
+        "dtype": np.int64},
+    "forecast_period": {
+        "unit": "seconds",
+        "dtype": np.int32},
+    "lwe_thickness_of_precipitation_amount": {
+        "unit": "m",
+        "dtype": np.float32},
+    "lwe_precipitation_rate": {
+        "unit": "m s-1",
+        "dtype": np.float32},
 }

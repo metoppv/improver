@@ -413,7 +413,7 @@ class Test_wind_dir_decider(IrisTest):
         self.plugin.wdir_slice_mean.data = np.pad(wind_dir_deg_mean,
                                                   ((4, 4), (4, 4)),
                                                   "constant",
-                                                  constant_values=(0.0 + 0.0j))
+                                                  constant_values=0.0)
 
         self.plugin.wind_dir_decider(where_low_r, cube)
         result = self.plugin.wdir_slice_mean.data
