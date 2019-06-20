@@ -401,6 +401,11 @@ class Test_process_with_statsmodels(SetupCubes, SetupExpectedResults,
         self.assertCalibratedVariablesAlmostEqual(
             calibrated_variance.data,
             self.expected_gaussian_variance_statsmodels)
+        # The assertions below are for comparison to the results
+        # generated from using the ensemble mean as the predictor.
+        # In this case, the expectation is for there to be broad agreement
+        # between whether either the ensemble mean or the ensemble
+        # realizations, but the results would not be expected to match exactly.
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
             self.expected_gaussian_mean_data, decimal=0)
@@ -432,6 +437,11 @@ class Test_process_with_statsmodels(SetupCubes, SetupExpectedResults,
         self.assertCalibratedVariablesAlmostEqual(
             calibrated_variance.data,
             self.expected_truncated_gaussian_variance_statsmodels)
+        # The assertions below are for comparison to the results
+        # generated from using the ensemble mean as the predictor.
+        # In this case, the expectation is for there to be broad agreement
+        # between whether either the ensemble mean or the ensemble
+        # realizations, but the results would not be expected to match exactly.
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
             self.expected_truncated_gaussian_mean_data, decimal=0)
@@ -473,6 +483,11 @@ class Test_process_without_statsmodels(SetupCubes, SetupExpectedResults,
         self.assertCalibratedVariablesAlmostEqual(
             calibrated_variance.data,
             self.expected_gaussian_variance_no_statsmodels)
+        # The assertions below are for comparison to the results
+        # generated from using the ensemble mean as the predictor.
+        # In this case, the expectation is for there to be broad agreement
+        # between whether either the ensemble mean or the ensemble
+        # realizations, but the results would not be expected to match exactly.
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
             self.expected_gaussian_mean_data, decimal=0)
@@ -504,6 +519,11 @@ class Test_process_without_statsmodels(SetupCubes, SetupExpectedResults,
         self.assertCalibratedVariablesAlmostEqual(
             calibrated_variance.data,
             self.expected_truncated_gaussian_variance_no_statsmodels)
+        # The assertions below are for comparison to the results
+        # generated from using the ensemble mean as the predictor.
+        # In this case, the expectation is for there to be broad agreement
+        # between whether either the ensemble mean or the ensemble
+        # realizations, but the results would not be expected to match exactly.
         self.assertArrayAlmostEqual(
             calibrated_predictor.data,
             self.expected_truncated_gaussian_mean_data, decimal=0)
