@@ -131,7 +131,7 @@ def choose_set_of_percentiles(no_of_percentiles, sampling="quantile"):
 
 
 def create_cube_with_percentiles(percentiles, template_cube, cube_data,
-                                 custom_name=None, cube_unit=None):
+                                 cube_unit=None):
     """
     Create a cube with a percentile coordinate based on a template cube.
     The resulting cube will have an extra percentile coordinate compared with
