@@ -193,7 +193,7 @@ class Test_normal_crps_minimiser(
             self.forecast_variance_data, self.sqrt_pi, predictor_of_mean_flag)
 
         self.assertIsInstance(result, np.float64)
-        self.assertCRPSAlmostEqual(result, plugin.BAD_VALUE)
+        self.assertAlmostEqual(result, plugin.BAD_VALUE)
 
 
 class Test_crps_minimiser_wrapper_gaussian_distribution(
@@ -487,7 +487,7 @@ class Test_truncated_normal_crps_minimiser(
             self.forecast_variance_data, self.sqrt_pi, predictor_of_mean_flag)
 
         self.assertIsInstance(result, np.float64)
-        self.assertCRPSAlmostEqual(result, plugin.BAD_VALUE)
+        self.assertAlmostEqual(result, plugin.BAD_VALUE)
 
 
 class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(

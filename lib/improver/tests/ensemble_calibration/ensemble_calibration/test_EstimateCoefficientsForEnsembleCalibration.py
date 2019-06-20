@@ -609,8 +609,7 @@ class Test_estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertEMOSCoefficientsAlmostEqual(
-            len(result.data), len(self.coeff_names))
+        self.assertEqual(len(result.data), len(self.coeff_names))
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
