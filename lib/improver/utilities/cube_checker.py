@@ -53,10 +53,8 @@ def check_cube_not_float64(cube, fix=False):
         TypeError : Raised if float64 values are found in the cube.
 
     """
-    print("In check_cube_not_float64")
     if cube.dtype == np.float64:
         if fix:
-            print("Fixed cube datatype")
             cube.data = cube.data.astype(np.float32)
         else:
             raise TypeError("64 bit cube not allowed: {!r}".format(cube))
@@ -65,7 +63,6 @@ def check_cube_not_float64(cube, fix=False):
             continue
         if coord.points.dtype == np.float64:
             if fix:
-                print("Fixed coord points datatype")
                 coord.points = coord.points.astype(np.float32)
             else:
                 raise TypeError(
@@ -74,7 +71,6 @@ def check_cube_not_float64(cube, fix=False):
         if (hasattr(coord, "bounds") and coord.bounds is not None and
                 coord.bounds.dtype == np.float64):
             if fix:
-                print("Fixed coord bounds datatype")
                 coord.bounds = coord.bounds.astype(np.float32)
             else:
                 raise TypeError(
