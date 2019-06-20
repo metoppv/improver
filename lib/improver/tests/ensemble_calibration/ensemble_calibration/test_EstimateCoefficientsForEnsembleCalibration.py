@@ -609,7 +609,8 @@ class Test_estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(len(result.data), len(self.coeff_names))
+        self.assertEMOSCoefficientsAlmostEqual(
+            len(result.data), len(self.coeff_names))
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -624,7 +625,7 @@ class Test_estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
 
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertEMOSCoefficientsAlmostEqual(
             result.data, self.expected_mean_predictor_gaussian)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, self.coeff_names)
@@ -644,7 +645,7 @@ class Test_estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
 
-        self.assertArrayAlmostEqualLowerPrecision(result.data, expected)
+        self.assertEMOSCoefficientsAlmostEqual(result.data, expected)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, self.coeff_names)
 
@@ -665,7 +666,7 @@ class Test_estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
 
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertEMOSCoefficientsAlmostEqual(
             result.data, self.expected_mean_predictor_gaussian)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, self.coeff_names)
@@ -685,7 +686,7 @@ class Test_estimate_coefficients_for_ngr(
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
 
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertEMOSCoefficientsAlmostEqual(
             result.data, self.expected_mean_predictor_truncated_gaussian)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, self.coeff_names)
@@ -706,7 +707,7 @@ class Test_estimate_coefficients_for_ngr(
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
 
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertEMOSCoefficientsAlmostEqual(
             result.data, self.expected_mean_predictor_truncated_gaussian)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, self.coeff_names)
@@ -727,7 +728,7 @@ class Test_estimate_coefficients_for_ngr(
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertEMOSCoefficientsAlmostEqual(
             result.data, self.expected_realizations_gaussian_statsmodels)
         self.assertArrayEqual(
             result.coord("coefficient_name").points,
@@ -750,7 +751,7 @@ class Test_estimate_coefficients_for_ngr(
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertEMOSCoefficientsAlmostEqual(
             result.data, self.expected_realizations_gaussian_no_statsmodels)
         self.assertArrayEqual(
             result.coord("coefficient_name").points,
@@ -773,7 +774,7 @@ class Test_estimate_coefficients_for_ngr(
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertEMOSCoefficientsAlmostEqual(
             result.data,
             self.expected_realizations_truncated_gaussian_statsmodels)
         self.assertArrayEqual(
@@ -798,7 +799,7 @@ class Test_estimate_coefficients_for_ngr(
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
 
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertEMOSCoefficientsAlmostEqual(
             result.data,
             self.expected_realizations_truncated_gaussian_no_statsmodels)
         self.assertArrayEqual(
@@ -833,7 +834,7 @@ class Test_estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
 
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertEMOSCoefficientsAlmostEqual(
             result.data, self.expected_mean_predictor_gaussian)
 
     @ManageWarnings(
@@ -850,7 +851,7 @@ class Test_estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
 
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertEMOSCoefficientsAlmostEqual(
             result.data, self.expected_mean_predictor_gaussian)
 
     @ManageWarnings(

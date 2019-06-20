@@ -563,7 +563,10 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         If the predictor_of_mean_flag is "mean", then the order of
         the initial_guess is [gamma, delta, alpha, beta]. Otherwise, if the
         predictor_of_mean_flag is "realizations" then the order of the
-        initial_guess is [gamma, delta, alpha, beta0, beta1, beta2].
+        initial_guess is [gamma, delta, alpha, beta0, beta1, beta2], where
+        the number of beta variables will correspond to the number of
+        realizations. In this example initial guess with three beta
+        variables, there will correspondingly be three realizations.
 
         The coefficients relate to adjustments to the ensemble mean or the
         ensemble realizations, and adjustments to the ensemble variance:

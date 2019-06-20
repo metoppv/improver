@@ -289,10 +289,10 @@ class Test_process_check_data(SetupCubes, SetupExpectedResults,
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertCalibratedVariablesAlmostEqual(
             calibrated_predictor.data,
             self.expected_gaussian_mean_data)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertCalibratedVariablesAlmostEqual(
             calibrated_variance.data,
             self.expected_gaussian_variance_data)
 
@@ -313,10 +313,10 @@ class Test_process_check_data(SetupCubes, SetupExpectedResults,
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertCalibratedVariablesAlmostEqual(
             calibrated_predictor.data,
             self.expected_gaussian_mean_data)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertCalibratedVariablesAlmostEqual(
             calibrated_variance.data,
             self.expected_gaussian_variance_data)
 
@@ -335,10 +335,10 @@ class Test_process_check_data(SetupCubes, SetupExpectedResults,
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertCalibratedVariablesAlmostEqual(
             calibrated_predictor.data,
             self.expected_truncated_gaussian_mean_data)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertCalibratedVariablesAlmostEqual(
             calibrated_variance.data,
             self.expected_truncated_gaussian_variance_data)
 
@@ -359,10 +359,10 @@ class Test_process_check_data(SetupCubes, SetupExpectedResults,
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertCalibratedVariablesAlmostEqual(
             calibrated_predictor.data,
             self.expected_truncated_gaussian_mean_data)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertCalibratedVariablesAlmostEqual(
             calibrated_variance.data,
             self.expected_truncated_gaussian_variance_data)
 
@@ -395,10 +395,10 @@ class Test_process_with_statsmodels(SetupCubes, SetupExpectedResults,
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertCalibratedVariablesAlmostEqual(
             calibrated_predictor.data,
             self.expected_gaussian_realization_statsmodels)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertCalibratedVariablesAlmostEqual(
             calibrated_variance.data,
             self.expected_gaussian_variance_statsmodels)
         self.assertArrayAlmostEqual(
@@ -426,10 +426,10 @@ class Test_process_with_statsmodels(SetupCubes, SetupExpectedResults,
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertCalibratedVariablesAlmostEqual(
             calibrated_predictor.data,
             self.expected_truncated_gaussian_realization_statsmodels)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertCalibratedVariablesAlmostEqual(
             calibrated_variance.data,
             self.expected_truncated_gaussian_variance_statsmodels)
         self.assertArrayAlmostEqual(
@@ -467,10 +467,10 @@ class Test_process_without_statsmodels(SetupCubes, SetupExpectedResults,
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertCalibratedVariablesAlmostEqual(
             calibrated_predictor.data,
             self.expected_gaussian_realization_no_statsmodels)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertCalibratedVariablesAlmostEqual(
             calibrated_variance.data,
             self.expected_gaussian_variance_no_statsmodels)
         self.assertArrayAlmostEqual(
@@ -498,10 +498,10 @@ class Test_process_without_statsmodels(SetupCubes, SetupExpectedResults,
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertCalibratedVariablesAlmostEqual(
             calibrated_predictor.data,
             self.expected_truncated_gaussian_realization_no_statsmodels)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertCalibratedVariablesAlmostEqual(
             calibrated_variance.data,
             self.expected_truncated_gaussian_variance_no_statsmodels)
         self.assertArrayAlmostEqual(

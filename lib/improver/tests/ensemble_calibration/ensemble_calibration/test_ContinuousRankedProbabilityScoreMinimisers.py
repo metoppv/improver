@@ -82,9 +82,10 @@ class SetupInputs(IrisTest):
         super().setUp()
         self.sqrt_pi = np.sqrt(np.pi).astype(np.float64)
 
-        self.initial_guess_for_mean = np.array([0, 1, 0, 1], dtype=np.float32)
+        self.initial_guess_for_mean = np.array([0, 1, 0, 1], dtype=np.float64)
         self.initial_guess_for_realization = (
-            np.array([0, 1, 0, np.sqrt(1/3.), np.sqrt(1/3.), np.sqrt(1/3.)]))
+            np.array([0, 1, 0, np.sqrt(1/3.), np.sqrt(1/3.), np.sqrt(1/3.)],
+                     dtype=np.float64))
 
 
 class SetupGaussianInputs(SetupInputs, SetupCubes):
@@ -148,7 +149,7 @@ class Test_normal_crps_minimiser(
             predictor_of_mean_flag)
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqualLowerPrecision(result, 11.741)
+        self.assertCRPSAlmostEqual(result, 11.741)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -168,7 +169,7 @@ class Test_normal_crps_minimiser(
             predictor_of_mean_flag)
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqualLowerPrecision(result, 11.741)
+        self.assertCRPSAlmostEqual(result, 11.741)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -179,6 +180,8 @@ class Test_normal_crps_minimiser(
         Test that the plugin returns a numpy float64 value
         and that the value matches the BAD_VALUE, when the appropriate
         condition is found. The ensemble mean is the predictor.
+        The initial guess is specifically set to float32 precision for the
+        purpose for generating the BAD_VALUE for the unit test.
         """
         initial_guess = np.array([1e65, 1e65, 1e65, 1e65], dtype=np.float32)
 
@@ -190,7 +193,7 @@ class Test_normal_crps_minimiser(
             self.forecast_variance_data, self.sqrt_pi, predictor_of_mean_flag)
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqualLowerPrecision(result, plugin.BAD_VALUE)
+        self.assertCRPSAlmostEqual(result, plugin.BAD_VALUE)
 
 
 class Test_crps_minimiser_wrapper_gaussian_distribution(
@@ -230,7 +233,7 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(
             distribution)
         self.assertIsInstance(result, np.ndarray)
         self.assertEqual(result.dtype, np.float32)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertEMOSCoefficientsAlmostEqual(
             result, self.expected_mean_coefficients)
 
     @ManageWarnings(
@@ -254,7 +257,7 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(
             self.forecast_variance, predictor_of_mean_flag, distribution)
         self.assertIsInstance(result, np.ndarray)
         self.assertEqual(result.dtype, np.float32)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertEMOSCoefficientsAlmostEqual(
             result, self.expected_realizations_coefficients)
 
     @ManageWarnings(
@@ -299,7 +302,7 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(
             self.initial_guess_for_mean, self.forecast_predictor_mean,
             self.truth, self.forecast_variance,
             predictor_of_mean_flag, distribution)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertEMOSCoefficientsAlmostEqual(
             result, self.expected_mean_coefficients)
 
     @ManageWarnings(
@@ -327,7 +330,7 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(
             self.initial_guess_for_realization,
             self.forecast_predictor_realizations, self.truth,
             self.forecast_variance, predictor_of_mean_flag, distribution)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertEMOSCoefficientsAlmostEqual(
             result, self.expected_realizations_coefficients)
 
     @ManageWarnings(
@@ -363,7 +366,7 @@ class Test_crps_minimiser_wrapper_gaussian_distribution(
         warning reports that the percentage change in the final iteration was
         greater than the tolerated value. The ensemble mean is the predictor.
         """
-        initial_guess = np.array([5000, 1, 0, 1], dtype=np.float32)
+        initial_guess = np.array([5000, 1, 0, 1], dtype=np.float64)
         predictor_of_mean_flag = "mean"
         distribution = "gaussian"
 
@@ -429,7 +432,8 @@ class Test_truncated_normal_crps_minimiser(
     def test_basic_mean_predictor(self):
         """
         Test that the plugin returns a numpy float value. The ensemble mean
-        is the predictor.
+        is the predictor. The result indicates the minimum value
+        for the CRPS that was achieved by the minimisation.
         """
         predictor_of_mean_flag = "mean"
 
@@ -440,14 +444,15 @@ class Test_truncated_normal_crps_minimiser(
             predictor_of_mean_flag)
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqualLowerPrecision(result, 7.516)
+        self.assertCRPSAlmostEqual(result, 7.516)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_realizations_predictor(self):
         """
         Test that the plugin returns a numpy float value. The ensemble
-        realizations are the predictor.
+        realizations are the predictor. The result indicates the minimum value
+        for the CRPS that was achieved by the minimisation.
         """
         predictor_of_mean_flag = "realizations"
 
@@ -458,7 +463,7 @@ class Test_truncated_normal_crps_minimiser(
             self.forecast_variance_data, self.sqrt_pi, predictor_of_mean_flag)
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqualLowerPrecision(result, 7.516)
+        self.assertCRPSAlmostEqual(result, 7.516)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -468,7 +473,9 @@ class Test_truncated_normal_crps_minimiser(
         """
         Test that the plugin returns a numpy float64 value
         and that the value matches the BAD_VALUE, when the appropriate
-        condition is found. The ensemble mean is the predictor.
+        condition is found. The ensemble mean is the predictor. The initial
+        guess is specifically set to float32 precision for the purpose for
+        generating the BAD_VALUE for the unit test.
         """
         initial_guess = np.array([1e65, 1e65, 1e65, 1e65], dtype=np.float32)
 
@@ -480,7 +487,7 @@ class Test_truncated_normal_crps_minimiser(
             self.forecast_variance_data, self.sqrt_pi, predictor_of_mean_flag)
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqualLowerPrecision(result, plugin.BAD_VALUE)
+        self.assertCRPSAlmostEqual(result, plugin.BAD_VALUE)
 
 
 class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(
@@ -520,7 +527,7 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(
             self.truth, self.forecast_variance, predictor_of_mean_flag,
             distribution)
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertEMOSCoefficientsAlmostEqual(
             result, self.expected_mean_coefficients)
 
     @ManageWarnings(
@@ -544,7 +551,7 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(
             self.forecast_predictor_realizations, self.truth,
             self.forecast_variance, predictor_of_mean_flag, distribution)
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertEMOSCoefficientsAlmostEqual(
             result, self.expected_realizations_coefficients)
 
     @ManageWarnings(
@@ -611,7 +618,7 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(
             self.initial_guess_for_mean, self.forecast_predictor_mean,
             self.truth, self.forecast_variance, predictor_of_mean_flag,
             distribution)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertEMOSCoefficientsAlmostEqual(
             result, self.expected_mean_coefficients)
 
     @ManageWarnings(
@@ -639,7 +646,7 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(
             self.initial_guess_for_realization,
             self.forecast_predictor_realizations, self.truth,
             self.forecast_variance, predictor_of_mean_flag, distribution)
-        self.assertArrayAlmostEqualLowerPrecision(
+        self.assertEMOSCoefficientsAlmostEqual(
             result, self.expected_realizations_coefficients)
 
     @ManageWarnings(
@@ -678,7 +685,7 @@ class Test_crps_minimiser_wrapper_truncated_gaussian_distribution(
         greater than the tolerated value.
         The ensemble mean is the predictor.
         """
-        initial_guess = np.array([5000, 1, 0, 1], dtype=np.float32)
+        initial_guess = np.array([5000, 1, 0, 1], dtype=np.float64)
 
         predictor_of_mean_flag = "mean"
         distribution = "truncated gaussian"

@@ -55,9 +55,27 @@ class EnsembleCalibrationAssertions(IrisTest):
     """Additional assertions, specifically for usage in the
     ensemble calibration unit tests."""
 
-    def assertArrayAlmostEqualLowerPrecision(self, first, second):
+    def assertEMOSCoefficientsAlmostEqual(self, first, second):
         """Overriding of the assertArrayAlmostEqual method to check whether
-        array are matching to 4 decimal places. This is justified
+        array are matching to 4 decimal places. This is specifically
+        for use in assertions involving the EMOS coefficients. This is
+        justified based on the default tolerance of the minimisation using the
+        Nelder-Mead algorithm of 0.0001, so that minimisations on different
+        machines would only be aiming to match to 4 decimal places.
+
+        Args:
+            first (np.array):
+                First array to compare.
+            second (np.array):
+                Second array to compare.
+         """
+        self.assertArrayAlmostEqual(first, second, decimal=4)
+
+    def assertCalibratedVariablesAlmostEqual(self, first, second):
+        """Overriding of the assertArrayAlmostEqual method to check whether
+        array are matching to 4 decimal places. This is specifically
+        for use in assertions following applying the EMOS coefficients,
+        in order to calibrate the chosen variables. This is justified
         based on the default tolerance of the minimisation using the
         Nelder-Mead algorithm of 0.0001, so that minimisations on different
         machines would only be aiming to match to 4 decimal places.
@@ -70,12 +88,13 @@ class EnsembleCalibrationAssertions(IrisTest):
          """
         self.assertArrayAlmostEqual(first, second, decimal=4)
 
-    def assertAlmostEqualLowerPrecision(self, first, second):
+    def assertCRPSAlmostEqual(self, first, second):
         """Overriding of the assertAlmostEqual method to check whether
-        array are matching to 3 decimal places. This is justified
-        based on a 0.0001 precision level difference within the
-        ensemble calibration coefficients that may escalate when these
-        coefficients are combined.
+        array are matching to 3 decimal places. This is specifically
+        for use in assertions involving the Continuous Ranked Probability Score
+        calculations. This is justified based on a 0.0001 precision level
+        difference within the ensemble calibration coefficients that may
+        escalate when these coefficients are combined.
 
         Args:
             first (np.array):
