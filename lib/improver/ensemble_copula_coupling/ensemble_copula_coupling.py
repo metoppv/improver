@@ -838,15 +838,15 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
             variance_values (iris.cube.Cube):
                 Variance for the calibrated forecast.
             probability_cube_template (iris.cube.Cube):
-                A probability cube that has the threshold coordinate, and
-                attribute relative_to_threshold, that match the desired output
-                cube format.
+                A probability cube that has a threshold coordinate with an
+                spp__relative_to_threshold attribute that matches the desired
+                output cube format.
 
         Returns:
             probability_cube (iris.cube.Cube):
                 Cube containing the data expressed as probabilities relative to
                 the provided thresholds in the way described by
-                relative_to_threshold.
+                spp__relative_to_threshold.
         """
         thresholds = (
             find_threshold_coordinate(probability_cube_template).points)
