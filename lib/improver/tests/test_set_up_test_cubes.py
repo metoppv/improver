@@ -218,7 +218,7 @@ class test_set_up_variable_cube(IrisTest):
 
     def test_spatial_grid(self):
         """Test ability to set up non lat-lon grid"""
-        result = set_up_variable_cube(self.data, spatial_grid='equal_area')
+        result = set_up_variable_cube(self.data, spatial_grid='equalarea')
         self.assertEqual(result.coord_dims('projection_y_coordinate'), (0,))
         self.assertEqual(result.coord_dims('projection_x_coordinate'), (1,))
 

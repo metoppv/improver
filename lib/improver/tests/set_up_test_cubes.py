@@ -75,7 +75,7 @@ def construct_xy_coords(ypoints, xpoints, spatial_grid):
         x_coord = DimCoord(
             np.linspace(-20., 20., xpoints, dtype=np.float32),
             "longitude", units="degrees", coord_system=GLOBAL_GRID_CCRS)
-    elif 'equalarea':
+    elif spatial_grid == 'equalarea':
         # use UK eastings and northings on standard grid
         # round grid spacing to nearest integer to avoid precision issues
         grid_spacing = np.around(1000000. / ypoints)
