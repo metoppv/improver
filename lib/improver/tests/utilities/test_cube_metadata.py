@@ -287,7 +287,7 @@ class Test_update_coord(IrisTest):
     def test_update_attributes(self):
         """Test update attributes associated with a coordinate."""
         cube = create_cube_with_threshold()
-        changes = {'attributes': {'spp__relative_to_threshold': "above"}}
+        changes = {'attributes': {'spp__relative_to_threshold': "below"}}
         result = update_coord(cube, self.coord_name, changes)
         self.assertIsInstance(result, Cube)
         self.assertEqual(

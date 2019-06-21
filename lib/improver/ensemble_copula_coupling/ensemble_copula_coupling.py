@@ -838,9 +838,10 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
             variance_values (iris.cube.Cube):
                 Variance for the calibrated forecast.
             probability_cube_template (iris.cube.Cube):
-                A probability cube that has a threshold coordinate with an
-                spp__relative_to_threshold attribute that matches the desired
-                output cube format.
+                A probability cube that has a threshold coordinate, where the
+                probabilities are defined as above or below the threshold by
+                the spp__relative_to_threshold attribute. This cube matches
+                the desired output cube format.
 
         Returns:
             probability_cube (iris.cube.Cube):
@@ -882,9 +883,11 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
                 Cube containing the distribution variance values of a
                 diagnostic, e.g. the variance across realizations.
             probability_cube_template (iris.cube.Cube):
-                A probability cube that has a threshold coordinate with an
-                spp__relative_to_threshold attribute that matches the desired
-                output cube format.
+                A probability cube that has a threshold coordinate, where the
+                probabilities are defined as above or below the threshold by
+                the spp__relative_to_threshold attribute. This cube matches
+                the desired output cube format.
+
         Returns:
             probability_cube (iris.cube.Cube):
                 A cube of diagnostic data expressed as probabilities relative

@@ -353,8 +353,7 @@ class test_set_up_probability_cube(IrisTest):
         self.assertEqual(thresh_coord.units, 'K')
         self.assertEqual(len(thresh_coord.attributes), 1)
         self.assertEqual(
-            result.coord(var_name="threshold"
-                         ).attributes['spp__relative_to_threshold'], 'above')
+            thresh_coord.attributes['spp__relative_to_threshold'], 'above')
 
     def test_relative_to_threshold(self):
         """Test ability to reset the "spp__relative_to_threshold" attribute"""

@@ -145,8 +145,8 @@ def set_up_probability_above_threshold_spot_cube(
                                             dtype=np.float32),
                                 'longitude', units='degrees'), data_dims=2)
     cube.coord(
-        var_name="threshold"
-    ).attributes["spp__relative_to_threshold"] = "above"
+        var_name="threshold").attributes[
+            "spp__relative_to_threshold"] = "above"
     return cube
 
 
