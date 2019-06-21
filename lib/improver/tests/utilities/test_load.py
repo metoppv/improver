@@ -198,6 +198,20 @@ class Test_load_cube(IrisTest):
         self.assertArrayAlmostEqual(result.coord_dims("latitude")[0], 3)
         self.assertArrayAlmostEqual(result.coord_dims("longitude")[0], 4)
 
+    def test_cube_without_xy_coordinates(self):
+        """Test that a cube can be loaded that does not have x and y
+        coordinates."""
+        data = np.array([1.], dtype=np.float32)
+        coord = iris.coords.DimCoord(
+            10, long_name="example_name", units="1")
+        cube = iris.cube.Cube(
+            data, long_name="cube_with_no_xy_coordinates",
+            dim_coords_and_dims=[(coord, 0)], units="1")
+        save_netcdf(cube, self.filepath)
+        result = load_cube(self.filepath)
+        self.assertEqual(result.long_name, cube.long_name)
+        self.assertArrayAlmostEqual(result.data, cube.data)
+
     def test_attributes(self):
         """Test that metadata attributes are successfully stripped out."""
         result = load_cube(self.filepath)

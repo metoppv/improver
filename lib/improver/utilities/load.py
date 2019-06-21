@@ -33,7 +33,7 @@
 import glob
 
 import iris
-from iris.exceptions import ConstraintMismatchError
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering, merge_cubes)
@@ -91,10 +91,17 @@ def load_cube(filepath, constraints=None, no_lazy_load=False):
     # cube and are in the specified order.
     cube = enforce_coordinate_ordering(
         cube, ["realization", "percentile_over", "threshold"])
+
     # Ensure the y and x dimensions are the last dimensions within the cube.
-    y_name = cube.coord(axis="y").name()
-    x_name = cube.coord(axis="x").name()
-    cube = enforce_coordinate_ordering(cube, [y_name, x_name], anchor="end")
+    try:
+        x_name = cube.coord(axis="x").name()
+        y_name = cube.coord(axis="y").name()
+    except CoordinateNotFoundError:
+        pass
+    else:
+        cube = enforce_coordinate_ordering(
+            cube, [y_name, x_name], anchor="end")
+
     if no_lazy_load:
         # Force the cube's data into memory by touching the .data attribute.
         cube.data
