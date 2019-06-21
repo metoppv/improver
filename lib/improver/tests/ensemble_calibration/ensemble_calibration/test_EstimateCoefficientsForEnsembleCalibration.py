@@ -263,9 +263,22 @@ class Test_create_coefficients_cube(IrisTest):
         frt_point = np.max(frt_orig_coord.points) + 60*60*24
         frt_coord = frt_orig_coord.copy(frt_point)
 
+        x_point = np.mean(self.historic_forecast.coord(axis="x").points)
+        x_bounds = [self.historic_forecast.coord(axis="x").points[0],
+                    self.historic_forecast.coord(axis="x").points[-1]]
+        self.x_coord = self.historic_forecast.coord(axis="x").copy(
+            points=x_point, bounds=x_bounds)
+
+        y_point = np.mean(self.historic_forecast.coord(axis="y").points)
+        y_bounds = [self.historic_forecast.coord(axis="y").points[0],
+                    self.historic_forecast.coord(axis="y").points[-1]]
+        self.y_coord = self.historic_forecast.coord(axis="y").copy(
+            points=y_point, bounds=y_bounds)
+
         aux_coords_and_dims = [
             (coefficient_name, 0), (time_coord, None), (frt_coord, None),
-            (self.historic_forecast[-1].coord("forecast_period"), None)]
+            (self.historic_forecast[-1].coord("forecast_period"), None),
+            (self.x_coord, None), (self.y_coord, None)]
 
         attributes = {"mosg__model_configuration": "uk_det",
                       "diagnostic_standard_name": "air_temperature"}
@@ -327,7 +340,8 @@ class Test_create_coefficients_cube(IrisTest):
 
         aux_coords_and_dims = [
             (coefficient_name, 0), (time_coord, None), (frt_coord, None),
-            (self.historic_forecast[-1].coord("forecast_period"), None)]
+            (self.historic_forecast[-1].coord("forecast_period"), None),
+            (self.x_coord, None), (self.y_coord, None)]
 
         attributes = {"mosg__model_configuration": "uk_det",
                       "diagnostic_standard_name": "air_temperature"}
