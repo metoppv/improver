@@ -343,14 +343,6 @@ def update_attribute(cube, attribute_name, changes, warnings_on=False):
     return result
 
 
-# def update_coordinate_attribute(cube, coord_name, changes,
-#       warnings_on=False):
-#     for key, value in changes.items():
-#         coord = cube.coord(coord_name)
-#         update_attribute(coord, key, value, warnings_on=warnings_on)
-#     return cube
-
-
 def update_cell_methods(cube, cell_method_definition):
     """Update cell methods. An "action" keyword is expected within the
     cell method definition to specify whether the cell method is to be added
@@ -531,10 +523,6 @@ def amend_metadata(cube,
     if attributes is not None:
         for key in attributes:
             changes = attributes[key]
-            # if isinstance(changes, dict):
-            #     result = update_coordinate_attribute(
-            #         result, key, changes, warnings_on=warnings_on)
-            # else:
             result = update_attribute(result, key, changes,
                                       warnings_on=warnings_on)
 
