@@ -257,7 +257,7 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
 
 def set_up_percentile_cube(data, percentiles, name='air_temperature',
                            units='K', spatial_grid='latlon',
-                           percentile_dim_name='percentile_over_realization',
+                           percentile_dim_name='percentile',
                            time=datetime(2017, 11, 10, 4, 0), time_bounds=None,
                            frt=datetime(2017, 11, 10, 0, 0),
                            include_scalar_coords=None, attributes=None,

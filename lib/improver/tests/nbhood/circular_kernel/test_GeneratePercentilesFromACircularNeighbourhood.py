@@ -83,9 +83,9 @@ class Test_make_percentile_cube(IrisTest):
             GeneratePercentilesFromACircularNeighbourhood(
             ).make_percentile_cube(cube))
         self.assertIsInstance(result.coord(
-            'percentile_over_neighbourhood'), iris.coords.Coord)
+            'percentile'), iris.coords.Coord)
         self.assertArrayEqual(result.coord(
-            'percentile_over_neighbourhood').points, DEFAULT_PERCENTILES)
+            'percentile').points, DEFAULT_PERCENTILES)
         self.assertArrayEqual(result[0].data, cube.data)
         self.assertDictEqual(
             cube.metadata._asdict(), result.metadata._asdict())
@@ -100,7 +100,7 @@ class Test_make_percentile_cube(IrisTest):
             GeneratePercentilesFromACircularNeighbourhood(
             ).make_percentile_cube(cube))
         self.assertEqual(
-            result.coord_dims("percentile_over_neighbourhood")[0], 0)
+            result.coord_dims("percentile")[0], 0)
 
     def test_coord_is_dim_scalar(self):
         """Test that the percentile coord is added as the zeroth dimension when
@@ -112,7 +112,7 @@ class Test_make_percentile_cube(IrisTest):
             GeneratePercentilesFromACircularNeighbourhood(
                 50.).make_percentile_cube(cube))
         self.assertEqual(
-            result.coord_dims("percentile_over_neighbourhood")[0], 0)
+            result.coord_dims("percentile")[0], 0)
 
 
 class Test_pad_and_unpad_cube(IrisTest):
