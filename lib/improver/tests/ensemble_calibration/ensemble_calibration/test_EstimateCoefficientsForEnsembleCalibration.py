@@ -263,13 +263,13 @@ class Test_create_coefficients_cube(IrisTest):
         frt_point = np.max(frt_orig_coord.points) + 60*60*24
         frt_coord = frt_orig_coord.copy(frt_point)
 
-        x_point = np.mean(self.historic_forecast.coord(axis="x").points)
+        x_point = np.median(self.historic_forecast.coord(axis="x").points)
         x_bounds = [self.historic_forecast.coord(axis="x").points[0],
                     self.historic_forecast.coord(axis="x").points[-1]]
         self.x_coord = self.historic_forecast.coord(axis="x").copy(
             points=x_point, bounds=x_bounds)
 
-        y_point = np.mean(self.historic_forecast.coord(axis="y").points)
+        y_point = np.median(self.historic_forecast.coord(axis="y").points)
         y_bounds = [self.historic_forecast.coord(axis="y").points[0],
                     self.historic_forecast.coord(axis="y").points[-1]]
         self.y_coord = self.historic_forecast.coord(axis="y").copy(
