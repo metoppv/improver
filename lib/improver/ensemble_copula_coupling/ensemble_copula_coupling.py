@@ -855,7 +855,7 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
                 var_name="threshold").attributes['spp__relative_to_threshold'])
 
         # Loop over thresholds, and use a normal distribution with the mean
-        # and variance to calculate the probabilties relative to each
+        # and variance to calculate the probabilities relative to each
         # threshold.
         probabilities = np.empty_like(probability_cube_template.data)
         distribution = norm(loc=mean_values.data,
@@ -872,7 +872,7 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
 
     def process(self, mean_values, variance_values, probability_cube_template):
         """
-        Generate probabilties from the mean and variance of distribution.
+        Generate probabilities from the mean and variance of distribution.
 
         Args:
             mean_values (iris.cube.Cube):

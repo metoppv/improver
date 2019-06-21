@@ -160,7 +160,7 @@ dict weights options:
                         improver.blending.weights.ChooseWeightsLinear plugin.
   --weighting_coord WEIGHTING_COORD
                         Name of coordinate over which linear weights should be
-                        scaled. This coordinate must be avilable in the
+                        scaled. This coordinate must be available in the
                         weights dictionary.
 __HELP__
   [[ "$output" == "$expected" ]]

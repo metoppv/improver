@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-""" Utilites to find the relative position of the sun."""
+""" Utilities to find the relative position of the sun."""
 
 import datetime as dt
 import numpy as np
@@ -44,7 +44,7 @@ def calc_solar_declination(day_of_year):
     Calculate the Declination for the day of the year.
 
     Calculation equivalent to the calculation defined in
-    NOAA Earth System Reseach Lab Low Accuracy Equations
+    NOAA Earth System Research Lab Low Accuracy Equations
     https://www.esrl.noaa.gov/gmd/grad/solcalc/sollinks.html
 
     Args:
@@ -69,7 +69,7 @@ def calc_solar_hour_angle(longitudes, day_of_year, utc_hour):
     Calculate the Solar Hour angle for each element of an array of longitudes.
 
     Calculation equivalent to the calculation defined in
-    NOAA Earth System Reseach Lab Low Accuracy Equations
+    NOAA Earth System Research Lab Low Accuracy Equations
     https://www.esrl.noaa.gov/gmd/grad/solcalc/sollinks.html
 
     Args:

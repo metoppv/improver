@@ -311,7 +311,7 @@ class TemporalInterpolation(object):
             # Solar value is calculated only for points where the sun is up
             # and is a weighted combination of the data using the sine of
             # solar elevation and the data in the diag_cube valid
-            # at the begining and end.
+            # at the beginning and end.
 
             # If the diag_cube containing data valid at the
             # beginning of the period and at the end of the period
