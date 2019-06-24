@@ -53,9 +53,9 @@
   # will result in a realization coordinate.
   # The "--exclude=realization" option indicates that the realization coordinate
   # should be ignored.
-  # The "--exclude=percentile_over_realization" option indicates that the percentile coordinate
+  # The "--exclude=percentile" option indicates that the percentile coordinate
   # should be ignored.
-  run nccmp --exclude=realization --exclude=percentile_over_realization -dNs -t 1e-3 "$TEST_DIR/output.nc" \
+  run nccmp --exclude=realization --exclude=percentile -dNs -t 1e-3 "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
   [[ "$status" -eq 0 ]]
   [[ "$output" =~ "are identical." ]]
