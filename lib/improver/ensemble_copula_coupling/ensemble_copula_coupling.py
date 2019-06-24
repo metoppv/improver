@@ -253,8 +253,7 @@ class ResamplePercentiles(object):
             template_cube.remove_coord(percentile_coord)
             break
         percentile_cube = create_cube_with_percentiles(
-            desired_percentiles, template_cube, forecast_at_percentiles_data,
-            custom_name=percentile_coord)
+            desired_percentiles, template_cube, forecast_at_percentiles_data,)
         return percentile_cube
 
     def process(self, forecast_at_percentiles, no_of_percentiles=None,
@@ -502,7 +501,7 @@ class GeneratePercentilesFromProbabilities(object):
             break
         percentile_cube = create_cube_with_percentiles(
             percentiles, template_cube, forecast_at_percentiles,
-            custom_name='percentile', cube_unit=threshold_unit)
+            cube_unit=threshold_unit)
         return percentile_cube
 
     def process(self, forecast_probabilities, no_of_percentiles=None,

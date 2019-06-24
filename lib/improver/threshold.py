@@ -319,6 +319,6 @@ class BasicThreshold(object):
         cube.units = Unit(1)
 
         cube = enforce_coordinate_ordering(
-            cube, ["realization", "percentile_over"])
+            cube, ["realization", "percentile"])
 
         return cube
