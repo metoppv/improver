@@ -51,8 +51,8 @@ CONFIG_DICT_UKV = {"uk_det": {"forecast_period": [7, 12, 48, 54],
 
 
 def set_up_basic_model_config_cube(frt=None, time_points=None):
-    """Set up cube with dimensions of realization x time x lat x lon, plus
-     model id and configuration scalar coords
+    """Set up cube with dimensions of time x air_temperature x lat x lon, plus
+     model id and configuration scalar coordinates
 
     Kwargs:
         frt (datetime):
