@@ -90,7 +90,7 @@ class GenerateTimeLaggedEnsemble(object):
         all_realizations = [
             cube.coord("realization").points for cube in cubelist]
         all_realizations = np.concatenate(all_realizations)
-        # Find unique realiations
+        # Find unique realizations
         unique_realizations = np.unique(all_realizations)
 
         # If we have fewer unique realizations than total realizations we have

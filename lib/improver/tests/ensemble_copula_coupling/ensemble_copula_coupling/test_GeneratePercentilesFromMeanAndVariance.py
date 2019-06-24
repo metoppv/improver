@@ -358,7 +358,7 @@ class Test_process(IrisTest):
 
         self.assertEqual(
             len(raw_forecast.coord("realization").points),
-            len(result.coord("percentile_over_realization").points))
+            len(result.coord("percentile").points))
         self.assertArrayAlmostEqual(expected, result.data, decimal=4)
 
     @ManageWarnings(
@@ -394,9 +394,9 @@ class Test_process(IrisTest):
 
         self.assertEqual(
             len(percentiles),
-            len(result.coord("percentile_over_realization").points))
+            len(result.coord("percentile").points))
         self.assertArrayAlmostEqual(
-            percentiles, result.coord("percentile_over_realization").points)
+            percentiles, result.coord("percentile").points)
         self.assertArrayAlmostEqual(expected, result.data, decimal=4)
 
     @ManageWarnings(

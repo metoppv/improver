@@ -448,13 +448,13 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
             if result.coords("realization", dimensions=[]):
                 result = iris.util.new_axis(result, "realization")
             required_order.append(result.coord_dims("realization")[0])
-        if result.coords("percentile_over_neighbourhood"):
+        if result.coords("percentile"):
             required_order.append(
-                result.coord_dims("percentile_over_neighbourhood")[0])
+                result.coord_dims("percentile")[0])
         other_coords = []
         for coord in result.dim_coords:
             if coord.name() not in ["realization",
-                                    "percentile_over_neighbourhood"]:
+                                    "percentile"]:
                 other_coords.append(result.coord_dims(coord.name())[0])
         required_order.extend(other_coords)
         result.transpose(required_order)
@@ -474,7 +474,7 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
                 Each slice along this coordinate is identical.
         """
         pctcubelist = iris.cube.CubeList()
-        pct_coord_name = "percentile_over_neighbourhood"
+        pct_coord_name = "percentile"
         for pct in self.percentiles:
             pctcube = cube.copy()
             pctcube.add_aux_coord(iris.coords.DimCoord(

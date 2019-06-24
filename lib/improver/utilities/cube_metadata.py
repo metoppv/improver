@@ -340,8 +340,8 @@ def update_cell_methods(cube, cell_method_definition):
             either "add" or "delete", which determines whether to add or delete
             the cell method. The rest of the keys are passed to the
             iris.coords.CellMethod function. Of these keys, "method", is
-            compulsory, and "comments", "coords" and "invevals" are optional.
-            If any addtional keys are provided in the dictionary they are
+            compulsory, and "comments", "coords" and "intervals" are optional.
+            If any additional keys are provided in the dictionary they are
             ignored.
 
     Raises:

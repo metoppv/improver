@@ -36,6 +36,7 @@ from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 
 from improver.constants import DEFAULT_PERCENTILES
+from improver.utilities.cube_checker import find_percentile_coordinate
 
 
 class PercentileConverter(object):
@@ -114,12 +115,13 @@ class PercentileConverter(object):
         """
         # Store data type and enforce the same type on return.
         data_type = cube.dtype
-        # Test that collapse coords are present in cube before proceding.
+        # Test that collapse coords are present in cube before proceeding.
         n_collapse_coords = len(self.collapse_coord)
         n_valid_coords = sum([test_coord == coord.name()
                               for coord in cube.coords()
                               for test_coord in self.collapse_coord])
-
+        # Rename the percentile coordinate to "percentile" and also
+        # makes sure that the associated unit is %.
         if n_valid_coords == n_collapse_coords:
             result = cube.collapsed(
                 self.collapse_coord, iris.analysis.PERCENTILE,
@@ -128,6 +130,9 @@ class PercentileConverter(object):
             result.data = result.data.astype(data_type)
             for coord in self.collapse_coord:
                 result.remove_coord(coord)
+            percentile_coord = find_percentile_coordinate(result)
+            result.coord(percentile_coord).rename('percentile')
+            result.coord(percentile_coord).units = '%'
             return result
 
         raise CoordinateNotFoundError(

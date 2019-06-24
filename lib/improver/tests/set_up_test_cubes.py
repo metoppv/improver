@@ -75,7 +75,7 @@ def construct_xy_coords(ypoints, xpoints, spatial_grid):
         x_coord = DimCoord(
             np.linspace(-20., 20., xpoints, dtype=np.float32),
             "longitude", units="degrees", coord_system=GLOBAL_GRID_CCRS)
-    elif 'equalarea':
+    elif spatial_grid == 'equalarea':
         # use UK eastings and northings on standard grid
         # round grid spacing to nearest integer to avoid precision issues
         grid_spacing = np.around(1000000. / ypoints)
@@ -257,7 +257,7 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
 
 def set_up_percentile_cube(data, percentiles, name='air_temperature',
                            units='K', spatial_grid='latlon',
-                           percentile_dim_name='percentile_over_realization',
+                           percentile_dim_name='percentile',
                            time=datetime(2017, 11, 10, 4, 0), time_bounds=None,
                            frt=datetime(2017, 11, 10, 0, 0),
                            include_scalar_coords=None, attributes=None,

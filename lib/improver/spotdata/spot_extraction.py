@@ -216,7 +216,7 @@ def check_grid_match(cubes):
 
     Args:
         cubes (list of iris.cube.Cube):
-            A list of cubes to check for grid compatability.
+            A list of cubes to check for grid compatibility.
     Raises:
         ValueError: Raised if the cubes are not on matching grids as
                     identified by the model_grid_hash.

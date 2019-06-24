@@ -123,7 +123,7 @@ class NeighbourSelection:
         Returns:
             method_name (string):
                 A string that describes the neighbour finding method employed.
-                This is essentially a concatentation of the options.
+                This is essentially a concatenation of the options.
         """
         method_name = '{}{}{}'.format('nearest',
                                       '_land' if self.land_constraint else '',
