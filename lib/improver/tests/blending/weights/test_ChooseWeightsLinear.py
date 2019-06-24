@@ -69,7 +69,7 @@ def set_up_basic_model_config_cube(frt=None, time_points=None):
     model_id_coord = AuxCoord([1000], long_name="model_id")
     model_config_coord = AuxCoord(["uk_det"], long_name="model_configuration")
 
-    data = np.oens((2, 2, 2), dtype=np.float32)
+    data = np.ones((2, 2, 2), dtype=np.float32)
     thresholds = np.array([275., 276.], dtype=np.float32)
     cube = set_up_probability_cube(
         data, thresholds, time=frt, frt=frt,
