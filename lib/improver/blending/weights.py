@@ -75,12 +75,8 @@ def calculate_blending_weights(cube, blend_coord, method,
             Parameter for default non-linear weights plugin
 
     Returns:
-        weights (np.ndarray):
-            1D array of weights corresponding to slices in ascending order
-            of blending coordinate.  (Note: ChooseLinearWeights has the
-            option to create a 3D array of spatially-varying weights with the
-            "mask" option, however this is not currently supported by the
-            blending plugin.)
+        weights (iris.cube.Cube):
+            Cube containing 1D array of weights for blending
     """
     # sort input cube by blending coordinate
     cube = sort_coord_in_cube(cube, blend_coord, order="ascending")
@@ -107,6 +103,7 @@ def calculate_blending_weights(cube, blend_coord, method,
             config_coord_name=config_coord).process(cube)
 
         # sort weights cube by blending coordinate
+        # TODO do we need this now?  Check / match order in blending plugin...
         weights = sort_coord_in_cube(
             weights_cube, blend_coord, order="ascending")
 
