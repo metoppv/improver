@@ -37,7 +37,6 @@ usage: improver weighted-blending [-h] [--profile]
                                   [--profile_file PROFILE_FILE]
                                   [--wts_calc_method WEIGHTS_CALCULATION_METHOD]
                                   [--coordinate_unit UNIT_STRING]
-                                  [--calendar CALENDAR]
                                   [--cycletime CYCLETIME]
                                   [--model_id_attr MODEL_ID_ATTR]
                                   [--spatial_weights_from_mask]
@@ -85,7 +84,6 @@ optional arguments:
   --coordinate_unit UNIT_STRING
                         Units for blending coordinate. Default= hours since
                         1970-01-01 00:00:00
-  --calendar CALENDAR   Calendar for time coordinate. Default=gregorian
   --cycletime CYCLETIME
                         The forecast reference time to be used after blending
                         has been applied, in the format YYYYMMDDTHHMMZ. If not
