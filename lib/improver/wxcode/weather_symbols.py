@@ -146,8 +146,8 @@ class WeatherSymbols(object):
                             threshold * (1. - self.float_tolerance) < cell <
                             threshold * (1. + self.float_tolerance))},
                         cube_func=lambda cube: (
-                            cube.coord(
-                                var_name="threshold"
+                            find_threshold_coordinate(
+                                cube
                             ).attributes['spp__relative_to_threshold'] ==
                             condition)))
                 matched_threshold = matched_cube.extract(test_condition)

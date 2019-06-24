@@ -34,6 +34,7 @@
 import numpy as np
 import iris
 from cf_units import Unit
+from improver.utilities.cube_checker import find_threshold_coordinate
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.rescale import rescale
 
@@ -307,12 +308,12 @@ class BasicThreshold(object):
         # TODO: Correct when formal cf-standards exists
         # Force the metadata to temporary conventions
         if self.below_thresh_ok:
-            cube.coord(var_name="threshold").attributes.update(
+            find_threshold_coordinate(cube).attributes.update(
                 {'spp__relative_to_threshold': 'below'})
             cube.rename(
                 "probability_of_{}_below_threshold".format(cube.name()))
         else:
-            cube.coord(var_name="threshold").attributes.update(
+            find_threshold_coordinate(cube).attributes.update(
                 {'spp__relative_to_threshold': 'above'})
             cube.rename(
                 "probability_of_{}_above_threshold".format(cube.name()))

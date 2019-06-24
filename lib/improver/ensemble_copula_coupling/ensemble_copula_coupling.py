@@ -441,8 +441,8 @@ class GeneratePercentilesFromProbabilities(object):
         prob_slices = np.around(prob_slices, 9)
 
         # Invert probabilities for data thresholded above thresholds.
-        relation = forecast_probabilities.coord(
-            var_name="threshold").attributes['spp__relative_to_threshold']
+        relation = find_threshold_coordinate(
+            forecast_probabilities).attributes['spp__relative_to_threshold']
         if relation == 'above':
             probabilities_for_cdf = 1 - prob_slices
         elif relation == 'below':
@@ -850,9 +850,8 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
         """
         thresholds = (
             find_threshold_coordinate(probability_cube_template).points)
-        relative_to_threshold = (
-            probability_cube_template.coord(
-                var_name="threshold").attributes['spp__relative_to_threshold'])
+        relative_to_threshold = find_threshold_coordinate(
+            probability_cube_template).attributes['spp__relative_to_threshold']
 
         # Loop over thresholds, and use a normal distribution with the mean
         # and variance to calculate the probabilities relative to each
