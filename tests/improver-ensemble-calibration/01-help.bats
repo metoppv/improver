@@ -42,6 +42,7 @@ usage: improver ensemble-calibration [-h] [--profile]
                                      [--random_ordering]
                                      [--random_seed RANDOM_SEED]
                                      [--ecc_bounds_warning]
+                                     [--max_iterations MAX_ITERATIONS]
                                      ENSEMBLE_CALIBRATION_METHOD
                                      UNITS_TO_CALIBRATE_IN DISTRIBUTION
                                      INPUT_FILE HISTORIC_DATA_FILE
@@ -131,6 +132,17 @@ optional arguments:
                         probabilities and is converted to percentiles, as part
                         of converting the input probabilities into
                         realizations.
+  --max_iterations MAX_ITERATIONS
+                        The maximum number of iterations allowed until the
+                        minimisation has converged to a stable solution. If
+                        the maximum number of iterations is reached, but the
+                        minimisation has not yet converged to a stable
+                        solution, then the available solution is used anyway,
+                        and a warning is raised.This may be modified for
+                        testing purposes but otherwise kept fixed. If the
+                        predictor_of_mean is "realizations", then the number
+                        of iterations may require increasing, as there will be
+                        more coefficients to solve for.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

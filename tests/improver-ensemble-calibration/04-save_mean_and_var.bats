@@ -50,8 +50,8 @@
   improver_check_recreate_kgo "variance.nc" $KGO_VARIANCE
 
   # Run nccmp to compare the output mean and variance and check it passes.
-  improver_compare_output "$TEST_DIR/mean.nc" \
+  improver_compare_output_lower_precision "$TEST_DIR/mean.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO_MEAN"
-   improver_compare_output "$TEST_DIR/variance.nc" \
+   improver_compare_output_lower_precision "$TEST_DIR/variance.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO_VARIANCE"
 }
