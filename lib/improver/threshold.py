@@ -213,6 +213,8 @@ class BasicThreshold(object):
             else:
                 raise ValueError(cause)
 
+        # Use an spp__relative_to_threshold attribute, as an extension to the
+        # CF-conventions.
         if self.below_thresh_ok:
             coord.attributes.update({'spp__relative_to_threshold': 'below'})
         else:
@@ -309,8 +311,7 @@ class BasicThreshold(object):
             thresholded_cubes.append(cube)
 
         cube, = thresholded_cubes.concatenate()
-        # Use an spp__relative_to_threshold attribute, as an extension to the
-        # CF-conventions.
+
         if self.below_thresh_ok:
             cube.rename(
                 "probability_of_{}_below_threshold".format(cube.name()))
