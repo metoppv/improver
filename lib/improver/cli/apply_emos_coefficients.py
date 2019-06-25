@@ -63,7 +63,7 @@ def main(argv=None):
         description='Apply coefficients for Ensemble Model Output '
                     'Statistics (EMOS), otherwise known as Non-homogeneous '
                     'Gaussian Regression (NGR)')
-    # Filepaths for historic and truth data.
+    # Filepaths for the forecast, EMOS coefficients and the output.
     parser.add_argument('forecast_filepath', metavar='FORECAST_FILEPATH',
                         help='A path to an input NetCDF file containing the '
                              'forecast to be calibrated.')
