@@ -212,12 +212,16 @@ def main(argv=None):
     else:
         weights_dict = None
 
-    result = WeightAndBlend().process(
-        cubelist, args.coordinate, args.wts_calc_method, args.weighting_mode,
-        args.coordinate_unit,
-        args.cycletime, args.weighting_coord, weights_dict, args.model_id_attr,
-        args.y0val, args.ynval, args.cval, args.spatial_weights_from_mask,
-        args.fuzzy_length)
+    plugin = WeightAndBlend(
+        args.coordinate, args.wts_calc_method,
+        blend_coord_unit=args.coordinate_unit,
+        weighting_coord=args.weighting_coord, wts_dict=weights_dict,
+        y0val=args.y0val, ynval=args.ynval, cval=args.cval)
+    result = plugin.process(
+        cubelist, args.weighting_mode, cycletime=args.cycletime,
+        model_id_attr=args.model_id_attr,
+        spatial_weights=args.spatial_weights_from_mask,
+        fuzzy_length=args.fuzzy_length)
 
     save_netcdf(result, args.output_filepath)
 
