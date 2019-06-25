@@ -176,7 +176,9 @@ class Test__mean_and_variance_to_probabilities(IrisTest):
         """Test that the expected probabilites are returned for a cube in which
         they are calculated below the thresholds."""
 
-        self.template_cube.attributes['relative_to_threshold'] = 'below'
+        self.template_cube.coord(
+            var_name="threshold").attributes['spp__relative_to_threshold'] = (
+                'below')
         expected = (np.ones((3, 3, 3)) * [0.25, 0.5, 0.75]).T
         result = Plugin()._mean_and_variance_to_probabilities(
             self.means, self.variances, self.template_cube)

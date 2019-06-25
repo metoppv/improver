@@ -146,7 +146,9 @@ class WeatherSymbols(object):
                             threshold * (1. - self.float_tolerance) < cell <
                             threshold * (1. + self.float_tolerance))},
                         cube_func=lambda cube: (
-                            cube.attributes['relative_to_threshold'] ==
+                            find_threshold_coordinate(
+                                cube
+                            ).attributes['spp__relative_to_threshold'] ==
                             condition)))
                 matched_threshold = matched_cube.extract(test_condition)
                 if not matched_threshold:
@@ -156,7 +158,8 @@ class WeatherSymbols(object):
             msg = ('Weather Symbols input cubes are missing'
                    ' the following required'
                    ' input fields:\n')
-            dyn_msg = 'name: {}, threshold: {}, relative_to_threshold: {}\n'
+            dyn_msg = ('name: {}, threshold: {}, '
+                       'spp__relative_to_threshold: {}\n')
             for item in missing_data:
                 msg = msg + dyn_msg.format(*item)
             raise IOError(msg)
@@ -441,7 +444,6 @@ class WeatherSymbols(object):
                                                 dtype=np.int))
 
         symbols.remove_coord(threshold_coord)
-        symbols.attributes.pop('relative_to_threshold')
         symbols = add_wxcode_metadata(symbols)
 
         return symbols

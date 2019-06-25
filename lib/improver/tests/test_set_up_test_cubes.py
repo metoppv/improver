@@ -344,24 +344,27 @@ class test_set_up_probability_cube(IrisTest):
         self.assertEqual(thresh_coord.name(), 'air_temperature')
         self.assertEqual(thresh_coord.var_name, 'threshold')
         self.assertEqual(thresh_coord.units, 'K')
-        self.assertEqual(len(result.attributes), 1)
-        self.assertEqual(result.attributes['relative_to_threshold'], 'above')
+        self.assertEqual(len(thresh_coord.attributes), 1)
+        self.assertEqual(
+            thresh_coord.attributes['spp__relative_to_threshold'], 'above')
 
     def test_relative_to_threshold(self):
-        """Test ability to reset the "relative_to_threshold" attribute"""
+        """Test ability to reset the "spp__relative_to_threshold" attribute"""
         data = np.flipud(self.data)
         result = set_up_probability_cube(data, self.thresholds,
-                                         relative_to_threshold='below')
-        self.assertEqual(len(result.attributes), 1)
-        self.assertEqual(result.attributes['relative_to_threshold'], 'below')
+                                         spp__relative_to_threshold='below')
+        self.assertEqual(len(result.coord(var_name="threshold").attributes), 1)
+        self.assertEqual(
+            result.coord(var_name="threshold"
+                         ).attributes['spp__relative_to_threshold'], 'below')
 
     def test_relative_to_threshold_set(self):
-        """Test that an error is raised if the "relative_to_threshold"
+        """Test that an error is raised if the "spp__relative_to_threshold"
         attribute has not been set when setting up a probability cube"""
-        msg = 'The relative_to_threshold attribute MUST be set'
+        msg = 'The spp__relative_to_threshold attribute MUST be set'
         with self.assertRaisesRegex(ValueError, msg):
             set_up_probability_cube(self.data, self.thresholds,
-                                    relative_to_threshold=None)
+                                    spp__relative_to_threshold=None)
 
     def test_standard_grid_metadata(self):
         """Test standard grid metadata"""
