@@ -42,6 +42,7 @@ from improver.argparser import ArgParser
 from improver.utilities.load import load_cubelist
 from improver.utilities.save import save_netcdf
 
+"""
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells)
 
@@ -52,6 +53,8 @@ from improver.blending.spatial_weights import (
 from improver.blending.weighted_blend import (
     MergeCubesForWeightedBlending, conform_metadata,
     WeightedBlendAcrossWholeDimension)
+"""
+from improver.blending.calculate_weights_and_blend import WeightAndBlend
 
 
 def main(argv=None):
@@ -203,59 +206,18 @@ def main(argv=None):
     # load cubes to be blended
     cubelist = load_cubelist(args.input_filepaths)
 
-    # prepare cubes for weighted blending
-    merger = MergeCubesForWeightedBlending(
-        args.coordinate, weighting_coord=args.weighting_coord,
-        model_id_attr=args.model_id_attr)
-    cube = merger.process(cubelist, cycletime=args.cycletime)
-
-    # if the coord for blending does not exist or has only one value,
-    # update metadata only
-    coord_names = [coord.name() for coord in cube.coords()]
-    if (args.coordinate not in coord_names) or (
-            len(cube.coord(args.coordinate).points) == 1):
-        result = cube.copy()
-        conform_metadata(
-            result, cube, args.coordinate, cycletime=args.cycletime)
-        # raise a warning if this happened because the blend coordinate
-        # doesn't exist
-        if args.coordinate not in coord_names:
-            warnings.warn('Blend coordinate {} is not present on input '
-                          'data'.format(args.coordinate))
-
-    # otherwise, calculate weights and blend across specified dimension
+    if args.wts_calc_method == "dict":
+        with open(args.wts_dict, 'r') as wts:
+            weights_dict = json.load(wts)
     else:
-        # set up special treatment for model blending
-        if "model" in args.coordinate:
-            blend_coord = "model_id"
-        else:
-            blend_coord = args.coordinate
+        weights_dict = None
 
-        if args.wts_calc_method == "dict":
-            with open(args.wts_dict, 'r') as wts:
-                weights_dict = json.load(wts)
-        else:
-            weights_dict = None
-
-        weights = calculate_blending_weights(
-            cube, blend_coord, args.wts_calc_method,
-            blend_coord_unit=args.coordinate_unit,
-            weighting_coord=args.weighting_coord, wts_dict=weights_dict,
-            y0val=args.y0val, ynval=args.ynval, cval=args.cval)
-
-        if args.spatial_weights_from_mask:
-            check_if_grid_is_equal_area(cube)
-            grid_cells_x, _ = convert_distance_into_number_of_grid_cells(
-                cube, args.fuzzy_length, int_grid_cells=False)
-            SpatialWeightsPlugin = SpatiallyVaryingWeightsFromMask(
-                grid_cells_x)
-            weights = SpatialWeightsPlugin.process(cube, weights, blend_coord)
-
-        # blend across specified dimension
-        BlendingPlugin = WeightedBlendAcrossWholeDimension(
-            blend_coord, args.weighting_mode,
-            cycletime=args.cycletime)
-        result = BlendingPlugin.process(cube, weights=weights)
+    result = WeightAndBlend().process(
+        cubelist, args.coordinate, args.wts_calc_method, args.weighting_mode,
+        args.coordinate_unit,
+        args.cycletime, args.weighting_coord, weights_dict, args.model_id_attr,
+        args.y0val, args.ynval, args.cval, args.spatial_weights_from_mask,
+        args.fuzzy_length)
 
     save_netcdf(result, args.output_filepath)
 
