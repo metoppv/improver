@@ -40,6 +40,7 @@ from iris.tests import IrisTest
 from improver.spotdata.apply_lapse_rate import SpotLapseRateAdjust
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+from improver.utilities.cube_metadata import create_coordinate_hash
 from improver.utilities.temporal import iris_time_to_datetime
 from improver.tests.set_up_test_cubes import (set_up_variable_cube,
                                               construct_xy_coords,
@@ -80,12 +81,6 @@ class Test_SpotLapseRateAdjust(IrisTest):
 
         """
         # Set up lapse rate cube
-        attributes = {
-            'mosg__grid_domain': 'uk',
-            'mosg__grid_type': 'standard',
-            'mosg__grid_version': '1.2.0',
-            'mosg__model_configuration': 'uk_det'}
-
         lapse_rate_data = np.ones(9).reshape(3, 3).astype(np.float32) * DALR
         lapse_rate_data[0, 2] = 2 * DALR
         lapse_rate_data[1, 1] = 2 * DALR
@@ -93,8 +88,8 @@ class Test_SpotLapseRateAdjust(IrisTest):
         self.lapse_rate_cube = set_up_variable_cube(lapse_rate_data,
                                                     name="lapse_rate",
                                                     units="K m-1",
-                                                    attributes=attributes,
                                                     spatial_grid="equalarea")
+        diagnostic_cube_hash = create_coordinate_hash(self.lapse_rate_cube)
 
         # Set up neighbour and spot diagnostic cubes
         y_coord, x_coord = construct_xy_coords(3, 3, "equalarea")
@@ -120,7 +115,8 @@ class Test_SpotLapseRateAdjust(IrisTest):
             neighbours, 'grid_neighbours', 1, altitudes, latitudes,
             longitudes, wmo_ids, grid_attributes=grid_attributes,
             neighbour_methods=neighbour_methods)
-        self.neighbour_cube.attributes = attributes
+        self.neighbour_cube.attributes['model_grid_hash'] = (
+            diagnostic_cube_hash)
 
         time, = iris_time_to_datetime(self.lapse_rate_cube.coord("time"))
         frt, = iris_time_to_datetime(self.lapse_rate_cube.coord(
@@ -136,7 +132,8 @@ class Test_SpotLapseRateAdjust(IrisTest):
         self.spot_temperature_nearest = build_spotdata_cube(
             temperatures_nearest, 'air_temperature', 'K', altitudes, latitudes,
             longitudes, wmo_ids, scalar_coords=time_coords)
-        self.spot_temperature_nearest.attributes = attributes
+        self.spot_temperature_nearest.attributes['model_grid_hash'] = (
+            diagnostic_cube_hash)
 
         # This temperature cube is set up with the spot sites having obtained
         # their temperature values from the nearest minimum vertical
@@ -146,8 +143,8 @@ class Test_SpotLapseRateAdjust(IrisTest):
         self.spot_temperature_mindz = build_spotdata_cube(
             temperatures_mindz, 'air_temperature', 'K', altitudes, latitudes,
             longitudes, wmo_ids, scalar_coords=time_coords)
-        self.spot_temperature_mindz.attributes = attributes
-        self.attributes = attributes
+        self.spot_temperature_mindz.attributes['model_grid_hash'] = (
+            diagnostic_cube_hash)
 
 
 class Test_process(Test_SpotLapseRateAdjust):
@@ -157,7 +154,8 @@ class Test_process(Test_SpotLapseRateAdjust):
     def test_basic(self):
         """Test that the plugin returns a cube which is unchanged except for
         data values."""
-        plugin = SpotLapseRateAdjust('mosg')
+
+        plugin = SpotLapseRateAdjust()
         result = plugin.process(self.spot_temperature_nearest,
                                 self.neighbour_cube,
                                 self.lapse_rate_cube)
@@ -172,7 +170,7 @@ class Test_process(Test_SpotLapseRateAdjust):
         """Test that the plugin modifies temperatures as expected using the
         vertical displacements taken from the nearest neighbour method in the
         neighbour cube."""
-        plugin = SpotLapseRateAdjust('mosg')
+        plugin = SpotLapseRateAdjust()
         expected = np.array(
             [280 + (2 * DALR), 270, 280 - DALR]).astype(np.float32)
 
@@ -192,7 +190,7 @@ class Test_process(Test_SpotLapseRateAdjust):
         which the lapse rate is just the DALR."""
 
         plugin = SpotLapseRateAdjust(
-            'mosg', neighbour_selection_method='nearest_minimum_dz')
+            neighbour_selection_method='nearest_minimum_dz')
         expected = np.array(
             [270 - (2 * DALR), 270, 280 - DALR]).astype(np.float32)
 
@@ -219,7 +217,7 @@ class Test_process(Test_SpotLapseRateAdjust):
         the SpotExtraction plugin) we would expect a different result for
         sites 0 and 2."""
 
-        plugin = SpotLapseRateAdjust('mosg')
+        plugin = SpotLapseRateAdjust()
         expected = np.array(
             [280 + (2 * DALR), 270, 280 - DALR]).astype(np.float32)
         lapse_rate_cube = enforce_coordinate_ordering(

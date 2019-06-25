@@ -38,7 +38,6 @@ import imp
 import unittest
 
 import iris
-from iris.cube import CubeList
 from iris.tests import IrisTest
 import numpy as np
 
@@ -47,8 +46,8 @@ from improver.ensemble_calibration.ensemble_calibration import (
 from improver.ensemble_calibration.ensemble_calibration import (
     ContinuousRankedProbabilityScoreMinimisers)
 from improver.tests.ensemble_calibration.ensemble_calibration.\
-    helper_functions import (set_up_temperature_cube,
-                             _create_historic_forecasts, _create_truth)
+    helper_functions import (_create_historic_forecasts, SetupCubes,
+                             EnsembleCalibrationAssertions)
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
@@ -58,34 +57,30 @@ try:
 except ImportError:
     STATSMODELS_FOUND = False
 
-IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate.",
-                    "Not importing directory .*sphinxcontrib'",
-                    "The pandas.core.datetools module is deprecated",
-                    "numpy.dtype size changed",
-                    "The statsmodels can not be imported",
-                    "invalid escape sequence",
-                    "can't resolve package from",
-                    "Collapsing a non-contiguous coordinate.",
-                    "Minimisation did not result in"
-                    " convergence",
-                    "\nThe final iteration resulted in a percentage "
-                    "change that is greater than the"
-                    " accepted threshold ",
-                    "divide by zero encountered in true_divide",
-                    "invalid value encountered in",
-                    ]
-WARNING_TYPES = [UserWarning, ImportWarning, FutureWarning, RuntimeWarning,
-                 ImportWarning, DeprecationWarning, ImportWarning, UserWarning,
-                 UserWarning, UserWarning, RuntimeWarning, RuntimeWarning]
+IGNORED_MESSAGES = [
+    "Collapsing a non-contiguous coordinate",  # Originating from Iris
+    "The statsmodels can not be imported",
+    "invalid escape sequence",  # Originating from statsmodels
+    "can't resolve package from",  # Originating from statsmodels
+    "Minimisation did not result in convergence",  # From calibration code
+    "The final iteration resulted in",  # From calibration code
+]
+WARNING_TYPES = [
+    UserWarning,
+    ImportWarning,
+    DeprecationWarning,
+    ImportWarning,
+    UserWarning,
+    UserWarning,
+]
 
 
-class Test__init__(IrisTest):
+class Test__init__(SetupCubes):
 
     """Test the initialisation of the class."""
 
     def setUp(self):
-        """Set up cube for testing."""
-        self.cube = set_up_temperature_cube()
+        """Set up variables for testing."""
         self.distribution = "gaussian"
         self.desired_units = "degreesC"
 
@@ -112,21 +107,12 @@ class Test__init__(IrisTest):
         Test that the plugin raises no warnings if the statsmodels module
         is not found for when the predictor is the ensemble mean.
         """
-        cube = self.cube
-
-        historic_forecasts = CubeList([])
-        for index in [1.0, 2.0, 3.0, 4.0, 5.0]:
-            temp_cube = cube.copy()
-            temp_cube.coord("time").points = (
-                temp_cube.coord("time").points - index)
-            historic_forecasts.append(temp_cube)
-        historic_forecasts.concatenate_cube()
-
         predictor_of_mean_flag = "mean"
+        statsmodels_warning = "The statsmodels can not be imported"
 
         Plugin(self.distribution, self.desired_units,
                predictor_of_mean_flag=predictor_of_mean_flag)
-        self.assertTrue(len(warning_list) == 0)
+        self.assertNotIn(statsmodels_warning, warning_list)
 
     @unittest.skipIf(
         STATSMODELS_FOUND is True, "statsmodels module is available.")
@@ -153,16 +139,6 @@ class Test__init__(IrisTest):
         module is not found for when the predictor is the ensemble
         realizations.
         """
-        cube = self.cube
-
-        historic_forecasts = CubeList([])
-        for index in [1.0, 2.0, 3.0, 4.0, 5.0]:
-            temp_cube = cube.copy()
-            temp_cube.coord("time").points = (
-                temp_cube.coord("time").points - index)
-            historic_forecasts.append(temp_cube)
-        historic_forecasts.concatenate_cube()
-
         predictor_of_mean_flag = "realizations"
 
         Plugin(self.distribution, self.desired_units,
@@ -200,7 +176,7 @@ class Test__repr__(IrisTest):
                "minimiser: <class 'improver.ensemble_calibration."
                "ensemble_calibration."
                "ContinuousRankedProbabilityScoreMinimisers'>; "
-               "coeff_names: ['gamma', 'delta', 'alpha', 'beta'];"
+               "coeff_names: ['gamma', 'delta', 'alpha', 'beta']; "
                "max_iterations: 1000>")
         self.assertEqual(result, msg)
 
@@ -220,7 +196,7 @@ class Test__repr__(IrisTest):
                "minimiser: <class 'improver.ensemble_calibration."
                "ensemble_calibration."
                "ContinuousRankedProbabilityScoreMinimisers'>; "
-               "coeff_names: ['gamma', 'delta', 'alpha', 'beta'];"
+               "coeff_names: ['gamma', 'delta', 'alpha', 'beta']; "
                "max_iterations: 10>")
         self.assertEqual(result, msg)
 
@@ -404,8 +380,10 @@ class Test_create_coefficients_cube(IrisTest):
 
 class Test_compute_initial_guess(IrisTest):
 
-    """Test the compute_initial_guess plugin."""
+    """Test the compute_initial_guess method."""
 
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def setUp(self):
         """Use temperature cube to test with."""
         self.distribution = "gaussian"
@@ -422,8 +400,14 @@ class Test_compute_initial_guess(IrisTest):
                           [8., 9., 10.]]])
         data = data + 273.15
         data = data.astype(np.float32)
-        self.cube = set_up_variable_cube(
+        cube = set_up_variable_cube(
             data, units="Kelvin", realizations=[0, 1, 2])
+
+        self.current_forecast_predictor_mean = cube.collapsed(
+            "realization", iris.analysis.MEAN)
+        self.current_forecast_predictor_realizations = cube.copy()
+        self.truth = cube.collapsed("realization", iris.analysis.MAX)
+        self.no_of_realizations = 3
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -433,15 +417,12 @@ class Test_compute_initial_guess(IrisTest):
         for the calibration coefficients, when the ensemble mean is used
         as the predictor.
         """
-        current_forecast_predictor = self.cube.collapsed(
-            "realization", iris.analysis.MEAN)
-        truth = self.cube.collapsed("realization", iris.analysis.MAX)
-
         estimate_coefficients_from_linear_model_flag = False
 
         plugin = Plugin(self.distribution, self.desired_units)
         result = plugin.compute_initial_guess(
-            truth, current_forecast_predictor, self.predictor_of_mean_flag,
+            self.truth, self.current_forecast_predictor_mean,
+            self.predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag)
         self.assertIsInstance(result, np.ndarray)
 
@@ -453,18 +434,15 @@ class Test_compute_initial_guess(IrisTest):
         for the calibration coefficients, when the individual ensemble
         realizations are used as predictors.
         """
-        current_forecast_predictor = self.cube.copy()
-        truth = self.cube.collapsed("realization", iris.analysis.MAX)
-
         predictor_of_mean_flag = "realizations"
-        no_of_realizations = 3
         estimate_coefficients_from_linear_model_flag = False
 
         plugin = Plugin(self.distribution, self.desired_units)
         result = plugin.compute_initial_guess(
-            truth, current_forecast_predictor, predictor_of_mean_flag,
+            self.truth, self.current_forecast_predictor_realizations,
+            predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag,
-            no_of_realizations=no_of_realizations)
+            no_of_realizations=self.no_of_realizations)
         self.assertIsInstance(result, np.ndarray)
 
     @ManageWarnings(
@@ -476,17 +454,13 @@ class Test_compute_initial_guess(IrisTest):
         as the predictor. As coefficients are not estimated using a
         linear model, the default values for the initial guess are used.
         """
-        data = [1, 1, 0, 1]
-
-        current_forecast_predictor = self.cube.collapsed(
-            "realization", iris.analysis.MEAN)
-        truth = self.cube.collapsed("realization", iris.analysis.MAX)
-
+        data = [0, 1, 0, 1]
         estimate_coefficients_from_linear_model_flag = False
 
         plugin = Plugin(self.distribution, self.desired_units)
         result = plugin.compute_initial_guess(
-            truth, current_forecast_predictor, self.predictor_of_mean_flag,
+            self.truth, self.current_forecast_predictor_mean,
+            self.predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag)
         self.assertArrayAlmostEqual(result, data)
 
@@ -502,22 +476,20 @@ class Test_compute_initial_guess(IrisTest):
         using a linear model, the default values for the initial guess
         are used.
         """
-        no_of_realizations = 3
-        data = [1, 1, 0,
-                np.sqrt(1./no_of_realizations), np.sqrt(1./no_of_realizations),
-                np.sqrt(1./no_of_realizations)]
+        data = [0, 1, 0,
+                np.sqrt(1./self.no_of_realizations),
+                np.sqrt(1./self.no_of_realizations),
+                np.sqrt(1./self.no_of_realizations)]
 
-        current_forecast_predictor = self.cube.collapsed(
-            "realization", iris.analysis.MEAN)
-        truth = self.cube.collapsed("realization", iris.analysis.MAX)
         predictor_of_mean_flag = "realizations"
         estimate_coefficients_from_linear_model_flag = False
 
         plugin = Plugin(self.distribution, self.desired_units)
         result = plugin.compute_initial_guess(
-            truth, current_forecast_predictor, predictor_of_mean_flag,
+            self.truth, self.current_forecast_predictor_realizations,
+            predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag,
-            no_of_realizations=no_of_realizations)
+            no_of_realizations=self.no_of_realizations)
         self.assertArrayAlmostEqual(result, data)
 
     @ManageWarnings(
@@ -526,21 +498,21 @@ class Test_compute_initial_guess(IrisTest):
         """
         Test that the plugin returns the expected values for the initial guess
         for the calibration coefficients, when the ensemble mean is used
-        as the predictor. The coefficients are estimated using a linear model.
+        as the predictor. The coefficients are estimated using a linear model,
+        where there is an offset of one between the truth and the forecast
+        during the training period. Therefore, in this case the result of the
+        linear regression is a gradient of 1 and an intercept of 1.
         """
         data = np.array([0., 1., 1., 1.], dtype=np.float32)
-
-        current_forecast_predictor = self.cube.collapsed(
-            "realization", iris.analysis.MEAN)
-        truth = self.cube.collapsed("realization", iris.analysis.MAX)
         estimate_coefficients_from_linear_model_flag = True
 
         plugin = Plugin(self.distribution, self.desired_units)
         result = plugin.compute_initial_guess(
-            truth, current_forecast_predictor, self.predictor_of_mean_flag,
+            self.truth, self.current_forecast_predictor_mean,
+            self.predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag)
 
-        self.assertArrayAlmostEqual(result, data, decimal=5)
+        self.assertArrayAlmostEqual(result, data)
 
     @unittest.skipIf(
         STATSMODELS_FOUND is False, "statsmodels module not available.")
@@ -551,21 +523,20 @@ class Test_compute_initial_guess(IrisTest):
         Test that the plugin returns the expected values for the initial guess
         for the calibration coefficients, when the ensemble mean is used
         as the predictor. The coefficients are estimated using a linear model.
+        In this case, the result of the linear regression is for an intercept
+        of 0.333333 with different weights for the realizations because
+        some of the realizations are closer to the truth, in this instance.
         """
-        no_of_realizations = 3
-
-        data = [1., 1., 0.333333, 0., 0.333333, 0.666667]
-
-        current_forecast_predictor = self.cube
-        truth = self.cube.collapsed("realization", iris.analysis.MAX)
+        data = [0., 1., 0.333333, 0., 0.333333, 0.666667]
         predictor_of_mean_flag = "realizations"
         estimate_coefficients_from_linear_model_flag = True
 
         plugin = Plugin(self.distribution, self.desired_units)
         result = plugin.compute_initial_guess(
-            truth, current_forecast_predictor, predictor_of_mean_flag,
+            self.truth, self.current_forecast_predictor_realizations,
+            predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag,
-            no_of_realizations=no_of_realizations)
+            no_of_realizations=self.no_of_realizations)
         self.assertArrayAlmostEqual(result, data)
 
     @ManageWarnings(
@@ -575,28 +546,28 @@ class Test_compute_initial_guess(IrisTest):
         Test that the plugin returns the expected values for the initial guess
         for the calibration coefficients, when the ensemble mean is used
         as the predictor, when one value from the input data is set to NaN.
-        The coefficients are estimated using a linear model.
+        The coefficients are estimated using a linear model,
+        where there is an offset of one between the truth and the forecast
+        during the training period. Therefore, in this case the result of the
+        linear regression is a gradient of 1 and an intercept of 1.
         """
         data = np.array([0., 1., 1., 1.], dtype=np.float32)
-
-        current_forecast_predictor = self.cube.collapsed(
-            "realization", iris.analysis.MEAN)
-        current_forecast_predictor.data = (
-            current_forecast_predictor.data.filled())
-        truth = self.cube.collapsed("realization", iris.analysis.MAX)
-
         estimate_coefficients_from_linear_model_flag = True
 
-        current_forecast_predictor.data[0][0] = np.nan
+        self.current_forecast_predictor_mean.data = (
+            self.current_forecast_predictor_mean.data.filled())
+        self.current_forecast_predictor_mean.data[0][0] = np.nan
 
         plugin = Plugin(self.distribution, self.desired_units)
         result = plugin.compute_initial_guess(
-            truth, current_forecast_predictor, self.predictor_of_mean_flag,
+            self.truth, self.current_forecast_predictor_mean,
+            self.predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag)
         self.assertArrayAlmostEqual(result, data)
 
 
-class Test_estimate_coefficients_for_ngr(IrisTest):
+class Test_estimate_coefficients_for_ngr(
+        SetupCubes, EnsembleCalibrationAssertions):
 
     """Test the estimate_coefficients_for_ngr plugin."""
 
@@ -604,50 +575,29 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def setUp(self):
         """Set up multiple cubes for testing."""
+        super().setUp()
         self.current_cycle = "20171110T0000Z"
         self.distribution = "gaussian"
-        self.desired_units = "degreesC"
-        data = np.array([[[1., 2., 3.],
-                          [4., 5., 6.],
-                          [7., 8., 9.]],
-                         [[1., 2., 3],
-                          [4., 5., 6.],
-                          [7., 8., 9.]],
-                         [[1., 2., 3.],
-                          [4., 5., 6.],
-                          [7., 8., 9.]]])
-        data = data + 273.15
-        data = data.astype(np.float32)
-        self.current_temperature_forecast_cube = set_up_variable_cube(
-            data, units="Kelvin", realizations=[0, 1, 2])
-
-        self.historic_temperature_forecast_cube = (
-            _create_historic_forecasts(self.current_temperature_forecast_cube))
-
-        self.temperature_truth_cube = (
-            _create_truth(self.current_temperature_forecast_cube))
-
-        # Create a cube for testing wind speed.
-        data = np.array([[[1., 2., 3.],
-                          [4., 5., 6.],
-                          [7., 8., 9.]],
-                         [[1., 2., 3],
-                          [4., 5., 6.],
-                          [7., 8., 9.]],
-                         [[1., 2., 3.],
-                          [4., 5., 6.],
-                          [7., 8., 9.]]])
-        data = data.astype(np.float32)
-        self.current_wind_speed_forecast_cube = set_up_variable_cube(
-            data, name="wind_speed", units="m s-1", realizations=[0, 1, 2])
-
-        self.historic_wind_speed_forecast_cube = (
-            _create_historic_forecasts(self.current_wind_speed_forecast_cube))
-
-        self.wind_speed_truth_cube = (
-            _create_truth(self.current_wind_speed_forecast_cube))
 
         self.coeff_names = ["gamma", "delta", "alpha", "beta"]
+        self.coeff_names_realizations = (
+            ['gamma', 'delta', 'alpha', 'beta0', 'beta1', 'beta2'])
+
+        # The expected coefficients for temperature in Kelvin.
+        self.expected_mean_predictor_gaussian = (
+            [-0., 0.4888, 23.4351, 0.9129])
+        # The expected coefficients for wind speed in m s^-1.
+        self.expected_mean_predictor_truncated_gaussian = (
+            [-0., 1.5434, -0.514, 0.94])
+
+        self.expected_realizations_gaussian_statsmodels = (
+            [-0.0003, 1.0023, -0.2831, -0.0774, 0.3893, 0.9168])
+        self.expected_realizations_gaussian_no_statsmodels = (
+            [0.0226, 1.0567, -0.0039, 0.3432, 0.2542, 0.9026])
+        self.expected_realizations_truncated_gaussian_statsmodels = (
+            [-0.0070, 1.3360, -0.5012, -0.5295, 0.0003, 0.8128])
+        self.expected_realizations_truncated_gaussian_no_statsmodels = (
+            [0.0810, 1.3406, -0.0310, 0.7003, -0.0036, 0.6083])
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -659,24 +609,42 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(len(result.data), len(self.coeff_names))
+        self.assertEqual(len(result.data), len(self.coeff_names))
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_gaussian_distribution(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
-        expected values for a Gaussian distribution."""
-        data = [-0., 0.971547, -1.,  1.]
-
-        plugin = Plugin(
-            self.distribution, self.current_cycle,
-            desired_units=self.desired_units)
+        expected values for a Gaussian distribution. In this case,
+        a linear least-squares regression is used to construct the initial
+        guess."""
+        plugin = Plugin(self.distribution, self.current_cycle)
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
 
-        self.assertArrayAlmostEqual(result.data, data)
+        self.assertEMOSCoefficientsAlmostEqual(
+            result.data, self.expected_mean_predictor_gaussian)
+        self.assertArrayEqual(
+            result.coord("coefficient_name").points, self.coeff_names)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_coefficients_gaussian_distribution_default_initial_guess(self):
+        """Ensure that the values for the optimised_coefficients match the
+        expected values, and the coefficient names also match
+        expected values for a Gaussian distribution, where the default
+        values for the initial guess are used, rather than using a linear
+        least-squares regression to construct an initial guess."""
+        expected = [-0.0002, 0.7977, 0.0004, 0.9973]
+        plugin = Plugin(self.distribution, self.current_cycle)
+        plugin.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
+        result = plugin.estimate_coefficients_for_ngr(
+            self.historic_temperature_forecast_cube,
+            self.temperature_truth_cube)
+
+        self.assertEMOSCoefficientsAlmostEqual(result.data, expected)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, self.coeff_names)
 
@@ -686,20 +654,19 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
-        expected values for a Gaussian distribution."""
-        data = [2.5e-04, 1., -1.,  1.]
-
-        max_iterations = 10
+        expected values for a Gaussian distribution, when the max_iterations
+        argument is specified."""
+        max_iterations = 800
 
         plugin = Plugin(
             self.distribution, self.current_cycle,
-            desired_units=self.desired_units,
             max_iterations=max_iterations)
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
 
-        self.assertArrayAlmostEqual(result.data, data)
+        self.assertEMOSCoefficientsAlmostEqual(
+            result.data, self.expected_mean_predictor_gaussian)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, self.coeff_names)
 
@@ -708,9 +675,9 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
     def test_coefficient_values_for_truncated_gaussian_distribution(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
-        expected values for a truncated Gaussian distribution."""
-        data = [0., 1., -1., 1.]
-
+        expected values for a truncated Gaussian distribution. In this case,
+        a linear least-squares regression is used to construct the initial
+        guess."""
         distribution = "truncated gaussian"
 
         plugin = Plugin(distribution, self.current_cycle)
@@ -718,7 +685,29 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
 
-        self.assertArrayAlmostEqual(result.data, data)
+        self.assertEMOSCoefficientsAlmostEqual(
+            result.data, self.expected_mean_predictor_truncated_gaussian)
+        self.assertArrayEqual(
+            result.coord("coefficient_name").points, self.coeff_names)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_coefficients_truncated_gaussian_default_initial_guess(self):
+        """Ensure that the values for the optimised_coefficients match the
+        expected values, and the coefficient names also match
+        expected values for a truncated Gaussian distribution, where the
+        default values for the initial guess are used, rather than using a
+        linear least-squares regression to construct an initial guess.."""
+        distribution = "truncated gaussian"
+
+        plugin = Plugin(distribution, self.current_cycle)
+        plugin.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
+        result = plugin.estimate_coefficients_for_ngr(
+            self.historic_wind_speed_forecast_cube,
+            self.wind_speed_truth_cube)
+
+        self.assertEMOSCoefficientsAlmostEqual(
+            result.data, self.expected_mean_predictor_truncated_gaussian)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, self.coeff_names)
 
@@ -731,21 +720,18 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         expected values, and the coefficient names also match
         expected values for a Gaussian distribution where the
         realizations are used as the predictor of the mean."""
-        data = [0.00001, -0.25516, -1., 0.66631, 0.55059, 0.50287]
-
         predictor_of_mean_flag = "realizations"
-        expected_coeff_names = (
-            ['gamma', 'delta', 'alpha', 'beta0', 'beta1', 'beta2'])
 
         plugin = Plugin(self.distribution, self.current_cycle,
-                        desired_units=self.desired_units,
                         predictor_of_mean_flag=predictor_of_mean_flag)
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertArrayAlmostEqual(result.data, data, decimal=5)
+        self.assertEMOSCoefficientsAlmostEqual(
+            result.data, self.expected_realizations_gaussian_statsmodels)
         self.assertArrayEqual(
-            result.coord("coefficient_name").points, expected_coeff_names)
+            result.coord("coefficient_name").points,
+            self.coeff_names_realizations)
 
     @unittest.skipIf(
         STATSMODELS_FOUND is True, "statsmodels module is available.")
@@ -756,30 +742,19 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         expected values, and the coefficient names also match
         expected values for a Gaussian distribution where the
         realizations are used as the predictor of the mean.
-        The choice to specify a maximum number of iterations of 10
-        means that the solution does not fully converge. This choice for the
-        maximum number of iterations is to try to ensure convergence
-        to a common solution across different package versions and
-        processors.
         """
-        data = np.array([1.08333e+00, 1.09167e+00, 3.61111e-04,
-                         4.61880e-01, 5.74143e-01, 5.29238e-01],
-                        dtype=np.float32)
-
         predictor_of_mean_flag = "realizations"
-        expected_coeff_names = (
-            ['gamma', 'delta', 'alpha', 'beta0', 'beta1', 'beta2'])
 
         plugin = Plugin(self.distribution, self.current_cycle,
-                        desired_units=self.desired_units,
-                        predictor_of_mean_flag=predictor_of_mean_flag,
-                        max_iterations=10)
+                        predictor_of_mean_flag=predictor_of_mean_flag)
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
-        self.assertArrayAlmostEqual(result.data, data, decimal=5)
+        self.assertEMOSCoefficientsAlmostEqual(
+            result.data, self.expected_realizations_gaussian_no_statsmodels)
         self.assertArrayEqual(
-            result.coord("coefficient_name").points, expected_coeff_names)
+            result.coord("coefficient_name").points,
+            self.coeff_names_realizations)
 
     @unittest.skipIf(
         STATSMODELS_FOUND is False, "statsmodels module not available.")
@@ -790,22 +765,20 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         expected values, and the coefficient names also match
         expected values for a truncated Gaussian distribution where the
         realizations are used as the predictor of the mean."""
-        data = [-0., 2.907516, 0.666669, 0.774827, -0.040465, 0.254308]
-
         distribution = "truncated gaussian"
         predictor_of_mean_flag = "realizations"
-        expected_coeff_names = (
-            ['gamma', 'delta', 'alpha', 'beta0', 'beta1', 'beta2'])
 
         plugin = Plugin(distribution, self.current_cycle,
                         predictor_of_mean_flag=predictor_of_mean_flag)
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
-
-        self.assertArrayAlmostEqual(result.data, data)
+        self.assertEMOSCoefficientsAlmostEqual(
+            result.data,
+            self.expected_realizations_truncated_gaussian_statsmodels)
         self.assertArrayEqual(
-            result.coord("coefficient_name").points, expected_coeff_names)
+            result.coord("coefficient_name").points,
+            self.coeff_names_realizations)
 
     @unittest.skipIf(
         STATSMODELS_FOUND is True, "statsmodels module is available.")
@@ -815,30 +788,22 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
         expected values for a truncated Gaussian distribution where the
-        realizations are used as the predictor of the mean.
-        The choice to specify a maximum number of iterations of 10
-        means that the solution does not fully converge. This choice for the
-        maximum number of iterations is to try to ensure convergence
-        to a common solution across different package versions and
-        processors."""
-        data = [1.122222e+00, 1.091667e+00, 6.527778e-04, 4.506539e-01,
-                4.955590e-01, 5.404640e-01]
-
+        realizations are used as the predictor of the mean."""
         distribution = "truncated gaussian"
         predictor_of_mean_flag = "realizations"
-        expected_coeff_names = (
-            ['gamma', 'delta', 'alpha', 'beta0', 'beta1', 'beta2'])
 
         plugin = Plugin(distribution, self.current_cycle,
-                        predictor_of_mean_flag=predictor_of_mean_flag,
-                        max_iterations=10)
+                        predictor_of_mean_flag=predictor_of_mean_flag)
         result = plugin.estimate_coefficients_for_ngr(
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
 
-        self.assertArrayAlmostEqual(result.data, data, decimal=5)
+        self.assertEMOSCoefficientsAlmostEqual(
+            result.data,
+            self.expected_realizations_truncated_gaussian_no_statsmodels)
         self.assertArrayEqual(
-            result.coord("coefficient_name").points, expected_coeff_names)
+            result.coord("coefficient_name").points,
+            self.coeff_names_realizations)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -859,54 +824,49 @@ class Test_estimate_coefficients_for_ngr(IrisTest):
     def test_truth_unit_conversion(self):
         """Ensure the expected optimised coefficients are generated,
         even if the input truth cube has different units."""
-        data = [-0., 0.97151, -1.,  1.]
-
-        truth = self.temperature_truth_cube
-
-        truth.convert_units("Fahrenheit")
+        self.temperature_truth_cube.convert_units("Fahrenheit")
+        desired_units = "Kelvin"
 
         plugin = Plugin(
-            self.distribution, self.current_cycle,
-            desired_units=self.desired_units)
+            self.distribution, self.current_cycle, desired_units=desired_units)
         result = plugin.estimate_coefficients_for_ngr(
-            self.historic_temperature_forecast_cube, truth)
+            self.historic_temperature_forecast_cube,
+            self.temperature_truth_cube)
 
-        self.assertArrayAlmostEqual(result.data, data, decimal=5)
+        self.assertEMOSCoefficientsAlmostEqual(
+            result.data, self.expected_mean_predictor_gaussian)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_historic_forecast_unit_conversion(self):
         """Ensure the expected optimised coefficients are generated,
         even if the input historic forecast cube has different units."""
-        data = [-0., 0.96858, -1.,  1.]
-
-        historic_forecast = self.historic_temperature_forecast_cube
-
-        historic_forecast.convert_units("Fahrenheit")
+        self.historic_temperature_forecast_cube.convert_units("Fahrenheit")
+        desired_units = "Kelvin"
 
         plugin = Plugin(
-            self.distribution, self.current_cycle,
-            desired_units=self.desired_units)
+            self.distribution, self.current_cycle, desired_units=desired_units)
         result = plugin.estimate_coefficients_for_ngr(
-            historic_forecast, self.temperature_truth_cube)
+            self.historic_temperature_forecast_cube,
+            self.temperature_truth_cube)
 
-        self.assertArrayAlmostEqual(result.data, data, decimal=5)
+        self.assertEMOSCoefficientsAlmostEqual(
+            result.data, self.expected_mean_predictor_gaussian)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_non_matching_units(self):
         """Test that an exception is raised if the historic forecasts and truth
         have non matching units."""
-        historic_forecast = self.historic_temperature_forecast_cube
-
-        historic_forecast.convert_units("Fahrenheit")
+        self.historic_temperature_forecast_cube.convert_units("Fahrenheit")
 
         plugin = Plugin(self.distribution, self.current_cycle)
 
         msg = "The historic forecast units"
         with self.assertRaisesRegex(ValueError, msg):
             plugin.estimate_coefficients_for_ngr(
-                historic_forecast, self.temperature_truth_cube)
+                self.historic_temperature_forecast_cube,
+                self.temperature_truth_cube)
 
 
 if __name__ == '__main__':

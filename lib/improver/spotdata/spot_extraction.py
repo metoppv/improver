@@ -36,6 +36,7 @@ import numpy as np
 import iris
 from improver.utilities.cube_manipulation import (enforce_coordinate_ordering,
                                                   compare_attributes)
+from improver.utilities.cube_metadata import create_coordinate_hash
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 
 
@@ -46,31 +47,21 @@ class SpotExtraction():
     data.
     """
 
-    def __init__(self, neighbour_selection_method='nearest',
-                 grid_metadata_identifier='mosg'):
+    def __init__(self, neighbour_selection_method='nearest'):
         """
-        Args:
+        Keyword Args:
             neighbour_selection_method (str):
                 The neighbour cube may contain one or several sets of grid
                 coordinates that match a spot site. These are determined by
                 the neighbour finding method employed. This keyword is used to
                 extract the desired set of coordinates from the neighbour cube.
-            grid_metadata_identifier (str or None):
-                A string to search for in the input cube attributes that
-                can be used to ensure that the neighbour cube being used has
-                been created for the model/grid of the diagnostic cube. If set
-                to None, no such check is made and the cubes are assumed to be
-                suitable for use with one another.
         """
         self.neighbour_selection_method = neighbour_selection_method
-        self.grid_metadata_identifier = grid_metadata_identifier
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        return ('<SpotExtraction: neighbour_selection_method: {}, '
-                'grid_metadata_identifier: {}>'.format(
-                    self.neighbour_selection_method,
-                    self.grid_metadata_identifier))
+        return ('<SpotExtraction: neighbour_selection_method: {}>'.format(
+                    self.neighbour_selection_method))
 
     def extract_coordinates(self, neighbour_cube):
         """
@@ -183,8 +174,7 @@ class SpotExtraction():
                 as information about the sites themselves.
         """
         # Check we are using a matched neighbour/diagnostic cube pair
-        check_grid_match(self.grid_metadata_identifier,
-                         [neighbour_cube, diagnostic_cube])
+        check_grid_match([neighbour_cube, diagnostic_cube])
 
         coordinate_cube = self.extract_coordinates(neighbour_cube)
 
@@ -209,37 +199,40 @@ class SpotExtraction():
         # Copy attributes from the diagnostic cube that describe the data's
         # provenance.
         spotdata_cube.attributes = diagnostic_cube.attributes
+        spotdata_cube.attributes['model_grid_hash'] = (
+            neighbour_cube.attributes['model_grid_hash'])
 
         return spotdata_cube
 
 
-def check_grid_match(grid_metadata_identifier, cubes):
+def check_grid_match(cubes):
     """
-    Uses the provided grid_metadata_identifier to extract and compare
-    attributes on the input cubes. The expectation is that all the metadata
-    identified should match for the cubes to be deemed compatible.
+    Checks that cubes are on, or originate from, compatible coordinate grids.
+    Each cube is first checked for an existing 'model_grid_hash' which can be
+    used to encode coordinate information on cubes that do not themselves
+    contain a coordinate grid (e.g. spotdata cubes). If this is not found a new
+    hash is generated to enable comparison. If the cubes are not compatible, an
+    exception is raised to prevent the use of unmatched cubes.
 
     Args:
-        grid_metadata_identifier (str or None):
-            A partial or complete attribute name. Attributes matching this are
-            compared between the two cubes. If set to None, no such check is
-            made and the cubes are assumed to be suitable for use with one
-            another.
-        cubes (list of iris.cube.Cube items):
-            List of cubes for which the attributes should be tested.
+        cubes (list of iris.cube.Cube):
+            A list of cubes to check for grid compatibility.
     Raises:
-        ValueError: Raised if the metadata extracted is not identical on
-                    all cubes.
+        ValueError: Raised if the cubes are not on matching grids as
+                    identified by the model_grid_hash.
     """
-    # Allow user to bypass cube comparison by setting identifier to None.
-    if grid_metadata_identifier is None:
-        return
+    def _get_grid_hash(cube):
+        try:
+            cube_hash = cube.attributes['model_grid_hash']
+        except KeyError:
+            cube_hash = create_coordinate_hash(cube)
+        return cube_hash
 
-    comparison_result = compare_attributes(
-        cubes, attribute_filter=grid_metadata_identifier)
+    cubes = iter(cubes)
+    reference_hash = _get_grid_hash(next(cubes))
 
-    # Check that all dictionaries returned are empty, indicating matches.
-    if not all(not item for item in comparison_result):
-        raise ValueError('Cubes do not share the metadata identified '
-                         'by the grid_metadata_identifier ({})'.format(
-                             grid_metadata_identifier))
+    for cube in cubes:
+        cube_hash = _get_grid_hash(cube)
+        if not cube_hash == reference_hash:
+            raise ValueError('Cubes do not share or originate from the same '
+                             'grid, so cannot be used together.')

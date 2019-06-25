@@ -129,4 +129,13 @@ def save_netcdf(cubelist, filename):
 
     cubelist = append_metadata_cube(cubelist, global_keys)
 
-    iris.fileformats.netcdf.save(cubelist, filename, local_keys=local_keys)
+    chunksizes = None
+    if cube.ndim >= 2:
+        xy_chunksizes = [
+            min([128, cube.shape[-2]]),
+            min([128, cube.shape[-1]])
+        ]
+        chunksizes = tuple([1] * (cube.ndim - 2) + xy_chunksizes)
+    iris.fileformats.netcdf.save(cubelist, filename, local_keys=local_keys,
+                                 complevel=1, shuffle=True, zlib=True,
+                                 chunksizes=chunksizes)

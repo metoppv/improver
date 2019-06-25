@@ -61,7 +61,7 @@ def wxcode_decision_tree_global():
               e.g. gamma * P(SnowfallRate) < P(RainfallRate).
         * diagnostic_thresholds: The thresholding that is expected to have
               been applied to the input data; this is used to extract the
-              approproate data from the input cubes.
+              appropriate data from the input cubes.
         * diagnostic_conditions: The condition that is expected to have
               been applied to the input data; this can be used to ensure
               the thresholding is as expected.

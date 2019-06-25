@@ -90,7 +90,7 @@ def load_cube(filepath, constraints=None, no_lazy_load=False):
     # Ensure the probabilistic coordinates are the first coordinates within a
     # cube and are in the specified order.
     cube = enforce_coordinate_ordering(
-        cube, ["realization", "percentile_over", "threshold"])
+        cube, ["realization", "percentile", "threshold"])
     # Ensure the y and x dimensions are the last dimensions within the cube.
     try:
         y_name = cube.coord(axis="y").name()
@@ -112,7 +112,9 @@ def load_cubelist(filepath, constraints=None, no_lazy_load=False):
 
     Args:
         filepath (str or list):
-            Filepath(s) that will be loaded, each containing a single cube.
+            Filepath(s) that will be loaded, each containing a single cube.  If
+            wildcarded, this will be expanded into a list of file names so that
+            only one cube is loaded per file.
         constraints (iris.Constraint, str or None):
             Constraint to be applied when loading from the input filepath.
             This can be in the form of an iris.Constraint or could be a string
@@ -128,6 +130,9 @@ def load_cubelist(filepath, constraints=None, no_lazy_load=False):
             CubeList that has been created from the input filepath given the
             constraints provided.
     """
+    if isinstance(filepath, list) and len(filepath) == 1:
+        filepath = filepath[0]
+
     # If the filepath is a string, then use glob, in case the str contains
     # wildcards.
     if isinstance(filepath, str):

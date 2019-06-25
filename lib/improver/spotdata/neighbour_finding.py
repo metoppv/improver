@@ -38,6 +38,7 @@ from scipy.spatial import cKDTree
 import cartopy.crs as ccrs
 
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+from improver.utilities.cube_metadata import create_coordinate_hash
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 
 
@@ -65,7 +66,7 @@ class NeighbourSelection:
                  search_radius=1.0E4,
                  site_coordinate_system=ccrs.PlateCarree(),
                  site_x_coordinate='longitude', site_y_coordinate='latitude',
-                 grid_metadata_identifier='mosg', node_limit=36):
+                 node_limit=36):
         """
         Args:
             land_constraint (bool):
@@ -88,11 +89,6 @@ class NeighbourSelection:
             site_y_coordinate (str):
                 The key that identifies site y coordinates in the provided site
                 dictionary. Defaults to latitude.
-            grid_metadata_identifier (str):
-                A string to search for in the input cube attributes that
-                identifies the grid for which neighbours are being found. For
-                example, the default 'mosg' will return the Met Office grid
-                attributes mosg__grid_domain, mosg__grid_type, etc.
             node_limit (int):
                 The upper limit for the number of nearest neighbours to return
                 when querying the tree for a selection of neighbours from which
@@ -105,7 +101,6 @@ class NeighbourSelection:
         self.site_x_coordinate = site_x_coordinate
         self.site_y_coordinate = site_y_coordinate
         self.site_altitude = 'altitude'
-        self.grid_metadata_identifier = grid_metadata_identifier
         self.node_limit = node_limit
         self.global_coordinate_system = False
 
@@ -114,11 +109,11 @@ class NeighbourSelection:
         return ('<NeighbourSelection: land_constraint: {}, ' +
                 'minimum_dz: {}, search_radius: {}, site_coordinate_system'
                 ': {}, site_x_coordinate:{}, site_y_coordinate: {}, '
-                'grid_metadata_identifier: {}, node_limit: {}>').format(
+                'node_limit: {}>').format(
                     self.land_constraint, self.minimum_dz, self.search_radius,
                     self.site_coordinate_system.__class__,
                     self.site_x_coordinate, self.site_y_coordinate,
-                    self.grid_metadata_identifier, self.node_limit)
+                    self.node_limit)
 
     def neighbour_finding_method_name(self):
         """
@@ -128,7 +123,7 @@ class NeighbourSelection:
         Returns:
             method_name (string):
                 A string that describes the neighbour finding method employed.
-                This is essentially a concatentation of the options.
+                This is essentially a concatenation of the options.
         """
         method_name = '{}{}{}'.format('nearest',
                                       '_land' if self.land_constraint else '',
@@ -540,9 +535,9 @@ class NeighbourSelection:
             wmo_ids, neighbour_methods=[method_name],
             grid_attributes=['x_index', 'y_index', 'vertical_displacement'])
 
-        # Apply the grid identifiers from the input cubes to the output cube.
-        neighbour_cube.attributes = {
-            k: v for (k, v) in orography.attributes.items()
-            if self.grid_metadata_identifier in k}
+        # Add a hash attribute based on the model grid to ensure the neighbour
+        # cube is only used with a compatible grid.
+        grid_hash = create_coordinate_hash(orography)
+        neighbour_cube.attributes['model_grid_hash'] = grid_hash
 
         return neighbour_cube

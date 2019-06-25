@@ -68,7 +68,7 @@ class Test__recycle_raw_ensemble_realizations(IrisTest):
         cube = set_up_cube(data, "air_temperature", "degreesC")
         self.realization_cube = (
             add_forecast_reference_time_and_forecast_period(cube.copy()))
-        self.perc_coord = "percentile_over_neighbourhood"
+        self.perc_coord = "percentile"
         cube.coord("realization").rename(self.perc_coord)
         self.percentile_cube = (
             add_forecast_reference_time_and_forecast_period(cube))
@@ -579,7 +579,7 @@ class Test_process(IrisTest):
         self.post_processed_percentiles = (
             add_forecast_reference_time_and_forecast_period(
                 set_up_temperature_cube()))
-        self.perc_coord = "percentile_over_neighbourhood"
+        self.perc_coord = "percentile"
         self.post_processed_percentiles.coord("realization").rename(
             self.perc_coord)
         self.post_processed_percentiles.coord(
@@ -594,19 +594,6 @@ class Test_process(IrisTest):
         """
         plugin = Plugin()
         result = plugin.process(self.post_processed_percentiles, self.raw_cube)
-        self.assertIsInstance(result, Cube)
-        self.assertTrue(result.coords("realization"))
-        self.assertArrayAlmostEqual(
-            result.coord("realization").points, [0, 1, 2])
-
-    @ManageWarnings(
-        ignored_messages=["Only a single cube so no differences"])
-    def test_works_for_different_percentile_coord(self):
-        """Test that it still works for different percentile coordinate"""
-        cube = self.post_processed_percentiles
-        cube.coord(self.perc_coord).rename("percentile_over_dummy")
-        plugin = Plugin()
-        result = plugin.process(cube, self.raw_cube)
         self.assertIsInstance(result, Cube)
         self.assertTrue(result.coords("realization"))
         self.assertArrayAlmostEqual(

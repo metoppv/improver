@@ -35,7 +35,7 @@ import numpy as np
 from improver.utilities.temporal import (
     unify_forecast_reference_time, cycletime_to_datetime,
     find_latest_cycletime)
-from improver.utilities.cube_manipulation import merge_cubes
+from improver.utilities.cube_manipulation import concatenate_cubes
 
 
 class GenerateTimeLaggedEnsemble(object):
@@ -90,7 +90,7 @@ class GenerateTimeLaggedEnsemble(object):
         all_realizations = [
             cube.coord("realization").points for cube in cubelist]
         all_realizations = np.concatenate(all_realizations)
-        # Find unique realiations
+        # Find unique realizations
         unique_realizations = np.unique(all_realizations)
 
         # If we have fewer unique realizations than total realizations we have
@@ -103,5 +103,6 @@ class GenerateTimeLaggedEnsemble(object):
                     first_realization, first_realization + n_realization)
                 first_realization = first_realization + n_realization
 
-        lagged_ensemble = merge_cubes(cubelist)
+        lagged_ensemble = concatenate_cubes(
+            cubelist, master_coord="realization")
         return lagged_ensemble

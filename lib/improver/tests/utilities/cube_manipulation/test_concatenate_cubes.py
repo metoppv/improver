@@ -82,13 +82,16 @@ class Test_concatenate_cubes(IrisTest):
 
         cube3 = self.cube.copy()
         cube3.transpose([1, 0, 2, 3])
-        expected_result = np.vstack([cube3.data, cube3.data])
+        expected_result = (
+            np.vstack([cube3.data, cube3.data]).transpose([1, 0, 2, 3]))
 
         cube2.coord("time").points = np.array([412230.0], dtype=np.float64)
 
         cubelist = iris.cube.CubeList([cube1, cube2])
 
-        result = concatenate_cubes(cubelist)
+        result = concatenate_cubes(
+            cubelist, coords_to_slice_over=["realization"])
+
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(expected_result, result.data)
 
@@ -110,7 +113,8 @@ class Test_concatenate_cubes(IrisTest):
 
         cubelist = iris.cube.CubeList([cube2, cube3])
 
-        result = concatenate_cubes(cubelist)
+        result = concatenate_cubes(
+            cubelist, coords_to_slice_over=["realization"])
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
             result.coord("realization").points, [0, 1, 2])

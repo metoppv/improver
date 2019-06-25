@@ -74,12 +74,12 @@ def calculate_wind_chill(temperature, wind_speed):
     The model aims to determine a worst-case scenario of wind chill. The wind
     speed "threshold" of 4.8 kph (1.34 m/s) stated in the 2005 papers does not
     refer to a threshold placed on the input windspeed data, which has no upper
-    limit, but is the walking speed of an average person. This is therfore used
-    as the minimum wind speed in their wind chill computer model, because even
-    where wind speed is zero, a person would still experience wind chill from
-    the act of walking (the model assumes that the person is walking into the
-    wind). The model introduces a compensation factor where it assumes that the
-    wind speed at 1.5 m (face level) is 2/3 that measured at 10 m. It also
+    limit, but is the walking speed of an average person. This is therefore
+    used as the minimum wind speed in their wind chill computer model, because
+    even where wind speed is zero, a person would still experience wind chill
+    from the act of walking (the model assumes that the person is walking into
+    the wind). The model introduces a compensation factor where it assumes that
+    the wind speed at 1.5 m (face level) is 2/3 that measured at 10 m. It also
     takes into account the thermal resistance of the skin on the human cheek
     with the assumption that the face is the most exposed area of skin
     during winter.
@@ -154,7 +154,7 @@ def calculate_apparent_temperature(temperature, wind_speed,
       Steadman, R. (1984). A Universal Scale of Apparent Temperature.
       Journal of Climate and Applied Meteorology, 23(12), pp.1674-1687
     """
-    # take a copy of each cube's orignial units
+    # take a copy of each cube's original units
     temp_units = temperature.copy().units
     wind_units = wind_speed.copy().units
     pressure_units = pressure.copy().units

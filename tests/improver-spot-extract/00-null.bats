@@ -38,8 +38,8 @@ usage: improver spot-extract [-h] [--profile] [--profile_file PROFILE_FILE]
                              [--land_constraint] [--minimum_dz]
                              [--extract_percentiles EXTRACT_PERCENTILES [EXTRACT_PERCENTILES ...]]
                              [--ecc_bounds_warning]
-                             [--grid_metadata_identifier GRID_METADATA_IDENTIFIER]
-                             [--json_file JSON_FILE] [--suppress_warnings]
+                             [--metadata_json METADATA_JSON]
+                             [--suppress_warnings]
                              NEIGHBOUR_FILEPATH DIAGNOSTIC_FILEPATH
                              [LAPSE_RATE_FILEPATH] OUTPUT_FILEPATH
 __TEXT__

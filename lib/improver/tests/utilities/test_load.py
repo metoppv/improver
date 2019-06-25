@@ -148,17 +148,16 @@ class Test_load_cube(IrisTest):
         self.assertArrayAlmostEqual(result.coord_dims("latitude")[0], 1)
         self.assertArrayAlmostEqual(result.coord_dims("longitude")[0], 2)
 
-    def test_ordering_for_percentile_over_coordinate(self):
+    def test_ordering_for_percentile_coordinate(self):
         """Test that the cube has been reordered, if it is originally in an
-        undesirable order and the cube contains a "percentile_over"
-        coordinate."""
+        undesirable order and the cube contains a "percentile" coordinate."""
         data = np.ones((3, 4, 5), dtype=np.float32)
         cube = set_up_percentile_cube(data, np.array([10, 50, 90]))
         cube.transpose([2, 1, 0])
         save_netcdf(cube, self.filepath)
         result = load_cube(self.filepath)
         self.assertEqual(
-            result.coord_dims("percentile_over_realization")[0], 0)
+            result.coord_dims("percentile")[0], 0)
         self.assertArrayAlmostEqual(result.coord_dims("latitude")[0], 1)
         self.assertArrayAlmostEqual(result.coord_dims("longitude")[0], 2)
 
@@ -176,24 +175,24 @@ class Test_load_cube(IrisTest):
         self.assertArrayAlmostEqual(result.coord_dims("latitude")[0], 1)
         self.assertArrayAlmostEqual(result.coord_dims("longitude")[0], 2)
 
-    def test_ordering_for_realization_threshold_percentile_over_coordinate(
+    def test_ordering_for_realization_threshold_percentile_coordinate(
             self):
         """Test that the cube has been reordered, if it is originally in an
         undesirable order and the cube contains a "threshold" coordinate,
-        a "realization" coordinate and a "percentile_over" coordinate."""
+        a "realization" coordinate and a "percentile" coordinate."""
         cube = set_up_probability_cube(
             np.zeros((3, 4, 5), dtype=np.float32),
             np.array([273., 274., 275.], dtype=np.float32))
         cube = add_coordinate(cube, [0, 1, 2], "realization")
         cube = add_coordinate(
-            cube, [10, 50, 90], "percentile_over_neighbourhood")
+            cube, [10, 50, 90], "percentile")
         cube.transpose([4, 3, 2, 1, 0])
         save_netcdf(cube, self.filepath)
         result = load_cube(self.filepath)
         threshold_coord = find_threshold_coordinate(result)
         self.assertEqual(result.coord_dims("realization")[0], 0)
         self.assertEqual(
-            result.coord_dims("percentile_over_neighbourhood")[0], 1)
+            result.coord_dims("percentile")[0], 1)
         self.assertEqual(result.coord_dims(threshold_coord)[0], 2)
         self.assertArrayAlmostEqual(result.coord_dims("latitude")[0], 3)
         self.assertArrayAlmostEqual(result.coord_dims("longitude")[0], 4)
@@ -313,6 +312,42 @@ class Test_load_cubelist(IrisTest):
             result[0].coord("latitude").points, self.latitude_points)
         self.assertArrayAlmostEqual(
             result[0].coord("longitude").points, self.longitude_points)
+
+    def test_no_partial_merge_single_arg(self):
+        """Test that we can load three files independently when a wildcarded
+        filepath is provided, even if two of the cubes could be merged"""
+        low_cloud_cube = self.cube.copy()
+        low_cloud_cube.rename("low_type_cloud_area_fraction")
+        low_cloud_cube.coord("time").points = (
+            low_cloud_cube.coord("time").points + 3600)
+        low_cloud_cube.coord("forecast_period").points = (
+            low_cloud_cube.coord("forecast_period").points - 3600)
+        save_netcdf(low_cloud_cube, self.low_cloud_filepath)
+        medium_cloud_cube = self.cube.copy()
+        medium_cloud_cube.rename("medium_type_cloud_area_fraction")
+        save_netcdf(medium_cloud_cube, self.med_cloud_filepath)
+        fileglob = os.path.join(self.directory, "*.nc")
+        result = load_cubelist(fileglob)
+        self.assertEqual(len(result), 3)
+
+    def test_no_partial_merge_list_args(self):
+        """Test that we can load three files independently when a wildcarded
+        filepath is provided in a single-item list.  This is the form in which
+        multi-item arguments ("nargs=+") are provided via "argparse" from the
+        loading CLIs."""
+        low_cloud_cube = self.cube.copy()
+        low_cloud_cube.rename("low_type_cloud_area_fraction")
+        low_cloud_cube.coord("time").points = (
+            low_cloud_cube.coord("time").points + 3600)
+        low_cloud_cube.coord("forecast_period").points = (
+            low_cloud_cube.coord("forecast_period").points - 3600)
+        save_netcdf(low_cloud_cube, self.low_cloud_filepath)
+        medium_cloud_cube = self.cube.copy()
+        medium_cloud_cube.rename("medium_type_cloud_area_fraction")
+        save_netcdf(medium_cloud_cube, self.med_cloud_filepath)
+        fileglob = os.path.join(self.directory, "*.nc")
+        result = load_cubelist([fileglob])
+        self.assertEqual(len(result), 3)
 
     def test_no_lazy_load(self):
         """Test that the cubelist returned upon loading does not contain

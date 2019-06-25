@@ -416,14 +416,14 @@ class Test_find_percentile_coordinate(IrisTest):
             create_cube_with_percentile_coord(
                 data=data,
                 perc_values=[self.wg_perc, 90.0],
-                perc_name='percentile_over_dummy',
+                perc_name='percentile',
                 standard_name=gust))
 
     def test_basic(self):
         """Test that the function returns a Coord."""
         perc_coord = find_percentile_coordinate(self.cube_wg)
         self.assertIsInstance(perc_coord, iris.coords.Coord)
-        self.assertEqual(perc_coord.name(), "percentile_over_dummy")
+        self.assertEqual(perc_coord.name(), "percentile")
 
     def test_fails_if_data_is_not_cube(self):
         """Test it raises a Type Error if cube is not a cube."""
@@ -437,7 +437,7 @@ class Test_find_percentile_coordinate(IrisTest):
         """Test it raises an Error if there is no percentile coord."""
         msg = ('No percentile coord found on')
         cube = self.cube_wg
-        cube.remove_coord("percentile_over_dummy")
+        cube.remove_coord("percentile")
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             find_percentile_coordinate(cube)
 
@@ -447,7 +447,7 @@ class Test_find_percentile_coordinate(IrisTest):
         cube = self.cube_wg
         new_perc_coord = (
             iris.coords.AuxCoord(1,
-                                 long_name='percentile_over_realization',
+                                 long_name='percentile',
                                  units='no_unit'))
         cube.add_aux_coord(new_perc_coord)
         with self.assertRaisesRegex(ValueError, msg):

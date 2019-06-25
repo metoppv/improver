@@ -31,7 +31,7 @@
 """
 Module to contain a saturated vapour pressure (SVP) lookup table.
 
-The data held in this table were created using the utilties.ancillary_creation
+The data held in this table were created using the utilities.ancillary_creation
 plugin SaturatedVapourPressureTable, rounded to 6 decimal places. That plugin
 employs the Goff-Gratch method to produce values for given temperatures.
 

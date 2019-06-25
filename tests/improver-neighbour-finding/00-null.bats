@@ -42,7 +42,7 @@ usage: improver neighbour-finding [-h] [--profile]
                                   [--site_coordinate_system SITE_COORDINATE_SYSTEM]
                                   [--site_x_coordinate SITE_X_COORDINATE]
                                   [--site_y_coordinate SITE_Y_COORDINATE]
-                                  [--grid_metadata_identifier GRID_METADATA_IDENTIFIER]
+                                  [--metadata_json METADATA_JSON]
                                   SITE_LIST_FILEPATH OROGRAPHY_FILEPATH
                                   LANDMASK_FILEPATH OUTPUT_FILEPATH
 __TEXT__

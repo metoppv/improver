@@ -48,53 +48,6 @@ from improver.utilities.temporal import (
     unify_forecast_reference_time, find_latest_cycletime)
 
 
-# TODO move into MergeCubesForWeightedBlending class
-def rationalise_blend_time_coords(
-        cubelist, blend_coord, cycletime=None, weighting_coord=None):
-    """
-    Updates time coordinates on unmerged input cubes before blending depending
-    on the coordinate over which the blend will be performed.  Modifies cubes
-    in place.
-
-    If blend_coord is forecast_reference_time, ensures the cube does not have
-    a forecast_period dimension.  If weighting_coord is forecast_period,
-    equalises forecast_reference_time on each cube before blending.
-
-    Args:
-        cubelist (iris.cube.CubeList):
-            List of cubes containing data to be blended
-        blend_coord (str):
-            Name of coordinate over which the blend will be performed
-
-    Kwargs:
-        cycletime (str or None):
-            The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z
-        weighting_coord (str or None):
-            The coordinate across which weights will be scaled in a
-            multi-model blend.
-
-    Raises:
-        ValueError: if forecast_reference_time (to be unified) is a
-            dimension coordinate
-    """
-    if "forecast_reference_time" in blend_coord:
-        for cube in cubelist:
-            coord_names = [x.name() for x in cube.coords()]
-            if "forecast_period" in coord_names:
-                cube.remove_coord("forecast_period")
-
-    # if blending models using weights by forecast period, set forecast
-    # reference times to current cycle time
-    if ("model" in blend_coord and
-            weighting_coord is not None and
-            "forecast_period" in weighting_coord):
-        if cycletime is None:
-            cycletime = find_latest_cycletime(cubelist)
-        else:
-            cycletime = cycletime_to_datetime(cycletime)
-        cubelist = unify_forecast_reference_time(cubelist, cycletime)
-
-
 class MergeCubesForWeightedBlending():
     """Prepares cubes for cycle and grid blending"""
 
@@ -137,6 +90,46 @@ class MergeCubesForWeightedBlending():
         self.blend_coord = blend_coord
         self.weighting_coord = weighting_coord
         self.model_id_attr = model_id_attr
+
+    def _rationalise_blend_time_coords(self, cubelist, cycletime=None):
+        """
+        Updates time coordinates on unmerged input cubes before blending
+        depending on the coordinate over which the blend will be performed.
+        Modifies cubes in place.
+
+        If self.blend_coord is forecast_reference_time, ensures the cube does
+        not have a forecast_period coordinate (this is recreated after
+        blending). If self.weighting_coord is forecast_period, equalises
+        forecast_reference_time on each cube before blending.
+
+        Args:
+            cubelist (iris.cube.CubeList):
+                List of cubes containing data to be blended
+
+        Kwargs:
+            cycletime (str or None):
+                The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z
+
+        Raises:
+            ValueError: if forecast_reference_time (to be unified) is a
+                dimension coordinate
+        """
+        if "forecast_reference_time" in self.blend_coord:
+            for cube in cubelist:
+                coord_names = [x.name() for x in cube.coords()]
+                if "forecast_period" in coord_names:
+                    cube.remove_coord("forecast_period")
+
+        # if blending models using weights by forecast period, set forecast
+        # reference times to current cycle time
+        if ("model" in self.blend_coord and
+                self.weighting_coord is not None and
+                "forecast_period" in self.weighting_coord):
+            if cycletime is None:
+                cycletime = find_latest_cycletime(cubelist)
+            else:
+                cycletime = cycletime_to_datetime(cycletime)
+            cubelist = unify_forecast_reference_time(cubelist, cycletime)
 
     def _create_model_coordinates(self, cubelist):
         """
@@ -221,10 +214,8 @@ class MergeCubesForWeightedBlending():
                     "cubes".format(self.blend_coord))
             cubelist.append(cube.copy())
 
-        # TODO move rationalise_blend_time_coords into this class
-        rationalise_blend_time_coords(
-            cubelist, self.blend_coord, cycletime=cycletime,
-            weighting_coord=self.weighting_coord)
+        # set time coordinates to their desired values after blending
+        self._rationalise_blend_time_coords(cubelist, cycletime=cycletime)
 
         # create model ID and model configuration coordinates if blending
         # different models
@@ -303,7 +294,7 @@ def conform_metadata(
             cube.coord("forecast_reference_time").points = new_cycletime
             cube.coord("forecast_reference_time").bounds = None
 
-        # recalculate forecast period coordainte
+        # recalculate forecast period coordinate
         if cube.coords("forecast_period"):
             forecast_period = forecast_period_coord(
                 cube, force_lead_time_calculation=True)
@@ -345,7 +336,7 @@ class PercentileBlendingAggregator:
            2. We do a weighted blend across all the probability spaces,
               combining all the thresholds in all the points in the coordinate
               we are blending over. This gives us an array of thresholds and an
-              array of blended probailities for each of the grid points.
+              array of blended probabilities for each of the grid points.
            3. We convert back to the original percentile values, again using
               linear interpolation, resulting in blended values at each of the
               original percentiles.
