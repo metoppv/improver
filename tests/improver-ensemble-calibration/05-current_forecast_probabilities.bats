@@ -46,6 +46,6 @@
   improver_check_recreate_kgo "output.nc" $KGO
 
   # Run nccmp to compare the output calibrated probabilities and check it passes.
-  improver_compare_output "$TEST_DIR/output.nc" \
+  improver_compare_output_lower_precision "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

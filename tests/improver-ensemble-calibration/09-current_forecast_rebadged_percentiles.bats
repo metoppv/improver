@@ -40,15 +40,23 @@
       'gaussian' "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/rebadged_percentiles/input.nc" \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
-      "$TEST_DIR/output.nc"
+      "$TEST_DIR/output.nc" --max_iterations 200
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
 
   # Run nccmp to compare the output calibrated realizations when the input
   # is percentiles that have been rebadged as realizations. The known good
-  # output in this case is the same as when passing in percentiles directly
-  # and check it passes.
-  run nccmp -dmNsg -x realization "$TEST_DIR/output.nc" \
+  # output in this case is the same as when passing in percentiles directly,
+  # apart from a difference in the coordinates, such that the percentile input
+  # will have a percentile coordinate, whilst the rebadged percentile input
+  # will result in a realization coordinate.
+  # The "--exclude=realization" option indicates that the realization coordinate
+  # should be ignored.
+  # The "--exclude=percentile" option indicates that the percentile coordinate
+  # should be ignored.
+  run nccmp --exclude=realization --exclude=percentile -dNs -t 1e-3 "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
+  [[ "$status" -eq 0 ]]
+  [[ "$output" =~ "are identical." ]]
 }

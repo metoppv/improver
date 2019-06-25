@@ -218,7 +218,7 @@ class test_set_up_variable_cube(IrisTest):
 
     def test_spatial_grid(self):
         """Test ability to set up non lat-lon grid"""
-        result = set_up_variable_cube(self.data, spatial_grid='equal_area')
+        result = set_up_variable_cube(self.data, spatial_grid='equalarea')
         self.assertEqual(result.coord_dims('projection_y_coordinate'), (0,))
         self.assertEqual(result.coord_dims('projection_x_coordinate'), (1,))
 
@@ -303,7 +303,7 @@ class test_set_up_percentile_cube(IrisTest):
         """Test default arguments produce cube with expected dimensions
         and metadata"""
         result = set_up_percentile_cube(self.data, self.percentiles)
-        perc_coord = result.coord("percentile_over_realization")
+        perc_coord = result.coord("percentile")
         self.assertArrayEqual(perc_coord.points, self.percentiles)
         self.assertEqual(perc_coord.units, "%")
 

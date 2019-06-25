@@ -38,10 +38,113 @@ from cf_units import Unit
 import iris
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube, CubeList
+from iris.tests import IrisTest
 import numpy as np
 
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import concatenate_cubes
 from improver.utilities.cube_metadata import extract_diagnostic_name
+from improver.utilities.warnings_handler import ManageWarnings
+
+
+IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate"]
+WARNING_TYPES = [UserWarning]
+
+
+class EnsembleCalibrationAssertions(IrisTest):
+
+    """Additional assertions, specifically for usage in the
+    ensemble calibration unit tests."""
+
+    def assertEMOSCoefficientsAlmostEqual(self, first, second):
+        """Overriding of the assertArrayAlmostEqual method to check whether
+        array are matching to 4 decimal places. This is specifically
+        for use in assertions involving the EMOS coefficients. This is
+        justified based on the default tolerance of the minimisation using the
+        Nelder-Mead algorithm of 0.0001, so that minimisations on different
+        machines would only be aiming to match to 4 decimal places.
+
+        Args:
+            first (np.array):
+                First array to compare.
+            second (np.array):
+                Second array to compare.
+         """
+        self.assertArrayAlmostEqual(first, second, decimal=4)
+
+    def assertCalibratedVariablesAlmostEqual(self, first, second):
+        """Overriding of the assertArrayAlmostEqual method to check whether
+        array are matching to 4 decimal places. This is specifically
+        for use in assertions following applying the EMOS coefficients,
+        in order to calibrate the chosen variables. This is justified
+        based on the default tolerance of the minimisation using the
+        Nelder-Mead algorithm of 0.0001, so that minimisations on different
+        machines would only be aiming to match to 4 decimal places.
+
+        Args:
+            first (np.array):
+                First array to compare.
+            second (np.array):
+                Second array to compare.
+         """
+        self.assertArrayAlmostEqual(first, second, decimal=4)
+
+    def assertCRPSAlmostEqual(self, first, second):
+        """Overriding of the assertAlmostEqual method to check whether
+        array are matching to 3 decimal places. This is specifically
+        for use in assertions involving the Continuous Ranked Probability Score
+        calculations. This is justified based on a 0.0001 precision level
+        difference within the ensemble calibration coefficients that may
+        escalate when these coefficients are combined.
+
+        Args:
+            first (np.array):
+                First array to compare.
+            second (np.array):
+                Second array to compare.
+         """
+        self.assertAlmostEqual(first, second, places=3)
+
+
+class SetupCubes(IrisTest):
+
+    """Set up cubes for testing."""
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def setUp(self):
+        """Set up temperature and wind speed cubes for testing."""
+        super().setUp()
+        self.calibration_method = "ensemble model output_statistics"
+        base_data = np.array([[[0.3, 1.1, 2.6],
+                               [4.2, 5.3, 6.],
+                               [7.1, 8.2, 9.]],
+                              [[0.7, 2., 3],
+                               [4.3, 5.6, 6.4],
+                               [7., 8., 9.]],
+                              [[2.1, 3., 3.],
+                               [4.8, 5., 6.],
+                               [7.9, 8., 8.9]]], dtype=np.float32)
+        temperature_data = base_data + 273.15
+        self.current_temperature_forecast_cube = set_up_variable_cube(
+            temperature_data, units="Kelvin", realizations=[0, 1, 2])
+
+        self.historic_temperature_forecast_cube = (
+            _create_historic_forecasts(self.current_temperature_forecast_cube))
+
+        self.temperature_truth_cube = (
+            _create_truth(self.current_temperature_forecast_cube))
+
+        # Create a cube for testing wind speed.
+        self.current_wind_speed_forecast_cube = set_up_variable_cube(
+            base_data, name="wind_speed", units="m s-1",
+            realizations=[0, 1, 2])
+
+        self.historic_wind_speed_forecast_cube = (
+            _create_historic_forecasts(self.current_wind_speed_forecast_cube))
+
+        self.wind_speed_truth_cube = (
+            _create_truth(self.current_wind_speed_forecast_cube))
 
 
 def set_up_probability_threshold_cube(
