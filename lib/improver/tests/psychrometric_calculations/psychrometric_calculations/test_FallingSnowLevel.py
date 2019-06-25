@@ -330,7 +330,7 @@ class Test_fill_in_by_horizontal_interpolation(IrisTest):
         self.assertArrayEqual(snow_level_updated, expected)
 
     def test_badly_arranged_valid_data(self):
-        """Test when there are enough points but they aren't in arranged in a
+        """Test when there are enough points but they aren't arranged in a
            suitable way to allow horizontal interpolation. This raises a
            QhullError that we want to ignore and use nearest neighbour
            interpolation instead. This QhullError is different to the one
