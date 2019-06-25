@@ -307,13 +307,6 @@ class test_set_up_percentile_cube(IrisTest):
         self.assertArrayEqual(perc_coord.points, self.percentiles)
         self.assertEqual(perc_coord.units, "%")
 
-    def test_percentile_coord_name(self):
-        """Test ability to set a different name"""
-        result = set_up_percentile_cube(self.data, self.percentiles,
-                                        percentile_dim_name="percentile")
-        dim_coords = [coord.name() for coord in result.coords(dim_coords=True)]
-        self.assertIn("percentile", dim_coords)
-
     def test_standard_grid_metadata(self):
         """Test standard grid metadata"""
         result = set_up_percentile_cube(self.data, self.percentiles,

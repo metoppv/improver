@@ -257,7 +257,6 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
 
 def set_up_percentile_cube(data, percentiles, name='air_temperature',
                            units='K', spatial_grid='latlon',
-                           percentile_dim_name='percentile',
                            time=datetime(2017, 11, 10, 4, 0), time_bounds=None,
                            frt=datetime(2017, 11, 10, 0, 0),
                            include_scalar_coords=None, attributes=None,
@@ -285,8 +284,6 @@ def set_up_percentile_cube(data, percentiles, name='air_temperature',
         spatial_grid (str):
             What type of x/y coordinate values to use.  Default is "latlon",
             otherwise uses "projection_[x|y]_coordinate".
-        percentile_dim_name (str):
-            Name for the percentile dimension.
         time (datetime.datetime):
             Single cube validity time
         time_bounds (tuple or list of datetime.datetime instances):
@@ -307,8 +304,8 @@ def set_up_percentile_cube(data, percentiles, name='air_temperature',
         time=time, frt=frt, realizations=percentiles, attributes=attributes,
         include_scalar_coords=include_scalar_coords,
         standard_grid_metadata=standard_grid_metadata)
-    cube.coord("realization").rename(percentile_dim_name)
-    cube.coord(percentile_dim_name).units = Unit("%")
+    cube.coord("realization").rename("percentile")
+    cube.coord("percentile").units = Unit("%")
     return cube
 
 
