@@ -45,7 +45,8 @@ from improver.utilities.save import save_netcdf
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells)
 
-from improver.blending.weights import calculate_blending_weights
+from improver.blending.calculate_weights_and_blend import (
+    calculate_blending_weights)
 from improver.blending.spatial_weights import (
     SpatiallyVaryingWeightsFromMask)
 from improver.blending.weighted_blend import (
