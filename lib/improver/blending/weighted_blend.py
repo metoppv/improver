@@ -274,7 +274,7 @@ def conform_metadata(
 
     """
     # unify time coordinates for cycle and grid (model) blends
-    if coord in ["forecast_reference_time", "model"]:
+    if coord in ["forecast_reference_time", "model_id", "model_configuration"]:
         # if cycle blending, update forecast reference time and remove bounds
         if cube.coords("forecast_reference_time"):
             if cycletime is None:

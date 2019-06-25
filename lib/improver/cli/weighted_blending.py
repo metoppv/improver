@@ -33,27 +33,13 @@
 """Script to run weighted blending."""
 
 import warnings
-
-import numpy as np
-from cf_units import Unit
 import json
+import numpy as np
 
 from improver.argparser import ArgParser
 from improver.utilities.load import load_cubelist
 from improver.utilities.save import save_netcdf
 
-"""
-from improver.utilities.spatial import (
-    check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells)
-
-from improver.blending.calculate_weights_and_blend import (
-    calculate_blending_weights)
-from improver.blending.spatial_weights import (
-    SpatiallyVaryingWeightsFromMask)
-from improver.blending.weighted_blend import (
-    MergeCubesForWeightedBlending, conform_metadata,
-    WeightedBlendAcrossWholeDimension)
-"""
 from improver.blending.calculate_weights_and_blend import WeightAndBlend
 
 

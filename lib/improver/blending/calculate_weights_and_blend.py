@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Plugin to calculate blend weights and blend data across a dimension"""
 
+import warnings
 from cf_units import Unit
 import numpy as np
 import iris
@@ -107,8 +108,8 @@ class WeightAndBlend():
 
     def calculate_blending_weights(self, cube):
         """
-        Wrapper for plugins to calculate blending weights using the command line
-        options specified.
+        Wrapper for plugins to calculate blending weights by the appropriate
+        method.
 
         Args:
             cube (iris.cube.Cube):
@@ -145,8 +146,8 @@ class WeightAndBlend():
                     cube, self.blend_coord, coord_unit=self.blend_coord_unit)
 
         elif self.wts_calc_method == "nonlinear":
-            # this is set here rather than in the CLI arguments in order to check
-            # for invalid argument combinations
+            # this is set here rather than in the CLI arguments in order to
+            # check for invalid argument combinations
             cvalue = self.cval if self.cval else 0.85
             weights = ChooseDefaultWeightsNonLinear(cvalue).process(
                 cube, self.blend_coord, coord_unit=self.blend_coord_unit)
