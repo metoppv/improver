@@ -539,9 +539,10 @@ class EstimateCoefficientsForEnsembleCalibration(object):
 
         # Create x and y coordinates
         for axis in ["x", "y"]:
-            coord_point = np.median(historic_forecast.coord(axis=axis).points)
-            coord_bounds = [historic_forecast.coord(axis=axis).points[0],
-                            historic_forecast.coord(axis=axis).points[-1]]
+            historic_coord_points = historic_forecast.coord(axis=axis).points
+            coord_point = np.median(historic_coord_points)
+            coord_bounds = [historic_coord_points[0],
+                            historic_coord_points[-1]]
             new_coord = historic_forecast.coord(axis=axis).copy(
                 points=coord_point, bounds=coord_bounds)
             aux_coords_and_dims.append((new_coord, None))
