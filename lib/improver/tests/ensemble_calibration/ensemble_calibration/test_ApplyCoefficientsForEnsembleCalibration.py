@@ -46,6 +46,9 @@ from improver.ensemble_calibration.ensemble_calibration import (
 
 from improver.ensemble_calibration.ensemble_calibration import (
     EstimateCoefficientsForEnsembleCalibration)
+from improver.tests.ensemble_calibration.ensemble_calibration.\
+    test_EstimateCoefficientsForEnsembleCalibration import (
+        create_coefficients_cube)
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
@@ -58,8 +61,10 @@ class Test__init__(IrisTest):
         """Test up test cubes."""
         data = np.ones([2, 2], dtype=np.float32)
         self.current_forecast = set_up_variable_cube(data)
-        self.coefficients_cube = (
-            set_up_variable_cube(data, name="emos_coefficients"))
+        coeff_names = ["gamma", "delta", "alpha", "beta"]
+        coeff_values = np.array([0, 1, 2, 3], np.int32)
+        self.coefficients_cube, _, _ = create_coefficients_cube(
+            self.current_forecast, coeff_names, coeff_values)
 
     def test_basic(self):
         """Test without specifying any keyword arguments."""
@@ -81,6 +86,14 @@ class Test__init__(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             Plugin(self.current_forecast, self.coefficients_cube)
 
+    def test_matching_domain(self):
+        """Test whether the domain of the forecast and the domain of the
+        coefficients cube matches."""
+        current_forecast = self.current_forecast[0, :]
+        msg = "The domain along the"
+        with self.assertRaisesRegex(ValueError, msg):
+            Plugin(current_forecast, self.coefficients_cube)
+
 
 class Test__repr__(IrisTest):
 
@@ -90,8 +103,10 @@ class Test__repr__(IrisTest):
         """Test up test cubes."""
         data = np.ones([2, 2], dtype=np.float32)
         self.current_forecast = set_up_variable_cube(data)
-        self.coefficients_cube = (
-            set_up_variable_cube(data, name="emos_coefficients"))
+        coeff_names = ["gamma", "delta", "alpha", "beta"]
+        coeff_values = np.array([0, 1, 2, 3], np.int32)
+        self.coefficients_cube, _, _ = create_coefficients_cube(
+            self.current_forecast, coeff_names, coeff_values)
 
     def test_basic(self):
         """Test without specifying keyword arguments"""
