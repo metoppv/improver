@@ -74,10 +74,10 @@ class WeightAndBlend():
                 dictionary)
             wts_dict (dict):
                 Dictionary containing parameters for linear weights calculation
-            y0val (float):
-                Intercept parameter for default linear weights plugin
-            ynval (float):
-                Gradient parameter for default linear weights plugin
+            y0val (int / float):
+                Relative weight of first file for default linear weights plugin
+            ynval (int / float):
+                Relative weight of last file for default linear weights plugin
             cval (float):
                 Parameter for default non-linear weights plugin
         """
@@ -86,6 +86,7 @@ class WeightAndBlend():
         self.weighting_coord = None
 
         # TODO used with coord_exp_vals only - no longer required?
+        # TODO DEFINITELY not used - doesn't care if it's None!
         if "time" in self.blend_coord:
             self.blend_coord_unit = Unit(blend_coord_unit, "gregorian")
         elif blend_coord_unit != 'hours since 1970-01-01 00:00:00.':
@@ -97,16 +98,20 @@ class WeightAndBlend():
             self.weighting_coord = weighting_coord
             self.wts_dict = wts_dict
         elif self.wts_calc_method == "linear":
-            self.y0val = y0val
-            self.ynval = ynval
+            # these values are tested for "float" type in ChooseWeightsLinear
+            # (np.float32 does not qualify apparently, neither does "1" which
+            # has type "int")
+            # TODO fix weights plugin to be more sensible about this?
+            self.y0val = float(y0val)
+            self.ynval = float(ynval)
         elif self.wts_calc_method == "nonlinear":
             self.cval = cval
         else:
             raise ValueError(
-                "Weights calculation method {} unrecognised".format(
+                "Weights calculation method '{}' unrecognised".format(
                     self.wts_calc_method))
 
-    def calculate_blending_weights(self, cube):
+    def _calculate_blending_weights(self, cube):
         """
         Wrapper for plugins to calculate blending weights by the appropriate
         method.
@@ -154,7 +159,7 @@ class WeightAndBlend():
 
         return weights
 
-    def update_spatial_weights(self, cube, weights, fuzzy_length):
+    def _update_spatial_weights(self, cube, weights, fuzzy_length):
         """
         Update weights using spatial information
 
@@ -174,10 +179,8 @@ class WeightAndBlend():
         check_if_grid_is_equal_area(cube)
         grid_cells_x, _ = convert_distance_into_number_of_grid_cells(
             cube, fuzzy_length, int_grid_cells=False)
-        SpatialWeightsPlugin = SpatiallyVaryingWeightsFromMask(
-            grid_cells_x)
-        weights = SpatialWeightsPlugin.process(
-            cube, weights, self.blend_coord)
+        SpatialWeightsPlugin = SpatiallyVaryingWeightsFromMask(grid_cells_x)
+        weights = SpatialWeightsPlugin.process(cube, weights, self.blend_coord)
         return weights
 
     def process(self, cubelist, weighting_mode,
@@ -235,9 +238,9 @@ class WeightAndBlend():
                 self.blend_coord = "model_id"
 
             # calculate blend weights
-            weights = self.calculate_blending_weights(cube)
+            weights = self._calculate_blending_weights(cube)
             if spatial_weights:
-                weights = self.update_spatial_weights(
+                weights = self._update_spatial_weights(
                     cube, weights, fuzzy_length)
 
             # blend across specified dimension
