@@ -32,6 +32,7 @@
 
 import unittest
 import numpy as np
+from datetime import datetime as dt
 
 import iris
 from iris.tests import IrisTest
@@ -41,6 +42,7 @@ from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
 from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
     set_up_cube)
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
 class Test__repr__(IrisTest):
@@ -196,6 +198,41 @@ class Test_process(IrisTest):
         """Test only one input cube returns cube unchanged"""
         input_cubelist = iris.cube.CubeList([self.input_cube])
         expected_cube = self.input_cube.copy()
+        result = GenerateTimeLaggedEnsemble().process(input_cubelist)
+        self.assertEqual(result, expected_cube)
+
+    def test_non_monotonic_realizations(self):
+        """Test handling of case where realization coordinates cannot be
+        concatenated into a monotonic coordinate (eg 09Z cycle from
+        MOGREPS-UK)"""
+        data = 275.*np.ones((3, 3, 3), dtype=np.float32)
+        cycletime = dt(2019, 6, 24, 9)
+        cube1 = set_up_variable_cube(
+            data, realizations=[3, 4, 5], time=cycletime,
+            frt=dt(2019, 6, 24, 4))
+        cube2 = set_up_variable_cube(
+            data, realizations=[6, 7, 8], time=cycletime,
+            frt=dt(2019, 6, 24, 5))
+        cube3 = set_up_variable_cube(
+            data, realizations=[9, 10, 11], time=cycletime,
+            frt=dt(2019, 6, 24, 6))
+        cube4 = set_up_variable_cube(
+            data, realizations=[12, 13, 14], time=cycletime,
+            frt=dt(2019, 6, 24, 7))
+        cube5 = set_up_variable_cube(
+            data, realizations=[15, 16, 17], time=cycletime,
+            frt=dt(2019, 6, 24, 8))
+        cube6 = set_up_variable_cube(
+            data, realizations=[0, 18, 19], time=cycletime, frt=cycletime)
+
+        expected_cube = set_up_variable_cube(
+            275.*np.ones((18, 3, 3), dtype=np.float32),
+            realizations=[0, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+                          12, 13, 14, 15, 16, 17, 18, 19],
+            time=cycletime, frt=cycletime)
+
+        input_cubelist = iris.cube.CubeList(
+            [cube1, cube2, cube3, cube4, cube5, cube6])
         result = GenerateTimeLaggedEnsemble().process(input_cubelist)
         self.assertEqual(result, expected_cube)
 
