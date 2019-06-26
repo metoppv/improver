@@ -58,7 +58,7 @@ class Test__init__(IrisTest):
     """Test the __init__ method."""
 
     def setUp(self):
-        """Test up test cubes."""
+        """Set up test cubes."""
         data = np.ones([2, 2], dtype=np.float32)
         self.current_forecast = set_up_variable_cube(data)
         coeff_names = ["gamma", "delta", "alpha", "beta"]
@@ -100,7 +100,7 @@ class Test__repr__(IrisTest):
     """Test the __repr__ method."""
 
     def setUp(self):
-        """Test up test cubes."""
+        """Set up test cubes."""
         data = np.ones([2, 2], dtype=np.float32)
         self.current_forecast = set_up_variable_cube(data)
         coeff_names = ["gamma", "delta", "alpha", "beta"]
