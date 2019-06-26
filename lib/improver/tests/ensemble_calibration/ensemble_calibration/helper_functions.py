@@ -89,22 +89,6 @@ class EnsembleCalibrationAssertions(IrisTest):
          """
         self.assertArrayAlmostEqual(first, second, decimal=4)
 
-    def assertCRPSAlmostEqual(self, first, second):
-        """Overriding of the assertAlmostEqual method to check whether
-        array are matching to 3 decimal places. This is specifically
-        for use in assertions involving the Continuous Ranked Probability Score
-        calculations. This is justified based on a 0.0001 precision level
-        difference within the ensemble calibration coefficients that may
-        escalate when these coefficients are combined.
-
-        Args:
-            first (np.array):
-                First array to compare.
-            second (np.array):
-                Second array to compare.
-         """
-        self.assertAlmostEqual(first, second, places=3)
-
 
 class SetupCubes(IrisTest):
 

@@ -124,8 +124,7 @@ class SetupGaussianInputs(SetupInputs, SetupCubes):
             np.float64)
 
 
-class Test_normal_crps_minimiser(
-        SetupGaussianInputs, EnsembleCalibrationAssertions):
+class Test_normal_crps_minimiser(SetupGaussianInputs):
 
     """
     Test minimising the CRPS for a gaussian distribution.
@@ -149,7 +148,7 @@ class Test_normal_crps_minimiser(
             predictor_of_mean_flag)
 
         self.assertIsInstance(result, np.float64)
-        self.assertCRPSAlmostEqual(result, 11.741)
+        self.assertAlmostEqual(result, 11.7407838)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -169,7 +168,7 @@ class Test_normal_crps_minimiser(
             predictor_of_mean_flag)
 
         self.assertIsInstance(result, np.float64)
-        self.assertCRPSAlmostEqual(result, 11.741)
+        self.assertAlmostEqual(result, 11.7407763)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -419,8 +418,7 @@ class SetupTruncatedGaussianInputs(SetupInputs, SetupCubes):
         self.truth_data = self.truth.data.flatten().astype(np.float64)
 
 
-class Test_truncated_normal_crps_minimiser(
-        SetupTruncatedGaussianInputs, EnsembleCalibrationAssertions):
+class Test_truncated_normal_crps_minimiser(SetupTruncatedGaussianInputs):
 
     """
     Test minimising the crps for a truncated gaussian distribution.
@@ -444,7 +442,7 @@ class Test_truncated_normal_crps_minimiser(
             predictor_of_mean_flag)
 
         self.assertIsInstance(result, np.float64)
-        self.assertCRPSAlmostEqual(result, 7.516)
+        self.assertAlmostEqual(result, 7.5157541)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -463,7 +461,7 @@ class Test_truncated_normal_crps_minimiser(
             self.forecast_variance_data, self.sqrt_pi, predictor_of_mean_flag)
 
         self.assertIsInstance(result, np.float64)
-        self.assertCRPSAlmostEqual(result, 7.516)
+        self.assertAlmostEqual(result, 7.5157531)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
