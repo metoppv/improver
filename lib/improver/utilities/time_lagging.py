@@ -31,7 +31,6 @@
 """Provide support utilities for time lagging ensembles"""
 
 import numpy as np
-import iris
 
 from improver.utilities.temporal import (
     unify_forecast_reference_time, cycletime_to_datetime,
