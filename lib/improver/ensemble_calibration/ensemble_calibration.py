@@ -234,8 +234,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
             self, initial_guess, forecast_predictor, truth, forecast_var,
             sqrt_pi, predictor_of_mean_flag):
         """
-        Minimisation function to calculate coefficients based on minimising the
-        CRPS for a normal distribution.
+        Calculate the CRPS for a normal distribution.
 
         Scientific Reference:
         Gneiting, T. et al., 2005.
@@ -263,7 +262,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
 
         Returns:
             result (float):
-                Minimum value for the CRPS achieved.
+                CRPS for the current set of coefficients.
 
         """
         if predictor_of_mean_flag.lower() == "mean":
@@ -293,8 +292,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
             self, initial_guess, forecast_predictor, truth, forecast_var,
             sqrt_pi, predictor_of_mean_flag):
         """
-        Minimisation function to calculate coefficients based on minimising the
-        CRPS for a truncated_normal distribution.
+        Calculate the CRPS for a truncated normal distribution.
 
         Scientific Reference:
         Thorarinsdottir, T.L. & Gneiting, T., 2010.
@@ -323,7 +321,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
 
         Returns:
             result (float):
-                Minimum value for the CRPS achieved.
+                CRPS for the current set of coefficients.
 
         """
         if predictor_of_mean_flag.lower() == "mean":
@@ -820,6 +818,21 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                     raise ValueError(msg)
             except CoordinateNotFoundError:
                 pass
+
+        # Check that the domain of the current forecast and coefficients cube
+        # matches.
+        for axis in ["x", "y"]:
+            current_forecast_points = [
+                current_forecast.coord(axis=axis).points[0],
+                current_forecast.coord(axis=axis).points[-1]]
+            if not np.allclose(current_forecast_points,
+                               coefficients_cube.coord(axis=axis).bounds):
+                msg = ("The domain along the {} axis given by the "
+                       "current forecast {} does not match the domain given "
+                       "by the coefficients cube {}.".format(
+                        axis, current_forecast_points,
+                        coefficients_cube.coord(axis=axis).bounds))
+                raise ValueError(msg)
 
         # Ensure predictor_of_mean_flag is valid.
         check_predictor_of_mean_flag(predictor_of_mean_flag)
