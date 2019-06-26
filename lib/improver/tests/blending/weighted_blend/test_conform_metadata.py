@@ -72,18 +72,15 @@ class Test_conform_metadata(IrisTest):
         cube_without_fp.remove_coord("forecast_period")
         self.cube_without_fp = cube_without_fp
 
-        # Cube with a model, model_id and model realization.
+        # Cube with model_id and model configuration coordinates
         cube_orig_model = self.cube_orig.copy()
-        cube_orig_model.add_aux_coord(
-            AuxCoord([1000, 1000], long_name="model"), data_dims=0)
         cube_orig_model.add_aux_coord(
             AuxCoord(["Operational MOGREPS-UK Model Forecast",
                       "Operational UKV Model Forecast"], long_name="model_id"),
             data_dims=0)
         cube_orig_model.add_aux_coord(
-            AuxCoord([0, 1001], long_name="model_realization"), data_dims=0)
-        cube_orig_model.add_aux_coord(
-            AuxCoord([0, 1], long_name="realization"), data_dims=0)
+            AuxCoord(["uk_ens", "uk_det"], long_name="model_configuration"),
+            data_dims=0)
         self.cube_orig_model = cube_orig_model
         self.cube_model = cube_orig_model.collapsed(
             "forecast_reference_time", iris.analysis.MEAN)
@@ -163,13 +160,13 @@ class Test_conform_metadata(IrisTest):
             result.coord("forecast_period").points, expected_forecast_period)
         self.assertFalse(result.coord("forecast_period").bounds)
 
-    def test_with_model_id_and_model_realization(self):
+    def test_with_model_coordinates(self):
         """Test that a cube is dealt with correctly, if the cube contains a
-        model, model_id and model_realization coordinate."""
+        model, model_id and model_configuration coordinate."""
         coord = "model_id"
         result = conform_metadata(self.cube_model, self.cube_orig_model, coord)
         self.assertFalse(result.coords("model_id"))
-        self.assertFalse(result.coords("model_realization"))
+        self.assertFalse(result.coords("model_configuration"))
 
     def test_forecast_coordinate_bounds_removal(self):
         """Test that if a cube has bounds on the forecast period and reference

@@ -311,7 +311,7 @@ def conform_metadata(
         cube.attributes["title"] = "IMPROVER Model Forecast"
 
     # remove appropriate scalar coordinates
-    for crd in ["model_id", "model_realization", "realization"]:
+    for crd in ["model_id", "model_configuration", "realization"]:
         if cube.coords(crd) and cube.coord(crd).shape == (1,):
             cube.remove_coord(crd)
 
