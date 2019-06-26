@@ -103,6 +103,10 @@ class GenerateTimeLaggedEnsemble(object):
                     first_realization, first_realization + n_realization)
                 first_realization = first_realization + n_realization
 
+        # slice over realization to deal with cases where direct concatenation
+        # would result in a non-monotonic coordinate
         lagged_ensemble = concatenate_cubes(
-            cubelist, master_coord="realization")
+            cubelist, master_coord="realization",
+            coords_to_slice_over=["realization"])
+
         return lagged_ensemble

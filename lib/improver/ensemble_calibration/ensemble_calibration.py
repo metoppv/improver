@@ -504,7 +504,6 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         # Create a forecast_reference_time coordinate.
         frt_point = cycletime_to_datetime(self.current_cycle)
         try:
-
             frt_coord = (
                 historic_forecast.coord("forecast_reference_time").copy(
                     datetime_to_iris_time(frt_point, time_units="seconds")))
@@ -537,6 +536,16 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                     time_units=str(historic_forecast.coord("time").units))
                 time_coord = historic_forecast.coord("time").copy(time_point)
                 aux_coords_and_dims.append((time_coord, None))
+
+        # Create x and y coordinates
+        for axis in ["x", "y"]:
+            historic_coord_points = historic_forecast.coord(axis=axis).points
+            coord_point = np.median(historic_coord_points)
+            coord_bounds = [historic_coord_points[0],
+                            historic_coord_points[-1]]
+            new_coord = historic_forecast.coord(axis=axis).copy(
+                points=coord_point, bounds=coord_bounds)
+            aux_coords_and_dims.append((new_coord, None))
 
         attributes = {"diagnostic_standard_name": historic_forecast.name()}
         for attribute in historic_forecast.attributes.keys():

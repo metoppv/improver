@@ -33,6 +33,7 @@
 import numpy as np
 import iris
 from copy import deepcopy
+from cf_units import Unit
 
 from improver.utilities.cube_checker import (
     check_for_x_and_y_axes)
@@ -122,7 +123,7 @@ def create_cube_with_halo(cube, halo_radius):
 
     halo_cube = iris.cube.Cube(
         np.zeros((len(y_coord.points), len(x_coord.points)), dtype=np.float32),
-        long_name='grid_with_halo',
+        long_name='grid_with_halo', units=Unit('no_unit'),
         dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
 
     return halo_cube

@@ -441,7 +441,8 @@ class GeneratePercentilesFromProbabilities(object):
         prob_slices = np.around(prob_slices, 9)
 
         # Invert probabilities for data thresholded above thresholds.
-        relation = forecast_probabilities.attributes['relative_to_threshold']
+        relation = find_threshold_coordinate(
+            forecast_probabilities).attributes['spp__relative_to_threshold']
         if relation == 'above':
             probabilities_for_cdf = 1 - prob_slices
         elif relation == 'below':
@@ -497,7 +498,6 @@ class GeneratePercentilesFromProbabilities(object):
                     "_above_threshold", "").replace("_below_threshold", ""))
 
             template_cube.remove_coord(threshold_coord.name())
-            template_cube.attributes.pop('relative_to_threshold')
             break
         percentile_cube = create_cube_with_percentiles(
             percentiles, template_cube, forecast_at_percentiles,
@@ -837,20 +837,21 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
             variance_values (iris.cube.Cube):
                 Variance for the calibrated forecast.
             probability_cube_template (iris.cube.Cube):
-                A probability cube that has the threshold coordinate, and
-                attribute relative_to_threshold, that match the desired output
-                cube format.
+                A probability cube that has a threshold coordinate, where the
+                probabilities are defined as above or below the threshold by
+                the spp__relative_to_threshold attribute. This cube matches
+                the desired output cube format.
 
         Returns:
             probability_cube (iris.cube.Cube):
                 Cube containing the data expressed as probabilities relative to
                 the provided thresholds in the way described by
-                relative_to_threshold.
+                spp__relative_to_threshold.
         """
         thresholds = (
             find_threshold_coordinate(probability_cube_template).points)
-        relative_to_threshold = (
-            probability_cube_template.attributes['relative_to_threshold'])
+        relative_to_threshold = find_threshold_coordinate(
+            probability_cube_template).attributes['spp__relative_to_threshold']
 
         # Loop over thresholds, and use a normal distribution with the mean
         # and variance to calculate the probabilities relative to each
@@ -880,9 +881,11 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
                 Cube containing the distribution variance values of a
                 diagnostic, e.g. the variance across realizations.
             probability_cube_template (iris.cube.Cube):
-                A probability cube that has the threshold coordinate, and
-                attribute relative_to_threshold, that match the desired output
-                cube format.
+                A probability cube that has a threshold coordinate, where the
+                probabilities are defined as above or below the threshold by
+                the spp__relative_to_threshold attribute. This cube matches
+                the desired output cube format.
+
         Returns:
             probability_cube (iris.cube.Cube):
                 A cube of diagnostic data expressed as probabilities relative
