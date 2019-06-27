@@ -135,7 +135,7 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
-    cubes = load_cubelist(args.input_filepaths)
+    cubes = load_cubelist(args.input_filepaths, no_lazy_load=True)
 
     required_number_of_inputs = n_files
     if args.wxtree == 'global':
