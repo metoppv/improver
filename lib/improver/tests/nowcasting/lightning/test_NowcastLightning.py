@@ -708,8 +708,8 @@ class Test_apply_ice(IrisTest):
         self.fg_cube.coord('forecast_period').points = [3600]  # 1 hour
         fg_cube_next = self.fg_cube.copy()
         time_pt, = self.fg_cube.coord('time').points
-        fg_cube_next.coord('time').points = [time_pt + 7200]  # 2 hours
-        fg_cube_next.coord('forecast_period').points = [10800]  # 3 hours
+        fg_cube_next.coord('time').points = [time_pt + 5400]  # 1.5 hours
+        fg_cube_next.coord('forecast_period').points = [9000]  # 2.5 hours
         self.fg_cube = CubeList([squeeze(self.fg_cube),
                                  squeeze(fg_cube_next)]).merge_cube()
         expected = self.fg_cube.copy()
