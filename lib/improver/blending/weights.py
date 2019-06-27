@@ -647,17 +647,17 @@ class ChooseDefaultWeightsLinear:
             equal weights when slope = 0.0 or y0val = ynval
         """
         self.slope = slope
-        self.ynval = ynval
 
         if y0val is None:
             self.y0val = 20.0
             self.ynval = 2.0
-        elif not isinstance(y0val, float) or y0val < 0.0:
+        elif y0val < 0.0:
             msg = ('y0val must be a float >= 0.0, '
                    'y0val = {0:s}'.format(str(y0val)))
             raise ValueError(msg)
         else:
-            self.y0val = y0val
+            self.y0val = float(y0val)
+            self.ynval = float(ynval)
 
     def linear_weights(self, num_of_weights):
         """Create linear weights

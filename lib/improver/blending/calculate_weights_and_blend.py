@@ -74,9 +74,9 @@ class WeightAndBlend():
                 dictionary)
             wts_dict (dict):
                 Dictionary containing parameters for linear weights calculation
-            y0val (int / float):
+            y0val (float):
                 Relative weight of first file for default linear weights plugin
-            ynval (int / float):
+            ynval (float):
                 Relative weight of last file for default linear weights plugin
             cval (float):
                 Parameter for default non-linear weights plugin
@@ -98,12 +98,8 @@ class WeightAndBlend():
             self.weighting_coord = weighting_coord
             self.wts_dict = wts_dict
         elif self.wts_calc_method == "linear":
-            # these values are tested for "float" type in ChooseWeightsLinear
-            # (np.float32 does not qualify apparently, neither does "1" which
-            # has type "int")
-            # TODO fix weights plugin to be more sensible about this?
-            self.y0val = float(y0val)
-            self.ynval = float(ynval)
+            self.y0val = y0val
+            self.ynval = ynval               
         elif self.wts_calc_method == "nonlinear":
             self.cval = cval
         else:

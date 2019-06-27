@@ -241,12 +241,9 @@ def conform_metadata(
         - Forecast period: If a forecast_period coordinate is present,
           and cycletime is not present, the lowest forecast_period is
           used. If a forecast_period coordinate is present, and the
-          cycletime is present, forecast_periods are forceably calculated
-          from the time and forecast_reference_time coordinate. This is
-          because, if the cycletime is present, then the
-          forecast_reference_time will also have been just re-calculated, so
-          the forecast_period coordinate needs to be reset to match the
-          newly calculated forecast_reference_time.
+          cycletime is present, forecast_periods are forceably re-calculated
+          from the time and forecast_reference_time coordinates so that their
+          values are self-consistent.
         - Forecast reference time and time: If forecast_reference_time and
           time coordinates are present, then a forecast_period coordinate is
           calculated and added to the cube.
@@ -274,7 +271,7 @@ def conform_metadata(
 
     """
     # unify time coordinates for cycle and grid (model) blends
-    if coord in ["forecast_reference_time", "model_id", "model_configuration"]:
+    if coord in ["forecast_reference_time", "model_id"]:
         # if cycle blending, update forecast reference time and remove bounds
         if cube.coords("forecast_reference_time"):
             if cycletime is None:
