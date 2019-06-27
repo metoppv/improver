@@ -50,7 +50,7 @@ def main(argv=None):
                     'merges them into a single cube, removing any metadata '
                     'that does not match.')
     parser.add_argument('input_filenames', metavar='INPUT_FILENAMES',
-                        nargs="+", type=str,
+                        nargs="+",
                         help='Paths to input NetCDF files for the time-lagged '
                         'ensemble to combine the realizations.')
     parser.add_argument('output_file', metavar='OUTPUT_FILE',

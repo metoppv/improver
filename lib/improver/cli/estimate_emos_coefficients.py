@@ -58,7 +58,7 @@ def main(argv=None):
                              'input phenomenon. This has to be supported by '
                              'the minimisation functions in '
                              'ContinuousRankedProbabilityScoreMinimisers.')
-    parser.add_argument('cycletime', metavar='CYCLETIME', type=str,
+    parser.add_argument('cycletime', metavar='CYCLETIME',
                         help='This denotes the cycle at which forecasts '
                              'will be calibrated using the calculated '
                              'EMOS coefficients. The validity time in the '

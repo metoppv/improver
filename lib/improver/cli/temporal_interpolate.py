@@ -66,7 +66,7 @@ def main(argv=None):
                        "is set then times can not be set.")
 
     group.add_argument("--times", metavar="TIMES",
-                       default=None, nargs="+", type=str,
+                       default=None, nargs="+",
                        help="Specifies the times in the format "
                        "{YYYYMMDD}T{HHMM}Z "
                        " at which to interpolate "

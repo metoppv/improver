@@ -112,7 +112,7 @@ def main(argv=None):
                         help='Model height level to extract variables for '
                         'calculating orographic enhancement, as proxy for '
                         'the boundary layer.')
-    parser.add_argument('--boundary_height_units', type=str, default='m',
+    parser.add_argument('--boundary_height_units', default='m',
                         help='Units of the boundary height specified for '
                         'extracting model levels.')
 

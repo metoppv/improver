@@ -49,7 +49,7 @@ def main(argv=None):
         description="Combine the input files into a single file using "
                     "the requested operation e.g. + - min max etc.")
     parser.add_argument("input_filenames", metavar="INPUT_FILENAMES",
-                        nargs="+", type=str,
+                        nargs="+",
                         help="Paths to the input NetCDF files. Each input"
                         " file should be able to be loaded as a single "
                         " iris.cube.Cube instance. The resulting file"
@@ -64,17 +64,17 @@ def main(argv=None):
                                  "add", "subtract", "multiply",
                                  "min", "max", "mean"],
                         help="Operation to use in combining NetCDF datasets"
-                        " Default=+ i.e. add ", type=str)
+                        " Default=+ i.e. add ")
     parser.add_argument("--new-name", metavar="NEW_NAME",
                         default=None,
                         help="New name for the resulting dataset. Will"
                         " default to the name of the first dataset if "
-                        "not set.", type=str)
+                        "not set.")
     parser.add_argument("--metadata_jsonfile", metavar="METADATA_JSONFILE",
                         default=None,
                         help="Filename for the json file containing "
                         "required changes to the metadata. "
-                        " default=None", type=str)
+                        " default=None")
     parser.add_argument('--warnings_on', action='store_true',
                         help="If warnings_on is set (i.e. True), "
                         "Warning messages where metadata do not match "

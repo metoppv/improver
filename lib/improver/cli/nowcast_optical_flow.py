@@ -55,21 +55,21 @@ def main(argv=None):
         "and (optionally) extrapolate to required lead times.")
 
     parser.add_argument("input_filepaths", metavar="INPUT_FILEPATHS",
-                        nargs=3, type=str, help="Paths to the input radar "
+                        nargs=3, help="Paths to the input radar "
                         "files. There should be 3 input files at T, T-1 and "
                         "T-2 from which to calculate optical flow velocities. "
                         "The files require a 'time' coordinate on which they "
                         "are sorted, so the order of inputs does not matter.")
-    parser.add_argument("--output_dir", metavar="OUTPUT_DIR", type=str,
+    parser.add_argument("--output_dir", metavar="OUTPUT_DIR",
                         default='', help="Directory to write all output files,"
                         " or only advection velocity components if "
                         "NOWCAST_FILEPATHS is specified.")
-    parser.add_argument("--nowcast_filepaths", nargs="+", type=str,
+    parser.add_argument("--nowcast_filepaths", nargs="+",
                         default=None, help="Optional list of full paths to "
                         "output nowcast files. Overrides OUTPUT_DIR. Ignored "
                         "unless '--extrapolate' is set.")
     parser.add_argument("--orographic_enhancement_filepaths", nargs="+",
-                        type=str, default=None, help="List or wildcarded "
+                        default=None, help="List or wildcarded "
                         "file specification to the input orographic "
                         "enhancement files. Orographic enhancement files are "
                         "compulsory for precipitation fields.")
@@ -80,7 +80,7 @@ def main(argv=None):
                         "is available in "
                         "improver.utilities.cube_metadata.amend_metadata."
                         "Every output cube will have the metadata_dict "
-                        "applied. Defaults to None.", type=str)
+                        "applied. Defaults to None.")
 
     # OpticalFlow plugin configurable parameters
     parser.add_argument("--ofc_box_size", type=int, default=30, help="Size of "

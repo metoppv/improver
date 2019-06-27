@@ -43,13 +43,13 @@ def main(argv=None):
     parser = ArgParser(description="Extend radar mask based on coverage "
                        "data.")
     parser.add_argument("radar_data_filepath", metavar="RADAR_DATA_FILEPATH",
-                        type=str, help="Full path to input NetCDF file "
+                        help="Full path to input NetCDF file "
                         "containing the radar variable to remask.")
     parser.add_argument("coverage_filepath", metavar="COVERAGE_FILEPATH",
-                        type=str, help="Full path to input NetCDF file "
+                        help="Full path to input NetCDF file "
                         "containing radar coverage data.")
     parser.add_argument("output_filepath", metavar="OUTPUT_FILEPATH",
-                        type=str, help="Full path to save remasked radar data "
+                        help="Full path to save remasked radar data "
                         "NetCDF file.")
     parser.add_argument("--fix_float64", action='store_true', default=False,
                         help="Check and fix cube for float64 data. Without "

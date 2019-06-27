@@ -65,7 +65,6 @@ def main(argv=None):
                         "calculate the truth values; e.g. 270 300. "
                         "Must be omitted if --threshold_config is used.")
     parser.add_argument("--threshold_config", metavar="THRESHOLD_CONFIG",
-                        type=str,
                         help="Threshold configuration JSON file containing "
                         "thresholds and (optionally) fuzzy bounds. Best used "
                         "in combination  with --threshold_units. "
@@ -78,7 +77,7 @@ def main(argv=None):
                         "Repeated thresholds with different bounds are not "
                         "handled well. Only the last duplicate will be used.")
     parser.add_argument("--threshold_units", metavar="THRESHOLD_UNITS",
-                        default=None, type=str,
+                        default=None,
                         help="Units of the threshold values. If not provided "
                         "the units are assumed to be the same as those of the "
                         "input dataset. Specifying the units here will allow "
@@ -101,7 +100,7 @@ def main(argv=None):
                         "indicating a narrower fuzzy factor region / sharper "
                         "threshold. NB A fuzzy factor cannot be used with a "
                         "zero threshold or a threshold_config file.")
-    parser.add_argument("--collapse-coord", type=str,
+    parser.add_argument("--collapse-coord",
                         metavar="COLLAPSE-COORD", default="None",
                         help="An optional ability to set which coordinate "
                         "we want to collapse over. The default is set "

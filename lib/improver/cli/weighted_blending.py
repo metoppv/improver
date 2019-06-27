@@ -155,7 +155,7 @@ def main(argv=None):
                         '"dict": calculate weights using a dictionary passed '
                         'in as a command line argument.')
 
-    parser.add_argument('coordinate', type=str,
+    parser.add_argument('coordinate',
                         metavar='COORDINATE_TO_AVERAGE_OVER',
                         help='The coordinate over which the blending '
                              'will be applied.')
@@ -165,13 +165,13 @@ def main(argv=None):
                              'hours since 1970-01-01 00:00:00')
     parser.add_argument('--calendar', metavar='CALENDAR',
                         help='Calendar for time coordinate. Default=gregorian')
-    parser.add_argument('--cycletime', metavar='CYCLETIME', type=str,
+    parser.add_argument('--cycletime', metavar='CYCLETIME',
                         help='The forecast reference time to be used after '
                         'blending has been applied, in the format '
                         'YYYYMMDDTHHMMZ. If not provided, the blended file '
                         'will take the latest available forecast reference '
                         'time from the input cubes supplied.')
-    parser.add_argument('--model_id_attr', metavar='MODEL_ID_ATTR', type=str,
+    parser.add_argument('--model_id_attr', metavar='MODEL_ID_ATTR',
                         default="mosg__model_configuration",
                         help='The name of the netCDF file attribute to be '
                              'used to identify the source model for '

@@ -131,7 +131,7 @@ def main(argv=None):
                         choices=["high_resolution", "global"],
                         help="Weather Code tree.\n"
                         "Choices are high_resolution or global.\n"
-                        "Default=high_resolution.", type=str)
+                        "Default=high_resolution.")
 
     args = parser.parse_args(args=argv)
 

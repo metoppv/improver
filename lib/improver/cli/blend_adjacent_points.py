@@ -52,7 +52,7 @@ def main(argv=None):
                     'adjacent points and puts the blending values back in the '
                     'original coordinate. Two different types of blending are '
                     'possible, weighted_mean and weighted_maximum')
-    parser.add_argument('coordinate', type=str,
+    parser.add_argument('coordinate',
                         metavar='COORDINATE_TO_BLEND_OVER',
                         help='The coordinate over which the blending '
                              'will be applied.')

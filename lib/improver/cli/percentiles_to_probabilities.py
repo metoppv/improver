@@ -79,7 +79,7 @@ def main(argv=None):
     parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
                         help="The output path for the processed NetCDF")
     parser.add_argument("output_diagnostic_name",
-                        metavar="OUTPUT_DIAGNOSTIC_NAME", type=str,
+                        metavar="OUTPUT_DIAGNOSTIC_NAME",
                         help="Name for data in output file e.g. "
                         "probability_of_snow_falling_level_below_ground_level")
     args = parser.parse_args(args=argv)

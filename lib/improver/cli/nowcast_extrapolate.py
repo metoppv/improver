@@ -50,30 +50,30 @@ def main(argv=None):
     parser = ArgParser(
         description="Extrapolate input data to required lead times.")
     parser.add_argument("input_filepath", metavar="INPUT_FILEPATH",
-                        type=str, help="Path to input NetCDF file.")
+                        help="Path to input NetCDF file.")
 
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("--output_dir", metavar="OUTPUT_DIR", type=str,
+    group.add_argument("--output_dir", metavar="OUTPUT_DIR",
                        default="", help="Directory to write output files.")
-    group.add_argument("--output_filepaths", nargs="+", type=str,
+    group.add_argument("--output_filepaths", nargs="+",
                        help="List of full paths to output nowcast files, in "
                        "order of increasing lead time.")
 
     optflw = parser.add_argument_group('Advect using files containing the x '
                                        ' and y components of the velocity')
-    optflw.add_argument("--eastward_advection_filepath", type=str, help="Path"
+    optflw.add_argument("--eastward_advection_filepath", help="Path"
                         " to input file containing Eastward advection "
                         "velocities.")
-    optflw.add_argument("--northward_advection_filepath", type=str, help="Path"
+    optflw.add_argument("--northward_advection_filepath", help="Path"
                         " to input file containing Northward advection "
                         "velocities.")
 
     speed = parser.add_argument_group('Advect using files containing speed and'
                                       ' direction')
-    speed.add_argument("--advection_speed_filepath", type=str, help="Path"
+    speed.add_argument("--advection_speed_filepath", help="Path"
                        " to input file containing advection speeds,"
                        " usually wind speeds, on multiple pressure levels.")
-    speed.add_argument("--advection_direction_filepath", type=str,
+    speed.add_argument("--advection_direction_filepath",
                        help="Path to input file containing the directions from"
                        " which advection speeds are coming (180 degrees from"
                        " the direction in which the speed is directed). The"
@@ -84,7 +84,7 @@ def main(argv=None):
                        " advection_speed and advection_direction files. The"
                        " velocities at this level are used for advection.")
     parser.add_argument("--orographic_enhancement_filepaths", nargs="+",
-                        type=str, default=None, help="List or wildcarded "
+                        default=None, help="List or wildcarded "
                         "file specification to the input orographic "
                         "enhancement files. Orographic enhancement files are "
                         "compulsory for precipitation fields.")
@@ -95,7 +95,7 @@ def main(argv=None):
                         "is available in "
                         "improver.utilities.cube_metadata.amend_metadata."
                         "Every output cube will have the metadata_dict "
-                        "applied. Defaults to None.", type=str)
+                        "applied. Defaults to None.")
     parser.add_argument("--max_lead_time", type=int, default=360,
                         help="Maximum lead time required (mins).")
     parser.add_argument("--lead_time_interval", type=int, default=15,
