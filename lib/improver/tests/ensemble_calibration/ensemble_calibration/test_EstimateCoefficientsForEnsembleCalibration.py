@@ -75,6 +75,85 @@ WARNING_TYPES = [
 ]
 
 
+def create_coefficients_cube(
+        template_cube, coeff_names, coeff_values, time_offset=0):
+    """Create a cube containing EMOS coefficients.
+
+    Args:
+        template_cube (iris.cube.Cube):
+            Cube containing information about the time,
+            forecast_reference_time, forecast_period, x coordinate and
+            y coordinate that will be used within the EMOS coefficient cube.
+        coeff_names (list):
+            The names of the EMOS coefficients. These names will be used to
+            construct the coefficient_name coordinate.
+        coeff_values (list):
+            The values of the coefficients. These values will be used as the
+            cube data.
+
+    Kwargs:
+        time_offset (int):
+            The time_offset represents any adjustment that is required to
+            the maximum of the time points or the forecast_reference_time
+            points within the template cube.
+
+    Returns:
+        (tuple): tuple containing
+
+            **result** (iris.cube.Cube) - The resulting EMOS
+                coefficients cube.
+            **x_coord** (iris.coord.DimCoord): The x coordinate
+                appropriate for describing the domain that the EMOS
+                coefficients cube is valid for.
+            **y_coord** (iris.coord.DimCoord): The y coordinate
+                appropriate for describing the domain that the EMOS
+                coefficients cube is valid for.
+
+    """
+    coefficient_index = iris.coords.DimCoord(
+        np.arange(len(coeff_names)), long_name="coefficient_index",
+        units="1")
+    dim_coords_and_dims = [(coefficient_index, 0)]
+
+    coefficient_name = iris.coords.AuxCoord(
+        coeff_names, long_name="coefficient_name", units="no_unit")
+
+    time_point = (
+            np.max(template_cube.coord("time").points) + time_offset)
+    time_coord = template_cube.coord("time").copy(time_point)
+
+    frt_orig_coord = (
+        template_cube.coord("forecast_reference_time"))
+    frt_point = np.max(frt_orig_coord.points) + time_offset
+    frt_coord = frt_orig_coord.copy(frt_point)
+
+    x_point = np.median(template_cube.coord(axis="x").points)
+    x_bounds = [template_cube.coord(axis="x").points[0],
+                template_cube.coord(axis="x").points[-1]]
+    x_coord = template_cube.coord(axis="x").copy(
+        points=x_point, bounds=x_bounds)
+
+    y_point = np.median(template_cube.coord(axis="y").points)
+    y_bounds = [template_cube.coord(axis="y").points[0],
+                template_cube.coord(axis="y").points[-1]]
+    y_coord = template_cube.coord(axis="y").copy(
+        points=y_point, bounds=y_bounds)
+
+    aux_coords_and_dims = [
+        (coefficient_name, 0), (time_coord, None), (frt_coord, None),
+        (template_cube[-1].coord("forecast_period"), None),
+        (x_coord, None), (y_coord, None)]
+
+    attributes = {"mosg__model_configuration": "uk_det",
+                  "diagnostic_standard_name": "air_temperature"}
+
+    result = iris.cube.Cube(
+        coeff_values, long_name="emos_coefficients", units="1",
+        dim_coords_and_dims=dim_coords_and_dims,
+        aux_coords_and_dims=aux_coords_and_dims, attributes=attributes)
+    return result, x_coord, y_coord
+
+
 class Test__init__(SetupCubes):
 
     """Test the initialisation of the class."""
@@ -219,48 +298,11 @@ class Test_create_coefficients_cube(IrisTest):
                 data_with_realizations, realizations=[0, 1, 2],
                 standard_grid_metadata="uk_det")))
         self.optimised_coeffs = np.array([0, 1, 2, 3], np.int32)
+
         coeff_names = ["gamma", "delta", "alpha", "beta"]
-
-        coefficient_index = iris.coords.DimCoord(
-            self.optimised_coeffs, long_name="coefficient_index", units="1")
-        dim_coords_and_dims = [(coefficient_index, 0)]
-
-        coefficient_name = iris.coords.AuxCoord(
-            coeff_names, long_name="coefficient_name", units="no_unit")
-
-        time_point = (
-            np.max(self.historic_forecast.coord("time").points) + 60*60*24)
-        time_coord = self.historic_forecast.coord("time").copy(time_point)
-
-        frt_orig_coord = (
-            self.historic_forecast.coord("forecast_reference_time"))
-        frt_point = np.max(frt_orig_coord.points) + 60*60*24
-        frt_coord = frt_orig_coord.copy(frt_point)
-
-        x_point = np.median(self.historic_forecast.coord(axis="x").points)
-        x_bounds = [self.historic_forecast.coord(axis="x").points[0],
-                    self.historic_forecast.coord(axis="x").points[-1]]
-        self.x_coord = self.historic_forecast.coord(axis="x").copy(
-            points=x_point, bounds=x_bounds)
-
-        y_point = np.median(self.historic_forecast.coord(axis="y").points)
-        y_bounds = [self.historic_forecast.coord(axis="y").points[0],
-                    self.historic_forecast.coord(axis="y").points[-1]]
-        self.y_coord = self.historic_forecast.coord(axis="y").copy(
-            points=y_point, bounds=y_bounds)
-
-        aux_coords_and_dims = [
-            (coefficient_name, 0), (time_coord, None), (frt_coord, None),
-            (self.historic_forecast[-1].coord("forecast_period"), None),
-            (self.x_coord, None), (self.y_coord, None)]
-
-        attributes = {"mosg__model_configuration": "uk_det",
-                      "diagnostic_standard_name": "air_temperature"}
-
-        self.expected = iris.cube.Cube(
-            self.optimised_coeffs, long_name="emos_coefficients", units="1",
-            dim_coords_and_dims=dim_coords_and_dims,
-            aux_coords_and_dims=aux_coords_and_dims, attributes=attributes)
+        self.expected, self.x_coord, self.y_coord = create_coefficients_cube(
+            self.historic_forecast, coeff_names, self.optimised_coeffs,
+            time_offset=60*60*24)
 
         self.distribution = "gaussian"
         self.current_cycle = "20171110T0000Z"
