@@ -33,7 +33,7 @@
 
 @test "apply-emos-coefficients using probabilities as input" {
   improver_check_skip_acceptance
-  KGO="apply-emos-coefficients/probabilities/kgo.nc"
+  KGO="ensemble-calibration/probabilities/kgo.nc"
 
   # Run apply-emos-coefficients when probabilities are input as the current forecast.
   run improver apply-emos-coefficients \
@@ -45,6 +45,6 @@
   improver_check_recreate_kgo "output.nc" $KGO
 
   # Run nccmp to compare the output calibrated probabilities and check it passes.
-  improver_compare_output "$TEST_DIR/output.nc" \
+  improver_compare_output_lower_precision "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

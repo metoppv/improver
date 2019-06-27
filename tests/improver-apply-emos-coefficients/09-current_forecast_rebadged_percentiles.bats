@@ -33,7 +33,7 @@
 
 @test "apply-emos-coefficients using realizations rebadged as percentiles as input" {
   improver_check_skip_acceptance
-  KGO="apply-emos-coefficients/percentiles/kgo.nc"
+  KGO="ensemble-calibration/percentiles/kgo.nc"
 
   # Run apply-emos-coefficients when percentiles are input as the current forecast.
   run improver apply-emos-coefficients \

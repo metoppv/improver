@@ -31,20 +31,27 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "apply-emos-coefficients using percentiles as input" {
+@test "compute emos using realizations as the predictor" {
   improver_check_skip_acceptance
-  KGO="ensemble-calibration/percentiles/kgo.nc"
+  if python -c "import statsmodels" &> /dev/null; then
+      KGO="ensemble-calibration/realizations/with_statsmodels_kgo.nc"
+  else
+      KGO="ensemble-calibration/realizations/without_statsmodels_kgo.nc"
+  fi
 
-  # Run apply-emos-coefficients when percentiles are input as the current forecast.
-  run improver apply-emos-coefficients \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/percentiles/input.nc" \
-      "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/kgo.nc" \
-      "$TEST_DIR/output.nc" --num_realizations=18
+  # Run ensemble calibration using realizations as the predictor.
+  run improver ensemble-calibration 'ensemble model output statistics' 'K' \
+      'gaussian' "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/input.nc" \
+      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
+      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
+      --predictor_of_mean 'realizations' \
+      --random_seed 0 --max_iterations 50 \
+      "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
 
-  # Run nccmp to compare the output calibrated percentiles and check it passes.
+  # Run nccmp to compare the calibrated forecasts and check they match.
   improver_compare_output_lower_precision "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

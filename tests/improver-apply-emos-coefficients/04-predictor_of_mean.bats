@@ -33,13 +33,19 @@
 
 @test "apply-emos-coefficients using non-default predictor 'realizations'" {
   improver_check_skip_acceptance
-  KGO="apply-emos-coefficients/realizations/kgo.nc"
+  if python -c "import statsmodels" &> /dev/null; then
+      COEFFS="estimate-emos-coefficients/realizations/with_statsmodels_kgo.nc"
+      KGO="ensemble-calibration/realizations/with_statsmodels_kgo.nc"
+  else
+      COEFFS="estimate-emos-coefficients/realizations/without_statsmodels_kgo.nc"
+      KGO="ensemble-calibration/realizations/without_statsmodels_kgo.nc"
+  fi
 
   # Apply EMOS coefficients to calibrate the input forecast
   # and check that the calibrated forecast matches the kgo.
   run improver apply-emos-coefficients \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/input.nc" \
-      "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/realizations/kgo.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$COEFFS" \
       --predictor_of_mean 'realizations' \
       "$TEST_DIR/output.nc" --random_seed 0
   [[ "$status" -eq 0 ]]
@@ -47,6 +53,6 @@
   improver_check_recreate_kgo "output.nc" $KGO
 
   # Run nccmp to compare the output and kgo realizations and check it passes.
-  improver_compare_output "$TEST_DIR/output.nc" \
+  improver_compare_output_lower_precision "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
 }
