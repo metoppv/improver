@@ -152,9 +152,11 @@ class Test_process(IrisTest):
         result = self.plugin_cycle.process(
             [self.ukv_cube, self.ukv_cube_latest], "weighted_mean")
         self.assertArrayAlmostEqual(result.data, expected_data)
-
-        # TODO do we expect forecast reference time and forecast period to
-        # have bounds for cycle blended data?  I think not...?
+        # make sure output cube has the forecast reference time and period
+        # from the most recent contributing cycle
+        for coord in ["time", "forecast_reference_time", "forecast_period"]:
+            self.assertEqual(
+                result.coord(coord), self.ukv_cube_latest.coord(coord))
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate"])
@@ -172,8 +174,6 @@ class Test_process(IrisTest):
         self.assertNotIn("model_id", result_coords)
         self.assertNotIn("model_configuration", result_coords)
 
-        # TODO output has cell method: mean: model_id
-
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate",
                           "Deleting unmatched attribute"])
@@ -186,12 +186,31 @@ class Test_process(IrisTest):
             [self.ukv_cube, self.enukx_cube, self.nowcast_cube],
             "weighted_mean", model_id_attr="mosg__model_configuration")
         self.assertArrayAlmostEqual(result.data, expected_data)
-
         # make sure output cube has the forecast reference time and period
         # from the most recent contributing model
         for coord in ["time", "forecast_period", "forecast_reference_time"]:
             self.assertEqual(
                 result.coord(coord), self.nowcast_cube.coord(coord))
+
+    def test_one_cube(self):
+        """Test the plugin returns a single input cube with identical data and
+        suitably updated metadata"""
+        result = self.plugin_model.process(
+            [self.enukx_cube], "weighted_mean",
+            model_id_attr="mosg__model_configuration")
+        self.assertArrayAlmostEqual(result.data, self.enukx_cube.data)
+        self.assertEqual(
+            result.attributes['mosg__model_configuration'], 'blend')
+        self.assertEqual(
+            result.attributes['title'], 'IMPROVER Model Forecast')
+
+    def test_error_blend_coord_absent(self):
+        """Test error is raised if blend coord is not present on input cubes"""
+        plugin = WeightAndBlend("kittens", "linear", y0val=1, ynval=1)
+        msg = "kittens coordinate is not present on all input cubes"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.process(
+                [self.ukv_cube, self.ukv_cube_latest], "weighted_mean")
 
 
 class Test_process_spatial_weights(IrisTest):
@@ -199,11 +218,73 @@ class Test_process_spatial_weights(IrisTest):
 
     def setUp(self):
         """Set up a masked nowcast and unmasked UKV cube"""
-        pass
+        thresholds = np.array([0.5, 1, 2], dtype=np.float32)
+        units = "mm h-1"
+        name = "lwe_precipitation_rate"
+        datatime = dt(2018, 9, 10, 7)
+        cycletime = dt(2018, 9, 10, 5)
 
+        # 5x5 matrix results in grid spacing of 200 km
+        base_data = np.ones((5, 5), dtype=np.float32)
 
-    # TODO write some tests...
+        # set up a UKV cube with some rain
+        rain_data = np.array([0.9*base_data, 0.5*base_data, 0*base_data])
+        ukv_cube = set_up_probability_cube(
+            rain_data, thresholds, variable_name=name,
+            threshold_units=units, time=datatime, frt=cycletime,
+            spatial_grid="equalarea", standard_grid_metadata="uk_det")
 
+        # set up a masked nowcast cube with more rain
+        more_rain_data = np.array([base_data, 0.6*base_data, 0.2*base_data])
+        radar_mask = np.broadcast_to(
+            np.array([False, False, False, True, True]), (3, 5, 5))
+        more_rain_data = np.ma.MaskedArray(more_rain_data, mask=radar_mask)
+        nowcast_cube = set_up_probability_cube(
+            more_rain_data, thresholds, variable_name=name,
+            threshold_units=units, time=datatime, frt=cycletime,
+            spatial_grid="equalarea",
+            attributes={"mosg__model_configuration": "nc_det"})
+
+        self.cubelist = [ukv_cube, nowcast_cube]
+
+        self.plugin = WeightAndBlend(
+            "model_id", "dict", weighting_coord="forecast_period",
+            wts_dict=MODEL_WEIGHTS)
+
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate",
+                          "Deleting unmatched attribute"])
+    def test_default(self):
+        """Test plugin returns a cube with expected values where default fuzzy
+        length is less than grid length (no smoothing)"""
+        # data is 50:50 where radar is valid, 100% UKV where radar is masked
+        expected_data = np.array(
+            [np.broadcast_to([0.95, 0.95, 0.95, 0.9, 0.9], (5, 5)),
+             np.broadcast_to([0.55, 0.55, 0.55, 0.5, 0.5], (5, 5)),
+             np.broadcast_to([0.1, 0.1, 0.1, 0.0, 0.0], (5, 5))],
+            dtype=np.float32)
+        result = self.plugin.process(
+            self.cubelist, "weighted_mean", spatial_weights=True,
+            model_id_attr="mosg__model_configuration")
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(result.data, expected_data)
+
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate",
+                          "Deleting unmatched attribute"])
+    def test_fuzzy_length(self):
+        """Test values where fuzzy length is equal to 2 grid lengths"""
+        # proportion of radar data is reduced at edge of valid region; still
+        # 100% UKV where radar data is masked
+        expected_data = np.array(
+            [np.broadcast_to([0.95, 0.95, 0.9333333, 0.9, 0.9], (5, 5)),
+             np.broadcast_to([0.55, 0.55, 0.5333333, 0.5, 0.5], (5, 5)),
+             np.broadcast_to([0.1, 0.1, 0.0666666, 0.0, 0.0], (5, 5))],
+            dtype=np.float32)
+        result = self.plugin.process(
+            self.cubelist, "weighted_mean", spatial_weights=True,
+            model_id_attr="mosg__model_configuration", fuzzy_length=400000)
+        self.assertArrayAlmostEqual(result.data, expected_data)
 
 
 if __name__ == '__main__':

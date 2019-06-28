@@ -99,7 +99,7 @@ class WeightAndBlend():
             self.wts_dict = wts_dict
         elif self.wts_calc_method == "linear":
             self.y0val = y0val
-            self.ynval = ynval               
+            self.ynval = ynval
         elif self.wts_calc_method == "nonlinear":
             self.cval = cval
         else:
@@ -165,7 +165,7 @@ class WeightAndBlend():
             weights (iris.cube.Cube):
                 Initial 1D cube of weights scaled by self.weighting_coord
             fuzzy_length (float):
-                Distance (in km) over which to smooth weights at domain
+                Distance (in metres) over which to smooth weights at domain
                 boundaries
 
         Returns:
@@ -181,7 +181,7 @@ class WeightAndBlend():
 
     def process(self, cubelist, weighting_mode,
                 cycletime=None, model_id_attr=None,
-                spatial_weights=None, fuzzy_length=20000):
+                spatial_weights=False, fuzzy_length=20000):
         """
         Merge a cubelist, calculate appropriate blend weights and blend into
         a single cube over the self.blend_coord dimension.
@@ -199,33 +199,29 @@ class WeightAndBlend():
                 forecast reference times is used.
             model_id_attr (str):
                 Name of the attribute by which to identify the source model and
-                construct a "model" coordinate for blending.
+                construct "model" coordinates for blending.
             spatial_weights (bool):
                 If true, calculate spatial weights.
             fuzzy_length (float):
-                Distance (in m) over which to smooth spatial weights.  Default
-                is 20 km.
+                Distance (in metres) over which to smooth spatial weights.
+                Default is 20 km.
         """
         # prepare cubes for weighted blending, including creating model_id and
-        # model_configuration coordinates for multi-model blending
+        # model_configuration coordinates for multi-model blending.  Raises an
+        # error if blend_coord is not present on all input cubes.
         merger = MergeCubesForWeightedBlending(
             self.blend_coord, weighting_coord=self.weighting_coord,
             model_id_attr=model_id_attr)
         cube = merger.process(cubelist, cycletime=cycletime)
 
-        # if the coord for blending does not exist or has only one value,
-        # update metadata only
+        # if blend_coord has only one value, or is not present (case where only
+        # one model has been provided for a model blend) update metadata only
         coord_names = [coord.name() for coord in cube.coords()]
-        if (self.blend_coord not in coord_names) or (
+        if (self.blend_coord not in coord_names or
                 len(cube.coord(self.blend_coord).points) == 1):
             result = cube.copy()
             conform_metadata(
                 result, cube, self.blend_coord, cycletime=cycletime)
-            # raise a warning if this happened because the blend coordinate
-            # doesn't exist
-            if self.blend_coord not in coord_names:
-                warnings.warn('Blend coordinate {} is not present on input '
-                              'data'.format(self.blend_coord))
 
         # otherwise, calculate weights and blend across specified dimension
         else:

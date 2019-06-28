@@ -289,18 +289,21 @@ class Test_process(IrisTest):
             model_id_attr="mosg__model_configuration")
 
     def test_basic(self):
-        """Test single cube is returned unmodified"""
+        """Test single cube is returned with new "blend" attribute"""
         cube = self.cube_enuk.copy()
         result = self.plugin.process(cube)
         self.assertArrayAlmostEqual(result.data, self.cube_enuk.data)
-        self.assertEqual(result.metadata, self.cube_enuk.metadata)
+        self.assertEqual(
+            result.attributes["mosg__model_configuration"], "blend")
 
     def test_single_item_list(self):
-        """Test cube from single item list is returned unmodified"""
+        """Test cube from single item list is returned with new "blend"
+        attribute"""
         cubelist = iris.cube.CubeList([self.cube_enuk.copy()])
         result = self.plugin.process(cubelist)
         self.assertArrayAlmostEqual(result.data, self.cube_enuk.data)
-        self.assertEqual(result.metadata, self.cube_enuk.metadata)
+        self.assertEqual(
+            result.attributes["mosg__model_configuration"], "blend")
 
     def test_multi_model_merge(self):
         """Test models merge OK and have expected model coordinates"""

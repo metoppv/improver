@@ -631,9 +631,9 @@ class ChooseDefaultWeightsLinear:
         """Set up for calculating default weights using linear function
 
             Keyword Args:
-                y0val (None or positive int / float):
+                y0val (positive int / float or None):
                     Relative weight of first point.
-                ynval (float or None):
+                ynval (int / float or None):
                     Relative weight of last point.
 
             If y0val value is not set or set to None then the code
