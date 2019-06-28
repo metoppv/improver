@@ -92,11 +92,11 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
                 more coefficients to solve for.
 
         """
-        # Dictionary containing the minimisation functions, which will
-        # be used, depending upon the distribution, which is requested.
+        # Dictionary containing the functions that will be minimised,
+        # depending upon the distribution requested.
         self.minimisation_dict = {
-            "gaussian": self.normal_crps_minimiser,
-            "truncated gaussian": self.truncated_normal_crps_minimiser}
+            "gaussian": self.calculate_normal_crps,
+            "truncated gaussian": self.calculate_truncated_normal_crps}
         # Maximum iterations for minimisation using Nelder-Mead.
         self.max_iterations = max_iterations
 
@@ -109,11 +109,11 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
             print_dict.update({key: self.minimisation_dict[key].__name__})
         return result.format(print_dict, self.max_iterations)
 
-    def crps_minimiser_wrapper(
+    def crps_minimiser(
             self, initial_guess, forecast_predictor, truth, forecast_var,
             predictor_of_mean_flag, distribution):
         """
-        Function to pass a given minimisation function to the scipy minimize
+        Function to pass a given function to the scipy minimize
         function to estimate optimised values for the coefficients.
 
         If the predictor_of_mean_flag is the ensemble mean, this function
@@ -146,8 +146,8 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
             distribution (str):
-                String used to access the appropriate minimisation function
-                within self.minimisation_dict.
+                String used to access the appropriate function for use in the
+                minimisation within self.minimisation_dict.
 
         Returns:
             optimised_coeffs (list):
@@ -230,12 +230,11 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         calculate_percentage_change_in_last_iteration(optimised_coeffs.allvecs)
         return optimised_coeffs.x.astype(np.float32)
 
-    def normal_crps_minimiser(
+    def calculate_normal_crps(
             self, initial_guess, forecast_predictor, truth, forecast_var,
             sqrt_pi, predictor_of_mean_flag):
         """
-        Minimisation function to calculate coefficients based on minimising the
-        CRPS for a normal distribution.
+        Calculate the CRPS for a normal distribution.
 
         Scientific Reference:
         Gneiting, T. et al., 2005.
@@ -263,7 +262,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
 
         Returns:
             result (float):
-                Minimum value for the CRPS achieved.
+                CRPS for the current set of coefficients.
 
         """
         if predictor_of_mean_flag.lower() == "mean":
@@ -289,12 +288,11 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
 
         return result
 
-    def truncated_normal_crps_minimiser(
+    def calculate_truncated_normal_crps(
             self, initial_guess, forecast_predictor, truth, forecast_var,
             sqrt_pi, predictor_of_mean_flag):
         """
-        Minimisation function to calculate coefficients based on minimising the
-        CRPS for a truncated_normal distribution.
+        Calculate the CRPS for a truncated normal distribution.
 
         Scientific Reference:
         Thorarinsdottir, T.L. & Gneiting, T., 2010.
@@ -323,7 +321,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
 
         Returns:
             result (float):
-                Minimum value for the CRPS achieved.
+                CRPS for the current set of coefficients.
 
         """
         if predictor_of_mean_flag.lower() == "mean":
@@ -762,7 +760,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             # Need to access the x attribute returned by the
             # minimisation function.
             optimised_coeffs = (
-                self.minimiser.crps_minimiser_wrapper(
+                self.minimiser.crps_minimiser(
                     initial_guess, forecast_predictor,
                     truth, forecast_var,
                     self.predictor_of_mean_flag,
