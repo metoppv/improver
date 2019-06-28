@@ -515,7 +515,7 @@ class ChooseWeightsLinear:
 
         # rename cube
         new_weights_cube.rename(self.weights_key_name)
-        new_weights_cube.units = '1'
+        new_weights_cube.units = cf_units.Unit('1')
 
         return new_weights_cube
 
