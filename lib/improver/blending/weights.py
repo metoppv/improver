@@ -627,27 +627,19 @@ class ChooseWeightsLinear:
 class ChooseDefaultWeightsLinear:
     """ Calculate Default Weights using Linear Function. """
 
-    def __init__(self, y0val=None, slope=0.0, ynval=None):
+    def __init__(self, y0val=None, ynval=None):
         """Set up for calculating default weights using linear function
 
             Keyword Args:
-                y0val (None or positive float):
-                    Relative value of starting point.
-                slope (float):
-                    Slope of the line. Default = 0.0 (equal weights).
+                y0val (None or positive int / float):
+                    Relative weight of first point.
                 ynval (float or None):
-                    Relative weights of last point.
-                    Default value is None
-
-            slope OR ynval should be set but NOT BOTH.
+                    Relative weight of last point.
 
             If y0val value is not set or set to None then the code
             uses default values of y0val = 20.0 and ynval = 2.0.
-
-            equal weights when slope = 0.0 or y0val = ynval
+            Equal weights when y0val = ynval.
         """
-        self.slope = slope
-
         if y0val is None:
             self.y0val = 20.0
             self.ynval = 2.0
@@ -663,40 +655,23 @@ class ChooseDefaultWeightsLinear:
         """Create linear weights
 
             Args:
-                num_of_weights (Positive Integer):
-                                 Number of weights to create.
-                y0val (Positive float):
-                        relative value of starting point. Default = 1.0
-                slope (float):
-                        slope of the line. Default = 0.0 (equal weights)
-                ynval (Positive float or None):
-                        Relative weights of last point.
-                        Default value is None
+                num_of_weights (positive integer):
+                    Number of weights to create.
 
             Returns:
                 weights (numpy.array):
                     array of weights, sum of all weights = 1.0
-
-            Raises:
-                ValueError: an inappropriate value of y0val is input.
-                ValueError: both slope and ynval are set at input.
-
         """
         # Special case num_of_weights == 1 i.e. Scalar coordinate.
         if num_of_weights == 1:
             weights = np.array([1.0], dtype=np.float32)
             return weights
-        if self.ynval is not None:
-            if self.slope == 0.0:
-                self.slope = (self.ynval - self.y0val)/(num_of_weights - 1.0)
-            else:
-                msg = ('Relative end point weight or slope must be set'
-                       ' but not both.')
-                raise ValueError(msg)
+
+        slope = (self.ynval - self.y0val)/(num_of_weights - 1.0)
 
         weights_list = []
         for tval in range(0, num_of_weights):
-            weights_list.append(self.slope*tval + self.y0val)
+            weights_list.append(slope*tval + self.y0val)
 
         weights = WeightsUtilities.normalise_weights(
             np.array(weights_list, dtype=np.float32))
@@ -752,10 +727,7 @@ class ChooseDefaultWeightsLinear:
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         desc = '<ChooseDefaultWeightsLinear y0val={0:4.1f}'.format(self.y0val)
-        if self.ynval is None:
-            desc += ', slope={0:6.2f}>'.format(self.slope)
-        else:
-            desc += ', ynval={0:4.1f}>'.format(self.ynval)
+        desc += ', ynval={0:4.1f}>'.format(self.ynval)
         return desc
 
 

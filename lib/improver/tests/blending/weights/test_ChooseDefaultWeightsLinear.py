@@ -54,12 +54,6 @@ class Test__init__(IrisTest):
         self.assertEqual(plugin.y0val, 20.0)
         self.assertEqual(plugin.ynval, 2.0)
 
-    def test_fails_y0val_not_float(self):
-        """Test it fails if y0val not set to float """
-        msg = ('y0val must be a float >= 0.0')
-        with self.assertRaisesRegex(ValueError, msg):
-            LinearWeights(y0val=2)
-
     def test_fails_y0val_lessthan_zero(self):
         """Test it raises a Value Error if y0val less than zero. """
         msg = ('y0val must be a float >= 0.0')
@@ -74,13 +68,6 @@ class Test_linear_weights(IrisTest):
         """Test that the function returns an array of weights. """
         result = LinearWeights().linear_weights(3)
         self.assertIsInstance(result, np.ndarray)
-
-    def test_fails_ynval_and_slope_set(self):
-        """Test it fails if y0val not set properly """
-        msg = ('Relative end point weight or slope must be set'
-               ' but not both.')
-        with self.assertRaisesRegex(ValueError, msg):
-            LinearWeights(ynval=3.0, slope=-1.0).linear_weights(3)
 
     def test_returns_correct_values_num_of_weights_one(self):
         """Test it returns the correct values, method is proportional."""
@@ -98,7 +85,7 @@ class Test_linear_weights(IrisTest):
 
     def test_returns_correct_values_y0val_slope_set(self):
         """Test it returns the correct values when y0val and slope set"""
-        result = LinearWeights(y0val=10.0, slope=-1.0).linear_weights(6)
+        result = LinearWeights(y0val=10.0, ynval=5.0).linear_weights(6)
         expected_result = np.array([0.22222222, 0.2,
                                     0.17777778, 0.15555556,
                                     0.13333333, 0.11111111])
@@ -112,7 +99,7 @@ class Test_linear_weights(IrisTest):
 
     def test_returns_correct_values_y0val_is_0_slope_set(self):
         """Test it returns the correct values when y0val=0 and slope set."""
-        result = LinearWeights(y0val=0.0, slope=1.0).linear_weights(5)
+        result = LinearWeights(y0val=0.0, ynval=5.0).linear_weights(5)
         expected_result = np.array([0.0, 0.1, 0.2, 0.3, 0.4])
         self.assertArrayAlmostEqual(result, expected_result)
 
@@ -120,13 +107,7 @@ class Test_linear_weights(IrisTest):
         """Test it raises an error when y0val=0 and ynval=0."""
         msg = "Sum of weights must be > 0.0"
         with self.assertRaisesRegex(ValueError, msg):
-            LinearWeights(y0val=0.0, slope=0.0).linear_weights(5)
-
-    def test_returns_correct_values_y0val_is_0_slope_is_0(self):
-        """Test it raises an error when y0val=0 and slope=0."""
-        msg = "Sum of weights must be > 0.0"
-        with self.assertRaisesRegex(ValueError, msg):
-            LinearWeights(y0val=0.0, slope=0.0).linear_weights(5)
+            LinearWeights(y0val=0.0, ynval=0.0).linear_weights(5)
 
 
 class Test_process(IrisTest):
@@ -175,24 +156,6 @@ class Test_process(IrisTest):
         with self.assertRaisesRegex(TypeError, msg):
             plugin.process(notacube, self.coord_name)
 
-    def test_fails_ynval_and_slope_set(self):
-        """Test it raises a Value Error if slope and ynval set. """
-        plugin = LinearWeights(y0val=10.0, slope=-5.0, ynval=5.0)
-        msg = ('Relative end point weight or slope must be set'
-               ' but not both.')
-        with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(self.cube, self.coord_name, self.coord_vals)
-
-    def test_fails_weights_negative(self):
-        """Test it raises a Value Error if weights become negative. """
-        plugin = LinearWeights(y0val=10.0, slope=-5.0)
-        cubenew = add_coordinate(
-            self.cube, np.arange(6), "realization", dtype=np.int32)
-        coord = cubenew.coord('realization')
-        msg = 'Weights must be positive'
-        with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(cubenew, coord)
-
     def test_works_scalar_coord(self):
         """Test it works if scalar coordinate. """
         self.cube.add_aux_coord(
@@ -207,13 +170,6 @@ class Test_process(IrisTest):
         plugin = LinearWeights()
         result = plugin.process(self.cube, self.coord_name, self.coord_vals)
         expected_result = np.array([0.90909091, 0.09090909])
-        self.assertArrayAlmostEqual(result.data, expected_result)
-
-    def test_works_y0val_and_slope_set(self):
-        """Test it works if y0val and slope_set. """
-        plugin = LinearWeights(y0val=10.0, slope=-5.0)
-        result = plugin.process(self.cube, self.coord_name, self.coord_vals)
-        expected_result = np.array([0.66666667, 0.33333333])
         self.assertArrayAlmostEqual(result.data, expected_result)
 
     def test_works_y0val_and_ynval_set(self):
