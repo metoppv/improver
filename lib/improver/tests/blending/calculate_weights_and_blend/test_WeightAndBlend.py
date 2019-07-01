@@ -39,8 +39,10 @@ import iris
 from iris.tests import IrisTest
 
 from improver.blending.calculate_weights_and_blend import WeightAndBlend
+from improver.blending.weighted_blend import MergeCubesForWeightedBlending
 from improver.utilities.warnings_handler import ManageWarnings
-from improver.tests.set_up_test_cubes import set_up_probability_cube
+from improver.tests.set_up_test_cubes import (
+    set_up_probability_cube, set_up_variable_cube)
 
 
 MODEL_WEIGHTS = {
@@ -84,6 +86,71 @@ class Test__init__(IrisTest):
         msg = "Weights calculation method 'kludge' unrecognised"
         with self.assertRaisesRegex(ValueError, msg):
             WeightAndBlend("forecast_period", "kludge")
+
+
+class Test__calculate_blending_weights(IrisTest):
+    """Test the _calculate_blending_weights method"""
+
+    def test_default_linear(self):
+        """Test linear weighting over realizations"""
+        cube = set_up_variable_cube(278.*np.ones((4, 3, 3), dtype=np.float32))
+        plugin = WeightAndBlend("realization", "linear", y0val=1, ynval=1)
+        weights = plugin._calculate_blending_weights(cube)
+        self.assertIsInstance(weights, iris.cube.Cube)
+        weights_dims = [
+            coord.name() for coord in weights.coords(dim_coords=True)]
+        self.assertSequenceEqual(weights_dims, ["realization"])
+        self.assertArrayAlmostEqual(weights.data, 0.25*np.ones((4,)))
+
+    def test_default_nonlinear(self):
+        """Test non-linear weighting over forecast reference time"""
+        data = np.ones((3, 3, 3), dtype=np.float32)
+        thresholds = np.array([276, 277, 278], dtype=np.float32)
+        ukv_cube_earlier = set_up_probability_cube(
+            data, thresholds, time=dt(2018, 9, 10, 7), frt=dt(2018, 9, 10, 3))
+        ukv_cube_later = set_up_probability_cube(
+            data, thresholds, time=dt(2018, 9, 10, 7), frt=dt(2018, 9, 10, 4))
+        cube = iris.cube.CubeList(
+            [ukv_cube_later, ukv_cube_earlier]).merge_cube()
+
+        plugin = WeightAndBlend("forecast_reference_time", "nonlinear")
+
+        # Note this is the default behaviour for the nonlinear weights plugin,
+        # whereby the earlier cycle has greater weight than the later cycle.
+        # TODO this should be reconsidered
+        weights = plugin._calculate_blending_weights(cube)
+        self.assertArrayAlmostEqual(
+            weights.data, np.array([0.5405405, 0.45945945]))
+
+    def test_dict(self):
+        """Test dictionary option for model blending"""
+        data = np.ones((3, 3, 3), dtype=np.float32)
+        thresholds = np.array([276, 277, 278], dtype=np.float32)
+        ukv_cube = set_up_probability_cube(
+            data, thresholds, time=dt(2018, 9, 10, 7), frt=dt(2018, 9, 10, 1),
+            standard_grid_metadata="uk_det")
+        enukx_cube = set_up_probability_cube(
+            data, thresholds, time=dt(2018, 9, 10, 7), frt=dt(2018, 9, 10, 1),
+            standard_grid_metadata="uk_ens")
+        merger = MergeCubesForWeightedBlending(
+            "model_id", weighting_coord="forecast_period",
+            model_id_attr="mosg__model_configuration")
+        cube = merger.process([ukv_cube, enukx_cube])
+
+        plugin = WeightAndBlend(
+            "model_id", "dict", weighting_coord="forecast_period",
+            wts_dict=MODEL_WEIGHTS)
+
+        weights = plugin._calculate_blending_weights(cube)
+        self.assertArrayEqual(
+            weights.coord("model_configuration").points, ["uk_det", "uk_ens"])
+        self.assertArrayAlmostEqual(
+            weights.data, np.array([0.3333333, 0.6666667]))
+
+
+def Test__update_spatial_weights(IrisTest):
+    """Test the _update_spatial_weights method"""
+    pass
 
 
 class Test_process(IrisTest):
