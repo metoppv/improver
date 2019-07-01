@@ -76,8 +76,8 @@ def main(argv=None):
         choices=['ensemble model output statistics',
                  'nonhomogeneous gaussian regression'],
         help='The calibration method that will be applied. '
-         'Supported methods are: "emos" (ensemble model output statistics) '
-         'and "ngr" (nonhomogeneous gaussian regression).')
+             'Supported methods are: "emos" (ensemble model output statistics) '
+             'and "ngr" (nonhomogeneous gaussian regression).')
     parser.add_argument(
         'units', metavar='UNITS_TO_CALIBRATE_IN',
         help='The unit that calibration should be undertaken in. The current '
@@ -101,7 +101,8 @@ def main(argv=None):
         help='A path to an input NetCDF file containing the historic '
              'forecast(s) used for calibration. The file provided must be in '
              'the form of realizations.')
-    parser.add_argument('truth_filepath', metavar='TRUTH_DATA_FILE',
+    parser.add_argument(
+        'truth_filepath', metavar='TRUTH_DATA_FILE',
         help='A path to an input NetCDF file containing the historic truth '
              'analyses used for calibration.')
     parser.add_argument(
