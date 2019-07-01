@@ -36,7 +36,6 @@
 usage: improver weighted-blending [-h] [--profile]
                                   [--profile_file PROFILE_FILE]
                                   [--wts_calc_method WEIGHTS_CALCULATION_METHOD]
-                                  [--coordinate_unit UNIT_STRING]
                                   [--cycletime CYCLETIME]
                                   [--model_id_attr MODEL_ID_ATTR]
                                   [--spatial_weights_from_mask]

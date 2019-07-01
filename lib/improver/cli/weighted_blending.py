@@ -71,10 +71,6 @@ def main(argv=None):
                         metavar='COORDINATE_TO_AVERAGE_OVER',
                         help='The coordinate over which the blending '
                              'will be applied.')
-    parser.add_argument('--coordinate_unit', metavar='UNIT_STRING',
-                        default='hours since 1970-01-01 00:00:00',
-                        help='Units for blending coordinate. Default= '
-                             'hours since 1970-01-01 00:00:00')
     parser.add_argument('--cycletime', metavar='CYCLETIME', type=str,
                         help='The forecast reference time to be used after '
                         'blending has been applied, in the format '
@@ -200,7 +196,6 @@ def main(argv=None):
 
     plugin = WeightAndBlend(
         args.coordinate, args.wts_calc_method,
-        blend_coord_unit=args.coordinate_unit,
         weighting_coord=args.weighting_coord, wts_dict=weights_dict,
         y0val=args.y0val, ynval=args.ynval, cval=args.cval)
     result = plugin.process(

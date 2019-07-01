@@ -53,7 +53,7 @@ class WeightAndBlend():
     """
     Wrapper class to calculate weights and blend data across cycles or models
     """
-    def __init__(self, blend_coord, wts_calc_method, blend_coord_unit=None,
+    def __init__(self, blend_coord, wts_calc_method,
                  weighting_coord=None, wts_dict=None,
                  y0val=None, ynval=None, cval=None):
         """
@@ -67,8 +67,6 @@ class WeightAndBlend():
                 Weights calculation method ("linear", "nonlinear" or "dict")
 
         Kwargs:
-            blend_coord_unit (str or cf_units.Unit):
-                Unit of blending coordinate (for default weights plugins)
             weighting_coord (str):
                 Coordinate over which linear weights should be calculated (from
                 dictionary)
@@ -84,15 +82,6 @@ class WeightAndBlend():
         self.blend_coord = blend_coord
         self.wts_calc_method = wts_calc_method
         self.weighting_coord = None
-
-        # TODO used with coord_exp_vals only - no longer required?
-        # TODO DEFINITELY not used - doesn't care if it's None!
-        if "time" in self.blend_coord:
-            self.blend_coord_unit = Unit(blend_coord_unit, "gregorian")
-        elif blend_coord_unit != 'hours since 1970-01-01 00:00:00.':
-            self.blend_coord_unit = blend_coord_unit
-        else:
-            self.blend_coord_unit = 'no_unit'
 
         if self.wts_calc_method == "dict":
             self.weighting_coord = weighting_coord
@@ -144,14 +133,14 @@ class WeightAndBlend():
         elif self.wts_calc_method == "linear":
             weights = ChooseDefaultWeightsLinear(
                 y0val=self.y0val, ynval=self.ynval).process(
-                    cube, self.blend_coord, coord_unit=self.blend_coord_unit)
+                    cube, self.blend_coord)
 
         elif self.wts_calc_method == "nonlinear":
             # this is set here rather than in the CLI arguments in order to
             # check for invalid argument combinations
             cvalue = self.cval if self.cval else 0.85
             weights = ChooseDefaultWeightsNonLinear(cvalue).process(
-                cube, self.blend_coord, coord_unit=self.blend_coord_unit)
+                cube, self.blend_coord)
 
         return weights
 
