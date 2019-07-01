@@ -44,7 +44,7 @@
       --predictor_of_mean 'realizations' \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
-      --max_iterations 50 \
+      --max_iterations 150 \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

@@ -54,6 +54,9 @@
   # should be ignored.
   # The "--exclude=percentile" option indicates that the percentile coordinate
   # should be ignored.
+  # The "-t 1e-3" option indicates a specific absolute tolerance of 1e-3
+  # that matches the tolerance used in the
+  # improver_compare_output_lower_precision function.
   run nccmp --exclude=realization --exclude=percentile -dNs -t 1e-3 "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
   [[ "$status" -eq 0 ]]

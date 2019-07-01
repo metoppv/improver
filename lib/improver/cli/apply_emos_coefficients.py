@@ -62,63 +62,71 @@ def main(argv=None):
     parser = ArgParser(
         description='Apply coefficients for Ensemble Model Output '
                     'Statistics (EMOS), otherwise known as Non-homogeneous '
-                    'Gaussian Regression (NGR)')
+                    'Gaussian Regression (NGR). The supported input formats '
+                    'are realizations, probabilities and percentiles. '
+                    'The forecast will be converted to realizations before '
+                    'applying the coefficients and then converted back to '
+                    'match the input format.')
     # Filepaths for the forecast, EMOS coefficients and the output.
-    parser.add_argument('forecast_filepath', metavar='FORECAST_FILEPATH',
-                        help='A path to an input NetCDF file containing the '
-                             'forecast to be calibrated.')
-    parser.add_argument('coefficients_filepath',
-                        metavar='COEFFICIENTS_FILEPATH',
-                        help='A path to an input NetCDF file containing the '
-                             'coefficients used for calibration.')
-    parser.add_argument('output_filepath', metavar='OUTPUT_FILEPATH',
-                        help='The output path for the processed NetCDF')
+    parser.add_argument(
+        'forecast_filepath', metavar='FORECAST_FILEPATH',
+        help='A path to an input NetCDF file containing the forecast to be '
+             'calibrated. The input format could be either realizations, '
+             'probabilities or percentiles.')
+    parser.add_argument(
+        'coefficients_filepath',
+        metavar='COEFFICIENTS_FILEPATH',
+        help='A path to an input NetCDF file containing the '
+             'coefficients used for calibration.')
+    parser.add_argument(
+        'output_filepath', metavar='OUTPUT_FILEPATH',
+        help='The output path for the processed NetCDF')
     # Optional arguments.
-    parser.add_argument('--num_realizations', metavar='NUMBER_OF_REALIZATIONS',
-                        default=None, type=np.int32,
-                        help='Optional argument to specify the number of '
-                             'ensemble realizations to produce. '
-                             'If the current forecast is input as '
-                             'probabilities or percentiles then this argument '
-                             'is used to create the requested number of '
-                             'realizations. In addition, this argument is '
-                             'used to construct the requested number of '
-                             'realizations from the mean and variance output '
-                             'after applying the EMOS coefficients.'
-                             'Default will be the number of realizations '
-                             'in the raw input file.')
-    parser.add_argument('--random_ordering', default=False,
-                        action='store_true',
-                        help='Option to reorder the post-processed forecasts '
-                             'randomly. If not set, the ordering of the raw '
-                             'ensemble is used.')
-    parser.add_argument('--random_seed', metavar='RANDOM_SEED', default=None,
-                        help='Option to specify a value for the random seed '
-                        'for testing purposes, otherwise, the default random '
-                        'seed behaviour is utilised. The random seed is used '
-                        'in the generation of the random numbers used for '
-                        'either the random_ordering option to order the input '
-                        'percentiles randomly, rather than use the ordering '
-                        'from the raw ensemble, or for splitting tied values '
-                        'within the raw ensemble, so that the values from the '
-                        'input percentiles can be ordered to match the raw '
-                        'ensemble.')
-    parser.add_argument('--ecc_bounds_warning', default=False,
-                        action='store_true',
-                        help='If True, where the percentiles exceed the ECC '
-                             'bounds range, raise a warning rather than an '
-                             'exception. This occurs when the current '
-                             'forecast is in the form of probabilities and '
-                             'is converted to percentiles, as part of '
-                             'converting the input probabilities into '
-                             'realizations.')
-    parser.add_argument('--predictor_of_mean', metavar='PREDICTOR_OF_MEAN',
-                        choices=['mean', 'realizations'], default='mean',
-                        help='String to specify the predictor used to '
-                             'calibrate the forecast mean. Currently the '
-                             'ensemble mean ("mean") and the ensemble '
-                             'realizations ("realizations") are supported as '
-                             'options. Default: "mean".')
+    parser.add_argument(
+        '--num_realizations', metavar='NUMBER_OF_REALIZATIONS',
+        default=None, type=np.int32,
+        help='Optional argument to specify the number of '
+             'ensemble realizations to produce. '
+             'If the current forecast is input as probabilities or '
+             'percentiles then this argument is used to create the requested '
+             'number of realizations. In addition, this argument is used to '
+             'construct the requested number of realizations from the mean '
+             'and variance output after applying the EMOS coefficients.'
+             'Default will be the number of realizations in the raw input '
+             'file, if realizations are provided as input, otherwise if the '
+             'input format is probabilities or percentiles, then an error '
+             'will be raised if no value is provided.')
+    parser.add_argument(
+        '--random_ordering', default=False,
+        action='store_true',
+        help='Option to reorder the post-processed forecasts randomly. If not '
+             'set, the ordering of the raw ensemble is used. This option is '
+             'only valid when the input format is realizations.')
+    parser.add_argument(
+        '--random_seed', metavar='RANDOM_SEED', default=None,
+        help='Option to specify a value for the random seed for testing '
+             'purposes, otherwise, the default random seed behaviour is '
+             'utilised. The random seed is used in the generation of the '
+             'random numbers used for either the random_ordering option to '
+             'order the input percentiles randomly, rather than use the '
+             'ordering from the raw ensemble, or for splitting tied values '
+             'within the raw ensemble, so that the values from the input '
+             'percentiles can be ordered to match the raw ensemble.')
+    parser.add_argument(
+        '--ecc_bounds_warning', default=False,
+        action='store_true',
+        help='If True, where the percentiles exceed the ECC bounds range, '
+             'raise a warning rather than an exception. This occurs when the '
+             'current forecast is in the form of probabilities and is '
+             'converted to percentiles, as part of converting the input '
+             'probabilities into realizations.')
+    parser.add_argument(
+        '--predictor_of_mean', metavar='PREDICTOR_OF_MEAN',
+        choices=['mean', 'realizations'], default='mean',
+        help='String to specify the predictor used to calibrate the forecast '
+             'mean. Currently the ensemble mean ("mean") and the ensemble '
+             'realizations ("realizations") are supported as options. '
+             'Default: "mean".')
 
     args = parser.parse_args(args=argv)
 
