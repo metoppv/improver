@@ -76,7 +76,8 @@ def main(argv=None):
         choices=['ensemble model output statistics',
                  'nonhomogeneous gaussian regression'],
         help='The calibration method that will be applied. '
-             'Supported methods are: "emos" (ensemble model output statistics) '
+             'Supported methods are: "emos" '
+             '(ensemble model output statistics) '
              'and "ngr" (nonhomogeneous gaussian regression).')
     parser.add_argument(
         'units', metavar='UNITS_TO_CALIBRATE_IN',

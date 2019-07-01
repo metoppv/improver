@@ -44,11 +44,15 @@ usage: improver apply-emos-coefficients [-h] [--profile]
                                         COEFFICIENTS_FILEPATH OUTPUT_FILEPATH
 
 Apply coefficients for Ensemble Model Output Statistics (EMOS), otherwise
-known as Non-homogeneous Gaussian Regression (NGR)
+known as Non-homogeneous Gaussian Regression (NGR). The supported input
+formats are realizations, probabilities and percentiles. The forecast will be
+converted to realizations before applying the coefficients and then converted
+back to match the input format.
 
 positional arguments:
   FORECAST_FILEPATH     A path to an input NetCDF file containing the forecast
-                        to be calibrated.
+                        to be calibrated. The input format could be either
+                        realizations, probabilities or percentiles.
   COEFFICIENTS_FILEPATH
                         A path to an input NetCDF file containing the
                         coefficients used for calibration.
@@ -68,10 +72,14 @@ optional arguments:
                         construct the requested number of realizations from
                         the mean and variance output after applying the EMOS
                         coefficients.Default will be the number of
-                        realizations in the raw input file.
+                        realizations in the raw input file, if realizations
+                        are provided as input, otherwise if the input format
+                        is probabilities or percentiles, then an error will be
+                        raised if no value is provided.
   --random_ordering     Option to reorder the post-processed forecasts
                         randomly. If not set, the ordering of the raw ensemble
-                        is used.
+                        is used. This option is only valid when the input
+                        format is realizations.
   --random_seed RANDOM_SEED
                         Option to specify a value for the random seed for
                         testing purposes, otherwise, the default random seed
