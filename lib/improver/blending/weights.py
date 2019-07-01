@@ -493,13 +493,30 @@ class ChooseWeightsLinear:
         for cube_slice, weight in (
                 zip(cube.slices_over(self.weighting_coord_name), weights)):
             sub_slice = cube_slice[..., 0, 0]
-            sub_slice.remove_coord(sub_slice.coord(axis='x'))
-            sub_slice.remove_coord(sub_slice.coord(axis='y'))
             sub_slice.data = np.ones(sub_slice.data.shape)*weight
             cubelist.append(sub_slice)
+
+        # re-order dimension coordinates to match input cube
         new_weights_cube = (
             check_cube_coordinates(cube[..., 0, 0], cubelist.merge_cube()))
+
+        # remove all scalar coordinates that are not time-, model- or
+        # blend-related
+        dim_coords = new_weights_cube.coords(dim_coords=True)
+        keep_coords = ["time", "forecast_period", "forecast_reference_time",
+                       "model_id", "model_configuration",
+                       self.weighting_coord_name, self.config_coord_name]
+        for coord in new_weights_cube.coords():
+            if coord not in dim_coords and coord.name() not in keep_coords:
+                new_weights_cube.remove_coord(coord)
+
+        # remove attributes
+        new_weights_cube.attributes = {}
+
+        # rename cube
         new_weights_cube.rename(self.weights_key_name)
+        new_weights_cube.units = cf_units.Unit('1')
+
         return new_weights_cube
 
     def _calculate_weights(self, cube):
