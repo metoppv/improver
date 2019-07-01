@@ -40,6 +40,7 @@ install:
 
   # List the name and version of all the dependencies within the conda environment.
   - conda list
+  - conda env export
 
 script:
   - python -c "import iris"
