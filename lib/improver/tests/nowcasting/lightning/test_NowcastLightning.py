@@ -702,20 +702,26 @@ class Test_apply_ice(IrisTest):
 
     def test_ice_large_with_fc(self):
         """Test that large VII probs do increase zero lightning risk when
-        forecast lead time is non-zero (two forecast_period points)"""
+        forecast lead time is non-zero (three forecast_period points)"""
         self.ice_cube.data[:, 1, 1] = 1.
-        self.fg_cube.data[1, 1] = 0.
-        self.fg_cube.coord('forecast_period').points = [3600]  # 1 hour
-        fg_cube_next = self.fg_cube.copy()
-        time_pt, = self.fg_cube.coord('time').points
-        fg_cube_next.coord('time').points = [time_pt + 5400]  # 1.5 hours
-        fg_cube_next.coord('forecast_period').points = [9000]  # 2.5 hours
-        self.fg_cube = CubeList([squeeze(self.fg_cube),
-                                 squeeze(fg_cube_next)]).merge_cube()
+        fg_cube_template = self.fg_cube.copy()
+        fg_cube_template.data[1, 1] = 0.
+        fg_cube_template.coord('forecast_period').points = [0]
+        frt_point = fg_cube_template.coord('forecast_reference_time').points[0]
+        self.fg_cube = CubeList([])
+        for fc_time in [1, 2.5, 3]:  # hours
+            fg_cube_next = fg_cube_template.copy()
+            fg_cube_next.coord('time').points = (
+                [frt_point + fc_time * 3600])  # seconds
+            fg_cube_next.coord('forecast_period').points = (
+                [(fc_time) * 3600])
+            self.fg_cube.append(squeeze(fg_cube_next))
+        self.fg_cube = self.fg_cube.merge_cube()
         expected = self.fg_cube.copy()
         # expected.data contains all ones except:
         expected.data[0, 1, 1] = 0.54
         expected.data[1, 1, 1] = 0.0
+        expected.data[2, 1, 1] = 0.0
         result = self.plugin.apply_ice(self.fg_cube,
                                        self.ice_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
