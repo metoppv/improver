@@ -89,171 +89,6 @@ class WeightsUtilities:
         return normalised_weights
 
     @staticmethod
-    def redistribute_weights(weights, forecast_present, method='evenly'):
-        """Redistribute weights if any of the forecasts are missing.
-
-            Args:
-                weights (numpy.ndarray):
-                    Array of weights.
-                forecast_present (numpy.ndarray):
-                    Size of weights with values set as
-                                   1.0 for present
-                                   0.0 for missing.
-                method (string):
-                    Method to redistribute weights, default evenly.
-
-                    Options are:
-                        evenly - adding the weights from the
-                                 missing forecasts evenly across
-                                 the remaining forecasts.
-                        proportional - re-weight according to the
-                                       proportion of the previous
-                                       weights.
-
-            Returns:
-                redistributed_weights (numpy.ndarray):
-                    Array of weights where sum = 1.0 and missing weights are
-                    set to -1.0
-
-            Raises:
-                ValueError: the weights input do not add up to 1.
-                ValueError: any of the input weights are negative.
-                ValueError: an unexpected number of weights are input.
-                ValueError: none of the forecasts expected (according to
-                            the user input coord_exp_vals) were found on the
-                            cube being blended.
-                ValueError: an unknown weights redistribution method is
-                            entered (only recognised methods are 'evenly'
-                            and 'proportional').
-        """
-        sumval = weights.sum()
-
-        if abs(sumval - 1.0) > 0.0001:
-            msg = 'Sum of weights must be 1.0'
-            raise ValueError(msg)
-
-        if weights.min() < 0.0:
-            msg = 'Weights should be positive or at least one > 0.0'
-            raise ValueError(msg)
-
-        if len(weights) != len(forecast_present):
-            msg = ('Arrays weights and forecast_present not the same size'
-                   ' weights is len {0:}'.format(len(weights)) +
-                   ' forecast_present is len {0:}'.format(
-                       len(forecast_present)))
-            raise ValueError(msg)
-
-        num_forecasts_present = forecast_present.sum()
-        if num_forecasts_present == 0:
-            msg = 'None of the expected forecasts were found.'
-            raise ValueError(msg)
-        elif num_forecasts_present < len(forecast_present):
-            combined_weights = weights*forecast_present
-            if method == 'evenly':
-                missing_avg_weight = (
-                    1.0 - combined_weights.sum())/num_forecasts_present
-                redistributed_weights = combined_weights + missing_avg_weight
-            elif method == 'proportional':
-                redistributed_weights = (
-                    WeightsUtilities.normalise_weights(combined_weights))
-            else:
-                msg = ('Unknown weights redistribution method'
-                       ': {}'.format(method))
-                raise ValueError(msg)
-            # Set missing values to -1.0
-            redistributed_weights = redistributed_weights[np.where(
-                forecast_present == 1)]
-        elif num_forecasts_present == len(forecast_present):
-            redistributed_weights = weights
-        return redistributed_weights
-
-    @staticmethod
-    def process_coord(cube, coordinate, coord_exp_vals=None,
-                      coord_unit='no_unit'):
-        """Calculated weights for a given cube and coord.
-
-            Args:
-                cube (iris.cube.Cube):
-                       Cube to blend across the coord.
-                coordinate (string):
-                       Name of coordinate in the cube to be blended.
-                coord_exp_vals (string):
-                       String list of values which are expected on the
-                       coordinate to be blended over.
-                coord_unit (cf_units.Unit):
-                       The unit in which the coord_exp_vals have been passed
-                       in.
-
-            Returns:
-                (tuple) : tuple containing:
-                    **exp_coord_len** (int):
-                           The number of forecasts we expect to blend, based on
-                           the length of the coordinate we are going to blend
-                           over.
-                    **exp_forecast_found** (binary mask):
-                           Array showing where the input cube coordinate values
-                           agree with the input expected coordinate values.
-
-            Raises:
-                ValueError: the coordinate to blend over does not exist on
-                            the cube being blended.
-                ValueError: the length of the expected coordinate input is
-                            less than the length of the corresponding cube
-                            coordinate.
-                ValueError: the input coordinate units cannot be converted
-                            to the units of the corresponding cube
-                            coordinate.
-        """
-        if not cube.coords(coordinate):
-            msg = ('The coord for this plugin must be '
-                   'an existing coordinate in the input cube.')
-            raise ValueError(msg)
-        cube_coord = cube.coord(coordinate)
-        if coord_exp_vals is not None:
-            coord_values = [float(x) for x in coord_exp_vals.split(',')]
-            if len(coord_values) < len(cube_coord.points):
-                msg = ('The cube coordinate has more points '
-                       'than requested coord, '
-                       'len coord points = {0:d} '.format(len(coord_values)) +
-                       'len cube points = {0:d}'.format(
-                           len(cube_coord.points)))
-                raise ValueError(msg)
-            else:
-                exp_coord = iris.coords.AuxCoord(coord_values,
-                                                 long_name=coordinate,
-                                                 units=coord_unit)
-                exp_coord_len = len(exp_coord.points)
-        else:
-            exp_coord_len = len(cube_coord.points)
-        # Find which coordinates are present in exp_coord but not in cube_coord
-        # ie: find missing forecasts.
-        if len(cube_coord.points) < exp_coord_len:
-            # Firstly check that coord is in the right units
-            # Do not try if coord.units not set
-            if (exp_coord.units != cf_units.Unit('1') and
-                    str(exp_coord.units) != 'no_unit'):
-                if exp_coord.units != cube_coord.units:
-                    try:
-                        exp_coord.convert_units(cube_coord.units)
-                    except ValueError:
-                        msg = ('Failed to convert coord units '
-                               'requested coord units '
-                               '= {0:s} '.format(str(exp_coord.units)) +
-                               'cube units '
-                               '= {0:s}'.format(str(cube_coord.units)))
-                        raise ValueError(msg)
-            exp_forecast_found = []
-            for exp_point in exp_coord.points:
-                if any(abs(exp_point - y) < 1e-5 for y in cube_coord.points):
-                    exp_forecast_found.append(1)
-                else:
-                    exp_forecast_found.append(0)
-            exp_forecast_found = np.array(exp_forecast_found)
-        else:
-            exp_forecast_found = np.ones(exp_coord_len)
-        return (exp_coord_len, exp_forecast_found)
-
-    @staticmethod
     def build_weights_cube(cube, weights, blending_coord):
         """Build a cube containing weights for use in blending.
 
@@ -678,8 +513,7 @@ class ChooseDefaultWeightsLinear:
 
         return weights
 
-    def process(self, cube, coord_name, coord_vals=None, coord_unit='no_unit',
-                weights_distrib_method='evenly'):
+    def process(self, cube, coord_name):
         """Calculated weights for a given cube and coord.
 
             Args:
@@ -687,16 +521,6 @@ class ChooseDefaultWeightsLinear:
                        Cube to blend across the coord.
                 coord_name (string):
                        Name of coordinate in the cube to be blended.
-                coord_vals (string):
-                       String list of values which are expected on the
-                       coordinate to be blended over.
-                coord_unit (cf_units.Unit):
-                       The unit in which the coord_exp_vals have been passed
-                       in.
-                weights_distrib_method (string):
-                       The method to use when redistributing weights in cases
-                       where there are some forecasts missing. Options:
-                       "evenly", "proportional".
             Returns:
                 weights (iris.cube.Cube):
                     1D cube of normalised (sum = 1.0) weights matching length
@@ -711,15 +535,7 @@ class ChooseDefaultWeightsLinear:
                    ' {0:s}'.format(str(type(cube))))
             raise TypeError(msg)
 
-        (num_of_weights,
-         exp_coord_found) = WeightsUtilities.process_coord(
-             cube, coord_name, coord_vals, coord_unit)
-
-        weights_in = self.linear_weights(num_of_weights)
-
-        weights = WeightsUtilities.redistribute_weights(
-            weights_in, exp_coord_found, weights_distrib_method)
-
+        weights = self.linear_weights(len(cube.coord(coord_name).points))
         weights_cube = WeightsUtilities.build_weights_cube(cube, weights,
                                                            coord_name)
         return weights_cube
@@ -773,8 +589,7 @@ class ChooseDefaultWeightsNonLinear:
 
         return weights
 
-    def process(self, cube, coord_name, coord_vals=None, coord_unit='no_unit',
-                weights_distrib_method='evenly'):
+    def process(self, cube, coord_name):
         """Calculated weights for a given cube and coord.
 
             Args:
@@ -782,16 +597,6 @@ class ChooseDefaultWeightsNonLinear:
                        Cube to blend across the coord.
                 coord_name (string):
                        Name of coordinate in the cube to be blended.
-                coord_vals (string):
-                       String list of values which are expected on the
-                       coordinate to be blended over.
-                coord_unit (cf_units.Unit):
-                       The unit in which the coord_exp_vals have been passed
-                       in.
-                weights_distrib_method (string):
-                        The method to use when redistributing weights in cases
-                        where there are some forecasts missing. Options:
-                        "evenly", "proportional".
             Returns:
                 weights (iris.cube.Cube):
                     1D cube of normalised (sum = 1.0) weights matching length
@@ -806,15 +611,7 @@ class ChooseDefaultWeightsNonLinear:
                    ' {0:s}'.format(str(type(cube))))
             raise TypeError(msg)
 
-        (num_of_weights,
-         exp_coord_found) = WeightsUtilities.process_coord(
-             cube, coord_name, coord_vals, coord_unit)
-
-        weights_in = self.nonlinear_weights(num_of_weights)
-
-        weights = WeightsUtilities.redistribute_weights(
-            weights_in, exp_coord_found, weights_distrib_method)
-
+        weights = self.nonlinear_weights(len(cube.coord(coord_name).points))
         weights_cube = WeightsUtilities.build_weights_cube(cube, weights,
                                                            coord_name)
         return weights_cube
@@ -841,6 +638,13 @@ class ChooseDefaultWeightsTriangular:
         if not isinstance(units, cf_units.Unit):
             units = cf_units.Unit(units)
         self.parameters_units = units
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        msg = ("<ChooseDefaultTriangularWeights "
+               "width={}, parameters_units={}>")
+        desc = msg.format(self.width, self.parameters_units)
+        return desc
 
     @staticmethod
     def triangular_weights(coord_vals, midpoint, width):
@@ -942,10 +746,3 @@ class ChooseDefaultWeightsTriangular:
         weights_cube = WeightsUtilities.build_weights_cube(cube, weights,
                                                            coord_name)
         return weights_cube
-
-    def __repr__(self):
-        """Represent the configured plugin instance as a string."""
-        msg = ("<ChooseDefaultTriangularWeights "
-               "width={}, parameters_units={}>")
-        desc = msg.format(self.width, self.parameters_units)
-        return desc

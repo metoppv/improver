@@ -66,8 +66,6 @@ class Test__init__(IrisTest):
         self.assertEqual(plugin.blend_coord, "forecast_reference_time")
         self.assertEqual(plugin.wts_calc_method, "linear")
         self.assertIsNone(plugin.weighting_coord)
-        # TODO remove
-        self.assertEqual(plugin.blend_coord_unit, Unit('unknown'))
         self.assertAlmostEqual(plugin.y0val, 1.0)
         self.assertAlmostEqual(plugin.ynval, 1.0)
 
@@ -79,8 +77,6 @@ class Test__init__(IrisTest):
         self.assertEqual(plugin.blend_coord, "model_id")
         self.assertEqual(plugin.wts_calc_method, "dict")
         self.assertEqual(plugin.weighting_coord, "forecast_period")
-        # TODO remove
-        self.assertIsNone(plugin.blend_coord_unit)
         self.assertDictEqual(plugin.wts_dict, MODEL_WEIGHTS)
 
     def test_unrecognised_weighting_type_error(self):
