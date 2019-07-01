@@ -39,15 +39,13 @@
       "$IMPROVER_ACC_TEST_DIR/wxcode/global/probability_of_rainfall_rate_above_threshold.nc" \
       "$IMPROVER_ACC_TEST_DIR/wxcode/global/probability_of_snowfall_rate_above_threshold.nc" \
       "$IMPROVER_ACC_TEST_DIR/wxcode/global/probability_of_cloud_area_fraction_above_threshold.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/global/probability_of_cloud_area_fraction_assuming_only_consider_surface_to_1000_feet_asl_above_threshold.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/global/probability_of_low_type_cloud_area_fraction_above_threshold.nc" \
       "$TEST_DIR/output.nc"
   echo "status = ${status}"
   [[ "$status" -eq 1 ]]
    read -d '' expected <<'__TEXT__' || true
-   argparse.ArgumentTypeError: Incorrect number of inputs
+   argparse.ArgumentTypeError: Incorrect number of inputs: files .* gave 4 cubes, 5 required
 __TEXT__
-  echo $output
-  echo $expected
-  [[ "$output" =~ "$expected" ]]
+  [[ "$output" =~ $expected ]]
 
 }

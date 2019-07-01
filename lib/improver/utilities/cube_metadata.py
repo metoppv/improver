@@ -33,6 +33,8 @@
 from datetime import datetime
 from dateutil import tz
 import warnings
+import pickle
+import hashlib
 import numpy as np
 
 import iris
@@ -106,8 +108,10 @@ def add_coord(cube, coord_name, changes, warnings_on=False):
         changes (dict):
             Details of coordinate to be added to the cube, with string keys.
             Valid keys are 'metatype' (which should have value 'DimCoord' or
-            'AuxCoord'), 'points', 'bounds', 'units' and 'var_name'. Any other
-            key strings in the dictionary are ignored.
+            'AuxCoord'), 'points', 'bounds', 'units', 'attributes' and
+            'var_name'. Any other key strings in the dictionary are ignored.
+            More detail is available in
+            :func:`improver.utilities.cube_metadata.amend_metadata`
 
     Keyword Args:
         warnings_on (bool):
@@ -123,26 +127,22 @@ def add_coord(cube, coord_name, changes, warnings_on=False):
         UserWarning: adding new coordinate.
 
     """
-    if 'points' not in changes:
+    result = cube
+    # Get the points for the coordinate to be added.
+    # The points must be defined.
+    if 'points' in changes:
+        if len(changes['points']) != 1:
+            msg = ("Can not add a coordinate of length > 1,"
+                   " coord  = {}".format(coord_name))
+            raise ValueError(msg)
+        points = changes['points']
+    else:
         msg = ("Trying to add new coord but no points defined"
                " in metadata, coord  = {}".format(coord_name))
         raise ValueError(msg)
-    if len(changes['points']) != 1:
-        msg = ("Can not add a coordinate of length > 1,"
-               " coord  = {}".format(coord_name))
-        raise ValueError(msg)
 
-    metatype = 'DimCoord'
-    if 'metatype' in changes:
-        if changes['metatype'] == 'AuxCoord':
-            new_coord_method = iris.coords.AuxCoord
-            metatype = 'AuxCoord'
-        else:
-            new_coord_method = iris.coords.DimCoord
-    else:
-        new_coord_method = iris.coords.DimCoord
-    result = cube
-    points = changes['points']
+    # Get the bounds, units, var_name and attributes from the
+    # changes dictionary.
     bounds = None
     if 'bounds' in changes:
         bounds = changes['bounds']
@@ -152,16 +152,30 @@ def add_coord(cube, coord_name, changes, warnings_on=False):
     var_name = None
     if 'var_name' in changes:
         var_name = changes['var_name']
+    attributes = None
+    if 'attributes' in changes:
+        attributes = changes['attributes']
+
+    # Get the type of the coordinate, if specified.
+    metatype = 'DimCoord'
+    if 'metatype' in changes:
+        if changes['metatype'] == 'AuxCoord':
+            new_coord_method = iris.coords.AuxCoord
+            metatype = 'AuxCoord'
+        else:
+            new_coord_method = iris.coords.DimCoord
+    else:
+        new_coord_method = iris.coords.DimCoord
 
     try:
         new_coord = new_coord_method(
             standard_name=coord_name, var_name=var_name, points=points,
-            bounds=bounds, units=units)
+            bounds=bounds, units=units, attributes=attributes)
     except ValueError as cause:
         if 'is not a valid standard_name' in str(cause):
             new_coord = new_coord_method(
                 long_name=coord_name, var_name=var_name, points=points,
-                bounds=bounds, units=units)
+                bounds=bounds, units=units, attributes=attributes)
         else:
             raise ValueError(cause)
 
@@ -187,6 +201,8 @@ def update_coord(cube, coord_name, changes, warnings_on=False):
         changes (string or dict):
             Details on coordinate to be updated.
             If changes = 'delete' the coordinate is deleted.
+            More detail is available in
+            :func:`improver.utilities.cube_metadata.amend_metadata`
 
     Keyword Args:
         warnings_on (bool):
@@ -264,6 +280,8 @@ def update_coord(cube, coord_name, changes, warnings_on=False):
                     raise ValueError(msg)
         if 'units' in changes:
             new_coord.convert_units(changes["units"])
+        if 'attributes' in changes:
+            new_coord.attributes.update(changes["attributes"])
         if warnings_on:
             msg = ("Updated coordinate "
                    "{}".format(coord_name) +
@@ -283,6 +301,8 @@ def update_attribute(cube, attribute_name, changes, warnings_on=False):
         changes (object):
             attribute value or
             If changes = 'delete' the coordinate is deleted.
+            More detail is available in
+            :func:`improver.utilities.cube_metadata.amend_metadata`
 
     Keyword Args:
         warnings_on (bool):
@@ -338,8 +358,8 @@ def update_cell_methods(cube, cell_method_definition):
             either "add" or "delete", which determines whether to add or delete
             the cell method. The rest of the keys are passed to the
             iris.coords.CellMethod function. Of these keys, "method", is
-            compulsory, and "comments", "coords" and "invevals" are optional.
-            If any addtional keys are provided in the dictionary they are
+            compulsory, and "comments", "coords" and "intervals" are optional.
+            If any additional keys are provided in the dictionary they are
             ignored.
 
     Raises:
@@ -517,7 +537,11 @@ def amend_metadata(cube,
 
 
 def resolve_metadata_diff(cube1, cube2, warnings_on=False):
-    """Resolve any differences in metadata between cubes.
+    """Resolve any differences in metadata between cubes. This involves
+    identifying coordinates that are mismatching between the cubes and
+    attempting to add this coordinate where it is missing. This makes use of
+    the points, bounds, units and attributes, as well as the coordinate type
+    i.e. DimCoord or AuxCoord.
 
     Args:
         cube1 (iris.cube.Cube):
@@ -555,6 +579,7 @@ def resolve_metadata_diff(cube1, cube2, warnings_on=False):
                     coord_dict['points'] = result1.coord(coord).points
                     coord_dict['bounds'] = result1.coord(coord).bounds
                     coord_dict['units'] = result1.coord(coord).units
+                    coord_dict['attributes'] = result1.coord(coord).attributes
                     coord_dict['metatype'] = 'DimCoord'
                     if result1.coord(coord).var_name is not None:
                         coord_dict['var_name'] = result1.coord(coord).var_name
@@ -666,7 +691,8 @@ def in_vicinity_name_format(cube_name):
 def extract_diagnostic_name(cube_name):
     """
     Extract the standard or long name X of the diagnostic from a probability
-    cube name of the form 'probability_of_X_above/below_thresold'
+    cube name of the form 'probability_of_X_above/below_threshold', or
+    'probability_of_X_in_vicinity_above/below_threshold'.
 
     Args:
         cube_name (str):
@@ -689,4 +715,48 @@ def extract_diagnostic_name(cube_name):
 
     # 'probability_of_' is a 15-character string
     diagnostic_name = cube_name[15:relative_to_threshold_index]
+
+    # check for and remove '_in_vicinity' suffix if present
+    suffix_len = 12
+    if len(diagnostic_name) > suffix_len:
+        suffix = diagnostic_name[-suffix_len:]
+        if suffix == '_in_vicinity':
+            diagnostic_name = diagnostic_name[:-suffix_len]
+
     return diagnostic_name
+
+
+def generate_hash(data_in):
+    """
+    Generate a hash from the data_in that can be used to uniquely identify
+    equivalent data_in.
+
+    Args:
+        data_in (any):
+            The data from which a hash is to be generated. This can be of any
+            type that can be pickled.
+    Returns:
+        hash (str):
+            A hexidecimal hash representing the data.
+    """
+    hashable_type = pickle.dumps(data_in)
+    hash_result = hashlib.md5(hashable_type).hexdigest()
+    return hash_result
+
+
+def create_coordinate_hash(cube):
+    """
+    Generate a hash based on the input cube's x and y coordinates. This
+    acts as a unique identifier for the grid which can be used to allow two
+    grids to be compared.
+
+    Args:
+        cube (iris.cube.Cube):
+            The cube from which x and y coordinates will be used to
+            generate a hash.
+    Returns:
+        coordinate_hash (string):
+            A hash created using the x and y coordinates of the input cube.
+    """
+    hashable_data = [cube.coord(axis='x'), cube.coord(axis='y')]
+    return generate_hash(hashable_data)

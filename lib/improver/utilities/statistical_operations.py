@@ -135,6 +135,9 @@ class ProbabilitiesFromPercentiles2D(object):
                 as x and y coordinates. We keep all the metadata from this cube
                 but dispose of the percentile coordinate as we will be filling
                 the cube with probabilities.
+            threshold_cube (iris.cube.Cube):
+                A 2-dimensional cube of "threshold" values containing metadata
+                required to construct a probability cube.
 
         Returns:
             probability_cube (iris.cube.Cube):

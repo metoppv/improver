@@ -86,10 +86,12 @@ class Test_process(IrisTest):
                                     self.default_percentiles*0.1)
         # Check coordinate name.
         self.assertEqual(result.coords()[0].name(),
-                         'percentile_over_longitude')
+                         'percentile')
+        # Check coordinate units.
+        self.assertEqual(result.coords()[0].units, '%')
         # Check coordinate points.
         self.assertArrayEqual(
-            result.coord('percentile_over_longitude').points,
+            result.coord('percentile').points,
             [0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100])
         # Check resulting data shape.
         self.assertEqual(result.data.shape, (15, 3, 11))
@@ -117,10 +119,12 @@ class Test_process(IrisTest):
                                     self.default_percentiles*0.01)
         # Check coordinate name.
         self.assertEqual(result.coords()[0].name(),
-                         'percentile_over_time')
+                         'percentile')
+        # Check coordinate units.
+        self.assertEqual(result.coords()[0].units, '%')
         # Check coordinate points.
         self.assertArrayEqual(
-            result.coord('percentile_over_time').points,
+            result.coord('percentile').points,
             [0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100])
         # Check resulting data shape.
         self.assertEqual(result.data.shape, (15, 3, 11, 11))
@@ -142,10 +146,12 @@ class Test_process(IrisTest):
                                 8., 9., 10., 10.])
         # Check coordinate name.
         self.assertEqual(result.coords()[0].name(),
-                         'percentile_over_latitude_longitude')
+                         'percentile')
+        # Check coordinate units.
+        self.assertEqual(result.coords()[0].units, '%')
         # Check coordinate points.
         self.assertArrayEqual(
-            result.coord('percentile_over_latitude_longitude').points,
+            result.coord('percentile').points,
             [0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100])
         # Check resulting data shape.
         self.assertEqual(result.data.shape, (15, 3))
@@ -171,10 +177,12 @@ class Test_process(IrisTest):
                                     self.default_percentiles*0.1)
         # Check coordinate name.
         self.assertEqual(result.coords()[0].name(),
-                         'percentile_over_longitude')
+                         'percentile')
+        # Check coordinate units.
+        self.assertEqual(result.coords()[0].units, '%')
         # Check coordinate points.
         self.assertArrayEqual(
-            result.coord('percentile_over_longitude').points,
+            result.coord('percentile').points,
             [0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100])
         # Check resulting data shape.
         self.assertEqual(result.data.shape, (15, 3, 11))

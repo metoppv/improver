@@ -31,7 +31,7 @@ install:
   - conda create --quiet -n $ENV_NAME python=$TRAVIS_PYTHON_VERSION
   - source activate $ENV_NAME
 
-  # Download Iris 2.0 and all dependencies.
+  # Download Iris 2.X and all dependencies.
   - conda install iris=2.2 cftime=1.0.1 numpy=1.15.4
 
   # Install our own extra dependencies (+ filelock for Iris test).

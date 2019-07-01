@@ -294,7 +294,7 @@ def conform_metadata(
             cube.coord("forecast_reference_time").points = new_cycletime
             cube.coord("forecast_reference_time").bounds = None
 
-        # recalculate forecast period coordainte
+        # recalculate forecast period coordinate
         if cube.coords("forecast_period"):
             forecast_period = forecast_period_coord(
                 cube, force_lead_time_calculation=True)
@@ -311,7 +311,7 @@ def conform_metadata(
         cube.attributes["title"] = "IMPROVER Model Forecast"
 
     # remove appropriate scalar coordinates
-    for crd in ["model_id", "model_realization", "realization"]:
+    for crd in ["model_id", "model_configuration", "realization"]:
         if cube.coords(crd) and cube.coord(crd).shape == (1,):
             cube.remove_coord(crd)
 
@@ -336,7 +336,7 @@ class PercentileBlendingAggregator:
            2. We do a weighted blend across all the probability spaces,
               combining all the thresholds in all the points in the coordinate
               we are blending over. This gives us an array of thresholds and an
-              array of blended probailities for each of the grid points.
+              array of blended probabilities for each of the grid points.
            3. We convert back to the original percentile values, again using
               linear interpolation, resulting in blended values at each of the
               original percentiles.

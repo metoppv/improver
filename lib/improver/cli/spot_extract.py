@@ -128,17 +128,7 @@ def main(argv=None):
 
     meta_group = parser.add_argument_group("Metadata")
     meta_group.add_argument(
-        "--grid_metadata_identifier", default="mosg__grid",
-        help="A string (or None) to identify attributes from the input netCDF"
-        " files that should be compared to ensure that the data is compatible."
-        " Spot data works using grid indices, so it is important that the"
-        " grids are matching or the data extracted may not match the location"
-        " of the spot data sites. The default is 'mosg__grid'. If set to None"
-        " no check is made; this can be used if the cubes are known to be"
-        " appropriate but lack relevant metadata.")
-
-    meta_group.add_argument(
-        "--json_file", metavar="JSON_FILE", default=None,
+        "--metadata_json", metavar="METADATA_JSON", default=None,
         help="If provided, this JSON file can be used to modify the metadata "
         "of the returned netCDF file. Defaults to None.")
 
@@ -167,8 +157,7 @@ def main(argv=None):
         minimum_dz=args.minimum_dz).neighbour_finding_method_name()
 
     plugin = SpotExtraction(
-        neighbour_selection_method=neighbour_selection_method,
-        grid_metadata_identifier=args.grid_metadata_identifier)
+        neighbour_selection_method=neighbour_selection_method)
     result = plugin.process(neighbour_cube, diagnostic_cube)
 
     # If a probability or percentile diagnostic cube is provided, extract
@@ -191,11 +180,6 @@ def main(argv=None):
                     'realization', percentiles=args.extract_percentiles,
                     fast_percentile_method=fast_percentile_method).process(
                         result)
-                # This ensures the output for percentiles derived from
-                # realization input looks like that derived from other inputs.
-                result.coord('percentile_over_realization').rename(
-                    'percentile')
-                result.coord('percentile').units = '%'
             else:
                 msg = ('Diagnostic cube is not a known probabilistic type. '
                        'The {} percentile could not be extracted. Extracting '
@@ -247,7 +231,6 @@ def main(argv=None):
         # rate values.
         if diagnostic_cube.coord("height") == lapse_rate_height_coord:
             plugin = SpotLapseRateAdjust(
-                args.grid_metadata_identifier,
                 neighbour_selection_method=neighbour_selection_method)
             result = plugin.process(result, neighbour_cube, lapse_rate_cube)
         else:
@@ -258,7 +241,7 @@ def main(argv=None):
             if not args.suppress_warnings:
                 warnings.warn(msg)
     elif (args.apply_lapse_rate_correction and
-            not args.temperature_lapse_rate_filepath):
+          not args.temperature_lapse_rate_filepath):
         msg = ("A lapse rate cube was not provided, but the option to "
                "apply the lapse rate correction was enabled. No lapse rate "
                "correction could be applied.")
@@ -266,12 +249,15 @@ def main(argv=None):
             warnings.warn(msg)
 
     # Modify final metadata as described by provided JSON file.
-    if args.json_file:
-        with open(args.json_file, 'r') as input_file:
+    if args.metadata_json:
+        with open(args.metadata_json, 'r') as input_file:
             metadata_dict = json.load(input_file)
         result = amend_metadata(result, **metadata_dict)
 
-    # Save the spot data cube
+    # Remove the internal model_grid_hash attribute if present.
+    result.attributes.pop('model_grid_hash', None)
+
+    # Save the spot data cube.
     save_netcdf(result, args.output_filepath)
 
 

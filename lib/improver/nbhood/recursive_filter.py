@@ -257,8 +257,8 @@ class RecursiveFilter(object):
         """
         if alpha is not None and alphas_cube is not None:
             emsg = ("A cube of alpha values and a single float value for alpha"
-                    " have both been provded. Only one of these options can be"
-                    " set.")
+                    " have both been provided. Only one of these options can"
+                    " be set.")
             raise ValueError(emsg)
 
         if alphas_cube is None:

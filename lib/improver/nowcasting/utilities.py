@@ -81,7 +81,7 @@ class ExtendRadarMask(object):
                 raise ValueError('Rain rate and coverage composites unmatched '
                                  '- coord {}'.format(crd.name()))
 
-        # accomodate data from multiple times
+        # accommodate data from multiple times
         radar_data_slices = radar_data.slices([radar_data.coord(axis='y'),
                                                radar_data.coord(axis='x')])
         coverage_slices = coverage.slices([coverage.coord(axis='y'),

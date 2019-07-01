@@ -42,7 +42,7 @@ usage: improver neighbour-finding [-h] [--profile]
                                   [--site_coordinate_system SITE_COORDINATE_SYSTEM]
                                   [--site_x_coordinate SITE_X_COORDINATE]
                                   [--site_y_coordinate SITE_Y_COORDINATE]
-                                  [--grid_metadata_identifier GRID_METADATA_IDENTIFIER]
+                                  [--metadata_json METADATA_JSON]
                                   SITE_LIST_FILEPATH OROGRAPHY_FILEPATH
                                   LANDMASK_FILEPATH OUTPUT_FILEPATH
 
@@ -122,12 +122,10 @@ Site list options:
                         option if required.
 
 Metadata:
-  --grid_metadata_identifier GRID_METADATA_IDENTIFIER
-                        A string to identify attributes from the netCDF files
-                        that should be copied onto the output cube. Attributes
-                        are compared for a partial match. The default is
-                        'mosg' which corresponds to Met Office Standard Grid
-                        attributes which should be copied across.
+  --metadata_json METADATA_JSON
+                        If provided, this JSON file can be used to modify the
+                        metadata of the returned netCDF file. Defaults to
+                        None.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

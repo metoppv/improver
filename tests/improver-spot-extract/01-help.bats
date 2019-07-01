@@ -39,8 +39,8 @@ usage: improver spot-extract [-h] [--profile] [--profile_file PROFILE_FILE]
                              [--land_constraint] [--minimum_dz]
                              [--extract_percentiles EXTRACT_PERCENTILES [EXTRACT_PERCENTILES ...]]
                              [--ecc_bounds_warning]
-                             [--grid_metadata_identifier GRID_METADATA_IDENTIFIER]
-                             [--json_file JSON_FILE] [--suppress_warnings]
+                             [--metadata_json METADATA_JSON]
+                             [--suppress_warnings]
                              NEIGHBOUR_FILEPATH DIAGNOSTIC_FILEPATH
                              [LAPSE_RATE_FILEPATH] OUTPUT_FILEPATH
 
@@ -109,17 +109,7 @@ Extract percentiles:
                         must exist in the input cube.
 
 Metadata:
-  --grid_metadata_identifier GRID_METADATA_IDENTIFIER
-                        A string (or None) to identify attributes from the
-                        input netCDF files that should be compared to ensure
-                        that the data is compatible. Spot data works using
-                        grid indices, so it is important that the grids are
-                        matching or the data extracted may not match the
-                        location of the spot data sites. The default is
-                        'mosg__grid'. If set to None no check is made; this
-                        can be used if the cubes are known to be appropriate
-                        but lack relevant metadata.
-  --json_file JSON_FILE
+  --metadata_json METADATA_JSON
                         If provided, this JSON file can be used to modify the
                         metadata of the returned netCDF file. Defaults to
                         None.

@@ -400,7 +400,7 @@ class MergeCubes():
         different values) cannot be merged.
 
         If the input is a single Cube, this is returned unmodified.  A
-        CubeList of length 1 is checked for mistmatched time bounds before
+        CubeList of length 1 is checked for mismatched time bounds before
         returning the single Cube (since a CubeList of this form may be the
         result of premature iris merging on load).
 

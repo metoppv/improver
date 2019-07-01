@@ -78,6 +78,9 @@ class WeatherSymbols(object):
         # flag to indicate whether to expect "threshold" as a coordinate name
         # (defaults to False, checked on reading input cubes)
         self.coord_named_threshold = False
+        # dictionary to contain names of threshold coordinates that do not
+        # match expected convention
+        self.threshold_coord_names = {}
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -86,9 +89,10 @@ class WeatherSymbols(object):
     def check_input_cubes(self, cubes):
         """
         Check that the input cubes contain all the diagnostics and thresholds
-        required by the decision tree.  Sets self.threshold_name to "True" if
-        threshold-type coordinates have the name "threshold" (as opposed to
-        the standard name of the diagnostic), for backward-compatibility.
+        required by the decision tree.  Sets self.coord_named_threshold to
+        "True" if threshold-type coordinates have the name "threshold" (as
+        opposed to the standard name of the diagnostic), for backward
+        compatibility.
 
         Args:
             cubes (iris.cube.CubeList):
@@ -125,6 +129,12 @@ class WeatherSymbols(object):
                 threshold_name = find_threshold_coordinate(
                     matched_cube[0]).name()
 
+                # Check cube and threshold coordinate names match according to
+                # expected convention.  If not, add to exception dictionary.
+                if extract_diagnostic_name(diagnostic) != threshold_name:
+                    self.threshold_coord_names[diagnostic] = (
+                        threshold_name)
+
                 # Set flag to check for old threshold coordinate names
                 if (threshold_name == "threshold" and
                         not self.coord_named_threshold):
@@ -136,7 +146,9 @@ class WeatherSymbols(object):
                             threshold * (1. - self.float_tolerance) < cell <
                             threshold * (1. + self.float_tolerance))},
                         cube_func=lambda cube: (
-                            cube.attributes['relative_to_threshold'] ==
+                            find_threshold_coordinate(
+                                cube
+                            ).attributes['spp__relative_to_threshold'] ==
                             condition)))
                 matched_threshold = matched_cube.extract(test_condition)
                 if not matched_threshold:
@@ -146,7 +158,8 @@ class WeatherSymbols(object):
             msg = ('Weather Symbols input cubes are missing'
                    ' the following required'
                    ' input fields:\n')
-            dyn_msg = 'name: {}, threshold: {}, relative_to_threshold: {}\n'
+            dyn_msg = ('name: {}, threshold: {}, '
+                       'spp__relative_to_threshold: {}\n')
             for item in missing_data:
                 msg = msg + dyn_msg.format(*item)
             raise IOError(msg)
@@ -285,7 +298,7 @@ class WeatherSymbols(object):
                 gamma = gamma[loop]
             loop += 1
 
-            extract_constraint = WeatherSymbols.construct_extract_constraint(
+            extract_constraint = self.construct_extract_constraint(
                 diagnostic, d_threshold, self.coord_named_threshold)
             conditions.append(
                 WeatherSymbols.construct_condition(
@@ -296,9 +309,8 @@ class WeatherSymbols(object):
             condition_combination=test_conditions['condition_combination'])
         return [condition_chain]
 
-    @staticmethod
     def construct_extract_constraint(
-            diagnostics, thresholds, coord_named_threshold):
+            self, diagnostics, thresholds, coord_named_threshold):
         """
         Construct an iris constraint.
 
@@ -345,6 +357,9 @@ class WeatherSymbols(object):
             for diagnostic, threshold in zip(diagnostics, thresholds):
                 if coord_named_threshold:
                     threshold_coord_name = "threshold"
+                elif diagnostic in self.threshold_coord_names:
+                    threshold_coord_name = (
+                        self.threshold_coord_names[diagnostic])
                 else:
                     threshold_coord_name = extract_diagnostic_name(diagnostic)
                 threshold_val = threshold.points.item()
@@ -356,6 +371,8 @@ class WeatherSymbols(object):
         # otherwise, return a string
         if coord_named_threshold:
             threshold_coord_name = "threshold"
+        elif diagnostics in self.threshold_coord_names:
+            threshold_coord_name = self.threshold_coord_names[diagnostics]
         else:
             threshold_coord_name = extract_diagnostic_name(diagnostics)
         threshold_val = thresholds.points.item()
@@ -427,7 +444,6 @@ class WeatherSymbols(object):
                                                 dtype=np.int))
 
         symbols.remove_coord(threshold_coord)
-        symbols.attributes.pop('relative_to_threshold')
         symbols = add_wxcode_metadata(symbols)
 
         return symbols

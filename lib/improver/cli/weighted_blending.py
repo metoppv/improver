@@ -264,7 +264,7 @@ def main(argv=None):
     wts_dict.add_argument('--weighting_coord', metavar='WEIGHTING_COORD',
                           default='forecast_period', help='Name of '
                           'coordinate over which linear weights should be '
-                          'scaled. This coordinate must be avilable in the '
+                          'scaled. This coordinate must be available in the '
                           'weights dictionary.')
 
     args = parser.parse_args(args=argv)

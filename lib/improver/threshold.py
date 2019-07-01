@@ -122,6 +122,9 @@ class BasicThreshold(object):
         else:
             self.threshold_units = Unit(threshold_units)
 
+        # initialise threshold coordinate name as None
+        self.threshold_coord_name = None
+
         # read fuzzy factor or set (default) to 1 (no smoothing)
         fuzzy_factor_loc = 1.
         if fuzzy_factor is not None:
@@ -180,12 +183,11 @@ class BasicThreshold(object):
         ).format(self.thresholds, self.fuzzy_bounds,
                  self.below_thresh_ok)
 
-    @staticmethod
-    def _add_threshold_coord(cube, threshold):
+    def _add_threshold_coord(self, cube, threshold):
         """
-        Add a scalar threshold-type dimension coordinate to a cube containing
-        thresholded data and promote the new dimension coordinate to be
-        the leading dimension of the cube.
+        Add a scalar threshold-type coordinate to a cube containing
+        thresholded data and promote the new coordinate to be the
+        leading dimension of the cube.
 
         Args:
             cube (iris.cube.Cube):
@@ -200,16 +202,23 @@ class BasicThreshold(object):
         try:
             coord = iris.coords.DimCoord(
                 np.array([threshold], dtype=np.float32),
-                standard_name=cube.name(),
+                standard_name=self.threshold_coord_name,
                 var_name="threshold", units=cube.units)
         except ValueError as cause:
             if 'is not a valid standard_name' in str(cause):
                 coord = iris.coords.DimCoord(
                     np.array([threshold], dtype=np.float32),
-                    long_name=cube.name(),
+                    long_name=self.threshold_coord_name,
                     var_name="threshold", units=cube.units)
             else:
                 raise ValueError(cause)
+
+        # Use an spp__relative_to_threshold attribute, as an extension to the
+        # CF-conventions.
+        if self.below_thresh_ok:
+            coord.attributes.update({'spp__relative_to_threshold': 'below'})
+        else:
+            coord.attributes.update({'spp__relative_to_threshold': 'above'})
 
         cube.add_aux_coord(coord)
         return iris.util.new_axis(cube, coord)
@@ -262,6 +271,9 @@ class BasicThreshold(object):
                 self.threshold_units.convert(threshold, input_cube.units)
                 for threshold in bounds]) for bounds in self.fuzzy_bounds]
 
+        # set name of threshold coordinate to match input diagnostic
+        self.threshold_coord_name = input_cube.name()
+
         # apply fuzzy thresholding
         for threshold, bounds in zip(self.thresholds, self.fuzzy_bounds):
             cube = input_cube.copy()
@@ -299,19 +311,16 @@ class BasicThreshold(object):
             thresholded_cubes.append(cube)
 
         cube, = thresholded_cubes.concatenate()
-        # TODO: Correct when formal cf-standards exists
-        # Force the metadata to temporary conventions
+
         if self.below_thresh_ok:
-            cube.attributes.update({'relative_to_threshold': 'below'})
             cube.rename(
                 "probability_of_{}_below_threshold".format(cube.name()))
         else:
-            cube.attributes.update({'relative_to_threshold': 'above'})
             cube.rename(
                 "probability_of_{}_above_threshold".format(cube.name()))
         cube.units = Unit(1)
 
         cube = enforce_coordinate_ordering(
-            cube, ["realization", "percentile_over"])
+            cube, ["realization", "percentile"])
 
         return cube

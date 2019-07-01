@@ -49,7 +49,7 @@ class ArgParser(ArgumentParser):
     For these dictionaries, each element has:
         - a key, which is a string representing the argument name - used
           internally to refer to a particular argument (which, in the case of
-          the CENTRALIZED_ARUGMENTS may be selected from when creating an
+          the CENTRALIZED_ARGUMENTS may be selected from when creating an
           instance of the ArgParser)
         - a value, which is a list containing 2 elements:
             1. a list of strings containing the different flags which are
@@ -65,7 +65,7 @@ class ArgParser(ArgumentParser):
 
     ArgParser.DEFAULT_CENTRALIZED_ARG_NAMES defines the centralized arguments
     which are to be included by default when creating instances of this
-    class (i.e: when nothing is explictly passed
+    class (i.e: when nothing is explicitly passed
     into the constructor). This is a tuple containing keys associated with the
     ArgParser.CENTRALIZED_ARGUMENTS dictionary.
     """

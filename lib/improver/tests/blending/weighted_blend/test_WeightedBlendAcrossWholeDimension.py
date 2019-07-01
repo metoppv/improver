@@ -79,7 +79,7 @@ def percentile_cube():
 
     # construct dim coords
     perc_coord = DimCoord([0, 20, 40, 60, 80, 100],
-                          long_name="percentile_over_realization")
+                          long_name="percentile")
     y_coord = DimCoord(np.linspace(-45.0, 45.0, 2).astype(np.float32),
                        'latitude', units='degrees')
     x_coord = DimCoord(np.linspace(120, 180, 2).astype(np.float32),
@@ -200,7 +200,8 @@ class Test_weighted_blend(IrisTest):
         cube_threshold.add_aux_coord(time_coord)
         cube_threshold.add_aux_coord(fp_coord, data_dims=1)
 
-        cube_threshold.attributes.update({'relative_to_threshold': 'below'})
+        cube_threshold.coord(var_name="threshold").attributes.update(
+            {'spp__relative_to_threshold': 'below'})
         cube_threshold.attributes = self.attributes
         self.cube_threshold = cube_threshold
 
@@ -244,7 +245,7 @@ class Test_check_percentile_coord(Test_weighted_blend):
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
         new_cube = self.cube.copy()
         new_cube.add_aux_coord(AuxCoord([10.0],
-                                        long_name="percentile_over_time"))
+                                        long_name="percentile"))
         msg = ('The percentile coord must be a dimension '
                'of the cube.')
         with self.assertRaisesRegex(ValueError, msg):
@@ -256,7 +257,7 @@ class Test_check_percentile_coord(Test_weighted_blend):
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
         new_cube = Cube([[0.0]])
         new_cube.add_dim_coord(DimCoord([10.0],
-                                        long_name="percentile_over_time"), 0)
+                                        long_name="percentile"), 0)
         new_cube.add_dim_coord(
             DimCoord([10.0], long_name="forecast_reference_time"), 1)
         msg = ('Percentile coordinate does not have enough points'
@@ -403,7 +404,7 @@ class Test_percentile_weights(Test_weighted_blend):
         perc_cube = percentile_cube()
         coord = "forecast_reference_time"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
-        perc_coord = perc_cube.coord('percentile_over_realization')
+        perc_coord = perc_cube.coord('percentile')
         coord_dim, = perc_cube.coord_dims(coord)
         perc_dim, = perc_cube.coord_dims(perc_coord)
 
@@ -426,7 +427,7 @@ class Test_percentile_weights(Test_weighted_blend):
         perc_cube = percentile_cube()
         coord = "forecast_reference_time"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
-        perc_coord = perc_cube.coord('percentile_over_realization')
+        perc_coord = perc_cube.coord('percentile')
         coord_dim, = perc_cube.coord_dims(coord)
         perc_dim, = perc_cube.coord_dims(perc_coord)
         expected = np.empty_like(perc_cube.data)
@@ -445,7 +446,7 @@ class Test_percentile_weights(Test_weighted_blend):
         perc_cube = percentile_cube()
         coord = "forecast_reference_time"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
-        perc_coord = perc_cube.coord('percentile_over_realization')
+        perc_coord = perc_cube.coord('percentile')
         coord_dim, = perc_cube.coord_dims(coord)
         perc_dim, = perc_cube.coord_dims(perc_coord)
         expected = np.empty_like(perc_cube.data)
@@ -544,7 +545,7 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
         perc_cube = percentile_cube()
         coord = "forecast_reference_time"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
-        perc_coord = perc_cube.coord('percentile_over_realization')
+        perc_coord = perc_cube.coord('percentile')
         result = plugin.percentile_weighted_mean(perc_cube, self.weights1d,
                                                  perc_coord)
         self.assertIsInstance(result, iris.cube.Cube)
@@ -562,7 +563,7 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
         perc_cube = percentile_cube()
         coord = "forecast_reference_time"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
-        perc_coord = perc_cube.coord('percentile_over_realization')
+        perc_coord = perc_cube.coord('percentile')
         result = plugin.percentile_weighted_mean(perc_cube, self.weights3d,
                                                  perc_coord)
         self.assertIsInstance(result, iris.cube.Cube)
@@ -578,7 +579,7 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
         perc_cube = percentile_cube()
         coord = "forecast_reference_time"
         plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
-        perc_coord = perc_cube.coord('percentile_over_realization')
+        perc_coord = perc_cube.coord('percentile')
         result = plugin.percentile_weighted_mean(perc_cube, None,
                                                  perc_coord)
         self.assertIsInstance(result, iris.cube.Cube)
@@ -599,8 +600,8 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
         time_leading = percentile_cube()
         time_leading.transpose([1, 0, 2, 3])
 
-        pl_perc_coord = percentile_leading.coord('percentile_over_realization')
-        tl_perc_coord = time_leading.coord('percentile_over_realization')
+        pl_perc_coord = percentile_leading.coord('percentile')
+        tl_perc_coord = time_leading.coord('percentile')
 
         result_percentile_leading = plugin.percentile_weighted_mean(
             percentile_leading, weights, pl_perc_coord)
@@ -625,7 +626,7 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
         weights = None
         longitude_leading = percentile_cube()
         longitude_leading.transpose([3, 0, 1, 2])
-        perc_coord = longitude_leading.coord('percentile_over_realization')
+        perc_coord = longitude_leading.coord('percentile')
 
         result = plugin.percentile_weighted_mean(
             longitude_leading, weights, perc_coord)

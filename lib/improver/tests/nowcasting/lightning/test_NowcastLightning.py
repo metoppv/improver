@@ -172,10 +172,11 @@ class Test__update_metadata(IrisTest):
             forecast_period: 14400 seconds
             forecast_reference_time: 2017-11-10 00:00:00
             time: 2017-11-10 04:00:00
-        Attributes:
-            relative_to_threshold: above
         Cell methods:
             mean: realization
+
+        The lwe_precipitation_rate coordinate will have the attribute:
+            spp__relative_to_threshold: above.
         """
         data = np.ones((1, 16, 16), dtype=np.float32)
         thresholds = np.array([0.5], dtype=np.float32)
