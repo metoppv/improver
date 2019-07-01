@@ -21,10 +21,10 @@ install:
   # Create the basic testing environment
   # ------------------------------------
   # Explicitly add defaults channel, see https://github.com/conda/conda/issues/2675
-  - conda config --system –-set channel_alias https://ben.fitzpatrick@metoffice.gov.uk:$ARTIFACTORY_API_KEY@metoffice.jfrog.io/metoffice/api/conda/
-  - conda config –-system –-remove defaults
-  - conda config –-system –-add channels conda-free
-  - conda config –-system –-add channels conda-main
+  - conda config --system --set channel_alias https://ben.fitzpatrick@metoffice.gov.uk:$ARTIFACTORY_API_KEY@metoffice.jfrog.io/metoffice/api/conda/
+  - conda config --system --remove defaults
+  - conda config --system --add channels conda-free
+  - conda config --system --add channels conda-main
   - conda config --system --add channels conda-agnostic
  
   - ENV_NAME='test-environment'
