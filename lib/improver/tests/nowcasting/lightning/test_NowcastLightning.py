@@ -704,25 +704,23 @@ class Test_apply_ice(IrisTest):
         """Test that large VII probs do increase zero lightning risk when
         forecast lead time is non-zero (three forecast_period points)"""
         self.ice_cube.data[:, 1, 1] = 1.
-        fg_cube_template = self.fg_cube.copy()
-        fg_cube_template.data[1, 1] = 0.
-        fg_cube_template.coord('forecast_period').points = [0]
-        frt_point = fg_cube_template.coord('forecast_reference_time').points[0]
-        self.fg_cube = CubeList([])
+        self.fg_cube.data[1, 1] = 0.
+        frt_point = self.fg_cube.coord('forecast_reference_time').points[0]
+        fg_cube_input = CubeList([])
         for fc_time in [1, 2.5, 3]:  # hours
-            fg_cube_next = fg_cube_template.copy()
+            fg_cube_next = self.fg_cube.copy()
             fg_cube_next.coord('time').points = (
                 [frt_point + fc_time * 3600])  # seconds
             fg_cube_next.coord('forecast_period').points = (
                 [(fc_time) * 3600])
-            self.fg_cube.append(squeeze(fg_cube_next))
-        self.fg_cube = self.fg_cube.merge_cube()
-        expected = self.fg_cube.copy()
+            fg_cube_input.append(squeeze(fg_cube_next))
+        fg_cube_input = fg_cube_input.merge_cube()
+        expected = fg_cube_input.copy()
         # expected.data contains all ones except:
         expected.data[0, 1, 1] = 0.54
         expected.data[1, 1, 1] = 0.0
         expected.data[2, 1, 1] = 0.0
-        result = self.plugin.apply_ice(self.fg_cube,
+        result = self.plugin.apply_ice(fg_cube_input,
                                        self.ice_cube)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
