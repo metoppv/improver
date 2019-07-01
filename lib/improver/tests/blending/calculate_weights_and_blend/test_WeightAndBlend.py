@@ -139,7 +139,7 @@ class Test_process(IrisTest):
     def test_basic(self):
         """Test output is a cube"""
         result = self.plugin_cycle.process(
-            [self.ukv_cube, self.ukv_cube_latest], "weighted_mean")
+            [self.ukv_cube, self.ukv_cube_latest])
         self.assertIsInstance(result, iris.cube.Cube)
 
     @ManageWarnings(
@@ -150,7 +150,7 @@ class Test_process(IrisTest):
         expected_data = np.array(
             [[[0.95]], [[0.55]], [[0.1]]], dtype=np.float32)
         result = self.plugin_cycle.process(
-            [self.ukv_cube, self.ukv_cube_latest], "weighted_mean")
+            [self.ukv_cube, self.ukv_cube_latest])
         self.assertArrayAlmostEqual(result.data, expected_data)
         # make sure output cube has the forecast reference time and period
         # from the most recent contributing cycle
@@ -165,7 +165,7 @@ class Test_process(IrisTest):
         with 50-50 weightings defined by dictionary"""
         expected_data = np.array([[[0.8]], [[0.4]], [[0]]], dtype=np.float32)
         result = self.plugin_model.process(
-            [self.ukv_cube, self.enukx_cube], "weighted_mean",
+            [self.ukv_cube, self.enukx_cube],
             model_id_attr="mosg__model_configuration")
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertEqual(
@@ -184,7 +184,7 @@ class Test_process(IrisTest):
             [[[0.8666667]], [[0.4666667]], [[0.0666667]]], dtype=np.float32)
         result = self.plugin_model.process(
             [self.ukv_cube, self.enukx_cube, self.nowcast_cube],
-            "weighted_mean", model_id_attr="mosg__model_configuration")
+            model_id_attr="mosg__model_configuration")
         self.assertArrayAlmostEqual(result.data, expected_data)
         # make sure output cube has the forecast reference time and period
         # from the most recent contributing model
@@ -196,8 +196,7 @@ class Test_process(IrisTest):
         """Test the plugin returns a single input cube with identical data and
         suitably updated metadata"""
         result = self.plugin_model.process(
-            [self.enukx_cube], "weighted_mean",
-            model_id_attr="mosg__model_configuration")
+            [self.enukx_cube], model_id_attr="mosg__model_configuration")
         self.assertArrayAlmostEqual(result.data, self.enukx_cube.data)
         self.assertEqual(
             result.attributes['mosg__model_configuration'], 'blend')
@@ -209,8 +208,7 @@ class Test_process(IrisTest):
         plugin = WeightAndBlend("kittens", "linear", y0val=1, ynval=1)
         msg = "kittens coordinate is not present on all input cubes"
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(
-                [self.ukv_cube, self.ukv_cube_latest], "weighted_mean")
+            plugin.process([self.ukv_cube, self.ukv_cube_latest])
 
 
 class Test_process_spatial_weights(IrisTest):
@@ -264,8 +262,8 @@ class Test_process_spatial_weights(IrisTest):
              np.broadcast_to([0.1, 0.1, 0.1, 0.0, 0.0], (5, 5))],
             dtype=np.float32)
         result = self.plugin.process(
-            self.cubelist, "weighted_mean", spatial_weights=True,
-            model_id_attr="mosg__model_configuration")
+            self.cubelist, model_id_attr="mosg__model_configuration",
+            spatial_weights=True)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected_data)
 
@@ -282,8 +280,8 @@ class Test_process_spatial_weights(IrisTest):
              np.broadcast_to([0.1, 0.1, 0.0666666, 0.0, 0.0], (5, 5))],
             dtype=np.float32)
         result = self.plugin.process(
-            self.cubelist, "weighted_mean", spatial_weights=True,
-            model_id_attr="mosg__model_configuration", fuzzy_length=400000)
+            self.cubelist, model_id_attr="mosg__model_configuration",
+            spatial_weights=True, fuzzy_length=400000)
         self.assertArrayAlmostEqual(result.data, expected_data)
 
 

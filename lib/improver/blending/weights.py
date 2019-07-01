@@ -698,9 +698,9 @@ class ChooseDefaultWeightsLinear:
                        where there are some forecasts missing. Options:
                        "evenly", "proportional".
             Returns:
-                weights (numpy.array):
-                    1D array of normalised (sum = 1.0) weights matching length
-                    of cube dimension to be blended
+                weights (iris.cube.Cube):
+                    1D cube of normalised (sum = 1.0) weights matching length
+                    of input dimension to be blended
 
             Raises:
                 TypeError : input is not a cube
@@ -793,9 +793,9 @@ class ChooseDefaultWeightsNonLinear:
                         where there are some forecasts missing. Options:
                         "evenly", "proportional".
             Returns:
-                weights (numpy.array):
-                    1D array of normalised (sum = 1.0) weights matching length
-                    of cube dimension to be blended
+                weights (iris.cube.Cube):
+                    1D cube of normalised (sum = 1.0) weights matching length
+                    of input dimension to be blended
 
             Raises:
                 TypeError : input is not a cube
@@ -910,9 +910,9 @@ class ChooseDefaultWeightsTriangular:
                     ie "self.parameter_units" as initialised.
 
             Returns:
-                weights (numpy.array):
-                    1D array of normalised (sum = 1.0) weights matching length
-                    of cube dimension to be blended
+                weights (iris.cube.Cube):
+                    1D cube of normalised (sum = 1.0) weights matching length
+                    of input dimension to be blended
 
             Raises:
                 TypeError : input is not a cube

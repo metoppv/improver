@@ -179,7 +179,7 @@ class WeightAndBlend():
         weights = SpatialWeightsPlugin.process(cube, weights, self.blend_coord)
         return weights
 
-    def process(self, cubelist, weighting_mode,
+    def process(self, cubelist, weighting_mode='weighted_mean',
                 cycletime=None, model_id_attr=None,
                 spatial_weights=False, fuzzy_length=20000):
         """
@@ -189,10 +189,10 @@ class WeightAndBlend():
         Args:
             cubelist (iris.cube.CubeList):
                 List of cubes to be merged and blended
-            weighting_mode (str):
-                "weighted_mean" or "weighted_maximum"
 
         Kwargs:
+            weighting_mode (str):
+                "weighted_mean" or "weighted_maximum"
             cycletime (str):
                 Forecast reference time to use for output cubes, in the format
                 YYYYMMDDTHHMMZ.  If not set, the latest of the input cube

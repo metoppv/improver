@@ -42,8 +42,7 @@ from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.utilities.cube_metadata import in_vicinity_name_format
 from improver.utilities.spatial import OccurrenceWithinVicinity
-from improver.blending.weights import ChooseDefaultWeightsLinear
-from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
+from improver.blending.calculate_weights_and_blend import WeightAndBlend
 
 
 def main(argv=None):
@@ -175,18 +174,10 @@ def main(argv=None):
         if np.ma.isMaskedArray(result_no_collapse_coord.data):
             warnings.warn("Collapse-coord option not fully tested with "
                           "masked data.")
-        # This is where we fix values for y0val, ynval and weighting_mode.
-        # In this case they are fixed to the values required for realization
-        # collapse. This can be changed if other functionality needs to be
-        # implemented.
-        weights = ChooseDefaultWeightsLinear(y0val=1.0, ynval=1.0).process(
-            result_no_collapse_coord, args.collapse_coord)
-
-        BlendingPlugin = WeightedBlendAcrossWholeDimension(
-            args.collapse_coord, weighting_mode='weighted_mean')
-        result_collapse_coord = BlendingPlugin.process(
-            result_no_collapse_coord, weights)
-
+        # Take a weighted mean across realizations with equal weights
+        plugin = WeightAndBlend(args.collapse_coord, "linear",
+                                y0val=1.0, ynval=1.0)
+        result_collapse_coord = plugin.process(result_no_collapse_coord)
         save_netcdf(result_collapse_coord, args.output_filepath)
 
 
