@@ -707,12 +707,10 @@ class Test_apply_ice(IrisTest):
         self.fg_cube.data[1, 1] = 0.
         frt_point = self.fg_cube.coord('forecast_reference_time').points[0]
         fg_cube_input = CubeList([])
-        for fc_time in [1, 2.5, 3]:  # hours
+        for fc_time in np.array([1, 2.5, 3]) * 3600:  # seconds
             fg_cube_next = self.fg_cube.copy()
-            fg_cube_next.coord('time').points = (
-                [frt_point + fc_time * 3600])  # seconds
-            fg_cube_next.coord('forecast_period').points = (
-                [(fc_time) * 3600])
+            fg_cube_next.coord('time').points = [frt_point + fc_time]
+            fg_cube_next.coord('forecast_period').points = [fc_time]
             fg_cube_input.append(squeeze(fg_cube_next))
         fg_cube_input = fg_cube_input.merge_cube()
         expected = fg_cube_input.copy()
