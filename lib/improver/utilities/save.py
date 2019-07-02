@@ -107,10 +107,10 @@ def _check_for_units(cube):
     Args:
         cube (iris.cube.Cube):
             Cube to check data and coordinate units
-    
+
     Raises:
         ValueError:
-            If units are not set appropriately
+            If units are "unknown"
     """
     data_unit = cf_units.Unit(cube.units)
     if data_unit.is_unknown():
