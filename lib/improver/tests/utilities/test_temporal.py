@@ -286,6 +286,8 @@ class Test_iris_time_to_datetime(IrisTest):
         """Test iris_time_to_datetime returns list of datetime """
         result = iris_time_to_datetime(self.cube.coord('time'))
         self.assertIsInstance(result, list)
+        for item in result:
+            self.assertIsInstance(item, datetime.datetime)
         self.assertEqual(result[0], datetime.datetime(2017, 2, 17, 6, 0))
 
     def test_input_cube_unmodified(self):
