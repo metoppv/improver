@@ -40,7 +40,7 @@
       'gaussian' "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/rebadged_percentiles/input.nc" \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
-      "$TEST_DIR/output.nc" --max_iterations 200
+      "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
@@ -55,6 +55,9 @@
   # should be ignored.
   # The "--exclude=percentile" option indicates that the percentile coordinate
   # should be ignored.
+  # The "-t 1e-3" option indicates a specific absolute tolerance of 1e-3
+  # that matches the tolerance used in the
+  # improver_compare_output_lower_precision function.
   run nccmp --exclude=realization --exclude=percentile -dNs -t 1e-3 "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
   [[ "$status" -eq 0 ]]

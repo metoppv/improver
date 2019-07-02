@@ -31,26 +31,16 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "estimate-emos-coefficients using non-default predictor 'realizations'" {
+@test "apply-emos-coefficients using probabilities when num_realizations argument not specified" {
   improver_check_skip_acceptance
-  if python -c "import statsmodels" &> /dev/null; then
-      KGO="estimate-emos-coefficients/realizations/with_statsmodels_kgo.nc"
-  else
-      KGO="estimate-emos-coefficients/realizations/without_statsmodels_kgo.nc"
-  fi
-
-  # Estimate the EMOS coefficients and check that they match the kgo.
-  run improver estimate-emos-coefficients 'gaussian' '20170605T0300Z' \
-      --predictor_of_mean 'realizations' \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
-      --max_iterations 150 \
+  # Run apply-emos-coefficients when probabilities are input as the current forecast.
+  run improver apply-emos-coefficients \
+      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/probabilities/input.nc" \
+      "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/kgo.nc" \
       "$TEST_DIR/output.nc"
-  [[ "$status" -eq 0 ]]
-
-  improver_check_recreate_kgo "output.nc" $KGO
-
-  # Run nccmp to compare the output and kgo realizations and check it passes.
-  improver_compare_output_lower_precision "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
+  [[ "$status" -eq 1 ]]
+  read -d '' expected <<'__TEXT__' || true
+ValueError: The current forecast has been provided as probabilities. These probabilities need to be converted to realizations for ensemble calibration. The args.num_realizations argument is used to define the number of realizations to construct from the input probabilities, so if the current forecast is provided as probabilities then args.num_realizations must be defined.
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
 }

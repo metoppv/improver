@@ -31,26 +31,34 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "estimate-emos-coefficients using non-default predictor 'realizations'" {
+@test "apply-emos-coefficients using realizations rebadged as percentiles as input" {
   improver_check_skip_acceptance
-  if python -c "import statsmodels" &> /dev/null; then
-      KGO="estimate-emos-coefficients/realizations/with_statsmodels_kgo.nc"
-  else
-      KGO="estimate-emos-coefficients/realizations/without_statsmodels_kgo.nc"
-  fi
+  KGO="ensemble-calibration/percentiles/kgo.nc"
 
-  # Estimate the EMOS coefficients and check that they match the kgo.
-  run improver estimate-emos-coefficients 'gaussian' '20170605T0300Z' \
-      --predictor_of_mean 'realizations' \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
-      --max_iterations 150 \
+  # Run apply-emos-coefficients when percentiles are input as the current forecast.
+  run improver apply-emos-coefficients \
+      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/rebadged_percentiles/input.nc" \
+      "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/kgo.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
 
-  # Run nccmp to compare the output and kgo realizations and check it passes.
-  improver_compare_output_lower_precision "$TEST_DIR/output.nc" \
+  # Run nccmp to compare the output calibrated realizations when the input
+  # is percentiles that have been rebadged as realizations. The known good
+  # output in this case is the same as when passing in percentiles directly,
+  # apart from a difference in the coordinates, such that the percentile input
+  # will have a percentile coordinate, whilst the rebadged percentile input
+  # will result in a realization coordinate.
+  # The "--exclude=realization" option indicates that the realization coordinate
+  # should be ignored.
+  # The "--exclude=percentile" option indicates that the percentile coordinate
+  # should be ignored.
+  # The "-t 1e-3" option indicates a specific absolute tolerance of 1e-3
+  # that matches the tolerance used in the
+  # improver_compare_output_lower_precision function.
+  run nccmp --exclude=realization --exclude=percentile -dNs -t 1e-3 "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
+  [[ "$status" -eq 0 ]]
+  [[ "$output" =~ "are identical." ]]
 }

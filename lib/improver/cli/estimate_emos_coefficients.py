@@ -50,7 +50,7 @@ def main(argv=None):
        estimated coefficients are written to a netCDF file.
     """
     parser = ArgParser(
-        description='Estimate coefficients for for Ensemble Model Output '
+        description='Estimate coefficients for Ensemble Model Output '
                     'Statistics (EMOS), otherwise known as Non-homogeneous '
                     'Gaussian Regression (NGR)')
     parser.add_argument('distribution', metavar='DISTRIBUTION',

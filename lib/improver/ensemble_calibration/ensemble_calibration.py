@@ -930,9 +930,9 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                 convert_cube_data_to_2d(forecast_predictors))
             forecast_var_flat = forecast_vars.data.flatten()
             col_of_ones = np.ones(forecast_var_flat.shape, dtype=np.float32)
-            ones_and_mean = (
+            ones_and_predictor = (
                 np.column_stack((col_of_ones, forecast_predictor_flat)))
-            predicted_mean = np.dot(ones_and_mean, a_and_b)
+            predicted_mean = np.dot(ones_and_predictor, a_and_b)
             # Calculate mean of ensemble realizations, as only the
             # calibrated ensemble mean will be returned.
             calibrated_forecast_predictor = (

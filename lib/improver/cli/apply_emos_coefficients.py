@@ -29,7 +29,9 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to run ensemble calibration."""
+"""Script to apply coefficients for Ensemble Model Output
+Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
+Regression (NGR)."""
 
 import numpy as np
 
@@ -37,7 +39,7 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver.argparser import ArgParser
 from improver.ensemble_calibration.ensemble_calibration import (
-    EnsembleCalibration)
+    ApplyCoefficientsFromEnsembleCalibration)
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     EnsembleReordering,
     GeneratePercentilesFromMeanAndVariance,
@@ -51,82 +53,35 @@ from improver.utilities.save import save_netcdf
 
 
 def main(argv=None):
-    """Do ensemble calibration using the EnsembleCalibration plugin.
+    """Load in arguments for applying coefficients for Ensemble Model Output
+       Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
+       Regression (NGR). The coefficients are applied to the forecast
+       that is supplied, so as to calibrate the forecast. The calibrated
+       forecast is written to a netCDF file.
     """
     parser = ArgParser(
-        description='Apply the requested ensemble calibration method using '
-        'the current forecast (to be calibrated) in the form of '
-        'realizations, probabilities, or percentiles, historical '
-        'forecasts in the form of realizations and historical truth data '
-        '(to use in calibration). The mean and variance output from the '
-        'EnsembleCalibration plugin can be written to an output file '
-        'if required. If the current forecast is supplied in the form of '
-        'probabilities or percentiles, these are converted to realizations '
-        'prior to calibration. After calibration, the mean and variance '
-        'computed in the calibration are converted to match the format of the '
-        'current forecast i.e. if realizations are input, realizations '
-        'are output, if probabilities are input, probabilities are output, '
-        'and if percentiles are input, percentiles are output.'
-        'If realizations are input, realizations are regenerated using '
-        'Ensemble Copula Coupling.')
-    # Arguments for EnsembleCalibration
+        description='Apply coefficients for Ensemble Model Output '
+                    'Statistics (EMOS), otherwise known as Non-homogeneous '
+                    'Gaussian Regression (NGR). The supported input formats '
+                    'are realizations, probabilities and percentiles. '
+                    'The forecast will be converted to realizations before '
+                    'applying the coefficients and then converted back to '
+                    'match the input format.')
+    # Filepaths for the forecast, EMOS coefficients and the output.
     parser.add_argument(
-        'calibration_method',
-        metavar='ENSEMBLE_CALIBRATION_METHOD',
-        choices=['ensemble model output statistics',
-                 'nonhomogeneous gaussian regression'],
-        help='The calibration method that will be applied. '
-             'Supported methods are: "emos" '
-             '(ensemble model output statistics) '
-             'and "ngr" (nonhomogeneous gaussian regression).')
+        'forecast_filepath', metavar='FORECAST_FILEPATH',
+        help='A path to an input NetCDF file containing the forecast to be '
+             'calibrated. The input format could be either realizations, '
+             'probabilities or percentiles.')
     parser.add_argument(
-        'units', metavar='UNITS_TO_CALIBRATE_IN',
-        help='The unit that calibration should be undertaken in. The current '
-             'forecast, historical forecast and truth will be converted as '
-             'required.')
+        'coefficients_filepath',
+        metavar='COEFFICIENTS_FILEPATH',
+        help='A path to an input NetCDF file containing the '
+             'coefficients used for calibration.')
     parser.add_argument(
-        'distribution', metavar='DISTRIBUTION',
-        choices=['gaussian', 'truncated gaussian'],
-        help='The distribution that will be used for calibration. This will '
-             'be dependent upon the input phenomenon. This has to be '
-             'supported by the minimisation functions in '
-             'ContinuousRankedProbabilityScoreMinimisers.')
-    # Filepaths for current, historic and truth data.
-    parser.add_argument(
-        'input_filepath', metavar='INPUT_FILE',
-        help='A path to an input NetCDF file containing the current forecast '
-             'to be processed. The file provided could be in the form of '
-             'realizations, probabilities or percentiles.')
-    parser.add_argument(
-        'historic_filepath', metavar='HISTORIC_DATA_FILE',
-        help='A path to an input NetCDF file containing the historic '
-             'forecast(s) used for calibration. The file provided must be in '
-             'the form of realizations.')
-    parser.add_argument(
-        'truth_filepath', metavar='TRUTH_DATA_FILE',
-        help='A path to an input NetCDF file containing the historic truth '
-             'analyses used for calibration.')
-    parser.add_argument(
-        'output_filepath', metavar='OUTPUT_FILE',
+        'output_filepath', metavar='OUTPUT_FILEPATH',
         help='The output path for the processed NetCDF')
     # Optional arguments.
-    parser.add_argument(
-        '--predictor_of_mean', metavar='CALIBRATE_MEAN_FLAG',
-        choices=['mean', 'realizations'], default='mean',
-        help='String to specify the input to calculate the calibrated mean. '
-             'Currently the ensemble mean ("mean") and the ensemble '
-             'realizations ("realizations") are supported as the predictors. '
-             'Default: "mean".')
-    parser.add_argument(
-        '--save_mean', metavar='MEAN_FILE',
-        default=False,
-        help='Option to save the mean output from EnsembleCalibration plugin. '
-             'If used, a path to save the output to must be provided.')
-    parser.add_argument(
-        '--save_variance', metavar='VARIANCE_FILE',
-        default=False,
-        help='Option to save the variance output from EnsembleCalibration '
-             'plugin. If used, a path to save the output to must be provided.')
     parser.add_argument(
         '--num_realizations', metavar='NUMBER_OF_REALIZATIONS',
         default=None, type=np.int32,
@@ -166,22 +121,17 @@ def main(argv=None):
              'converted to percentiles, as part of converting the input '
              'probabilities into realizations.')
     parser.add_argument(
-        '--max_iterations', metavar='MAX_ITERATIONS',
-        type=np.int32, default=1000,
-        help='The maximum number of iterations allowed until the minimisation '
-             'has converged to a stable solution. If the maximum number of '
-             'iterations is reached, but the minimisation has not yet '
-             'converged to a stable solution, then the available solution is '
-             'used anyway, and a warning is raised. This may be modified for '
-             'testing purposes but otherwise kept fixed. If the '
-             'predictor_of_mean is "realizations", then the number of '
-             'iterations may require increasing, as there will be more '
-             'coefficients to solve for.')
+        '--predictor_of_mean', metavar='PREDICTOR_OF_MEAN',
+        choices=['mean', 'realizations'], default='mean',
+        help='String to specify the predictor used to calibrate the forecast '
+             'mean. Currently the ensemble mean ("mean") and the ensemble '
+             'realizations ("realizations") are supported as options. '
+             'Default: "mean".')
+
     args = parser.parse_args(args=argv)
 
-    current_forecast = load_cube(args.input_filepath)
-    historic_forecast = load_cube(args.historic_filepath)
-    truth = load_cube(args.truth_filepath)
+    current_forecast = load_cube(args.forecast_filepath)
+    coeffs = load_cube(args.coefficients_filepath)
 
     original_current_forecast = current_forecast.copy()
 
@@ -226,40 +176,33 @@ def main(argv=None):
         args.num_realizations = len(
             current_forecast.coord('realization').points)
 
-    # Ensemble-Calibration to calculate the mean and variance.
-    forecast_predictor, forecast_variance = EnsembleCalibration(
-        args.calibration_method, args.distribution, args.units,
-        predictor_of_mean_flag=args.predictor_of_mean,
-        max_iterations=args.max_iterations).process(
-            current_forecast, historic_forecast, truth)
-
-    # If required, save the mean and variance.
-    if args.save_mean:
-        save_netcdf(forecast_predictor, args.save_mean)
-    if args.save_variance:
-        save_netcdf(forecast_variance, args.save_variance)
+    # Apply coefficients as part of Ensemble Model Output Statistics (EMOS).
+    ac = ApplyCoefficientsFromEnsembleCalibration(
+        current_forecast, coeffs,
+        predictor_of_mean_flag=args.predictor_of_mean)
+    calibrated_predictor, calibrated_variance = ac.apply_params_entry()
 
     # If input forecast is probabilities, convert output into probabilities.
     # If input forecast is percentiles, convert output into percentiles.
     # If input forecast is realizations, convert output into realizations.
     if input_forecast_type == "probabilities":
         result = GenerateProbabilitiesFromMeanAndVariance().process(
-            forecast_predictor, forecast_variance, original_current_forecast)
+            calibrated_predictor, calibrated_variance,
+            original_current_forecast)
     elif input_forecast_type == "percentiles":
         perc_coord = find_percentile_coordinate(original_current_forecast)
         result = GeneratePercentilesFromMeanAndVariance().process(
-            forecast_predictor, forecast_variance,
+            calibrated_predictor, calibrated_variance,
             percentiles=perc_coord.points)
     elif input_forecast_type == "realizations":
         # Ensemble Copula Coupling to generate realizations
         # from mean and variance.
         percentiles = GeneratePercentilesFromMeanAndVariance().process(
-            forecast_predictor, forecast_variance,
+            calibrated_predictor, calibrated_variance,
             no_of_percentiles=args.num_realizations)
         result = EnsembleReordering().process(
             percentiles, current_forecast,
-            random_ordering=args.random_ordering,
-            random_seed=args.random_seed)
+            random_ordering=args.random_ordering, random_seed=args.random_seed)
     save_netcdf(result, args.output_filepath)
 
 

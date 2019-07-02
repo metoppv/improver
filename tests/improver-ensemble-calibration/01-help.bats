@@ -75,11 +75,11 @@ positional arguments:
                         has to be supported by the minimisation functions in
                         ContinuousRankedProbabilityScoreMinimisers.
   INPUT_FILE            A path to an input NetCDF file containing the current
-                        forecast to be processed.The file provided could be in
-                        the form of realizations, probabilities or
+                        forecast to be processed. The file provided could be
+                        in the form of realizations, probabilities or
                         percentiles.
   HISTORIC_DATA_FILE    A path to an input NetCDF file containing the historic
-                        forecast(s) used for calibration.The file provided
+                        forecast(s) used for calibration. The file provided
                         must be in the form of realizations.
   TRUTH_DATA_FILE       A path to an input NetCDF file containing the historic
                         truth analyses used for calibration.
@@ -110,12 +110,16 @@ optional arguments:
                         argument is used to create the requested number of
                         realizations. In addition, this argument is used to
                         construct the requested number of realizations from
-                        the mean and variance output from the ensemble
-                        calibration.Default will be the number of realizations
-                        in the raw input file.
+                        the mean and variance output after applying the EMOS
+                        coefficients.Default will be the number of
+                        realizations in the raw input file, if realizations
+                        are provided as input, otherwise if the input format
+                        is probabilities or percentiles, then an error will be
+                        raised if no value is provided.
   --random_ordering     Option to reorder the post-processed forecasts
                         randomly. If not set, the ordering of the raw ensemble
-                        is used.
+                        is used. This option is only valid when the input
+                        format is realizations.
   --random_seed RANDOM_SEED
                         Option to specify a value for the random seed for
                         testing purposes, otherwise, the default random seed
@@ -138,7 +142,7 @@ optional arguments:
                         the maximum number of iterations is reached, but the
                         minimisation has not yet converged to a stable
                         solution, then the available solution is used anyway,
-                        and a warning is raised.This may be modified for
+                        and a warning is raised. This may be modified for
                         testing purposes but otherwise kept fixed. If the
                         predictor_of_mean is "realizations", then the number
                         of iterations may require increasing, as there will be

@@ -33,7 +33,6 @@
 import glob
 
 import iris
-from iris.exceptions import ConstraintMismatchError
 
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering, merge_cubes)

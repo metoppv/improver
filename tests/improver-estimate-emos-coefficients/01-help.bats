@@ -42,8 +42,8 @@ usage: improver estimate-emos-coefficients [-h] [--profile]
                                            HISTORIC_FILEPATH TRUTH_FILEPATH
                                            OUTPUT_FILEPATH
 
-Estimate coefficients for for Ensemble Model Output Statistics (EMOS),
-otherwise known as Non-homogeneous Gaussian Regression (NGR)
+Estimate coefficients for Ensemble Model Output Statistics (EMOS), otherwise
+known as Non-homogeneous Gaussian Regression (NGR)
 
 positional arguments:
   DISTRIBUTION          The distribution that will be used for calibration.
