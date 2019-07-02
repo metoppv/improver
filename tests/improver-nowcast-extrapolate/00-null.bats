@@ -45,6 +45,8 @@ usage: improver nowcast-extrapolate [-h] [--profile]
                                     [--json_file JSON_FILE]
                                     [--max_lead_time MAX_LEAD_TIME]
                                     [--lead_time_interval LEAD_TIME_INTERVAL]
+                                    [--accumulation_fidelity ACCUMULATION_FIDELITY]
+                                    [--accumulation_units ACCUMULATION_UNITS]
                                     INPUT_FILEPATH
 __TEXT__
   [[ "$output" =~ "$expected" ]]

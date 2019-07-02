@@ -45,6 +45,8 @@ usage: improver nowcast-extrapolate [-h] [--profile]
                                     [--json_file JSON_FILE]
                                     [--max_lead_time MAX_LEAD_TIME]
                                     [--lead_time_interval LEAD_TIME_INTERVAL]
+                                    [--accumulation_fidelity ACCUMULATION_FIDELITY]
+                                    [--accumulation_units ACCUMULATION_UNITS]
                                     INPUT_FILEPATH
 
 Extrapolate input data to required lead times.
@@ -100,6 +102,17 @@ Advect using files containing speed and direction:
                         The pressure level in Pa to extract from the multi-
                         level advection_speed and advection_direction files.
                         The velocities at this level are used for advection.
+
+Calculate accumulations from advected fields:
+  --accumulation_fidelity ACCUMULATION_FIDELITY
+                        If set, this CLI will additionally return
+                        accumulations calculated from the advected fields.
+                        This fidelity specifies the time interval in minutes
+                        between advected fields that is used to calculate
+                        these accumulations.
+  --accumulation_units ACCUMULATION_UNITS
+                        Desired units in which the accumulations should be
+                        expressed,e.g. mm
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }
