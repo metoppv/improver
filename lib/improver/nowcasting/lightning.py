@@ -431,12 +431,13 @@ class NowcastLightning(object):
                     raise ConstraintMismatchError(err_string.format(threshold))
                 # Linearly reduce impact of ice as fcmins increases to 2H30M.
                 ice_scaling = [0., (prob_max * (1. - (fcmins / 150.)))]
-                cube_slice.data = np.maximum(
-                    rescale(ice_slice.data,
-                            data_range=(0., 1.),
-                            scale_range=ice_scaling,
-                            clip=True),
-                    cube_slice.data)
+                if ice_scaling[1] > 0:
+                    cube_slice.data = np.maximum(
+                        rescale(ice_slice.data,
+                                data_range=(0., 1.),
+                                scale_range=ice_scaling,
+                                clip=True),
+                        cube_slice.data)
             new_cube_list.append(cube_slice)
 
         new_cube = new_cube_list.merge_cube()
