@@ -202,7 +202,7 @@ class AccumulationAggregator:
     @staticmethod
     def chunk_list(cubes, cube_subset):
         """
-        Break the CubeList into a set of CubeLists each containint the
+        Break the CubeList into a set of CubeLists each containing the
         required number of cubes to be combined to create the desired
         accumulation_period.
 
@@ -260,6 +260,11 @@ class AccumulationAggregator:
             # Don't produce an accumulation cube for any incomplete periods.
             if len(cube_subset) != cube_subset_no:
                 break
+
+            # If a single cube period matches the expected period, do nothing
+            if len(cube_subset) == 1:
+                aggregated_cubes.append(cube_subset[0])
+                continue
 
             # Aggregate shorter period accumulations and expand coord bounds.
             aggregated_cube = CubeCombiner('add').process(

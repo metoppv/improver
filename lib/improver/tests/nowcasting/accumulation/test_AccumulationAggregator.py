@@ -197,7 +197,8 @@ class Test_process(accumulation_cube_set_up):
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(self.cubes)
 
-    @ManageWarnings(record=False)
+    @ManageWarnings(ignored_messages=["The provided cubes result in a"],
+                    warning_types=[UserWarning])
     def test_does_not_use_incomplete_period_data(self):
         """Test function returns only 2 accumulation periods when a 4 minute
         aggregation period is used with 10 minutes of input data. The trailing
@@ -282,6 +283,32 @@ class Test_process(accumulation_cube_set_up):
                                     expected_3rd_row)
         self.assertArrayAlmostEqual(result[0].data[3, :],
                                     expected_4th_row)
+
+    def test_returns_expected_values_1_minute(self):
+        """Test function returns the expected accumulations over a 1 minute
+        aggregation period. In this case there is no aggregation, so the input
+        cube should be returned as the output cube."""
+
+        expected_1st_row_t0 = np.array([
+            0.03, 0.03, 0.03, 0.03, 0.03, 0.09, 0.09, 0.09, 0.09, 0.09])
+        expected_2nd_row_t0 = np.array([
+            0.03, 0.03, 0.03, 0.03, 0.03, np.inf, 0.09, 0.09, 0.09, 0.09])
+        expected_3rd_row_t0 = np.array([
+            0., 0., 0., 0., 0., np.inf, 0.09, 0.09, 0.09, 0.09])
+        expected_4th_row_t0 = np.array([
+            0., 0., 0., 0., 0., 0.09, 0.09, 0.09, 0.09, 0.09])
+
+        plugin = AccumulationAggregator(accumulation_period=60)
+        result = plugin.process(self.cubes)
+
+        self.assertArrayAlmostEqual(result[0].data[0, :],
+                                    expected_1st_row_t0)
+        self.assertArrayAlmostEqual(result[0].data[1, :],
+                                    expected_2nd_row_t0)
+        self.assertArrayAlmostEqual(result[0].data[2, :],
+                                    expected_3rd_row_t0)
+        self.assertArrayAlmostEqual(result[0].data[3, :],
+                                    expected_4th_row_t0)
 
 
 if __name__ == '__main__':
