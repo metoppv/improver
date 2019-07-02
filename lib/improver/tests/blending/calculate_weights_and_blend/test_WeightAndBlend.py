@@ -58,6 +58,45 @@ MODEL_WEIGHTS = {
 }
 
 
+def set_up_masked_cubes():
+    """
+    Set up cubes with masked data for spatial weights tests
+
+    Returns:
+        iris.cube.CubeList:
+            List containing a UKV cube with some rain, and a masked nowcast
+            cube with more rain.
+    """
+    thresholds = np.array([0.5, 1, 2], dtype=np.float32)
+    units = "mm h-1"
+    name = "lwe_precipitation_rate"
+    datatime = dt(2018, 9, 10, 7)
+    cycletime = dt(2018, 9, 10, 5)
+
+    # 5x5 matrix results in grid spacing of 200 km
+    base_data = np.ones((5, 5), dtype=np.float32)
+
+    # set up a UKV cube with some rain
+    rain_data = np.array([0.9*base_data, 0.5*base_data, 0*base_data])
+    ukv_cube = set_up_probability_cube(
+        rain_data, thresholds, variable_name=name,
+        threshold_units=units, time=datatime, frt=cycletime,
+        spatial_grid="equalarea", standard_grid_metadata="uk_det")
+
+    # set up a masked nowcast cube with more rain
+    more_rain_data = np.array([base_data, 0.6*base_data, 0.2*base_data])
+    radar_mask = np.broadcast_to(
+        np.array([False, False, False, True, True]), (3, 5, 5))
+    more_rain_data = np.ma.MaskedArray(more_rain_data, mask=radar_mask)
+    nowcast_cube = set_up_probability_cube(
+        more_rain_data, thresholds, variable_name=name,
+        threshold_units=units, time=datatime, frt=cycletime,
+        spatial_grid="equalarea",
+        attributes={"mosg__model_configuration": "nc_det"})
+
+    return iris.cube.CubeList([ukv_cube, nowcast_cube])
+
+
 class Test__init__(IrisTest):
     """Test the __init__ method"""
 
@@ -123,7 +162,7 @@ class Test__calculate_blending_weights(IrisTest):
             weights.data, np.array([0.5405405, 0.45945945]))
 
     def test_dict(self):
-        """Test dictionary option for model blending"""
+        """Test dictionary option for model blending with non-equal weights"""
         data = np.ones((3, 3, 3), dtype=np.float32)
         thresholds = np.array([276, 277, 278], dtype=np.float32)
         ukv_cube = set_up_probability_cube(
@@ -141,6 +180,8 @@ class Test__calculate_blending_weights(IrisTest):
             "model_id", "dict", weighting_coord="forecast_period",
             wts_dict=MODEL_WEIGHTS)
 
+        # at 6 hours lead time we should have 1/3 UKV and 2/3 MOGREPS-UK,
+        # according to the dictionary weights specified above
         weights = plugin._calculate_blending_weights(cube)
         self.assertArrayEqual(
             weights.coord("model_configuration").points, ["uk_det", "uk_ens"])
@@ -148,9 +189,51 @@ class Test__calculate_blending_weights(IrisTest):
             weights.data, np.array([0.3333333, 0.6666667]))
 
 
-def Test__update_spatial_weights(IrisTest):
+class Test__update_spatial_weights(IrisTest):
     """Test the _update_spatial_weights method"""
-    pass
+
+    @ManageWarnings(
+        ignored_messages=["Deleting unmatched attribute"])
+    def setUp(self):
+        """Set up cube and plugin"""
+        cubelist = set_up_masked_cubes()
+        merger = MergeCubesForWeightedBlending(
+            "model_id", weighting_coord="forecast_period",
+            model_id_attr="mosg__model_configuration")
+        self.cube = merger.process(cubelist)
+        self.plugin = WeightAndBlend(
+            "model_id", "dict", weighting_coord="forecast_period",
+            wts_dict=MODEL_WEIGHTS)
+        self.initial_weights = (
+            self.plugin._calculate_blending_weights(self.cube))
+
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate"])
+    def test_basic(self):
+        """Test function returns a cube of the expected shape"""
+        expected_dims = [
+            "model_id", "projection_y_coordinate", "projection_x_coordinate"]
+        expected_shape = (2, 5, 5)
+        result = self.plugin._update_spatial_weights(
+            self.cube, self.initial_weights, 20000)
+        result_dims = [
+            coord.name() for coord in result.coords(dim_coords=True)]
+        self.assertSequenceEqual(result_dims, expected_dims)
+        self.assertSequenceEqual(result.shape, expected_shape)
+
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate"])
+    def test_values(self):
+        """Test weights are fuzzified as expected"""
+        expected_data = np.array(
+            [np.broadcast_to([0.5, 0.5, 0.6666667, 1., 1.], (5, 5)),
+             np.broadcast_to([0.5, 0.5, 0.3333333, 0., 0.], (5, 5))],
+            dtype=np.float32)
+        result = self.plugin._update_spatial_weights(
+            self.cube, self.initial_weights, 400000)
+        self.assertArrayEqual(
+            result.coord("model_configuration").points, ["uk_det", "nc_det"])
+        self.assertArrayAlmostEqual(result.data, expected_data)
 
 
 class Test_process(IrisTest):
@@ -295,35 +378,7 @@ class Test_process_spatial_weights(IrisTest):
 
     def setUp(self):
         """Set up a masked nowcast and unmasked UKV cube"""
-        thresholds = np.array([0.5, 1, 2], dtype=np.float32)
-        units = "mm h-1"
-        name = "lwe_precipitation_rate"
-        datatime = dt(2018, 9, 10, 7)
-        cycletime = dt(2018, 9, 10, 5)
-
-        # 5x5 matrix results in grid spacing of 200 km
-        base_data = np.ones((5, 5), dtype=np.float32)
-
-        # set up a UKV cube with some rain
-        rain_data = np.array([0.9*base_data, 0.5*base_data, 0*base_data])
-        ukv_cube = set_up_probability_cube(
-            rain_data, thresholds, variable_name=name,
-            threshold_units=units, time=datatime, frt=cycletime,
-            spatial_grid="equalarea", standard_grid_metadata="uk_det")
-
-        # set up a masked nowcast cube with more rain
-        more_rain_data = np.array([base_data, 0.6*base_data, 0.2*base_data])
-        radar_mask = np.broadcast_to(
-            np.array([False, False, False, True, True]), (3, 5, 5))
-        more_rain_data = np.ma.MaskedArray(more_rain_data, mask=radar_mask)
-        nowcast_cube = set_up_probability_cube(
-            more_rain_data, thresholds, variable_name=name,
-            threshold_units=units, time=datatime, frt=cycletime,
-            spatial_grid="equalarea",
-            attributes={"mosg__model_configuration": "nc_det"})
-
-        self.cubelist = [ukv_cube, nowcast_cube]
-
+        self.cubelist = set_up_masked_cubes()
         self.plugin = WeightAndBlend(
             "model_id", "dict", weighting_coord="forecast_period",
             wts_dict=MODEL_WEIGHTS)
