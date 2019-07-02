@@ -42,9 +42,8 @@ from iris.tests import IrisTest
 from netCDF4 import Dataset
 
 from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
-from improver.utilities.save import append_metadata_cube
-from improver.utilities.save import order_cell_methods
+from improver.utilities.save import (
+    save_netcdf, _append_metadata_cube, _order_cell_methods, _check_for_units)
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
@@ -177,8 +176,36 @@ class Test_save_netcdf(IrisTest):
         self.assertTrue(all(key in self.global_keys_ref
                             for key in global_keys_in_file))
 
+    def test_error_unknown_units(self):
+        """Test value error when trying to save a cube with no units"""
+        no_units_cube = iris.cube.Cube([1])
+        with self.assertRaisesRegex(ValueError, "Cannot save 'unknown' cube"):
+            save_netcdf(no_units_cube, self.filepath)
 
-class Test_order_cell_methods(IrisTest):
+
+class Test__check_for_units(IrisTest):
+    """Test function that checks for valid units"""
+
+    def test_cube_units(self):
+        """Test fails if cube units are unknown"""
+        no_units_cube = iris.cube.Cube([1])
+        with self.assertRaisesRegex(ValueError, "Cannot save 'unknown' cube"):
+            _check_for_units(no_units_cube)
+
+    def test_coord_units(self):
+        """Test fails if cube coordinate units are unknown"""
+        dim_coord = iris.coords.DimCoord(
+            [1], long_name="dimension", units="unknown")
+        no_units_coord_cube = iris.cube.Cube(
+            [1], long_name="data", units="no_unit",
+            dim_coords_and_dims=[(dim_coord, 0)])
+        print(no_units_coord_cube.coords())
+        msg = "Cannot save 'data' cube with coordinate 'dimension'"
+        with self.assertRaisesRegex(ValueError, msg):
+            _check_for_units(no_units_coord_cube)
+
+
+class Test__order_cell_methods(IrisTest):
     """ Test function that sorts cube cell_methods before saving. """
 
     def setUp(self):
@@ -191,7 +218,7 @@ class Test_order_cell_methods(IrisTest):
 
     def test_no_reordering_cube(self):
         """ Test the order is preserved is no reordering required."""
-        order_cell_methods(self.cube)
+        _order_cell_methods(self.cube)
         self.assertEqual(self.cube.cell_methods, self.cell_methods)
 
     def test_reordering_cube(self):
@@ -201,12 +228,12 @@ class Test_order_cell_methods(IrisTest):
         # and the tuple don't match.
         self.assertNotEqual(self.cube.cell_methods, self.cell_methods)
 
-        order_cell_methods(self.cube)
+        _order_cell_methods(self.cube)
         # Test that they do match once sorting has occured.
         self.assertEqual(self.cube.cell_methods, self.cell_methods)
 
 
-class Test_append_metadata_cube(IrisTest):
+class Test__append_metadata_cube(IrisTest):
     """Test that appropriate metadata cube and attributes have been appended
             to the cubes in the cube list"""
 
@@ -228,7 +255,7 @@ class Test_append_metadata_cube(IrisTest):
         """Test that the bald__isPrefixedBy attribute is added to each cube
         and points to prefix_list"""
         cube_list = ([self.cube, self.cube])
-        metadata_cubelist = append_metadata_cube(
+        metadata_cubelist = _append_metadata_cube(
             cube_list, self.global_keys_ref)
         for cube in metadata_cubelist:
             self.assertTrue(
@@ -247,7 +274,7 @@ class Test_append_metadata_cube(IrisTest):
             'rdf__': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
             'spd__': 'http://reference.metoffice.gov.uk/statistical-process'
                      '/def/'}
-        metadata_cubelist = append_metadata_cube([], self.global_keys_ref)
+        metadata_cubelist = _append_metadata_cube([], self.global_keys_ref)
         self.assertDictEqual(metadata_cubelist[0].attributes, prefix_dict)
 
     def test_global_attributes_present(self):
@@ -256,7 +283,7 @@ class Test_append_metadata_cube(IrisTest):
         netCDF file saved using these cubes"""
 
         cube_list = ([self.cube])
-        metadata_cubelist = append_metadata_cube(
+        metadata_cubelist = _append_metadata_cube(
             cube_list, self.global_keys_ref)
 
         keys_in_prefix_cube = metadata_cubelist[1].attributes

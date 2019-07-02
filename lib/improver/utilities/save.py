@@ -30,12 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for saving netcdf cubes with desired attribute types."""
 
+import cf_units
 import iris
 
 from improver.utilities.cube_checker import check_cube_not_float64
 
 
-def append_metadata_cube(cubelist, global_keys):
+def _append_metadata_cube(cubelist, global_keys):
     """ Create a metadata cube associated with statistical
         post-processing attributes of the input cube list.
 
@@ -85,7 +86,7 @@ def append_metadata_cube(cubelist, global_keys):
     return cubelist
 
 
-def order_cell_methods(cube):
+def _order_cell_methods(cube):
     """
     Sorts the cell methods on a cube such that if there are multiple methods
     they are always written in a consistent order in the output cube. The
@@ -97,6 +98,31 @@ def order_cell_methods(cube):
     """
     cell_methods = tuple(sorted(cube.cell_methods))
     cube.cell_methods = cell_methods
+
+
+def _check_for_units(cube):
+    """
+    Check whether the cube data or coordinates have "unknown" units.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube to check data and coordinate units
+    
+    Raises:
+        ValueError:
+            If units are not set appropriately
+    """
+    data_unit = cf_units.Unit(cube.units)
+    if data_unit.is_unknown():
+        raise ValueError(
+            "Cannot save '{}' cube with unknown units".format(cube.name()))
+
+    for coord in cube.coords():
+        coord_unit = cf_units.Unit(coord.units)
+        if coord_unit.is_unknown():
+            raise ValueError(
+                "Cannot save '{}' cube with coordinate '{}' in unknown units"
+                .format(cube.name(), coord.name()))
 
 
 def save_netcdf(cubelist, filename):
@@ -117,7 +143,8 @@ def save_netcdf(cubelist, filename):
 
     for cube in cubelist:
         check_cube_not_float64(cube)
-        order_cell_methods(cube)
+        _order_cell_methods(cube)
+        _check_for_units(cube)
 
     global_keys = ['title', 'um_version', 'grid_id', 'source', 'Conventions',
                    'mosg__grid_type', 'mosg__model_configuration',
@@ -127,7 +154,7 @@ def save_netcdf(cubelist, filename):
                   for key in cube.attributes.keys()
                   if key not in global_keys}
 
-    cubelist = append_metadata_cube(cubelist, global_keys)
+    cubelist = _append_metadata_cube(cubelist, global_keys)
 
     chunksizes = None
     if cube.ndim >= 2:
