@@ -30,11 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Plugin to calculate blend weights and blend data across a dimension"""
 
-import warnings
-from cf_units import Unit
-import numpy as np
-import iris
-
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells)

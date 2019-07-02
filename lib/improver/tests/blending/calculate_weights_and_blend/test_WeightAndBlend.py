@@ -32,7 +32,6 @@
 
 import unittest
 import numpy as np
-from cf_units import Unit
 from datetime import datetime as dt
 
 import iris
