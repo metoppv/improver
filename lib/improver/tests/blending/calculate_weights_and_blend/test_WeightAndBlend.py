@@ -340,7 +340,10 @@ class Test_process(IrisTest):
                           "Deleting unmatched attribute"])
     def test_blend_three_models(self):
         """Test plugin produces correct output for 3-model blend when all
-        models have (equal) non-zero weights"""
+        models have (equal) non-zero weights. Each model in WEIGHTS_DICT has
+        a weight of 0.5 at 4 hours lead time, and the total weights are
+        re-normalised during the process, so the final blend contains 1/3
+        contribution from each of the three models."""
         expected_data = np.array(
             [[[0.8666667]], [[0.4666667]], [[0.0666667]]], dtype=np.float32)
         result = self.plugin_model.process(

@@ -197,12 +197,10 @@ class MergeCubesForWeightedBlending():
                 If self.blend_coord is not present on all cubes (unless
                 blending over models)
         """
-        # if input is already a single cube, return with updated metadata
-        if isinstance(cubes_in, iris.cube.Cube):
-            if "model" in self.blend_coord:
-                cubes_in.attributes[self.model_id_attr] = "blend"
-            return cubes_in
+        cubes_in = (
+            [cubes_in] if isinstance(cubes_in, iris.cube.Cube) else cubes_in)
 
+        # if input is already a single cube, return with updated metadata
         if len(cubes_in) == 1:
             if "model" in self.blend_coord:
                 cubes_in[0].attributes[self.model_id_attr] = "blend"
