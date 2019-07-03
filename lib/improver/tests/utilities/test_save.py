@@ -199,7 +199,6 @@ class Test__check_for_units(IrisTest):
         no_units_coord_cube = iris.cube.Cube(
             [1], long_name="data", units="no_unit",
             dim_coords_and_dims=[(dim_coord, 0)])
-        print(no_units_coord_cube.coords())
         msg = "Cannot save 'data' cube with coordinate 'dimension'"
         with self.assertRaisesRegex(ValueError, msg):
             _check_for_units(no_units_coord_cube)
