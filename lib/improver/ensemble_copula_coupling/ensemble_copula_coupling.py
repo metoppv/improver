@@ -77,7 +77,7 @@ class RebadgePercentilesAsRealizations(object):
         the input cube i.e. 0, 1, 2, 3, ..., n-1, if there are n percentiles.
 
         Args:
-            cube (Iris.cube.Cube):
+            cube (iris.cube.Cube):
             Cube containing a percentile coordinate, which will be rebadged as
             ensemble realization.
 
@@ -197,8 +197,8 @@ class ResamplePercentiles(object):
         to a new set of percentiles.
 
         Args:
-            forecast_at_percentiles (Iris CubeList or Iris Cube):
-                Cube or CubeList expected to contain a percentile coordinate.
+            forecast_at_percentiles (iris.cube.Cube):
+                Cube containing a percentile coordinate.
             desired_percentiles (Numpy array):
                 Array of the desired percentiles.
             bounds_pairing (Tuple):
@@ -290,7 +290,7 @@ class ResamplePercentiles(object):
 
         """
         percentile_coord = (
-            find_percentile_coordinate(forecast_at_percentiles).name())
+            find_percentile_coordinate(forecast_at_percentiles))
 
         if no_of_percentiles is None:
             no_of_percentiles = (
@@ -307,7 +307,7 @@ class ResamplePercentiles(object):
 
         forecast_at_percentiles = self._interpolate_percentiles(
             forecast_at_percentiles, percentiles, bounds_pairing,
-            percentile_coord)
+            percentile_coord.name())
         return forecast_at_percentiles
 
 
@@ -516,7 +516,7 @@ class GeneratePercentilesFromProbabilities(object):
            see Figure 1 from Flowerdew, 2014.
 
         Args:
-            forecast_probabilities (iris.Cube.cube):
+            forecast_probabilities (iris.cube.Cube):
                 Cube containing a threshold coordinate.
             no_of_percentiles (int):
                 Number of percentiles. If None and percentiles is not set,
@@ -527,7 +527,7 @@ class GeneratePercentilesFromProbabilities(object):
             percentiles (list of floats):
                 The desired percentile values in the interval [0, 100].
                 This argument is mutually exclusive with no_of_percentiles.
-            sampling (string):
+            sampling (str):
                 Type of sampling of the distribution to produce a set of
                 percentiles e.g. quantile or random.
 
@@ -702,7 +702,7 @@ class GeneratePercentilesFromMeanAndVariance(object):
             calibrated_forecast_predictor (iris.cube.Cube):
                 Cube containing the calibrated forecast predictor.
             calibrated_forecast_variance (iris.cube.Cube):
-                CubeList containing the calibrated forecast variance.
+                Cube containing the calibrated forecast variance.
 
         Kwargs:
             no_of_percentiles (int):
@@ -1064,21 +1064,21 @@ class EnsembleReordering(object):
             post_processed_forecast (iris.cube.Cube):
                 The cube containing the post-processed
                 forecast realizations.
-            raw_forecast (Iris Cube or CubeList):
-                The cube or cubelist containing the raw (not post-processed)
+            raw_forecast (iris.cube.Cube):
+                The cube containing the raw (not post-processed)
                 forecast.
             random_ordering (Logical):
                 If random_ordering is True, the post-processed forecasts are
                 reordered randomly, rather than using the ordering of the
                 raw ensemble.
-            random_seed (Integer or None):
+            random_seed (int):
                 If random_seed is an integer, the integer value is used for
                 the random seed.
                 If random_seed is None, no random seed is set, so the random
                 values generated are not reproducible.
 
         Returns:
-            post-processed_forecast_realizations (cube):
+            post-processed_forecast_realizations (iris.cube.Cube):
                 Cube containing the new ensemble realizations where all points
                 within the dataset have been reordered in comparison to the
                 input percentiles.
