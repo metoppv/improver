@@ -183,9 +183,10 @@ class Test_load_cube(IrisTest):
         cube = set_up_probability_cube(
             np.zeros((3, 4, 5), dtype=np.float32),
             np.array([273., 274., 275.], dtype=np.float32))
-        cube = add_coordinate(cube, [0, 1, 2], "realization")
         cube = add_coordinate(
-            cube, [10, 50, 90], "percentile")
+            cube, [0, 1, 2], "realization", coord_units="no_unit")
+        cube = add_coordinate(
+            cube, [10, 50, 90], "percentile", coord_units="%")
         cube.transpose([4, 3, 2, 1, 0])
         save_netcdf(cube, self.filepath)
         result = load_cube(self.filepath)

@@ -36,8 +36,8 @@
   KGO="ensemble-calibration/gaussian/kgo.nc"
 
   # Run ensemble calibration and check it passes.
-  run improver ensemble-calibration 'ensemble model output statistics' 'K' \
-      'gaussian' "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/input.nc" \
+  run improver ensemble-calibration 'K' 'gaussian' \
+      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/input.nc" \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
       "$TEST_DIR/output.nc" --random_seed 0

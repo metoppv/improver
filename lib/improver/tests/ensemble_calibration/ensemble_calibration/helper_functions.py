@@ -99,7 +99,6 @@ class SetupCubes(IrisTest):
     def setUp(self):
         """Set up temperature and wind speed cubes for testing."""
         super().setUp()
-        self.calibration_method = "ensemble model output_statistics"
         base_data = np.array([[[0.3, 1.1, 2.6],
                                [4.2, 5.3, 6.],
                                [7.1, 8.2, 9.]],
