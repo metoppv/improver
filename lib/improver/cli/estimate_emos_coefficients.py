@@ -115,7 +115,7 @@ def main(argv=None):
         predictor_of_mean_flag=args.predictor_of_mean,
         max_iterations=args.max_iterations)
     coefficients = (
-        estcoeffs.estimate_coefficients_for_ngr(historic_forecast, truth))
+        estcoeffs.process(historic_forecast, truth))
 
     save_netcdf(coefficients, args.output_filepath)
 
