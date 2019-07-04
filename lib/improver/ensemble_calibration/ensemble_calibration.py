@@ -996,8 +996,8 @@ class EnsembleCalibration(object):
                 more coefficients to solve for.
         """
         valid_distributions = (ContinuousRankedProbabilityScoreMinimisers().
-                                minimisation_dict.keys())
-        if distribution not in vailid_distributions:
+                               minimisation_dict.keys())
+        if distribution not in valid_distributions:
             msg = ("Given distribution {} not available. Available "
                    "distributions are {}".format(
                        distribution, valid_distributions))

@@ -167,7 +167,7 @@ class Test__init__(SetupCubes):
         distribution = "biscuits"
         msg = "Given distribution biscuits not available. "
         with self.assertRaisesRegex(ValueError, msg):
-            plugin = Plugin(distribution)
+            Plugin(distribution)
 
 
 class Test_process_basic(SetupCubes):
