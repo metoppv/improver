@@ -37,6 +37,7 @@ import numpy as np
 import iris
 from iris.tests import IrisTest
 
+from improver.utilities.warnings_handler import ManageWarnings
 from improver.nowcasting.accumulation import Accumulation
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 
@@ -90,11 +91,17 @@ class Test__init__(IrisTest):
         """Test the default accumulation_units are set when not specified."""
         plugin = Accumulation()
         self.assertEqual(plugin.accumulation_units, "m")
+        self.assertEqual(plugin.accumulation_period, None)
 
     def test_units_set(self):
         """Test the accumulation_units are set when specified."""
         plugin = Accumulation(accumulation_units="cm")
         self.assertEqual(plugin.accumulation_units, "cm")
+
+    def test_period_set(self):
+        """Test the accumulation_period is set when specified."""
+        plugin = Accumulation(accumulation_period=180)
+        self.assertEqual(plugin.accumulation_period, 180)
 
 
 class Test__repr__(IrisTest):
@@ -102,8 +109,10 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test string representation"""
-        result = str(Accumulation(accumulation_units="cm"))
-        expected_result = "<Accumulation: accumulation_units=cm>"
+        result = str(Accumulation(accumulation_units="cm",
+                                  accumulation_period=60))
+        expected_result = ("<Accumulation: accumulation_units=cm, "
+                           "accumulation_period=60>")
         self.assertEqual(result, expected_result)
 
 
@@ -141,6 +150,64 @@ class Test_sort_cubes_by_time(rate_cube_set_up):
         self.assertArrayEqual(times, expected)
 
 
+class Test_get_period_sets(rate_cube_set_up):
+    """Tests the requested accumulation_period can be constructed from the
+    input cubes and return lists of the required inputs to construct each
+    such period."""
+
+    def test_returns_correct_type(self):
+        """Test function returns the expected list."""
+
+        time_interval = 60
+        plugin = Accumulation(accumulation_period=120)
+        result = plugin.get_period_sets(time_interval, self.cubes)
+        self.assertIsInstance(result, list)
+
+    def test_returns_all_cubes_if_period_unspecified(self):
+        """Test function returns a list containing the original cube list if
+        the accumulation_period is not set."""
+
+        time_interval = 60
+        plugin = Accumulation()
+        result = plugin.get_period_sets(time_interval, self.cubes)
+        self.assertSequenceEqual(result, [self.cubes])
+
+    @ManageWarnings(record=True)
+    def test_raises_warning_for_unused_cubes(self, warning_list=None):
+        """Test function raises a warning when there are insufficient cubes to
+        complete the last period."""
+
+        time_interval = 60
+        warning_msg = (
+            "The provided cubes result in a partial period given the specified"
+            " accumulation_period, i.e. the number of cubes is insufficient to"
+            " give a set of complete periods. Only complete periods will be"
+            " returned.")
+
+        expected = [self.cubes[0:4], self.cubes[3:7], self.cubes[6:10]]
+
+        plugin = Accumulation(accumulation_period=180)
+        result = plugin.get_period_sets(time_interval, self.cubes)
+
+        for index, sublist in enumerate(result):
+            self.assertSequenceEqual(sublist, expected[index])
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
+
+    def test_raises_exception_for_impossible_aggregation(self):
+        """Test function raises an exception when attempting to create an
+        accumulation_period that cannot be created from the input cubes."""
+
+        time_interval = 61
+        plugin = Accumulation(accumulation_period=120)
+        msg = "The specified accumulation period "
+
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.get_period_sets(time_interval, self.cubes)
+
+
 class Test_process(rate_cube_set_up):
     """Tests the process method results in the expected outputs."""
 
@@ -148,7 +215,7 @@ class Test_process(rate_cube_set_up):
         """Test function returns a cubelist containing one less entry than the
         input cube list."""
 
-        result = Accumulation().process(self.cubes)
+        result = Accumulation(accumulation_period=60).process(self.cubes)
         self.assertIsInstance(result, iris.cube.CubeList)
         self.assertEqual(len(self.cubes) - 1, len(result))
 
@@ -167,7 +234,8 @@ class Test_process(rate_cube_set_up):
         # and divide by 1000 to get into metres.
         expected = self.cubes[0].copy(data=self.cubes[0].data * 60 / 1000)
 
-        result = Accumulation().process(self.cubes)
+        plugin = Accumulation(accumulation_period=60)
+        result = plugin.process(self.cubes)
 
         self.assertEqual(result[0].units, 'm')
         self.assertArrayAlmostEqual(result[0].data, expected.data)
@@ -179,10 +247,166 @@ class Test_process(rate_cube_set_up):
         # Multiply the rates in mm/s by 60 to get accumulation over 1 minute
         expected = self.cubes[0].copy(data=self.cubes[0].data * 60)
 
-        result = Accumulation(accumulation_units='mm').process(self.cubes)
+        plugin = Accumulation(accumulation_units='mm', accumulation_period=60)
+        result = plugin.process(self.cubes)
 
         self.assertEqual(result[0].units, 'mm')
         self.assertArrayAlmostEqual(result[0].data, expected.data)
+
+    def test_raises_exception_for_unevenly_spaced_cubes(self):
+        """Test function raises an exception if the input cubes are not
+        spaced equally in time."""
+
+        last_time = self.cubes[-1].coord('time').points
+        self.cubes[-1].coord('time').points = last_time + 60
+
+        msg = ("Accumulation is designed to work with rates "
+               "cubes at regualar time intervals.")
+        plugin = Accumulation(accumulation_period=120)
+
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.process(self.cubes)
+
+    @ManageWarnings(ignored_messages=["The provided cubes result in a"],
+                    warning_types=[UserWarning])
+    def test_does_not_use_incomplete_period_data(self):
+        """Test function returns only 2 accumulation periods when a 4 minute
+        aggregation period is used with 10 minutes of input data. The trailing
+        2 cubes are insufficient to create another period and so are disgarded.
+        A warning is raised by the chunking function and has been tested above,
+        so is ignored here.
+        """
+
+        plugin = Accumulation(accumulation_period=240)
+        result = plugin.process(self.cubes)
+        self.assertEqual(len(result), 2)
+
+    def test_returns_expected_values_5_minutes(self):
+        """Test function returns the expected accumulations over a 5 minute
+        aggregation period. These are written out long hand to make the
+        comparison easy."""
+
+        expected_1st_row_t0 = np.array([
+            0.03, 0.06, 0.09, 0.12, 0.15, 0.21, 0.27, 0.33, 0.39, 0.45])
+        expected_2nd_row_t0 = np.array([
+            0.03, 0.06, 0.09, 0.12, 0.15,
+            np.inf, np.inf, np.inf, np.inf, np.inf])
+        expected_3rd_row_t0 = np.array([
+            0., 0., 0., 0., 0., np.inf, np.inf, np.inf, np.inf, np.inf])
+        expected_4th_row_t0 = np.array([
+            0., 0., 0., 0., 0., 0.09, 0.18, 0.27, 0.36, 0.45])
+
+        expected_1st_row_t1 = np.array([
+            0., 0., 0., 0., 0., 0.03, 0.06, 0.09, 0.12, 0.15])
+        expected_2nd_row_t1 = np.array([
+            0., 0., 0., 0., 0., 0.03, 0.06, 0.09, 0.12, 0.15])
+        expected_3rd_row_t1 = np.zeros((10))
+        expected_4th_row_t1 = np.zeros((10))
+
+        plugin = Accumulation(accumulation_period=300, accumulation_units='mm')
+        result = plugin.process(self.cubes)
+
+        self.assertArrayAlmostEqual(result[0].data[0, :],
+                                    expected_1st_row_t0)
+        self.assertArrayAlmostEqual(result[0].data[1, :],
+                                    expected_2nd_row_t0)
+        self.assertArrayAlmostEqual(result[0].data[2, :],
+                                    expected_3rd_row_t0)
+        self.assertArrayAlmostEqual(result[0].data[3, :],
+                                    expected_4th_row_t0)
+
+        self.assertArrayAlmostEqual(result[1].data[0, :],
+                                    expected_1st_row_t1)
+        self.assertArrayAlmostEqual(result[1].data[1, :],
+                                    expected_2nd_row_t1)
+        self.assertArrayAlmostEqual(result[1].data[2, :],
+                                    expected_3rd_row_t1)
+        self.assertArrayAlmostEqual(result[1].data[3, :],
+                                    expected_4th_row_t1)
+
+    def test_returns_expected_values_10_minutes(self):
+        """Test function returns the expected accumulations over the complete
+        10 minute aggregation period. These are written out long hand to make
+        the comparison easy. Note that the test have been constructed such that
+        only the top row is expected to show a difference by including the last
+        5 minutes of the accumulation, all the other results are the same as
+        for the 5 minute test above."""
+
+        expected_1st_row = np.array([
+            0.03, 0.06, 0.09, 0.12, 0.15, 0.24, 0.33, 0.42, 0.51, 0.6])
+        expected_2nd_row = np.array([
+            0.03, 0.06, 0.09, 0.12, 0.15,
+            np.inf, np.inf, np.inf, np.inf, np.inf])
+        expected_3rd_row = np.array([
+            0., 0., 0., 0., 0., np.inf, np.inf, np.inf, np.inf, np.inf])
+        expected_4th_row = np.array([
+            0., 0., 0., 0., 0., 0.09, 0.18, 0.27, 0.36, 0.45])
+
+        plugin = Accumulation(accumulation_period=600, accumulation_units='mm')
+        result = plugin.process(self.cubes)
+
+        self.assertArrayAlmostEqual(result[0].data[0, :],
+                                    expected_1st_row)
+        self.assertArrayAlmostEqual(result[0].data[1, :],
+                                    expected_2nd_row)
+        self.assertArrayAlmostEqual(result[0].data[2, :],
+                                    expected_3rd_row)
+        self.assertArrayAlmostEqual(result[0].data[3, :],
+                                    expected_4th_row)
+
+    def test_returns_total_accumulation_if_no_period_specified(self):
+        """Test function returns a list containing a single accumulation cube
+        that is the accumulation over the whole period specified by the rates
+        cubes. The results are the same as the 10 minute test above as that is
+        the total span of the input rates cubes."""
+
+        expected_1st_row = np.array([
+            0.03, 0.06, 0.09, 0.12, 0.15, 0.24, 0.33, 0.42, 0.51, 0.6])
+        expected_2nd_row = np.array([
+            0.03, 0.06, 0.09, 0.12, 0.15,
+            np.inf, np.inf, np.inf, np.inf, np.inf])
+        expected_3rd_row = np.array([
+            0., 0., 0., 0., 0., np.inf, np.inf, np.inf, np.inf, np.inf])
+        expected_4th_row = np.array([
+            0., 0., 0., 0., 0., 0.09, 0.18, 0.27, 0.36, 0.45])
+
+        plugin = Accumulation(accumulation_units='mm')
+        result = plugin.process(self.cubes)
+
+        self.assertArrayAlmostEqual(result[0].data[0, :],
+                                    expected_1st_row)
+        self.assertArrayAlmostEqual(result[0].data[1, :],
+                                    expected_2nd_row)
+        self.assertArrayAlmostEqual(result[0].data[2, :],
+                                    expected_3rd_row)
+        self.assertArrayAlmostEqual(result[0].data[3, :],
+                                    expected_4th_row)
+
+    def test_returns_expected_values_1_minute(self):
+        """Test function returns the expected accumulations over a 1 minute
+        aggregation period. In this case there is no aggregation, so the input
+        cube should be returned as the output cube."""
+
+        expected_1st_row_t0 = np.array([
+            0.03, 0.03, 0.03, 0.03, 0.03, 0.09, 0.09, 0.09, 0.09, 0.09])
+        expected_2nd_row_t0 = np.array([
+            0.03, 0.03, 0.03, 0.03, 0.03, np.inf, 0.09, 0.09, 0.09, 0.09])
+        expected_3rd_row_t0 = np.array([
+            0., 0., 0., 0., 0., np.inf, 0.09, 0.09, 0.09, 0.09])
+        expected_4th_row_t0 = np.array([
+            0., 0., 0., 0., 0., 0.09, 0.09, 0.09, 0.09, 0.09])
+
+        plugin = Accumulation(accumulation_period=60, accumulation_units='mm')
+        result = plugin.process(self.cubes)
+
+        self.assertArrayAlmostEqual(result[0].data[0, :],
+                                    expected_1st_row_t0)
+        self.assertArrayAlmostEqual(result[0].data[1, :],
+                                    expected_2nd_row_t0)
+        self.assertArrayAlmostEqual(result[0].data[2, :],
+                                    expected_3rd_row_t0)
+        self.assertArrayAlmostEqual(result[0].data[3, :],
+                                    expected_4th_row_t0)
 
 
 if __name__ == '__main__':

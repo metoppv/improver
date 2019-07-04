@@ -39,8 +39,7 @@ import iris
 from iris import Constraint
 from improver.argparser import ArgParser
 from improver.nowcasting.forecasting import CreateExtrapolationForecast
-from improver.nowcasting.accumulation import (Accumulation,
-                                              AccumulationAggregator)
+from improver.nowcasting.accumulation import Accumulation
 from improver.utilities.filename import generate_file_name
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
@@ -195,11 +194,10 @@ def main(argv=None):
 
     # calculate accumulations if required
     if args.accumulation_fidelity > 0:
-        accumulation_cubes = Accumulation(args.accumulation_units).process(
-            forecast_cubes)
-        accumulation_cubes = AccumulationAggregator(
-            accumulation_period=args.lead_time_interval * 60).process(
-                accumulation_cubes)
+        plugin = Accumulation(accumulation_units=args.accumulation_units,
+                              accumulation_period=args.lead_time_interval * 60)
+        accumulation_cubes = plugin.process(forecast_cubes)
+
         # return accumulation cubes
         for i, cube in enumerate(accumulation_cubes):
             file_name = os.path.join(args.output_dir, generate_file_name(cube))
