@@ -36,8 +36,8 @@
   KGO="ensemble-calibration/probabilities/kgo.nc"
 
   # Run ensemble calibration when probabilities are input as the current forecast.
-  run improver ensemble-calibration 'ensemble model output statistics' 'K' \
-      'gaussian' "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/probabilities/input.nc" \
+  run improver ensemble-calibration 'K' 'gaussian' \
+      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/probabilities/input.nc" \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
       "$TEST_DIR/output.nc" --num_realizations=18

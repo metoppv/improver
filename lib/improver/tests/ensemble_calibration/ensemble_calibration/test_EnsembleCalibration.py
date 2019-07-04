@@ -158,6 +158,18 @@ class SetupExpectedResults(IrisTest):
                  [0.4439, 0.0305, 0.0125]], dtype=np.float32))
 
 
+class Test__init__(SetupCubes):
+
+    """Test the __init__ method."""
+
+    def test_raises_error(self):
+        """Test an error is raised for an invalid distribution"""
+        distribution = "biscuits"
+        msg = "Given distribution biscuits not available. "
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin = Plugin(distribution)
+
+
 class Test_process_basic(SetupCubes):
 
     """Test the basic output from the process method."""
@@ -170,7 +182,7 @@ class Test_process_basic(SetupCubes):
         with the desired length. The ensemble mean is the predictor.
         """
         distribution = "gaussian"
-        plugin = Plugin(self.calibration_method, distribution)
+        plugin = Plugin(distribution)
         result = plugin.process(
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
@@ -187,9 +199,8 @@ class Test_process_basic(SetupCubes):
         """
         distribution = "gaussian"
         predictor_of_mean_flag = "realizations"
-        plugin = Plugin(
-            self.calibration_method, distribution,
-            predictor_of_mean_flag=predictor_of_mean_flag)
+        plugin = Plugin(distribution,
+                        predictor_of_mean_flag=predictor_of_mean_flag)
         result = plugin.process(
             self.current_temperature_forecast_cube,
             self.historic_temperature_forecast_cube,
@@ -205,7 +216,7 @@ class Test_process_basic(SetupCubes):
         with the desired length. The ensemble mean is the predictor.
         """
         distribution = "truncated gaussian"
-        plugin = Plugin(self.calibration_method, distribution)
+        plugin = Plugin(distribution)
         result = plugin.process(
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
@@ -222,50 +233,14 @@ class Test_process_basic(SetupCubes):
         """
         distribution = "truncated gaussian"
         predictor_of_mean_flag = "realizations"
-        plugin = Plugin(
-            self.calibration_method, distribution,
-            predictor_of_mean_flag=predictor_of_mean_flag)
+        plugin = Plugin(distribution,
+                        predictor_of_mean_flag=predictor_of_mean_flag)
         result = plugin.process(
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
         self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 2)
-
-    @ManageWarnings(
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_alternative_calibration_name(self):
-        """
-        Test that the plugin returns the calibrated predictor and the
-        calibrated variance if an alternative name for the calibration
-        is provided. The ensemble mean is the predictor.
-        """
-        calibration_method = "nonhomogeneous gaussian regression"
-        distribution = "gaussian"
-        plugin = Plugin(calibration_method, distribution)
-        calibrated_predictor, calibrated_variance = plugin.process(
-            self.current_temperature_forecast_cube,
-            self.historic_temperature_forecast_cube,
-            self.temperature_truth_cube)
-        self.assertIsInstance(calibrated_predictor, iris.cube.Cube)
-        self.assertIsInstance(calibrated_variance, iris.cube.Cube)
-
-    @ManageWarnings(
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_unknown_calibration_method(self):
-        """
-        Test that the plugin raises an error if an unknown calibration method
-        is requested. The ensemble mean is the predictor.
-        """
-        calibration_method = "unknown"
-        distribution = "gaussian"
-        plugin = Plugin(calibration_method, distribution)
-        msg = "unknown"
-        with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(
-                self.current_temperature_forecast_cube,
-                self.historic_temperature_forecast_cube,
-                self.temperature_truth_cube)
 
 
 class Test_process_check_data(SetupCubes, SetupExpectedResults,
@@ -283,7 +258,7 @@ class Test_process_check_data(SetupCubes, SetupExpectedResults,
         variance. The ensemble mean is the predictor.
         """
         distribution = "gaussian"
-        plugin = Plugin(self.calibration_method, distribution)
+        plugin = Plugin(distribution)
 
         calibrated_predictor, calibrated_variance = plugin.process(
             self.current_temperature_forecast_cube,
@@ -307,7 +282,7 @@ class Test_process_check_data(SetupCubes, SetupExpectedResults,
         The ensemble mean is the predictor.
         """
         distribution = "gaussian"
-        plugin = Plugin(self.calibration_method, distribution,
+        plugin = Plugin(distribution,
                         max_iterations=10000)
         calibrated_predictor, calibrated_variance = plugin.process(
             self.current_temperature_forecast_cube,
@@ -330,7 +305,7 @@ class Test_process_check_data(SetupCubes, SetupExpectedResults,
         variance. The ensemble mean is the predictor.
         """
         distribution = "truncated gaussian"
-        plugin = Plugin(self.calibration_method, distribution)
+        plugin = Plugin(distribution)
         calibrated_predictor, calibrated_variance = plugin.process(
             self.current_wind_speed_forecast_cube,
             self.historic_wind_speed_forecast_cube,
@@ -353,7 +328,7 @@ class Test_process_check_data(SetupCubes, SetupExpectedResults,
         The ensemble mean is the predictor.
         """
         distribution = "truncated gaussian"
-        plugin = Plugin(self.calibration_method, distribution,
+        plugin = Plugin(distribution,
                         max_iterations=10000)
         calibrated_predictor, calibrated_variance = plugin.process(
             self.current_wind_speed_forecast_cube,
@@ -389,7 +364,7 @@ class Test_process_with_statsmodels(SetupCubes, SetupExpectedResults,
         distribution = "gaussian"
         predictor_of_mean_flag = "realizations"
         plugin = Plugin(
-            self.calibration_method, distribution,
+            distribution,
             predictor_of_mean_flag=predictor_of_mean_flag)
         calibrated_predictor, calibrated_variance = plugin.process(
             self.current_temperature_forecast_cube,
@@ -425,7 +400,7 @@ class Test_process_with_statsmodels(SetupCubes, SetupExpectedResults,
         distribution = "truncated gaussian"
         predictor_of_mean_flag = "realizations"
         plugin = Plugin(
-            self.calibration_method, distribution,
+            distribution,
             predictor_of_mean_flag=predictor_of_mean_flag)
         calibrated_predictor, calibrated_variance = plugin.process(
             self.current_wind_speed_forecast_cube,
@@ -471,7 +446,7 @@ class Test_process_without_statsmodels(SetupCubes, SetupExpectedResults,
         distribution = "gaussian"
         predictor_of_mean_flag = "realizations"
         plugin = Plugin(
-            self.calibration_method, distribution,
+            distribution,
             predictor_of_mean_flag=predictor_of_mean_flag)
         calibrated_predictor, calibrated_variance = plugin.process(
             self.current_temperature_forecast_cube,
@@ -507,7 +482,7 @@ class Test_process_without_statsmodels(SetupCubes, SetupExpectedResults,
         distribution = "truncated gaussian"
         predictor_of_mean_flag = "realizations"
         plugin = Plugin(
-            self.calibration_method, distribution,
+            distribution,
             predictor_of_mean_flag=predictor_of_mean_flag)
         calibrated_predictor, calibrated_variance = plugin.process(
             self.current_wind_speed_forecast_cube,
