@@ -1087,10 +1087,9 @@ class EnsembleReordering(object):
         percentile_coord = (
             find_percentile_coordinate(post_processed_forecast).name())
 
-
         post_processed_forecast_percentiles = (
             enforce_coordinate_ordering(
-                post_processed_forecast_percentiles, percentile_coord))
+                post_processed_forecast, percentile_coord))
         raw_forecast_realizations = enforce_coordinate_ordering(
             raw_forecast, "realization")
         raw_forecast_realizations = (
