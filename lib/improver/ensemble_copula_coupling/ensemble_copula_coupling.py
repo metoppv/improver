@@ -516,9 +516,9 @@ class GeneratePercentilesFromProbabilities(object):
            see Figure 1 from Flowerdew, 2014.
 
         Args:
-            forecast_probabilities (Iris CubeList or Iris Cube):
-                Cube or CubeList expected to contain a threshold coordinate.
-            no_of_percentiles (Integer or None):
+            forecast_probabilities (iris.Cube.cube):
+                Cube containing a threshold coordinate.
+            no_of_percentiles (int):
                 Number of percentiles. If None and percentiles is not set,
                 the number of thresholds within the input
                 forecast_probabilities cube is used as the number of
@@ -527,7 +527,7 @@ class GeneratePercentilesFromProbabilities(object):
             percentiles (list of floats):
                 The desired percentile values in the interval [0, 100].
                 This argument is mutually exclusive with no_of_percentiles.
-            sampling (String):
+            sampling (string):
                 Type of sampling of the distribution to produce a set of
                 percentiles e.g. quantile or random.
 
@@ -550,8 +550,6 @@ class GeneratePercentilesFromProbabilities(object):
                 "GeneratePercentilesFromProbabilities")
 
         threshold_coord = find_threshold_coordinate(forecast_probabilities)
-        if not isinstance(forecast_probabilities, iris.cube.Cube):
-            forecast_probabilities = forecast_probabilities.concatenate_cubes()
 
         phenom_name = (
             forecast_probabilities.name().replace(
@@ -1063,8 +1061,8 @@ class EnsembleReordering(object):
         raw ensemble.
 
         Args:
-            post_processed_forecast (Iris Cube or CubeList):
-                The cube or cubelist containing the post-processed
+            post_processed_forecast (iris.cube.Cube):
+                The cube containing the post-processed
                 forecast realizations.
             raw_forecast (Iris Cube or CubeList):
                 The cube or cubelist containing the raw (not post-processed)
@@ -1085,22 +1083,16 @@ class EnsembleReordering(object):
                 within the dataset have been reordered in comparison to the
                 input percentiles.
         """
-        if isinstance(post_processed_forecast, iris.cube.CubeList):
-            percentile_coord = (
-                find_percentile_coordinate(post_processed_forecast[0]).name())
-        else:
-            percentile_coord = (
-                find_percentile_coordinate(post_processed_forecast).name())
 
-        post_processed_forecast_percentiles = concatenate_cubes(
-            post_processed_forecast,
-            coords_to_slice_over=[percentile_coord])
+        percentile_coord = (
+            find_percentile_coordinate(post_processed_forecast).name())
+
+
         post_processed_forecast_percentiles = (
             enforce_coordinate_ordering(
                 post_processed_forecast_percentiles, percentile_coord))
-        raw_forecast_realizations = concatenate_cubes(raw_forecast)
         raw_forecast_realizations = enforce_coordinate_ordering(
-            raw_forecast_realizations, "realization")
+            raw_forecast, "realization")
         raw_forecast_realizations = (
             self._recycle_raw_ensemble_realizations(
                 post_processed_forecast_percentiles, raw_forecast_realizations,
