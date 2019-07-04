@@ -963,7 +963,7 @@ class EnsembleCalibration(object):
     2. Apply optimised EMOS coefficients for future dates.
 
     """
-    def __init__(self, calibration_method, distribution, desired_units=None,
+    def __init__(self, distribution, desired_units=None,
                  predictor_of_mean_flag="mean", max_iterations=1000):
         """
         Create an ensemble calibration plugin that, for Nonhomogeneous Gaussian
@@ -971,18 +971,6 @@ class EnsembleCalibration(object):
         applies the coefficients to the current forecast.
 
         Args:
-            calibration_method (str):
-                The calibration method that will be applied.
-                Supported methods are:
-
-                    ensemble model output statistics
-                    nonhomogeneous gaussian regression
-
-                Currently these methods are not supported:
-
-                    logistic regression
-                    bayesian model averaging
-
             distribution (str):
                 The distribution that will be used for calibration. This will
                 be dependent upon the input phenomenon. This has to be
@@ -1007,7 +995,13 @@ class EnsembleCalibration(object):
                 iterations may require increasing, as there will be
                 more coefficients to solve for.
         """
-        self.calibration_method = calibration_method
+        valid_distributions = (ContinuousRankedProbabilityScoreMinimisers().
+                               minimisation_dict.keys())
+        if distribution not in valid_distributions:
+            msg = ("Given distribution {} not available. Available "
+                   "distributions are {}".format(
+                       distribution, valid_distributions))
+            raise ValueError(msg)
         self.distribution = distribution
         self.desired_units = desired_units
         self.predictor_of_mean_flag = predictor_of_mean_flag
@@ -1016,13 +1010,12 @@ class EnsembleCalibration(object):
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = ('<EnsembleCalibration: '
-                  'calibration_method: {}; '
                   'distribution: {}; '
                   'desired_units: {}; '
                   'predictor_of_mean_flag: {}; '
                   'max_iterations: {}>')
         return result.format(
-            self.calibration_method, self.distribution, self.desired_units,
+            self.distribution, self.desired_units,
             self.predictor_of_mean_flag, self.max_iterations)
 
     def process(self, current_forecast, historic_forecast, truth):
@@ -1050,34 +1043,21 @@ class EnsembleCalibration(object):
                     Cube containing the calibrated forecast variance.
 
         """
-        def format_calibration_method(calibration_method):
-            """Lowercase input string, and replace underscores with spaces."""
-            return calibration_method.lower().replace("_", " ")
-
         # Ensure predictor_of_mean_flag is valid.
         check_predictor_of_mean_flag(self.predictor_of_mean_flag)
 
-        if (format_calibration_method(self.calibration_method) in
-                ["ensemble model output statistics",
-                 "nonhomogeneous gaussian regression"]):
-            if (format_calibration_method(self.distribution) in
-                    ["gaussian", "truncated gaussian"]):
-                current_cycle = datetime_to_cycletime(
-                    iris_time_to_datetime(
-                        current_forecast.coord("forecast_reference_time"))[0])
-                ec = EstimateCoefficientsForEnsembleCalibration(
-                    self.distribution, current_cycle=current_cycle,
-                    desired_units=self.desired_units,
-                    predictor_of_mean_flag=self.predictor_of_mean_flag,
-                    max_iterations=self.max_iterations)
-                coefficient_cube = (
-                    ec.estimate_coefficients_for_ngr(
-                        historic_forecast, truth))
-        else:
-            msg = ("Other calibration methods are not available. "
-                   "{} is not available".format(
-                       format_calibration_method(self.calibration_method)))
-            raise ValueError(msg)
+        current_cycle = datetime_to_cycletime(
+            iris_time_to_datetime(
+                current_forecast.coord("forecast_reference_time"))[0])
+        ec = EstimateCoefficientsForEnsembleCalibration(
+            self.distribution, current_cycle=current_cycle,
+            desired_units=self.desired_units,
+            predictor_of_mean_flag=self.predictor_of_mean_flag,
+            max_iterations=self.max_iterations)
+        coefficient_cube = (
+            ec.estimate_coefficients_for_ngr(
+                historic_forecast, truth))
+
         ac = ApplyCoefficientsFromEnsembleCalibration(
             current_forecast, coefficient_cube,
             predictor_of_mean_flag=self.predictor_of_mean_flag)

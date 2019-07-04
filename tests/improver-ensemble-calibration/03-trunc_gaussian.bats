@@ -36,8 +36,7 @@
   KGO="ensemble-calibration/truncated_gaussian/kgo.nc"
 
   # Run ensemble calibration and check it passes.
-  run improver ensemble-calibration 'ensemble model output statistics' \
-      'm s-1' 'truncated gaussian' \
+  run improver ensemble-calibration 'm s-1' 'truncated gaussian' \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/truncated_gaussian/input.nc" \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/truncated_gaussian/history/*.nc" \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/truncated_gaussian/truth/*.nc" \
@@ -50,4 +49,3 @@
   improver_compare_output_lower_precision "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
 }
-

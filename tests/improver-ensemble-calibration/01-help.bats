@@ -43,7 +43,6 @@ usage: improver ensemble-calibration [-h] [--profile]
                                      [--random_seed RANDOM_SEED]
                                      [--ecc_bounds_warning]
                                      [--max_iterations MAX_ITERATIONS]
-                                     ENSEMBLE_CALIBRATION_METHOD
                                      UNITS_TO_CALIBRATE_IN DISTRIBUTION
                                      INPUT_FILE HISTORIC_DATA_FILE
                                      TRUTH_DATA_FILE OUTPUT_FILE
@@ -62,10 +61,6 @@ input, percentiles are output.If realizations are input, realizations are
 regenerated using Ensemble Copula Coupling.
 
 positional arguments:
-  ENSEMBLE_CALIBRATION_METHOD
-                        The calibration method that will be applied. Supported
-                        methods are: "emos" (ensemble model output statistics)
-                        and "ngr" (nonhomogeneous gaussian regression).
   UNITS_TO_CALIBRATE_IN
                         The unit that calibration should be undertaken in. The
                         current forecast, historical forecast and truth will

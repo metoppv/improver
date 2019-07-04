@@ -36,8 +36,8 @@
   KGO="ensemble-calibration/percentiles/kgo.nc"
 
   # Run ensemble calibration with percentiles rebadged as realizations.
-  run improver ensemble-calibration 'ensemble model output statistics' 'K' \
-      'gaussian' "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/rebadged_percentiles/input.nc" \
+  run improver ensemble-calibration 'K' 'gaussian' \
+      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/rebadged_percentiles/input.nc" \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
       "$TEST_DIR/output.nc"
