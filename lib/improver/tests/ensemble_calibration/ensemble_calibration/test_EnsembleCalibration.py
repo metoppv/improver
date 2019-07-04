@@ -158,7 +158,7 @@ class SetupExpectedResults(IrisTest):
                  [0.4439, 0.0305, 0.0125]], dtype=np.float32))
 
 
-class Test__init__(SetupCubes):
+class Test__init__(unittest.TestCase):
 
     """Test the __init__ method."""
 
