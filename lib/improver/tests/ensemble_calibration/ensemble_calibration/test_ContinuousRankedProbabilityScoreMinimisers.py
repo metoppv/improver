@@ -195,7 +195,7 @@ class Test_calculate_normal_crps(SetupGaussianInputs):
         self.assertAlmostEqual(result, plugin.BAD_VALUE)
 
 
-class Test_crps_minimiser_gaussian_distribution(
+class Test_process_gaussian_distribution(
         SetupGaussianInputs, EnsembleCalibrationAssertions):
 
     """
@@ -226,7 +226,7 @@ class Test_crps_minimiser_gaussian_distribution(
         predictor_of_mean_flag = "mean"
         distribution = "gaussian"
         plugin = Plugin()
-        result = plugin.crps_minimiser(
+        result = plugin.process(
             self.initial_guess_for_mean, self.forecast_predictor_mean,
             self.truth, self.forecast_variance, predictor_of_mean_flag,
             distribution)
@@ -250,7 +250,7 @@ class Test_crps_minimiser_gaussian_distribution(
         predictor_of_mean_flag = "realizations"
         distribution = "gaussian"
         plugin = Plugin()
-        result = plugin.crps_minimiser(
+        result = plugin.process(
             self.initial_guess_for_realization,
             self.forecast_predictor_realizations, self.truth,
             self.forecast_variance, predictor_of_mean_flag, distribution)
@@ -273,7 +273,7 @@ class Test_crps_minimiser_gaussian_distribution(
         plugin = Plugin()
         msg = "Distribution requested"
         with self.assertRaisesRegex(KeyError, msg):
-            plugin.crps_minimiser(
+            plugin.process(
                 self.initial_guess_for_mean, self.forecast_predictor_mean,
                 self.truth, self.forecast_variance,
                 predictor_of_mean_flag, distribution)
@@ -297,7 +297,7 @@ class Test_crps_minimiser_gaussian_distribution(
         distribution = "gaussian"
 
         plugin = Plugin(max_iterations=max_iterations)
-        result = plugin.crps_minimiser(
+        result = plugin.process(
             self.initial_guess_for_mean, self.forecast_predictor_mean,
             self.truth, self.forecast_variance,
             predictor_of_mean_flag, distribution)
@@ -325,7 +325,7 @@ class Test_crps_minimiser_gaussian_distribution(
         distribution = "gaussian"
 
         plugin = Plugin(max_iterations=max_iterations)
-        result = plugin.crps_minimiser(
+        result = plugin.process(
             self.initial_guess_for_realization,
             self.forecast_predictor_realizations, self.truth,
             self.forecast_variance, predictor_of_mean_flag, distribution)
@@ -344,7 +344,7 @@ class Test_crps_minimiser_gaussian_distribution(
         distribution = "gaussian"
 
         plugin = Plugin(max_iterations=10)
-        plugin.crps_minimiser(
+        plugin.process(
             self.initial_guess_for_mean, self.forecast_predictor_mean,
             self.truth, self.forecast_variance, predictor_of_mean_flag,
             distribution)
@@ -370,7 +370,7 @@ class Test_crps_minimiser_gaussian_distribution(
         distribution = "gaussian"
 
         plugin = Plugin(max_iterations=5)
-        plugin.crps_minimiser(
+        plugin.process(
             initial_guess, self.forecast_predictor_mean, self.truth,
             self.forecast_variance, predictor_of_mean_flag, distribution)
         warning_msg_min = "Minimisation did not result in convergence after"
@@ -488,7 +488,7 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedGaussianInputs):
         self.assertAlmostEqual(result, plugin.BAD_VALUE)
 
 
-class Test_crps_minimiser_truncated_gaussian_distribution(
+class Test_process_truncated_gaussian_distribution(
         SetupTruncatedGaussianInputs, EnsembleCalibrationAssertions):
 
     """
@@ -520,7 +520,7 @@ class Test_crps_minimiser_truncated_gaussian_distribution(
         distribution = "truncated gaussian"
 
         plugin = Plugin()
-        result = plugin.crps_minimiser(
+        result = plugin.process(
             self.initial_guess_for_mean, self.forecast_predictor_mean,
             self.truth, self.forecast_variance, predictor_of_mean_flag,
             distribution)
@@ -544,7 +544,7 @@ class Test_crps_minimiser_truncated_gaussian_distribution(
         distribution = "truncated gaussian"
 
         plugin = Plugin()
-        result = plugin.crps_minimiser(
+        result = plugin.process(
             self.initial_guess_for_realization,
             self.forecast_predictor_realizations, self.truth,
             self.forecast_variance, predictor_of_mean_flag, distribution)
@@ -566,7 +566,7 @@ class Test_crps_minimiser_truncated_gaussian_distribution(
         plugin = Plugin()
         msg = "Distribution requested"
         with self.assertRaisesRegex(KeyError, msg):
-            plugin.crps_minimiser(
+            plugin.process(
                 self.initial_guess_for_mean, self.forecast_predictor_mean,
                 self.truth, self.forecast_variance,
                 predictor_of_mean_flag, distribution)
@@ -585,7 +585,7 @@ class Test_crps_minimiser_truncated_gaussian_distribution(
         plugin = Plugin()
         msg = "Distribution requested"
         with self.assertRaisesRegex(KeyError, msg):
-            plugin.crps_minimiser(
+            plugin.process(
                 self.initial_guess_for_realization,
                 self.forecast_predictor_realizations, self.truth,
                 self.forecast_variance, predictor_of_mean_flag, distribution)
@@ -612,7 +612,7 @@ class Test_crps_minimiser_truncated_gaussian_distribution(
         distribution = "truncated gaussian"
 
         plugin = Plugin(max_iterations=max_iterations)
-        result = plugin.crps_minimiser(
+        result = plugin.process(
             self.initial_guess_for_mean, self.forecast_predictor_mean,
             self.truth, self.forecast_variance, predictor_of_mean_flag,
             distribution)
@@ -640,7 +640,7 @@ class Test_crps_minimiser_truncated_gaussian_distribution(
         distribution = "truncated gaussian"
 
         plugin = Plugin(max_iterations=max_iterations)
-        result = plugin.crps_minimiser(
+        result = plugin.process(
             self.initial_guess_for_realization,
             self.forecast_predictor_realizations, self.truth,
             self.forecast_variance, predictor_of_mean_flag, distribution)
@@ -659,7 +659,7 @@ class Test_crps_minimiser_truncated_gaussian_distribution(
         distribution = "truncated gaussian"
 
         plugin = Plugin(max_iterations=10)
-        plugin.crps_minimiser(
+        plugin.process(
             self.initial_guess_for_mean, self.forecast_predictor_mean,
             self.truth, self.forecast_variance, predictor_of_mean_flag,
             distribution)
@@ -690,7 +690,7 @@ class Test_crps_minimiser_truncated_gaussian_distribution(
 
         plugin = Plugin(max_iterations=5)
 
-        plugin.crps_minimiser(
+        plugin.process(
             initial_guess, self.forecast_predictor_mean,
             self.truth, self.forecast_variance, predictor_of_mean_flag,
             distribution)

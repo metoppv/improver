@@ -109,7 +109,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
             print_dict.update({key: self.minimisation_dict[key].__name__})
         return result.format(print_dict, self.max_iterations)
 
-    def crps_minimiser(
+    def process(
             self, initial_guess, forecast_predictor, truth, forecast_var,
             predictor_of_mean_flag, distribution):
         """
@@ -676,7 +676,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                                   no_of_realizations).tolist())
         return np.array(initial_guess, dtype=np.float32)
 
-    def estimate_coefficients_for_ngr(self, historic_forecast, truth):
+    def process(self, historic_forecast, truth):
         """
         Using Nonhomogeneous Gaussian Regression/Ensemble Model Output
         Statistics, estimate the required coefficients from historical
@@ -760,7 +760,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             # Need to access the x attribute returned by the
             # minimisation function.
             optimised_coeffs = (
-                self.minimiser.crps_minimiser(
+                self.minimiser.process(
                     initial_guess, forecast_predictor,
                     truth, forecast_var,
                     self.predictor_of_mean_flag,
@@ -848,7 +848,7 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
             self.current_forecast.name(), self.coefficients_cube.name(),
             self.predictor_of_mean_flag)
 
-    def apply_params_entry(self):
+    def process(self):
         """
         Wrapping function to calculate the forecast predictor and forecast
         variance prior to applying coefficients to the current forecast.
@@ -1055,14 +1055,14 @@ class EnsembleCalibration(object):
             predictor_of_mean_flag=self.predictor_of_mean_flag,
             max_iterations=self.max_iterations)
         coefficient_cube = (
-            ec.estimate_coefficients_for_ngr(
+            ec.process(
                 historic_forecast, truth))
 
         ac = ApplyCoefficientsFromEnsembleCalibration(
             current_forecast, coefficient_cube,
             predictor_of_mean_flag=self.predictor_of_mean_flag)
         (calibrated_forecast_predictor,
-         calibrated_forecast_variance) = ac.apply_params_entry()
+         calibrated_forecast_variance) = ac.process()
 
         # TODO: track down where np.float64 promotion takes place.
         calibrated_forecast_predictor.data = (

@@ -180,7 +180,7 @@ def main(argv=None):
     ac = ApplyCoefficientsFromEnsembleCalibration(
         current_forecast, coeffs,
         predictor_of_mean_flag=args.predictor_of_mean)
-    calibrated_predictor, calibrated_variance = ac.apply_params_entry()
+    calibrated_predictor, calibrated_variance = ac.process()
 
     # If input forecast is probabilities, convert output into probabilities.
     # If input forecast is percentiles, convert output into percentiles.

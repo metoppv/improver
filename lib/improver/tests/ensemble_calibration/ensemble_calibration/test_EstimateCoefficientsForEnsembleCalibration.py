@@ -622,10 +622,10 @@ class Test_compute_initial_guess(IrisTest):
         self.assertArrayAlmostEqual(result, data)
 
 
-class Test_estimate_coefficients_for_ngr(
+class Test_process(
         SetupCubes, EnsembleCalibrationAssertions):
 
-    """Test the estimate_coefficients_for_ngr plugin."""
+    """Test the process method"""
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -661,7 +661,7 @@ class Test_estimate_coefficients_for_ngr(
         """Ensure that the optimised_coefficients are returned as a cube,
         with the expected number of coefficients."""
         plugin = Plugin(self.distribution, self.current_cycle)
-        result = plugin.estimate_coefficients_for_ngr(
+        result = plugin.process(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
         self.assertIsInstance(result, iris.cube.Cube)
@@ -676,7 +676,7 @@ class Test_estimate_coefficients_for_ngr(
         a linear least-squares regression is used to construct the initial
         guess."""
         plugin = Plugin(self.distribution, self.current_cycle)
-        result = plugin.estimate_coefficients_for_ngr(
+        result = plugin.process(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
 
@@ -696,7 +696,7 @@ class Test_estimate_coefficients_for_ngr(
         expected = [-0.0002, 0.7977, 0.0004, 0.9973]
         plugin = Plugin(self.distribution, self.current_cycle)
         plugin.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
-        result = plugin.estimate_coefficients_for_ngr(
+        result = plugin.process(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
 
@@ -717,7 +717,7 @@ class Test_estimate_coefficients_for_ngr(
         plugin = Plugin(
             self.distribution, self.current_cycle,
             max_iterations=max_iterations)
-        result = plugin.estimate_coefficients_for_ngr(
+        result = plugin.process(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
 
@@ -737,7 +737,7 @@ class Test_estimate_coefficients_for_ngr(
         distribution = "truncated gaussian"
 
         plugin = Plugin(distribution, self.current_cycle)
-        result = plugin.estimate_coefficients_for_ngr(
+        result = plugin.process(
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
 
@@ -758,7 +758,7 @@ class Test_estimate_coefficients_for_ngr(
 
         plugin = Plugin(distribution, self.current_cycle)
         plugin.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
-        result = plugin.estimate_coefficients_for_ngr(
+        result = plugin.process(
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
 
@@ -780,7 +780,7 @@ class Test_estimate_coefficients_for_ngr(
 
         plugin = Plugin(self.distribution, self.current_cycle,
                         predictor_of_mean_flag=predictor_of_mean_flag)
-        result = plugin.estimate_coefficients_for_ngr(
+        result = plugin.process(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
         self.assertEMOSCoefficientsAlmostEqual(
@@ -803,7 +803,7 @@ class Test_estimate_coefficients_for_ngr(
 
         plugin = Plugin(self.distribution, self.current_cycle,
                         predictor_of_mean_flag=predictor_of_mean_flag)
-        result = plugin.estimate_coefficients_for_ngr(
+        result = plugin.process(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
         self.assertEMOSCoefficientsAlmostEqual(
@@ -826,7 +826,7 @@ class Test_estimate_coefficients_for_ngr(
 
         plugin = Plugin(distribution, self.current_cycle,
                         predictor_of_mean_flag=predictor_of_mean_flag)
-        result = plugin.estimate_coefficients_for_ngr(
+        result = plugin.process(
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
         self.assertEMOSCoefficientsAlmostEqual(
@@ -850,7 +850,7 @@ class Test_estimate_coefficients_for_ngr(
 
         plugin = Plugin(distribution, self.current_cycle,
                         predictor_of_mean_flag=predictor_of_mean_flag)
-        result = plugin.estimate_coefficients_for_ngr(
+        result = plugin.process(
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
 
@@ -871,7 +871,7 @@ class Test_estimate_coefficients_for_ngr(
         plugin = Plugin(distribution, self.current_cycle)
         msg = "Distribution requested"
         with self.assertRaisesRegex(KeyError, msg):
-            plugin.estimate_coefficients_for_ngr(
+            plugin.process(
                 self.historic_temperature_forecast_cube,
                 self.temperature_truth_cube)
 
@@ -885,7 +885,7 @@ class Test_estimate_coefficients_for_ngr(
 
         plugin = Plugin(
             self.distribution, self.current_cycle, desired_units=desired_units)
-        result = plugin.estimate_coefficients_for_ngr(
+        result = plugin.process(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
 
@@ -902,7 +902,7 @@ class Test_estimate_coefficients_for_ngr(
 
         plugin = Plugin(
             self.distribution, self.current_cycle, desired_units=desired_units)
-        result = plugin.estimate_coefficients_for_ngr(
+        result = plugin.process(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
 
@@ -920,7 +920,7 @@ class Test_estimate_coefficients_for_ngr(
 
         msg = "The historic forecast units"
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.estimate_coefficients_for_ngr(
+            plugin.process(
                 self.historic_temperature_forecast_cube,
                 self.temperature_truth_cube)
 

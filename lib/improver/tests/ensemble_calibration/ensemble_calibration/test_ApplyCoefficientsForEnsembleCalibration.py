@@ -129,9 +129,9 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test_apply_params_entry(IrisTest):
+class Test_process(IrisTest):
 
-    """Test the apply_params_entry plugin."""
+    """Test the process plugin."""
 
     @ManageWarnings(
         ignored_messages=["The statsmodels can not be imported"],
@@ -169,7 +169,7 @@ class Test_apply_params_entry(IrisTest):
         """Test that the plugin returns a tuple."""
         cube = self.current_temperature_forecast_cube
         plugin = Plugin(cube, self.coeffs_from_mean)
-        result = plugin.apply_params_entry()
+        result = plugin.process()
         self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 2)
 
@@ -183,7 +183,7 @@ class Test_apply_params_entry(IrisTest):
         cube = self.current_temperature_forecast_cube
         plugin = Plugin(cube, self.coeffs_from_realizations,
                         predictor_of_mean_flag="realizations")
-        result = plugin.apply_params_entry()
+        result = plugin.process()
         self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 2)
 
@@ -196,7 +196,7 @@ class Test_apply_params_entry(IrisTest):
         """
         cube = self.current_temperature_forecast_cube
         plugin = Plugin(cube, self.coeffs_from_mean)
-        forecast_predictor, _ = plugin.apply_params_entry()
+        forecast_predictor, _ = plugin.process()
         for cell_method in forecast_predictor[0].cell_methods:
             self.assertEqual(cell_method.method, "mean")
 
@@ -209,7 +209,7 @@ class Test_apply_params_entry(IrisTest):
         """
         cube = self.current_temperature_forecast_cube
         plugin = Plugin(cube, self.coeffs_from_mean)
-        _, forecast_variance = plugin.apply_params_entry()
+        _, forecast_variance = plugin.process()
         for cell_method in forecast_variance[0].cell_methods:
             self.assertEqual(cell_method.method, "variance")
 
