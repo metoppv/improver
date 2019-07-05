@@ -348,6 +348,24 @@ class Test_process(IrisTest):
         with self.assertRaises(iris.exceptions.CoordinateNotFoundError):
             result.coord("model_configuration")
 
+    def test_blend_coord_ascending(self):
+        """Test the order of the output blend coordinate is always ascending,
+        independent of the input cube order"""
+        frt = self.cube_ukv.coord("forecast_reference_time").points[0]
+        fp = self.cube_ukv.coord("forecast_period").points[0]
+        cube1 = self.cube_ukv.copy()
+        cube1.coord("forecast_reference_time").points = [frt + 3600]
+        cube1.coord("forecast_period").points = [fp - 3600]
+        cube2 = self.cube_ukv.copy()
+        cube2.coord("forecast_reference_time").points = [frt + 7200]
+        cube2.coord("forecast_period").points = [fp - 7200]
+        # input unordered cubes; expect ordered output
+        expected_points = np.array([frt, frt+3600, frt+7200], dtype=np.int64)
+        plugin = MergeCubesForWeightedBlending("forecast_reference_time")
+        result = plugin.process([cube1, self.cube_ukv, cube2])
+        self.assertArrayEqual(
+            result.coord("forecast_reference_time").points, expected_points)
+
     def test_cycletime(self):
         """Test merged cube has updated forecast reference time and forecast
         period if specified using the 'cycletime' argument"""

@@ -104,10 +104,6 @@ class WeightAndBlend():
             weights (iris.cube.Cube):
                 Cube containing 1D array of weights for blending
         """
-        # sort input cube by blending coordinate (to create ordered output from
-        # default weights plugins)
-        cube = sort_coord_in_cube(cube, self.blend_coord, order="ascending")
-
         # calculate blending weights
         if self.wts_calc_method == "dict":
             # get dictionary access
@@ -117,13 +113,9 @@ class WeightAndBlend():
                 config_coord = self.blend_coord
 
             # calculate linear weights from dictionary
-            weights_cube = ChooseWeightsLinear(
+            weights = ChooseWeightsLinear(
                 self.weighting_coord, self.wts_dict,
                 config_coord_name=config_coord).process(cube)
-
-            # sort weights cube by blending coordinate
-            weights = sort_coord_in_cube(
-                weights_cube, self.blend_coord, order="ascending")
 
         elif self.wts_calc_method == "linear":
             weights = ChooseDefaultWeightsLinear(
@@ -189,8 +181,9 @@ class WeightAndBlend():
                 Distance (in metres) over which to smooth spatial weights.
                 Default is 20 km.
         """
-        # prepare cubes for weighted blending, including creating model_id and
-        # model_configuration coordinates for multi-model blending.  Raises an
+        # Prepare cubes for weighted blending, including creating model_id and
+        # model_configuration coordinates for multi-model blending. The merged
+        # cube has a monotonically ascending blend coordinate. Plugin raises an
         # error if blend_coord is not present on all input cubes.
         merger = MergeCubesForWeightedBlending(
             self.blend_coord, weighting_coord=self.weighting_coord,
