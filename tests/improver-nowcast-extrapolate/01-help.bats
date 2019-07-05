@@ -109,7 +109,8 @@ Calculate accumulations from advected fields:
                         accumulations calculated from the advected fields.
                         This fidelity specifies the time interval in minutes
                         between advected fields that is used to calculate
-                        these accumulations.
+                        these accumulations. This interval must be a factor of
+                        the lead_time_interval.
   --accumulation_units ACCUMULATION_UNITS
                         Desired units in which the accumulations should be
                         expressed,e.g. mm
