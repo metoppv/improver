@@ -164,6 +164,7 @@ def main(argv=None):
                              "forecast lead time")
 
     # determine whether accumulations are also to be returned.
+    time_interval = args.lead_time_interval
     if args.accumulation_fidelity > 0:
         fraction, _ = np.modf(args.lead_time_interval /
                               args.accumulation_fidelity)
@@ -175,10 +176,10 @@ def main(argv=None):
                        args.lead_time_interval, args.accumulation_fidelity))
             raise ValueError(msg)
 
-        lead_times = np.arange(0, args.max_lead_time+1,
-                               args.accumulation_fidelity)
+        time_interval = args.accumulation_fidelity
+        lead_times = np.arange(0, args.max_lead_time+1, time_interval)
 
-    lead_time_filter = args.lead_time_interval // args.accumulation_fidelity
+    lead_time_filter = args.lead_time_interval // time_interval
 
     forecast_plugin = CreateExtrapolationForecast(
         input_cube, ucube, vcube, orographic_enhancement_cube=oe_cube,
