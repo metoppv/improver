@@ -124,6 +124,7 @@ class Accumulation:
 
         fraction, cube_subset = np.modf(self.accumulation_period /
                                         time_interval)
+
         if fraction != 0:
             msg = ("The specified accumulation period ({}) is not divisible "
                    "by the time intervals between rates cubes ({}). As "

@@ -109,8 +109,9 @@ def main(argv=None):
         "--accumulation_fidelity", type=int, default=0,
         help="If set, this CLI will additionally return accumulations"
         " calculated from the advected fields. This fidelity specifies the"
-        " time interval in minutes between advected fields that is used to "
-        " calculate these accumulations.")
+        " time interval in minutes between advected fields that is used to"
+        " calculate these accumulations. This interval must be a factor of"
+        " the lead_time_interval.")
     accumulation_args.add_argument(
         "--accumulation_units", type=str, default='m',
         help="Desired units in which the accumulations should be expressed,"
@@ -163,14 +164,21 @@ def main(argv=None):
                              "forecast lead time")
 
     # determine whether accumulations are also to be returned.
-    time_interval = args.lead_time_interval
     if args.accumulation_fidelity > 0:
-        time_interval = np.gcd(args.lead_time_interval,
-                               args.accumulation_fidelity)
-        lead_times = np.arange(0, args.max_lead_time+1,
-                               time_interval)
+        fraction, _ = np.modf(args.lead_time_interval /
+                              args.accumulation_fidelity)
+        if fraction != 0:
+            msg = ("The specified lead_time_interval ({}) is not cleanly "
+                   "divisible by the specified accumulation_fidelity ({}). As "
+                   "a result the lead_time_interval cannot be constructed from"
+                   " accumulation cubes at this fidelity.".format(
+                       args.lead_time_interval, args.accumulation_fidelity))
+            raise ValueError(msg)
 
-    lead_time_filter = args.lead_time_interval // time_interval
+        lead_times = np.arange(0, args.max_lead_time+1,
+                               args.accumulation_fidelity)
+
+    lead_time_filter = args.lead_time_interval // args.accumulation_fidelity
 
     forecast_plugin = CreateExtrapolationForecast(
         input_cube, ucube, vcube, orographic_enhancement_cube=oe_cube,
