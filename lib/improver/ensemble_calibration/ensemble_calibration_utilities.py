@@ -49,7 +49,7 @@ def convert_cube_data_to_2d(
             N-dimensional cube to be reshaped.
         coord (string):
             The data will be flattened along this coordinate.
-        transpose (boolean):
+        transpose (bool):
             If True, the resulting flattened data is transposed.
             This will transpose a 2d array of the format [:, coord]
             to [coord, :].
@@ -57,7 +57,7 @@ def convert_cube_data_to_2d(
             This will result in a 2d array of format [:, coord].
 
     Returns:
-        forecast_data (numpy.array):
+        forecast_data (numpy.ndarray):
             Reshaped 2d array.
 
     """
@@ -79,11 +79,13 @@ def check_predictor_of_mean_flag(predictor_of_mean_flag):
     and raise an error later.
 
     Args:
-        predictor_of_mean_flag (string):
+        predictor_of_mean_flag (str):
             String to specify the input to calculate the calibrated mean.
             Currently the ensemble mean ("mean") and the ensemble realizations
             ("realizations") are supported as the predictors.
 
+    Raises:
+        ValueError: If the predictor_of_mean_flag is not valid.
     """
     if predictor_of_mean_flag.lower() not in ["mean", "realizations"]:
         msg = ("The requested value for the predictor_of_mean_flag {}"

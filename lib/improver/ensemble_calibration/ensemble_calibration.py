@@ -154,6 +154,12 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
                 List of optimised coefficients.
                 Order of coefficients is [gamma, delta, alpha, beta].
 
+        Raises:
+            KeyError: If the distribution is not supported.
+
+        Warns:
+            Warning: If the minimisation did not converge.
+
         """
         def calculate_percentage_change_in_last_iteration(allvecs):
             """
@@ -166,6 +172,9 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
                 allvecs (list):
                     List of numpy arrays containing the optimised coefficients,
                     after each iteration.
+
+            Warns:
+                Warning: If a satisfactory minimisation has not been achieved.
             """
             last_iteration_percentage_change = np.absolute(
                 (allvecs[-1] - allvecs[-2]) / allvecs[-2])*100
@@ -400,6 +409,8 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 iterations may require increasing, as there will be
                 more coefficients to solve for.
 
+        Warns:
+            ImportWarning: If the statsmodels module can't be imported.
         """
         self.distribution = distribution
         self.current_cycle = current_cycle
@@ -475,6 +486,9 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 coefficient_name auxiliary coordinate where the points of
                 the coordinate are e.g. gamma, delta, alpha, beta.
 
+        Raises:
+            ValueError: If the number of coefficients in the optimised_coeffs
+                does not match the expected number.
         """
         if self.predictor_of_mean_flag.lower() == "realizations":
             realization_coeffs = []
@@ -704,7 +718,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             historic_forecast (iris.cube.Cube):
                 The cube containing the historical forecasts used
                 for calibration.
-            truth (iris.cube.Cube:
+            truth (iris.cube.Cube):
                 The cube containing the truth used for calibration.
 
         Returns:
@@ -712,6 +726,10 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 Cube containing the coefficients estimated using EMOS.
                 The cube contains a coefficient_index dimension coordinate
                 and a coefficient_name auxiliary coordinate.
+
+        Raises:
+            ValueError: If the units of the historic and truth cubes do not
+                match.
 
         """
         # Ensure predictor_of_mean_flag is valid.
@@ -800,6 +818,11 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
 
+        Raises:
+            ValueError: If the names of the current_forecast and
+                coefficients_cube do not match.
+            ValueError: If the domain information of the current_forecast and
+                coefficients_cube do not match.
         """
         self.current_forecast = current_forecast
         self.coefficients_cube = coefficients_cube
@@ -994,6 +1017,9 @@ class EnsembleCalibration(object):
                 predictor_of_mean is "realizations", then the number of
                 iterations may require increasing, as there will be
                 more coefficients to solve for.
+
+        Raises:
+            ValueError: If the given distribution is not valid.
         """
         valid_distributions = (ContinuousRankedProbabilityScoreMinimisers().
                                minimisation_dict.keys())
