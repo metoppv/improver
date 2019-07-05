@@ -367,6 +367,20 @@ class Test_process(IrisTest):
         self.assertEqual(
             result.attributes['title'], 'IMPROVER Model Forecast')
 
+    def test_one_cube_with_cycletime(self):
+        """Test the plugin returns a single input cube with an updated forecast
+        reference time and period if given the "cycletime" option."""
+        expected_frt = (
+            self.enukx_cube.coord("forecast_reference_time").points[0] + 3600)
+        expected_fp = self.enukx_cube.coord("forecast_period").points[0] - 3600
+        result = self.plugin_model.process(
+            [self.enukx_cube], model_id_attr="mosg__model_configuration",
+            cycletime='20180910T0400Z')
+        self.assertEqual(
+            result.coord("forecast_reference_time").points[0], expected_frt)
+        self.assertEqual(
+            result.coord("forecast_period").points[0], expected_fp)
+
     def test_error_blend_coord_absent(self):
         """Test error is raised if blend coord is not present on input cubes"""
         plugin = WeightAndBlend("kittens", "linear", y0val=1, ynval=1)

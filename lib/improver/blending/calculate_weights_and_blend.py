@@ -85,7 +85,7 @@ class WeightAndBlend():
             self.y0val = y0val
             self.ynval = ynval
         elif self.wts_calc_method == "nonlinear":
-            self.cval = cval
+            self.cval = cval if cval else 0.85
         else:
             raise ValueError(
                 "Weights calculation method '{}' unrecognised".format(
@@ -133,8 +133,7 @@ class WeightAndBlend():
         elif self.wts_calc_method == "nonlinear":
             # this is set here rather than in the CLI arguments in order to
             # check for invalid argument combinations
-            cvalue = self.cval if self.cval else 0.85
-            weights = ChooseDefaultWeightsNonLinear(cvalue).process(
+            weights = ChooseDefaultWeightsNonLinear(self.cval).process(
                 cube, self.blend_coord)
 
         return weights

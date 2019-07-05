@@ -54,7 +54,7 @@ class Test__init__(IrisTest):
         self.assertEqual(plugin.y0val, 20.0)
         self.assertEqual(plugin.ynval, 2.0)
 
-    def test_fails_y0val_lessthan_zero(self):
+    def test_fails_y0val_less_than_zero(self):
         """Test it raises a Value Error if y0val less than zero. """
         msg = ('y0val must be a float >= 0.0')
         with self.assertRaisesRegex(ValueError, msg):
@@ -65,26 +65,18 @@ class Test_linear_weights(IrisTest):
     """Test the linear weights function. """
 
     def test_basic(self):
-        """Test that the function returns an array of weights. """
+        """Test that the function returns an array of weights"""
         result = LinearWeights().linear_weights(3)
         self.assertIsInstance(result, np.ndarray)
 
     def test_returns_correct_values_num_of_weights_one(self):
-        """Test it returns the correct values, method is proportional."""
+        """Test it returns the correct values, method is proportional"""
         result = LinearWeights().linear_weights(1)
         expected_result = np.array([1.0])
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_returns_correct_values_y0val_ynval_set(self):
         """Test it returns the correct values when y0val and ynval set"""
-        result = LinearWeights(y0val=100.0, ynval=10.0).linear_weights(6)
-        expected_result = np.array([0.3030303, 0.24848485,
-                                    0.19393939, 0.13939394,
-                                    0.08484848, 0.0303030])
-        self.assertArrayAlmostEqual(result, expected_result)
-
-    def test_returns_correct_values_y0val_slope_set(self):
-        """Test it returns the correct values when y0val and slope set"""
         result = LinearWeights(y0val=10.0, ynval=5.0).linear_weights(6)
         expected_result = np.array([0.22222222, 0.2,
                                     0.17777778, 0.15555556,
@@ -97,14 +89,8 @@ class Test_linear_weights(IrisTest):
         expected_result = np.array([0.0, 0.1, 0.2, 0.3, 0.4])
         self.assertArrayAlmostEqual(result, expected_result)
 
-    def test_returns_correct_values_y0val_is_0_slope_set(self):
-        """Test it returns the correct values when y0val=0 and slope set."""
-        result = LinearWeights(y0val=0.0, ynval=5.0).linear_weights(5)
-        expected_result = np.array([0.0, 0.1, 0.2, 0.3, 0.4])
-        self.assertArrayAlmostEqual(result, expected_result)
-
-    def test_returns_correct_values_y0val_is_0_ynval_is_0(self):
-        """Test it raises an error when y0val=0 and ynval=0."""
+    def test_fails_if_total_weights_zero(self):
+        """Test it raises an error when y0val=0 and ynval=0"""
         msg = "Sum of weights must be > 0.0"
         with self.assertRaisesRegex(ValueError, msg):
             LinearWeights(y0val=0.0, ynval=0.0).linear_weights(5)
