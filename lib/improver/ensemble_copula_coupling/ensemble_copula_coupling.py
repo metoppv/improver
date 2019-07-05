@@ -78,8 +78,8 @@ class RebadgePercentilesAsRealizations(object):
 
         Args:
             cube (iris.cube.Cube):
-                Cube containing a percentile coordinate, which will be rebadged as
-                ensemble realization.
+                Cube containing a percentile coordinate, which will be
+                rebadged as ensemble realization.
 
         Raises:
             InvalidCubeError:
