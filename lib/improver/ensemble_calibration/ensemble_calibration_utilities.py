@@ -75,8 +75,8 @@ def convert_cube_data_to_2d(
 def check_predictor_of_mean_flag(predictor_of_mean_flag):
     """
     Check the predictor_of_mean_flag at the start of the
-    estimate_coefficients_for_ngr method, to avoid having to check
-    and raise an error later.
+    process methods in relevant ensmeble calibration plugins,
+    to avoid having to check and raise an error later.
 
     Args:
         predictor_of_mean_flag (string):
