@@ -75,7 +75,7 @@ def convert_cube_data_to_2d(
 def check_predictor_of_mean_flag(predictor_of_mean_flag):
     """
     Check the predictor_of_mean_flag at the start of the
-    process methods in relevant ensmeble calibration plugins,
+    process methods in relevant ensemble calibration plugins,
     to avoid having to check and raise an error later.
 
     Args:
