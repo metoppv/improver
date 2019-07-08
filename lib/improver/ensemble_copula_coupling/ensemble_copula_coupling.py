@@ -85,7 +85,7 @@ class RebadgePercentilesAsRealizations(object):
             ensemble_realization_numbers (numpy.ndarray):
                 An array containing the ensemble numbers required in the output
                 realization coordinate. Default is None, meaning the
-                realization coordinate will ne numbered 0, 1, 2 ... n-1 for n
+                realization coordinate will be numbered 0, 1, 2 ... n-1 for n
                 percentiles on the input cube.
         Raises:
             InvalidCubeError:
@@ -474,7 +474,7 @@ class GeneratePercentilesFromProbabilities(object):
             forecast_probabilities).attributes['spp__relative_to_threshold']
         if relation == 'above':
             probabilities_for_cdf = 1 - prob_slices
-        elif relation == 'below':
+        elif relation == 'below':IMPRO-1206_fix_ecc_docstring
             probabilities_for_cdf = prob_slices
         else:
             msg = ("Probabilities to percentiles only implemented for "
