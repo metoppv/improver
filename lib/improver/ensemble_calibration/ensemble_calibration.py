@@ -80,7 +80,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         Initialise class for performing minimisation of the Continuous
         Ranked Probability Score (CRPS).
 
-        Kwargs:
+        Keyword Args:
             max_iterations (int):
                 The maximum number of iterations allowed until the
                 minimisation has converged to a stable solution. If the
@@ -390,7 +390,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 This is used to create a forecast_reference_time coordinate
                 on the resulting EMOS coefficients cube.
 
-        Kwargs:
+        Keyword Args:
             desired_units (str or cf_units.Unit):
                 The unit that you would like the calibration to be undertaken
                 in. The current forecast, historical forecast and truth will be
@@ -623,6 +623,8 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             estimate_coefficients_from_linear_model_flag (bool):
                 Flag whether coefficients should be estimated from
                 the linear regression, or static estimates should be used.
+
+        Keyword Args:
             no_of_realizations (int):
                 Number of realizations, if ensemble realizations are to be
                 used as predictors. Default is None.
@@ -813,6 +815,8 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                 where the points of the coordinate are integer values and a
                 coefficient_name auxiliary coordinate where the points of
                 the coordinate are e.g. gamma, delta, alpha, beta.
+
+        Keyword Args:
             predictor_of_mean_flag (str):
                 String to specify the input to calculate the calibrated mean.
                 Currently the ensemble mean ("mean") and the ensemble
@@ -999,7 +1003,8 @@ class EnsembleCalibration(object):
                 be dependent upon the input phenomenon. This has to be
                 supported by the minimisation functions in
                 ContinuousRankedProbabilityScoreMinimisers.
-        Kwargs:
+
+        Keyword Args:
             desired_units (str or cf_units.Unit):
                 The unit that you would like the calibration to be undertaken
                 in. The current forecast, historical forecast and truth will be

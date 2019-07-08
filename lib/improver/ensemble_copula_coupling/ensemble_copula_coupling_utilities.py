@@ -82,6 +82,8 @@ def choose_set_of_percentiles(no_of_percentiles, sampling="quantile"):
     Args:
         no_of_percentiles (int):
             Number of percentiles.
+
+    Keyword Args:
         sampling (str):
             Type of sampling of the distribution to produce a set of
             percentiles e.g. quantile or random.
@@ -156,6 +158,8 @@ def create_cube_with_percentiles(percentiles, template_cube, cube_data,
             template_cube.
             For example, template_cube shape is (3, 3, 3), whilst the cube_data
             is (10, 3, 3, 3), where there are 10 percentiles.
+
+    Keyword Args:
         cube_unit (cf_units.Unit):
             The units of the data within the cube
 

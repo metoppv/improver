@@ -81,6 +81,12 @@ class RebadgePercentilesAsRealizations(object):
                 Cube containing a percentile coordinate, which will be
                 rebadged as ensemble realization.
 
+        Keyword Args:
+            ensemble_realization_numbers (numpy.ndarray):
+                An array containing the ensemble numbers required in the output
+                realization coordinate. Default is None, meaning the
+                realization coordinate will ne numbered 0, 1, 2 ... n-1 for n
+                percentiles on the input cube.
         Raises:
             InvalidCubeError:
                 If the realization coordinate already exists on the cube.
@@ -276,6 +282,8 @@ class ResamplePercentiles(object):
         Args:
             forecast_at_percentiles (iris.cube.Cube):
                 Cube expected to contain a percentile coordinate.
+
+        Keyword Args:
             no_of_percentiles (int or None):
                 Number of percentiles
                 If None, the number of percentiles within the input
@@ -539,6 +547,8 @@ class GeneratePercentilesFromProbabilities(object):
         Args:
             forecast_probabilities (iris.cube.Cube):
                 Cube containing a threshold coordinate.
+
+        Keyword Args:
             no_of_percentiles (int):
                 Number of percentiles. If None and percentiles is not set,
                 the number of thresholds within the input
@@ -730,7 +740,7 @@ class GeneratePercentilesFromMeanAndVariance(object):
             calibrated_forecast_variance (iris.cube.Cube):
                 Cube containing the calibrated forecast variance.
 
-        Kwargs:
+        Keyword Args:
             no_of_percentiles (int):
                 Integer defining the number of percentiles that will be
                 calculated from the mean and variance.
@@ -1026,6 +1036,8 @@ class EnsembleReordering(object):
                 Cube containing the raw (not post-processed) forecasts.
                 The probabilistic dimension is assumed to be the zeroth
                 dimension.
+
+        Keyword Args:
             random_ordering (bool):
                 If random_ordering is True, the post-processed forecasts are
                 reordered randomly, rather than using the ordering of the
@@ -1093,6 +1105,8 @@ class EnsembleReordering(object):
             raw_forecast (iris.cube.Cube):
                 The cube containing the raw (not post-processed)
                 forecast.
+
+        Keyword Args:
             random_ordering (bool):
                 If random_ordering is True, the post-processed forecasts are
                 reordered randomly, rather than using the ordering of the
