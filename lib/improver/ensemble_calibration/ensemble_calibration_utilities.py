@@ -47,7 +47,7 @@ def convert_cube_data_to_2d(
     Args:
         forecast (iris.cube.Cube):
             N-dimensional cube to be reshaped.
-        coord (string):
+        coord (str):
             The data will be flattened along this coordinate.
         transpose (bool):
             If True, the resulting flattened data is transposed.
