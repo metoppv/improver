@@ -57,6 +57,9 @@ export BATS_PREFIX="$(abs_dirname "$BATS_LIBEXEC")"
 export BATS_CWD="$(abs_dirname .)"
 export PATH="$BATS_LIBEXEC:$PATH"
 
+# Fixed to ensure that the number of threads is consistent when running the
+# tests on different machines. Some CLI test results exhibit precision level
+# sensitivity to the number of threads.
 export OMP_NUM_THREADS=1
 
 options=()
