@@ -784,22 +784,23 @@ class Test_process(Test_weighted_blend):
         be given relative to this time.
 
         For this we need a single time in our cube and so to blend over
-        something else. In this case we create a "model" coordinate as if we
+        something else. In this case we create a "model_id" coordinate as if we
         are model blending."""
 
+        coord_name = "model_id"
+
         cube1 = self.cube[0].copy()
-        model_crd1 = iris.coords.DimCoord([0], long_name='model', units=1)
+        model_crd1 = iris.coords.DimCoord([0], long_name=coord_name, units=1)
         cube1.add_aux_coord(model_crd1)
 
         cube2 = self.cube[0].copy()
-        model_crd2 = iris.coords.DimCoord([1], long_name='model', units=1)
+        model_crd2 = iris.coords.DimCoord([1], long_name=coord_name, units=1)
         cube2.add_aux_coord(model_crd2)
 
         cubes = iris.cube.CubeList([cube1, cube2])
         cube = merge_cubes(cubes)
 
-        coord = "model"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean',
+        plugin = WeightedBlendAcrossWholeDimension(coord_name, 'weighted_mean',
                                                    cycletime='20151118T0900Z')
         expected_frt = 1447837200
         expected_forecast_period = 61200

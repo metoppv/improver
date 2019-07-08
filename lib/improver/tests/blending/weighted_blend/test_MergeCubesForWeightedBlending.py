@@ -289,18 +289,21 @@ class Test_process(IrisTest):
             model_id_attr="mosg__model_configuration")
 
     def test_basic(self):
-        """Test single cube is returned unmodified"""
+        """Test single cube is returned with new "blend" attribute"""
         cube = self.cube_enuk.copy()
         result = self.plugin.process(cube)
         self.assertArrayAlmostEqual(result.data, self.cube_enuk.data)
-        self.assertEqual(result.metadata, self.cube_enuk.metadata)
+        self.assertEqual(
+            result.attributes["mosg__model_configuration"], "blend")
 
     def test_single_item_list(self):
-        """Test cube from single item list is returned unmodified"""
+        """Test cube from single item list is returned with new "blend"
+        attribute"""
         cubelist = iris.cube.CubeList([self.cube_enuk.copy()])
         result = self.plugin.process(cubelist)
         self.assertArrayAlmostEqual(result.data, self.cube_enuk.data)
-        self.assertEqual(result.metadata, self.cube_enuk.metadata)
+        self.assertEqual(
+            result.attributes["mosg__model_configuration"], "blend")
 
     def test_multi_model_merge(self):
         """Test models merge OK and have expected model coordinates"""
@@ -344,6 +347,24 @@ class Test_process(IrisTest):
             result.coord("model_id")
         with self.assertRaises(iris.exceptions.CoordinateNotFoundError):
             result.coord("model_configuration")
+
+    def test_blend_coord_ascending(self):
+        """Test the order of the output blend coordinate is always ascending,
+        independent of the input cube order"""
+        frt = self.cube_ukv.coord("forecast_reference_time").points[0]
+        fp = self.cube_ukv.coord("forecast_period").points[0]
+        cube1 = self.cube_ukv.copy()
+        cube1.coord("forecast_reference_time").points = [frt + 3600]
+        cube1.coord("forecast_period").points = [fp - 3600]
+        cube2 = self.cube_ukv.copy()
+        cube2.coord("forecast_reference_time").points = [frt + 7200]
+        cube2.coord("forecast_period").points = [fp - 7200]
+        # input unordered cubes; expect ordered output
+        expected_points = np.array([frt, frt+3600, frt+7200], dtype=np.int64)
+        plugin = MergeCubesForWeightedBlending("forecast_reference_time")
+        result = plugin.process([cube1, self.cube_ukv, cube2])
+        self.assertArrayEqual(
+            result.coord("forecast_reference_time").points, expected_points)
 
     def test_cycletime(self):
         """Test merged cube has updated forecast reference time and forecast
