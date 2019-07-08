@@ -80,7 +80,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         Initialise class for performing minimisation of the Continuous
         Ranked Probability Score (CRPS).
 
-        Kwargs:
+        Keyword Args:
             max_iterations (int):
                 The maximum number of iterations allowed until the
                 minimisation has converged to a stable solution. If the
@@ -154,6 +154,12 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
                 List of optimised coefficients.
                 Order of coefficients is [gamma, delta, alpha, beta].
 
+        Raises:
+            KeyError: If the distribution is not supported.
+
+        Warns:
+            Warning: If the minimisation did not converge.
+
         """
         def calculate_percentage_change_in_last_iteration(allvecs):
             """
@@ -166,6 +172,9 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
                 allvecs (list):
                     List of numpy arrays containing the optimised coefficients,
                     after each iteration.
+
+            Warns:
+                Warning: If a satisfactory minimisation has not been achieved.
             """
             last_iteration_percentage_change = np.absolute(
                 (allvecs[-1] - allvecs[-2]) / allvecs[-2])*100
@@ -381,7 +390,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 This is used to create a forecast_reference_time coordinate
                 on the resulting EMOS coefficients cube.
 
-        Kwargs:
+        Keyword Args:
             desired_units (str or cf_units.Unit):
                 The unit that you would like the calibration to be undertaken
                 in. The current forecast, historical forecast and truth will be
@@ -400,6 +409,8 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 iterations may require increasing, as there will be
                 more coefficients to solve for.
 
+        Warns:
+            ImportWarning: If the statsmodels module can't be imported.
         """
         self.distribution = distribution
         self.current_cycle = current_cycle
@@ -475,6 +486,9 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 coefficient_name auxiliary coordinate where the points of
                 the coordinate are e.g. gamma, delta, alpha, beta.
 
+        Raises:
+            ValueError: If the number of coefficients in the optimised_coeffs
+                does not match the expected number.
         """
         if self.predictor_of_mean_flag.lower() == "realizations":
             realization_coeffs = []
@@ -609,6 +623,8 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             estimate_coefficients_from_linear_model_flag (bool):
                 Flag whether coefficients should be estimated from
                 the linear regression, or static estimates should be used.
+
+        Keyword Args:
             no_of_realizations (int):
                 Number of realizations, if ensemble realizations are to be
                 used as predictors. Default is None.
@@ -704,7 +720,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             historic_forecast (iris.cube.Cube):
                 The cube containing the historical forecasts used
                 for calibration.
-            truth (iris.cube.Cube:
+            truth (iris.cube.Cube):
                 The cube containing the truth used for calibration.
 
         Returns:
@@ -712,6 +728,10 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 Cube containing the coefficients estimated using EMOS.
                 The cube contains a coefficient_index dimension coordinate
                 and a coefficient_name auxiliary coordinate.
+
+        Raises:
+            ValueError: If the units of the historic and truth cubes do not
+                match.
 
         """
         # Ensure predictor_of_mean_flag is valid.
@@ -795,11 +815,18 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                 where the points of the coordinate are integer values and a
                 coefficient_name auxiliary coordinate where the points of
                 the coordinate are e.g. gamma, delta, alpha, beta.
+
+        Keyword Args:
             predictor_of_mean_flag (str):
                 String to specify the input to calculate the calibrated mean.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
 
+        Raises:
+            ValueError: If the names of the current_forecast and
+                coefficients_cube do not match.
+            ValueError: If the domain information of the current_forecast and
+                coefficients_cube do not match.
         """
         self.current_forecast = current_forecast
         self.coefficients_cube = coefficients_cube
@@ -976,7 +1003,8 @@ class EnsembleCalibration(object):
                 be dependent upon the input phenomenon. This has to be
                 supported by the minimisation functions in
                 ContinuousRankedProbabilityScoreMinimisers.
-        Kwargs:
+
+        Keyword Args:
             desired_units (str or cf_units.Unit):
                 The unit that you would like the calibration to be undertaken
                 in. The current forecast, historical forecast and truth will be
@@ -994,6 +1022,9 @@ class EnsembleCalibration(object):
                 predictor_of_mean is "realizations", then the number of
                 iterations may require increasing, as there will be
                 more coefficients to solve for.
+
+        Raises:
+            ValueError: If the given distribution is not valid.
         """
         valid_distributions = (ContinuousRankedProbabilityScoreMinimisers().
                                minimisation_dict.keys())
