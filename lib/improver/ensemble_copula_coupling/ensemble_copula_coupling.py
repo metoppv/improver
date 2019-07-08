@@ -474,7 +474,7 @@ class GeneratePercentilesFromProbabilities(object):
             forecast_probabilities).attributes['spp__relative_to_threshold']
         if relation == 'above':
             probabilities_for_cdf = 1 - prob_slices
-        elif relation == 'below':IMPRO-1206_fix_ecc_docstring
+        elif relation == 'below':
             probabilities_for_cdf = prob_slices
         else:
             msg = ("Probabilities to percentiles only implemented for "
