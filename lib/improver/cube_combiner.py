@@ -133,7 +133,7 @@ class CubeCombiner(object):
             result (iris.cube.Cube):
                 Cube containing the combined data.
         Raises:
-            TypeError: If a cube is passed in rather than a cubelist.
+            TypeError: If cube_list is not an iris.cube.CubeList.
             ValueError: If the cubelist contains only one cube.
         """
         if not isinstance(cube_list, iris.cube.CubeList):
