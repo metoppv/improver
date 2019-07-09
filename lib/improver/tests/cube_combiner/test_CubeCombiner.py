@@ -178,10 +178,10 @@ class Test_process(set_up_cubes):
 
     def test_mean(self):
         """Test that the plugin calculates the mean correctly. """
-        plugin = CubeCombiner('add')
+        plugin = CubeCombiner('mean')
         cubelist = iris.cube.CubeList([self.cube1, self.cube2])
         result = plugin.process(cubelist, 'new_cube_name')
-        expected_data = np.full((1, 2, 2), 1.1, dtype=np.float32)
+        expected_data = np.full((1, 2, 2), 0.55, dtype=np.float32)
         self.assertEqual(result.name(), 'new_cube_name')
         self.assertArrayAlmostEqual(result.data, expected_data)
 
@@ -189,12 +189,12 @@ class Test_process(set_up_cubes):
         """Test that the plugin calculates the sum of the input cubes
         correctly and expands the requested coordinate bounds in the
         resulting output."""
-        plugin = CubeCombiner('mean')
+        plugin = CubeCombiner('add')
         expanded_coord = {'time': 'upper'}
         cubelist = iris.cube.CubeList([self.cube1, self.cube2])
         result = plugin.process(cubelist, 'new_cube_name',
                                 expanded_coord=expanded_coord)
-        expected_data = np.full((1, 2, 2), 0.55, dtype=np.float32)
+        expected_data = np.full((1, 2, 2), 1.1, dtype=np.float32)
         self.assertEqual(result.name(), 'new_cube_name')
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertEqual(result.coord('time').points[0], 1447894800)
