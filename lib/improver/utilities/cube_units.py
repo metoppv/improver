@@ -159,7 +159,7 @@ def check_precision_loss(dtype, data, precision=5):
     may be lossy if changing from 64 bit to 32 bit floats, but changes at this
     precision are not captured here by design.
 
-    If the conversion is lossless (to the defined precision) this fuction
+    If the conversion is lossless (to the defined precision) this function
     returns True. If there is loss, the function returns False.
 
     .. See the documentation for examples of where such loss is important.

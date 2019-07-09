@@ -226,7 +226,7 @@ class WindGustDiagnostic(object):
 
         # Calculate wind-gust diagnostic using CubeCombiner
         plugin = CubeCombiner('max')
-        result = plugin.combine(req_cube_gust, req_cube_ws, 'max')
+        result = plugin.combine(req_cube_gust, req_cube_ws)
 
         # Update metadata
         result = self.update_metadata_after_max(result,
