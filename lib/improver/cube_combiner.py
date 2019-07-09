@@ -36,6 +36,7 @@ import iris
 
 from improver.utilities.cube_metadata import (
     resolve_metadata_diff, amend_metadata)
+from improver.utilities.cube_manipulation import expand_bounds
 
 
 class CubeCombiner(object):
@@ -78,81 +79,7 @@ class CubeCombiner(object):
                                                self.warnings_on))
         return desc
 
-    @staticmethod
-    def expand_bounds(result_cube, cubelist, coord, point):
-        """Alter a coord such that bounds are expanded to cover
-        the entire range of the input cubes.
-
-        For example, in the case of time cubes if the input cubes have
-        bounds of [0000Z, 0100Z] & [0100Z, 0200Z] then the output cube will
-        have bounds of [0000Z,0200Z]
-
-        Args:
-            result_cube (iris.cube.Cube):
-                A cube with metadata for the results.
-            cubelist (iris.cube.CubeList):
-                The list of cubes with coordinates to be combined
-            coord (str):
-                The coordinate to be combined.
-            point (str):
-                The method of calculating the new point for the coordinate.
-                Currently accepts:
-
-                    | 'mid' - halfway between the bounds
-                    | 'upper' - equal to the upper bound
-        Returns:
-            result (iris.cube.Cube):
-                Cube with coord expanded.
-
-                n.b. If argument point == 'mid' then python will convert
-                result.coord('coord').points[0] to a float UNLESS the coord
-                units contain 'seconds'.  This is to ensure that midpoints are
-                not rounded down, for example when times are in hours.
-        """
-        if len(result_cube.coord(coord).points) != 1:
-            emsg = ('the expand bounds function should only be used on a'
-                    'coordinate with a single point. The coordinate \"{}\" '
-                    'has {} points.')
-            raise ValueError(emsg.format(
-                coord,
-                len(result_cube.coord(coord).points)))
-
-        bounds = ([cube.coord(coord).bounds for cube in cubelist])
-        if any(b is None for b in bounds):
-            points = ([cube.coord(coord).points for cube in cubelist])
-            new_low_bound = np.min(points)
-            new_top_bound = np.max(points)
-        else:
-            new_low_bound = np.min(bounds)
-            new_top_bound = np.max(bounds)
-        result_coord = result_cube.coord(coord)
-        result_coord.bounds = np.array(
-            [[new_low_bound, new_top_bound]])
-        if result_coord.bounds.dtype == np.float64:
-            result_coord.bounds = result_coord.bounds.astype(np.float32)
-
-        if point == 'mid':
-            if 'seconds' in str(result_coord.units):
-                # integer division of seconds required to retain precision
-                dtype_orig = result_coord.dtype
-                result_coord.points = [
-                    (new_top_bound - new_low_bound) // 2 + new_low_bound]
-                # re-cast to original precision to avoid escalating int32s
-                result_coord.points = result_coord.points.astype(dtype_orig)
-            else:
-                # float division of hours required for accuracy
-                result_coord.points = [
-                    (new_top_bound - new_low_bound) / 2. + new_low_bound]
-        elif point == 'upper':
-            result_coord.points = [new_top_bound]
-
-        if result_coord.points.dtype == np.float64:
-            result_coord.points = result_coord.points.astype(np.float32)
-
-        return result_cube
-
-    @staticmethod
-    def combine(cube1, cube2, operation):
+    def combine(self, cube1, cube2):
         """
         Combine cube data
 
@@ -161,30 +88,22 @@ class CubeCombiner(object):
                 Cube containing data to be combined.
             cube2 (iris.cube.Cube):
                 Cube containing data to be combined.
-            operation (str):
-                Operation (+, - etc) to apply to the incoming cubes)
-
         Returns:
             result (iris.cube.Cube):
                 Cube containing the combined data.
-        Raises:
-            ValueError: Unknown operation.
-
         """
         result = cube1
-        if operation == '+' or operation == 'add' or operation == 'mean':
+        if (self.operation == '+' or self.operation == 'add' or
+                self.operation == 'mean'):
             result.data = cube1.data + cube2.data
-        elif operation == '-' or operation == 'subtract':
+        elif self.operation == '-' or self.operation == 'subtract':
             result.data = cube1.data - cube2.data
-        elif operation == '*' or operation == 'multiply':
+        elif self.operation == '*' or self.operation == 'multiply':
             result.data = cube1.data * cube2.data
-        elif operation == 'min':
+        elif self.operation == 'min':
             result.data = np.minimum(cube1.data, cube2.data)
-        elif operation == 'max':
+        elif self.operation == 'max':
             result.data = np.maximum(cube1.data, cube2.data)
-        else:
-            msg = 'Unknown operation {}'.format(operation)
-            raise ValueError(msg)
 
         return result
 
@@ -205,16 +124,21 @@ class CubeCombiner(object):
                 Revised coordinates for combined cube.
             revised_attributes (dict or None):
                 Revised attributes for combined cube.
-
+            expanded_coord (dict or None):
+                Coordinates to be expanded as a key, with the value
+                indicating whether the upper or mid point of the coordinate
+                should be used as the point value, e.g.
+                {'time': 'upper'}.
         Returns:
             result (iris.cube.Cube):
                 Cube containing the combined data.
-
+        Raises:
+            TypeError: If cube_list is not an iris.cube.CubeList.
+            ValueError: If the cubelist contains only one cube.
         """
         if not isinstance(cube_list, iris.cube.CubeList):
-            msg = ('Expecting data to be an instance of '
-                   'iris.cube.CubeList but is'
-                   ' {0:s}.'.format(type(cube_list)))
+            msg = ('Expecting data to be an instance of iris.cube.CubeList '
+                   'but is {}.'.format(type(cube_list)))
             raise TypeError(msg)
         if len(cube_list) < 2:
             msg = 'Expecting 2 or more cubes in cube_list'
@@ -229,20 +153,14 @@ class CubeCombiner(object):
                 resolve_metadata_diff(result.copy(),
                                       cube_list[ind].copy(),
                                       warnings_on=self.warnings_on))
-            result = self.combine(cube1,
-                                  cube2,
-                                  self.operation)
+            result = self.combine(cube1, cube2)
 
         if self.operation == 'mean':
             result.data = result.data / len(cube_list)
 
         # If cube has coord bounds that we want to expand
         if expanded_coord:
-            for coord, treatment in expanded_coord.items():
-                result = self.expand_bounds(result,
-                                            cube_list,
-                                            coord=coord,
-                                            point=treatment)
+            result = expand_bounds(result, cube_list, expanded_coord)
 
         result = amend_metadata(result,
                                 new_diagnostic_name,

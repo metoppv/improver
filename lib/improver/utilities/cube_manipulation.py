@@ -901,3 +901,78 @@ def clip_cube_data(cube, minimum_value, maximum_value):
     result.attributes = original_attributes
     result = check_cube_coordinates(cube, result)
     return result
+
+
+def expand_bounds(result_cube, cubelist, expanded_coords):
+    """Alter a coord such that bounds are expanded to cover
+    the entire range of the input cubes.
+
+    For example, in the case of time cubes if the input cubes have
+    bounds of [0000Z, 0100Z] & [0100Z, 0200Z] then the output cube will
+    have bounds of [0000Z,0200Z]
+
+    Args:
+        result_cube (iris.cube.Cube):
+            A cube with metadata for the results.
+        cubelist (iris.cube.CubeList):
+            The list of cubes with coordinates to be combined
+        expanded_coord (dict or None):
+            Coordinates over which bounds should be expanded as a key, with the
+            value indicating whether the upper or mid point of the coordinate
+            should be used as the point value, e.g. {'time': 'upper'}.
+
+                | 'mid' - halfway between the bounds
+                | 'upper' - equal to the upper bound
+
+    Returns:
+        result_cube (iris.cube.Cube):
+            Cube with coords expanded.
+
+            n.b. If argument point == 'mid' then python will convert
+            result.coord('coord').points[0] to a float UNLESS the coord
+            units contain 'seconds'.  This is to ensure that midpoints are
+            not rounded down, for example when times are in hours.
+    """
+    for coord, point in expanded_coords.items():
+
+        if len(result_cube.coord(coord).points) != 1:
+            emsg = ('the expand bounds function should only be used on a'
+                    'coordinate with a single point. The coordinate \"{}\" '
+                    'has {} points.')
+            raise ValueError(emsg.format(
+                coord,
+                len(result_cube.coord(coord).points)))
+
+        bounds = ([cube.coord(coord).bounds for cube in cubelist])
+        if any(b is None for b in bounds):
+            points = ([cube.coord(coord).points for cube in cubelist])
+            new_low_bound = np.min(points)
+            new_top_bound = np.max(points)
+        else:
+            new_low_bound = np.min(bounds)
+            new_top_bound = np.max(bounds)
+        result_coord = result_cube.coord(coord)
+        result_coord.bounds = np.array(
+            [[new_low_bound, new_top_bound]])
+        if result_coord.bounds.dtype == np.float64:
+            result_coord.bounds = result_coord.bounds.astype(np.float32)
+
+        if point == 'mid':
+            if 'seconds' in str(result_coord.units):
+                # integer division of seconds required to retain precision
+                dtype_orig = result_coord.dtype
+                result_coord.points = [
+                    (new_top_bound - new_low_bound) // 2 + new_low_bound]
+                # re-cast to original precision to avoid escalating int32s
+                result_coord.points = result_coord.points.astype(dtype_orig)
+            else:
+                # float division of hours required for accuracy
+                result_coord.points = [
+                    (new_top_bound - new_low_bound) / 2. + new_low_bound]
+        elif point == 'upper':
+            result_coord.points = [new_top_bound]
+
+        if result_coord.points.dtype == np.float64:
+            result_coord.points = result_coord.points.astype(np.float32)
+
+    return result_cube
