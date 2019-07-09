@@ -218,7 +218,7 @@ class test_set_up_variable_cube(IrisTest):
 
     def test_spatial_grid(self):
         """Test ability to set up non lat-lon grid"""
-        result = set_up_variable_cube(self.data, spatial_grid='equal_area')
+        result = set_up_variable_cube(self.data, spatial_grid='equalarea')
         self.assertEqual(result.coord_dims('projection_y_coordinate'), (0,))
         self.assertEqual(result.coord_dims('projection_x_coordinate'), (1,))
 
@@ -303,16 +303,9 @@ class test_set_up_percentile_cube(IrisTest):
         """Test default arguments produce cube with expected dimensions
         and metadata"""
         result = set_up_percentile_cube(self.data, self.percentiles)
-        perc_coord = result.coord("percentile_over_realization")
+        perc_coord = result.coord("percentile")
         self.assertArrayEqual(perc_coord.points, self.percentiles)
         self.assertEqual(perc_coord.units, "%")
-
-    def test_percentile_coord_name(self):
-        """Test ability to set a different name"""
-        result = set_up_percentile_cube(self.data, self.percentiles,
-                                        percentile_dim_name="percentile")
-        dim_coords = [coord.name() for coord in result.coords(dim_coords=True)]
-        self.assertIn("percentile", dim_coords)
 
     def test_standard_grid_metadata(self):
         """Test standard grid metadata"""
@@ -351,24 +344,27 @@ class test_set_up_probability_cube(IrisTest):
         self.assertEqual(thresh_coord.name(), 'air_temperature')
         self.assertEqual(thresh_coord.var_name, 'threshold')
         self.assertEqual(thresh_coord.units, 'K')
-        self.assertEqual(len(result.attributes), 1)
-        self.assertEqual(result.attributes['relative_to_threshold'], 'above')
+        self.assertEqual(len(thresh_coord.attributes), 1)
+        self.assertEqual(
+            thresh_coord.attributes['spp__relative_to_threshold'], 'above')
 
     def test_relative_to_threshold(self):
-        """Test ability to reset the "relative_to_threshold" attribute"""
+        """Test ability to reset the "spp__relative_to_threshold" attribute"""
         data = np.flipud(self.data)
         result = set_up_probability_cube(data, self.thresholds,
-                                         relative_to_threshold='below')
-        self.assertEqual(len(result.attributes), 1)
-        self.assertEqual(result.attributes['relative_to_threshold'], 'below')
+                                         spp__relative_to_threshold='below')
+        self.assertEqual(len(result.coord(var_name="threshold").attributes), 1)
+        self.assertEqual(
+            result.coord(var_name="threshold"
+                         ).attributes['spp__relative_to_threshold'], 'below')
 
     def test_relative_to_threshold_set(self):
-        """Test that an error is raised if the "relative_to_threshold"
+        """Test that an error is raised if the "spp__relative_to_threshold"
         attribute has not been set when setting up a probability cube"""
-        msg = 'The relative_to_threshold attribute MUST be set'
+        msg = 'The spp__relative_to_threshold attribute MUST be set'
         with self.assertRaisesRegex(ValueError, msg):
             set_up_probability_cube(self.data, self.thresholds,
-                                    relative_to_threshold=None)
+                                    spp__relative_to_threshold=None)
 
     def test_standard_grid_metadata(self):
         """Test standard grid metadata"""

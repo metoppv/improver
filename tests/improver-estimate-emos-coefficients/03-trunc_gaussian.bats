@@ -36,7 +36,7 @@
   KGO="estimate-emos-coefficients/truncated_gaussian/kgo.nc"
 
   # Estimate the EMOS coefficients and check that they match the kgo.
-  run improver estimate-emos-coefficients 'truncated gaussian' '20170605T1500Z' \
+  run improver estimate-emos-coefficients 'truncated gaussian' '20170605T0300Z' \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/truncated_gaussian/history/*.nc" \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/truncated_gaussian/truth/*.nc" \
       "$TEST_DIR/output.nc"
@@ -45,6 +45,6 @@
   improver_check_recreate_kgo "output.nc" $KGO
 
   # Run nccmp to compare the output and kgo realizations and check it passes.
-  improver_compare_output "$TEST_DIR/output.nc" \
+  improver_compare_output_lower_precision "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

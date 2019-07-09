@@ -33,6 +33,8 @@
 Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
 Regression (NGR)."""
 
+import numpy as np
+
 from improver.argparser import ArgParser
 from improver.ensemble_calibration.ensemble_calibration import (
     EstimateCoefficientsForEnsembleCalibration)
@@ -48,7 +50,7 @@ def main(argv=None):
        estimated coefficients are written to a netCDF file.
     """
     parser = ArgParser(
-        description='Estimate coefficients for for Ensemble Model Output '
+        description='Estimate coefficients for Ensemble Model Output '
                     'Statistics (EMOS), otherwise known as Non-homogeneous '
                     'Gaussian Regression (NGR)')
     parser.add_argument('distribution', metavar='DISTRIBUTION',
@@ -87,7 +89,21 @@ def main(argv=None):
                              'ensemble mean ("mean") and the ensemble '
                              'realizations ("realizations") are supported as '
                              'options. Default: "mean".')
-
+    parser.add_argument('--max_iterations', metavar='MAX_ITERATIONS',
+                        type=np.int32, default=1000,
+                        help='The maximum number of iterations allowed '
+                             'until the minimisation has converged to a '
+                             'stable solution. If the maximum number '
+                             'of iterations is reached, but the '
+                             'minimisation has not yet converged to a '
+                             'stable solution, then the available solution '
+                             'is used anyway, and a warning is raised.'
+                             'This may be modified for testing purposes '
+                             'but otherwise kept fixed. If the '
+                             'predictor_of_mean is "realizations", '
+                             'then the number of iterations may require '
+                             'increasing, as there will be more coefficients '
+                             'to solve for.')
     args = parser.parse_args(args=argv)
 
     historic_forecast = load_cube(args.historic_filepath)
@@ -96,9 +112,10 @@ def main(argv=None):
     # Estimate coefficients using Ensemble Model Output Statistics (EMOS).
     estcoeffs = EstimateCoefficientsForEnsembleCalibration(
         args.distribution, args.cycletime, desired_units=args.units,
-        predictor_of_mean_flag=args.predictor_of_mean)
+        predictor_of_mean_flag=args.predictor_of_mean,
+        max_iterations=args.max_iterations)
     coefficients = (
-        estcoeffs.estimate_coefficients_for_ngr(historic_forecast, truth))
+        estcoeffs.process(historic_forecast, truth))
 
     save_netcdf(coefficients, args.output_filepath)
 

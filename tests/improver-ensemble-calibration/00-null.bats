@@ -41,7 +41,7 @@
                                      [--random_ordering]
                                      [--random_seed RANDOM_SEED]
                                      [--ecc_bounds_warning]
-                                     ENSEMBLE_CALIBRATION_METHOD
+                                     [--max_iterations MAX_ITERATIONS]
                                      UNITS_TO_CALIBRATE_IN DISTRIBUTION
                                      INPUT_FILE HISTORIC_DATA_FILE
                                      TRUTH_DATA_FILE OUTPUT_FILE

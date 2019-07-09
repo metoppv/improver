@@ -83,29 +83,18 @@ class Test_process(IrisTest):
             cube, [dt(2017, 1, 10, 5, 0), dt(2017, 1, 10, 6, 0)],
             "time", is_datetime=True)
         self.coord_name = "time"
-        self.coord_vals = ','.join(
-            [str(x) for x in self.cube.coord("time").points])
 
     def test_basic(self):
         """Test that the plugin returns an array of weights. """
         plugin = NonLinearWeights()
-        result = plugin.process(self.cube, self.coord_name, self.coord_vals)
+        result = plugin.process(self.cube, self.coord_name)
         self.assertIsInstance(result, iris.cube.Cube)
 
     def test_array_sum_equals_one(self):
         """Test that the resulting weights add up to one. """
         plugin = NonLinearWeights()
-        result = plugin.process(self.cube, self.coord_name, self.coord_vals)
+        result = plugin.process(self.cube, self.coord_name)
         self.assertAlmostEqual(result.data.sum(), 1.0)
-
-    def test_fails_coord_not_in_cube(self):
-        """Test it raises a Value Error if coord not in the cube. """
-        coord = "notset"
-        plugin = NonLinearWeights()
-        msg = ('The coord for this plugin must be '
-               'an existing coordinate in the input cube')
-        with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(self.cube, coord)
 
     def test_fails_input_not_a_cube(self):
         """Test it raises a Value Error if not supplied with a cube. """
@@ -125,10 +114,10 @@ class Test_process(IrisTest):
         msg = ('cval must be greater than 0.0 and less '
                'than or equal to 1.0')
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(self.cube, self.coord_name, self.coord_vals)
+            plugin.process(self.cube, self.coord_name)
         plugin2 = NonLinearWeights(cval=1.1)
         with self.assertRaisesRegex(ValueError, msg):
-            plugin2.process(self.cube, self.coord_name, self.coord_vals)
+            plugin2.process(self.cube, self.coord_name)
 
     def test_works_if_scalar_coord(self):
         """Test it works if scalar coordinate. """
@@ -142,14 +131,14 @@ class Test_process(IrisTest):
     def test_works_with_default_cval(self):
         """Test it works with default cval. """
         plugin = NonLinearWeights()
-        result = plugin.process(self.cube, self.coord_name, self.coord_vals)
+        result = plugin.process(self.cube, self.coord_name)
         expected_result = np.array([0.54054054, 0.45945946])
         self.assertArrayAlmostEqual(result.data, expected_result)
 
     def test_works_with_cval_equal_one(self):
         """Test it works with cval = 1.0, i.e. equal weights. """
         plugin = NonLinearWeights(cval=1.0)
-        result = plugin.process(self.cube, self.coord_name, self.coord_vals)
+        result = plugin.process(self.cube, self.coord_name)
         expected_result = np.array([0.5, 0.5])
         self.assertArrayAlmostEqual(result.data, expected_result)
 
@@ -159,25 +148,10 @@ class Test_process(IrisTest):
         cubenew = add_coordinate(
             self.cube, np.arange(6), 'realization', dtype=np.int32)
         coord_name = 'realization'
-        coord_vals = ','.join(
-            [str(x) for x in cubenew.coord('realization').points])
-        result = plugin.process(cubenew, coord_name, coord_vals)
+        result = plugin.process(cubenew, coord_name)
         expected_result = np.array([0.50793651, 0.25396825,
                                     0.12698413, 0.06349206,
                                     0.03174603, 0.01587302])
-        self.assertArrayAlmostEqual(result.data, expected_result)
-
-    def test_works_with_missing_coord(self):
-        """Test it works with missing coord """
-        plugin = NonLinearWeights(cval=0.6)
-        cubenew = add_coordinate(
-            self.cube, np.arange(6), 'realization', dtype=np.int32)
-        coord_vals = '0, 1, 2, 3, 4, 5, 6'
-        coord_name = 'realization'
-        result = plugin.process(cubenew, coord_name, coord_vals)
-        expected_result = np.array([0.41472, 0.250112,
-                                    0.151347, 0.092088,
-                                    0.056533, 0.0352])
         self.assertArrayAlmostEqual(result.data, expected_result)
 
 

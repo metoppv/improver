@@ -37,6 +37,7 @@ import iris
 from stratify import interpolate
 from scipy.interpolate import griddata
 from scipy.stats import linregress
+from scipy.spatial.qhull import QhullError
 from cf_units import Unit
 
 from improver.psychrometric_calculations import svp_table
@@ -93,7 +94,7 @@ class Utilities(object):
                 A cube of air temperatures (Celsius, converted if not).
         Returns:
             iris.cube.Cube:
-                Temperature adjusted latent heat of condesation (J kg-1).
+                Temperature adjusted latent heat of condensation (J kg-1).
         """
         temperature = temperature_input.copy()
         temperature.convert_units('celsius')
@@ -295,7 +296,7 @@ class WetBulbTemperature(object):
         """
         Looks up a value for the saturation vapour pressure of water vapour
         using the temperature and a table of values. These tabulated values
-        have been calculated using the utilties.ancillary_creation
+        have been calculated using the utilities.ancillary_creation
         SaturatedVapourPressureTable plugin that uses the Goff-Gratch method.
 
         Args:
@@ -331,7 +332,7 @@ class WetBulbTemperature(object):
         Convert saturated vapour pressure in a pure water vapour system into
         the saturated vapour pressure in air.
 
-        Method from referenced dcumentation.
+        Method from referenced documentation.
 
         References:
             Atmosphere-Ocean Dynamics, Adrian E. Gill, International Geophysics
@@ -455,7 +456,7 @@ class WetBulbTemperature(object):
             # If the errors are identical between two iterations, stop.
             if (np.array_equal(delta_wbt.data, delta_wbt_history.data) or
                     iteration > max_iterations):
-                warnings.warn('No further refinement occuring; breaking out '
+                warnings.warn('No further refinement occurring; breaking out '
                               'of Newton iterator and returning result.')
                 break
             delta_wbt_history = delta_wbt
@@ -688,7 +689,7 @@ class FallingSnowLevel(object):
         """
         Fill in any data in the snow falling level where the whole wet bulb
         temperature integral is above the the threshold.
-        Set these points to the heighest height level + orography.
+        Set these points to the highest height level + orography.
 
         Args:
             snow_level_data (np.array):
@@ -826,7 +827,7 @@ class FallingSnowLevel(object):
         Keyword Args:
             start_point (int):
                 The index of the the starting height we want to use in our
-                linar fit.
+                linear fit.
             end_point (int):
                 The index of the the end height we want to use in our
                 linear fit.
@@ -860,7 +861,7 @@ class FallingSnowLevel(object):
             # Make the 1D sea point array 3D to account for the height axis
             # on the wet bulb temperature array.
             index3d = np.broadcast_to(sea_points, wet_bulb_temperature.shape)
-            # Flatten the array to make it more efficent to find a linear fit
+            # Flatten the array to make it more efficient to find a linear fit
             # for every point of interest. We can apply the fitting function
             # along the right axis to apply it to all points in one go.
             wet_bulb_temperature_values = (
@@ -973,11 +974,20 @@ class FallingSnowLevel(object):
             ynum, xnum = snow_level_data.shape
             (y_points, x_points) = np.mgrid[0:ynum, 0:xnum]
             values = snow_level_data[index]
-            snow_level_data_updated = griddata(
-                np.where(index), values, (y_points, x_points), method='linear')
-            snow_filled = snow_level_data_updated
+            # Try to do the horizontal interpolation to fill in any gaps,
+            # but if there are not enough points or the points are not arranged
+            # in a way that allows the horizontal interpolation, skip
+            # and use nearest neighbour intead.
+            try:
+                snow_level_data_updated = griddata(
+                    np.where(index), values, (y_points, x_points),
+                    method='linear')
+            except QhullError:
+                snow_level_data_updated = snow_level_data
+            else:
+                snow_filled = snow_level_data_updated
             # Fill in any remaining missing points using nearest neighbour.
-            # This normallly only impact points at the corners of the domain,
+            # This normally only impact points at the corners of the domain,
             # where the linear fit doesn't reach.
             index = ~np.isnan(snow_filled)
             index_valid_data = (

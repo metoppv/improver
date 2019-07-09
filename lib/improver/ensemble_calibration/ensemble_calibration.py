@@ -67,10 +67,6 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
     in comparison to comparative results generated in R.
 
     """
-
-    # Maximum iterations for minimisation using Nelder-Mead.
-    MAX_ITERATIONS = 200
-
     # The tolerated percentage change for the final iteration when
     # performing the minimisation.
     TOLERATED_PERCENTAGE_CHANGE = 5
@@ -79,28 +75,60 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
     # as part of the minimisation.
     BAD_VALUE = np.float64(999999)
 
-    def __init__(self):
-        # Dictionary containing the minimisation functions, which will
-        # be used, depending upon the distribution, which is requested.
+    def __init__(self, max_iterations=1000):
+        """
+        Initialise class for performing minimisation of the Continuous
+        Ranked Probability Score (CRPS).
+
+        Keyword Args:
+            max_iterations (int):
+                The maximum number of iterations allowed until the
+                minimisation has converged to a stable solution. If the
+                maximum number of iterations is reached, but the minimisation
+                has not yet converged to a stable solution, then the available
+                solution is used anyway, and a warning is raised. If the
+                predictor_of_mean is "realizations", then the number of
+                iterations may require increasing, as there will be
+                more coefficients to solve for.
+
+        """
+        # Dictionary containing the functions that will be minimised,
+        # depending upon the distribution requested.
         self.minimisation_dict = {
-            "gaussian": self.normal_crps_minimiser,
-            "truncated gaussian": self.truncated_normal_crps_minimiser}
+            "gaussian": self.calculate_normal_crps,
+            "truncated gaussian": self.calculate_truncated_normal_crps}
+        # Maximum iterations for minimisation using Nelder-Mead.
+        self.max_iterations = max_iterations
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = ('<ContinuousRankedProbabilityScoreMinimisers: '
-                  'minimisation_dict: {}>')
+                  'minimisation_dict: {}; max_iterations: {}>')
         print_dict = {}
         for key in self.minimisation_dict:
             print_dict.update({key: self.minimisation_dict[key].__name__})
-        return result.format(print_dict)
+        return result.format(print_dict, self.max_iterations)
 
-    def crps_minimiser_wrapper(
+    def process(
             self, initial_guess, forecast_predictor, truth, forecast_var,
             predictor_of_mean_flag, distribution):
         """
-        Function to pass a given minimisation function to the scipy minimize
+        Function to pass a given function to the scipy minimize
         function to estimate optimised values for the coefficients.
+
+        If the predictor_of_mean_flag is the ensemble mean, this function
+        estimates values for alpha, beta, gamma and delta based on the
+        equation:
+        N(alpha + beta * ensemble_mean, gamma + delta * ensemble_variance),
+        where N is a chosen distribution.
+
+        If the predictor_of_mean_flag is the ensemble realizations, this
+        function estimates values for alpha, beta, gamma and delta based on the
+        equation:
+        N(alpha + beta0 * realization0 + beta1 * realization1,
+          gamma + delta * ensemble_variance),
+        where N is a chosen distribution and the number of beta terms
+        depends on the number of realizations provided.
 
         Args:
             initial_guess (list):
@@ -118,13 +146,19 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
             distribution (str):
-                String used to access the appropriate minimisation function
-                within self.minimisation_dict.
+                String used to access the appropriate function for use in the
+                minimisation within self.minimisation_dict.
 
         Returns:
             optimised_coeffs (list):
                 List of optimised coefficients.
                 Order of coefficients is [gamma, delta, alpha, beta].
+
+        Raises:
+            KeyError: If the distribution is not supported.
+
+        Warns:
+            Warning: If the minimisation did not converge.
 
         """
         def calculate_percentage_change_in_last_iteration(allvecs):
@@ -138,13 +172,16 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
                 allvecs (list):
                     List of numpy arrays containing the optimised coefficients,
                     after each iteration.
+
+            Warns:
+                Warning: If a satisfactory minimisation has not been achieved.
             """
             last_iteration_percentage_change = np.absolute(
                 (allvecs[-1] - allvecs[-2]) / allvecs[-2])*100
             if (np.any(last_iteration_percentage_change >
                        self.TOLERATED_PERCENTAGE_CHANGE)):
                 np.set_printoptions(suppress=True)
-                msg = ("\nThe final iteration resulted in a percentage change "
+                msg = ("The final iteration resulted in a percentage change "
                        "that is greater than the accepted threshold of 5% "
                        "i.e. {}. "
                        "\nA satisfactory minimisation has not been achieved. "
@@ -179,32 +216,34 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
                 forecast_predictor)
             forecast_var_data = forecast_var.data.flatten()
 
-        initial_guess = np.array(initial_guess, dtype=np.float32)
-        forecast_predictor_data = forecast_predictor_data.astype(np.float32)
-        forecast_var_data = forecast_var_data.astype(np.float32)
-        truth_data = truth_data.astype(np.float32)
-        sqrt_pi = np.sqrt(np.pi).astype(np.float32)
+        # Increased precision is needed for stable coefficient calculation.
+        # The resulting coefficients are cast to float32 prior to output.
+        initial_guess = np.array(initial_guess, dtype=np.float64)
+        forecast_predictor_data = forecast_predictor_data.astype(np.float64)
+        forecast_var_data = forecast_var_data.astype(np.float64)
+        truth_data = truth_data.astype(np.float64)
+        sqrt_pi = np.sqrt(np.pi).astype(np.float64)
 
         optimised_coeffs = minimize(
             minimisation_function, initial_guess,
             args=(forecast_predictor_data, truth_data,
                   forecast_var_data, sqrt_pi, predictor_of_mean_flag),
             method="Nelder-Mead",
-            options={"maxiter": self.MAX_ITERATIONS, "return_all": True})
+            options={"maxiter": self.max_iterations, "return_all": True})
+
         if not optimised_coeffs.success:
             msg = ("Minimisation did not result in convergence after "
                    "{} iterations. \n{}".format(
-                       self.MAX_ITERATIONS, optimised_coeffs.message))
+                       self.max_iterations, optimised_coeffs.message))
             warnings.warn(msg)
         calculate_percentage_change_in_last_iteration(optimised_coeffs.allvecs)
         return optimised_coeffs.x.astype(np.float32)
 
-    def normal_crps_minimiser(
+    def calculate_normal_crps(
             self, initial_guess, forecast_predictor, truth, forecast_var,
             sqrt_pi, predictor_of_mean_flag):
         """
-        Minimisation function to calculate coefficients based on minimising the
-        CRPS for a normal distribution.
+        Calculate the CRPS for a normal distribution.
 
         Scientific Reference:
         Gneiting, T. et al., 2005.
@@ -232,7 +271,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
 
         Returns:
             result (float):
-                Minimum value for the CRPS achieved.
+                CRPS for the current set of coefficients.
 
         """
         if predictor_of_mean_flag.lower() == "mean":
@@ -255,14 +294,14 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
             sigma * (xz * (2 * normal_cdf - 1) + 2 * normal_pdf - 1 / sqrt_pi))
         if not np.isfinite(np.min(mu/sigma)):
             result = self.BAD_VALUE
+
         return result
 
-    def truncated_normal_crps_minimiser(
+    def calculate_truncated_normal_crps(
             self, initial_guess, forecast_predictor, truth, forecast_var,
             sqrt_pi, predictor_of_mean_flag):
         """
-        Minimisation function to calculate coefficients based on minimising the
-        CRPS for a truncated_normal distribution.
+        Calculate the CRPS for a truncated normal distribution.
 
         Scientific Reference:
         Thorarinsdottir, T.L. & Gneiting, T., 2010.
@@ -291,7 +330,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
 
         Returns:
             result (float):
-                Minimum value for the CRPS achieved.
+                CRPS for the current set of coefficients.
 
         """
         if predictor_of_mean_flag.lower() == "mean":
@@ -336,7 +375,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
     ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = True
 
     def __init__(self, distribution, current_cycle, desired_units=None,
-                 predictor_of_mean_flag="mean"):
+                 predictor_of_mean_flag="mean", max_iterations=1000):
         """
         Create an ensemble calibration plugin that, for Nonhomogeneous Gaussian
         Regression, calculates coefficients based on historical forecasts and
@@ -351,7 +390,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 This is used to create a forecast_reference_time coordinate
                 on the resulting EMOS coefficients cube.
 
-        Kwargs:
+        Keyword Args:
             desired_units (str or cf_units.Unit):
                 The unit that you would like the calibration to be undertaken
                 in. The current forecast, historical forecast and truth will be
@@ -360,7 +399,18 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 String to specify the input to calculate the calibrated mean.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
+            max_iterations (int):
+                The maximum number of iterations allowed until the
+                minimisation has converged to a stable solution. If the
+                maximum number of iterations is reached, but the minimisation
+                has not yet converged to a stable solution, then the available
+                solution is used anyway, and a warning is raised. If the
+                predictor_of_mean is "realizations", then the number of
+                iterations may require increasing, as there will be
+                more coefficients to solve for.
 
+        Warns:
+            ImportWarning: If the statsmodels module can't be imported.
         """
         self.distribution = distribution
         self.current_cycle = current_cycle
@@ -368,7 +418,10 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         # Ensure predictor_of_mean_flag is valid.
         check_predictor_of_mean_flag(predictor_of_mean_flag)
         self.predictor_of_mean_flag = predictor_of_mean_flag
-        self.minimiser = ContinuousRankedProbabilityScoreMinimisers()
+        self.max_iterations = max_iterations
+        self.minimiser = ContinuousRankedProbabilityScoreMinimisers(
+            max_iterations=self.max_iterations)
+
         # Setting default values for coeff_names. Beta is the final
         # coefficient name in the list, as there can potentially be
         # multiple beta coefficients if the ensemble realizations, rather
@@ -402,11 +455,12 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                   'desired_units: {}; '
                   'predictor_of_mean_flag: {}; '
                   'minimiser: {}; '
-                  'coeff_names: {}>')
+                  'coeff_names: {}; '
+                  'max_iterations: {}>')
         return result.format(
             self.distribution, self.current_cycle, self.desired_units,
             self.predictor_of_mean_flag, self.minimiser.__class__,
-            self.coeff_names)
+            self.coeff_names, self.max_iterations)
 
     def create_coefficients_cube(
             self, optimised_coeffs, historic_forecast):
@@ -432,6 +486,9 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 coefficient_name auxiliary coordinate where the points of
                 the coordinate are e.g. gamma, delta, alpha, beta.
 
+        Raises:
+            ValueError: If the number of coefficients in the optimised_coeffs
+                does not match the expected number.
         """
         if self.predictor_of_mean_flag.lower() == "realizations":
             realization_coeffs = []
@@ -459,7 +516,6 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         # Create a forecast_reference_time coordinate.
         frt_point = cycletime_to_datetime(self.current_cycle)
         try:
-
             frt_coord = (
                 historic_forecast.coord("forecast_reference_time").copy(
                     datetime_to_iris_time(frt_point, time_units="seconds")))
@@ -493,6 +549,16 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 time_coord = historic_forecast.coord("time").copy(time_point)
                 aux_coords_and_dims.append((time_coord, None))
 
+        # Create x and y coordinates
+        for axis in ["x", "y"]:
+            historic_coord_points = historic_forecast.coord(axis=axis).points
+            coord_point = np.median(historic_coord_points)
+            coord_bounds = [historic_coord_points[0],
+                            historic_coord_points[-1]]
+            new_coord = historic_forecast.coord(axis=axis).copy(
+                points=coord_point, bounds=coord_bounds)
+            aux_coords_and_dims.append((new_coord, None))
+
         attributes = {"diagnostic_standard_name": historic_forecast.name()}
         for attribute in historic_forecast.attributes.keys():
             if attribute.endswith("model_configuration"):
@@ -510,14 +576,39 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             estimate_coefficients_from_linear_model_flag,
             no_of_realizations=None):
         """
-        Function to compute initial guess of the a and beta components of the
-        EMOS coefficients by linear regression of the forecast predictor
-        and the truth, if requested. Otherwise, default values for a and b
-        will be used.
+        Function to compute initial guess of the alpha, beta, gamma
+        and delta components of the EMOS coefficients by linear regression
+        of the forecast predictor and the truth, if requested. Otherwise,
+        default values for the coefficients will be used.
 
-        Default values have been chosen based on Figure 8 in the
-        2017 ensemble calibration report available on the Science Plugin
-        Documents Confluence page.
+        If the predictor_of_mean_flag is "mean", then the order of
+        the initial_guess is [gamma, delta, alpha, beta]. Otherwise, if the
+        predictor_of_mean_flag is "realizations" then the order of the
+        initial_guess is [gamma, delta, alpha, beta0, beta1, beta2], where
+        the number of beta variables will correspond to the number of
+        realizations. In this example initial guess with three beta
+        variables, there will correspondingly be three realizations.
+
+        The coefficients relate to adjustments to the ensemble mean or the
+        ensemble realizations, and adjustments to the ensemble variance:
+        ::
+            alpha + beta * ensemble mean or
+            alpha + beta0 * realization1 + beta1 * realization2
+
+            gamma + delta * ensemble variance
+
+        The default values for the initial guesses are in
+        [gamma, delta, alpha, beta] ordering:
+        * For the ensemble mean, the default initial guess: [0, 1, 0, 1]
+        assumes that the raw forecast is skilful and the expected adjustments
+        are small.
+        * For the ensemble realizations, the default initial guess is
+        effectively: [0, 1, 0, 1/3., 1/3., 1/3.], such that
+        each realization is assumed to have equal weight.
+
+        If linear regression is enabled, the alpha and beta coefficients
+        associated with the ensemble mean or ensemble realizations are
+        modified based on the results from the linear regression fit.
 
         Args:
             truth (iris.cube.Cube):
@@ -532,6 +623,8 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             estimate_coefficients_from_linear_model_flag (bool):
                 Flag whether coefficients should be estimated from
                 the linear regression, or static estimates should be used.
+
+        Keyword Args:
             no_of_realizations (int):
                 Number of realizations, if ensemble realizations are to be
                 used as predictors. Default is None.
@@ -545,11 +638,11 @@ class EstimateCoefficientsForEnsembleCalibration(object):
 
         if (predictor_of_mean_flag.lower() == "mean" and
                 not estimate_coefficients_from_linear_model_flag):
-            initial_guess = [1, 1, 0, 1]
+            initial_guess = [0, 1, 0, 1]
         elif (predictor_of_mean_flag.lower() == "realizations" and
               not estimate_coefficients_from_linear_model_flag):
-            initial_guess = [1, 1, 0] + np.repeat(
-                1, no_of_realizations).tolist()
+            initial_guess = [0, 1, 0] + np.repeat(
+                np.sqrt(1. / no_of_realizations), no_of_realizations).tolist()
         elif estimate_coefficients_from_linear_model_flag:
             if predictor_of_mean_flag.lower() == "mean":
                 # Find all values that are not NaN.
@@ -567,7 +660,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                             forecast_predictor.data.flatten()[
                                 combined_not_nan],
                             truth.data.flatten()[combined_not_nan]))
-                initial_guess = [1, 1, intercept, gradient]
+                initial_guess = [0, 1, intercept, gradient]
             elif predictor_of_mean_flag.lower() == "realizations":
                 if self.statsmodels_found:
                     truth_data = truth.data.flatten()
@@ -591,13 +684,15 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                     est = self.sm.OLS(truth_data[combined_not_nan], val).fit()
                     intercept = est.params[0]
                     gradient = est.params[1:]
-                    initial_guess = [1, 1, intercept]+gradient.tolist()
+                    initial_guess = [0, 1, intercept]+gradient.tolist()
                 else:
                     initial_guess = (
-                        [1, 1, 0] + np.repeat(1, no_of_realizations).tolist())
+                        [0, 1, 0] +
+                        np.repeat(np.sqrt(1./no_of_realizations),
+                                  no_of_realizations).tolist())
         return np.array(initial_guess, dtype=np.float32)
 
-    def estimate_coefficients_for_ngr(self, historic_forecast, truth):
+    def process(self, historic_forecast, truth):
         """
         Using Nonhomogeneous Gaussian Regression/Ensemble Model Output
         Statistics, estimate the required coefficients from historical
@@ -625,7 +720,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             historic_forecast (iris.cube.Cube):
                 The cube containing the historical forecasts used
                 for calibration.
-            truth (iris.cube.Cube:
+            truth (iris.cube.Cube):
                 The cube containing the truth used for calibration.
 
         Returns:
@@ -633,6 +728,10 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                 Cube containing the coefficients estimated using EMOS.
                 The cube contains a coefficient_index dimension coordinate
                 and a coefficient_name auxiliary coordinate.
+
+        Raises:
+            ValueError: If the units of the historic and truth cubes do not
+                match.
 
         """
         # Ensure predictor_of_mean_flag is valid.
@@ -681,7 +780,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             # Need to access the x attribute returned by the
             # minimisation function.
             optimised_coeffs = (
-                self.minimiser.crps_minimiser_wrapper(
+                self.minimiser.process(
                     initial_guess, forecast_predictor,
                     truth, forecast_var,
                     self.predictor_of_mean_flag,
@@ -689,7 +788,6 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             initial_guess = optimised_coeffs
         else:
             optimised_coeffs = initial_guess
-
         coefficients_cube = (
             self.create_coefficients_cube(optimised_coeffs, historic_forecast))
         return coefficients_cube
@@ -717,11 +815,18 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                 where the points of the coordinate are integer values and a
                 coefficient_name auxiliary coordinate where the points of
                 the coordinate are e.g. gamma, delta, alpha, beta.
+
+        Keyword Args:
             predictor_of_mean_flag (str):
                 String to specify the input to calculate the calibrated mean.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
 
+        Raises:
+            ValueError: If the names of the current_forecast and
+                coefficients_cube do not match.
+            ValueError: If the domain information of the current_forecast and
+                coefficients_cube do not match.
         """
         self.current_forecast = current_forecast
         self.coefficients_cube = coefficients_cube
@@ -741,6 +846,21 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
             except CoordinateNotFoundError:
                 pass
 
+        # Check that the domain of the current forecast and coefficients cube
+        # matches.
+        for axis in ["x", "y"]:
+            current_forecast_points = [
+                current_forecast.coord(axis=axis).points[0],
+                current_forecast.coord(axis=axis).points[-1]]
+            if not np.allclose(current_forecast_points,
+                               coefficients_cube.coord(axis=axis).bounds):
+                msg = ("The domain along the {} axis given by the "
+                       "current forecast {} does not match the domain given "
+                       "by the coefficients cube {}.".format(
+                        axis, current_forecast_points,
+                        coefficients_cube.coord(axis=axis).bounds))
+                raise ValueError(msg)
+
         # Ensure predictor_of_mean_flag is valid.
         check_predictor_of_mean_flag(predictor_of_mean_flag)
         self.predictor_of_mean_flag = predictor_of_mean_flag
@@ -755,7 +875,7 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
             self.current_forecast.name(), self.coefficients_cube.name(),
             self.predictor_of_mean_flag)
 
-    def apply_params_entry(self):
+    def process(self):
         """
         Wrapping function to calculate the forecast predictor and forecast
         variance prior to applying coefficients to the current forecast.
@@ -837,9 +957,9 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                 convert_cube_data_to_2d(forecast_predictors))
             forecast_var_flat = forecast_vars.data.flatten()
             col_of_ones = np.ones(forecast_var_flat.shape, dtype=np.float32)
-            ones_and_mean = (
+            ones_and_predictor = (
                 np.column_stack((col_of_ones, forecast_predictor_flat)))
-            predicted_mean = np.dot(ones_and_mean, a_and_b)
+            predicted_mean = np.dot(ones_and_predictor, a_and_b)
             # Calculate mean of ensemble realizations, as only the
             # calibrated ensemble mean will be returned.
             calibrated_forecast_predictor = (
@@ -870,32 +990,21 @@ class EnsembleCalibration(object):
     2. Apply optimised EMOS coefficients for future dates.
 
     """
-    def __init__(self, calibration_method, distribution, desired_units=None,
-                 predictor_of_mean_flag="mean"):
+    def __init__(self, distribution, desired_units=None,
+                 predictor_of_mean_flag="mean", max_iterations=1000):
         """
         Create an ensemble calibration plugin that, for Nonhomogeneous Gaussian
         Regression, calculates coefficients based on historical forecasts and
         applies the coefficients to the current forecast.
 
         Args:
-            calibration_method (str):
-                The calibration method that will be applied.
-                Supported methods are:
-
-                    ensemble model output statistics
-                    nonhomogeneous gaussian regression
-
-                Currently these methods are not supported:
-
-                    logistic regression
-                    bayesian model averaging
-
             distribution (str):
                 The distribution that will be used for calibration. This will
                 be dependent upon the input phenomenon. This has to be
                 supported by the minimisation functions in
                 ContinuousRankedProbabilityScoreMinimisers.
-        Kwargs:
+
+        Keyword Args:
             desired_units (str or cf_units.Unit):
                 The unit that you would like the calibration to be undertaken
                 in. The current forecast, historical forecast and truth will be
@@ -904,22 +1013,41 @@ class EnsembleCalibration(object):
                 String to specify the input to calculate the calibrated mean.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
+            max_iterations (int):
+                The maximum number of iterations allowed until the
+                minimisation has converged to a stable solution. If the
+                maximum number of iterations is reached, but the minimisation
+                has not yet converged to a stable solution, then the available
+                solution is used anyway, and a warning is raised. If the
+                predictor_of_mean is "realizations", then the number of
+                iterations may require increasing, as there will be
+                more coefficients to solve for.
+
+        Raises:
+            ValueError: If the given distribution is not valid.
         """
-        self.calibration_method = calibration_method
+        valid_distributions = (ContinuousRankedProbabilityScoreMinimisers().
+                               minimisation_dict.keys())
+        if distribution not in valid_distributions:
+            msg = ("Given distribution {} not available. Available "
+                   "distributions are {}".format(
+                       distribution, valid_distributions))
+            raise ValueError(msg)
         self.distribution = distribution
         self.desired_units = desired_units
         self.predictor_of_mean_flag = predictor_of_mean_flag
+        self.max_iterations = max_iterations
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = ('<EnsembleCalibration: '
-                  'calibration_method: {}; '
                   'distribution: {}; '
                   'desired_units: {}; '
-                  'predictor_of_mean_flag: {};')
+                  'predictor_of_mean_flag: {}; '
+                  'max_iterations: {}>')
         return result.format(
-            self.calibration_method, self.distribution, self.desired_units,
-            self.predictor_of_mean_flag)
+            self.distribution, self.desired_units,
+            self.predictor_of_mean_flag, self.max_iterations)
 
     def process(self, current_forecast, historic_forecast, truth):
         """
@@ -946,38 +1074,26 @@ class EnsembleCalibration(object):
                     Cube containing the calibrated forecast variance.
 
         """
-        def format_calibration_method(calibration_method):
-            """Lowercase input string, and replace underscores with spaces."""
-            return calibration_method.lower().replace("_", " ")
-
         # Ensure predictor_of_mean_flag is valid.
         check_predictor_of_mean_flag(self.predictor_of_mean_flag)
 
-        if (format_calibration_method(self.calibration_method) in
-                ["ensemble model output statistics",
-                 "nonhomogeneous gaussian regression"]):
-            if (format_calibration_method(self.distribution) in
-                    ["gaussian", "truncated gaussian"]):
-                current_cycle = datetime_to_cycletime(
-                    iris_time_to_datetime(
-                        current_forecast.coord("forecast_reference_time"))[0])
-                ec = EstimateCoefficientsForEnsembleCalibration(
-                    self.distribution, current_cycle=current_cycle,
-                    desired_units=self.desired_units,
-                    predictor_of_mean_flag=self.predictor_of_mean_flag)
-                coefficient_cube = (
-                    ec.estimate_coefficients_for_ngr(
-                        historic_forecast, truth))
-        else:
-            msg = ("Other calibration methods are not available. "
-                   "{} is not available".format(
-                       format_calibration_method(self.calibration_method)))
-            raise ValueError(msg)
+        current_cycle = datetime_to_cycletime(
+            iris_time_to_datetime(
+                current_forecast.coord("forecast_reference_time"))[0])
+        ec = EstimateCoefficientsForEnsembleCalibration(
+            self.distribution, current_cycle=current_cycle,
+            desired_units=self.desired_units,
+            predictor_of_mean_flag=self.predictor_of_mean_flag,
+            max_iterations=self.max_iterations)
+        coefficient_cube = (
+            ec.process(
+                historic_forecast, truth))
+
         ac = ApplyCoefficientsFromEnsembleCalibration(
             current_forecast, coefficient_cube,
             predictor_of_mean_flag=self.predictor_of_mean_flag)
         (calibrated_forecast_predictor,
-         calibrated_forecast_variance) = ac.apply_params_entry()
+         calibrated_forecast_variance) = ac.process()
 
         # TODO: track down where np.float64 promotion takes place.
         calibrated_forecast_predictor.data = (

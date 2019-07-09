@@ -60,7 +60,7 @@ class Test_process(IrisTest):
                 set_up_temperature_cube()))
         percentile_points = np.arange(len(cube.coord("realization").points))
         cube.coord("realization").points = percentile_points
-        cube.coord("realization").rename("percentile_over_realization")
+        cube.coord("realization").rename("percentile")
         self.current_temperature_cube = cube
 
     def test_basic(self):
@@ -77,7 +77,7 @@ class Test_process(IrisTest):
         """Use the ensemble_realization_numbers optional argument to specify
         particular values for the ensemble realization numbers."""
         cube = self.current_temperature_cube
-        plen = len(cube.coord("percentile_over_realization").points)
+        plen = len(cube.coord("percentile").points)
         ensemble_realization_numbers = np.arange(plen)+12
         plugin = Plugin()
         result = plugin.process(cube, ensemble_realization_numbers)
@@ -89,19 +89,7 @@ class Test_process(IrisTest):
         """Check the values for the realization coordinate generated without
         specifying the ensemble_realization_numbers argument."""
         cube = self.current_temperature_cube
-        plen = len(cube.coord("percentile_over_realization").points)
-        plugin = Plugin()
-        result = plugin.process(cube)
-        self.assertEqual(len(result.coord("realization").points), plen)
-        self.assertArrayAlmostEqual(
-            result.coord("realization").points, np.array([0, 1, 2]))
-
-    def test_still_works_if_percentile_coord_is_different(self):
-        """Check this still works if a different percentile coord used."""
-        cube = self.current_temperature_cube
-        cube.coord("percentile_over_realization").rename(
-            "percentile_over_neighbourhood")
-        plen = len(cube.coord("percentile_over_neighbourhood").points)
+        plen = len(cube.coord("percentile").points)
         plugin = Plugin()
         result = plugin.process(cube)
         self.assertEqual(len(result.coord("realization").points), plen)

@@ -34,101 +34,13 @@
 
 import warnings
 import json
-
 import numpy as np
-from cf_units import Unit
 
 from improver.argparser import ArgParser
 from improver.utilities.load import load_cubelist
 from improver.utilities.save import save_netcdf
-from improver.utilities.cube_manipulation import sort_coord_in_cube
 
-from improver.utilities.spatial import (
-    check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells)
-
-from improver.blending.weights import (
-    ChooseWeightsLinear, ChooseDefaultWeightsLinear,
-    ChooseDefaultWeightsNonLinear)
-from improver.blending.spatial_weights import (
-    SpatiallyVaryingWeightsFromMask)
-from improver.blending.weighted_blend import (
-    MergeCubesForWeightedBlending, conform_metadata,
-    WeightedBlendAcrossWholeDimension)
-
-
-def calculate_blending_weights(cube, blend_coord, method, wts_dict=None,
-                               weighting_coord=None, coord_unit=None,
-                               y0val=None, ynval=None, cval=None,
-                               dict_coord=None):
-    """
-    Wrapper for plugins to calculate blending weights using the command line
-    options specified.
-
-    Args:
-        cube (iris.cube.Cube):
-            Cube of input data to be blended
-        blend_coord (str):
-            Coordinate over which blending will be performed (eg "model" for
-            grid blending)
-        method (str):
-            Weights calculation method ("linear", "nonlinear", "dict" or
-            "mask")
-
-    Kwargs:
-        wts_dict (str):
-            File path to json file with parameters for linear weights
-            calculation
-        weighting_coord (str):
-            Coordinate over which linear weights should be calculated from dict
-        coord_unit (str or cf_units.Unit):
-            Unit of blending coordinate (for default weights plugins)
-        y0val (float):
-            Intercept parameter for default linear weights plugin
-        ynval (float):
-            Gradient parameter for default linear weights plugin
-        cval (float):
-            Parameter for default non-linear weights plugin
-        dict_coord (str):
-            The coordinate that will be used when accessing the weights from
-            the weights dictionary.
-
-    Returns:
-        weights (np.ndarray):
-            1D array of weights corresponding to slices in ascending order
-            of blending coordinate.  (Note: ChooseLinearWeights has the
-            option to create a 3D array of spatially-varying weights with the
-            "mask" option, however this is not currently supported by the
-            blending plugin.)
-    """
-    # sort input cube by blending coordinate
-    cube = sort_coord_in_cube(cube, blend_coord, order="ascending")
-
-    # calculate blending weights
-    if method == "dict":
-        # calculate linear weights from a dictionary
-        with open(wts_dict, 'r') as wts:
-            weights_dict = json.load(wts)
-        weights_cube = ChooseWeightsLinear(
-            weighting_coord, weights_dict,
-            config_coord_name=dict_coord).process(cube)
-
-        # sort weights cube by blending coordinate
-        weights = sort_coord_in_cube(
-            weights_cube, blend_coord, order="ascending")
-
-    elif method == "linear":
-        weights = ChooseDefaultWeightsLinear(
-            y0val=y0val, ynval=ynval).process(
-                cube, blend_coord, coord_unit=coord_unit)
-
-    elif method == "nonlinear":
-        # this is set here rather than in the CLI arguments in order to check
-        # for invalid argument combinations
-        cvalue = cval if cval else 0.85
-        weights = ChooseDefaultWeightsNonLinear(cvalue).process(
-            cube, blend_coord, coord_unit=coord_unit)
-
-    return weights
+from improver.blending.calculate_weights_and_blend import WeightAndBlend
 
 
 def main(argv=None):
@@ -159,12 +71,6 @@ def main(argv=None):
                         metavar='COORDINATE_TO_AVERAGE_OVER',
                         help='The coordinate over which the blending '
                              'will be applied.')
-    parser.add_argument('--coordinate_unit', metavar='UNIT_STRING',
-                        default='hours since 1970-01-01 00:00:00',
-                        help='Units for blending coordinate. Default= '
-                             'hours since 1970-01-01 00:00:00')
-    parser.add_argument('--calendar', metavar='CALENDAR',
-                        help='Calendar for time coordinate. Default=gregorian')
     parser.add_argument('--cycletime', metavar='CYCLETIME', type=str,
                         help='The forecast reference time to be used after '
                         'blending has been applied, in the format '
@@ -264,7 +170,7 @@ def main(argv=None):
     wts_dict.add_argument('--weighting_coord', metavar='WEIGHTING_COORD',
                           default='forecast_period', help='Name of '
                           'coordinate over which linear weights should be '
-                          'scaled. This coordinate must be avilable in the '
+                          'scaled. This coordinate must be available in the '
                           'weights dictionary.')
 
     args = parser.parse_args(args=argv)
@@ -279,83 +185,24 @@ def main(argv=None):
     if (args.wts_calc_method == "dict") and not args.wts_dict:
         parser.error('Dictionary is required if --wts_calc_method="dict"')
 
-    # set blending coordinate units
-    if "time" in args.coordinate:
-        coord_unit = Unit(args.coordinate_unit, args.calendar)
-    elif args.coordinate_unit != 'hours since 1970-01-01 00:00:00.':
-        coord_unit = args.coordinate_unit
-    else:
-        coord_unit = 'no_unit'
-
-    # For blending across models, only blending across "model_id" is directly
-    # supported. This is because the blending coordinate must be sortable, in
-    # order to ensure that the data cube and the weights cube have coordinates
-    # in the same order for blending. Whilst the model_configuration is
-    # sortable itself, as it is associated with model_id, which is the
-    # dimension coordinate, sorting the model_configuration coordinate can
-    # result in the model_id coordinate becoming non-monotonic. As dimension
-    # coordinates must be monotonic, this leads to the model_id coordinate
-    # being demoted to an auxiliary coordinate. Therefore, for simplicity
-    # model_id is used as the blending coordinate, instead of
-    # model_configuration.
-    # TODO: Support model_configuration as a blending coordinate directly.
-    if args.coordinate == "model_configuration":
-        blend_coord = "model_id"
-        dict_coord = "model_configuration"
-    else:
-        blend_coord = args.coordinate
-        dict_coord = args.coordinate
-
     # load cubes to be blended
     cubelist = load_cubelist(args.input_filepaths)
 
-    # determine whether or not to equalise forecast periods for model
-    # blending weights calculation
-    weighting_coord = (args.weighting_coord if args.weighting_coord
-                       else "forecast_period")
-
-    # prepare cubes for weighted blending
-    merger = MergeCubesForWeightedBlending(
-        blend_coord, weighting_coord=weighting_coord,
-        model_id_attr=args.model_id_attr)
-    cube = merger.process(cubelist, cycletime=args.cycletime)
-
-    # if the coord for blending does not exist or has only one value,
-    # update metadata only
-    coord_names = [coord.name() for coord in cube.coords()]
-    if (blend_coord not in coord_names) or (
-            len(cube.coord(blend_coord).points) == 1):
-        result = cube.copy()
-        conform_metadata(
-            result, cube, blend_coord, cycletime=args.cycletime)
-        # raise a warning if this happened because the blend coordinate
-        # doesn't exist
-        if blend_coord not in coord_names:
-            warnings.warn('Blend coordinate {} is not present on input '
-                          'data'.format(blend_coord))
-
-    # otherwise, calculate weights and blend across specified dimension
+    if args.wts_calc_method == "dict":
+        with open(args.wts_dict, 'r') as wts:
+            weights_dict = json.load(wts)
     else:
-        weights = calculate_blending_weights(
-            cube, blend_coord, args.wts_calc_method,
-            wts_dict=args.wts_dict, weighting_coord=args.weighting_coord,
-            coord_unit=coord_unit, y0val=args.y0val, ynval=args.ynval,
-            cval=args.cval, dict_coord=dict_coord)
+        weights_dict = None
 
-        if args.spatial_weights_from_mask:
-            check_if_grid_is_equal_area(cube)
-            grid_cells_x, _ = convert_distance_into_number_of_grid_cells(
-                cube, args.fuzzy_length, int_grid_cells=False)
-            SpatialWeightsPlugin = SpatiallyVaryingWeightsFromMask(
-                grid_cells_x)
-            weights = SpatialWeightsPlugin.process(
-                cube, weights, blend_coord)
-
-        # blend across specified dimension
-        BlendingPlugin = WeightedBlendAcrossWholeDimension(
-            blend_coord, args.weighting_mode,
-            cycletime=args.cycletime)
-        result = BlendingPlugin.process(cube, weights=weights)
+    plugin = WeightAndBlend(
+        args.coordinate, args.wts_calc_method,
+        weighting_coord=args.weighting_coord, wts_dict=weights_dict,
+        y0val=args.y0val, ynval=args.ynval, cval=args.cval)
+    result = plugin.process(
+        cubelist, weighting_mode=args.weighting_mode, cycletime=args.cycletime,
+        model_id_attr=args.model_id_attr,
+        spatial_weights=args.spatial_weights_from_mask,
+        fuzzy_length=args.fuzzy_length)
 
     save_netcdf(result, args.output_filepath)
 

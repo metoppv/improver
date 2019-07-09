@@ -53,7 +53,7 @@ def concatenate_2d_array_with_2d_array_endpoints(
     are performed along the second (index 1) dimension.
 
     Args:
-        array_2d (numpy.array):
+        array_2d (numpy.ndarray):
             2d array of values
         low_endpoint (float or int):
             Number used to create a 2d array of a constant value
@@ -62,7 +62,7 @@ def concatenate_2d_array_with_2d_array_endpoints(
             Number of used to create a 2d array of a constant value
             as the upper endpoint.
     Returns:
-        array_2d (numpy.array):
+        array_2d (numpy.ndarray):
             2d array of values after padding with the low_endpoint and
             high_endpoint.
     """
@@ -82,7 +82,9 @@ def choose_set_of_percentiles(no_of_percentiles, sampling="quantile"):
     Args:
         no_of_percentiles (int):
             Number of percentiles.
-        sampling (String):
+
+    Keyword Args:
+        sampling (str):
             Type of sampling of the distribution to produce a set of
             percentiles e.g. quantile or random.
 
@@ -94,8 +96,11 @@ def choose_set_of_percentiles(no_of_percentiles, sampling="quantile"):
             * Random: A random set of ordered percentiles.
 
     Returns:
-        percentiles (List):
+        percentiles (list):
             Percentiles calculated using the sampling technique specified.
+
+    Raises:
+        ValueError: if the sampling option is not one of the accepted options.
 
     References:
         For further details, Flowerdew, J., 2014.
@@ -131,7 +136,7 @@ def choose_set_of_percentiles(no_of_percentiles, sampling="quantile"):
 
 
 def create_cube_with_percentiles(percentiles, template_cube, cube_data,
-                                 custom_name=None, cube_unit=None):
+                                 cube_unit=None):
     """
     Create a cube with a percentile coordinate based on a template cube.
     The resulting cube will have an extra percentile coordinate compared with
@@ -139,14 +144,14 @@ def create_cube_with_percentiles(percentiles, template_cube, cube_data,
     desired output cube.
 
     Args:
-        percentiles (List):
+        percentiles (list):
             Ensemble percentiles. There should be the same number of
             percentiles as the first dimension of cube_data.
-        template_cube (Iris cube):
+        template_cube (iris.cube.Cube):
             Cube to copy all coordinates from.
             The template_cube does not contain any existing percentile
             coordinate. Metadata is also copied from this cube.
-        cube_data (numpy.array):
+        cube_data (numpy.ndarray):
             Data to insert into the template cube.
             The shape of the cube_data, excluding the dimension associated with
             the percentile coordinate, should be the same as the shape of
@@ -154,18 +159,20 @@ def create_cube_with_percentiles(percentiles, template_cube, cube_data,
             For example, template_cube shape is (3, 3, 3), whilst the cube_data
             is (10, 3, 3, 3), where there are 10 percentiles.
 
+    Keyword Args:
+        cube_unit (cf_units.Unit):
+            The units of the data within the cube
+
     Returns:
-        result (Iris.cube.Cube):
+        result (iris.cube.Cube):
             Cube containing a percentile coordinate as the zeroth dimension
             coordinate in addition to the coordinates and metadata from the
             template cube.
 
     """
-    percentile_coord_name = custom_name or 'percentile_over_realization'
-
     percentile_coord = iris.coords.DimCoord(
-        np.float32(percentiles), long_name=percentile_coord_name,
-        units=unit.Unit("%"), var_name=percentile_coord_name)
+        np.float32(percentiles), long_name='percentile',
+        units=unit.Unit("%"), var_name='percentile')
 
     metadata_dict = copy.deepcopy(template_cube.metadata._asdict())
     result = iris.cube.Cube(cube_data, **metadata_dict)
@@ -201,17 +208,21 @@ def get_bounds_of_distribution(bounds_pairing_key, desired_units):
     The units of the bounds are converted to be the desired units.
 
     Args:
-        bounds_pairing_key (String):
+        bounds_pairing_key (str):
             Name of key to be used for the BOUNDS_FOR_ECDF dictionary, in order
             to get the desired bounds_pairing.
         desired_units (cf_units.Unit):
             Units to which the bounds_pairing will be converted.
 
     Returns:
-        bounds_pairing (Tuple):
+        bounds_pairing (tuple):
             Lower and upper bound to be used as the ends of the
             empirical cumulative distribution function, converted to have
             the desired units.
+
+    Raises:
+        KeyError: If the bounds_pairing_key is not within the BOUNDS_FOR_ECDF
+            dictionary.
 
     """
     # Extract bounds from dictionary of constants.
@@ -236,14 +247,14 @@ def insert_lower_and_upper_endpoint_to_1d_array(
     For a 1d array, add a lower and upper endpoint.
 
     Args:
-        array_1d (numpy.array):
+        array_1d (numpy.ndarray):
             1d array of values
         low_endpoint (float or int):
             Number of use as the lower endpoint.
         high_endpoint (float or int):
             Number of use as the upper endpoint.
     Returns:
-        array_1d (numpy.array):
+        array_1d (numpy.ndarray):
             1d array of values padded with the low_endpoint and high_endpoint.
     """
     lower_array = np.array([low_endpoint])
@@ -262,22 +273,28 @@ def restore_non_probabilistic_dimensions(
     whilst ensuring that the probabilistic dimension is the first dimension.
 
     Args:
-        array_to_reshape (numpy.array):
+        array_to_reshape (numpy.ndarray):
             The array that requires reshaping.
-        original_cube (Iris.cube.Cube):
+        original_cube (iris.cube.Cube):
             Cube containing the desired shape to be reshaped to, apart from the
             probabilistic dimension, for example,
             [probabilistic_dimension, time, y, x].
-        input_probabilistic_dimension_name (String):
+        input_probabilistic_dimension_name (str):
             Name of the dimension within the original cube, which represents
             the probabilistic dimension.
         output_probabilistic_dimension_length (int):
             Length of the probabilistic dimension, which will be used to create
             the shape to which the array_to_reshape will be reshaped to.
+
     Returns:
-        numpy.array:
+        numpy.ndarray:
             The array after reshaping.
 
+    Raises:
+        ValueError: If the probabilistic dimension is not the first on the
+            original_cube.
+        CoordinateNotFoundError: If the input_probabilistic_dimension_name is
+            not a coordinate on the original_cube.
     """
     shape_to_reshape_to = list(original_cube.shape)
     if original_cube.coords(

@@ -37,12 +37,13 @@ usage: improver estimate-emos-coefficients [-h] [--profile]
                                            [--profile_file PROFILE_FILE]
                                            [--units UNITS]
                                            [--predictor_of_mean PREDICTOR_OF_MEAN]
+                                           [--max_iterations MAX_ITERATIONS]
                                            DISTRIBUTION CYCLETIME
                                            HISTORIC_FILEPATH TRUTH_FILEPATH
                                            OUTPUT_FILEPATH
 
-Estimate coefficients for for Ensemble Model Output Statistics (EMOS),
-otherwise known as Non-homogeneous Gaussian Regression (NGR)
+Estimate coefficients for Ensemble Model Output Statistics (EMOS), otherwise
+known as Non-homogeneous Gaussian Regression (NGR)
 
 positional arguments:
   DISTRIBUTION          The distribution that will be used for calibration.
@@ -73,6 +74,17 @@ optional arguments:
                         forecast mean. Currently the ensemble mean ("mean")
                         and the ensemble realizations ("realizations") are
                         supported as options. Default: "mean".
+  --max_iterations MAX_ITERATIONS
+                        The maximum number of iterations allowed until the
+                        minimisation has converged to a stable solution. If
+                        the maximum number of iterations is reached, but the
+                        minimisation has not yet converged to a stable
+                        solution, then the available solution is used anyway,
+                        and a warning is raised.This may be modified for
+                        testing purposes but otherwise kept fixed. If the
+                        predictor_of_mean is "realizations", then the number
+                        of iterations may require increasing, as there will be
+                        more coefficients to solve for.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

@@ -197,11 +197,13 @@ class MergeCubesForWeightedBlending():
                 If self.blend_coord is not present on all cubes (unless
                 blending over models)
         """
-        # if input is already a single cube, return unchanged
-        if isinstance(cubes_in, iris.cube.Cube):
-            return cubes_in
+        cubes_in = (
+            [cubes_in] if isinstance(cubes_in, iris.cube.Cube) else cubes_in)
 
+        # if input is already a single cube, return with updated metadata
         if len(cubes_in) == 1:
+            if "model" in self.blend_coord:
+                cubes_in[0].attributes[self.model_id_attr] = "blend"
             return cubes_in[0]
 
         # create copies of input cubes so as not to modify in place
@@ -241,12 +243,9 @@ def conform_metadata(
         - Forecast period: If a forecast_period coordinate is present,
           and cycletime is not present, the lowest forecast_period is
           used. If a forecast_period coordinate is present, and the
-          cycletime is present, forecast_periods are forceably calculated
-          from the time and forecast_reference_time coordinate. This is
-          because, if the cycletime is present, then the
-          forecast_reference_time will also have been just re-calculated, so
-          the forecast_period coordinate needs to be reset to match the
-          newly calculated forecast_reference_time.
+          cycletime is present, forecast_periods are forceably re-calculated
+          from the time and forecast_reference_time coordinates so that their
+          values are self-consistent.
         - Forecast reference time and time: If forecast_reference_time and
           time coordinates are present, then a forecast_period coordinate is
           calculated and added to the cube.
@@ -274,7 +273,7 @@ def conform_metadata(
 
     """
     # unify time coordinates for cycle and grid (model) blends
-    if coord in ["forecast_reference_time", "model"]:
+    if coord in ["forecast_reference_time", "model_id"]:
         # if cycle blending, update forecast reference time and remove bounds
         if cube.coords("forecast_reference_time"):
             if cycletime is None:
@@ -294,7 +293,7 @@ def conform_metadata(
             cube.coord("forecast_reference_time").points = new_cycletime
             cube.coord("forecast_reference_time").bounds = None
 
-        # recalculate forecast period coordainte
+        # recalculate forecast period coordinate
         if cube.coords("forecast_period"):
             forecast_period = forecast_period_coord(
                 cube, force_lead_time_calculation=True)
@@ -311,7 +310,7 @@ def conform_metadata(
         cube.attributes["title"] = "IMPROVER Model Forecast"
 
     # remove appropriate scalar coordinates
-    for crd in ["model_id", "model_realization", "realization"]:
+    for crd in ["model_id", "model_configuration", "realization"]:
         if cube.coords(crd) and cube.coord(crd).shape == (1,):
             cube.remove_coord(crd)
 
@@ -336,7 +335,7 @@ class PercentileBlendingAggregator:
            2. We do a weighted blend across all the probability spaces,
               combining all the thresholds in all the points in the coordinate
               we are blending over. This gives us an array of thresholds and an
-              array of blended probailities for each of the grid points.
+              array of blended probabilities for each of the grid points.
            3. We convert back to the original percentile values, again using
               linear interpolation, resulting in blended values at each of the
               original percentiles.

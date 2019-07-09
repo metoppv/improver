@@ -46,6 +46,9 @@ from improver.ensemble_calibration.ensemble_calibration import (
 
 from improver.ensemble_calibration.ensemble_calibration import (
     EstimateCoefficientsForEnsembleCalibration)
+from improver.tests.ensemble_calibration.ensemble_calibration.\
+    test_EstimateCoefficientsForEnsembleCalibration import (
+        create_coefficients_cube)
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
@@ -55,11 +58,13 @@ class Test__init__(IrisTest):
     """Test the __init__ method."""
 
     def setUp(self):
-        """Test up test cubes."""
+        """Set up test cubes."""
         data = np.ones([2, 2], dtype=np.float32)
         self.current_forecast = set_up_variable_cube(data)
-        self.coefficients_cube = (
-            set_up_variable_cube(data, name="emos_coefficients"))
+        coeff_names = ["gamma", "delta", "alpha", "beta"]
+        coeff_values = np.array([0, 1, 2, 3], np.int32)
+        self.coefficients_cube, _, _ = create_coefficients_cube(
+            self.current_forecast, coeff_names, coeff_values)
 
     def test_basic(self):
         """Test without specifying any keyword arguments."""
@@ -81,17 +86,27 @@ class Test__init__(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             Plugin(self.current_forecast, self.coefficients_cube)
 
+    def test_matching_domain(self):
+        """Test whether the domain of the forecast and the domain of the
+        coefficients cube matches."""
+        current_forecast = self.current_forecast[0, :]
+        msg = "The domain along the"
+        with self.assertRaisesRegex(ValueError, msg):
+            Plugin(current_forecast, self.coefficients_cube)
+
 
 class Test__repr__(IrisTest):
 
     """Test the __repr__ method."""
 
     def setUp(self):
-        """Test up test cubes."""
+        """Set up test cubes."""
         data = np.ones([2, 2], dtype=np.float32)
         self.current_forecast = set_up_variable_cube(data)
-        self.coefficients_cube = (
-            set_up_variable_cube(data, name="emos_coefficients"))
+        coeff_names = ["gamma", "delta", "alpha", "beta"]
+        coeff_values = np.array([0, 1, 2, 3], np.int32)
+        self.coefficients_cube, _, _ = create_coefficients_cube(
+            self.current_forecast, coeff_names, coeff_values)
 
     def test_basic(self):
         """Test without specifying keyword arguments"""
@@ -114,9 +129,9 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test_apply_params_entry(IrisTest):
+class Test_process(IrisTest):
 
-    """Test the apply_params_entry plugin."""
+    """Test the process plugin."""
 
     @ManageWarnings(
         ignored_messages=["The statsmodels can not be imported"],
@@ -154,7 +169,7 @@ class Test_apply_params_entry(IrisTest):
         """Test that the plugin returns a tuple."""
         cube = self.current_temperature_forecast_cube
         plugin = Plugin(cube, self.coeffs_from_mean)
-        result = plugin.apply_params_entry()
+        result = plugin.process()
         self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 2)
 
@@ -168,7 +183,7 @@ class Test_apply_params_entry(IrisTest):
         cube = self.current_temperature_forecast_cube
         plugin = Plugin(cube, self.coeffs_from_realizations,
                         predictor_of_mean_flag="realizations")
-        result = plugin.apply_params_entry()
+        result = plugin.process()
         self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 2)
 
@@ -181,7 +196,7 @@ class Test_apply_params_entry(IrisTest):
         """
         cube = self.current_temperature_forecast_cube
         plugin = Plugin(cube, self.coeffs_from_mean)
-        forecast_predictor, _ = plugin.apply_params_entry()
+        forecast_predictor, _ = plugin.process()
         for cell_method in forecast_predictor[0].cell_methods:
             self.assertEqual(cell_method.method, "mean")
 
@@ -194,7 +209,7 @@ class Test_apply_params_entry(IrisTest):
         """
         cube = self.current_temperature_forecast_cube
         plugin = Plugin(cube, self.coeffs_from_mean)
-        _, forecast_variance = plugin.apply_params_entry()
+        _, forecast_variance = plugin.process()
         for cell_method in forecast_variance[0].cell_methods:
             self.assertEqual(cell_method.method, "variance")
 

@@ -33,19 +33,24 @@
 
 @test "estimate-emos-coefficients using non-default predictor 'realizations'" {
   improver_check_skip_acceptance
-  KGO="estimate-emos-coefficients/realizations/kgo.nc"
+  if python -c "import statsmodels" &> /dev/null; then
+      KGO="estimate-emos-coefficients/realizations/with_statsmodels_kgo.nc"
+  else
+      KGO="estimate-emos-coefficients/realizations/without_statsmodels_kgo.nc"
+  fi
 
   # Estimate the EMOS coefficients and check that they match the kgo.
-  run improver estimate-emos-coefficients 'gaussian' '20170605T1500Z' \
+  run improver estimate-emos-coefficients 'gaussian' '20170605T0300Z' \
       --predictor_of_mean 'realizations' \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
+      --max_iterations 150 \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
 
   # Run nccmp to compare the output and kgo realizations and check it passes.
-  improver_compare_output "$TEST_DIR/output.nc" \
+  improver_compare_output_lower_precision "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

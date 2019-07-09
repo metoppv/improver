@@ -38,24 +38,110 @@ from cf_units import Unit
 import iris
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube, CubeList
+from iris.tests import IrisTest
 import numpy as np
 
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import concatenate_cubes
 from improver.utilities.cube_metadata import extract_diagnostic_name
+from improver.utilities.warnings_handler import ManageWarnings
+
+
+IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate"]
+WARNING_TYPES = [UserWarning]
+
+
+class EnsembleCalibrationAssertions(IrisTest):
+
+    """Additional assertions, specifically for usage in the
+    ensemble calibration unit tests."""
+
+    def assertEMOSCoefficientsAlmostEqual(self, first, second):
+        """Overriding of the assertArrayAlmostEqual method to check whether
+        array are matching to 4 decimal places. This is specifically
+        for use in assertions involving the EMOS coefficients. This is
+        justified based on the default tolerance of the minimisation using the
+        Nelder-Mead algorithm of 0.0001, so that minimisations on different
+        machines would only be aiming to match to 4 decimal places.
+
+        Args:
+            first (np.array):
+                First array to compare.
+            second (np.array):
+                Second array to compare.
+         """
+        self.assertArrayAlmostEqual(first, second, decimal=4)
+
+    def assertCalibratedVariablesAlmostEqual(self, first, second):
+        """Overriding of the assertArrayAlmostEqual method to check whether
+        array are matching to 4 decimal places. This is specifically
+        for use in assertions following applying the EMOS coefficients,
+        in order to calibrate the chosen variables. This is justified
+        based on the default tolerance of the minimisation using the
+        Nelder-Mead algorithm of 0.0001, so that minimisations on different
+        machines would only be aiming to match to 4 decimal places.
+
+        Args:
+            first (np.array):
+                First array to compare.
+            second (np.array):
+                Second array to compare.
+         """
+        self.assertArrayAlmostEqual(first, second, decimal=4)
+
+
+class SetupCubes(IrisTest):
+
+    """Set up cubes for testing."""
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def setUp(self):
+        """Set up temperature and wind speed cubes for testing."""
+        super().setUp()
+        base_data = np.array([[[0.3, 1.1, 2.6],
+                               [4.2, 5.3, 6.],
+                               [7.1, 8.2, 9.]],
+                              [[0.7, 2., 3],
+                               [4.3, 5.6, 6.4],
+                               [7., 8., 9.]],
+                              [[2.1, 3., 3.],
+                               [4.8, 5., 6.],
+                               [7.9, 8., 8.9]]], dtype=np.float32)
+        temperature_data = base_data + 273.15
+        self.current_temperature_forecast_cube = set_up_variable_cube(
+            temperature_data, units="Kelvin", realizations=[0, 1, 2])
+
+        self.historic_temperature_forecast_cube = (
+            _create_historic_forecasts(self.current_temperature_forecast_cube))
+
+        self.temperature_truth_cube = (
+            _create_truth(self.current_temperature_forecast_cube))
+
+        # Create a cube for testing wind speed.
+        self.current_wind_speed_forecast_cube = set_up_variable_cube(
+            base_data, name="wind_speed", units="m s-1",
+            realizations=[0, 1, 2])
+
+        self.historic_wind_speed_forecast_cube = (
+            _create_historic_forecasts(self.current_wind_speed_forecast_cube))
+
+        self.wind_speed_truth_cube = (
+            _create_truth(self.current_wind_speed_forecast_cube))
 
 
 def set_up_probability_threshold_cube(
         data, phenomenon_standard_name, phenomenon_units,
         forecast_thresholds=np.array([8, 10, 12]), timesteps=1,
         y_dimension_length=3, x_dimension_length=3,
-        relative_to_threshold='above'):
+        spp__relative_to_threshold='above'):
     """
     Create a cube containing multiple probability_above/below_threshold
     values for the coordinate.
     """
     cube_long_name = (
         "probability_of_{}_{}_threshold".format(
-            phenomenon_standard_name, relative_to_threshold))
+            phenomenon_standard_name, spp__relative_to_threshold))
     cube = Cube(data, long_name=cube_long_name,
                 units=1)
     threshold_coord_name = extract_diagnostic_name(cube_long_name)
@@ -81,7 +167,9 @@ def set_up_probability_threshold_cube(
     cube.add_dim_coord(DimCoord(np.linspace(120, 180, x_dimension_length,
                                             dtype=np.float32),
                                 'longitude', units='degrees'), 3)
-    cube.attributes["relative_to_threshold"] = relative_to_threshold
+    cube.coord(
+        var_name="threshold").attributes["spp__relative_to_threshold"] = (
+            spp__relative_to_threshold)
     return cube
 
 
@@ -101,7 +189,7 @@ def set_up_probability_above_threshold_temperature_cube():
     return (
         set_up_probability_threshold_cube(
             data, "air_temperature", "degreesC",
-            relative_to_threshold='above'))
+            spp__relative_to_threshold='above'))
 
 
 def set_up_probability_above_threshold_spot_cube(
@@ -142,7 +230,9 @@ def set_up_probability_above_threshold_spot_cube(
     cube.add_aux_coord(AuxCoord(np.linspace(120, 180, x_dimension_length,
                                             dtype=np.float32),
                                 'longitude', units='degrees'), data_dims=2)
-    cube.attributes["relative_to_threshold"] = "above"
+    cube.coord(
+        var_name="threshold").attributes[
+            "spp__relative_to_threshold"] = "above"
     return cube
 
 

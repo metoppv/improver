@@ -40,7 +40,7 @@ def choose(index_array, array_set):
 
     The reordered copy of the array will have the same shape as the inputs.
     If a 3-dimensional array_set is provided, the data coordinates could be
-    described as A[i, j, k]. This function does not rerrange the j and k
+    described as A[i, j, k]. This function does not rearrange the j and k
     coordinates. The reordered array is constructed by substituting into each
     position [i, j, k] in the index_array a value taken from the array_set
     at a matching [j, k] position, but where [i] is determined by the given

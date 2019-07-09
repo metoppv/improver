@@ -45,7 +45,7 @@ from improver.ensemble_calibration.ensemble_calibration import (
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     convert_cube_data_to_2d)
 from improver.tests.ensemble_calibration.ensemble_calibration.\
-    helper_functions import set_up_temperature_cube, set_up_wind_speed_cube
+    helper_functions import EnsembleCalibrationAssertions, SetupCubes
 from improver.utilities.warnings_handler import ManageWarnings
 
 
@@ -57,15 +57,77 @@ class Test__repr__(IrisTest):
         """A simple tests for the __repr__ method."""
         result = str(Plugin())
         msg = ("<ContinuousRankedProbabilityScoreMinimisers: "
-               "minimisation_dict: {'gaussian': 'normal_crps_minimiser', "
-               "'truncated gaussian': 'truncated_normal_crps_minimiser'}>")
+               "minimisation_dict: {'gaussian': 'calculate_normal_crps', "
+               "'truncated gaussian': 'calculate_truncated_normal_crps'}; "
+               "max_iterations: 1000>")
+        self.assertEqual(result, msg)
+
+    def test_update_max_iterations(self):
+        """A test to update the max_iterations
+        keyword argument."""
+        result = str(Plugin(max_iterations=10))
+        msg = ("<ContinuousRankedProbabilityScoreMinimisers: "
+               "minimisation_dict: {'gaussian': 'calculate_normal_crps', "
+               "'truncated gaussian': 'calculate_truncated_normal_crps'}; "
+               "max_iterations: 10>")
         self.assertEqual(result, msg)
 
 
-class Test_normal_crps_minimiser(IrisTest):
+class SetupInputs(IrisTest):
+
+    """Set up inputs for testing."""
+
+    def setUp(self):
+        """Set up inputs for testing."""
+        super().setUp()
+        self.sqrt_pi = np.sqrt(np.pi).astype(np.float64)
+
+        self.initial_guess_for_mean = np.array([0, 1, 0, 1], dtype=np.float64)
+        self.initial_guess_for_realization = (
+            np.array([0, 1, 0, np.sqrt(1/3.), np.sqrt(1/3.), np.sqrt(1/3.)],
+                     dtype=np.float64))
+
+
+class SetupGaussianInputs(SetupInputs, SetupCubes):
+
+    """Create a class for setting up cubes for testing."""
+
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."],
+        warning_types=[UserWarning])
+    def setUp(self):
+        """Set up expected inputs."""
+        super().setUp()
+        # Set up cubes and associated data arrays for temperature.
+        self.forecast_predictor_mean = (
+            self.historic_temperature_forecast_cube.collapsed(
+                "realization", iris.analysis.MEAN))
+        self.forecast_predictor_realizations = (
+            self.historic_temperature_forecast_cube.copy())
+        self.forecast_variance = (
+            self.historic_temperature_forecast_cube.collapsed(
+                "realization", iris.analysis.VARIANCE))
+        self.truth = (
+            self.historic_temperature_forecast_cube.collapsed(
+                "realization", iris.analysis.MAX))
+        self.forecast_predictor_data = (
+            self.forecast_predictor_mean.data.flatten().astype(
+                np.float64))
+        self.forecast_predictor_data_realizations = (
+            convert_cube_data_to_2d(
+                self.historic_temperature_forecast_cube.copy()
+            ).astype(np.float64))
+        self.forecast_variance_data = (
+            self.forecast_variance.data.flatten().astype(
+                np.float64))
+        self.truth_data = self.truth.data.flatten().astype(
+            np.float64)
+
+
+class Test_calculate_normal_crps(SetupGaussianInputs):
 
     """
-    Test minimising the CRPS for a normal distribution.
+    Test minimising the CRPS for a gaussian distribution.
     Either the ensemble mean or the individual ensemble realizations are
     used as the predictors.
     """
@@ -73,410 +135,219 @@ class Test_normal_crps_minimiser(IrisTest):
         ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_mean_predictor(self):
         """
-        Test that the plugin returns a numpy float value with
-        mean as predictor.
+        Test that the plugin returns a numpy float value with the
+        mean as the predictor. The result indicates the minimum value for the
+        CRPS that was achieved by the minimisation.
         """
-        initial_guess = [5, 1, 0, 1]
-        initial_guess = np.array(initial_guess, dtype=np.float32)
-        cube = set_up_temperature_cube()
-
-        forecast_predictor = cube.collapsed(
-            "realization", iris.analysis.MEAN)
-        forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        truth = cube.collapsed("realization", iris.analysis.MAX)
-
-        forecast_predictor_data = (
-            forecast_predictor.data.flatten().astype(np.float32))
-        forecast_variance_data = (
-            forecast_variance.data.flatten().astype(np.float32))
-        truth_data = truth.data.flatten().astype(np.float32)
-
-        sqrt_pi = np.sqrt(np.pi).astype(np.float32)
-
         predictor_of_mean_flag = "mean"
 
         plugin = Plugin()
-        result = plugin.normal_crps_minimiser(
-            initial_guess, forecast_predictor_data, truth_data,
-            forecast_variance_data, sqrt_pi, predictor_of_mean_flag)
+        result = plugin.calculate_normal_crps(
+            self.initial_guess_for_mean, self.forecast_predictor_data,
+            self.truth_data, self.forecast_variance_data, self.sqrt_pi,
+            predictor_of_mean_flag)
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 16.607763767419634)
+        self.assertAlmostEqual(result, 11.7407838)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_realizations_predictor(self):
         """
-        Test that the plugin returns a numpy float array with ensemble
-        realizations as predictor.
+        Test that the plugin returns a numpy float value with the ensemble
+        realizations as the predictor. The result indicates the minimum value
+        for the CRPS that was achieved by the minimisation.
         """
-        initial_guess = [5, 1, 0, 1, 1, 1]
-        initial_guess = np.array(initial_guess, dtype=np.float32)
-        cube = set_up_temperature_cube()
-
-        forecast_predictor = cube.copy()
-        forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        truth = cube.collapsed("realization", iris.analysis.MAX)
-
-        forecast_predictor_data = (
-            convert_cube_data_to_2d(
-                forecast_predictor).astype(np.float32))
-        forecast_variance_data = (
-            forecast_variance.data.flatten().astype(np.float32))
-        truth_data = truth.data.flatten().astype(np.float32)
-
-        sqrt_pi = np.sqrt(np.pi).astype(np.float32)
-
         predictor_of_mean_flag = "realizations"
 
         plugin = Plugin()
-        result = plugin.normal_crps_minimiser(
-            initial_guess, forecast_predictor_data, truth_data,
-            forecast_variance_data, sqrt_pi, predictor_of_mean_flag)
+        result = plugin.calculate_normal_crps(
+            self.initial_guess_for_realization,
+            self.forecast_predictor_data_realizations, self.truth_data,
+            self.forecast_variance_data, self.sqrt_pi,
+            predictor_of_mean_flag)
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 4886.9467779764836)
+        self.assertAlmostEqual(result, 11.7407763)
 
     @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
+                          "invalid value encountered in"],
+        warning_types=[UserWarning, RuntimeWarning])
     def test_basic_mean_predictor_bad_value(self):
         """
         Test that the plugin returns a numpy float64 value
         and that the value matches the BAD_VALUE, when the appropriate
-        condition is found.
-        The ensemble mean is the predictor.
+        condition is found. The ensemble mean is the predictor.
+        The initial guess is specifically set to float32 precision for the
+        purpose for generating the BAD_VALUE for the unit test.
         """
-        initial_guess = [1e65, 1e65, 1e65, 1e65]
-        initial_guess = np.array(initial_guess, dtype=np.float32)
-        cube = set_up_temperature_cube()
-
-        forecast_predictor = cube.collapsed(
-            "realization", iris.analysis.MEAN)
-        forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        truth = cube.collapsed("realization", iris.analysis.MAX)
-
-        forecast_predictor_data = (
-            forecast_predictor.data.flatten().astype(np.float32))
-        forecast_variance_data = (
-            forecast_variance.data.flatten().astype(np.float32))
-        truth_data = truth.data.flatten().astype(np.float32)
-
-        sqrt_pi = np.sqrt(np.pi).astype(np.float32)
+        initial_guess = np.array([1e65, 1e65, 1e65, 1e65], dtype=np.float32)
 
         predictor_of_mean_flag = "mean"
 
         plugin = Plugin()
-        result = plugin.normal_crps_minimiser(
-            initial_guess, forecast_predictor_data, truth_data,
-            forecast_variance_data, sqrt_pi, predictor_of_mean_flag)
+        result = plugin.calculate_normal_crps(
+            initial_guess, self.forecast_predictor_data, self.truth_data,
+            self.forecast_variance_data, self.sqrt_pi, predictor_of_mean_flag)
 
         self.assertIsInstance(result, np.float64)
         self.assertAlmostEqual(result, plugin.BAD_VALUE)
 
 
-class Test_truncated_normal_crps_minimiser(IrisTest):
+class Test_process_gaussian_distribution(
+        SetupGaussianInputs, EnsembleCalibrationAssertions):
 
     """
-    Test minimising the crps for a truncated normal distribution.
+    Test minimising the CRPS for a gaussian distribution.
     Either the ensemble mean or the individual ensemble realizations are used
     as the predictors.
     """
+    def setUp(self):
+        """Set up expected output.
+        The coefficients are in the order [gamma, delta, alpha, beta].
+        """
+        super().setUp()
+        self.expected_mean_coefficients = (
+            [0.0023, 0.8070, -0.0008, 1.0009])
+        self.expected_realizations_coefficients = (
+            [-0.1373, 0.1141, 0.0409, 0.414, 0.2056, 0.8871])
+
     @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
+                          "Minimisation did not result in convergence",
+                          "divide by zero encountered in"],
+        warning_types=[UserWarning, UserWarning, RuntimeWarning])
     def test_basic_mean_predictor(self):
         """
-        Test that the plugin returns a numpy float value.
-        The ensemble mean is the predictor.
+        Test that the plugin returns a numpy array with the expected
+        coefficients. The ensemble mean is the predictor.
         """
-        initial_guess = [5, 1, 0, 1]
-        initial_guess = np.array(initial_guess, dtype=np.float32)
-        cube = set_up_wind_speed_cube()
-
-        forecast_predictor = cube.collapsed(
-            "realization", iris.analysis.MEAN)
-        forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        truth = cube.collapsed("realization", iris.analysis.MAX)
-
-        forecast_predictor_data = (
-            forecast_predictor.data.flatten().astype(np.float32))
-        forecast_variance_data = (
-            forecast_variance.data.flatten().astype(np.float32))
-        truth_data = truth.data.flatten().astype(np.float32)
-
-        sqrt_pi = np.sqrt(np.pi).astype(np.float32)
-
         predictor_of_mean_flag = "mean"
-
+        distribution = "gaussian"
         plugin = Plugin()
-        result = plugin.truncated_normal_crps_minimiser(
-            initial_guess, forecast_predictor_data, truth_data,
-            forecast_variance_data, sqrt_pi, predictor_of_mean_flag)
-
-        self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 13.182782882390779)
+        result = plugin.process(
+            self.initial_guess_for_mean, self.forecast_predictor_mean,
+            self.truth, self.forecast_variance, predictor_of_mean_flag,
+            distribution)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertEqual(result.dtype, np.float32)
+        self.assertEMOSCoefficientsAlmostEqual(
+            result, self.expected_mean_coefficients)
 
     @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
+                          "Minimisation did not result in convergence",
+                          "divide by zero encountered in",
+                          "invalid value encountered in"],
+        warning_types=[UserWarning, UserWarning, RuntimeWarning,
+                       RuntimeWarning])
     def test_basic_realizations_predictor(self):
         """
-        Test that the plugin returns a numpy array.
-        The ensemble realizations are the predictor.
+        Test that the plugin returns a numpy array with the expected
+        coefficients. The ensemble realizations are the predictor.
         """
-        initial_guess = [5, 1, 0, 1, 1, 1]
-        initial_guess = np.array(initial_guess, dtype=np.float32)
-        cube = set_up_wind_speed_cube()
-
-        forecast_predictor = cube.copy()
-        forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        truth = cube.collapsed("realization", iris.analysis.MAX)
-
-        forecast_predictor_data = (
-            convert_cube_data_to_2d(
-                forecast_predictor).astype(np.float32))
-        forecast_variance_data = (
-            forecast_variance.data.flatten().astype(np.float32))
-        truth_data = truth.data.flatten().astype(np.float32)
-
-        sqrt_pi = np.sqrt(np.pi).astype(np.float32)
-
         predictor_of_mean_flag = "realizations"
-
+        distribution = "gaussian"
         plugin = Plugin()
-        result = plugin.truncated_normal_crps_minimiser(
-            initial_guess, forecast_predictor_data, truth_data,
-            forecast_variance_data, sqrt_pi, predictor_of_mean_flag)
-
-        self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 533.48760954557883)
+        result = plugin.process(
+            self.initial_guess_for_realization,
+            self.forecast_predictor_realizations, self.truth,
+            self.forecast_variance, predictor_of_mean_flag, distribution)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertEqual(result.dtype, np.float32)
+        self.assertEMOSCoefficientsAlmostEqual(
+            result, self.expected_realizations_coefficients)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_basic_mean_predictor_bad_value(self):
-        """
-        Test that the plugin returns a numpy float64 value
-        and that the value matches the BAD_VALUE, when the appropriate
-        condition is found.
-        The ensemble mean is the predictor.
-        """
-        initial_guess = [1e65, 1e65, 1e65, 1e65]
-        initial_guess = np.array(initial_guess, dtype=np.float32)
-        cube = set_up_wind_speed_cube()
-
-        forecast_predictor = cube.collapsed(
-            "realization", iris.analysis.MEAN)
-        forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        truth = cube.collapsed("realization", iris.analysis.MAX)
-
-        forecast_predictor_data = (
-            forecast_predictor.data.flatten().astype(np.float32))
-        forecast_variance_data = (
-            forecast_variance.data.flatten().astype(np.float32))
-        truth_data = truth.data.flatten().astype(np.float32)
-
-        sqrt_pi = np.sqrt(np.pi).astype(np.float32)
-
-        predictor_of_mean_flag = "mean"
-
-        plugin = Plugin()
-        result = plugin.truncated_normal_crps_minimiser(
-            initial_guess, forecast_predictor_data, truth_data,
-            forecast_variance_data, sqrt_pi, predictor_of_mean_flag)
-
-        self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, plugin.BAD_VALUE)
-
-
-class Test_crps_minimiser_wrapper(IrisTest):
-
-    """
-    Test minimising the CRPS for a normal distribution.
-    Either the ensemble mean or the individual ensemble realizations are used
-    as the predictors.
-    """
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate.",
-                          "Minimisation did not result in convergence"])
-    def test_basic_normal_mean_predictor(self):
-        """
-        Test that the plugin returns a numpy float value.
-        The ensemble mean is the predictor.
-        """
-        initial_guess = [5, 1, 0, 1]
-        initial_guess = np.array(initial_guess, dtype=np.float32)
-        cube = set_up_temperature_cube()
-
-        forecast_predictor = cube.collapsed("realization", iris.analysis.MEAN)
-        forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        truth = cube.collapsed("realization", iris.analysis.MAX)
-
-        predictor_of_mean_flag = "mean"
-
-        plugin = Plugin()
-        distribution = "gaussian"
-        result = plugin.crps_minimiser_wrapper(
-            initial_guess, forecast_predictor, truth, forecast_variance,
-            predictor_of_mean_flag, distribution)
-        self.assertIsInstance(result, np.ndarray)
-        self.assertEqual(result.dtype, np.float32)
-        self.assertArrayAlmostEqual(
-            result, [-0.059093, -0.099905, 0.008257, 1.009563])
-
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate.",
-                          "Minimisation did not result in convergence"])
-    def test_basic_normal_realizations_predictor(self):
-        """
-        Test that the plugin returns a numpy array.
-        The ensemble realizations are the predictor.
-        """
-        initial_guess = [5, 1, 0, 1, 1, 1]
-        initial_guess = np.array(initial_guess, dtype=np.float32)
-        cube = set_up_temperature_cube()
-
-        forecast_predictor = cube.copy()
-        forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        truth = cube.collapsed("realization", iris.analysis.MAX)
-
-        predictor_of_mean_flag = "realizations"
-
-        plugin = Plugin()
-        distribution = "gaussian"
-        result = plugin.crps_minimiser_wrapper(
-            initial_guess, forecast_predictor, truth, forecast_variance,
-            predictor_of_mean_flag, distribution)
-        self.assertIsInstance(result, np.ndarray)
-        self.assertEqual(result.dtype, np.float32)
-        self.assertArrayAlmostEqual(
-            result, [6.24021609e+00, 1.35694934e+00, 1.84642787e-03,
-                     5.55444682e-01, 5.04367388e-01, 6.68575194e-01])
-
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_normal_mean_predictor_keyerror(self):
+    def test_mean_predictor_keyerror(self):
         """
         Test that the minimisation has resulted in a KeyError, if the
         distribution that has been requested was not within the dictionary
         containing the minimisation functions.
         """
-        initial_guess = [
-            -8.70808509e-06, 7.23255721e-06, 2.66662740e+00, 1.00000012e+00]
-        initial_guess = np.array(initial_guess, dtype=np.float32)
-        cube = set_up_temperature_cube()
-
-        forecast_predictor = cube.collapsed("realization", iris.analysis.MEAN)
-        forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        truth = cube.collapsed("realization", iris.analysis.MAX)
-
         predictor_of_mean_flag = "mean"
+        distribution = "foo"
 
         plugin = Plugin()
-        distribution = "foo"
         msg = "Distribution requested"
         with self.assertRaisesRegex(KeyError, msg):
-            plugin.crps_minimiser_wrapper(
-                initial_guess, forecast_predictor, truth, forecast_variance,
+            plugin.process(
+                self.initial_guess_for_mean, self.forecast_predictor_mean,
+                self.truth, self.forecast_variance,
                 predictor_of_mean_flag, distribution)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
-                          "Minimisation did not result in convergence"])
-    def test_normal_mean_predictor_max_iterations(self):
+                          "Minimisation did not result in convergence",
+                          "divide by zero encountered in"],
+        warning_types=[UserWarning, UserWarning, RuntimeWarning])
+    def test_mean_predictor_max_iterations(self):
         """
         Test that the plugin returns a list of coefficients
         equal to specific values, when the ensemble mean is the predictor
         assuming a normal distribution and the value specified for the
-        MAX_ITERATIONS is overriden. The coefficients are calculated by
+        max_iterations is overridden. The coefficients are calculated by
         minimising the CRPS and using a set default value for the
         initial guess.
         """
-        initial_guess = [5, 1, 0, 1]
-        initial_guess = np.array(initial_guess, dtype=np.float32)
-        cube = set_up_temperature_cube()
-
-        forecast_predictor = cube.collapsed("realization", iris.analysis.MEAN)
-        forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        truth = cube.collapsed("realization", iris.analysis.MAX)
-
         predictor_of_mean_flag = "mean"
-
-        plugin = Plugin()
-        plugin.MAX_ITERATIONS = 400
+        max_iterations = 400
         distribution = "gaussian"
-        result = plugin.crps_minimiser_wrapper(
-            initial_guess, forecast_predictor, truth, forecast_variance,
+
+        plugin = Plugin(max_iterations=max_iterations)
+        result = plugin.process(
+            self.initial_guess_for_mean, self.forecast_predictor_mean,
+            self.truth, self.forecast_variance,
             predictor_of_mean_flag, distribution)
-        self.assertArrayAlmostEqual(
-            result, [-0.279861, -0.043563, 0.00839, 1.009562])
+        self.assertEMOSCoefficientsAlmostEqual(
+            result, self.expected_mean_coefficients)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
-                          "Minimisation did not result in convergence"])
-    def test_normal_realizations_predictor_max_iterations(self):
+                          "Minimisation did not result in convergence",
+                          "divide by zero encountered in",
+                          "invalid value encountered in"],
+        warning_types=[UserWarning, UserWarning, RuntimeWarning,
+                       RuntimeWarning])
+    def test_realizations_predictor_max_iterations(self):
         """
         Test that the plugin returns a list of coefficients
         equal to specific values, when the ensemble realizations are the
         predictor assuming a truncated normal distribution and the value
-        specified for the MAX_ITERATIONS is overriden. The coefficients are
+        specified for the MAX_ITERATIONS is overridden. The coefficients are
         calculated by minimising the CRPS and using a set default value for
         the initial guess.
         """
-        initial_guess = [5, 1, 0, 1, 1, 1]
-        initial_guess = np.array(initial_guess, dtype=np.float32)
-        cube = set_up_temperature_cube()
-
-        forecast_predictor = cube.copy()
-        forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        truth = cube.collapsed("realization", iris.analysis.MAX)
-
         predictor_of_mean_flag = "realizations"
-
-        plugin = Plugin()
-        plugin.MAX_ITERATIONS = 400
+        max_iterations = 1000
         distribution = "gaussian"
-        result = plugin.crps_minimiser_wrapper(
-            initial_guess, forecast_predictor, truth, forecast_variance,
-            predictor_of_mean_flag, distribution)
-        self.assertArrayAlmostEqual(
-            result, [5.375955e+00, 1.457850e+00, 2.566869e-03,
-                     1.934232e-01, 5.540603e-01, 8.115994e-01])
+
+        plugin = Plugin(max_iterations=max_iterations)
+        result = plugin.process(
+            self.initial_guess_for_realization,
+            self.forecast_predictor_realizations, self.truth,
+            self.forecast_variance, predictor_of_mean_flag, distribution)
+        self.assertEMOSCoefficientsAlmostEqual(
+            result, self.expected_realizations_coefficients)
 
     @ManageWarnings(
         record=True,
         ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_normal_catch_warnings(self, warning_list=None):
+    def test_catch_warnings(self, warning_list=None):
         """
         Test that a warning is generated if the minimisation
-        does not result in a convergence.
-        The ensemble mean is the predictor.
+        does not result in a convergence. The ensemble mean is the predictor.
         """
-        initial_guess = [5, 1, 0, 1]
-        initial_guess = np.array(initial_guess, dtype=np.float32)
-        cube = set_up_temperature_cube()
-
-        forecast_predictor = cube.collapsed("realization", iris.analysis.MEAN)
-        forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        truth = cube.collapsed("realization", iris.analysis.MAX)
-
         predictor_of_mean_flag = "mean"
-
-        plugin = Plugin()
         distribution = "gaussian"
 
-        result = plugin.crps_minimiser_wrapper(
-            initial_guess, forecast_predictor, truth, forecast_variance,
-            predictor_of_mean_flag, distribution)
+        plugin = Plugin(max_iterations=10)
+        plugin.process(
+            self.initial_guess_for_mean, self.forecast_predictor_mean,
+            self.truth, self.forecast_variance, predictor_of_mean_flag,
+            distribution)
         warning_msg = "Minimisation did not result in convergence after"
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
@@ -486,31 +357,22 @@ class Test_crps_minimiser_wrapper(IrisTest):
     @ManageWarnings(
         record=True,
         ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_normal_catch_warnings_percentage_change(self, warning_list=None):
+    def test_catch_warnings_percentage_change(self, warning_list=None):
         """
         Test that two warnings are generated if the minimisation
         does not result in a convergence. The first warning reports a that
         the minimisation did not result in convergence, whilst the second
         warning reports that the percentage change in the final iteration was
-        greater than the tolerated value.
-        The ensemble mean is the predictor.
+        greater than the tolerated value. The ensemble mean is the predictor.
         """
-        initial_guess = [500, 100, 0, 100]
-        initial_guess = np.array(initial_guess, dtype=np.float32)
-        cube = set_up_temperature_cube()
-
-        forecast_predictor = cube.collapsed("realization", iris.analysis.MEAN)
-        forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        truth = cube.collapsed("realization", iris.analysis.MAX)
-
+        initial_guess = np.array([5000, 1, 0, 1], dtype=np.float64)
         predictor_of_mean_flag = "mean"
-
-        plugin = Plugin()
         distribution = "gaussian"
-        result = plugin.crps_minimiser_wrapper(
-            initial_guess, forecast_predictor, truth, forecast_variance,
-            predictor_of_mean_flag, distribution)
+
+        plugin = Plugin(max_iterations=5)
+        plugin.process(
+            initial_guess, self.forecast_predictor_mean, self.truth,
+            self.forecast_variance, predictor_of_mean_flag, distribution)
         warning_msg_min = "Minimisation did not result in convergence after"
         warning_msg_iter = "The final iteration resulted in a percentage "
         self.assertTrue(any(item.category == UserWarning
@@ -520,207 +382,287 @@ class Test_crps_minimiser_wrapper(IrisTest):
         self.assertTrue(any(warning_msg_iter in str(item)
                             for item in warning_list))
 
-    """Test minimising the CRPS for a truncated_normal distribution."""
+
+class SetupTruncatedGaussianInputs(SetupInputs, SetupCubes):
+
+    """Create a class for setting up cubes for testing."""
+
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."],
+        warning_types=[UserWarning])
+    def setUp(self):
+        """Set up expected inputs."""
+        super().setUp()
+        # Set up cubes and associated data arrays for wind speed.
+        self.forecast_predictor_mean = (
+            self.historic_wind_speed_forecast_cube.collapsed(
+                "realization", iris.analysis.MEAN))
+        self.forecast_predictor_realizations = (
+            self.historic_wind_speed_forecast_cube.copy())
+        self.forecast_variance = (
+            self.historic_wind_speed_forecast_cube.collapsed(
+                "realization", iris.analysis.VARIANCE))
+        self.truth = (
+            self.historic_wind_speed_forecast_cube.collapsed(
+                "realization", iris.analysis.MAX))
+        self.forecast_predictor_data = (
+            self.forecast_predictor_mean.data.flatten().astype(
+                np.float64))
+        self.forecast_predictor_data_realizations = (
+            convert_cube_data_to_2d(
+                self.historic_wind_speed_forecast_cube.copy()
+            ).astype(np.float64))
+        self.forecast_variance_data = (
+            self.forecast_variance.data.flatten().astype(
+                np.float64))
+        self.truth_data = self.truth.data.flatten().astype(np.float64)
+
+
+class Test_calculate_truncated_normal_crps(SetupTruncatedGaussianInputs):
+
+    """
+    Test minimising the crps for a truncated gaussian distribution.
+    Either the ensemble mean or the individual ensemble realizations are used
+    as the predictors.
+    """
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_basic_mean_predictor(self):
+        """
+        Test that the plugin returns a numpy float value. The ensemble mean
+        is the predictor. The result indicates the minimum value
+        for the CRPS that was achieved by the minimisation.
+        """
+        predictor_of_mean_flag = "mean"
+
+        plugin = Plugin()
+        result = plugin.calculate_truncated_normal_crps(
+            self.initial_guess_for_mean, self.forecast_predictor_data,
+            self.truth_data, self.forecast_variance_data, self.sqrt_pi,
+            predictor_of_mean_flag)
+
+        self.assertIsInstance(result, np.float64)
+        self.assertAlmostEqual(result, 7.5157541)
+
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_basic_realizations_predictor(self):
+        """
+        Test that the plugin returns a numpy float value. The ensemble
+        realizations are the predictor. The result indicates the minimum value
+        for the CRPS that was achieved by the minimisation.
+        """
+        predictor_of_mean_flag = "realizations"
+
+        plugin = Plugin()
+        result = plugin.calculate_truncated_normal_crps(
+            self.initial_guess_for_realization,
+            self.forecast_predictor_data_realizations, self.truth_data,
+            self.forecast_variance_data, self.sqrt_pi, predictor_of_mean_flag)
+
+        self.assertIsInstance(result, np.float64)
+        self.assertAlmostEqual(result, 7.5157531)
+
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
-                          "Minimisation did not result in convergence"])
-    def test_basic_truncated_normal_mean_predictor(self):
+                          "invalid value encountered in"],
+        warning_types=[UserWarning, RuntimeWarning])
+    def test_basic_mean_predictor_bad_value(self):
         """
-        Test that the plugin returns a numpy float value.
-        The ensemble mean is the predictor.
+        Test that the plugin returns a numpy float64 value
+        and that the value matches the BAD_VALUE, when the appropriate
+        condition is found. The ensemble mean is the predictor. The initial
+        guess is specifically set to float32 precision for the purpose for
+        generating the BAD_VALUE for the unit test.
         """
-        initial_guess = [5, 1, 0, 1]
-        initial_guess = np.array(initial_guess, dtype=np.float32)
-        cube = set_up_temperature_cube()
-
-        forecast_predictor = cube.collapsed("realization", iris.analysis.MEAN)
-        forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        truth = cube.collapsed("realization", iris.analysis.MAX)
+        initial_guess = np.array([1e65, 1e65, 1e65, 1e65], dtype=np.float32)
 
         predictor_of_mean_flag = "mean"
 
         plugin = Plugin()
-        distribution = "truncated gaussian"
-        result = plugin.crps_minimiser_wrapper(
-            initial_guess, forecast_predictor, truth, forecast_variance,
-            predictor_of_mean_flag, distribution)
-        self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(
-            result, [-0.059093, -0.099905, 0.008257, 1.009563])
+        result = plugin.calculate_truncated_normal_crps(
+            initial_guess, self.forecast_predictor_data, self.truth_data,
+            self.forecast_variance_data, self.sqrt_pi, predictor_of_mean_flag)
+
+        self.assertIsInstance(result, np.float64)
+        self.assertAlmostEqual(result, plugin.BAD_VALUE)
+
+
+class Test_process_truncated_gaussian_distribution(
+        SetupTruncatedGaussianInputs, EnsembleCalibrationAssertions):
+
+    """
+    Test minimising the CRPS for a truncated gaussian distribution.
+    Either the ensemble mean or the individual ensemble realizations are used
+    as the predictors.
+    """
+    def setUp(self):
+        """Set up expected output."""
+        super().setUp()
+        self.expected_mean_coefficients = (
+            [0.0459, 0.6047, 0.3965, 0.958])
+        self.expected_realizations_coefficients = (
+            [0.0265, 0.2175, 0.2692, 0.0126, 0.5965, 0.7952])
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
-                          "Minimisation did not result in convergence"])
-    def test_basic_truncated_normal_realizations_predictor(self):
-        """Test that the plugin returns a numpy array."""
-        initial_guess = [5, 1, 0, 1, 1, 1]
-        initial_guess = np.array(initial_guess, dtype=np.float32)
-        cube = set_up_temperature_cube()
-
-        forecast_predictor = cube.copy()
-        forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        truth = cube.collapsed("realization", iris.analysis.MAX)
-
-        predictor_of_mean_flag = "realizations"
-
-        plugin = Plugin()
-        distribution = "truncated gaussian"
-        result = plugin.crps_minimiser_wrapper(
-            initial_guess, forecast_predictor, truth, forecast_variance,
-            predictor_of_mean_flag, distribution)
-        self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(
-            result, [6.24021609e+00, 1.35694934e+00, 1.84642787e-03,
-                     5.55444682e-01, 5.04367388e-01, 6.68575194e-01])
-
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_truncated_normal_mean_predictor_keyerror(self):
+                          "The final iteration resulted in",
+                          "invalid value encountered in",
+                          "divide by zero encountered in"],
+        warning_types=[UserWarning, UserWarning, RuntimeWarning,
+                       RuntimeWarning])
+    def test_basic_mean_predictor(self):
         """
-        Test that the minimisation has resulted in a successful convergence,
-        and that the object returned is an OptimizeResult object, when the
-        ensemble mean is the predictor.
+        Test that the plugin returns a numpy array. The ensemble mean
+        is the predictor.
         """
-        initial_guess = [
-            -8.70808509e-06, 7.23255721e-06, 2.66662740e+00, 1.00000012e+00]
-        initial_guess = np.array(initial_guess, dtype=np.float32)
-        cube = set_up_temperature_cube()
-
-        forecast_predictor = cube.collapsed("realization", iris.analysis.MEAN)
-        forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        truth = cube.collapsed("realization", iris.analysis.MAX)
-
         predictor_of_mean_flag = "mean"
+        distribution = "truncated gaussian"
 
         plugin = Plugin()
+        result = plugin.process(
+            self.initial_guess_for_mean, self.forecast_predictor_mean,
+            self.truth, self.forecast_variance, predictor_of_mean_flag,
+            distribution)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertEMOSCoefficientsAlmostEqual(
+            result, self.expected_mean_coefficients)
+
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
+                          "Minimisation did not result in convergence",
+                          "invalid value encountered in",
+                          "divide by zero encountered in"],
+        warning_types=[UserWarning, UserWarning, RuntimeWarning,
+                       RuntimeWarning])
+    def test_basic_realizations_predictor(self):
+        """
+        Test that the plugin returns a numpy array with the expected
+        coefficients. The ensemble realizations are the predictor.
+        """
+        predictor_of_mean_flag = "realizations"
+        distribution = "truncated gaussian"
+
+        plugin = Plugin()
+        result = plugin.process(
+            self.initial_guess_for_realization,
+            self.forecast_predictor_realizations, self.truth,
+            self.forecast_variance, predictor_of_mean_flag, distribution)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertEMOSCoefficientsAlmostEqual(
+            result, self.expected_realizations_coefficients)
+
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_mean_predictor_keyerror(self):
+        """
+        Test that an exception is raised when the distribution requested is
+        not an available option when the predictor_of_mean_flag is the
+        ensemble mean.
+        """
+        predictor_of_mean_flag = "mean"
         distribution = "foo"
+
+        plugin = Plugin()
         msg = "Distribution requested"
         with self.assertRaisesRegex(KeyError, msg):
-            plugin.crps_minimiser_wrapper(
-                initial_guess, forecast_predictor, truth, forecast_variance,
+            plugin.process(
+                self.initial_guess_for_mean, self.forecast_predictor_mean,
+                self.truth, self.forecast_variance,
                 predictor_of_mean_flag, distribution)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_truncated_normal_realizations_predictor_keyerror(self):
+    def test_realizations_predictor_keyerror(self):
         """
-        Test that the minimisation has resulted in a successful convergence,
-        and that the object returned is an OptimizeResult object, when the
-        ensemble realizations are the predictor.
+        Test that an exception is raised when the distribution requested is
+        not an available option when the predictor_of_mean_flag is the
+        ensemble realizations.
         """
-        initial_guess = [
-            -8.70808509e-06, 7.23255721e-06, 2.66662740e+00, 1.00000012e+00]
-        initial_guess = np.array(initial_guess, dtype=np.float32)
-        cube = set_up_temperature_cube()
-
-        forecast_predictor = cube.collapsed("realization", iris.analysis.MEAN)
-        forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        truth = cube.collapsed("realization", iris.analysis.MAX)
-
         predictor_of_mean_flag = "realizations"
+        distribution = "foo"
 
         plugin = Plugin()
-        distribution = "foo"
         msg = "Distribution requested"
         with self.assertRaisesRegex(KeyError, msg):
-            plugin.crps_minimiser_wrapper(
-                initial_guess, forecast_predictor, truth, forecast_variance,
-                predictor_of_mean_flag, distribution)
+            plugin.process(
+                self.initial_guess_for_realization,
+                self.forecast_predictor_realizations, self.truth,
+                self.forecast_variance, predictor_of_mean_flag, distribution)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
-                          "Minimisation did not result in convergence"])
-    def test_truncated_normal_mean_predictor_max_iterations(self):
+                          "Minimisation did not result in convergence",
+                          "The final iteration resulted in",
+                          "invalid value encountered in",
+                          "divide by zero encountered in"],
+        warning_types=[UserWarning, UserWarning, UserWarning,
+                       RuntimeWarning, RuntimeWarning])
+    def test_mean_predictor_max_iterations(self):
         """
         Test that the plugin returns a list of coefficients
         equal to specific values, when the ensemble mean is the predictor
         assuming a truncated normal distribution and the value specified
-        for the MAX_ITERATIONS is overriden. The coefficients are
+        for the max_iterations is overridden. The coefficients are
         calculated by minimising the CRPS and using a set default value for
         the initial guess.
         """
-        initial_guess = [5, 1, 0, 1]
-        initial_guess = np.array(initial_guess, dtype=np.float32)
-        cube = set_up_temperature_cube()
-
-        forecast_predictor = cube.collapsed("realization", iris.analysis.MEAN)
-        forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        truth = cube.collapsed("realization", iris.analysis.MAX)
-
         predictor_of_mean_flag = "mean"
-
-        plugin = Plugin()
-        plugin.MAX_ITERATIONS = 400
+        max_iterations = 400
         distribution = "truncated gaussian"
-        result = plugin.crps_minimiser_wrapper(
-            initial_guess, forecast_predictor, truth, forecast_variance,
-            predictor_of_mean_flag, distribution)
-        self.assertArrayAlmostEqual(
-            result, [-0.279861, -0.043563, 0.00839, 1.009562])
+
+        plugin = Plugin(max_iterations=max_iterations)
+        result = plugin.process(
+            self.initial_guess_for_mean, self.forecast_predictor_mean,
+            self.truth, self.forecast_variance, predictor_of_mean_flag,
+            distribution)
+        self.assertEMOSCoefficientsAlmostEqual(
+            result, self.expected_mean_coefficients)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
-                          "Minimisation did not result in convergence"])
-    def test_truncated_normal_realizations_predictor_max_iterations(self):
+                          "Minimisation did not result in convergence",
+                          "invalid value encountered in",
+                          "divide by zero encountered in"],
+        warning_types=[UserWarning, UserWarning, RuntimeWarning,
+                       RuntimeWarning])
+    def test_realizations_predictor_max_iterations(self):
         """
         Test that the plugin returns a list of coefficients
         equal to specific values, when the ensemble realizations are the
         predictor assuming a truncated normal distribution and the value
-        specified for the MAX_ITERATIONS is overriden. The coefficients are
+        specified for the max_iterations is overridden. The coefficients are
         calculated by minimising the CRPS and using a set default value for
         the initial guess.
         """
-        initial_guess = [5, 1, 0, 1, 1, 1]
-        initial_guess = np.array(initial_guess, dtype=np.float32)
-        cube = set_up_temperature_cube()
-
-        forecast_predictor = cube.copy()
-        forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        truth = cube.collapsed("realization", iris.analysis.MAX)
-
         predictor_of_mean_flag = "realizations"
-
-        plugin = Plugin()
-        plugin.MAX_ITERATIONS = 400
+        max_iterations = 1000
         distribution = "truncated gaussian"
-        result = plugin.crps_minimiser_wrapper(
-            initial_guess, forecast_predictor, truth, forecast_variance,
-            predictor_of_mean_flag, distribution)
-        self.assertArrayAlmostEqual(
-            result, [5.375955, 1.45785, 0.002567,
-                     0.193423, 0.55406, 0.811599])
+
+        plugin = Plugin(max_iterations=max_iterations)
+        result = plugin.process(
+            self.initial_guess_for_realization,
+            self.forecast_predictor_realizations, self.truth,
+            self.forecast_variance, predictor_of_mean_flag, distribution)
+        self.assertEMOSCoefficientsAlmostEqual(
+            result, self.expected_realizations_coefficients)
 
     @ManageWarnings(
         record=True,
         ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_truncated_normal_catch_warnings(self, warning_list=None):
+    def test_catch_warnings(self, warning_list=None):
         """
         Test that a warning is generated if the minimisation
-        does not result in a convergence.
-        The ensemble mean is the predictor.
+        does not result in a convergence. The ensemble mean is the predictor.
         """
-        initial_guess = [5, 1, 0, 1]
-        initial_guess = np.array(initial_guess, dtype=np.float32)
-        cube = set_up_temperature_cube()
-
-        forecast_predictor = cube.collapsed("realization", iris.analysis.MEAN)
-        forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        truth = cube.collapsed("realization", iris.analysis.MAX)
-
         predictor_of_mean_flag = "mean"
-
-        plugin = Plugin()
         distribution = "truncated gaussian"
-        result = plugin.crps_minimiser_wrapper(
-            initial_guess, forecast_predictor, truth, forecast_variance,
-            predictor_of_mean_flag, distribution)
+
+        plugin = Plugin(max_iterations=10)
+        plugin.process(
+            self.initial_guess_for_mean, self.forecast_predictor_mean,
+            self.truth, self.forecast_variance, predictor_of_mean_flag,
+            distribution)
         warning_msg = "Minimisation did not result in convergence after"
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
@@ -730,7 +672,7 @@ class Test_crps_minimiser_wrapper(IrisTest):
     @ManageWarnings(
         record=True,
         ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_truncated_normal_catch_warnings_percentage_change(
+    def test_catch_warnings_percentage_change(
             self,
             warning_list=None):
         """
@@ -741,22 +683,17 @@ class Test_crps_minimiser_wrapper(IrisTest):
         greater than the tolerated value.
         The ensemble mean is the predictor.
         """
-        initial_guess = [5000, 1, 0, 1]
-        initial_guess = np.array(initial_guess, dtype=np.float32)
-        cube = set_up_temperature_cube()
-
-        forecast_predictor = cube.collapsed("realization", iris.analysis.MEAN)
-        forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        truth = cube.collapsed("realization", iris.analysis.MAX)
+        initial_guess = np.array([5000, 1, 0, 1], dtype=np.float64)
 
         predictor_of_mean_flag = "mean"
-
-        plugin = Plugin()
         distribution = "truncated gaussian"
-        result = plugin.crps_minimiser_wrapper(
-            initial_guess, forecast_predictor, truth, forecast_variance,
-            predictor_of_mean_flag, distribution)
+
+        plugin = Plugin(max_iterations=5)
+
+        plugin.process(
+            initial_guess, self.forecast_predictor_mean,
+            self.truth, self.forecast_variance, predictor_of_mean_flag,
+            distribution)
         warning_msg_min = "Minimisation did not result in convergence after"
         warning_msg_iter = "The final iteration resulted in a percentage "
         self.assertTrue(any(item.category == UserWarning

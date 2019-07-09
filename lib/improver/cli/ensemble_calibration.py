@@ -70,97 +70,104 @@ def main(argv=None):
         'If realizations are input, realizations are regenerated using '
         'Ensemble Copula Coupling.')
     # Arguments for EnsembleCalibration
-    parser.add_argument('calibration_method',
-                        metavar='ENSEMBLE_CALIBRATION_METHOD',
-                        choices=['ensemble model output statistics',
-                                 'nonhomogeneous gaussian regression'],
-                        help='The calibration method that will be applied. '
-                             'Supported methods are: "emos" (ensemble model '
-                             'output statistics) and "ngr" (nonhomogeneous '
-                             'gaussian regression).')
-    parser.add_argument('units', metavar='UNITS_TO_CALIBRATE_IN',
-                        help='The unit that calibration should be undertaken '
-                             'in. The current forecast, historical forecast '
-                             'and truth will be converted as required.')
-    parser.add_argument('distribution', metavar='DISTRIBUTION',
-                        choices=['gaussian', 'truncated gaussian'],
-                        help='The distribution that will be used for '
-                             'calibration. This will be dependent upon the '
-                             'input phenomenon. This has to be supported by '
-                             'the minimisation functions in '
-                             'ContinuousRankedProbabilityScoreMinimisers.')
+    parser.add_argument(
+        'units', metavar='UNITS_TO_CALIBRATE_IN',
+        help='The unit that calibration should be undertaken in. The current '
+             'forecast, historical forecast and truth will be converted as '
+             'required.')
+    parser.add_argument(
+        'distribution', metavar='DISTRIBUTION',
+        choices=['gaussian', 'truncated gaussian'],
+        help='The distribution that will be used for calibration. This will '
+             'be dependent upon the input phenomenon. This has to be '
+             'supported by the minimisation functions in '
+             'ContinuousRankedProbabilityScoreMinimisers.')
     # Filepaths for current, historic and truth data.
-    parser.add_argument('input_filepath', metavar='INPUT_FILE',
-                        help='A path to an input NetCDF file containing the '
-                             'current forecast to be processed.'
-                             'The file provided could be in the form of '
-                             'realizations, probabilities or percentiles.')
-    parser.add_argument('historic_filepath', metavar='HISTORIC_DATA_FILE',
-                        help='A path to an input NetCDF file containing the '
-                             'historic forecast(s) used for calibration.'
-                             'The file provided must be in the form of '
-                             'realizations.')
-    parser.add_argument('truth_filepath', metavar='TRUTH_DATA_FILE',
-                        help='A path to an input NetCDF file containing the '
-                             'historic truth analyses used for calibration.')
-    parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
-                        help='The output path for the processed NetCDF')
+    parser.add_argument(
+        'input_filepath', metavar='INPUT_FILE',
+        help='A path to an input NetCDF file containing the current forecast '
+             'to be processed. The file provided could be in the form of '
+             'realizations, probabilities or percentiles.')
+    parser.add_argument(
+        'historic_filepath', metavar='HISTORIC_DATA_FILE',
+        help='A path to an input NetCDF file containing the historic '
+             'forecast(s) used for calibration. The file provided must be in '
+             'the form of realizations.')
+    parser.add_argument(
+        'truth_filepath', metavar='TRUTH_DATA_FILE',
+        help='A path to an input NetCDF file containing the historic truth '
+             'analyses used for calibration.')
+    parser.add_argument(
+        'output_filepath', metavar='OUTPUT_FILE',
+        help='The output path for the processed NetCDF')
     # Optional arguments.
-    parser.add_argument('--predictor_of_mean', metavar='CALIBRATE_MEAN_FLAG',
-                        choices=['mean', 'realizations'], default='mean',
-                        help='String to specify the input to calculate the '
-                             'calibrated mean. Currently the ensemble mean '
-                             '("mean") and the ensemble realizations '
-                             '("realizations") are supported as the '
-                             'predictors. Default: "mean".')
-    parser.add_argument('--save_mean', metavar='MEAN_FILE',
-                        default=False,
-                        help='Option to save the mean output from '
-                             'EnsembleCalibration plugin. If used, a path '
-                             'to save the output to must be provided.')
-    parser.add_argument('--save_variance', metavar='VARIANCE_FILE',
-                        default=False,
-                        help='Option to save the variance output from '
-                             'EnsembleCalibration plugin. If used, a path '
-                             'to save the output to must be provided.')
-    parser.add_argument('--num_realizations', metavar='NUMBER_OF_REALIZATIONS',
-                        default=None, type=np.int32,
-                        help='Optional argument to specify the number of '
-                             'ensemble realizations to produce. '
-                             'If the current forecast is input as '
-                             'probabilities or percentiles then this argument '
-                             'is used to create the requested number of '
-                             'realizations. In addition, this argument is '
-                             'used to construct the requested number of '
-                             'realizations from the mean and variance output '
-                             'from the ensemble calibration.'
-                             'Default will be the number of realizations '
-                             'in the raw input file.')
-    parser.add_argument('--random_ordering', default=False,
-                        action='store_true',
-                        help='Option to reorder the post-processed forecasts '
-                             'randomly. If not set, the ordering of the raw '
-                             'ensemble is used.')
-    parser.add_argument('--random_seed', metavar='RANDOM_SEED', default=None,
-                        help='Option to specify a value for the random seed '
-                        'for testing purposes, otherwise, the default random '
-                        'seed behaviour is utilised. The random seed is used '
-                        'in the generation of the random numbers used for '
-                        'either the random_ordering option to order the input '
-                        'percentiles randomly, rather than use the ordering '
-                        'from the raw ensemble, or for splitting tied values '
-                        'within the raw ensemble, so that the values from the '
-                        'input percentiles can be ordered to match the raw '
-                        'ensemble.')
-    parser.add_argument('--ecc_bounds_warning', default=False,
-                        action='store_true',
-                        help='If True, where the percentiles exceed the ECC '
-                             'bounds range, raise a warning rather than an '
-                             'exception. This occurs when the current '
-                             'forecast is in the form of probabilities and '
-                             'is converted to percentiles, as part of '
-                             'converting the input probabilities into '
-                             'realizations.')
+    parser.add_argument(
+        '--predictor_of_mean', metavar='CALIBRATE_MEAN_FLAG',
+        choices=['mean', 'realizations'], default='mean',
+        help='String to specify the input to calculate the calibrated mean. '
+             'Currently the ensemble mean ("mean") and the ensemble '
+             'realizations ("realizations") are supported as the predictors. '
+             'Default: "mean".')
+    parser.add_argument(
+        '--save_mean', metavar='MEAN_FILE',
+        default=False,
+        help='Option to save the mean output from EnsembleCalibration plugin. '
+             'If used, a path to save the output to must be provided.')
+    parser.add_argument(
+        '--save_variance', metavar='VARIANCE_FILE',
+        default=False,
+        help='Option to save the variance output from EnsembleCalibration '
+             'plugin. If used, a path to save the output to must be provided.')
+    parser.add_argument(
+        '--num_realizations', metavar='NUMBER_OF_REALIZATIONS',
+        default=None, type=np.int32,
+        help='Optional argument to specify the number of '
+             'ensemble realizations to produce. '
+             'If the current forecast is input as probabilities or '
+             'percentiles then this argument is used to create the requested '
+             'number of realizations. In addition, this argument is used to '
+             'construct the requested number of realizations from the mean '
+             'and variance output after applying the EMOS coefficients.'
+             'Default will be the number of realizations in the raw input '
+             'file, if realizations are provided as input, otherwise if the '
+             'input format is probabilities or percentiles, then an error '
+             'will be raised if no value is provided.')
+    parser.add_argument(
+        '--random_ordering', default=False,
+        action='store_true',
+        help='Option to reorder the post-processed forecasts randomly. If not '
+             'set, the ordering of the raw ensemble is used. This option is '
+             'only valid when the input format is realizations.')
+    parser.add_argument(
+        '--random_seed', metavar='RANDOM_SEED', default=None,
+        help='Option to specify a value for the random seed for testing '
+             'purposes, otherwise, the default random seed behaviour is '
+             'utilised. The random seed is used in the generation of the '
+             'random numbers used for either the random_ordering option to '
+             'order the input percentiles randomly, rather than use the '
+             'ordering from the raw ensemble, or for splitting tied values '
+             'within the raw ensemble, so that the values from the input '
+             'percentiles can be ordered to match the raw ensemble.')
+    parser.add_argument(
+        '--ecc_bounds_warning', default=False,
+        action='store_true',
+        help='If True, where the percentiles exceed the ECC bounds range, '
+             'raise a warning rather than an exception. This occurs when the '
+             'current forecast is in the form of probabilities and is '
+             'converted to percentiles, as part of converting the input '
+             'probabilities into realizations.')
+    parser.add_argument(
+        '--max_iterations', metavar='MAX_ITERATIONS',
+        type=np.int32, default=1000,
+        help='The maximum number of iterations allowed until the minimisation '
+             'has converged to a stable solution. If the maximum number of '
+             'iterations is reached, but the minimisation has not yet '
+             'converged to a stable solution, then the available solution is '
+             'used anyway, and a warning is raised. This may be modified for '
+             'testing purposes but otherwise kept fixed. If the '
+             'predictor_of_mean is "realizations", then the number of '
+             'iterations may require increasing, as there will be more '
+             'coefficients to solve for.')
     args = parser.parse_args(args=argv)
 
     current_forecast = load_cube(args.input_filepath)
@@ -212,8 +219,9 @@ def main(argv=None):
 
     # Ensemble-Calibration to calculate the mean and variance.
     forecast_predictor, forecast_variance = EnsembleCalibration(
-        args.calibration_method, args.distribution, args.units,
-        predictor_of_mean_flag=args.predictor_of_mean).process(
+        args.distribution, args.units,
+        predictor_of_mean_flag=args.predictor_of_mean,
+        max_iterations=args.max_iterations).process(
             current_forecast, historic_forecast, truth)
 
     # If required, save the mean and variance.

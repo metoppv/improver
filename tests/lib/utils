@@ -53,6 +53,25 @@ function improver_compare_output {
   [[ "$output" =~ "are identical." ]]
 }
 
+function improver_compare_output_lower_precision {
+  # Run nccmp to compare the output and known good output.
+  # Specify a tolerance to compare the output and known good output with
+  # lower precision.
+  # nccmp options:
+  #    -d means compare data
+  #    -m also compare metadata
+  #    -N ignore NaN comparisons
+  #    -s report 'Files X and Y are identical' if they really are.
+  #    -g compares global attributes in the file
+  #    -t defines a tolerance in terms of the absolute difference.
+  # The use of a 1e-3 absolute tolerance is specific for usage in the
+  # ensemble calibration CLI tests.
+
+  run nccmp -dmNsg -t 1e-3 "$1" "$2"
+  [[ "$status" -eq 0 ]]
+  [[ "$output" =~ "are identical." ]]
+}
+
 function improver_check_recreate_kgo {
   # If RECREATE_BATS_KGO set, copy output files created by test to a
   # new set of KGO located at the path specified by RECREATE_BATS_KGO

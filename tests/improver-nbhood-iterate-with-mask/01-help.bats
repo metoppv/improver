@@ -48,7 +48,7 @@ ApplyNeighbourhoodProcessingWithAMask plugin to a file with one diagnostic
 dataset in combination with a file containing one or more masks. The mask
 dataset may have an extra dimension compared to the input diagnostic. In this
 case, the user specifies the name of the extra coordinate and this coordinate
-is iterated over so each mask is applied to seperate slices over the input
+is iterated over so each mask is applied to separate slices over the input
 data. These intermediate masked datasets are then concatenated, resulting in a
 dataset that has been processed using multiple masks and has gained an extra
 dimension from the masking. There is also an option to re-mask the output
