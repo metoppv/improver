@@ -82,13 +82,10 @@ def main(argv=None):
                         'dimension: ie when all files provided are from the '
                         'same forecast cycle.')
     parser.add_argument('weighting_mode', metavar='WEIGHTED_BLEND_MODE',
-                        choices=['weighted_mean', 'weighted_maximum'],
+                        choices=['weighted_mean'],
                         help='The method used in the weighted blend. '
                              '"weighted_mean": calculate a normal weighted'
-                             ' mean across the coordinate. '
-                             '"weighted_maximum": multiplies the values in the'
-                             ' coordinate by the weights, and then takes the'
-                             ' maximum.')
+                             ' mean across the coordinate.')
     parser.add_argument('input_filepaths', metavar='INPUT_FILES', nargs="+",
                         help='Paths to input NetCDF files including and '
                              'surrounding the central_point.')
@@ -124,8 +121,7 @@ def main(argv=None):
         cube = MergeCubes().process(cubelist)
 
     BlendingPlugin = TriangularWeightedBlendAcrossAdjacentPoints(
-        args.coordinate, args.central_point, units, args.width,
-        args.weighting_mode)
+        args.coordinate, args.central_point, units, args.width)
     result = BlendingPlugin.process(cube)
     save_netcdf(result, args.output_filepath)
 

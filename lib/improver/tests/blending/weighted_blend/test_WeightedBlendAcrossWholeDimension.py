@@ -106,24 +106,16 @@ class Test__init__(IrisTest):
     def test_basic(self):
         """Test that the __init__ sets things up correctly"""
         plugin = (WeightedBlendAcrossWholeDimension(
-            'time', 'weighted_mean', cycletime='20171101T0300Z'))
+            'time', cycletime='20171101T0300Z'))
         self.assertEqual(plugin.coord, 'time')
-        self.assertEqual(plugin.mode, 'weighted_mean')
         self.assertEqual(plugin.cycletime, '20171101T0300Z')
-
-    def test_raises_expression(self):
-        """Test that the __init__ raises an error when appropriate."""
-        message = ("weighting_mode: not_a_method is not recognised, "
-                   "must be either weighted_maximum or weighted_mean")
-        with self.assertRaisesRegex(ValueError, message):
-            WeightedBlendAcrossWholeDimension('time', 'not_a_method')
 
     def test_threshold_blending_unsupported(self):
         """Test that the __init__ raises an error if trying to blend over
         thresholds (which is neither supported nor sensible)."""
         msg = "Blending over thresholds is not supported"
         with self.assertRaisesRegex(ValueError, msg):
-            WeightedBlendAcrossWholeDimension('threshold', 'weighted_mean')
+            WeightedBlendAcrossWholeDimension('threshold')
 
 
 class Test__repr__(IrisTest):
@@ -132,11 +124,9 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
-        result = str(WeightedBlendAcrossWholeDimension(
-            'time', 'weighted_mean'))
-        msg = ('<WeightedBlendAcrossWholeDimension: coord = time,'
-               ' weighting_mode = weighted_mean, cycletime = None, '
-               'timeblending: False>')
+        result = str(WeightedBlendAcrossWholeDimension('time'))
+        msg = ('<WeightedBlendAcrossWholeDimension: coord = time, '
+               'cycletime = None, timeblending: False>')
         self.assertEqual(result, msg)
 
 
@@ -242,7 +232,7 @@ class Test_check_percentile_coord(Test_weighted_blend):
     def test_fails_perc_coord_not_dim(self):
         """Test it raises a Value Error if percentile coord not a dim."""
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         new_cube = self.cube.copy()
         new_cube.add_aux_coord(AuxCoord([10.0],
                                         long_name="percentile"))
@@ -254,7 +244,7 @@ class Test_check_percentile_coord(Test_weighted_blend):
     def test_fails_only_one_percentile_value(self):
         """Test it raises a Value Error if there is only one percentile."""
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         new_cube = Cube([[0.0]])
         new_cube.add_dim_coord(DimCoord([10.0],
                                         long_name="percentile"), 0)
@@ -262,17 +252,6 @@ class Test_check_percentile_coord(Test_weighted_blend):
             DimCoord([10.0], long_name="forecast_reference_time"), 1)
         msg = ('Percentile coordinate does not have enough points'
                ' in order to blend. Must have at least 2 percentiles.')
-        with self.assertRaisesRegex(ValueError, msg):
-            plugin.check_percentile_coord(new_cube)
-
-    def test_fails_percentile_data_max_mode(self):
-        """Test a Value Error is raised if the maximum mode is applied to
-        percentile data."""
-        coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_maximum')
-        new_cube = percentile_cube()
-        msg = ('The "weighted_maximum" mode is not supported for percentile '
-               'data.')
         with self.assertRaisesRegex(ValueError, msg):
             plugin.check_percentile_coord(new_cube)
 
@@ -288,7 +267,7 @@ class Test_check_compatible_time_points(Test_weighted_blend):
         self.cube.remove_coord('time')
         self.cube.coord('forecast_reference_time').rename('time')
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         msg = ('Attempting to blend data for different validity times.')
         with self.assertRaisesRegex(ValueError, msg):
             plugin.check_compatible_time_points(self.cube)
@@ -300,8 +279,7 @@ class Test_check_compatible_time_points(Test_weighted_blend):
         self.cube.remove_coord('time')
         self.cube.coord('forecast_reference_time').rename('time')
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean',
-                                                   timeblending=True)
+        plugin = WeightedBlendAcrossWholeDimension(coord, timeblending=True)
         plugin.check_compatible_time_points(self.cube)
 
 
@@ -315,7 +293,7 @@ class Test_shape_weights(Test_weighted_blend):
         same shape as the data cube."""
 
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         result = plugin.shape_weights(self.cube, self.weights1d)
         self.assertEqual(self.cube.shape, result.shape)
         self.assertArrayEqual(self.weights1d.data, result[:, 0, 0])
@@ -325,7 +303,7 @@ class Test_shape_weights(Test_weighted_blend):
         same shape as the data cube."""
 
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         result = plugin.shape_weights(self.cube, self.weights3d)
         self.assertEqual(self.cube.shape, result.shape)
         self.assertArrayEqual(self.weights3d.data, result)
@@ -337,7 +315,7 @@ class Test_shape_weights(Test_weighted_blend):
         reordered to match the cube."""
 
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         expected = self.weights3d.copy().data
         self.weights3d.transpose([1, 0, 2])
         result = plugin.shape_weights(self.cube, self.weights3d)
@@ -353,7 +331,7 @@ class Test_shape_weights(Test_weighted_blend):
         coord = "forecast_reference_time"
         cube = iris.util.new_axis(self.cube, scalar_coord="time")
         cube.transpose([3, 2, 0, 1])
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         # Create an expected array which has been transposed to match
         # input cube with the extra axis added.
         expected = self.weights3d.copy()
@@ -370,7 +348,7 @@ class Test_shape_weights(Test_weighted_blend):
         a ValueError as a result."""
 
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         weights = self.weights3d.copy()
         weights.coord('longitude').rename('projection_x_coordinate')
         msg = (
@@ -384,7 +362,7 @@ class Test_shape_weights(Test_weighted_blend):
         have incompatible coordinates."""
 
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         msg = (
             "precipitation_amount is a coordinate on the weights cube but it "
             "is not found on the cube we are trying to collapse.")
@@ -403,7 +381,7 @@ class Test_percentile_weights(Test_weighted_blend):
 
         perc_cube = percentile_cube()
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         perc_coord = perc_cube.coord('percentile')
         coord_dim, = perc_cube.coord_dims(coord)
         perc_dim, = perc_cube.coord_dims(perc_coord)
@@ -426,7 +404,7 @@ class Test_percentile_weights(Test_weighted_blend):
 
         perc_cube = percentile_cube()
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         perc_coord = perc_cube.coord('percentile')
         coord_dim, = perc_cube.coord_dims(coord)
         perc_dim, = perc_cube.coord_dims(perc_coord)
@@ -445,7 +423,7 @@ class Test_percentile_weights(Test_weighted_blend):
 
         perc_cube = percentile_cube()
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         perc_coord = perc_cube.coord('percentile')
         coord_dim, = perc_cube.coord_dims(coord)
         perc_dim, = perc_cube.coord_dims(perc_coord)
@@ -468,42 +446,13 @@ class Test_non_percentile_weights(Test_weighted_blend):
         coordinate."""
 
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         result = plugin.non_percentile_weights(self.cube, None)
         blending_coord_length, = self.cube.coord(coord).shape
         expected = (np.ones(blending_coord_length) /
                     blending_coord_length).astype(np.float32)
         self.assertEqual(self.cube.shape, result.shape)
         self.assertArrayEqual(expected, result[:, 0, 0])
-
-    def test_1D_weights_3D_cube_custom_aggregator(self):
-        """Test a 1D cube of weights results in a 3D array of weights. With the
-        weighted maximum method (custom_aggregator=True) the shape will be
-        almost the same as the data cube, but the blending coordinate will have
-        been moved to the -1 position."""
-
-        coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
-        expected_shape = (2, 2, 3)
-        result = plugin.non_percentile_weights(
-            self.cube, self.weights1d, custom_aggregator=True)
-        self.assertEqual(expected_shape, result.shape)
-        self.assertArrayEqual(self.weights1d.data, result[0, 0, :])
-
-    def test_3D_weights_3D_cube_custom_aggregator(self):
-        """Test a 3D cube of weights results in a 3D array of weights. With the
-        weighted maximum method (custom_aggregator=True) the shape will be
-        almost the same as the data cube, but the blending coordinate will have
-        been moved to the -1 position."""
-
-        coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
-        expected_shape = (2, 2, 3)
-        expected_weights = np.moveaxis(self.weights3d.data, 0, -1)
-        result = plugin.non_percentile_weights(
-            self.cube, self.weights3d, custom_aggregator=True)
-        self.assertEqual(expected_shape, result.shape)
-        self.assertArrayEqual(expected_weights, result)
 
 
 class Test_check_weights(Test_weighted_blend):
@@ -516,7 +465,7 @@ class Test_check_weights(Test_weighted_blend):
         dimension, no exception is raised."""
 
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         plugin.check_weights(self.weights3d.data, 0)
 
     def test_weights_do_not_sum_to_1_error(self):
@@ -525,7 +474,7 @@ class Test_check_weights(Test_weighted_blend):
         dimension, an error is raised."""
 
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         weights = self.weights3d.data
         weights[0, 0, 1] = 1.
         msg = 'Weights do not sum to 1 over the blending coordinate.'
@@ -544,7 +493,7 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
 
         perc_cube = percentile_cube()
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         perc_coord = perc_cube.coord('percentile')
         result = plugin.percentile_weighted_mean(perc_cube, self.weights1d,
                                                  perc_coord)
@@ -562,7 +511,7 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
 
         perc_cube = percentile_cube()
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         perc_coord = perc_cube.coord('percentile')
         result = plugin.percentile_weighted_mean(perc_cube, self.weights3d,
                                                  perc_coord)
@@ -578,7 +527,7 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
 
         perc_cube = percentile_cube()
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         perc_coord = perc_cube.coord('percentile')
         result = plugin.percentile_weighted_mean(perc_cube, None,
                                                  perc_coord)
@@ -594,7 +543,7 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
         importantly, the result should be the same regardless of on which
         side of the collapsing coordinate the percentile coordinate falls."""
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         weights = None
         percentile_leading = percentile_cube()
         time_leading = percentile_cube()
@@ -622,7 +571,7 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
         array is of a different shape, but the data is the same. We reorder
         the expected values to confirm this."""
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         weights = None
         longitude_leading = percentile_cube()
         longitude_leading.transpose([3, 0, 1, 2])
@@ -646,7 +595,7 @@ class Test_weighted_mean(Test_weighted_blend):
         """Test function when a data cube and a weights cube are provided."""
 
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         result = plugin.weighted_mean(self.cube, self.weights1d)
         expected = np.full((2, 2), 1.5)
 
@@ -662,7 +611,7 @@ class Test_weighted_mean(Test_weighted_blend):
         coordinate."""
 
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         result = plugin.weighted_mean(self.cube, self.weights3d)
         expected = np.array([[2.7, 2.1], [2.4, 1.8]])
 
@@ -676,57 +625,9 @@ class Test_weighted_mean(Test_weighted_blend):
         which should result in equal weightings."""
 
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         result = plugin.weighted_mean(self.cube, None)
         expected = np.full((2, 2), 2.)
-
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, expected)
-
-
-class Test_weighted_maximum(Test_weighted_blend):
-
-    """Test the weighted_maximum function."""
-
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_with_weights(self):
-        """Test function when a data cube and a weights cube are provided."""
-
-        coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_maximum')
-        result = plugin.weighted_maximum(self.cube, self.weights1d)
-        expected = np.full((2, 2), 0.6)
-
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, expected)
-
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_with_spatially_varying_weights(self):
-        """Test function when a data cube and a multi dimensional weights cube
-        are provided. This tests spatially varying weights, where each x-y
-        position is weighted differently in each slice along the blending
-        coordinate."""
-
-        coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_maximum')
-        result = plugin.weighted_maximum(self.cube, self.weights3d)
-        expected = np.array([[2.4, 1.2], [1.8, 0.8]])
-
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, expected)
-
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_without_weights(self):
-        """Test function when a data cube is provided, but no weights cube
-        which should result in equal weightings."""
-
-        coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_maximum')
-        result = plugin.weighted_maximum(self.cube, None)
-        expected = np.full((2, 2), 1.)
 
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
@@ -742,7 +643,7 @@ class Test_process(Test_weighted_blend):
         """Test that the plugin returns an iris.cube.Cube with metadata that
         matches the input cube where appropriate."""
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         result = plugin.process(self.cube)
 
         # conform metadata means the output FRT and forecast period are the
@@ -768,7 +669,7 @@ class Test_process(Test_weighted_blend):
         to the result cube."""
 
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         self.cube.attributes.pop('title')
         expected = "IMPROVER Model Forecast"
         result = plugin.process(self.cube)
@@ -800,8 +701,8 @@ class Test_process(Test_weighted_blend):
         cubes = iris.cube.CubeList([cube1, cube2])
         cube = merge_cubes(cubes)
 
-        plugin = WeightedBlendAcrossWholeDimension(coord_name, 'weighted_mean',
-                                                   cycletime='20151118T0900Z')
+        plugin = WeightedBlendAcrossWholeDimension(
+            coord_name, cycletime='20151118T0900Z')
         expected_frt = 1447837200
         expected_forecast_period = 61200
         result = plugin.process(cube)
@@ -817,7 +718,7 @@ class Test_process(Test_weighted_blend):
         """Test it raises CoordinateNotFoundError if the blending coord is not
         found in the cube."""
         coord = "notset"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         msg = ('Coordinate to be collapsed not found in cube.')
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             plugin.process(self.cube)
@@ -827,7 +728,7 @@ class Test_process(Test_weighted_blend):
         found in the weights cube."""
         coord = "forecast_reference_time"
         self.weights1d.remove_coord("forecast_reference_time")
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         msg = ('Coordinate to be collapsed not found in weights cube.')
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             plugin.process(self.cube, self.weights1d)
@@ -835,7 +736,7 @@ class Test_process(Test_weighted_blend):
     def test_fails_input_not_a_cube(self):
         """Test it raises a Type Error if not supplied with a cube."""
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         notacube = 0.0
         msg = ('The first argument must be an instance of iris.cube.Cube')
         with self.assertRaisesRegex(TypeError, msg):
@@ -846,7 +747,7 @@ class Test_process(Test_weighted_blend):
         coordinate."""
 
         coord = "dummy_scalar_coord"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         weights = ([1.0])
         msg = 'has no associated dimension'
         with self.assertRaisesRegex(ValueError, msg):
@@ -859,32 +760,10 @@ class Test_process(Test_weighted_blend):
         dimension when the blending is over a different coordinate. Note that
         this test is in process to include the slicing."""
         coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_mean')
+        plugin = WeightedBlendAcrossWholeDimension(coord)
         result = plugin.process(self.cube_threshold, self.weights1d)
         expected_result_array = np.ones((2, 2, 2))*0.3
         expected_result_array[1, :, :] = 0.5
-
-        expected_frt = int(
-            self.cube.coord('forecast_reference_time').points[-1])
-        expected_forecast_period = int(
-            self.cube.coord('forecast_period').points[-1])
-
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-        self.assertEqual(result.attributes, self.attributes)
-        self.assertEqual(result.coord('time').points, expected_frt)
-        self.assertEqual(result.coord('forecast_period').points,
-                         expected_forecast_period)
-
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def tests_threshold_cube_with_weights_weighted_maximum(self):
-        """Test weighted_maximum works collapsing a cube with a threshold
-        dimension when the blending is over a different coordinate."""
-        coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord, 'weighted_maximum')
-        result = plugin.process(self.cube_threshold, self.weights1d)
-        expected_result_array = np.ones((2, 2, 2))*0.12
-        expected_result_array[1, :, :] = 0.24
 
         expected_frt = int(
             self.cube.coord('forecast_reference_time').points[-1])

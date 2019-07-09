@@ -489,83 +489,18 @@ class PercentileBlendingAggregator:
         return new_combined_perc
 
 
-class MaxProbabilityAggregator:
-    """Class for the Aggregator used to calculate the maximum weighted
-       probability.
-
-       1. Find the weighted probabilities for each point in the dimension of
-          interest by multiplying each probability by the corresponding weight.
-       2. Find the maximum weighted probability and return the array with one
-          less dimension than the input array.
-    """
-
-    def __init__(self):
-        """
-        Initialise class.
-        """
-        pass
-
-    def __repr__(self):
-        """Represent the configured plugin instance as a string."""
-        result = ('<MaxProbabilityAggregator>')
-        return result
-
-    @staticmethod
-    def aggregate(data, axis, arr_weights):
-        """ Max probability aggregator method. Used to find the maximum
-            weighted probability along a given axis.
-
-        Args:
-            data (np.array):
-                Array containing the data to blend
-            axis (int):
-                The index of the coordinate dimension in the cube. This
-                dimension will be aggregated over.
-            arr_weights (np.array):
-                Array of weights, same size as the axis dimension of data.
-        Returns:
-            result (np.array):
-                The data collapsed along the axis dimension, containing the
-                maximum weighted probability.
-        """
-        # Iris aggregators support indexing from the end of the array.
-        if axis < 0:
-            axis += data.ndim
-
-        # Maintain old functionality, though weights passed in through the
-        # weighted blending plugin should always match.
-        if arr_weights.shape != data.shape:
-            # Reshape the weights to match the shape of the data.
-            shape = [len(arr_weights) if i == axis else 1
-                     for i in range(data.ndim)]
-            arr_weights = arr_weights.reshape(tuple(shape))
-
-        # Calculate the weighted probabilities
-        weighted_probs = data*arr_weights
-        # Find the maximum along the axis of interest
-        result = np.max(weighted_probs, axis=axis)
-        return result
-
-
 class WeightedBlendAcrossWholeDimension:
     """Apply a Weighted blend to a cube, collapsing across the whole
        dimension. Uses one of two methods, either weighted average, or
        the maximum of the weighted probabilities."""
 
-    def __init__(self, coord, weighting_mode, cycletime=None,
-                 timeblending=False):
+    def __init__(self, coord, cycletime=None, timeblending=False):
         """Set up for a Weighted Blending plugin
 
         Args:
             coord (string):
                 The name of the coordinate dimension over which the cube will
                 be blended.
-            weighting_mode (string):
-                One of 'weighted_maximum' or 'weighted_mean':
-                 - Weighted mean: a normal weighted average over the coordinate
-                   of interest.
-                 - Weighted_maximum: the points in the coordinate of interest
-                   are multiplied by the weights and then the maximum is taken.
 
         Keyword Args:
             cycletime (str):
@@ -579,28 +514,21 @@ class WeightedBlendAcrossWholeDimension:
 
         Raises:
             ValueError: If the blend coordinate is "threshold".
-            ValueError: If an invalid weighting_mode is given.
         """
         if coord == "threshold":
             msg = "Blending over thresholds is not supported"
             raise ValueError(msg)
 
         self.coord = coord
-        if weighting_mode not in ['weighted_maximum', 'weighted_mean']:
-            msg = ("weighting_mode: {} is not recognised, must be either "
-                   "weighted_maximum or weighted_mean").format(weighting_mode)
-            raise ValueError(msg)
-        self.mode = weighting_mode
         self.cycletime = cycletime
         self.timeblending = timeblending
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        description = ('<WeightedBlendAcrossWholeDimension:'
-                       ' coord = {0:}, weighting_mode = {1:},'
-                       ' cycletime = {2:}, timeblending: {3:}>')
-        return description.format(self.coord, self.mode, self.cycletime,
-                                  self.timeblending)
+        description = ('<WeightedBlendAcrossWholeDimension: coord = {0:},'
+                       ' cycletime = {1:}, timeblending: {2:}>')
+        return description.format(
+            self.coord, self.cycletime, self.timeblending)
 
     def check_percentile_coord(self, cube):
         """
@@ -619,8 +547,6 @@ class WeightedBlendAcrossWholeDimension:
                 dimension coord in the cube.
             ValueError : If there is a percentile dimension with only one
                 point, we need at least two points in order to do the blending.
-            ValueError : If there is a percentile dimension on the cube and the
-                mode for blending is 'weighted_maximum'
         """
         try:
             perc_coord = find_percentile_coordinate(cube)
@@ -635,13 +561,6 @@ class WeightedBlendAcrossWholeDimension:
                 msg = ('Percentile coordinate does not have enough points'
                        ' in order to blend. Must have at least 2 percentiles.')
                 raise ValueError(msg)
-            # If we have a percentile dimension and the mode is 'max' raise an
-            # exception.
-            if perc_coord and self.mode == 'weighted_maximum':
-                msg = ('The "weighted_maximum" mode is not supported for '
-                       'percentile data.')
-                raise ValueError(msg)
-
             return perc_coord
         except CoordinateNotFoundError:
             return None
@@ -751,22 +670,12 @@ class WeightedBlendAcrossWholeDimension:
         if not (np.isclose(sum_of_non_zero_weights, 1)).all():
             raise ValueError(msg)
 
-    def non_percentile_weights(self, cube, weights, custom_aggregator=False):
+    def non_percentile_weights(self, cube, weights):
         """
         Given a 1 or multidimensional cube of weights, reshape and broadcast
         these in such a way as to make them applicable to the data cube. If no
         weights are provided, an array of weights is returned that equally
         weights all slices across the blending coordinate of the cube.
-
-        The output of this function is different depending upon the method
-        being used to blend the data.
-
-        weighted_mean:
-            reshape and broadcast to match data shape.
-        weighted_maximum:
-            reshape and broadcast to match data shape, before reordering in
-            anticipation of the blending coord being shifted to the -1 position
-            by the custom aggregator.
 
         Args:
             cube (iris.cube.Cube):
@@ -785,15 +694,8 @@ class WeightedBlendAcrossWholeDimension:
                 np.broadcast_to(1./number_of_fields, cube.shape).astype(
                     np.float32))
 
-        # Our custom aggregator moves the blending coordinate to the -1
-        # index, so we need to reshape the weights to match.
-        if custom_aggregator:
-            coord_dim = cube.coord_dims(self.coord)
-            weights_array = np.moveaxis(weights_array, coord_dim, -1)
-            self.check_weights(weights_array, -1)
-        else:
-            blend_dim, = cube.coord_dims(self.coord)
-            self.check_weights(weights_array, blend_dim)
+        blend_dim, = cube.coord_dims(self.coord)
+        self.check_weights(weights_array, blend_dim)
 
         return weights_array.astype(np.float32)
 
@@ -933,35 +835,6 @@ class WeightedBlendAcrossWholeDimension:
 
         return cube_new
 
-    def weighted_maximum(self, cube, weights):
-        """
-        Blend data using a weighted maximum using the weights provided.
-        This entails scaling the data by the weights before then taking
-        a maximum across the blending coordinate self.coord.
-
-        Args:
-            cube (iris.cube.Cube):
-                The cube which is being blended over self.coord.
-            weights (iris.cube.Cube):
-                Cube of blending weights.
-        Returns:
-            cube_new (iris.cube.Cube):
-                The cube with values blended over self.coord, with suitable
-                weightings applied.
-        """
-
-        weights_array = self.non_percentile_weights(cube, weights,
-                                                    custom_aggregator=True)
-        # Set up aggregator
-        MAX_PROBABILITY = (Aggregator(
-            'maximum',  # Use CF-compliant cell method.
-            MaxProbabilityAggregator.aggregate))
-
-        cube_new = cube.collapsed(self.coord, MAX_PROBABILITY,
-                                  arr_weights=weights_array)
-        cube_new.data = cube_new.data.astype(np.float32)
-        return cube_new
-
     def process(self, cube, weights=None):
         """Calculate weighted blend across the chosen coord, for either
            probabilistic or percentile data. If there is a percentile
@@ -1018,15 +891,11 @@ class WeightedBlendAcrossWholeDimension:
         perc_coord = self.check_percentile_coord(cube)
 
         # Percentile aggregator
-        if perc_coord and self.mode == "weighted_mean":
+        if perc_coord:
             cube_new = self.percentile_weighted_mean(cube, weights, perc_coord)
         # Weighted mean
-        elif self.mode == "weighted_mean":
+        else:
             cube_new = self.weighted_mean(cube, weights)
-
-        # Maximum probability aggregator.
-        elif self.mode == "weighted_maximum":
-            cube_new = self.weighted_maximum(cube, weights)
 
         # Modify the cube metadata and add to the cubelist.
         result = conform_metadata(
