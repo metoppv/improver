@@ -37,7 +37,7 @@ import warnings
 import numpy as np
 
 import iris
-from improver.cube_combiner import CubeCombiner
+from improver.utilities.cube_manipulation import expand_bounds
 from improver.utilities.cube_units import (enforce_coordinate_units_and_dtypes,
                                            enforce_diagnostic_units_and_dtypes)
 
@@ -194,11 +194,12 @@ class Accumulation:
             for cube in cube_subset[0:-1]:
                 accumulation += cube.data * time_interval
 
-            # Use CubeCombiner to expand coordinate bounds.
             cube_name = 'lwe_thickness_of_precipitation_amount'
-            accumulation_cube = CubeCombiner('add').process(
-                iris.cube.CubeList(cube_subset), cube_name,
-                expanded_coord={'time': 'upper', 'forecast_period': 'upper'})
+            accumulation_cube = expand_bounds(
+                cube_subset[0],
+                iris.cube.CubeList(cube_subset),
+                expanded_coords={'time': 'upper', 'forecast_period': 'upper'})
+            accumulation_cube.rename(cube_name)
             accumulation_cube.units = 'm'
 
             # Calculate new data and insert into cube.
