@@ -155,7 +155,7 @@ class Test_combine(set_up_cubes):
 
     def test_mean(self):
         """Test that the function adds the cubes correctly for mean."""
-        operation = '+'
+        operation = 'mean'
         plugin = CubeCombiner(operation)
         result = plugin.combine(self.cube1, self.cube2)
         expected_data = np.full((1, 2, 2), 1.1, dtype=np.float32)
