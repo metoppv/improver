@@ -49,9 +49,8 @@ def main(argv=None):
         description='Use the TriangularWeightedBlendAcrossAdjacentPoints to '
                     'blend across a particular coordinate. It does not '
                     'collapse the coordinate, but instead blends across '
-                    'adjacent points and puts the blending values back in the '
-                    'original coordinate. Two different types of blending are '
-                    'possible, weighted_mean and weighted_maximum')
+                    'adjacent points and puts the blended values back in the '
+                    'original coordinate, with adjusted bounds.')
     parser.add_argument('coordinate', type=str,
                         metavar='COORDINATE_TO_BLEND_OVER',
                         help='The coordinate over which the blending '

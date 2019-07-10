@@ -44,9 +44,8 @@ usage: improver blend-adjacent-points [-h] [--profile]
 
 Use the TriangularWeightedBlendAcrossAdjacentPoints to blend across a
 particular coordinate. It does not collapse the coordinate, but instead blends
-across adjacent points and puts the blending values back in the original
-coordinate. Two different types of blending are possible, weighted_mean and
-weighted_maximum
+across adjacent points and puts the blended values back in the original
+coordinate, with adjusted bounds.
 
 positional arguments:
   COORDINATE_TO_BLEND_OVER
