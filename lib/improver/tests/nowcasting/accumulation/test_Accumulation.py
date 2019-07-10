@@ -232,7 +232,8 @@ class Test_process(rate_cube_set_up):
 
         # Multiply the rates in mm/s by 60 to get accumulation over 1 minute
         # and divide by 1000 to get into metres.
-        expected = self.cubes[0].copy(data=self.cubes[0].data * 60 / 1000)
+        expected = self.cubes[0].copy(
+            data=(0.5 * (self.cubes[0].data + self.cubes[1].data) * 60 / 1000))
 
         plugin = Accumulation(accumulation_period=60)
         result = plugin.process(self.cubes)
@@ -245,7 +246,8 @@ class Test_process(rate_cube_set_up):
         they are explicitly set. Here the units are set to mm."""
 
         # Multiply the rates in mm/s by 60 to get accumulation over 1 minute
-        expected = self.cubes[0].copy(data=self.cubes[0].data * 60)
+        expected = self.cubes[0].copy(
+            data=(0.5 * (self.cubes[0].data + self.cubes[1].data) * 60))
 
         plugin = Accumulation(accumulation_units='mm', accumulation_period=60)
         result = plugin.process(self.cubes)
@@ -286,43 +288,38 @@ class Test_process(rate_cube_set_up):
         aggregation period. These are written out long hand to make the
         comparison easy."""
 
-        expected_1st_row_t0 = np.array([
-            0.03, 0.06, 0.09, 0.12, 0.15, 0.21, 0.27, 0.33, 0.39, 0.45])
-        expected_2nd_row_t0 = np.array([
-            0.03, 0.06, 0.09, 0.12, 0.15,
-            np.inf, np.inf, np.inf, np.inf, np.inf])
-        expected_3rd_row_t0 = np.array([
-            0., 0., 0., 0., 0., np.inf, np.inf, np.inf, np.inf, np.inf])
-        expected_4th_row_t0 = np.array([
-            0., 0., 0., 0., 0., 0.09, 0.18, 0.27, 0.36, 0.45])
+        expected_t0 = np.array([
+            [0.015, 0.045, 0.075, 0.105, 0.135, 0.18, 0.24, 0.3, 0.36, 0.42],
+            [0.015, 0.045, 0.075, 0.105, 0.135,
+             np.inf, np.inf, np.inf, np.inf, np.inf],
+            [0., 0., 0., 0., 0., np.inf, np.inf, np.inf, np.inf, np.inf],
+            [0., 0., 0., 0., 0., 0.045, 0.135, 0.225, 0.315, 0.405]])
 
-        expected_1st_row_t1 = np.array([
-            0., 0., 0., 0., 0., 0.03, 0.06, 0.09, 0.12, 0.15])
-        expected_2nd_row_t1 = np.array([
-            0., 0., 0., 0., 0., 0.03, 0.06, 0.09, 0.12, 0.15])
-        expected_3rd_row_t1 = np.zeros((10))
-        expected_4th_row_t1 = np.zeros((10))
+        expected_t1 = np.array([
+            [0., 0., 0., 0., 0., 0.015, 0.045, 0.075, 0.105, 0.135],
+            [0., 0., 0., 0., 0., 0.015, 0.045, 0.075, 0.105, 0.135],
+            [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]])
+
+        expected_mask_t0 = np.array([
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
+
+        expected_mask_t1 = np.array([
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
 
         plugin = Accumulation(accumulation_period=300, accumulation_units='mm')
         result = plugin.process(self.cubes)
 
-        self.assertArrayAlmostEqual(result[0].data[0, :],
-                                    expected_1st_row_t0)
-        self.assertArrayAlmostEqual(result[0].data[1, :],
-                                    expected_2nd_row_t0)
-        self.assertArrayAlmostEqual(result[0].data[2, :],
-                                    expected_3rd_row_t0)
-        self.assertArrayAlmostEqual(result[0].data[3, :],
-                                    expected_4th_row_t0)
-
-        self.assertArrayAlmostEqual(result[1].data[0, :],
-                                    expected_1st_row_t1)
-        self.assertArrayAlmostEqual(result[1].data[1, :],
-                                    expected_2nd_row_t1)
-        self.assertArrayAlmostEqual(result[1].data[2, :],
-                                    expected_3rd_row_t1)
-        self.assertArrayAlmostEqual(result[1].data[3, :],
-                                    expected_4th_row_t1)
+        self.assertArrayAlmostEqual(result[0].data, expected_t0)
+        self.assertArrayAlmostEqual(result[1].data, expected_t1)
+        self.assertArrayAlmostEqual(result[0].data.mask, expected_mask_t0)
+        self.assertArrayAlmostEqual(result[1].data.mask, expected_mask_t1)
 
     def test_returns_expected_values_10_minutes(self):
         """Test function returns the expected accumulations over the complete
@@ -332,27 +329,27 @@ class Test_process(rate_cube_set_up):
         5 minutes of the accumulation, all the other results are the same as
         for the 5 minute test above."""
 
-        expected_1st_row = np.array([
-            0.03, 0.06, 0.09, 0.12, 0.15, 0.24, 0.33, 0.42, 0.51, 0.6])
-        expected_2nd_row = np.array([
-            0.03, 0.06, 0.09, 0.12, 0.15,
-            np.inf, np.inf, np.inf, np.inf, np.inf])
-        expected_3rd_row = np.array([
-            0., 0., 0., 0., 0., np.inf, np.inf, np.inf, np.inf, np.inf])
-        expected_4th_row = np.array([
-            0., 0., 0., 0., 0., 0.09, 0.18, 0.27, 0.36, 0.45])
+        expected_t0 = np.array([
+            [0.015, 0.045, 0.075, 0.105, 0.135,
+             0.195, 0.285, 0.375, 0.465, 0.555],
+            [0.015, 0.045, 0.075, 0.105, 0.135,
+             np.inf, np.inf, np.inf, np.inf, np.inf],
+            [0., 0., 0., 0., 0.,
+             np.inf, np.inf, np.inf, np.inf, np.inf],
+            [0., 0., 0., 0., 0.,
+             0.045, 0.135, 0.225, 0.315, 0.405]])
+
+        expected_mask_t0 = np.array([
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
 
         plugin = Accumulation(accumulation_period=600, accumulation_units='mm')
         result = plugin.process(self.cubes)
 
-        self.assertArrayAlmostEqual(result[0].data[0, :],
-                                    expected_1st_row)
-        self.assertArrayAlmostEqual(result[0].data[1, :],
-                                    expected_2nd_row)
-        self.assertArrayAlmostEqual(result[0].data[2, :],
-                                    expected_3rd_row)
-        self.assertArrayAlmostEqual(result[0].data[3, :],
-                                    expected_4th_row)
+        self.assertArrayAlmostEqual(result[0].data, expected_t0)
+        self.assertArrayAlmostEqual(result[0].data.mask, expected_mask_t0)
 
     def test_returns_total_accumulation_if_no_period_specified(self):
         """Test function returns a list containing a single accumulation cube
@@ -360,53 +357,64 @@ class Test_process(rate_cube_set_up):
         cubes. The results are the same as the 10 minute test above as that is
         the total span of the input rates cubes."""
 
-        expected_1st_row = np.array([
-            0.03, 0.06, 0.09, 0.12, 0.15, 0.24, 0.33, 0.42, 0.51, 0.6])
-        expected_2nd_row = np.array([
-            0.03, 0.06, 0.09, 0.12, 0.15,
-            np.inf, np.inf, np.inf, np.inf, np.inf])
-        expected_3rd_row = np.array([
-            0., 0., 0., 0., 0., np.inf, np.inf, np.inf, np.inf, np.inf])
-        expected_4th_row = np.array([
-            0., 0., 0., 0., 0., 0.09, 0.18, 0.27, 0.36, 0.45])
+        expected_t0 = np.array([
+            [0.015, 0.045, 0.075, 0.105, 0.135,
+             0.195, 0.285, 0.375, 0.465, 0.555],
+            [0.015, 0.045, 0.075, 0.105, 0.135,
+             np.inf, np.inf, np.inf, np.inf, np.inf],
+            [0., 0., 0., 0., 0.,
+             np.inf, np.inf, np.inf, np.inf, np.inf],
+            [0., 0., 0., 0., 0.,
+             0.045, 0.135, 0.225, 0.315, 0.405]])
+
+        expected_mask_t0 = np.array([
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
 
         plugin = Accumulation(accumulation_units='mm')
         result = plugin.process(self.cubes)
 
-        self.assertArrayAlmostEqual(result[0].data[0, :],
-                                    expected_1st_row)
-        self.assertArrayAlmostEqual(result[0].data[1, :],
-                                    expected_2nd_row)
-        self.assertArrayAlmostEqual(result[0].data[2, :],
-                                    expected_3rd_row)
-        self.assertArrayAlmostEqual(result[0].data[3, :],
-                                    expected_4th_row)
+        self.assertArrayAlmostEqual(result[0].data, expected_t0)
+        self.assertArrayAlmostEqual(result[0].data.mask, expected_mask_t0)
 
     def test_returns_expected_values_1_minute(self):
         """Test function returns the expected accumulations over a 1 minute
         aggregation period. In this case there is no aggregation, so the input
         cube should be returned as the output cube."""
 
-        expected_1st_row_t0 = np.array([
-            0.03, 0.03, 0.03, 0.03, 0.03, 0.09, 0.09, 0.09, 0.09, 0.09])
-        expected_2nd_row_t0 = np.array([
-            0.03, 0.03, 0.03, 0.03, 0.03, np.inf, 0.09, 0.09, 0.09, 0.09])
-        expected_3rd_row_t0 = np.array([
-            0., 0., 0., 0., 0., np.inf, 0.09, 0.09, 0.09, 0.09])
-        expected_4th_row_t0 = np.array([
-            0., 0., 0., 0., 0., 0.09, 0.09, 0.09, 0.09, 0.09])
+        expected_t0 = np.array([
+            [0.015, 0.03, 0.03, 0.03, 0.03, 0.06, 0.09, 0.09, 0.09, 0.09],
+            [0.015, 0.03, 0.03, 0.03, 0.03, np.inf, np.inf, 0.09, 0.09, 0.09],
+            [0., 0., 0., 0., 0., np.inf, np.inf, 0.09, 0.09, 0.09],
+            [0., 0., 0., 0., 0., 0.045, 0.09, 0.09, 0.09, 0.09]])
+
+        expected_t7 = np.array([
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.015, 0.03, 0.03],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.015, 0.03, 0.03],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
+
+        expected_mask_t0 = np.array([
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
+
+        expected_mask_t7 = np.array([
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
 
         plugin = Accumulation(accumulation_period=60, accumulation_units='mm')
         result = plugin.process(self.cubes)
 
-        self.assertArrayAlmostEqual(result[0].data[0, :],
-                                    expected_1st_row_t0)
-        self.assertArrayAlmostEqual(result[0].data[1, :],
-                                    expected_2nd_row_t0)
-        self.assertArrayAlmostEqual(result[0].data[2, :],
-                                    expected_3rd_row_t0)
-        self.assertArrayAlmostEqual(result[0].data[3, :],
-                                    expected_4th_row_t0)
+        self.assertArrayAlmostEqual(result[0].data, expected_t0)
+        self.assertArrayAlmostEqual(result[7].data, expected_t7)
+        self.assertArrayAlmostEqual(result[0].data.mask, expected_mask_t0)
+        self.assertArrayAlmostEqual(result[7].data.mask, expected_mask_t7)
 
 
 if __name__ == '__main__':

@@ -191,8 +191,12 @@ class Accumulation:
                 continue
 
             accumulation = 0.
-            for cube in cube_subset[0:-1]:
-                accumulation += cube.data * time_interval
+            # Accumulations are calculated using the mean precipitation rate
+            # calculated from the rates cubes that bookend the desired period.
+            iterator = zip(cube_subset[0:-1], cube_subset[1:])
+            for start_cube, end_cube in iterator:
+                accumulation += ((start_cube.data + end_cube.data) *
+                                 time_interval * 0.5)
 
             cube_name = 'lwe_thickness_of_precipitation_amount'
             accumulation_cube = expand_bounds(
