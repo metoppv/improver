@@ -230,6 +230,10 @@ class OpticalFlow(object):
         1 and 2.  The final boxes in the list will be smaller if the size of
         the data field is not an exact multiple of "boxsize".
 
+        The weights returned from this function are calculated in an equivalent
+        way to equation 8 in Bowler et al 2004, using a value for w of
+        0.8mm/h.
+
         Args:
             field (np.ndarray):
                 Input field (partial derivative)
@@ -242,6 +246,11 @@ class OpticalFlow(object):
                 **weights** (np.ndarray):
                     1D numpy array containing weights values associated with
                     each listed box.
+
+        References:
+            Bowler, N., Pierce, C. and Seed, A. 2004: Development of a
+            precipitation nowcasting algorithm based upon optical flow
+            techniques. Journal of Hydrology, 288, 74-91.
         """
         boxes = []
         weights = []
@@ -319,6 +328,9 @@ class OpticalFlow(object):
         Smoothing method using a square ('box') or circular kernel.  Kernel
         smoothing with a radius of 1 has no effect.
 
+        Smoothing with the "box" argument is equivalent to the method
+        in equation 7 in Bowler et al. 2004.
+
         Args:
             field (np.ndarray):
                 Input field to be smoothed
@@ -330,6 +342,11 @@ class OpticalFlow(object):
         Returns:
             smoothed_field (np.ndarray):
                 Smoothed data on input-shaped grid
+
+        References:
+            Bowler, N., Pierce, C. and Seed, A. 2004: Development of a
+            precipitation nowcasting algorithm based upon optical flow
+            techniques. Journal of Hydrology, 288, 74-91.
         """
         if method == 'kernel':
             kernel = self.makekernel(radius)
@@ -437,9 +454,10 @@ class OpticalFlow(object):
     def solve_for_uv(deriv_xy, deriv_t):
         """
         Solve the system of linear simultaneous equations for u and v using
-        matrix inversion (equation 19 in STEPS document).  This is frequently
-        singular, eg in the presence of too many zeroes.  In these cases,
-        the function returns displacements of 0.
+        matrix inversion (equation 19 in STEPS investigation summary document
+        by Martina M. Friedrich 2017 (available internally at the Met Office)).
+        This is frequently singular, eg in the presence of too many zeroes.
+        In these cases, the function returns displacements of 0.
 
         Args:
             deriv_xy (np.ndarray):
@@ -451,6 +469,10 @@ class OpticalFlow(object):
         Returns:
             velocity (np.ndarray):
                 2-column matrix (u, v) containing scalar displacement values
+
+        References:
+            Friedrich, Martina M. 2017: STEPS investigation summary. Internal
+            Met Office Document.
         """
         deriv_t = deriv_t.reshape([deriv_t.size, 1])
         m_to_invert = (deriv_xy.transpose()).dot(deriv_xy)
