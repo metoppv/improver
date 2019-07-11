@@ -158,11 +158,8 @@ def save_netcdf(cubelist, filename):
 
     chunksizes = None
     if cube.ndim >= 2:
-        xy_chunksizes = [
-            min([128, cube.shape[-2]]),
-            min([128, cube.shape[-1]])
-        ]
+        xy_chunksizes = [cube.shape[-2], cube.shape[-1]]
         chunksizes = tuple([1] * (cube.ndim - 2) + xy_chunksizes)
     iris.fileformats.netcdf.save(cubelist, filename, local_keys=local_keys,
-                                 complevel=1, shuffle=True, zlib=True,
+                                 complevel=1, shuffle=False, zlib=True,
                                  chunksizes=chunksizes)
