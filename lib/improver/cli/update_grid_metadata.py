@@ -65,11 +65,11 @@ def main(argv=None):
     cube = load_cube(args.input_filepath)
     cube_changed = update_stage_v110_metadata(cube)
 
-    # Create normalised file paths to make them comparable
-    in_file_norm = os.path.normpath(args.input_filepath)
-    out_file_norm = os.path.normpath(args.output_filepath)
-    if args.output_filepath and cube_changed:
-        if in_file_norm == out_file_norm:
+    if args.output_filepath:
+        # Create normalised file paths to make them comparable
+        in_file_norm = os.path.normpath(str(args.input_filepath))
+        out_file_norm = os.path.normpath(args.output_filepath)
+        if in_file_norm == out_file_norm and cube_changed:
             # Ensure no lazy data if writing back to the same file.
             cube.data
         save_netcdf(cube, args.output_filepath)
