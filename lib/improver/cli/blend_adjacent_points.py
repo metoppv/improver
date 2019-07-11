@@ -49,9 +49,8 @@ def main(argv=None):
         description='Use the TriangularWeightedBlendAcrossAdjacentPoints to '
                     'blend across a particular coordinate. It does not '
                     'collapse the coordinate, but instead blends across '
-                    'adjacent points and puts the blending values back in the '
-                    'original coordinate. Two different types of blending are '
-                    'possible, weighted_mean and weighted_maximum')
+                    'adjacent points and puts the blended values back in the '
+                    'original coordinate, with adjusted bounds.')
     parser.add_argument('coordinate', type=str,
                         metavar='COORDINATE_TO_BLEND_OVER',
                         help='The coordinate over which the blending '
@@ -82,13 +81,10 @@ def main(argv=None):
                         'dimension: ie when all files provided are from the '
                         'same forecast cycle.')
     parser.add_argument('weighting_mode', metavar='WEIGHTED_BLEND_MODE',
-                        choices=['weighted_mean', 'weighted_maximum'],
+                        choices=['weighted_mean'],
                         help='The method used in the weighted blend. '
                              '"weighted_mean": calculate a normal weighted'
-                             ' mean across the coordinate. '
-                             '"weighted_maximum": multiplies the values in the'
-                             ' coordinate by the weights, and then takes the'
-                             ' maximum.')
+                             ' mean across the coordinate.')
     parser.add_argument('input_filepaths', metavar='INPUT_FILES', nargs="+",
                         help='Paths to input NetCDF files including and '
                              'surrounding the central_point.')
@@ -124,8 +120,7 @@ def main(argv=None):
         cube = MergeCubes().process(cubelist)
 
     BlendingPlugin = TriangularWeightedBlendAcrossAdjacentPoints(
-        args.coordinate, args.central_point, units, args.width,
-        args.weighting_mode)
+        args.coordinate, args.central_point, units, args.width)
     result = BlendingPlugin.process(cube)
     save_netcdf(result, args.output_filepath)
 

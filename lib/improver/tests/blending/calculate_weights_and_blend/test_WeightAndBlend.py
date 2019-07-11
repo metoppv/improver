@@ -289,22 +289,6 @@ class Test_process(IrisTest):
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate"])
-    def test_weighted_maximum(self):
-        """Test maximum weighting mode returns maximum of input data"""
-        # This is wrong: returns HALF of the higher probability values!
-        # Blending plugin doesn't re-normalise after choosing "weighted
-        # maximum" value.  TODO find out what this option is for, correct
-        # code logic or remove if not required.
-        result = self.plugin_cycle.process(
-            [self.ukv_cube, self.ukv_cube_latest],
-            weighting_mode="weighted_maximum")
-        self.assertIsInstance(result, iris.cube.Cube)
-        # should be np.array([[[1]], [[0.6]], [[0.2]]])
-        self.assertArrayAlmostEqual(
-            result.data, np.array([[[0.5]], [[0.3]], [[0.1]]]))
-
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate"])
     def test_cycle_blend_linear(self):
         """Test plugin produces correct cycle blended output with equal
         linear weightings"""

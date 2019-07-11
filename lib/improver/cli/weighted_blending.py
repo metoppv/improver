@@ -97,13 +97,10 @@ def main(argv=None):
                              ' calculated using the'
                              ' SpatiallyVaryingWeightsFromMask plugin.')
     parser.add_argument('weighting_mode', metavar='WEIGHTED_BLEND_MODE',
-                        choices=['weighted_mean', 'weighted_maximum'],
+                        choices=['weighted_mean'],
                         help='The method used in the weighted blend. '
                              '"weighted_mean": calculate a normal weighted'
-                             ' mean across the coordinate. '
-                             '"weighted_maximum": multiplies the values in the'
-                             ' coordinate by the weights, and then takes the'
-                             ' maximum.')
+                             ' mean across the coordinate.')
 
     parser.add_argument('input_filepaths', metavar='INPUT_FILES',
                         nargs="+",
@@ -175,8 +172,7 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
-    # if the linear weights method is called with non-linear args or vice
-    # versa, exit with error
+    # reject incorrect argument combinations
     if (args.wts_calc_method == "linear") and args.cval:
         parser.wrong_args_error('cval', 'linear')
     if ((args.wts_calc_method == "nonlinear") and np.any([args.y0val,
@@ -199,7 +195,7 @@ def main(argv=None):
         weighting_coord=args.weighting_coord, wts_dict=weights_dict,
         y0val=args.y0val, ynval=args.ynval, cval=args.cval)
     result = plugin.process(
-        cubelist, weighting_mode=args.weighting_mode, cycletime=args.cycletime,
+        cubelist, cycletime=args.cycletime,
         model_id_attr=args.model_id_attr,
         spatial_weights=args.spatial_weights_from_mask,
         fuzzy_length=args.fuzzy_length)

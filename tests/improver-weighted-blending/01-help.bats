@@ -62,9 +62,7 @@ positional arguments:
                         applied.
   WEIGHTED_BLEND_MODE   The method used in the weighted blend.
                         "weighted_mean": calculate a normal weighted mean
-                        across the coordinate. "weighted_maximum": multiplies
-                        the values in the coordinate by the weights, and then
-                        takes the maximum.
+                        across the coordinate.
   INPUT_FILES           Paths to input files to be blended.
   OUTPUT_FILE           The output path for the processed NetCDF.
 

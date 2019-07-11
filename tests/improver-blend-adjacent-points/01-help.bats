@@ -44,9 +44,8 @@ usage: improver blend-adjacent-points [-h] [--profile]
 
 Use the TriangularWeightedBlendAcrossAdjacentPoints to blend across a
 particular coordinate. It does not collapse the coordinate, but instead blends
-across adjacent points and puts the blending values back in the original
-coordinate. Two different types of blending are possible, weighted_mean and
-weighted_maximum
+across adjacent points and puts the blended values back in the original
+coordinate, with adjusted bounds.
 
 positional arguments:
   COORDINATE_TO_BLEND_OVER
@@ -59,9 +58,7 @@ positional arguments:
                         blending over.
   WEIGHTED_BLEND_MODE   The method used in the weighted blend.
                         "weighted_mean": calculate a normal weighted mean
-                        across the coordinate. "weighted_maximum": multiplies
-                        the values in the coordinate by the weights, and then
-                        takes the maximum.
+                        across the coordinate.
   INPUT_FILES           Paths to input NetCDF files including and surrounding
                         the central_point.
   OUTPUT_FILE           The output path for the processed NetCDF.

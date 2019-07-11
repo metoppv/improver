@@ -46,17 +46,9 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
     input cube, with each point in the coordinate of interest having been
     blended with the adjacent points according to a triangular weighting
     function of a specified width.
-
-    There are two modes of blending:
-
-        1. Weighted mean across the dimension of interest.
-        2. Weighted maximum across the dimension of interest, where
-           probabilities are multiplied by the weights and the maximum is
-           taken.
     """
 
-    def __init__(self, coord, central_point, parameter_units, width,
-                 weighting_mode):
+    def __init__(self, coord, central_point, parameter_units, width):
         """Set up for a Weighted Blending plugin
 
         Args:
@@ -75,25 +67,11 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
             width (float):
                 The width of the triangular weighting function we will use
                 to blend.
-            weighting_mode (string):
-                The mode of blending, either weighted_mean or
-                weighted_maximum. Weighted average finds the weighted mean
-                across the dimension of interest. Maximum probability
-                multiplies the values across the dimension of interest by the
-                given weights and returns the maximum value.
-
-        Raises:
-            ValueError : If an invalid weighting_mode is given
         """
         self.coord = coord
         self.central_point = central_point
         self.parameter_units = parameter_units
         self.width = width
-        if weighting_mode not in ['weighted_maximum', 'weighted_mean']:
-            msg = ("weighting_mode: {} is not recognised, must be either "
-                   "weighted_maximum or weighted_mean").format(weighting_mode)
-            raise ValueError(msg)
-        self.mode = weighting_mode
 
         # Set up a plugin to calculate the triangular weights.
         self.WeightsPlugin = ChooseDefaultWeightsTriangular(
@@ -102,16 +80,15 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
         # Set up the blending function, based on whether weighted blending or
         # maximum probabilities are needed.
         self.BlendingPlugin = (
-            WeightedBlendAcrossWholeDimension(coord, weighting_mode,
-                                              timeblending=True))
+            WeightedBlendAcrossWholeDimension(coord, timeblending=True))
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         msg = ('<TriangularWeightedBlendAcrossAdjacentPoints:'
                ' coord = {0:s}, central_point = {1:.2f}, '
-               'parameter_units = {2:s}, width = {3:.2f}, mode = {4:s}>')
-        return msg.format(self.coord, self.central_point, self.parameter_units,
-                          self.width, self.mode)
+               'parameter_units = {2:s}, width = {3:.2f}')
+        return msg.format(
+            self.coord, self.central_point, self.parameter_units, self.width)
 
     def _find_central_point(self, cube):
         """
