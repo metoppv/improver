@@ -37,7 +37,7 @@
 
   # Run weighted blending with linear weights for two input files and check it
   # passes.
-  run improver weighted-blending 'model_configuration' 'weighted_mean' \
+  run improver weighted-blending 'model_configuration' \
       --ynval 1 --y0val 1 \
       "$IMPROVER_ACC_TEST_DIR//weighted_blending/non_mo_model/non_mo_det.nc" \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/non_mo_model/non_mo_ens.nc" \

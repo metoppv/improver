@@ -37,7 +37,7 @@
 
   # Run triangular time blending with matched time bounds and check it passes
   run improver blend-adjacent-points 'forecast_period' '4' --units 'hours' \
-      --width 2 'weighted_mean' \
+      --width 2 \
       "$IMPROVER_ACC_TEST_DIR/blend-adjacent-points/time_bounds/*wind_gust*.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]

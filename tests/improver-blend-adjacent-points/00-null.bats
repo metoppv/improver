@@ -39,8 +39,8 @@ usage: improver blend-adjacent-points [-h] [--profile]
                                       --width TRIANGLE_WIDTH
                                       [--blend_time_using_forecast_period]
                                       COORDINATE_TO_BLEND_OVER CENTRAL_POINT
-                                      WEIGHTED_BLEND_MODE INPUT_FILES
-                                      [INPUT_FILES ...] OUTPUT_FILE
+                                      INPUT_FILES [INPUT_FILES ...]
+                                      OUTPUT_FILE
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

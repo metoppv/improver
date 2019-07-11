@@ -36,7 +36,7 @@
   KGO="weighted_blending/cycletime/kgo.nc"
 
   # Run weighted blending with linear weights and check it passes.
-  run improver weighted-blending 'forecast_reference_time' 'weighted_mean' \
+  run improver weighted-blending 'forecast_reference_time' \
       --y0val 1.0 --ynval 4.0 --cycletime '20171129T0900Z'\
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/cycletime/input.nc" \
       "$TEST_DIR/output.nc"

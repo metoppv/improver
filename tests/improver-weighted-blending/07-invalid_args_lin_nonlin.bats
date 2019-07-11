@@ -33,7 +33,7 @@
 
 @test "weighted-blending linear invalid options" {
   # Run blending with linear weights calculation but nonlinear args: check it fails.
-  run improver weighted-blending 'time' 'weighted_mean' --ynval 1 --cval 0.5\
+  run improver weighted-blending 'time' --ynval 1 --cval 0.5\
       "NO_INPUT_FILE" \
       "NO_OUTPUT_FILE"
   [[ "${status}" -eq 2 ]]
@@ -50,8 +50,7 @@ usage: improver weighted-blending [-h] [--profile]
                                   [--cval NON_LINEAR_FACTOR]
                                   [--wts_dict WEIGHTS_DICTIONARY]
                                   [--weighting_coord WEIGHTING_COORD]
-                                  COORDINATE_TO_AVERAGE_OVER
-                                  WEIGHTED_BLEND_MODE INPUT_FILES
+                                  COORDINATE_TO_AVERAGE_OVER INPUT_FILES
                                   [INPUT_FILES ...] OUTPUT_FILE
 improver weighted-blending: error: Method: linear does not accept arguments: cval
 __TEXT__

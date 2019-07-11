@@ -36,7 +36,7 @@
   KGO="weighted_blending/basic_nonlin/kgo.nc"
 
   # Run weighted blending with non linear weights and check it passes.
-  run improver weighted-blending --wts_calc_method 'nonlinear' 'forecast_reference_time' 'weighted_mean'\
+  run improver weighted-blending --wts_calc_method 'nonlinear' 'forecast_reference_time' \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]

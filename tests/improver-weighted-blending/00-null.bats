@@ -45,8 +45,7 @@ usage: improver weighted-blending [-h] [--profile]
                                   [--cval NON_LINEAR_FACTOR]
                                   [--wts_dict WEIGHTS_DICTIONARY]
                                   [--weighting_coord WEIGHTING_COORD]
-                                  COORDINATE_TO_AVERAGE_OVER
-                                  WEIGHTED_BLEND_MODE INPUT_FILES
+                                  COORDINATE_TO_AVERAGE_OVER INPUT_FILES
                                   [INPUT_FILES ...] OUTPUT_FILE
 __TEXT__
   [[ "$output" =~ "$expected" ]]
