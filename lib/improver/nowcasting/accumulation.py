@@ -71,7 +71,7 @@ class Accumulation:
     def __repr__(self):
         """Represent the plugin instance as a string."""
         result = ('<Accumulation: accumulation_units={}, '
-                  'accumulation_period={}>')
+                  'accumulation_period={}s>')
         return result.format(self.accumulation_units, self.accumulation_period)
 
     @staticmethod
@@ -153,7 +153,10 @@ class Accumulation:
     def process(self, cubes):
         """
         Calculate period precipitation accumulations based upon precipitation
-        rate fields.
+        rate fields. All calculations are performed in SI units, so
+        precipitation rates are converted to "m/s" and times into seconds
+        before calculations are performed. The output units of accumulation
+        are set by the plugin keyword argument accumulation_units.
 
         Args:
             cubes (iris.cube.CubeList):

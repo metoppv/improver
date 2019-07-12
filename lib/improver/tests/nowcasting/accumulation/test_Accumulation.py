@@ -130,7 +130,7 @@ class Test__repr__(IrisTest):
         result = str(Accumulation(accumulation_units="cm",
                                   accumulation_period=60))
         expected_result = ("<Accumulation: accumulation_units=cm, "
-                           "accumulation_period=60>")
+                           "accumulation_period=60s>")
         self.assertEqual(result, expected_result)
 
 
@@ -181,6 +181,21 @@ class Test_get_period_sets(rate_cube_set_up):
         result = plugin.get_period_sets(time_interval, self.cubes)
         self.assertIsInstance(result, list)
 
+    def test_returns_expected_cubes(self, warning_list=None):
+        """Test function returns lists containing the expected cubes for each
+        period. In this test all the cubes are used as the total time span of
+        precipitation rates cubes is divisible by the requested accumulation
+        period."""
+
+        time_interval = 60
+        expected = [self.cubes[0:6], self.cubes[5:]]
+
+        plugin = Accumulation(accumulation_period=300)
+        result = plugin.get_period_sets(time_interval, self.cubes)
+
+        for index, sublist in enumerate(result):
+            self.assertSequenceEqual(sublist, expected[index])
+
     def test_returns_all_cubes_if_period_unspecified(self):
         """Test function returns a list containing the original cube list if
         the accumulation_period is not set."""
@@ -193,7 +208,11 @@ class Test_get_period_sets(rate_cube_set_up):
     @ManageWarnings(record=True)
     def test_raises_warning_for_unused_cubes(self, warning_list=None):
         """Test function raises a warning when there are insufficient cubes to
-        complete the last period."""
+        complete the last period. In this test the accumulation period is 3
+        minutes, but the total span of rates cubes covers 10 minutes, resulting
+        in 3 complete periods and a final incomplete period that is not
+        returned. This test checks that a warning is raised to highlight that
+        there is an incomplete final period that is not returned."""
 
         time_interval = 60
         warning_msg = (
@@ -230,12 +249,10 @@ class Test_process(rate_cube_set_up):
     """Tests the process method results in the expected outputs."""
 
     def test_returns_cubelist(self):
-        """Test function returns a cubelist containing one less entry than the
-        input cube list."""
+        """Test function returns a cubelist."""
 
         result = Accumulation(accumulation_period=60).process(self.cubes)
         self.assertIsInstance(result, iris.cube.CubeList)
-        self.assertEqual(len(self.cubes) - 1, len(result))
 
     def test_returns_masked_cubes(self):
         """Test function returns a list of masked cubes for masked input
@@ -304,7 +321,8 @@ class Test_process(rate_cube_set_up):
     def test_returns_expected_values_5_minutes(self):
         """Test function returns the expected accumulations over a 5 minute
         aggregation period. These are written out long hand to make the
-        comparison easy."""
+        comparison easy. Check that the number of accumulation cubes returned
+        is the expected number."""
 
         expected_t0 = np.array([
             [0.015, 0.045, 0.075, 0.105, 0.135, 0.18, 0.24, 0.3, 0.36, 0.42],
@@ -338,6 +356,7 @@ class Test_process(rate_cube_set_up):
         self.assertArrayAlmostEqual(result[1].data, expected_t1)
         self.assertArrayAlmostEqual(result[0].data.mask, expected_mask_t0)
         self.assertArrayAlmostEqual(result[1].data.mask, expected_mask_t1)
+        self.assertEqual(len(result), 2)
 
     def test_returns_expected_values_10_minutes(self):
         """Test function returns the expected accumulations over the complete
@@ -345,7 +364,8 @@ class Test_process(rate_cube_set_up):
         the comparison easy. Note that the test have been constructed such that
         only the top row is expected to show a difference by including the last
         5 minutes of the accumulation, all the other results are the same as
-        for the 5 minute test above."""
+        for the 5 minute test above. Check that the number of accumulation
+        cubes returned is the expected number."""
 
         expected_t0 = np.array([
             [0.015, 0.045, 0.075, 0.105, 0.135,
@@ -368,12 +388,14 @@ class Test_process(rate_cube_set_up):
 
         self.assertArrayAlmostEqual(result[0].data, expected_t0)
         self.assertArrayAlmostEqual(result[0].data.mask, expected_mask_t0)
+        self.assertEqual(len(result), 1)
 
     def test_returns_total_accumulation_if_no_period_specified(self):
         """Test function returns a list containing a single accumulation cube
         that is the accumulation over the whole period specified by the rates
         cubes. The results are the same as the 10 minute test above as that is
-        the total span of the input rates cubes."""
+        the total span of the input rates cubes. Check that the number of
+        accumulation cubes returned is the expected number."""
 
         expected_t0 = np.array([
             [0.015, 0.045, 0.075, 0.105, 0.135,
@@ -396,11 +418,12 @@ class Test_process(rate_cube_set_up):
 
         self.assertArrayAlmostEqual(result[0].data, expected_t0)
         self.assertArrayAlmostEqual(result[0].data.mask, expected_mask_t0)
+        self.assertEqual(len(result), 1)
 
     def test_returns_expected_values_1_minute(self):
         """Test function returns the expected accumulations over a 1 minute
-        aggregation period. In this case there is no aggregation, so the input
-        cube should be returned as the output cube."""
+        aggregation period. Check that the number of accumulation cubes
+        returned is the expected number."""
 
         expected_t0 = np.array([
             [0.015, 0.03, 0.03, 0.03, 0.03, 0.06, 0.09, 0.09, 0.09, 0.09],
@@ -433,6 +456,7 @@ class Test_process(rate_cube_set_up):
         self.assertArrayAlmostEqual(result[7].data, expected_t7)
         self.assertArrayAlmostEqual(result[0].data.mask, expected_mask_t0)
         self.assertArrayAlmostEqual(result[7].data.mask, expected_mask_t7)
+        self.assertEqual(len(result), 10)
 
 
 if __name__ == '__main__':
