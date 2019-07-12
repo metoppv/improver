@@ -47,7 +47,25 @@ class rate_cube_set_up(IrisTest):
     accumulation plugin functionality."""
 
     def setUp(self):
-        """Set up test cubes."""
+        """Set up 11 precipitation rate cubes offset by 1 minute (spanning 10
+        minutes), with a shower moving across the array from left to right
+        (west to east). A uniform rate of precipitation covers the eastern half
+        of the domain. Lighter precipitation covers the north-west quadrant,
+        and there is no precipitation in the south-western quadrant. This
+        shower is advected eastwards by the optical flow at a uniform rate over
+        the period considered. Beyond the western boundary there is no
+        precipitation, so precipitation stops in the west as the shower is
+        advected east.
+
+        A mask covers two cells towards the centre of the domain to simulate a
+        radar quality mask.
+
+        Accumulations are greatest in the right-hand array columns and smallest
+        in the left. All accumulations to which a masked cell has contributed
+        are returned as masked; note that in the arrays of expected values in
+        the tests below those cells that are expected to be masked are given
+        a value of np.nan.
+        """
         ncells = 10
         # Rates equivalent to 5.4 and 1.8 mm/hr
         rates = np.ones((ncells)) * 5.4
@@ -291,8 +309,8 @@ class Test_process(rate_cube_set_up):
         expected_t0 = np.array([
             [0.015, 0.045, 0.075, 0.105, 0.135, 0.18, 0.24, 0.3, 0.36, 0.42],
             [0.015, 0.045, 0.075, 0.105, 0.135,
-             np.inf, np.inf, np.inf, np.inf, np.inf],
-            [0., 0., 0., 0., 0., np.inf, np.inf, np.inf, np.inf, np.inf],
+             np.nan, np.nan, np.nan, np.nan, np.nan],
+            [0., 0., 0., 0., 0., np.nan, np.nan, np.nan, np.nan, np.nan],
             [0., 0., 0., 0., 0., 0.045, 0.135, 0.225, 0.315, 0.405]])
 
         expected_t1 = np.array([
@@ -333,9 +351,9 @@ class Test_process(rate_cube_set_up):
             [0.015, 0.045, 0.075, 0.105, 0.135,
              0.195, 0.285, 0.375, 0.465, 0.555],
             [0.015, 0.045, 0.075, 0.105, 0.135,
-             np.inf, np.inf, np.inf, np.inf, np.inf],
+             np.nan, np.nan, np.nan, np.nan, np.nan],
             [0., 0., 0., 0., 0.,
-             np.inf, np.inf, np.inf, np.inf, np.inf],
+             np.nan, np.nan, np.nan, np.nan, np.nan],
             [0., 0., 0., 0., 0.,
              0.045, 0.135, 0.225, 0.315, 0.405]])
 
@@ -361,9 +379,9 @@ class Test_process(rate_cube_set_up):
             [0.015, 0.045, 0.075, 0.105, 0.135,
              0.195, 0.285, 0.375, 0.465, 0.555],
             [0.015, 0.045, 0.075, 0.105, 0.135,
-             np.inf, np.inf, np.inf, np.inf, np.inf],
+             np.nan, np.nan, np.nan, np.nan, np.nan],
             [0., 0., 0., 0., 0.,
-             np.inf, np.inf, np.inf, np.inf, np.inf],
+             np.nan, np.nan, np.nan, np.nan, np.nan],
             [0., 0., 0., 0., 0.,
              0.045, 0.135, 0.225, 0.315, 0.405]])
 
@@ -386,8 +404,8 @@ class Test_process(rate_cube_set_up):
 
         expected_t0 = np.array([
             [0.015, 0.03, 0.03, 0.03, 0.03, 0.06, 0.09, 0.09, 0.09, 0.09],
-            [0.015, 0.03, 0.03, 0.03, 0.03, np.inf, np.inf, 0.09, 0.09, 0.09],
-            [0., 0., 0., 0., 0., np.inf, np.inf, 0.09, 0.09, 0.09],
+            [0.015, 0.03, 0.03, 0.03, 0.03, np.nan, np.nan, 0.09, 0.09, 0.09],
+            [0., 0., 0., 0., 0., np.nan, np.nan, 0.09, 0.09, 0.09],
             [0., 0., 0., 0., 0., 0.045, 0.09, 0.09, 0.09, 0.09]])
 
         expected_t7 = np.array([
