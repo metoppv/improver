@@ -63,7 +63,8 @@ def main(argv=None):
     source_orog = load_cube(args.source_orography)
     target_orog = load_cube(args.target_orography)
 
-    adjusted_temperature = process_cube(lapse_rate, source_orog, target_orog, temperature)
+    adjusted_temperature = process_cube(lapse_rate, source_orog,
+                                        target_orog, temperature)
 
     # save to output file
     save_netcdf(adjusted_temperature, args.output_file)

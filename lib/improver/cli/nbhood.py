@@ -207,24 +207,21 @@ def main(argv=None):
         if args.apply_recursive_filter:
             parser.error('Cannot process complex numbers with recursive '
                          'filter')
-
+    mask_cube = None
     if args.input_mask_filepath:
         mask_cube = load_cube(args.input_mask_filepath)
-    else:
-        mask_cube = None
 
     alphas_x_cube = None
     alphas_y_cube = None
-
     if args.input_filepath_alphas_x_cube is not None:
         alphas_x_cube = load_cube(args.input_filepath_alphas_x_cube)
     if args.input_filepath_alphas_y_cube is not None:
         alphas_y_cube = load_cube(args.input_filepath_alphas_y_cube)
 
-    #Load Cube
+    # Load Cube
     cube = load_cube(args.input_filepath)
 
-    #Process Cube
+    # Process Cube
     result = process(cube, args.neighbourhood_output,
                      args.neighbourhood_shape, args.radius,
                      args.radii_by_lead_time, args.degrees_as_complex,
@@ -234,7 +231,7 @@ def main(argv=None):
                      alphas_y_cube, args.alpha_x, args.alpha_y,
                      args.iterations)
 
-    #Save Cube
+    # Save Cube
     save_netcdf(result, args.output_filepath)
 
 
@@ -245,7 +242,7 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius,
             halo_radius=None, apply_recursive_filter=False, alphas_x_cube=None,
             alphas_y_cube=None, alpha_x=None, alpha_y=None, iterations=1):
     """
-    
+
     Args:
         cube:
         neighbourhood_output:
