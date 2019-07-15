@@ -41,7 +41,10 @@
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
-
+read -d '' expected <<'__TEXT__' || true
+UserWarning: Chunksize not set as cubelist contains cubes of varying dimensions
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"

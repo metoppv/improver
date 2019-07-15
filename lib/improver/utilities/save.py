@@ -31,6 +31,7 @@
 """Module for saving netcdf cubes with desired attribute types."""
 
 import cf_units
+import warnings
 import iris
 
 from improver.utilities.cube_checker import check_cube_not_float64
@@ -141,10 +142,22 @@ def save_netcdf(cubelist, filename):
     if isinstance(cubelist, iris.cube.Cube):
         cubelist = [cubelist]
 
+    chunksizes = None
+    xy_chunksizes = [None, None]
     for cube in cubelist:
         check_cube_not_float64(cube)
         _order_cell_methods(cube)
         _check_for_units(cube)
+        if cube.ndim >= 2:
+            if xy_chunksizes[0] is None:
+                xy_chunksizes = [cube.shape[-2], cube.shape[-1]]
+                chunksizes = tuple([1] * (cube.ndim - 2) + xy_chunksizes)
+            elif ((xy_chunksizes[0] != cube.shape[-2])
+                  and (xy_chunksizes[1] != cube.shape[-1])):
+                msg = ("Chunksize not set as cubelist "
+                       "contains cubes of varying dimensions")
+                warnings.warn(msg)
+                chunksizes = None
 
     global_keys = ['title', 'um_version', 'grid_id', 'source', 'Conventions',
                    'mosg__grid_type', 'mosg__model_configuration',
@@ -155,15 +168,6 @@ def save_netcdf(cubelist, filename):
                   if key not in global_keys}
 
     cubelist = _append_metadata_cube(cubelist, global_keys)
-
-    if len(cubelist) > 1:
-        iris.fileformats.netcdf.save(cubelist, filename, local_keys=local_keys)
-    else:
-        chunksizes = None
-        cube = cubelist[0]
-        if cube.ndim >= 2:
-            xy_chunksizes = [cube.shape[-2], cube.shape[-1]]
-            chunksizes = tuple([1] * (cube.ndim - 2) + xy_chunksizes)
-        iris.fileformats.netcdf.save(cubelist, filename, local_keys=local_keys,
-                                     complevel=1, shuffle=False, zlib=True,
-                                     chunksizes=chunksizes)
+    iris.fileformats.netcdf.save(cubelist, filename, local_keys=local_keys,
+                                 complevel=1, shuffle=False, zlib=True,
+                                 chunksizes=chunksizes)
