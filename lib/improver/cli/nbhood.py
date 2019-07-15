@@ -208,86 +208,112 @@ def main(argv=None):
             parser.error('Cannot process complex numbers with recursive '
                          'filter')
 
+    if args.input_mask_filepath:
+        mask_cube = load_cube(args.input_mask_filepath)
+    else:
+        mask_cube = None
+
+    alphas_x_cube = None
+    alphas_y_cube = None
+
+    if args.input_filepath_alphas_x_cube is not None:
+        alphas_x_cube = load_cube(args.input_filepath_alphas_x_cube)
+    if args.input_filepath_alphas_y_cube is not None:
+        alphas_y_cube = load_cube(args.input_filepath_alphas_y_cube)
+
     #Load Cube
     cube = load_cube(args.input_filepath)
 
     #Process Cube
-    result = process_cube(args, cube)
+    result = process(cube, args.neighbourhood_output,
+                     args.neighbourhood_shape, args.radius,
+                     args.radii_by_lead_time, args.degrees_as_complex,
+                     args.weighted_mode, args.sum_or_fraction, args.re_mask,
+                     args.percentiles, mask_cube, args.halo_radius,
+                     args.apply_recursive_filter, alphas_x_cube,
+                     alphas_y_cube, args.alpha_x, args.alpha_y,
+                     args.iterations)
 
     #Save Cube
     save_netcdf(result, args.output_filepath)
 
 
-def process_cube(args, cube):
+def process(cube, neighbourhood_output, neighbourhood_shape, radius,
+            radii_by_lead_time, degrees_as_complex=False,
+            weighted_mode=False, sum_or_fraction="fraction", re_mask=False,
+            percentiles=DEFAULT_PERCENTILES, mask_cube=None,
+            halo_radius=None, apply_recursive_filter=False, alphas_x_cube=None,
+            alphas_y_cube=None, alpha_x=None, alpha_y=None, iterations=1):
     """
-    Processes the cube as returns a cube to save
-
+    
     Args:
-        args ():
-            The arguments that control what to apply to the cube.
-        cube (iris.cube.Cube):
-            A cube to apply the requested neighbourhood method to.
-    Return:
-        result (iris.cube.Cube):
-            A cube after being processed.
+        cube:
+        neighbourhood_output:
+        neighbourhood_shape:
+        radius:
+        radii_by_lead_time:
+        degrees_as_complex:
+        weighted_mode:
+        sum_or_fraction:
+        re_mask:
+        percentiles:
+        mask_cube:
+        halo_radius:
+        apply_recursive_filter:
+        alphas_x_cube:
+        alphas_y_cube:
+        alpha_x:
+        alpha_y:
+        iterations:
+
+    Returns:
+
     """
-    if args.degrees_as_complex:
+    if degrees_as_complex:
         # convert cube data into complex numbers
         cube.data = WindDirection.deg_to_complex(cube.data)
-    if args.radius:
-        radius_or_radii = args.radius
+    if radius:
+        radius_or_radii = radius
         lead_times = None
-    elif args.radii_by_lead_time:
-        radius_or_radii = args.radii_by_lead_time[0].split(",")
-        lead_times = args.radii_by_lead_time[1].split(",")
-    if args.input_mask_filepath:
-        mask_cube = load_cube(args.input_mask_filepath)
-    else:
-        mask_cube = None
-    if args.neighbourhood_output == "probabilities":
+    elif radii_by_lead_time:
+        radius_or_radii = radii_by_lead_time[0].split(",")
+        lead_times = radii_by_lead_time[1].split(",")
+
+    if neighbourhood_output == "probabilities":
         result = (
             NeighbourhoodProcessing(
-                args.neighbourhood_shape, radius_or_radii,
+                neighbourhood_shape, radius_or_radii,
                 lead_times=lead_times,
-                weighted_mode=args.weighted_mode,
-                sum_or_fraction=args.sum_or_fraction, re_mask=args.re_mask
+                weighted_mode=weighted_mode,
+                sum_or_fraction=sum_or_fraction, re_mask=re_mask
             ).process(cube, mask_cube=mask_cube))
-    elif args.neighbourhood_output == "percentiles":
+    elif neighbourhood_output == "percentiles":
         result = (
             GeneratePercentilesFromANeighbourhood(
-                args.neighbourhood_shape, radius_or_radii,
+                neighbourhood_shape, radius_or_radii,
                 lead_times=lead_times,
-                percentiles=args.percentiles
+                percentiles=percentiles
             ).process(cube))
     # If the '--apply-recursive-filter' option has been specified in the
     # input command, pass the neighbourhooded 'result' cube obtained above
     # through the recursive-filter plugin before saving the output.
     # The recursive filter is only applicable to square neighbourhoods.
-    if args.neighbourhood_shape == 'square' and args.apply_recursive_filter:
-
-        alphas_x_cube = None
-        alphas_y_cube = None
-
-        if args.input_filepath_alphas_x_cube is not None:
-            alphas_x_cube = load_cube(args.input_filepath_alphas_x_cube)
-        if args.input_filepath_alphas_y_cube is not None:
-            alphas_y_cube = load_cube(args.input_filepath_alphas_y_cube)
-
+    if neighbourhood_shape == 'square' and apply_recursive_filter:
         result = RecursiveFilter(
-            alpha_x=args.alpha_x, alpha_y=args.alpha_y,
-            iterations=args.iterations, re_mask=args.re_mask).process(
+            alpha_x=alpha_x, alpha_y=alpha_y,
+            iterations=iterations, re_mask=re_mask).process(
             result, alphas_x=alphas_x_cube, alphas_y=alphas_y_cube,
             mask_cube=mask_cube)
 
-    elif args.neighbourhood_shape == 'circular' and \
-            args.apply_recursive_filter:
+    elif neighbourhood_shape == 'circular' and \
+            apply_recursive_filter:
         raise ValueError('Recursive filter option is not applicable to '
                          'circular neighbourhoods. ')
-    if args.degrees_as_complex:
+    if degrees_as_complex:
         # convert neighbourhooded cube back to degrees
         result.data = WindDirection.complex_to_deg(result.data)
-    if args.halo_radius is not None:
-        result = remove_cube_halo(result, args.halo_radius)
+    if halo_radius is not None:
+        result = remove_cube_halo(result, halo_radius)
     return result
 
 
