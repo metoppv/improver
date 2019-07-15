@@ -95,7 +95,7 @@ class Accumulation:
         cubes = iris.cube.CubeList(np.array(cubes)[time_sorted])
         return cubes, times
 
-    def get_period_sets(self, time_interval, cubes):
+    def _get_period_sets(self, time_interval, cubes):
         """
         Return sub-sets of the input cube list that will be used to construct
         the accumulation period specified by self.accumulation_period.
@@ -184,7 +184,7 @@ class Accumulation:
                    "{}.".format(np.diff(times, axis=0)))
             raise ValueError(msg)
 
-        cube_subsets = self.get_period_sets(time_interval, cubes)
+        cube_subsets = self._get_period_sets(time_interval, cubes)
 
         accumulation_cubes = iris.cube.CubeList()
         for cube_subset in cube_subsets:

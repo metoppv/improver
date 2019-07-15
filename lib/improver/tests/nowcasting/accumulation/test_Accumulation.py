@@ -168,7 +168,7 @@ class Test_sort_cubes_by_time(rate_cube_set_up):
         self.assertArrayEqual(times, expected)
 
 
-class Test_get_period_sets(rate_cube_set_up):
+class Test__get_period_sets(rate_cube_set_up):
     """Tests the requested accumulation_period can be constructed from the
     input cubes and return lists of the required inputs to construct each
     such period."""
@@ -178,7 +178,7 @@ class Test_get_period_sets(rate_cube_set_up):
 
         time_interval = 60
         plugin = Accumulation(accumulation_period=120)
-        result = plugin.get_period_sets(time_interval, self.cubes)
+        result = plugin._get_period_sets(time_interval, self.cubes)
         self.assertIsInstance(result, list)
 
     def test_returns_expected_cubes(self, warning_list=None):
@@ -191,7 +191,7 @@ class Test_get_period_sets(rate_cube_set_up):
         expected = [self.cubes[0:6], self.cubes[5:]]
 
         plugin = Accumulation(accumulation_period=300)
-        result = plugin.get_period_sets(time_interval, self.cubes)
+        result = plugin._get_period_sets(time_interval, self.cubes)
 
         for index, sublist in enumerate(result):
             self.assertSequenceEqual(sublist, expected[index])
@@ -202,7 +202,7 @@ class Test_get_period_sets(rate_cube_set_up):
 
         time_interval = 60
         plugin = Accumulation()
-        result = plugin.get_period_sets(time_interval, self.cubes)
+        result = plugin._get_period_sets(time_interval, self.cubes)
         self.assertSequenceEqual(result, [self.cubes])
 
     @ManageWarnings(record=True)
@@ -224,7 +224,7 @@ class Test_get_period_sets(rate_cube_set_up):
         expected = [self.cubes[0:4], self.cubes[3:7], self.cubes[6:10]]
 
         plugin = Accumulation(accumulation_period=180)
-        result = plugin.get_period_sets(time_interval, self.cubes)
+        result = plugin._get_period_sets(time_interval, self.cubes)
 
         for index, sublist in enumerate(result):
             self.assertSequenceEqual(sublist, expected[index])
@@ -242,7 +242,7 @@ class Test_get_period_sets(rate_cube_set_up):
         msg = "The specified accumulation period "
 
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.get_period_sets(time_interval, self.cubes)
+            plugin._get_period_sets(time_interval, self.cubes)
 
 
 class Test_process(rate_cube_set_up):
