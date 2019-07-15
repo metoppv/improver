@@ -31,6 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run neighbourhood processing."""
 
+# noinspection PyPackageRequirements
 from improver.argparser import ArgParser
 from improver.constants import DEFAULT_PERCENTILES
 from improver.nbhood.nbhood import (
@@ -207,23 +208,42 @@ def main(argv=None):
             parser.error('Cannot process complex numbers with recursive '
                          'filter')
 
+    #Load Cube
     cube = load_cube(args.input_filepath)
+
+    #Process Cube
+    result = process_cube(args, cube)
+
+    #Save Cube
+    save_netcdf(result, args.output_filepath)
+
+
+def process_cube(args, cube):
+    """
+    Processes the cube as returns a cube to save
+
+    Args:
+        args ():
+            The arguments that control what to apply to the cube.
+        cube (iris.cube.Cube):
+            A cube to apply the requested neighbourhood method to.
+    Return:
+        result (iris.cube.Cube):
+            A cube after being processed.
+    """
     if args.degrees_as_complex:
         # convert cube data into complex numbers
         cube.data = WindDirection.deg_to_complex(cube.data)
-
     if args.radius:
         radius_or_radii = args.radius
         lead_times = None
     elif args.radii_by_lead_time:
         radius_or_radii = args.radii_by_lead_time[0].split(",")
         lead_times = args.radii_by_lead_time[1].split(",")
-
     if args.input_mask_filepath:
         mask_cube = load_cube(args.input_mask_filepath)
     else:
         mask_cube = None
-
     if args.neighbourhood_output == "probabilities":
         result = (
             NeighbourhoodProcessing(
@@ -231,20 +251,18 @@ def main(argv=None):
                 lead_times=lead_times,
                 weighted_mode=args.weighted_mode,
                 sum_or_fraction=args.sum_or_fraction, re_mask=args.re_mask
-                ).process(cube, mask_cube=mask_cube))
+            ).process(cube, mask_cube=mask_cube))
     elif args.neighbourhood_output == "percentiles":
         result = (
             GeneratePercentilesFromANeighbourhood(
                 args.neighbourhood_shape, radius_or_radii,
                 lead_times=lead_times,
                 percentiles=args.percentiles
-                ).process(cube))
-
+            ).process(cube))
     # If the '--apply-recursive-filter' option has been specified in the
     # input command, pass the neighbourhooded 'result' cube obtained above
     # through the recursive-filter plugin before saving the output.
     # The recursive filter is only applicable to square neighbourhoods.
-
     if args.neighbourhood_shape == 'square' and args.apply_recursive_filter:
 
         alphas_x_cube = None
@@ -258,22 +276,19 @@ def main(argv=None):
         result = RecursiveFilter(
             alpha_x=args.alpha_x, alpha_y=args.alpha_y,
             iterations=args.iterations, re_mask=args.re_mask).process(
-                result, alphas_x=alphas_x_cube, alphas_y=alphas_y_cube,
-                mask_cube=mask_cube)
+            result, alphas_x=alphas_x_cube, alphas_y=alphas_y_cube,
+            mask_cube=mask_cube)
 
     elif args.neighbourhood_shape == 'circular' and \
             args.apply_recursive_filter:
         raise ValueError('Recursive filter option is not applicable to '
                          'circular neighbourhoods. ')
-
     if args.degrees_as_complex:
         # convert neighbourhooded cube back to degrees
         result.data = WindDirection.complex_to_deg(result.data)
-
     if args.halo_radius is not None:
         result = remove_cube_halo(result, args.halo_radius)
-
-    save_netcdf(result, args.output_filepath)
+    return result
 
 
 if __name__ == "__main__":

@@ -63,12 +63,17 @@ def main(argv=None):
     source_orog = load_cube(args.source_orography)
     target_orog = load_cube(args.target_orography)
 
-    # apply lapse rate to temperature data
-    adjusted_temperature = apply_gridded_lapse_rate(
-        temperature, lapse_rate, source_orog, target_orog)
+    adjusted_temperature = process_cube(lapse_rate, source_orog, target_orog, temperature)
 
     # save to output file
     save_netcdf(adjusted_temperature, args.output_file)
+
+
+def process_cube(lapse_rate, source_orog, target_orog, temperature):
+    # apply lapse rate to temperature data
+    adjusted_temperature = apply_gridded_lapse_rate(
+        temperature, lapse_rate, source_orog, target_orog)
+    return adjusted_temperature
 
 
 if __name__ == "__main__":
