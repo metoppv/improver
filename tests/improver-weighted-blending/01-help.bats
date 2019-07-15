@@ -45,8 +45,7 @@ usage: improver weighted-blending [-h] [--profile]
                                   [--cval NON_LINEAR_FACTOR]
                                   [--wts_dict WEIGHTS_DICTIONARY]
                                   [--weighting_coord WEIGHTING_COORD]
-                                  COORDINATE_TO_AVERAGE_OVER
-                                  WEIGHTED_BLEND_MODE INPUT_FILES
+                                  COORDINATE_TO_AVERAGE_OVER INPUT_FILES
                                   [INPUT_FILES ...] OUTPUT_FILE
 
 Calculate the default weights to apply in weighted blending plugins using the
@@ -60,9 +59,6 @@ positional arguments:
   COORDINATE_TO_AVERAGE_OVER
                         The coordinate over which the blending will be
                         applied.
-  WEIGHTED_BLEND_MODE   The method used in the weighted blend.
-                        "weighted_mean": calculate a normal weighted mean
-                        across the coordinate.
   INPUT_FILES           Paths to input files to be blended.
   OUTPUT_FILE           The output path for the processed NetCDF.
 

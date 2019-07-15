@@ -36,7 +36,7 @@
   KGO="weighted_blending/spatial_weights/kgo/model.nc"
 
   # Run weighted blending with ukvx and nowcast data using spatial weights
-  run improver weighted-blending 'model_configuration' 'weighted_mean' \
+  run improver weighted-blending 'model_configuration' \
       --ynval 1 --y0val 1 --spatial_weights_from_mask \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/spatial_weights/nowcast_data/20181129T1000Z-PT0002H00M-lwe_precipitation_rate.nc" \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/spatial_weights/ukvx_data/20181129T1000Z-PT0002H00M-lwe_precipitation_rate.nc" \

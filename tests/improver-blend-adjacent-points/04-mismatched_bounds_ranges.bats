@@ -36,7 +36,7 @@
 
   # Run triangular time blending with mismatched time bounds ranges and check it fails
   run improver blend-adjacent-points 'forecast_period' '2' --units 'hours' \
-      --width 3.0 'weighted_mean' --blend_time_using_forecast_period \
+      --width 3.0 --blend_time_using_forecast_period \
       "$IMPROVER_ACC_TEST_DIR/blend-adjacent-points/basic_mean/multiple_probabilities_rain_*H.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 1 ]]

@@ -37,7 +37,7 @@
 
   # Run weighted blending with non linear weights and sub-options and check it passes.
   run improver weighted-blending --wts_calc_method 'nonlinear' \
-      'forecast_reference_time' 'weighted_mean' --cval 1.0 \
+      'forecast_reference_time' --cval 1.0 \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/percentiles/input.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
