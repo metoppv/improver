@@ -145,8 +145,8 @@ def process(current_forecast, coeffs, num_realizations=None,
             random_ordering=False, random_seed=None,
             ecc_bounds_warning=False, predictor_of_mean='mean'):
     """Script to apply coefficients for Ensemble Model Output
-    Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
-    Regression (NGR).
+       Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
+       Regression (NGR).
     Args:
         current_forecast (iris.cube.Cube):
             A Cube containing the forcast to be calibrated. The input format

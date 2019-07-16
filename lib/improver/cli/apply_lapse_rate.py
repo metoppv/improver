@@ -72,7 +72,7 @@ def main(argv=None):
 
 
 def process(temperature, lapse_rate, source_orog, target_orog):
-    """
+    """ Apply downscaling temperature adjustment using calculated lapse rate.
 
     Args:
         temperature (iris.cube.Cube):
