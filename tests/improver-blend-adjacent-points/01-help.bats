@@ -65,7 +65,7 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
-  --units UNIT_STRING   Units of the the central_point and width.
+  --units UNIT_STRING   Units of the central_point and width.
   --calendar CALENDAR   Calendar for parameter_unit if required.
                         Default=gregorian
   --width TRIANGLE_WIDTH
