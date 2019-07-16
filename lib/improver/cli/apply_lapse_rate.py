@@ -57,20 +57,37 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
-    # read cubes
+    # Read cubes
     temperature = load_cube(args.temperature_filepath)
     lapse_rate = load_cube(args.lapse_rate_filepath)
     source_orog = load_cube(args.source_orography)
     target_orog = load_cube(args.target_orography)
 
-    adjusted_temperature = process_cube(lapse_rate, source_orog,
-                                        target_orog, temperature)
+    # Process Cubes
+    adjusted_temperature = process(lapse_rate, source_orog,
+                                   target_orog, temperature)
 
-    # save to output file
+    # Save to output file
     save_netcdf(adjusted_temperature, args.output_file)
 
 
-def process_cube(lapse_rate, source_orog, target_orog, temperature):
+def process(temperature, lapse_rate, source_orog, target_orog):
+    """
+
+    Args:
+        temperature (iris.cube.Cube):
+            Input temperature Cube.
+        lapse_rate (iris.cube.Cube):
+            Lapse rate Cube.
+        source_orog (iris.cube.Cube):
+            Source model orography.
+        target_orog (iris.cube.Cube):
+            Target orography to which temperature will be downscaled.
+
+
+    Returns (iris.cube.Cube):
+        Cube after lapse rate has been applied to temperature data.
+    """
     # apply lapse rate to temperature data
     adjusted_temperature = apply_gridded_lapse_rate(
         temperature, lapse_rate, source_orog, target_orog)
