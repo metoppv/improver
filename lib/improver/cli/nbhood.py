@@ -244,27 +244,71 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius,
     """
 
     Args:
-        cube:
+        cube (iris.cube.Cube):
+            The Cube to be processed
         neighbourhood_output:
-        neighbourhood_shape:
-        radius:
-        radii_by_lead_time:
-        degrees_as_complex:
-        weighted_mode:
-        sum_or_fraction:
-        re_mask:
-        percentiles:
-        mask_cube:
-        halo_radius:
-        apply_recursive_filter:
-        alphas_x_cube:
-        alphas_y_cube:
-        alpha_x:
-        alpha_y:
-        iterations:
+            The form of the results generated using neighbourhood processing.
+        neighbourhood_shape (string):
+            Name of the neighbourhood method to use. Options:
+            'circular', 'square'.
+        radius(float):
+            The radius in metres if the neighbourhood to apply
+        radii_by_lead_time(list):
+            A list with the radius in metres at [0] and the lead_time at [1]
+            Lead time is a List of lead times or forecast periods, at which
+            the radii within 'radii' are defined. The lead times are expected
+            in hours.
+        degrees_as_complex (boolean):
+            If True processes angles as complex numbers.
+            Not compatible with circular kernel, percentiles or recursive
+            filter.
+        weighted_mode (boolean):
+            If True the weighting decreases with radius.
+            If False a constant weighting is assumed.
+            weighted_mode is only applicable for calculating "probability"
+            neighbourhood output.
+        sum_or_fraction (string):
+            Identifier for whether sum or fraction should be returned from
+            neighbourhooding. The sum represents the sum of the neighbourhood.
+            The fraction represents the sum of the neighbourhood divided by
+            the neighbourhood area.
+        re_mask (boolean):
+            If re_mask is True, the original un-neighbourhood processed mask
+            is applied to mask out the neighbourhood processed cube.
+            If re_mask is False, the original un-neighbourhood processed mask
+            is not applied. Therefore, the neighbourhood processing may result
+            in values being present in area that were originally masked.
+        percentiles (float or None):
+            Calculates value at the specified percentiles from the
+            neighbourhood surrounding each grid point.
+        mask_cube ('iris.cube.Cube'):
+            A cube to mask the input file. The data should contain 1 for
+            usable points and 0 for discarded points.
+        halo_radius (float or None):
+            radius is meters of excess halo to clip. Used where a larger grid
+            was defined than the standard grid and we want to clip the grid
+            back to the standard grid.
+        apply_recursive_filter (boolean):
+            Boolean to apply the recursive filter to a square neighbourhooded
+            output dataset, converting it into a Gaussian-like kernel or
+            smoothing over short distances.
+        alphas_x_cube (iris.cube.Cube):
+            A Cube used for the smoothing in the x direction when applying
+            the recursive filter.
+        alphas_y_cube (iris.cube.Cube):
+            A Cube used for the smoothing in the y direction when applying
+            the recursive filter.
+        alpha_x (float):
+        A signle alpha factor (0 < alpha_x < 1) to be applied to every grid
+        square in the x direction when applying the recursive filter.
+        alpha_y (float):
+        A signle alpha factor (0 < alpha_x < 1) to be applied to every grid
+        square in the y direction when applying the recursive filter.
+        iterations (int):
+            The number of times to apply the filter. (typically < 5)
 
-    Returns:
-
+    Returns (iris.cube.Cube):
+        A processed Cube.
     """
     if degrees_as_complex:
         # convert cube data into complex numbers
