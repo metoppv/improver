@@ -130,11 +130,63 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
+    # Load Cubes
     current_forecast = load_cube(args.forecast_filepath)
     coeffs = load_cube(args.coefficients_filepath)
 
-    original_current_forecast = current_forecast.copy()
+    # Process Cube
+    result = process(current_forecast, coeffs, args)
 
+    # Save Cube
+    save_netcdf(result, args.output_filepath)
+
+
+def process(current_forecast, coeffs, num_realizations=None,
+            random_ordering=False, random_seed=None,
+            ecc_bounds_warning=False, predictor_of_mean='mean'):
+    """Script to apply coefficients for Ensemble Model Output
+    Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
+    Regression (NGR).
+    Args:
+        current_forecast (iris.cube.Cube):
+            A Cube containing the forcast to be calibrated. The input format
+            could be either realizations, probabilities or percentiles.
+        coeffs (iris.cube.Cube):
+            A cube containing the coefficients used for calibration.
+        num_realizations (np.int32):
+            Optional argument to specify the number of ensemble realizations
+            to produce. If the current forecast is input as probabilities or
+            percentiles then this argument is used to create the requested
+            number of realizations. In addition, this argument is used to
+            construct the requested number of realization from the mean and
+            variance out put after applying the EMOS coefficients.
+        random_ordering (boolean):
+            Option to reorder the post-processed forecasts randomly. If not
+            set, the ordering of the raw ensemble is used. This option is
+            only valid when the input format is realizations.
+        random_seed:
+            Option to specify a value for the random seed for testing
+            purpose, otherwise the default random seen behaviour is utilised.
+            The random seed is used in the generation of the random numbers
+            used for either the random_ordering option to order the input
+            percentiles randomly, rather than use the ordering from the raw
+            ensemble, or for splitting tied values within the raw ensemble,
+            so that the values from the input percentiles can be ordered to
+            match the raw ensemble.
+        ecc_bounds_warning (boolean):
+            If True, where the percentiles exceed the ECC bounds range,
+            raises a warning rather than an exception. This occurs when the
+            current forecasts is in the form of probabilities and is
+            converted to percentiles, as part of converting the input
+            probabilities into realizations.
+        predictor_of_mean (string):
+            String to specify the predictor used to calibrate the forecast
+            mean. Currentlu the ensemble mean "mean" as the ensemble
+            realization "realization" are supported as options.
+    Returns (iris.cube.Cube):
+        The calibrated forecast cube.
+    """
+    original_current_forecast = current_forecast.copy()
     msg = ("The current forecast has been provided as {0}. "
            "These {0} need to be converted to realizations "
            "for ensemble calibration. The args.num_realizations "
@@ -142,46 +194,40 @@ def main(argv=None):
            "to construct from the input {0}, so if the "
            "current forecast is provided as {0} then "
            "args.num_realizations must be defined.")
-
     try:
         find_percentile_coordinate(current_forecast)
         input_forecast_type = "percentiles"
     except CoordinateNotFoundError:
         input_forecast_type = "realizations"
-
     if current_forecast.name().startswith("probability_of"):
         input_forecast_type = "probabilities"
         # If probabilities, convert to percentiles.
         conversion_plugin = GeneratePercentilesFromProbabilities(
-            ecc_bounds_warning=args.ecc_bounds_warning)
+            ecc_bounds_warning=ecc_bounds_warning)
     elif input_forecast_type == "percentiles":
         # If percentiles, resample percentiles so that the percentiles are
         # evenly spaced.
         conversion_plugin = ResamplePercentiles(
-            ecc_bounds_warning=args.ecc_bounds_warning)
-
+            ecc_bounds_warning=ecc_bounds_warning)
     # If percentiles, resample percentiles and then rebadge.
     # If probabilities, generate percentiles and then rebadge.
     if input_forecast_type in ["percentiles", "probabilities"]:
-        if not args.num_realizations:
+        if not num_realizations:
             raise ValueError(msg.format(input_forecast_type))
         current_forecast = conversion_plugin.process(
-            current_forecast, no_of_percentiles=args.num_realizations)
+            current_forecast, no_of_percentiles=num_realizations)
         current_forecast = (
             RebadgePercentilesAsRealizations().process(current_forecast))
-
     # Default number of ensemble realizations is the number in
     # the raw forecast.
-    if not args.num_realizations:
-        args.num_realizations = len(
+    if not num_realizations:
+        num_realizations = len(
             current_forecast.coord('realization').points)
-
     # Apply coefficients as part of Ensemble Model Output Statistics (EMOS).
     ac = ApplyCoefficientsFromEnsembleCalibration(
         current_forecast, coeffs,
-        predictor_of_mean_flag=args.predictor_of_mean)
+        predictor_of_mean_flag=predictor_of_mean)
     calibrated_predictor, calibrated_variance = ac.process()
-
     # If input forecast is probabilities, convert output into probabilities.
     # If input forecast is percentiles, convert output into percentiles.
     # If input forecast is realizations, convert output into realizations.
@@ -199,11 +245,11 @@ def main(argv=None):
         # from mean and variance.
         percentiles = GeneratePercentilesFromMeanAndVariance().process(
             calibrated_predictor, calibrated_variance,
-            no_of_percentiles=args.num_realizations)
+            no_of_percentiles=num_realizations)
         result = EnsembleReordering().process(
             percentiles, current_forecast,
-            random_ordering=args.random_ordering, random_seed=args.random_seed)
-    save_netcdf(result, args.output_filepath)
+            random_ordering=random_ordering, random_seed=random_seed)
+    return result
 
 
 if __name__ == "__main__":
