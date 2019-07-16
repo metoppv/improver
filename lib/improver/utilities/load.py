@@ -38,6 +38,9 @@ from iris.exceptions import ConstraintMismatchError
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering, merge_cubes)
 
+import netCDF4
+import dask.array as da
+
 
 def load_cube(filepath, constraints=None, no_lazy_load=False):
     """Load the filepath provided using Iris into a cube.
@@ -74,10 +77,18 @@ def load_cube(filepath, constraints=None, no_lazy_load=False):
         if isinstance(item, iris.cube.Cube):
             item = iris.cube.CubeList([item])
         if isinstance(item, iris.cube.CubeList):
-            item = item.extract(constraints)
+            cube_items = item.extract(constraints)
         else:
-            item = iris.load(item, constraints=constraints)
-        cubes.extend(item)
+            cube_items = iris.load(item, constraints=constraints)
+            for cube_item in cube_items:  # enforce one file in one chunk
+                shape = cube_item.shape
+                dtype = cube_item.dtype
+                var_name = cube_item.var_name
+                fill_value = netCDF4.default_fillvals[cube_item.dtype.str[1:]]
+                proxy = iris.fileformats.netcdf.NetCDFDataProxy(
+                    shape, dtype, item, var_name, fill_value)
+                cube_item.data = da.from_array(proxy, chunks=-1)
+        cubes.extend(cube_items)
 
     # Merge loaded cubes
     if not cubes:
