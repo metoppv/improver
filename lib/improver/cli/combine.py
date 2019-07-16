@@ -82,11 +82,12 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
     # Load the cubes
-    cubes = iris.cube.CubeList([])
+
+    cubelist = iris.cube.CubeList([])
     new_cube_name = args.new_name
     for filename in args.input_filenames:
         new_cube = load_cube(filename)
-        cubes.append(new_cube)
+        cubelist.append(new_cube)
         if new_cube_name is None:
             new_cube_name = new_cube.name()
         if args.warnings_on:
@@ -98,13 +99,42 @@ def main(argv=None):
                        "with name, {}.".format(new_cube.name()))
                 warnings.warn(msg)
 
+    result = process(cubelist, args.operation, new_cube_name,
+                     args.metadata_jsonfile, args.warnings_on)
+
+    save_netcdf(result, args.output_filepath)
+
+
+def process(cubelist, operation, new_cube_name,
+            metadata_jsonfile=None, warnings_on=False):
+    """
+
+    Args:
+        cubelist (iris.cube.CubeList):
+            An iris CubeList to be combined.
+        operation (string):
+            "+", "-", "*", "add", "subtract", "multiply", "min", "max", "mean"
+            AOperation to use in combining Cubes.
+        new_name (string):
+        New name for the resulting dataset. Will default to the name of the
+        first dataset if not set.
+        metadata_jsonfile (string):
+            Filename for the json file containing require changes to the
+            metadata.
+        warnings_on (boolean):
+            If True, warning messages where metadata do not march will be
+            given.
+
+    Returns (iris.cube.Cube):
+        Returns a cube with the combined data.
+    """
     # Load the metadata changes if required
     new_coords = None
     new_attr = None
     expanded_coord = None
-    if args.metadata_jsonfile:
+    if metadata_jsonfile:
         # Read in extraction recipes for all diagnostics.
-        with open(args.metadata_jsonfile, 'r') as input_file:
+        with open(metadata_jsonfile, 'r') as input_file:
             new_metadata = json.load(input_file)
         if 'coordinates' in new_metadata:
             new_coords = new_metadata['coordinates']
@@ -114,14 +144,13 @@ def main(argv=None):
             expanded_coord = new_metadata['expanded_coord']
 
     result = (
-        CubeCombiner(args.operation, warnings_on=args.warnings_on).process(
-            cubes,
+        CubeCombiner(operation, warnings_on=warnings_on).process(
+            cubelist,
             new_cube_name,
             revised_coords=new_coords,
             revised_attributes=new_attr,
             expanded_coord=expanded_coord))
-
-    save_netcdf(result, args.output_filepath)
+    return result
 
 
 if __name__ == "__main__":
