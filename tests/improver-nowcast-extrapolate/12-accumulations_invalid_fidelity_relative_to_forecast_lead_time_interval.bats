@@ -29,25 +29,28 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "extrapolate no arguments" {
-  run improver nowcast-extrapolate
-  [[ "$status" -eq 2 ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "extrapolate to create accumulations calculated with 5 minute fidelity" {
+  improver_check_skip_acceptance
+
+  UCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/ucomp_kgo.nc"
+  VCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/vcomp_kgo.nc"
+  INFILE="201811031600_radar_rainrate_composite_UK_regridded.nc"
+  OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
+
+  # Run processing and check it passes
+  run improver nowcast-extrapolate \
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$INFILE" \
+    --output_dir "$TEST_DIR" --max_lead_time 30 \
+    --eastward_advection "$UCOMP" \
+    --northward_advection "$VCOMP" \
+    --orographic_enhancement_filepaths \
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1" \
+    --accumulation_fidelity 9
+  [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver nowcast-extrapolate [-h] [--profile]
-                                    [--profile_file PROFILE_FILE]
-                                    [--output_dir OUTPUT_DIR | --output_filepaths OUTPUT_FILEPATHS [OUTPUT_FILEPATHS ...]]
-                                    [--eastward_advection_filepath EASTWARD_ADVECTION_FILEPATH]
-                                    [--northward_advection_filepath NORTHWARD_ADVECTION_FILEPATH]
-                                    [--advection_speed_filepath ADVECTION_SPEED_FILEPATH]
-                                    [--advection_direction_filepath ADVECTION_DIRECTION_FILEPATH]
-                                    [--pressure_level PRESSURE_LEVEL]
-                                    [--orographic_enhancement_filepaths OROGRAPHIC_ENHANCEMENT_FILEPATHS [OROGRAPHIC_ENHANCEMENT_FILEPATHS ...]]
-                                    [--json_file JSON_FILE]
-                                    [--max_lead_time MAX_LEAD_TIME]
-                                    [--lead_time_interval LEAD_TIME_INTERVAL]
-                                    [--accumulation_fidelity ACCUMULATION_FIDELITY]
-                                    [--accumulation_units ACCUMULATION_UNITS]
-                                    INPUT_FILEPATH
+ValueError: The specified lead_time_interval
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

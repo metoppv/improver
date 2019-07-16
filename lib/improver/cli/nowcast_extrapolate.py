@@ -35,9 +35,11 @@ import os
 import json
 import numpy as np
 
+import iris
 from iris import Constraint
 from improver.argparser import ArgParser
 from improver.nowcasting.forecasting import CreateExtrapolationForecast
+from improver.nowcasting.accumulation import Accumulation
 from improver.utilities.filename import generate_file_name
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
@@ -100,6 +102,21 @@ def main(argv=None):
                         help="Maximum lead time required (mins).")
     parser.add_argument("--lead_time_interval", type=int, default=15,
                         help="Interval between required lead times (mins).")
+
+    accumulation_args = parser.add_argument_group(
+        'Calculate accumulations from advected fields')
+    accumulation_args.add_argument(
+        "--accumulation_fidelity", type=int, default=0,
+        help="If set, this CLI will additionally return accumulations"
+        " calculated from the advected fields. This fidelity specifies the"
+        " time interval in minutes between advected fields that is used to"
+        " calculate these accumulations. This interval must be a factor of"
+        " the lead_time_interval.")
+    accumulation_args.add_argument(
+        "--accumulation_units", type=str, default='m',
+        help="Desired units in which the accumulations should be expressed,"
+        "e.g. mm")
+
     args = parser.parse_args(args=argv)
 
     upath, vpath = (args.eastward_advection_filepath,
@@ -146,20 +163,54 @@ def main(argv=None):
             raise ValueError("Require exactly one output file name for each "
                              "forecast lead time")
 
+    # determine whether accumulations are also to be returned.
+    time_interval = args.lead_time_interval
+    if args.accumulation_fidelity > 0:
+        fraction, _ = np.modf(args.lead_time_interval /
+                              args.accumulation_fidelity)
+        if fraction != 0:
+            msg = ("The specified lead_time_interval ({}) is not cleanly "
+                   "divisible by the specified accumulation_fidelity ({}). As "
+                   "a result the lead_time_interval cannot be constructed from"
+                   " accumulation cubes at this fidelity.".format(
+                       args.lead_time_interval, args.accumulation_fidelity))
+            raise ValueError(msg)
+
+        time_interval = args.accumulation_fidelity
+        lead_times = np.arange(0, args.max_lead_time+1, time_interval)
+
+    lead_time_filter = args.lead_time_interval // time_interval
+
     forecast_plugin = CreateExtrapolationForecast(
         input_cube, ucube, vcube, orographic_enhancement_cube=oe_cube,
         metadata_dict=metadata_dict)
-    # extrapolate input data to required lead times
-    for i, lead_time in enumerate(lead_times):
-        forecast_cube = forecast_plugin.extrapolate(leadtime_minutes=lead_time)
 
+    # extrapolate input data to required lead times
+    forecast_cubes = iris.cube.CubeList()
+    for i, lead_time in enumerate(lead_times):
+        forecast_cubes.append(
+            forecast_plugin.extrapolate(leadtime_minutes=lead_time))
+
+    # return rate cubes
+    for i, cube in enumerate(forecast_cubes[::lead_time_filter]):
         # save to a suitably-named output file
         if args.output_filepaths:
             file_name = args.output_filepaths[i]
         else:
             file_name = os.path.join(
-                args.output_dir, generate_file_name(forecast_cube))
-        save_netcdf(forecast_cube, file_name)
+                args.output_dir, generate_file_name(cube))
+        save_netcdf(cube, file_name)
+
+    # calculate accumulations if required
+    if args.accumulation_fidelity > 0:
+        plugin = Accumulation(accumulation_units=args.accumulation_units,
+                              accumulation_period=args.lead_time_interval * 60)
+        accumulation_cubes = plugin.process(forecast_cubes)
+
+        # return accumulation cubes
+        for i, cube in enumerate(accumulation_cubes):
+            file_name = os.path.join(args.output_dir, generate_file_name(cube))
+            save_netcdf(cube, file_name)
 
 
 if __name__ == "__main__":
