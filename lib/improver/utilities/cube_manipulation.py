@@ -861,9 +861,11 @@ def enforce_coordinate_ordering(
     # Transpose by inserting the requested coordinates at either the start
     # or the end.
     if anchor == "start":
-        cube.transpose(coord_dims + remaining_coords)
+        dim_order = coord_dims + remaining_coords
     elif anchor == "end":
-        cube.transpose(remaining_coords + coord_dims)
+        dim_order = remaining_coords + coord_dims
+    if dim_order != sorted(dim_order):
+        cube.transpose(dim_order)
     return cube
 
 
