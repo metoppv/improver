@@ -298,7 +298,7 @@ class Test_process(rate_cube_set_up):
         self.cubes[-1].coord('time').points = last_time + 60
 
         msg = ("Accumulation is designed to work with rates "
-               "cubes at regualar time intervals.")
+               "cubes at regular time intervals.")
         plugin = Accumulation(accumulation_period=120)
 
         with self.assertRaisesRegex(ValueError, msg):

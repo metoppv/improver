@@ -179,7 +179,7 @@ class Accumulation:
             time_interval, = np.unique(np.diff(times, axis=0))
         except ValueError:
             msg = ("Accumulation is designed to work with "
-                   "rates cubes at regualar time intervals. Cubes "
+                   "rates cubes at regular time intervals. Cubes "
                    "provided are unevenly spaced in time; time intervals are "
                    "{}.".format(np.diff(times, axis=0)))
             raise ValueError(msg)
