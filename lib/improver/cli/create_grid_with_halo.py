@@ -52,8 +52,24 @@ def main(argv=None):
     args = parser.parse_args(args=argv)
 
     cube = load_cube(args.input_file)
-    halo_cube = create_cube_with_halo(cube, args.halo_radius)
-    save_netcdf(halo_cube, args.output_file)
+    result = process(cube, args.halo_radius)
+    save_netcdf(result, args.output_file)
+
+
+def process(cube, halo_radius):
+    """
+    Generate grid with halo from a source. The grid is populated with zeros.
+    Args:
+        cube (iris.cube.Cube):
+            The cube to be processed.
+        halo_radius (float):
+            Radius is meters of excess halo to clip. Used where a larger grid
+            was defined than the standard grid and we want to clip the grid
+            back to the standard grid.
+    Returns (iris.cube.Cube):
+        The processed Cube.
+    """
+    return create_cube_with_halo(cube, halo_radius)
 
 
 if __name__ == '__main__':
