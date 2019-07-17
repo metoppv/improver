@@ -44,6 +44,11 @@ class ChunkedNetCDFDataProxy(NetCDFDataProxy):
     """Adds `chunks` attribute on top of NetCDFDataProxy class."""
     __slots__ = NetCDFDataProxy.__slots__ + ('chunks',)
 
+    def __init__(self, shape, dtype, path, variable_name, fill_value,
+                 chunks=None):
+        super().__init__(shape, dtype, path, variable_name, fill_value)
+        self.chunks = chunks
+
 
 def load_cube(filepath, constraints=None, no_lazy_load=False):
     """Load the filepath provided using Iris into a cube.
@@ -91,8 +96,6 @@ def load_cube(filepath, constraints=None, no_lazy_load=False):
                 dtype = cube_item.dtype
                 var_name = cube_item.var_name
                 fill_value = netCDF4.default_fillvals[cube_item.dtype.str[1:]]
-                proxy = ChunkedNetCDFDataProxy(
-                    shape, dtype, item, var_name, fill_value)
                 with netCDF4.Dataset(item) as ds:
                     nc_chunks = ds[var_name].chunking()
                 if nc_chunks is 'contiguous':
@@ -101,7 +104,8 @@ def load_cube(filepath, constraints=None, no_lazy_load=False):
                     nc_chunks = da.core.normalize_chunks(nc_chunks, shape)
                 # `chunks` attribute to hint auto-chunking in Dask (v1.2.1+)
                 # https://github.com/SciTools/iris/issues/3357#issuecomment-511803573
-                proxy.chunks = nc_chunks
+                proxy = ChunkedNetCDFDataProxy(
+                    shape, dtype, item, var_name, fill_value, nc_chunks)
                 cube_item.data = da.from_array(proxy)
         cubes.extend(cube_items)
 
