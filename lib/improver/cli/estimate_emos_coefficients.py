@@ -128,15 +128,37 @@ def process(historic_forecast, truth, distribution, cycletime, units,
        The estimated coefficients are output as a cube.
     Args:
         historic_forecast (iris.cube.Cube):
+            The cube containing the historical forecasts sed for calibration.
         truth (iris.cube.Cube):
-        distribution:
-        cycletime:
-        units:
-        predictor_of_mean:
+            The cube containing the truth used for calibration.
+        distribution (string):
+            The distribution that will be used for calibration. This will be
+            dependant upon the input phenomenon.
+        cycletime (string):
+            This denotes the cycle at which forecasts will be calibrated using
+            the calculated EMOS coefficients. The validity time in the output
+            coefficients cube will be calculated relative to this cycletime.
+        units :
+            The units that calibration should be undertaken in. The historical
+            forecast and truth will be converted as required.
+        predictor_of_mean (string):
+            String to speciftythe input to calculate the calibrated mean.
+            Currently the ensemble mean "mean" and the ensemble realizations
+            "realizations" are supported as the predictors.
         max_iterations:
+            The maximum number of iterations allowed util the minimisation has
+            converged to a stable solution. If the maximum number of iterations
+            is reached but the minimisation has not yet converged to a stable
+            solution, then the available solution is used anyway, and a warning
+            is raised.
+            If the predictor_of_mean is "realizations", then the number of
+            iterations may require increasing, as there will be more
+            coefficients to solve.
 
-    Returns:
-
+    Returns (iris.cube.Cube):
+        Cube containing the coefficients estimated using EMOS. The cube
+        contains a coefficient_index dimension coordinate and a
+        coefficient_name auxiliary coordinate.
     """
     estcoeffs = EstimateCoefficientsForEnsembleCalibration(
         distribution, cycletime, desired_units=units,
