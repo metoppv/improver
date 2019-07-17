@@ -31,15 +31,18 @@
 """Module for loading cubes."""
 
 import glob
-
+import netCDF4
+import dask.array as da
 import iris
-from iris.exceptions import ConstraintMismatchError
+from iris.fileformats.netcdf import NetCDFDataProxy
 
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering, merge_cubes)
 
-import netCDF4
-import dask.array as da
+
+class ChunkedNetCDFDataProxy(NetCDFDataProxy):
+    """Adds `chunks` attribute on top of NetCDFDataProxy class."""
+    __slots__ = ('chunks',)
 
 
 def load_cube(filepath, constraints=None, no_lazy_load=False):
@@ -80,14 +83,24 @@ def load_cube(filepath, constraints=None, no_lazy_load=False):
             cube_items = item.extract(constraints)
         else:
             cube_items = iris.load(item, constraints=constraints)
-            for cube_item in cube_items:  # enforce one file in one chunk
+            for cube_item in cube_items:
+                # use Dask rather Iris for chunking
+                # this avoids problems with excessive file I/O when
+                # NetCDF chunking is passed through to Dask
                 shape = cube_item.shape
                 dtype = cube_item.dtype
                 var_name = cube_item.var_name
                 fill_value = netCDF4.default_fillvals[cube_item.dtype.str[1:]]
-                proxy = iris.fileformats.netcdf.NetCDFDataProxy(
+                proxy = ChunkedNetCDFDataProxy(
                     shape, dtype, item, var_name, fill_value)
-                cube_item.data = da.from_array(proxy, chunks=-1)
+                with netCDF4.Dataset(item) as ds:
+                    nc_chunks = ds[var_name].chunking()
+                if nc_chunks is not 'contiguous':
+                    nc_chunks = da.core.normalize_chunks(nc_chunks, shape)
+                    # `chunks` attribute to hint auto-chunking in Dask (v1.2.1+)
+                    # https://github.com/SciTools/iris/issues/3357#issuecomment-511803573
+                    proxy.chunks = nc_chunks
+                cube_item.data = da.from_array(proxy)
         cubes.extend(cube_items)
 
     # Merge loaded cubes
