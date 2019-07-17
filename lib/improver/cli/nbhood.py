@@ -286,7 +286,7 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius,
             A cube to mask the input file. The data should contain 1 for
             usable points and 0 for discarded points.
         halo_radius (float or None):
-            radius is meters of excess halo to clip. Used where a larger grid
+            Radius is meters of excess halo to clip. Used where a larger grid
             was defined than the standard grid and we want to clip the grid
             back to the standard grid.
         apply_recursive_filter (boolean):

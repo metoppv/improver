@@ -106,18 +106,43 @@ def main(argv=None):
                              'to solve for.')
     args = parser.parse_args(args=argv)
 
+    # Load Cubes
     historic_forecast = load_cube(args.historic_filepath)
     truth = load_cube(args.truth_filepath)
 
     # Estimate coefficients using Ensemble Model Output Statistics (EMOS).
-    estcoeffs = EstimateCoefficientsForEnsembleCalibration(
-        args.distribution, args.cycletime, desired_units=args.units,
-        predictor_of_mean_flag=args.predictor_of_mean,
-        max_iterations=args.max_iterations)
-    coefficients = (
-        estcoeffs.process(historic_forecast, truth))
+    coefficients = process(historic_forecast, truth, args.distribution,
+                           args.cycletime, args.units, args.predictor_of_mean,
+                           args.max_iterations)
 
+    # Save Cube
     save_netcdf(coefficients, args.output_filepath)
+
+
+def process(historic_forecast, truth, distribution, cycletime, units,
+            predictor_of_mean='mean', max_iterations=1000):
+    """Loads in arguments for estimating coefficients for Ensemble Model
+       Output Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
+       Regression (NGR). Two sources of input data must be provided: historical
+       forecasts and historical truth data (to use in calibration).
+       The estimated coefficients are output as a cube.
+    Args:
+        historic_forecast (iris.cube.Cube):
+        truth (iris.cube.Cube):
+        distribution:
+        cycletime:
+        units:
+        predictor_of_mean:
+        max_iterations:
+
+    Returns:
+
+    """
+    estcoeffs = EstimateCoefficientsForEnsembleCalibration(
+        distribution, cycletime, desired_units=units,
+        predictor_of_mean_flag=predictor_of_mean,
+        max_iterations=max_iterations)
+    return estcoeffs.process(historic_forecast, truth)
 
 
 if __name__ == "__main__":
