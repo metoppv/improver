@@ -36,7 +36,7 @@
   KGO="weighted_blending/accum_cycle_blend/kgo.nc"
 
   # Run weighted blending with linear weights and check it passes.
-  run improver weighted-blending 'forecast_reference_time' \
+  run improver weighted-blending 'forecast_reference_time' --y0val=20.0 --ynval=2.0 \
       $IMPROVER_ACC_TEST_DIR/weighted_blending/accum_cycle_blend/ukv_prob_accum_PT?H.nc \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]

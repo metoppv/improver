@@ -36,7 +36,7 @@
 
   # Run weighted blending with linear weights and check it passes,
   # after realization collapse.
-  run improver weighted-blending 'realization' \
+  run improver weighted-blending 'realization' --y0val=20.0 --ynval=2.0 \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/realizations/input.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]

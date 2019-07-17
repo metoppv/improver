@@ -48,9 +48,9 @@ from improver.tests.set_up_test_cubes import (
 class Test__init__(IrisTest):
     """Test the __init__ method."""
 
-    def test_default_y0val_and_ynval(self):
-        """Test default values of y0val and ynval are set correctly."""
-        plugin = LinearWeights()
+    def test_basic(self):
+        """Test values of y0val and ynval are set correctly"""
+        plugin = LinearWeights(y0val=20.0, ynval=2.0)
         self.assertEqual(plugin.y0val, 20.0)
         self.assertEqual(plugin.ynval, 2.0)
 
@@ -58,7 +58,7 @@ class Test__init__(IrisTest):
         """Test it raises a Value Error if y0val less than zero. """
         msg = ('y0val must be a float >= 0.0')
         with self.assertRaisesRegex(ValueError, msg):
-            LinearWeights(y0val=-10.0)
+            LinearWeights(y0val=-10.0, ynval=2.0)
 
 
 class Test_linear_weights(IrisTest):
@@ -66,12 +66,12 @@ class Test_linear_weights(IrisTest):
 
     def test_basic(self):
         """Test that the function returns an array of weights"""
-        result = LinearWeights().linear_weights(3)
+        result = LinearWeights(y0val=20.0, ynval=2.0).linear_weights(3)
         self.assertIsInstance(result, np.ndarray)
 
     def test_returns_correct_values_num_of_weights_one(self):
         """Test it returns the correct values, method is proportional"""
-        result = LinearWeights().linear_weights(1)
+        result = LinearWeights(y0val=20.0, ynval=2.0).linear_weights(1)
         expected_result = np.array([1.0])
         self.assertArrayAlmostEqual(result, expected_result)
 
@@ -112,19 +112,19 @@ class Test_process(IrisTest):
 
     def test_basic(self):
         """Test that the plugin returns a cube of weights. """
-        plugin = LinearWeights()
+        plugin = LinearWeights(y0val=20.0, ynval=2.0)
         result = plugin.process(self.cube, self.coord_name)
         self.assertIsInstance(result, iris.cube.Cube)
 
     def test_array_sum_equals_one(self):
         """Test that the resulting weights add up to one. """
-        plugin = LinearWeights()
+        plugin = LinearWeights(y0val=20.0, ynval=2.0)
         result = plugin.process(self.cube, self.coord_name)
         self.assertAlmostEqual(result.data.sum(), 1.0)
 
     def test_fails_input_not_a_cube(self):
         """Test it raises a Value Error if not supplied with a cube. """
-        plugin = LinearWeights()
+        plugin = LinearWeights(y0val=20.0, ynval=2.0)
         notacube = 0.0
         msg = ('The first argument must be an instance of '
                'iris.cube.Cube')
@@ -136,13 +136,13 @@ class Test_process(IrisTest):
         self.cube.add_aux_coord(
             AuxCoord(1, long_name='scalar_coord', units='no_unit'))
         coord = self.cube.coord("scalar_coord")
-        plugin = LinearWeights()
+        plugin = LinearWeights(y0val=20.0, ynval=2.0)
         result = plugin.process(self.cube, coord)
         self.assertArrayAlmostEqual(result.data, np.array([1.0]))
 
     def test_works_defaults_used(self):
         """Test it works if defaults used. """
-        plugin = LinearWeights()
+        plugin = LinearWeights(y0val=20.0, ynval=2.0)
         result = plugin.process(self.cube, self.coord_name)
         expected_result = np.array([0.90909091, 0.09090909])
         self.assertArrayAlmostEqual(result.data, expected_result)

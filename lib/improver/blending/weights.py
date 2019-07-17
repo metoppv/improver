@@ -38,7 +38,8 @@ from scipy.interpolate import interp1d
 
 import iris
 
-from improver.utilities.cube_manipulation import check_cube_coordinates
+from improver.utilities.cube_manipulation import (
+    check_cube_coordinates, sort_coord_in_cube)
 
 
 class WeightsUtilities:
@@ -479,23 +480,21 @@ class ChooseWeightsLinear:
 class ChooseDefaultWeightsLinear:
     """ Calculate Default Weights using Linear Function. """
 
-    def __init__(self, y0val=None, ynval=None):
-        """Set up for calculating default weights using linear function
-
-            Keyword Args:
-                y0val (positive int / float or None):
-                    Relative weight of first point.
-                ynval (int / float or None):
-                    Relative weight of last point.
-
-            If y0val value is not set or set to None then the code
-            uses default values of y0val = 20.0 and ynval = 2.0.
-            Equal weights when y0val = ynval.
+    def __init__(self, y0val, ynval):
         """
-        if y0val is None:
-            self.y0val = 20.0
-            self.ynval = 2.0
-        elif y0val < 0.0:
+        Set up for calculating default weights using linear function.
+
+        Args:
+            y0val (int / float):
+                Relative weight of first point.  Must be positive.
+            ynval (int / float):
+                Relative weight of last point.
+        """
+        if y0val is None or ynval is None:
+            raise ValueError('y0val and ynval are required arguments to the '
+                             'ChooseDefaultWeightsLinear plugin')
+
+        if y0val < 0.0:
             msg = ('y0val must be a float >= 0.0, '
                    'y0val = {0:s}'.format(str(y0val)))
             raise ValueError(msg)
@@ -531,20 +530,25 @@ class ChooseDefaultWeightsLinear:
         return weights
 
     def process(self, cube, coord_name):
-        """Calculated weights for a given cube and coord.
+        """
+        Calculated weights for a given cube and coord.  Weights scale linearly
+        between self.y0val and self.ynval for the cube provided in ascending
+        order of blend coordinate.  self.y0val = self.ynval gives equal
+        weightings across all input fields.
 
-            Args:
-                cube (iris.cube.Cube):
-                       Cube to blend across the coord.
-                coord_name (string):
-                       Name of coordinate in the cube to be blended.
-            Returns:
-                weights (iris.cube.Cube):
-                    1D cube of normalised (sum = 1.0) weights matching length
-                    of input dimension to be blended
+        Args:
+            cube (iris.cube.Cube):
+                Cube to blend across the coord.
+            coord_name (string):
+                Name of coordinate in the cube to be blended.
 
-            Raises:
-                TypeError : input is not a cube
+        Returns:
+            weights (iris.cube.Cube):
+                1D cube of normalised (sum = 1.0) weights matching length
+                of input dimension to be blended
+
+        Raises:
+            TypeError : input is not a cube
         """
         if not isinstance(cube, iris.cube.Cube):
             msg = ('The first argument must be an instance of '
@@ -566,37 +570,39 @@ class ChooseDefaultWeightsLinear:
 
 class ChooseDefaultWeightsNonLinear:
     """ Calculate Default Weights using NonLinear Function. """
-    def __init__(self, cval=0.85):
-        """Set up for calculating default weights using non-linear function.
-
-            Args:
-                cval (float):
-                       Value greater than 0, less than equal 1.0
-                       default = 0.85
-                       equal weights when cval = 1.0
+    def __init__(self, cval):
         """
+        Set up for calculating default weights using non-linear function.
+
+        Args:
+            cval (float):
+                Value greater than 0, less than equal 1.0.  Weights are
+                calculated for input cubes in order such that the first has
+                weight cval**0, then cval**1, cval**2, etc.  The weights are
+                then re-normalised. Thus a value of 1 gives equal weighting
+                across all input fields.
+
+        Raises:
+            ValueError: an inappropriate value of cval is input.
+        """
+        if cval <= 0.0 or cval > 1.0:
+            msg = ('cval must be greater than 0.0 and less '
+                   'than or equal to 1.0 cval = {}'.format(cval))
+            raise ValueError(msg)
         self.cval = cval
 
     def nonlinear_weights(self, num_of_weights):
-        """Create nonlinear weights.
-
-            Args:
-                num_of_weights (Positive Integer):
-                                 Number of weights to create.
-
-            Returns:
-                weights (numpy.array):
-                    array of weights, sum of all weights = 1.0
-
-            Raises:
-                ValueError: an inappropriate value of cval is input.
         """
-        if self.cval <= 0.0 or self.cval > 1.0:
-            msg = ('cval must be greater than 0.0 and less '
-                   'than or equal to 1.0 '
-                   'cval = {0:s}'.format(str(self.cval)))
-            raise ValueError(msg)
+        Create nonlinear weights.
 
+        Args:
+            num_of_weights (int):
+                Number of weights to create
+
+        Returns:
+            weights (numpy.array):
+                Normalised array of weights
+        """
         weights_list = []
         for tval_minus1 in range(0, num_of_weights):
             weights_list.append(self.cval**(tval_minus1))
@@ -606,21 +612,32 @@ class ChooseDefaultWeightsNonLinear:
 
         return weights
 
-    def process(self, cube, coord_name):
-        """Calculated weights for a given cube and coord.
+    def process(self, cube, coord_name, inverse_ordering=False):
+        """
+        Calculate nonlinear weights for a given cube and coord.
 
-            Args:
-                cube (iris.cube.Cube):
-                       Cube to blend across the coord.
-                coord_name (string):
-                       Name of coordinate in the cube to be blended.
-            Returns:
-                weights (iris.cube.Cube):
-                    1D cube of normalised (sum = 1.0) weights matching length
-                    of input dimension to be blended
+        Args:
+            cube (iris.cube.Cube):
+                Cube to be blended across the coord.
+            coord_name (string):
+                Name of coordinate in the cube to be blended.
 
-            Raises:
-                TypeError : input is not a cube
+        Kwargs:
+            inverse_ordering (bool):
+                The input cube blend coordinate will be in ascending order,
+                so that calculated blend weights decrease with increasing
+                value.  For eg cycle blending by forecast reference time, we
+                wish to weight more recent cubes more highly.  This flag gives
+                the option to reverse the blend coordinate order so as to have
+                higher weights for the higher values.
+
+        Returns:
+            weights (iris.cube.Cube):
+                1D cube of normalised (sum = 1.0) weights matching input
+                dimension to be blended
+
+        Raises:
+            TypeError : input is not a cube
         """
         if not isinstance(cube, iris.cube.Cube):
             msg = ('The first argument must be an instance of '
@@ -628,9 +645,22 @@ class ChooseDefaultWeightsNonLinear:
                    ' {0:s}'.format(str(type(cube))))
             raise TypeError(msg)
 
+        if inverse_ordering:
+            # make a copy of the input cube from which to calculate weights
+            inverted_cube = cube.copy()
+            inverted_cube = sort_coord_in_cube(
+                inverted_cube, coord_name, order="descending")
+            cube = inverted_cube
+
         weights = self.nonlinear_weights(len(cube.coord(coord_name).points))
         weights_cube = WeightsUtilities.build_weights_cube(cube, weights,
                                                            coord_name)
+
+        if inverse_ordering:
+            # re-sort the weights cube so that it is in ascending order of
+            # blend coordinate (and hence matches the input cube)
+            weights_cube = sort_coord_in_cube(weights_cube, coord_name)
+
         return weights_cube
 
     def __repr__(self):

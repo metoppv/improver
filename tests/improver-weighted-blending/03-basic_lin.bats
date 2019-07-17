@@ -36,7 +36,7 @@
   KGO="weighted_blending/basic_lin/kgo.nc"
 
   # Run weighted blending with linear weights and check it passes.
-  run improver weighted-blending 'forecast_reference_time' \
+  run improver weighted-blending 'forecast_reference_time' --y0val 20.0 --ynval 2.0 \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
