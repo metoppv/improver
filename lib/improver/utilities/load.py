@@ -42,7 +42,7 @@ from improver.utilities.cube_manipulation import (
 
 class ChunkedNetCDFDataProxy(NetCDFDataProxy):
     """Adds `chunks` attribute on top of NetCDFDataProxy class."""
-    __slots__ = ('chunks',)
+    __slots__ = NetCDFDataProxy.__slots__ + ('chunks',)
 
 
 def load_cube(filepath, constraints=None, no_lazy_load=False):
@@ -95,11 +95,13 @@ def load_cube(filepath, constraints=None, no_lazy_load=False):
                     shape, dtype, item, var_name, fill_value)
                 with netCDF4.Dataset(item) as ds:
                     nc_chunks = ds[var_name].chunking()
-                if nc_chunks is not 'contiguous':
+                if nc_chunks is 'contiguous':
+                    nc_chunks = None
+                else:
                     nc_chunks = da.core.normalize_chunks(nc_chunks, shape)
-                    # `chunks` attribute to hint auto-chunking in Dask (v1.2.1+)
-                    # https://github.com/SciTools/iris/issues/3357#issuecomment-511803573
-                    proxy.chunks = nc_chunks
+                # `chunks` attribute to hint auto-chunking in Dask (v1.2.1+)
+                # https://github.com/SciTools/iris/issues/3357#issuecomment-511803573
+                proxy.chunks = nc_chunks
                 cube_item.data = da.from_array(proxy)
         cubes.extend(cube_items)
 
