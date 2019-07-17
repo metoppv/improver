@@ -696,8 +696,8 @@ class OpticalFlow(object):
         try:
             cube1 = cube1.copy()
             cube2 = cube2.copy()
-#            cube1.convert_units('mm/hr')
-#            cube2.convert_units('mm/hr')
+            cube1.convert_units('mm/hr')
+            cube2.convert_units('mm/hr')
         except ValueError:
             msg = ('Input data are in units that cannot be converted to mm/hr '
                    'which are the required units for use with optical flow.')
