@@ -202,7 +202,7 @@ class OpticalFlow(object):
                 np.diff(data, axis=axis), axis=1-axis)
             outdata.append(diffs)
         smoothed_diffs = np.zeros(
-            [self.shape[0]+1, self.shape[1]+1], dtype=np.float32)
+            [self.shape[0]+1, self.shape[1]+1], dtype=np.float64)
         smoothed_diffs[1:-1, 1:-1] = 0.5*(outdata[0] + outdata[1])
         return self.interp_to_midpoint(smoothed_diffs)
 
@@ -219,7 +219,7 @@ class OpticalFlow(object):
         """
         tdiff = self.data2 - self.data1
         smoothed_diffs = np.zeros(
-            [self.shape[0]+1, self.shape[1]+1], dtype=np.float32)
+            [self.shape[0]+1, self.shape[1]+1], dtype=np.float64)
         smoothed_diffs[1:-1, 1:-1] = self.interp_to_midpoint(tdiff)
         return self.interp_to_midpoint(smoothed_diffs)
 
@@ -254,7 +254,7 @@ class OpticalFlow(object):
                     (self.data2[i:i+self.boxsize, j:j+self.boxsize]).sum())
                 weight = 1. - np.exp(-1.*weight/0.8)
                 weights.append(weight)
-        weights = np.array(weights, dtype=np.float32)
+        weights = np.array(weights, dtype=np.float64)
         weights[weights < 0.01] = 0
         return boxes, weights
 
@@ -274,7 +274,7 @@ class OpticalFlow(object):
         grid_data = np.repeat(np.repeat(box_data, self.boxsize, axis=0),
                               self.boxsize, axis=1)
         grid_data = grid_data[:self.shape[0],
-                              :self.shape[1]].astype(np.float32)
+                              :self.shape[1]].astype(np.float64)
         return grid_data
 
     @staticmethod
@@ -365,7 +365,7 @@ class OpticalFlow(object):
         # define kernel for neighbour weighting
         neighbour_kernel = (np.array([[0.5, 1, 0.5],
                                       [1.0, 0, 1.0],
-                                      [0.5, 1, 0.5]])/6.).astype(np.float32)
+                                      [0.5, 1, 0.5]])/6.).astype(np.float64)
 
         # smooth input data and weights fields
         vel_neighbour = scipy.ndimage.convolve(weights*vel_iter,
@@ -532,8 +532,8 @@ class OpticalFlow(object):
         # (c) Reshape displacement arrays to match array of subbox points
         newshape = [int((self.shape[0]-1)/self.boxsize) + 1,
                     int((self.shape[1]-1)/self.boxsize) + 1]
-        umat = np.array(velocity[0], dtype=np.float32).reshape(newshape)
-        vmat = np.array(velocity[1], dtype=np.float32).reshape(newshape)
+        umat = np.array(velocity[0], dtype=np.float64).reshape(newshape)
+        vmat = np.array(velocity[1], dtype=np.float64).reshape(newshape)
         weights = box_weights.reshape(newshape)
 
         # (d) Check for extreme advection displacements (over a significant
@@ -691,6 +691,18 @@ class OpticalFlow(object):
         check_if_grid_is_equal_area(cube1)
         check_if_grid_is_equal_area(cube2)
 
+        # convert units to mm/hr as these avoid the need to manipulate tiny
+        # decimals
+        try:
+            cube1 = cube1.copy()
+            cube2 = cube2.copy()
+#            cube1.convert_units('mm/hr')
+#            cube2.convert_units('mm/hr')
+        except ValueError:
+            msg = ('Input data are in units that cannot be converted to mm/hr '
+                   'which are the required units for use with optical flow.')
+            raise ValueError(msg)
+
         # check time difference is positive
         time1 = (cube1.coord("time").units).num2date(
             cube1.coord("time").points[0])
@@ -712,7 +724,7 @@ class OpticalFlow(object):
         # calculate smoothing radius in grid square units
         new_coord = cube1.coord(axis='x').copy()
         new_coord.convert_units('km')
-        grid_length_km = np.float32(np.diff((new_coord).points)[0])
+        grid_length_km = np.float64(np.diff((new_coord).points)[0])
         data_smoothing_radius = \
             int(data_smoothing_radius_km / grid_length_km)
 
@@ -737,6 +749,11 @@ class OpticalFlow(object):
         data2 = next(cube2.slices([cube2.coord(axis='y'),
                                    cube2.coord(axis='x')])).data
 
+        # fill the mask with 0 values so erroneous values are not spread into
+        # the domain when smoothing the fields.
+        data1 = data1.filled(0)
+        data2 = data2.filled(0)
+
         # if input arrays have no non-zero values, set velocities to zero here
         # and raise a warning
         if (np.allclose(data1, np.zeros(data1.shape)) or
@@ -744,15 +761,15 @@ class OpticalFlow(object):
             msg = ("No non-zero data in input fields: setting optical flow "
                    "velocities to zero")
             warnings.warn(msg)
-            ucomp = np.zeros(data1.shape, dtype=np.float32)
-            vcomp = np.zeros(data2.shape, dtype=np.float32)
+            ucomp = np.zeros(data1.shape, dtype=np.float64)
+            vcomp = np.zeros(data2.shape, dtype=np.float64)
         else:
             # calculate dimensionless displacement between the two input fields
             ucomp, vcomp = self.process_dimensionless(data1, data2, 1, 0,
                                                       data_smoothing_radius)
             # convert displacements to velocities in metres per second
             for vel in [ucomp, vcomp]:
-                vel *= np.float32(1000.*grid_length_km)
+                vel *= np.float64(1000.*grid_length_km)
                 vel /= cube_time_diff.total_seconds()
 
         # create velocity output cubes based on metadata from later input cube

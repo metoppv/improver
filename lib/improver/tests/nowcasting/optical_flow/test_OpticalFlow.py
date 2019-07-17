@@ -664,6 +664,36 @@ class Test_process(IrisTest):
             np.mean(ucube.data), -2.1719084)
         self.assertAlmostEqual(np.mean(vcube.data), 2.1719084)
 
+    def test_values_with_precip_rate_in_m_per_s(self):
+        """Test velocity values are as expected (in m/s) when the input
+        precipitation rates are in units of m/s rather than the expected
+        mm/hr."""
+        self.cube1.convert_units('m s-1')
+        self.cube2.convert_units('m s-1')
+        ucube, vcube = self.plugin.process(self.cube1, self.cube2, boxsize=3)
+        self.assertAlmostEqual(
+            np.mean(ucube.data), -2.1719084)
+        self.assertAlmostEqual(np.mean(vcube.data), 2.1719084)
+
+    def test_error_for_unconvertable_units(self):
+        """Test that an exception is raised if the input precipitation cubes
+        have units that cannot be converted to mm/hr."""
+        self.cube1.units = 'm'
+        self.cube2.units = 'm'
+
+        msg = "Input data are in units that cannot be converted to mm/hr"
+        with self.assertRaisesRegex(ValueError, msg):
+            _, _ = self.plugin.process(self.cube1, self.cube2, boxsize=3)
+
+    def test_input_cubes_unchanged(self):
+        """Test the input precipitation rate cubes are unchanged by use in the
+        optical flow plugin."""
+        cube1_ref = self.cube1.copy()
+        cube2_ref = self.cube2.copy()
+        ucube, vcube = self.plugin.process(self.cube1, self.cube2, boxsize=3)
+        self.assertEqual(self.cube1, cube1_ref)
+        self.assertEqual(self.cube2, cube2_ref)
+
     def test_decrease_time_interval(self):
         """Test that decreasing the time interval between radar frames below
         15 minutes does not alter the smoothing radius. To test this the time
