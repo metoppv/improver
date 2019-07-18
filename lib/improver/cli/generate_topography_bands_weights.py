@@ -122,11 +122,38 @@ def main(argv=None):
             landmask = next(landmask.slices([landmask.coord(axis='y'),
                                              landmask.coord(axis='x')]))
 
-        result = GenerateTopographicZoneWeights().process(
-            orography, thresholds_dict, landmask=landmask)
+        result = process(landmask, orography, thresholds_dict)
+        # Save Cube
         save_netcdf(result, args.output_filepath)
     else:
         print('File already exists here: ', args.output_filepath)
+
+
+def process(landmask, orography, thresholds_dict=THRESHOLDS_DICT):
+    """
+    Calculate the weights depending upon where the orography point is within
+    the topographical zones.
+    Args:
+        landmask (iris.cube.Cube):
+            Land mask on standard grid. Sea points are masked out in the output
+            array
+        orography (iris.cube.Cube):
+            Orography on standard grid.
+        thresholds_dict (dictionary):
+            Definition of orography bands required.
+            The expected format of the dictionary is e.g
+
+                {'bounds':[[0, 50], [50, 200]], 'units': 'm'}
+
+    Returns:
+        (iris.cube.Cube):
+            Cube containing the weights depending upon where the orography
+            point is within the topographical zones.
+
+    """
+    result = GenerateTopographicZoneWeights().process(
+        orography, thresholds_dict, landmask=landmask)
+    return result
 
 
 if __name__ == "__main__":
