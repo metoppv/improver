@@ -62,14 +62,38 @@ def main(argv=None):
 
     # Check if improver ancillary already exists.
     if not os.path.exists(args.output_filepath) or args.force:
+        # Load Cube
         input_field = load_cube(args.input_filepath)
-        gradients = DifferenceBetweenAdjacentGridSquares().process(input_field)
-        gradients = iris.cube.CubeList([gradients[0], gradients[1]])
+
+        # Process Cube
+        gradients = process(input_field)
+
+        # Save Cube
         save_netcdf(gradients, args.output_filepath)
     else:
         print(args.output_filepath)
         msg = 'File already exists here: {}'.format(args.output_filepath)
         raise IOError(msg)
+
+
+def process(input_field):
+    """
+    Calculate the difference along the x and y axes and returns the result in
+    separate cubes. The difference along each axes is calculated using
+    numpy.diff.
+    Args:
+        input_field:
+        Cube from which the difference will be calculated.
+
+    Returns:
+        gradients (iris.cube.Cubelist):
+            A cubelist with both cubes in.
+            The first Cube is the difference along the Y axis
+            The second Cube is the difference along the X axis
+    """
+    gradients = DifferenceBetweenAdjacentGridSquares().process(input_field)
+    gradients = iris.cube.CubeList([gradients[0], gradients[1]])
+    return gradients
 
 
 if __name__ == "__main__":
