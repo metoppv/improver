@@ -104,7 +104,7 @@ def main(argv=None):
             try:
                 landmask = load_cube(args.input_filepath_landmask)
                 landmask = next(landmask.slices([landmask.coord(axis='y'),
-                                     landmask.coord(axis='x')]))
+                                landmask.coord(axis='x')]))
             except IOError as err:
                 msg = ("Loading land mask has been unsuccessful: {}. "
                        "This may be because the land mask could not be "
