@@ -701,8 +701,8 @@ class Test_process(IrisTest):
         data2[:2, :] = 1.0E36
         data2[:, :2] = 1.0E36
 
-        masked1 = data=np.ma.MaskedArray(self.cube1.data, mask=mask)
-        masked2 = data=np.ma.MaskedArray(self.cube2.data, mask=mask)
+        masked1 = np.ma.MaskedArray(self.cube1.data, mask=mask)
+        masked2 = np.ma.MaskedArray(self.cube2.data, mask=mask)
 
         masked_cube1 = self.cube1.copy(data=masked1)
         masked_cube2 = self.cube2.copy(data=masked2)
