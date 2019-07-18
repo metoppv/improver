@@ -59,11 +59,29 @@ def main(argv=None):
 
     # Check if improver ancillary already exists.
     if not os.path.exists(args.output_filepath) or args.force:
+        # Load Cube
         landmask = load_cube(args.input_filepath_standard)
-        land_binary_mask = CorrectLandSeaMask().process(landmask)
+        # Process Cube
+        land_binary_mask = process(landmask)
+        # Save Cube
         save_netcdf(land_binary_mask, args.output_filepath)
     else:
         print('File already exists here: ', args.output_filepath)
+
+
+def process(landmask):
+    """
+    Read in the interpolated landmask and round values < 0.5 to False and
+    values >= 0.5 to True.
+    Args:
+        landmask (iris.cube.Cube):
+            Cube to process
+    Returns:
+        (iris.cube.Cube):
+            output landmask of boolean values.
+
+    """
+    return CorrectLandSeaMask().process(landmask)
 
 
 if __name__ == "__main__":
