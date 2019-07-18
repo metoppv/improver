@@ -67,10 +67,13 @@ def main(argv=None):
                         'return the input cube.')
     args = parser.parse_args(args=argv)
 
+    # Load Cube
     cube = load_cube(args.input_file)
 
-    output_cube = extract_subcube(cube, args.constraints, args.units)
+    # Process Cube
+    output_cube = process(cube, args.constraints, args.units)
 
+    # Save Cube
     if output_cube is None and args.ignore_failure:
         save_netcdf(cube, args.output_file)
     elif output_cube is None:
@@ -78,6 +81,28 @@ def main(argv=None):
         raise ValueError(msg)
     else:
         save_netcdf(output_cube, args.output_file)
+
+
+def process(cube, constraints, units=None):
+    """
+    Extracts subset of data from a single cube, subject to equality-based
+    constraints
+    Args:
+        cube:
+            The Cube from which a subcube is extracted
+        constraints (list):
+            List of string constraints with keys and values split by '='
+        units (list):
+            List of units as strings corresponding to each coordinate in the
+            list of constraints. One or more "units" may be None and units may
+            only be associated with coordinate constraints.
+
+    Returns:
+        (iris.cube.Cube):
+            A single cube matching the input constraints or None. If no
+            subcube is found within the cube that matches the constraints.
+    """
+    return extract_subcube(cube, constraints, units)
 
 
 if __name__ == '__main__':

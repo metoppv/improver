@@ -60,15 +60,52 @@ def main(argv=None):
                         help="The output path for the processed NetCDF")
 
     args = parser.parse_args(args=argv)
-
+    # Load Cubes
     temperature = load_cube(args.temperature)
     wind_speed = load_cube(args.wind_speed)
     relative_humidity = load_cube(args.relative_humidity)
     pressure = load_cube(args.pressure)
 
-    result = calculate_feels_like_temperature(temperature, wind_speed,
-                                              relative_humidity, pressure)
+    # Process Cube
+    result = process(temperature, wind_speed, relative_humidity, pressure)
+    # Save Cube
     save_netcdf(result, args.output_filepath)
+
+
+def process(temperature, wind_speed, relative_humidity, pressure):
+    """
+    Calculate the feels like temperature using a combination of the wind chill
+    index and Steadman's apparent temperature equation with the following
+    method:
+
+    If temperature < 10 degrees C: The feels like temperature is equal to the
+    wind chill.
+
+    If temperature > 20 degrees C: The feels like temperature is equal to the
+    apparent temperature.
+
+    If 10 <= temperature <= degrees C: A weighting (alpha) is calculated in
+    order to blend between the wind chill and the apparent temperature.
+
+    Args:
+        temperature (iris.cube.Cube):
+            Cube of air temperature.
+        wind_speed (iris.cube.Cube):
+            Cube of 10m wind speeds.
+        relative_humidity (iris.cube.Cube):
+            Cube of relative humidities
+        pressure (iris.cube.Cube):
+            Cube of air pressure.
+
+    Returns:
+        (iris.cube.Cube):
+            Cube of feels like temperature. The units of feels like temperature
+            will be the dame as the units of temperature cube when it is input
+            into the function.
+
+    """
+    return calculate_feels_like_temperature(temperature, wind_speed,
+                                            relative_humidity, pressure)
 
 
 if __name__ == "__main__":
