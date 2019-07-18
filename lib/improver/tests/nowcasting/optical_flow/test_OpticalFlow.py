@@ -675,6 +675,54 @@ class Test_process(IrisTest):
             np.mean(ucube.data), -2.1719084)
         self.assertAlmostEqual(np.mean(vcube.data), 2.1719084)
 
+    def test_values_with_masked_data(self):
+        """Test velocity values are as expected when masked cubes are used as
+        input to the tests. This test is to capture behaviour whereby mask
+        fill values were being used as valid data. This resulted in far from
+        correct velocities being calculated by the optical flow code. Notably
+        the velocity fields did not reflect the position of precipitation in
+        the input precipitation fields, and the returned velocities were too
+        low.
+
+        In this test masked cubes are used and comparable unmasked cubes in
+        which there the fill values are included in the field. We expect
+        the results to be different, with higher velocities returned for the
+        masked cubes.
+        """
+        mask = np.zeros((16, 16))
+        mask[:2, :] = 1
+        mask[:, :2] = 1
+
+        # Ensure the masked data points contain a high fill value.
+        data1 = self.cube1.data
+        data2 = self.cube2.data
+        data1[:2, :] = 1.0E36
+        data1[:, :2] = 1.0E36
+        data2[:2, :] = 1.0E36
+        data2[:, :2] = 1.0E36
+
+        masked1 = data=np.ma.MaskedArray(self.cube1.data, mask=mask)
+        masked2 = data=np.ma.MaskedArray(self.cube2.data, mask=mask)
+
+        masked_cube1 = self.cube1.copy(data=masked1)
+        masked_cube2 = self.cube2.copy(data=masked2)
+        unmasked_cube1 = self.cube1.copy(data=data1)
+        unmasked_cube2 = self.cube2.copy(data=data2)
+
+        ucube_masked, vcube_masked = self.plugin.process(
+            masked_cube1, masked_cube2, boxsize=3)
+        ucube_unmasked, vcube_unmasked = self.plugin.process(
+            unmasked_cube1, unmasked_cube2, boxsize=3)
+
+        self.assertAlmostEqual(
+            np.mean(ucube_masked.data), -1.4995803)
+        self.assertAlmostEqual(
+            np.mean(vcube_masked.data), 1.4995805)
+        self.assertAlmostEqual(
+            np.mean(ucube_unmasked.data), -0.2869996)
+        self.assertAlmostEqual(
+            np.mean(vcube_unmasked.data), 0.28699964)
+
     def test_error_for_unconvertable_units(self):
         """Test that an exception is raised if the input precipitation cubes
         have units that cannot be converted to mm/hr."""

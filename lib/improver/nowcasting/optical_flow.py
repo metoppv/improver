@@ -749,10 +749,12 @@ class OpticalFlow(object):
         data2 = next(cube2.slices([cube2.coord(axis='y'),
                                    cube2.coord(axis='x')])).data
 
-        # fill the mask with 0 values so fill_values are not spread into the
+        # fill any mask with 0 values so fill_values are not spread into the
         # domain when smoothing the fields.
-        data1 = data1.filled(0)
-        data2 = data2.filled(0)
+        if np.ma.is_masked(data1):
+            data1 = data1.filled(0)
+        if np.ma.is_masked(data2):
+            data2 = data2.filled(0)
 
         # if input arrays have no non-zero values, set velocities to zero here
         # and raise a warning
