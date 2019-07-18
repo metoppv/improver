@@ -177,19 +177,92 @@ def main(argv=None):
     # Process Cubes
     result = process(current_forecast, historic_forecast, truth, args.units,
                      args.distribution, args.predictor_of_mean,
-                     args.save_mean, args.save_variance,
                      args.num_realizations, args.random_ordering,
                      args.random_seed, args.ecc_bounds_warning,
                      args.max_iterations)
 
     # Save Cube
-    save_netcdf(result, args.output_filepath)
+    save_netcdf(result[0], args.output_filepath)
+    # If required, save the mean and variance.
+    if args.save_mean:
+        save_netcdf(result[1], args.save_mean)
+    if args.save_variance:
+        save_netcdf(result[2], args.save_variance)
 
 
 def process(current_forecast, historic_forecast, truth, units, distribution,
-            predictor_of_mean='mean', save_mean=False, save_variance=False,
-            num_realizations=None, random_ordering=False, random_seed=None,
-            ecc_bounds_warning=False, max_iterations=1000):
+            predictor_of_mean='mean', num_realizations=None,
+            random_ordering=False, random_seed=None, ecc_bounds_warning=False,
+            max_iterations=1000):
+    """Apply the requested ensemble calibration method using the current
+       forecast (to be calibrated) in the form of realizations, probabilities,
+       or percentiles. Historical forecasts in the form of realizations and
+       historical truth data (to use in calibration).
+       If the current forecast is supplied in the form of probabilities or
+       percentiles, these are converted to realizations prior to calibration.
+       After calibration, the mean are variance computed in the calibration
+       are converted to match the format of the current forecast.
+
+    Args:
+        current_forecast (iris.cube.Cube):
+            A cube with the current for cast to be calibrated.
+        historic_forecast (iris.cube.Cube):
+            A cube containing historic forecasts to be used for calibration.
+        truth (iris.cube.Cube):
+            A Cube containing the historic truth data for calibration.
+        units (string):
+            The unit that calibration should br undertaken in. The current
+            forecast, historical forecast and truth will be converted as
+            required.
+        distribution (string):
+            The distribution that will be used fore calibration. This will be
+            dependent upon the input phenomenon. This has to be supported by
+            the minimisation function in
+            ContinuousRankedProbabilityScoreMinimisers.
+        predictor_of_mean (string):
+            String to specify the iput to calculate the calibrated mean.
+            Currently the ensemble mean "mean" and the ensemble realizations
+            "realizations" are supported as the predictors.
+        num_realizations (np.int32):
+            Optional argument to specify the number of ensemble realizations
+            to produce. If the current forecast is input as probabilities or
+            percentiles then this argument is used to create the requested
+            number of realizations. In addition, this argument is used to
+            construct the requested number of realizations from the mean and
+            variance output after applying the EMOS coefficients.
+        random_ordering (boolean):
+            Optional argument to reoprted the post-processed forecasts
+            randomly. If not set, the ordering of the raw ensemble is used.
+            This option is only valid when the input format is realizations.
+        random_seed (int):
+            If random_seed is an integer, the integer value is used for the
+            random_seed.
+            If the random_seed is None, no random seed is set, so the random
+            values generated are no reproducible.
+        ecc_bounds_warning(boolean):
+            If True, where te percentiles exceed the ECC bounds range, raises
+            a warning rather than an exception. This occurs when the current
+            forecast is in the form of probabilities and is converted to
+            percentiles, as part of converting the input probabilities into
+            realizations.
+        max_iterations:
+        The maximum number of iterations allowed until the minimisation has
+        converged to a stable solution. If the maximum number of iterations is
+        reached, but the minimisation has not yet converged to a stable
+        solution, the the available solution is used anyway and a warning is
+        raised. If the predictor_of_mean is "realizations", then the number of
+        iterations may require increasing, as there will be more coefficients
+        to solve for.
+
+    Returns(tuple of 3):
+        result (iris.cube.Cube):
+            A cube after being processed.
+        forecast_predictor (iris.cube.Cube):
+            The mean output from EnsembleCalibration.
+        forecast_variance (iris.cube.Cube):
+            The variance output from EnsembleCalibration.
+
+    """
     original_current_forecast = current_forecast.copy()
     msg = ("The current forecast has been provided as {0}. "
            "These {0} need to be converted to realizations "
@@ -233,11 +306,6 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
         predictor_of_mean_flag=predictor_of_mean,
         max_iterations=max_iterations).process(
         current_forecast, historic_forecast, truth)
-    # If required, save the mean and variance.
-    if save_mean:
-        save_netcdf(forecast_predictor, save_mean)
-    if save_variance:
-        save_netcdf(forecast_variance, save_variance)
     # If input forecast is probabilities, convert output into probabilities.
     # If input forecast is percentiles, convert output into percentiles.
     # If input forecast is realizations, convert output into realizations.
@@ -259,7 +327,7 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
             percentiles, current_forecast,
             random_ordering=random_ordering,
             random_seed=random_seed)
-    return result
+    return result, forecast_predictor, forecast_variance
 
 
 if __name__ == "__main__":
