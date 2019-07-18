@@ -31,6 +31,7 @@
 """Module for saving netcdf cubes with desired attribute types."""
 
 import cf_units
+import warnings
 import iris
 
 from improver.utilities.cube_checker import check_cube_not_float64
@@ -137,14 +138,31 @@ def save_netcdf(cubelist, filename):
             Cube or list of cubes to be saved
         filename (str):
             Filename to save input cube(s)
+
+    Raises:
+        warning if cubelist contains cubes of varying dimensions.
     """
     if isinstance(cubelist, iris.cube.Cube):
         cubelist = [cubelist]
 
+    chunksizes = None
+    xy_chunksizes = [None, None]
     for cube in cubelist:
         check_cube_not_float64(cube)
         _order_cell_methods(cube)
         _check_for_units(cube)
+    # If all xy slices are the same shape, use this to determine
+    # the chunksize for the netCDF (eg. 1, 1, 970, 1042)
+    chunksizes = None
+    if len(set([cube.shape[:2] for cube in cubelist])) == 1:
+        cube = cubelist[0]
+        if cube.ndim >= 2:
+            xy_chunksizes = [cube.shape[-2], cube.shape[-1]]
+            chunksizes = tuple([1] * (cube.ndim - 2) + xy_chunksizes)
+    else:
+        msg = ("Chunksize not set as cubelist "
+               "contains cubes of varying dimensions")
+        warnings.warn(msg)
 
     global_keys = ['title', 'um_version', 'grid_id', 'source', 'Conventions',
                    'mosg__grid_type', 'mosg__model_configuration',
@@ -155,14 +173,6 @@ def save_netcdf(cubelist, filename):
                   if key not in global_keys}
 
     cubelist = _append_metadata_cube(cubelist, global_keys)
-
-    chunksizes = None
-    if cube.ndim >= 2:
-        xy_chunksizes = [
-            min([128, cube.shape[-2]]),
-            min([128, cube.shape[-1]])
-        ]
-        chunksizes = tuple([1] * (cube.ndim - 2) + xy_chunksizes)
     iris.fileformats.netcdf.save(cubelist, filename, local_keys=local_keys,
                                  complevel=1, shuffle=True, zlib=True,
                                  chunksizes=chunksizes)
