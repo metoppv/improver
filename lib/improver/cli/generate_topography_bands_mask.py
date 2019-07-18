@@ -99,11 +99,12 @@ def main(argv=None):
         orography = load_cube(args.input_filepath_standard_orography)
         orography = next(orography.slices([orography.coord(axis='y'),
                                            orography.coord(axis='x')]))
-
         landmask = None
         if args.input_filepath_landmask:
             try:
                 landmask = load_cube(args.input_filepath_landmask)
+                landmask = next(landmask.slices([landmask.coord(axis='y'),
+                                     landmask.coord(axis='x')]))
             except IOError as err:
                 msg = ("Loading land mask has been unsuccessful: {}. "
                        "This may be because the land mask could not be "
@@ -111,16 +112,41 @@ def main(argv=None):
                        'improver-generate-landmask-ancillary first.').format(
                            err, args.input_filepath_landmask)
                 raise IOError(msg)
+        # Process Cube
+        result = process(landmask, orography, thresholds_dict)
 
-            landmask = next(landmask.slices([landmask.coord(axis='y'),
-                                             landmask.coord(axis='x')]))
-
-        result = GenerateOrographyBandAncils().process(
-            orography, thresholds_dict, landmask=landmask)
-        result = result.concatenate_cube()
+        # Save Cube
         save_netcdf(result, args.output_filepath)
     else:
         print('File already exists here: ', args.output_filepath)
+
+
+def process(landmask, orography, thresholds_dict=THRESHOLDS_DICT):
+    """ Loops over the supplied orographic bands, adding a cube for each
+    band to the mask cubelist.
+
+    Args:
+        landmask (iris.cube.Cube):
+            The land mask on standard grid. If provided dea points are sex to
+            zero in every band.
+        orography (iris.cube.Cube):
+            The orography a standard grid.
+        thresholds_dict dictionary:
+            Definition of orography bands required. Has key-value pairs of
+            "bounds": list of list of airs of bounds for each band and
+            "units":"string containing units of bounds", for example:
+            {'bounds' :[[0, 100], [100, 200]], 'units':"m"}
+
+    Returns:
+        result (iris.cube.Cube):
+            list of orographic band mask cubes.
+
+    """
+
+    result = GenerateOrographyBandAncils().process(
+        orography, thresholds_dict, landmask=landmask)
+    result = result.concatenate_cube()
+    return result
 
 
 if __name__ == "__main__":
