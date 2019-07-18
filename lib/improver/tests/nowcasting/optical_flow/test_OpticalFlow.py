@@ -738,7 +738,7 @@ class Test_process(IrisTest):
         optical flow plugin."""
         cube1_ref = self.cube1.copy()
         cube2_ref = self.cube2.copy()
-        ucube, vcube = self.plugin.process(self.cube1, self.cube2, boxsize=3)
+        _, _ = self.plugin.process(self.cube1, self.cube2, boxsize=3)
         self.assertEqual(self.cube1, cube1_ref)
         self.assertEqual(self.cube2, cube2_ref)
 
