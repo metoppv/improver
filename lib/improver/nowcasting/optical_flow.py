@@ -749,8 +749,8 @@ class OpticalFlow(object):
         data2 = next(cube2.slices([cube2.coord(axis='y'),
                                    cube2.coord(axis='x')])).data
 
-        # fill the mask with 0 values so erroneous values are not spread into
-        # the domain when smoothing the fields.
+        # fill the mask with 0 values so fill_values are not spread into the
+        # domain when smoothing the fields.
         data1 = data1.filled(0)
         data2 = data2.filled(0)
 
