@@ -35,6 +35,7 @@ import netCDF4
 import dask.array as da
 import iris
 from iris.fileformats.netcdf import NetCDFDataProxy
+from packaging.version import Version
 
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering, merge_cubes)
@@ -42,6 +43,8 @@ from improver.utilities.cube_manipulation import (
 
 class ChunkedNetCDFDataProxy(NetCDFDataProxy):
     """Adds `chunks` attribute on top of NetCDFDataProxy class."""
+    # `chunks` attribute hints auto-chunking in Dask (v1.2.1+)
+    # https://github.com/SciTools/iris/issues/3357#issuecomment-511803573
     __slots__ = NetCDFDataProxy.__slots__ + ('chunks',)
 
     def __init__(self, shape, dtype, path, variable_name, fill_value,
@@ -89,24 +92,30 @@ def load_cube(filepath, constraints=None, no_lazy_load=False):
         else:
             cube_items = iris.load(item, constraints=constraints)
             for cube_item in cube_items:
-                # use Dask rather Iris for chunking
-                # this avoids problems with excessive file I/O when
-                # NetCDF chunking is passed through to Dask
+                # use Dask rather than Iris (v2.2) logic for chunking
+                # this avoids problems with excessive file I/O when NetCDF
+                # chunking is small and gets passed through to Dask
+                # TODO: resolve this upstream and remove this kludge
                 shape = cube_item.shape
                 dtype = cube_item.dtype
                 var_name = cube_item.var_name
                 fill_value = netCDF4.default_fillvals[cube_item.dtype.str[1:]]
-                with netCDF4.Dataset(item) as ds:
-                    nc_chunks = ds[var_name].chunking()
-                if nc_chunks is 'contiguous':
-                    nc_chunks = None
+                if Version(dask.__version__) >= Version('1.2.1'):
+                    # newer Dask can retain original chunking boundaries
+                    with netCDF4.Dataset(item) as ds:
+                        nc_chunks = ds[var_name].chunking()
+                    if nc_chunks is 'contiguous':
+                        nc_chunks = None
+                    else:
+                        nc_chunks = da.core.normalize_chunks(nc_chunks, shape)
+                    proxy = ChunkedNetCDFDataProxy(
+                        shape, dtype, item, var_name, fill_value, nc_chunks)
+                    cube_item.data = da.from_array(proxy)
                 else:
-                    nc_chunks = da.core.normalize_chunks(nc_chunks, shape)
-                # `chunks` attribute to hint auto-chunking in Dask (v1.2.1+)
-                # https://github.com/SciTools/iris/issues/3357#issuecomment-511803573
-                proxy = ChunkedNetCDFDataProxy(
-                    shape, dtype, item, var_name, fill_value, nc_chunks)
-                cube_item.data = da.from_array(proxy)
+                    # with older dask read everything in one chunk
+                    proxy = NetCDFDataProxy(
+                        shape, dtype, item, var_name, fill_value)
+                    cube_item.data = da.from_array(proxy, chunks=-1)
         cubes.extend(cube_items)
 
     # Merge loaded cubes
