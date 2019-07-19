@@ -129,7 +129,7 @@ def main(argv=None):
         print('File already exists here: ', args.output_filepath)
 
 
-def process(landmask, orography, thresholds_dict=THRESHOLDS_DICT):
+def process(landmask, orography, thresholds_dict=None):
     """
     Calculate the weights depending upon where the orography point is within
     the topographical zones.
@@ -151,6 +151,8 @@ def process(landmask, orography, thresholds_dict=THRESHOLDS_DICT):
             point is within the topographical zones.
 
     """
+    if thresholds_dict is None:
+        thresholds_dict = THRESHOLDS_DICT
     result = GenerateTopographicZoneWeights().process(
         orography, thresholds_dict, landmask=landmask)
     return result

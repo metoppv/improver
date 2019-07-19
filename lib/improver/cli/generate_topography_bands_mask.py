@@ -145,7 +145,6 @@ def process(landmask, orography, thresholds_dict=None):
 
     if thresholds_dict is None:
         thresholds_dict = THRESHOLDS_DICT
-    
     result = GenerateOrographyBandAncils().process(
         orography, thresholds_dict, landmask=landmask)
     result = result.concatenate_cube()
