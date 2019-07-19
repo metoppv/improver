@@ -121,13 +121,13 @@ def main(argv=None):
         print('File already exists here: ', args.output_filepath)
 
 
-def process(landmask, orography, thresholds_dict=THRESHOLDS_DICT):
+def process(landmask, orography, thresholds_dict=None):
     """ Loops over the supplied orographic bands, adding a cube for each
     band to the mask cubelist.
 
     Args:
         landmask (iris.cube.Cube):
-            The land mask on standard grid. If provided dea points are sex to
+            The land mask on standard grid. If provided dsa points are set to
             zero in every band.
         orography (iris.cube.Cube):
             The orography a standard grid.
@@ -143,6 +143,9 @@ def process(landmask, orography, thresholds_dict=THRESHOLDS_DICT):
 
     """
 
+    if thresholds_dict is None:
+        thresholds_dict = THRESHOLDS_DICT
+    
     result = GenerateOrographyBandAncils().process(
         orography, thresholds_dict, landmask=landmask)
     result = result.concatenate_cube()
