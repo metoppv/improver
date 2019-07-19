@@ -84,22 +84,64 @@ def main(argv=None):
                               "derived value."))
     args = parser.parse_args(args=argv)
 
+    # Load Cubes
     temperature = load_cube(args.temperature, no_lazy_load=True)
     relative_humidity = load_cube(args.relative_humidity, no_lazy_load=True)
     pressure = load_cube(args.pressure, no_lazy_load=True)
     orog = load_cube(args.orography, no_lazy_load=True)
     land_sea = load_cube(args.land_sea_mask, no_lazy_load=True)
 
-    result = FallingSnowLevel(
-        precision=args.precision,
-        falling_level_threshold=args.falling_level_threshold).process(
-            temperature,
-            relative_humidity,
-            pressure,
-            orog,
-            land_sea)
+    # Process Cube
+    result = process(temperature, relative_humidity, pressure, orog,
+                     land_sea, args.precision, args.falling_level_threshold)
 
+    # Save Cube
     save_netcdf(result, args.output_filepath)
+
+
+def process(temperature, relative_humidity, pressure, orog, land_sea,
+            precision=0.005, falling_level_threshold=90.0):
+    """
+    Calculate the continuous falling snow level
+    Args:
+        temperature (iris.cube.Cube):
+            Cube of air temperature at heights (m) at the points for which the
+            continuous falling snow level is being calculated.
+        relative_humidity (iris.cube.Cube):
+            Cube of relative humidities at heights (m) at the points for which
+            the continuous falling snow level is being calculated.
+        pressure (iris.cube.Cube):
+            Cube of air pressure at heights (m) at the points for which the
+            continuous falling snow level is being calculated.
+        orog (iris.cube.Cube):
+            Cube of the orography height in m of the terrain over which the
+            continuous falling snow level is being calculated.
+        land_sea (iris.cube.Cube):
+            Cube containing the binary land-sea mask for the points for which
+            the continuous falling snow level is being calculated. Land points
+            are set to 1, sea points are set to 0.
+        precision (float):
+            Precision to which the wet bulb temperature is required: This is
+            used by the Newton iteration.
+        falling_level_threshold (float):
+            Cuttoff threshold for the wet-bulb integral used to calculate the
+            falling snow level. This threshold indicates the level at which
+            falling snow is deemed to have melted to become rain.
+
+    Returns:
+        result (iris.cube.Cube):
+            Processed Cube of falling snow level above sea level.
+
+    """
+    result = FallingSnowLevel(
+        precision=precision,
+        falling_level_threshold=falling_level_threshold).process(
+        temperature,
+        relative_humidity,
+        pressure,
+        orog,
+        land_sea)
+    return result
 
 
 if __name__ == "__main__":
