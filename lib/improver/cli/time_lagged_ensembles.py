@@ -101,5 +101,6 @@ def process(cubes):
                     raise ValueError(msg)
         return GenerateTimeLaggedEnsemble().process(cubes)
 
+
 if __name__ == "__main__":
     main()
