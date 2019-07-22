@@ -130,29 +130,41 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
+    weights = None
     cube = load_cube(args.input_filepath)
     mask_cube = load_cube(args.input_mask_filepath)
-
-    if args.radius:
-        radius_or_radii = args.radius
-        lead_times = None
-    elif args.radii_by_lead_time:
-        radius_or_radii = args.radii_by_lead_time[0].split(",")
-        lead_times = args.radii_by_lead_time[1].split(",")
-
-    result = ApplyNeighbourhoodProcessingWithAMask(
-        args.coord_for_masking, radius_or_radii, lead_times=lead_times,
-        sum_or_fraction=args.sum_or_fraction,
-        re_mask=args.re_mask).process(cube, mask_cube)
-
-    if args.intermediate_filepath is not None:
-        save_netcdf(result, args.intermediate_filepath)
-    # Collapse with the masking dimension.
     if args.collapse_dimension:
         weights = load_cube(args.weights_for_collapsing_dim)
-        result = CollapseMaskedNeighbourhoodCoordinate(
-            args.coord_for_masking, weights=weights).process(result)
+
+    result, intermediate_cube = process(
+        cube, mask_cube, weights, args.coord_for_masking, args.radius,
+        args.radii_by_lead_time, args.sum_or_fraction, args.re_mask,
+        args.collapse_dimension)
+
     save_netcdf(result, args.output_filepath)
+    if args.intermediate_filepath is not None:
+        save_netcdf(intermediate_cube, args.intermediate_filepath)
+
+
+def process(cube, mask_cube, weights, coord_for_masking, radius,
+            radii_by_lead_time, sum_or_fraction="fraction", re_mask=False,
+            collapse_dimension=False):
+    if radius:
+        radius_or_radii = radius
+        lead_times = None
+    elif radii_by_lead_time:
+        radius_or_radii = radii_by_lead_time[0].split(",")
+        lead_times = radii_by_lead_time[1].split(",")
+    result = ApplyNeighbourhoodProcessingWithAMask(
+        coord_for_masking, radius_or_radii, lead_times=lead_times,
+        sum_or_fraction=sum_or_fraction,
+        re_mask=re_mask).process(cube, mask_cube)
+    intermediate_cube = result.copy()
+    # Collapse with the masking dimension.
+    if collapse_dimension:
+        result = CollapseMaskedNeighbourhoodCoordinate(
+            coord_for_masking, weights=weights).process(result)
+    return result, intermediate_cube
 
 
 if __name__ == "__main__":
