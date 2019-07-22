@@ -703,10 +703,10 @@ class OpticalFlow(object):
             cube2 = cube2.copy()
             cube1.convert_units('mm/hr')
             cube2.convert_units('mm/hr')
-        except ValueError:
+        except ValueError as err:
             msg = ('Input data are in units that cannot be converted to mm/hr '
                    'which are the required units for use with optical flow.')
-            raise ValueError(msg)
+            raise ValueError(msg) from err
 
         # check time difference is positive
         time1 = (cube1.coord("time").units).num2date(

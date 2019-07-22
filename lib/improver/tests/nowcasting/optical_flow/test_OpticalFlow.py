@@ -31,8 +31,9 @@
 """ Unit tests for the nowcasting.OpticalFlow plugin """
 
 import unittest
-import numpy as np
 from datetime import datetime, timedelta
+import numpy as np
+
 
 import iris
 from iris.coords import DimCoord
@@ -163,7 +164,7 @@ class Test__partial_derivative_spatial(OpticalFlowUtilityTest):
 
     def test_first_axis(self):
         """Test output values for axis=0"""
-        expected_output = np.array([[-0.1875, -0.4375, -0.5,    -0.5, -0.25],
+        expected_output = np.array([[-0.1875, -0.4375, -0.5, -0.5, -0.25],
                                     [-0.2500, -0.6875, -0.9375, -1.0, -0.50],
                                     [-0.0625, -0.2500, -0.4375, -0.5, -0.25]])
         result = self.plugin._partial_derivative_spatial(axis=0)
@@ -191,7 +192,7 @@ class Test__partial_derivative_temporal(OpticalFlowUtilityTest):
         """Test output values.  Note this is NOT the same function as
         _partial_derivative_spatial(axis=0), the output arrays are the same
         as a result of the choice of data."""
-        expected_output = np.array([[-0.1875, -0.4375, -0.5,    -0.5, -0.25],
+        expected_output = np.array([[-0.1875, -0.4375, -0.5, -0.5, -0.25],
                                     [-0.2500, -0.6875, -0.9375, -1.0, -0.50],
                                     [-0.0625, -0.2500, -0.4375, -0.5, -0.25]])
         result = self.plugin._partial_derivative_temporal()
@@ -646,11 +647,11 @@ class Test_process(IrisTest):
     def test_metadata(self):
         """Test correct output types and metadata"""
         metadata_dict = {"attributes": {
-                            "mosg__grid_version": "1.0.0",
-                            "mosg__model_configuration": "nc_det",
-                            "source": "Met Office Nowcast",
-                            "institution": "Met Office",
-                            "title": "Nowcast on UK 2 km Standard Grid"}}
+            "mosg__grid_version": "1.0.0",
+            "mosg__model_configuration": "nc_det",
+            "source": "Met Office Nowcast",
+            "institution": "Met Office",
+            "title": "Nowcast on UK 2 km Standard Grid"}}
         plugin = OpticalFlow(iterations=20, metadata_dict=metadata_dict)
         plugin.data_smoothing_radius_km = 6.
         ucube, vcube = plugin.process(self.cube1, self.cube2, boxsize=3)
@@ -731,11 +732,14 @@ class Test_process(IrisTest):
 
         msg = "Input data are in units that cannot be converted to mm/hr"
         with self.assertRaisesRegex(ValueError, msg):
-            _, _ = self.plugin.process(self.cube1, self.cube2, boxsize=3)
+            self.plugin.process(self.cube1, self.cube2, boxsize=3)
 
     def test_input_cubes_unchanged(self):
         """Test the input precipitation rate cubes are unchanged by use in the
-        optical flow plugin."""
+        optical flow plugin. One of the cubes is converted to rates in ms-1
+        before use to ensure the cube remains in these units despite the
+        default working units within optical flow being mm/hr."""
+        self.cube1.convert_units("m s-1")
         cube1_ref = self.cube1.copy()
         cube2_ref = self.cube2.copy()
         _, _ = self.plugin.process(self.cube1, self.cube2, boxsize=3)
@@ -776,20 +780,20 @@ class Test_process(IrisTest):
         self.cube2.add_aux_coord(time_coord)
         msg = "Box size ([0-9]+) too small"
         with self.assertRaisesRegex(ValueError, msg):
-            _, _ = self.plugin.process(self.cube1, self.cube2, boxsize=3)
+            self.plugin.process(self.cube1, self.cube2, boxsize=3)
 
     def test_error_small_kernel(self):
         """Test failure if data smoothing radius is too small"""
         self.plugin.data_smoothing_radius_km = 3.
         msg = "Input data smoothing radius 1 too small "
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             _ = self.plugin.process(self.cube1, self.cube2)
 
     def test_error_small_box(self):
         """Test failure if box size is smaller than data smoothing radius"""
         msg = "Box size 2 too small"
-        with self.assertRaisesRegexp(ValueError, msg):
-            _, _ = self.plugin.process(self.cube1, self.cube2, boxsize=2)
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin.process(self.cube1, self.cube2, boxsize=2)
 
     def test_error_unmatched_coords(self):
         """Test failure if cubes are provided on unmatched grids"""
@@ -797,19 +801,19 @@ class Test_process(IrisTest):
         for ax in ["x", "y"]:
             cube2.coord(axis=ax).points = 4*np.arange(16)
         msg = "Input cubes on unmatched grids"
-        with self.assertRaisesRegexp(InvalidCubeError, msg):
+        with self.assertRaisesRegex(InvalidCubeError, msg):
             _ = self.plugin.process(self.cube1, cube2)
 
     def test_error_no_time_difference(self):
         """Test failure if two cubes are provided with the same time"""
         msg = "Expected positive time difference "
-        with self.assertRaisesRegexp(InvalidCubeError, msg):
+        with self.assertRaisesRegex(InvalidCubeError, msg):
             _ = self.plugin.process(self.cube1, self.cube1)
 
     def test_error_negative_time_difference(self):
         """Test failure if cubes are provided in the wrong order"""
         msg = "Expected positive time difference "
-        with self.assertRaisesRegexp(InvalidCubeError, msg):
+        with self.assertRaisesRegex(InvalidCubeError, msg):
             _ = self.plugin.process(self.cube2, self.cube1)
 
     @ManageWarnings(record=True)
@@ -832,8 +836,8 @@ class Test_process(IrisTest):
         """Test failure if cubes are of different data types"""
         self.cube1.rename("snowfall_rate")
         msg = "Input cubes contain different data types"
-        with self.assertRaisesRegexp(ValueError, msg):
-            _, _ = self.plugin.process(self.cube1, self.cube2)
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin.process(self.cube1, self.cube2)
 
     @ManageWarnings(record=True)
     def test_warning_nonprecip_inputs(self, warning_list=None):
