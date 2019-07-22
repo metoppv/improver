@@ -176,26 +176,105 @@ def main(argv=None):
     if (args.wts_calc_method == "dict") and not args.wts_dict:
         parser.error('Dictionary is required if --wts_calc_method="dict"')
 
-    # load cubes to be blended
-    cubelist = load_cubelist(args.input_filepaths)
-
     if args.wts_calc_method == "dict":
         with open(args.wts_dict, 'r') as wts:
             weights_dict = json.load(wts)
     else:
         weights_dict = None
+    # load cubes to be blended
+    cubelist = load_cubelist(args.input_filepaths)
 
-    plugin = WeightAndBlend(
-        args.coordinate, args.wts_calc_method,
-        weighting_coord=args.weighting_coord, wts_dict=weights_dict,
-        y0val=args.y0val, ynval=args.ynval, cval=args.cval)
-    result = plugin.process(
-        cubelist, cycletime=args.cycletime,
-        model_id_attr=args.model_id_attr,
-        spatial_weights=args.spatial_weights_from_mask,
-        fuzzy_length=args.fuzzy_length)
+    result = process(cubelist, weights_dict, args.wts_calc_method,
+                     args.coordinate, args.cycletime, args.y0val, args.ynval,
+                     args.cval, args.weighting_coord, args.model_id_attr,
+                     args.spatial_weights_from_mask, args.fuzzy_length)
 
     save_netcdf(result, args.output_filepath)
+
+
+def process(cubelist, weights_dict, wts_calc_method, coordinate, cycletime,
+            y0val, ynval, cval, weighting_coord,
+            model_id_attr='mosg__model_configuration',
+            spatial_weights_from_mask=False, fuzzy_length=20000.0):
+    """
+    Args:
+        cubelist (iris.cube.Cubelist):
+            Cubelist of cubes to be blended.
+
+        wts_calc_method (string):
+            Method to use to calculate weights used in blending.
+            "linear" (default): calculate linearly varying blending weights.
+            "nonlinear": calculate blending weights that decrease
+                exponentially with increasing blending coordinates.
+            "dicts": calculate weights using a dictionary passed in.
+        weights_dict (dictionary):
+            Dictionary from which to calculate blending weights. Dictionary
+            format is as specified in the
+            improver.blending.weights.ChoosingWeightsLinear
+        coordinate (string):
+            The coordinate over which the blending will be applied.
+        cycletime (string):
+            The forecast reference time to be used after blending has been
+            applied, in the format YYYYMMDDTHHMMZ. If not provided, the
+            blended file take the latest available forecast reference time
+            from the input cubes supplied.
+        y0val (float):
+            The relative value of the weighting start point (lowest value of
+            blend coord) for choosing default linear weights.
+            This must be a positive float or 0.
+        ynval (float):
+            The relative value of the weighting end point (highest value of
+            blend coord) for choosing default linear weights. This must be a
+            positive float or 0.
+            Note that if blending over forecast reference time, ynval >= y0val
+            would normally be expected (to give greater weight to the more
+            recent forecast).
+        cval (float):
+            Factor used to determine how skewed the non linear weights will be.
+            A value of 2 implies wqual weighting. If not set, a default value
+            of cval=0.85 is set.
+        weighting_coord (string):
+            Name of coordinate over which linear weights should be scaled.
+            This coordinate must be available in the weights dictionary.
+        model_id_attr (string):
+            The name of the cube attribute to be used to identiy the source
+            model for multi-model blends. Default assume Met Office model
+            metadata. Must be present on all if blending over models.
+        spatial_weights_from_mask (boolean):
+            If True, this option will result in the generation of spatially
+            varying weights based on the masks of the data we are blending.
+            The one dimensional weights are first calculated using the chosen
+            eights calculation method, but the weights will then be adjusted
+            spatially based on where there is masked data in the data we are
+            blending. The spatial weights are calculated using the
+            SpatiallyVaryingWeightsFromMask plugin.
+        fuzzy_length (float):
+            When calculating spatially varying weights we can smooth the
+            weights so that areas close to areas that are masked have lower
+            weights than those further away. This fuzzy length controls the
+            scale over which the weights are smoothed. The fuzzy length is in
+            terms of m, the default is 20km. This distance is then converted
+            into a number of grid squares, which foes not have to be an
+            integer. Assumes the grid spacing is the same in the x and y
+            directions and raises an error if this is not true. See
+            SpatiallyVaryingWeightsFromMask for more details.
+
+    Returns:
+        result (irirs.cube.Cube):
+            Merged and blended Cube.
+
+    """
+
+    plugin = WeightAndBlend(
+        coordinate, wts_calc_method,
+        weighting_coord=weighting_coord, wts_dict=weights_dict,
+        y0val=y0val, ynval=ynval, cval=cval)
+    result = plugin.process(
+        cubelist, cycletime=cycletime,
+        model_id_attr=model_id_attr,
+        spatial_weights=spatial_weights_from_mask,
+        fuzzy_length=fuzzy_length)
+    return result
 
 
 if __name__ == "__main__":
