@@ -71,13 +71,41 @@ def main(argv=None):
                         ' iterations, the solution is accepted.')
 
     args = parser.parse_args(args=argv)
+    # Load Cubes
     temperature = load_cube(args.temperature)
     relative_humidity = load_cube(args.relative_humidity)
     pressure = load_cube(args.pressure)
-
-    result = (WetBulbTemperature(precision=args.convergence_condition).
-              process(temperature, relative_humidity, pressure))
+    # Process Cube
+    result = process(temperature, relative_humidity, pressure,
+                     args.convergence_condition)
+    # Save Cube
     save_netcdf(result, args.output_filepath)
+
+
+def process(temperature, relative_humidity, pressure,
+            convergence_condition=0.05):
+    """
+    Call the calculate_wet_bulb_temperature function to calculate wet bulb
+    temperatures. This process function splits input cubes over vertical levels
+    to mitigate memory issues when trying to operate on multi-level data.
+    Args:
+        temperature (iris.cube.Cube):
+            Cube of air temperatures (K).
+        relative_humidity (iris.cube.Cube):
+            Cube pf relative humidities (%, converted to fractional)
+        pressure (iris.cube.Cube):
+            Cube of air pressure (Pa).
+        convergence_condition (float):
+            The precision to which the Newton iterator must converge before
+            returning wet bulb temperatures.
+    Returns:
+        result (iris.cube.Cube):
+            Cube of wet bulb temperature (K).
+
+    """
+    result = (WetBulbTemperature(precision=convergence_condition).
+              process(temperature, relative_humidity, pressure))
+    return result
 
 
 if __name__ == "__main__":
