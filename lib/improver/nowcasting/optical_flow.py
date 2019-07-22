@@ -230,6 +230,10 @@ class OpticalFlow(object):
         1 and 2.  The final boxes in the list will be smaller if the size of
         the data field is not an exact multiple of "boxsize".
 
+        Note that the weights calculated below are valid for precipitation
+        rates in mm/hr. This is a result of the constant 0.8 that is used;
+        see equation 8. in Bowler et al. 2004.
+
         Args:
             field (np.ndarray):
                 Input field (partial derivative)
