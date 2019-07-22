@@ -31,8 +31,9 @@
 """ Unit tests for the nowcasting.OpticalFlow plugin """
 
 import unittest
-import numpy as np
 from datetime import datetime, timedelta
+import numpy as np
+
 
 import iris
 from iris.coords import DimCoord
@@ -163,7 +164,7 @@ class Test__partial_derivative_spatial(OpticalFlowUtilityTest):
 
     def test_first_axis(self):
         """Test output values for axis=0"""
-        expected_output = np.array([[-0.1875, -0.4375, -0.5,    -0.5, -0.25],
+        expected_output = np.array([[-0.1875, -0.4375, -0.5, -0.5, -0.25],
                                     [-0.2500, -0.6875, -0.9375, -1.0, -0.50],
                                     [-0.0625, -0.2500, -0.4375, -0.5, -0.25]])
         result = self.plugin._partial_derivative_spatial(axis=0)
@@ -191,7 +192,7 @@ class Test__partial_derivative_temporal(OpticalFlowUtilityTest):
         """Test output values.  Note this is NOT the same function as
         _partial_derivative_spatial(axis=0), the output arrays are the same
         as a result of the choice of data."""
-        expected_output = np.array([[-0.1875, -0.4375, -0.5,    -0.5, -0.25],
+        expected_output = np.array([[-0.1875, -0.4375, -0.5, -0.5, -0.25],
                                     [-0.2500, -0.6875, -0.9375, -1.0, -0.50],
                                     [-0.0625, -0.2500, -0.4375, -0.5, -0.25]])
         result = self.plugin._partial_derivative_temporal()
@@ -646,11 +647,11 @@ class Test_process(IrisTest):
     def test_metadata(self):
         """Test correct output types and metadata"""
         metadata_dict = {"attributes": {
-                            "mosg__grid_version": "1.0.0",
-                            "mosg__model_configuration": "nc_det",
-                            "source": "Met Office Nowcast",
-                            "institution": "Met Office",
-                            "title": "Nowcast on UK 2 km Standard Grid"}}
+            "mosg__grid_version": "1.0.0",
+            "mosg__model_configuration": "nc_det",
+            "source": "Met Office Nowcast",
+            "institution": "Met Office",
+            "title": "Nowcast on UK 2 km Standard Grid"}}
         plugin = OpticalFlow(iterations=20, metadata_dict=metadata_dict)
         plugin.data_smoothing_radius_km = 6.
         ucube, vcube = plugin.process(self.cube1, self.cube2, boxsize=3)
@@ -663,6 +664,87 @@ class Test_process(IrisTest):
         self.assertAlmostEqual(
             np.mean(ucube.data), -2.1719084)
         self.assertAlmostEqual(np.mean(vcube.data), 2.1719084)
+
+    def test_values_with_precip_rate_in_m_per_s(self):
+        """Test velocity values are as expected (in m/s) when the input
+        precipitation rates are in units of m/s rather than the expected
+        mm/hr."""
+        self.cube1.convert_units('m s-1')
+        self.cube2.convert_units('m s-1')
+        ucube, vcube = self.plugin.process(self.cube1, self.cube2, boxsize=3)
+        self.assertAlmostEqual(
+            np.mean(ucube.data), -2.1719084)
+        self.assertAlmostEqual(np.mean(vcube.data), 2.1719084)
+
+    def test_values_with_masked_data(self):
+        """Test velocity values are as expected when masked cubes are used as
+        input to the tests. This test is to capture behaviour whereby mask
+        fill values were being used as valid data. This resulted in far from
+        correct velocities being calculated by the optical flow code. Notably
+        the velocity fields did not reflect the position of precipitation in
+        the input precipitation fields, and the returned velocities were too
+        low.
+
+        In this test masked cubes are used and comparable unmasked cubes in
+        which there the fill values are included in the field. We expect
+        the results to be different, with higher velocities returned for the
+        masked cubes.
+        """
+        mask = np.zeros((16, 16))
+        mask[:2, :] = 1
+        mask[:, :2] = 1
+
+        # Ensure the masked data points contain a high fill value.
+        data1 = self.cube1.data
+        data2 = self.cube2.data
+        data1[:2, :] = 1.0E36
+        data1[:, :2] = 1.0E36
+        data2[:2, :] = 1.0E36
+        data2[:, :2] = 1.0E36
+
+        masked1 = np.ma.MaskedArray(self.cube1.data, mask=mask)
+        masked2 = np.ma.MaskedArray(self.cube2.data, mask=mask)
+
+        masked_cube1 = self.cube1.copy(data=masked1)
+        masked_cube2 = self.cube2.copy(data=masked2)
+        unmasked_cube1 = self.cube1.copy(data=data1)
+        unmasked_cube2 = self.cube2.copy(data=data2)
+
+        ucube_masked, vcube_masked = self.plugin.process(
+            masked_cube1, masked_cube2, boxsize=3)
+        ucube_unmasked, vcube_unmasked = self.plugin.process(
+            unmasked_cube1, unmasked_cube2, boxsize=3)
+
+        self.assertAlmostEqual(
+            np.mean(ucube_masked.data), -1.4995803)
+        self.assertAlmostEqual(
+            np.mean(vcube_masked.data), 1.4995805)
+        self.assertAlmostEqual(
+            np.mean(ucube_unmasked.data), -0.2869996)
+        self.assertAlmostEqual(
+            np.mean(vcube_unmasked.data), 0.28699964)
+
+    def test_error_for_unconvertable_units(self):
+        """Test that an exception is raised if the input precipitation cubes
+        have units that cannot be converted to mm/hr."""
+        self.cube1.units = 'm'
+        self.cube2.units = 'm'
+
+        msg = "Input data are in units that cannot be converted to mm/hr"
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin.process(self.cube1, self.cube2, boxsize=3)
+
+    def test_input_cubes_unchanged(self):
+        """Test the input precipitation rate cubes are unchanged by use in the
+        optical flow plugin. One of the cubes is converted to rates in ms-1
+        before use to ensure the cube remains in these units despite the
+        default working units within optical flow being mm/hr."""
+        self.cube1.convert_units("m s-1")
+        cube1_ref = self.cube1.copy()
+        cube2_ref = self.cube2.copy()
+        _, _ = self.plugin.process(self.cube1, self.cube2, boxsize=3)
+        self.assertEqual(self.cube1, cube1_ref)
+        self.assertEqual(self.cube2, cube2_ref)
 
     def test_decrease_time_interval(self):
         """Test that decreasing the time interval between radar frames below
@@ -698,20 +780,20 @@ class Test_process(IrisTest):
         self.cube2.add_aux_coord(time_coord)
         msg = "Box size ([0-9]+) too small"
         with self.assertRaisesRegex(ValueError, msg):
-            _, _ = self.plugin.process(self.cube1, self.cube2, boxsize=3)
+            self.plugin.process(self.cube1, self.cube2, boxsize=3)
 
     def test_error_small_kernel(self):
         """Test failure if data smoothing radius is too small"""
         self.plugin.data_smoothing_radius_km = 3.
         msg = "Input data smoothing radius 1 too small "
-        with self.assertRaisesRegexp(ValueError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             _ = self.plugin.process(self.cube1, self.cube2)
 
     def test_error_small_box(self):
         """Test failure if box size is smaller than data smoothing radius"""
         msg = "Box size 2 too small"
-        with self.assertRaisesRegexp(ValueError, msg):
-            _, _ = self.plugin.process(self.cube1, self.cube2, boxsize=2)
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin.process(self.cube1, self.cube2, boxsize=2)
 
     def test_error_unmatched_coords(self):
         """Test failure if cubes are provided on unmatched grids"""
@@ -719,19 +801,19 @@ class Test_process(IrisTest):
         for ax in ["x", "y"]:
             cube2.coord(axis=ax).points = 4*np.arange(16)
         msg = "Input cubes on unmatched grids"
-        with self.assertRaisesRegexp(InvalidCubeError, msg):
+        with self.assertRaisesRegex(InvalidCubeError, msg):
             _ = self.plugin.process(self.cube1, cube2)
 
     def test_error_no_time_difference(self):
         """Test failure if two cubes are provided with the same time"""
         msg = "Expected positive time difference "
-        with self.assertRaisesRegexp(InvalidCubeError, msg):
+        with self.assertRaisesRegex(InvalidCubeError, msg):
             _ = self.plugin.process(self.cube1, self.cube1)
 
     def test_error_negative_time_difference(self):
         """Test failure if cubes are provided in the wrong order"""
         msg = "Expected positive time difference "
-        with self.assertRaisesRegexp(InvalidCubeError, msg):
+        with self.assertRaisesRegex(InvalidCubeError, msg):
             _ = self.plugin.process(self.cube2, self.cube1)
 
     @ManageWarnings(record=True)
@@ -754,8 +836,8 @@ class Test_process(IrisTest):
         """Test failure if cubes are of different data types"""
         self.cube1.rename("snowfall_rate")
         msg = "Input cubes contain different data types"
-        with self.assertRaisesRegexp(ValueError, msg):
-            _, _ = self.plugin.process(self.cube1, self.cube2)
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin.process(self.cube1, self.cube2)
 
     @ManageWarnings(record=True)
     def test_warning_nonprecip_inputs(self, warning_list=None):
