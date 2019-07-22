@@ -175,19 +175,19 @@ def main(argv=None):
     historic_forecast = load_cube(args.historic_filepath)
     truth = load_cube(args.truth_filepath)
     # Process Cubes
-    result = process(current_forecast, historic_forecast, truth, args.units,
-                     args.distribution, args.predictor_of_mean,
-                     args.num_realizations, args.random_ordering,
-                     args.random_seed, args.ecc_bounds_warning,
-                     args.max_iterations)
+    result, forecast_predictor, forecast_variance = process(
+        current_forecast, historic_forecast, truth, args.units,
+        args.distribution, args.predictor_of_mean, args.num_realizations,
+        args.random_ordering, args.random_seed, args.ecc_bounds_warning,
+        args.max_iterations)
 
     # Save Cube
-    save_netcdf(result[0], args.output_filepath)
+    save_netcdf(result, args.output_filepath)
     # If required, save the mean and variance.
     if args.save_mean:
-        save_netcdf(result[1], args.save_mean)
+        save_netcdf(forecast_predictor, args.save_mean)
     if args.save_variance:
-        save_netcdf(result[2], args.save_variance)
+        save_netcdf(forecast_variance, args.save_variance)
 
 
 def process(current_forecast, historic_forecast, truth, units, distribution,
@@ -245,14 +245,14 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
             forecast is in the form of probabilities and is converted to
             percentiles, as part of converting the input probabilities into
             realizations.
-        max_iterations:
-        The maximum number of iterations allowed until the minimisation has
-        converged to a stable solution. If the maximum number of iterations is
-        reached, but the minimisation has not yet converged to a stable
-        solution, the the available solution is used anyway and a warning is
-        raised. If the predictor_of_mean is "realizations", then the number of
-        iterations may require increasing, as there will be more coefficients
-        to solve for.
+        max_iterations (np.int32):
+            The maximum number of iterations allowed until the minimisation has
+            converged to a stable solution. If the maximum number of iterations
+            is reached, but the minimisation has not yet converged to a stable
+            solution, the the available solution is used anyway and a warning
+            is raised. If the predictor_of_mean is "realizations", then the
+            number of iterations may require increasing, as there will be more
+            coefficients to solve for.
 
     Returns(tuple of 3):
         result (iris.cube.Cube):
