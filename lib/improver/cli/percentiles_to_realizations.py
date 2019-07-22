@@ -145,25 +145,38 @@ def main(argv=None):
 
     # Safe to now actually do the work...
     cube = load_cube(args.input_filepath)
+    raw_forecast = load_cube(args.raw_forecast_filepath) \
+        if args.reordering else None
 
-    result_cube = ResamplePercentiles(
-        ecc_bounds_warning=args.ecc_bounds_warning).process(
-            cube, no_of_percentiles=args.no_of_percentiles,
-            sampling=args.sampling_method)
+    # Process Cube
+    result_cube = process(cube, raw_forecast, args.no_of_percentiles,
+                          args.sampling_method, args.ecc_bounds_warning,
+                          args.reordering, args.rebadging,args.random_ordering,
+                          args.random_seed, args.realization_numbers)
 
-    if args.reordering:
-        raw_forecast = load_cube(args.raw_forecast_filepath)
-        result_cube = EnsembleReordering().process(
-            result_cube, raw_forecast, random_ordering=args.random_ordering,
-            random_seed=args.random_seed)
-    elif args.rebadging:
-        if args.realization_numbers is not None:
-            args.realization_numbers = (
-                [int(num) for num in args.realization_numbers])
-        result_cube = RebadgePercentilesAsRealizations().process(
-            result_cube, ensemble_realization_numbers=args.realization_numbers)
-
+    # Save Cube
     save_netcdf(result_cube, args.output_filepath)
+
+
+def process(cube, raw_forecast, no_of_percentiles=None,
+            sampling_method='quantile', ecc_bounds_warning=False,
+            reordering=False, rebadging=False, random_ordering=False,
+            random_seed=None, realization_numbers=None):
+    result_cube = ResamplePercentiles(
+        ecc_bounds_warning=ecc_bounds_warning).process(
+        cube, no_of_percentiles=no_of_percentiles,
+        sampling=sampling_method)
+    if reordering:
+        result_cube = EnsembleReordering().process(
+            result_cube, raw_forecast, random_ordering=random_ordering,
+            random_seed=random_seed)
+    elif rebadging:
+        if realization_numbers is not None:
+            realization_numbers = (
+                [int(num) for num in realization_numbers])
+        result_cube = RebadgePercentilesAsRealizations().process(
+            result_cube, ensemble_realization_numbers=realization_numbers)
+    return result_cube
 
 
 if __name__ == '__main__':
