@@ -64,15 +64,48 @@ def main(argv=None):
 
     args = ArgParser(**cli_definition).parse_args(args=argv)
 
+    # Load Cube
     wind_direction = load_cube(args.input_filepath)
 
     # Returns 3 cubes - r_vals and confidence_measure cubes currently
     # only contain experimental data to be used for further research.
-    bmethod = args.backup_method
-    cube_mean_wdir, _, _ = (
-        WindDirection(backup_method=bmethod).process(wind_direction))
+    # Process Cube
+    cube_mean_wdir, _, _ = process(wind_direction, args.backup_method)
 
+    # Save Cube
     save_netcdf(cube_mean_wdir, args.output_filepath)
+
+
+def process(wind_direction, backup_method):
+    """
+    Calculates mean wind direction from ensemble realization.
+    Args:
+        wind_direction (iris.cube.Cube):
+            Cube containing the wind direction from multiple ensemble
+            realizations.
+        backup_method (string):
+            Backup method to use if the complex numbers approach has low
+            confidence.
+            "first_realization" uses he value of realization zero.
+            "neighbourhood" (default) recalculates using the complex numbers
+            approach with additional realization extracted from neighbouring
+            grid points from all available realizations.
+
+    Returns (tuple of 3 Cubes):
+        cube_mean_wdir (iris.cube.Cube):
+            Cube containing the wind direction averaged from the ensemble
+            realizations.
+        cube_r_vals (np.ndarray):
+            3D array - Radius taken from average complex wind direction angle.
+        cube_confidence_measure (np.ndarray):
+            3D array - The average distance from mean normalised - used as a
+            confidence value.
+    """
+    # Returns 3 cubes - r_vals and confidence_measure cubes currently
+    # only contain experimental data to be used for further research.
+    result = (
+        WindDirection(backup_method=backup_method).process(wind_direction))
+    return result
 
 
 if __name__ == "__main__":
