@@ -84,12 +84,37 @@ def main(argv=None):
                         " Default=95.0", type=float)
 
     args = parser.parse_args(args=argv)
+    # Load Cube
     cube_wg = load_cube(args.input_filegust)
     cube_ws = load_cube(args.input_filews)
-    result = (
-        WindGustDiagnostic(args.percentile_gust,
-                           args.percentile_ws).process(cube_wg, cube_ws))
+    # Process Cube
+    result = process(cube_wg, cube_ws, args.percentile_gust,
+                     args.percentile_ws)
+    # Save Cube
     save_netcdf(result, args.output_filepath)
+
+
+def process(cube_wg, cube_ws, percentile_gust, percentile_ws):
+    """
+    Create a cube containing the wind_gust diagnostic.
+    Args:
+        cube_wg (iris.cube.Cube):
+            Cube containing one or more percentiles of wind_gust data.
+        cube_ws (iris.cube.Cube):
+            Cube containing one ore more percentiles of wind_speed data.
+        percentile_gust (float):
+            Percentile value required from wind-gust cube.
+        percentile_ws (float):
+             Percentile value required from wind-speed cube.
+
+    Returns:
+        result (iris.cube.Cube):
+            Cube containing the wind-gust diagnostic data.
+    """
+    result = (
+        WindGustDiagnostic(percentile_gust,
+                           percentile_ws).process(cube_wg, cube_ws))
+    return result
 
 
 if __name__ == "__main__":
