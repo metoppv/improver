@@ -230,10 +230,6 @@ class OpticalFlow(object):
         1 and 2.  The final boxes in the list will be smaller if the size of
         the data field is not an exact multiple of "boxsize".
 
-        The weights returned from this function are calculated in an equivalent
-        way to equation 8 in Bowler et al 2004, using a value for w of
-        0.8mm/h.
-
         Args:
             field (np.ndarray):
                 Input field (partial derivative)
