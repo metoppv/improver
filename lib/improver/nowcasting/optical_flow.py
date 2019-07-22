@@ -231,8 +231,9 @@ class OpticalFlow(object):
         the data field is not an exact multiple of "boxsize".
 
         Note that the weights calculated below are valid for precipitation
-        rates in mm/hr. This is a result of the constant 0.8 that is used;
-        see equation 8. in Bowler et al. 2004.
+        rates in mm/hr. This is a result of the constant 0.8 that is used,
+        noting that in the source paper a value of 0.75 is used; see equation
+        8. in Bowler et al. 2004.
 
         Args:
             field (np.ndarray):
