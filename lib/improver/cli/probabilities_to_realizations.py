@@ -115,9 +115,9 @@ def main(argv=None):
             parser.wrong_args_error(
                 'raw_forecast_filepath, random_seed', 'rebadging')
 
-    # Process the data
+    # Load Cube
     cube = load_cube(args.input_filepath)
-
+    raw_forecast = None
     if args.reordering:
         if args.raw_forecast_filepath is None:
             message = ("You must supply a raw forecast filepath if using the "
@@ -132,25 +132,72 @@ def main(argv=None):
                            "must have a realization coordinate.")
                 raise ValueError(message)
 
-        no_of_realizations = args.no_of_realizations
+    cube = process(cube, raw_forecast, args.no_of_realizations,
+                   args.reordering, args.rebadging, args.random_seed,
+                   args.ecc_bounds_warning)
+
+    save_netcdf(cube, args.output_filepath)
+
+
+def process(cube, raw_forecast=None, no_of_realizations=None, reordering=False,
+            rebadging=False, random_seed=None, ecc_bounds_warning=False):
+    """
+    Convert from probabilities to emsemble realizations.
+    Args:
+        cube (iris.cube.Cube):
+            Cube to be processed.
+        raw_forecast (iris.cube.Cube):
+             A raw forecast cube which must be used if using reordering.
+        no_of_realizations (integer):
+            Optional definition of the number of ensemble realizations to
+            be generated. These are generated though an intermediate
+            percentile representation. Theses percentiles will be
+            distributed regularly with the aim of dividing ino blocks
+            of equal probability. If the reordering option is specified
+            and the number of realization is not given the the number
+            of realizations is taken from the num of realizations
+            in the raw forecast cube.
+        reordering (boolean):
+            The option used to create ensemble realizations from percentiles
+            by reordering the input percentiles based on the order of the
+            raw ensemble.
+        rebadging (boolean):
+            Th option used to create ensemble realizations from percentiles
+            by rebadging the input percentiles.
+        random_seed (integer):
+            Option to specify a value for the random seed for testing
+            purposes, otherwise the default random seed behaviours is
+            utilised. The random seed is used in the generation of the
+            random numbers used for splitting tied values within the raw
+            ensemble, so that the values from the input percentiles can
+            be ordered to match the raw ensemble.
+        ecc_bounds_warning (boolean):
+            If True, where percentiles (calculated as an intermediate output
+            before realization) exceed to ECC bounds range, raises a warning
+            rather than an exception.
+
+    Returns:
+        result (iris.cube.Cube):
+            Processed result Cube.
+    """
+    if reordering:
+        no_of_realizations = no_of_realizations
         # If no_of_realizations is not given, take the number from the raw
         # ensemble cube.
-        if args.no_of_realizations is None:
+        if no_of_realizations is None:
             no_of_realizations = len(raw_forecast.coord("realization").points)
 
         cube = GeneratePercentilesFromProbabilities(
-            ecc_bounds_warning=args.ecc_bounds_warning).process(
-                cube, no_of_percentiles=no_of_realizations)
-        cube = EnsembleReordering().process(
-            cube, raw_forecast, random_ordering=False,
-            random_seed=args.random_seed)
-    elif args.rebadging:
+            ecc_bounds_warning=ecc_bounds_warning).process(
+            cube, no_of_percentiles=no_of_realizations)
+        result = EnsembleReordering().process(
+            cube, raw_forecast, random_ordering=False, random_seed=random_seed)
+    elif rebadging:
         cube = GeneratePercentilesFromProbabilities(
-            ecc_bounds_warning=args.ecc_bounds_warning).process(
-                cube, no_of_percentiles=args.no_of_realizations)
-        cube = RebadgePercentilesAsRealizations().process(cube)
-
-    save_netcdf(cube, args.output_filepath)
+            ecc_bounds_warning=ecc_bounds_warning).process(
+            cube, no_of_percentiles=no_of_realizations)
+        result = RebadgePercentilesAsRealizations().process(cube)
+    return result
 
 
 if __name__ == '__main__':
