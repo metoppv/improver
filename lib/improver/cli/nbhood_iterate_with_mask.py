@@ -108,13 +108,13 @@ def main(argv=None):
                              'processed output. Therefore, the neighbourhood '
                              'processing may result in values being present '
                              'in areas that were originally masked. This '
-                             'allows the the values in adjacent bands to be '
-                             'weighted together if the additional dimension '
+                             'allows the the values in adjacent bands to be'
+                             'weighted together if the additional dimension'
                              'from the masking process is collapsed.')
     group2.add_argument('--collapse_dimension', action='store_true',
                         help='Collapse the dimension from the mask, by doing '
                              'a weighted mean using the weights provided. '
-                             'This is only suitable when the result is '
+                             'This is only suitable when the result is is '
                              'left unmasked, so there is data to weight '
                              'between the points in coordinate we are '
                              'collapsing.')
@@ -186,7 +186,7 @@ def process(cube, mask_cube, weights, coord_for_masking, radius,
             north, based on the characteristic spacing at the zero indices of
             the cube projection-x and y coords.
         sum_or_fraction (string):
-            Identidier for whether sum of fraction should be returned from
+            Identifier for whether sum of fraction should be returned from
             neighbourhooding. The sum represents the sum of the neighbourhood.
         re_mask (boolean):
             If True, the original un-neighbourhood processed mask
