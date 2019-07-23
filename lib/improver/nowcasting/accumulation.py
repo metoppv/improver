@@ -83,11 +83,12 @@ class Accumulation:
             cubes (iris.cube.CubeList):
                 A cubelist containing input precipitation rate cubes.
         Returns:
-            cubes (iris.cube.CubeList):
-                The cubelist in ascending time order.
-            times (list):
-                A list of the validity times of the precipitation rate cubes in
-                integer seconds since 1970-01-01 00:00:00.
+            tuple: tuple containing:
+                **cubes** (iris.cube.CubeList):
+                    The cubelist in ascending time order.
+                **times** (list):
+                    A list of the validity times of the precipitation rate
+                    cubes in integer seconds since 1970-01-01 00:00:00.
         """
         times = np.array([cube.coord('time').points[0] for cube in cubes])
         time_sorted = np.argsort(times)

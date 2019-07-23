@@ -55,14 +55,13 @@ def cycletime_to_datetime(cycletime, cycletime_format="%Y%m%dT%H%MZ"):
     """Convert a string representating the cycletime of the
     format YYYYMMDDTHHMMZ into a datetime object.
 
-     Args:
-         cycletime (string):
-             A cycletime that can be converted into a datetime using the
-             cycletime_format supplied.
-
-     Keyword Args:
-         cycletime_format (str):
-             String containing the desired format for the cycletime.
+    Args:
+        cycletime (str):
+            A cycletime that can be converted into a datetime using the
+            cycletime_format supplied.
+    Keyword Args:
+        cycletime_format (str):
+            String containing the desired format for the cycletime.
     Returns:
         datetime:
             A correctly formatted datetime object.
@@ -74,13 +73,13 @@ def datetime_to_cycletime(adatetime, cycletime_format="%Y%m%dT%H%MZ"):
     """Convert a datetime object into a string representing the cycletime
     of the format YYYYMMDDTHHMMZ.
 
-     Args:
-         adatetime (datetime.datetime):
-             A datetime that can be converted into a cycletime using the
-             cycletime_format supplied.
-     Keyword Args:
-         cycletime_format (str):
-             String containing the desired format for the cycletime.
+    Args:
+        adatetime (datetime.datetime):
+            A datetime that can be converted into a cycletime using the
+            cycletime_format supplied.
+    Keyword Args:
+        cycletime_format (str):
+            String containing the desired format for the cycletime.
     Returns:
         str:
             A correctly formatted string.
