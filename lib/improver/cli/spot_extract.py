@@ -151,15 +151,22 @@ def main(argv=None):
     args = parser.parse_args(args=argv)
     neighbour_cube = load_cube(args.neighbour_filepath)
     diagnostic_cube = load_cube(args.diagnostic_filepath)
+    lapse_rate_cube = load_cube(args.temperature_lapse_rate_filepath) if \
+        args.temperature_lapse_rate_filepath else None
 
+    result = process(neighbour_cube, diagnostic_cube, lapse_rate_cube, args)
+
+    # Save the spot data cube.
+    save_netcdf(result, args.output_filepath)
+
+
+def process(neighbour_cube, diagnostic_cube, lapse_rate_cube, args):
     neighbour_selection_method = NeighbourSelection(
         land_constraint=args.land_constraint,
         minimum_dz=args.minimum_dz).neighbour_finding_method_name()
-
     plugin = SpotExtraction(
         neighbour_selection_method=neighbour_selection_method)
     result = plugin.process(neighbour_cube, diagnostic_cube)
-
     # If a probability or percentile diagnostic cube is provided, extract
     # the given percentile if available. This is done after the spot-extraction
     # to minimise processing time; usually there are far fewer spot sites than
@@ -171,7 +178,7 @@ def main(argv=None):
             if 'probability_of_' in result.name():
                 result = GeneratePercentilesFromProbabilities(
                     ecc_bounds_warning=args.ecc_bounds_warning).process(
-                        result, percentiles=args.extract_percentiles)
+                    result, percentiles=args.extract_percentiles)
                 result = iris.util.squeeze(result)
             elif result.coords('realization', dim_coords=True):
                 fast_percentile_method = (
@@ -179,13 +186,12 @@ def main(argv=None):
                 result = PercentileConverter(
                     'realization', percentiles=args.extract_percentiles,
                     fast_percentile_method=fast_percentile_method).process(
-                        result)
+                    result)
             else:
                 msg = ('Diagnostic cube is not a known probabilistic type. '
                        'The {} percentile could not be extracted. Extracting '
                        'data from the cube including any leading '
-                       'dimensions.'.format(
-                           args.extract_percentiles))
+                       'dimensions.'.format(args.extract_percentiles))
                 if not args.suppress_warnings:
                     warnings.warn(msg)
         else:
@@ -200,18 +206,15 @@ def main(argv=None):
                        '{}'.format(args.extract_percentiles,
                                    perc_coordinate.points))
                 raise ValueError(msg)
-
     # Check whether a lapse rate cube has been provided and we are dealing with
     # temperature data and the lapse-rate option is enabled.
-    if (args.temperature_lapse_rate_filepath and
-            args.apply_lapse_rate_correction):
+    if args.apply_lapse_rate_correction and lapse_rate_cube:
 
         if not result.name() == "air_temperature":
             msg = ("A lapse rate cube was provided, but the diagnostic being "
                    "processed is not air temperature and cannot be adjusted.")
             raise ValueError(msg)
 
-        lapse_rate_cube = load_cube(args.temperature_lapse_rate_filepath)
         if not lapse_rate_cube.name() == 'air_temperature_lapse_rate':
             msg = ("A cube has been provided as a lapse rate cube but does "
                    "not have the expected name air_temperature_lapse_rate: "
@@ -241,24 +244,20 @@ def main(argv=None):
             if not args.suppress_warnings:
                 warnings.warn(msg)
     elif (args.apply_lapse_rate_correction and
-          not args.temperature_lapse_rate_filepath):
+          not lapse_rate_cube):
         msg = ("A lapse rate cube was not provided, but the option to "
                "apply the lapse rate correction was enabled. No lapse rate "
                "correction could be applied.")
         if not args.suppress_warnings:
             warnings.warn(msg)
-
     # Modify final metadata as described by provided JSON file.
     if args.metadata_json:
         with open(args.metadata_json, 'r') as input_file:
             metadata_dict = json.load(input_file)
         result = amend_metadata(result, **metadata_dict)
-
     # Remove the internal model_grid_hash attribute if present.
     result.attributes.pop('model_grid_hash', None)
-
-    # Save the spot data cube.
-    save_netcdf(result, args.output_filepath)
+    return result
 
 
 if __name__ == "__main__":
