@@ -108,8 +108,8 @@ def main(argv=None):
                              'processed output. Therefore, the neighbourhood '
                              'processing may result in values being present '
                              'in areas that were originally masked. This '
-                             'allows the the values in adjacent bands to be'
-                             'weighted together if the additional dimension'
+                             'allows the the values in adjacent bands to be '
+                             'weighted together if the additional dimension '
                              'from the masking process is collapsed.')
     group2.add_argument('--collapse_dimension', action='store_true',
                         help='Collapse the dimension from the mask, by doing '

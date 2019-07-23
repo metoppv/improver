@@ -95,12 +95,12 @@ optional arguments:
                         neighbourhood processed output. Therefore, the
                         neighbourhood processing may result in values being
                         present in areas that were originally masked. This
-                        allows the the values in adjacent bands to beweighted
-                        together if the additional dimensionfrom the masking
+                        allows the the values in adjacent bands to be weighted
+                        together if the additional dimension from the masking
                         process is collapsed.
   --collapse_dimension  Collapse the dimension from the mask, by doing a
                         weighted mean using the weights provided. This is only
-                        suitable when the result is is left unmasked, so there
+                        suitable when the result is left unmasked, so there
                         is data to weight between the points in coordinate we
                         are collapsing.
   --weights_for_collapsing_dim WEIGHTS
