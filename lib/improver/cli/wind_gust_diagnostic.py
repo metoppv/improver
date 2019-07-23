@@ -43,7 +43,7 @@ def main(argv=None):
     Wind-gust and Wind-speed data should be supplied along with the required
     percentile value. The wind-gust diagnostic will be the Max of the specified
     percentile data.
-    Currently::
+    Currently:
 
         * Typical gusts is
           MAX(wind-gust(50th percentile),wind-speed(95th percentile))
