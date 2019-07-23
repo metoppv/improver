@@ -114,7 +114,7 @@ def main(argv=None):
     group2.add_argument('--collapse_dimension', action='store_true',
                         help='Collapse the dimension from the mask, by doing '
                              'a weighted mean using the weights provided. '
-                             'This is only suitable when the result is is '
+                             'This is only suitable when the result is '
                              'left unmasked, so there is data to weight '
                              'between the points in coordinate we are '
                              'collapsing.')
@@ -130,11 +130,11 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
-    weights = None
     cube = load_cube(args.input_filepath)
     mask_cube = load_cube(args.input_mask_filepath)
-    if args.collapse_dimension:
-        weights = load_cube(args.weights_for_collapsing_dim)
+
+    weights = load_cube(args.weights_for_collapsing_dim) if \
+        args.collapse_dimension else None
 
     result, intermediate_cube = process(
         cube, mask_cube, weights, args.coord_for_masking, args.radius,
@@ -149,6 +149,64 @@ def main(argv=None):
 def process(cube, mask_cube, weights, coord_for_masking, radius,
             radii_by_lead_time, sum_or_fraction="fraction", re_mask=False,
             collapse_dimension=False):
+    """
+    Apply the requested neighbourhood method via the
+    ApplyNeighbourhoodProcessingWithMask plugin to a file with one diagnostic
+    dataset in combination with a cube containing one or more masks.
+    The mask dataset may have an extra dimension compared to the input
+    diagnostic. In this case, the user specifies the name of the extra
+    coordinate and this coordinate is iterated over so each mask is applied
+    to separate slices over the input cube. These intermediate masked datasets
+    are then concatenated, resulting in a dataset that has been processed
+    using multiple masks and has gained an extra dimension from the masking.
+    There is also an option to re-mask the output dataset, so that after
+    neighbourhood processing non-zero values are only present for unmasked
+    grid points.
+    There is an alternative option of collapsing the dimension that we gain
+    using this processing using a weighted average.
+    Args:
+        cube (iris.cube.Cube):
+            Cube to be processed.
+        mask_cube (iris.cube.Cube):
+            Cube to act as a mask.
+        weights (iris.cube.Cube):
+            Cube containing the weights which are used for collapsing the
+            dimension gained through masking.
+        coord_for_masking (string):
+            String matching the name of the coordinate that will be used
+            for masking.
+        radius (float):
+            The radii is metres of the neighbourhood to apply.
+            Rounded up to convert into integer number of grid points east and
+            north, based on the characteristic spacing at the zero indices of
+            the cube projection-x and y coords.
+        radii_by_lead_time (float ot List if defining lead times):
+            The radii is metres of the neighbourhood to apply.
+            Rounded up to convert into integer number of grid points east and
+            north, based on the characteristic spacing at the zero indices of
+            the cube projection-x and y coords.
+        sum_or_fraction (string):
+            Identidier for whether sum of fraction should be returned from
+            neighbourhooding. The sum represents the sum of the neighbourhood.
+        re_mask (boolean):
+            If True, the original un-neighbourhood processed mask
+            is applied to mask out the neighbourhood processed cube.
+            If False, the original un-neighbourhood processed mask is not
+            applied. Therefore, the neighbourhood processing may result in
+            values being present in areas that were originally masked.
+        collapse_dimension (boolean):
+            Collapse the dimension from the mask, by doing a weighted mean
+            using the weights provided.  This is only suitable when the result
+            is left unmasked, so there is data to weight between the points
+            in coordinate we are collapsing.
+
+    Returns:
+        result (iris.cube.Cube):
+            Result of the fully processed Cube.
+        intermediate_cube (iris.cube.Cube):
+            Intermediate Cube before it is collapsed if "collapse_dimension".
+
+    """
     if radius:
         radius_or_radii = radius
         lead_times = None

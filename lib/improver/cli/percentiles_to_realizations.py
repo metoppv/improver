@@ -143,16 +143,17 @@ def main(argv=None):
             parser.wrong_args_error(
                 'raw_forecast_filepath, random_ordering', 'rebadging')
 
-    # Safe to now actually do the work...
     cube = load_cube(args.input_filepath)
-    raw_forecast = load_cube(args.raw_forecast_filepath) \
-        if args.reordering else None
+
+    raw_forecast = load_cube(args.raw_forecast_filepath) if \
+        args.reordering else None
 
     # Process Cube
     result_cube = process(cube, raw_forecast, args.no_of_percentiles,
                           args.sampling_method, args.ecc_bounds_warning,
-                          args.reordering, args.rebadging,args.random_ordering,
-                          args.random_seed, args.realization_numbers)
+                          args.reordering, args.rebadging,
+                          args.random_ordering, args.random_seed,
+                          args.realization_numbers)
 
     # Save Cube
     save_netcdf(result_cube, args.output_filepath)
@@ -162,6 +163,55 @@ def process(cube, raw_forecast, no_of_percentiles=None,
             sampling_method='quantile', ecc_bounds_warning=False,
             reordering=False, rebadging=False, random_ordering=False,
             random_seed=None, realization_numbers=None):
+    """
+    Converts a dataset containing probabilities into one containing ensemble
+    realizations using Ensemble Coupla Coupling.
+    Args:
+        cube (iris.cube.Cube):
+            Cube expected to contain a percentiles coordinate.
+        raw_forecast (iris.cube.Cube):
+            Cube if raw (not post processed) weather data.
+        no_of_percentiles (int):
+            The number of percentiles to be generated. This is also equal to
+            the number of ensemble realizations that will be generated.
+        sampling_method (string):
+             Method to be used for generating the list of percentiles with
+             forecasts generated at each percentile. The options are "quantile"
+             and "random".
+             Quantile is the default option.
+             The quantile option produces equally spaced percentiles which is
+             the preferred option for full ensemble couple coupling with
+             reordering enables.
+        ecc_bounds_warning (boolean):
+            If True where percentiles (calculated as an intermediate output
+            before realization) exceed the ECC bounds range, raises a
+            warning rather than an exception.
+        reordering (boolean):
+            The option used to create ensemble realizations from percentiles
+            by reordering the input percentiles based on the order of the
+            raw ensemble forecast.
+        rebadging (boolean):
+            The option used to create ensemble realizations from percentiles
+            by rebadging the input percentiles.
+        random_ordering (boolean):
+            Decide whether or not to use random ordering within the ensemble
+            reordering step.
+        random_seed (int):
+            Option to specify a value for the random seed for testing purposes,
+            otherwise, the default random seed behaviour is utilised.
+            The random seed is used in the generation of the random numbers
+            used for either the random_ordering option to order the input
+            percentiles randomly, rather than use the ordering from the
+            raw ensemble, or for splitting tied values within the raw ensemble
+            so that the values from the input percentiles can be ordered to
+            match the raw ensemble.
+        realization_numbers:
+            A list of ensemble realization numbers to use when rebadging the
+            percentiles into realizations.
+
+    Returns:
+
+    """
     result_cube = ResamplePercentiles(
         ecc_bounds_warning=ecc_bounds_warning).process(
         cube, no_of_percentiles=no_of_percentiles,
