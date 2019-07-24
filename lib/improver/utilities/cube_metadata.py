@@ -703,7 +703,7 @@ def extract_diagnostic_name(cube_name):
             The name of the diagnostic underlying this probability
 
     Raises:
-        ValueError: If the input name does not contain 'probability_of_'
+        ValueError: If the input name does not contain 'probability_of'
     """
     if not cube_name.startswith('probability_of_'):
         raise ValueError(
