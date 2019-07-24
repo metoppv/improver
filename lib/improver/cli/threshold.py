@@ -120,65 +120,86 @@ def main(argv=None):
                            "with --fuzzy_factor option.")
 
     cube = load_cube(args.input_filepath)
-
+    threshold_dict = None
     if args.threshold_config:
         try:
             # Read in threshold configuration from JSON file.
             with open(args.threshold_config, 'r') as input_file:
-                thresholds_from_file = json.load(input_file)
-            thresholds = []
-            fuzzy_bounds = []
-            is_fuzzy = True
-            for key in thresholds_from_file.keys():
-                thresholds.append(float(key))
-                if is_fuzzy:
-                    # If the first threshold has no bounds, fuzzy_bounds is
-                    # set to None and subsequent bounds checks are skipped
-                    if thresholds_from_file[key] == "None":
-                        is_fuzzy = False
-                        fuzzy_bounds = None
-                    else:
-                        fuzzy_bounds.append(tuple(thresholds_from_file[key]))
+                threshold_dict = json.load(input_file)
         except ValueError as err:
             # Extend error message with hint for common JSON error.
             raise type(err)(err + " in JSON file {}. \nHINT: Try "
-                            "adding a zero after the decimal point.".format(
-                                args.threshold_config))
+                                  "adding a zero after the decimal point.".format(
+                args.threshold_config))
         except Exception as err:
             # Extend any errors with message about WHERE this occurred.
             raise type(err)(err + " in JSON file {}".format(
                 args.threshold_config))
+
+    result = process(cube, threshold_dict, args.threshold_values,
+                     args.threshold_config, args.threshold_units,
+                     args.below_threshold, args.fuzzy_factor,
+                     args.collapse_coord, args.vicinity)
+
+    save_netcdf(result, args.output_filepath)
+
+
+def process(cube, threshold_dict, threshold_values, threshold_config,
+            threshold_units=None, below_threshold=False, fuzzy_factor=None,
+            collapse_coord="None", vicinity=None):
+    if threshold_config:
+        try:
+            thresholds = []
+            fuzzy_bounds = []
+            is_fuzzy = True
+            for key in threshold_dict.keys():
+                thresholds.append(float(key))
+                if is_fuzzy:
+                    # If the first threshold has no bounds, fuzzy_bounds is
+                    # set to None and subsequent bounds checks are skipped
+                    if threshold_dict[key] == "None":
+                        is_fuzzy = False
+                        fuzzy_bounds = None
+                    else:
+                        fuzzy_bounds.append(tuple(threshold_dict[key]))
+        except ValueError as err:
+            # Extend error message with hint for common JSON error.
+            raise type(err)(err + " in JSON file {}. \nHINT: Try "
+                                  "adding a zero after the decimal point.".format(
+                threshold_config))
+        except Exception as err:
+            # Extend any errors with message about WHERE this occurred.
+            raise type(err)(err + " in JSON file {}".format(
+                threshold_config))
     else:
-        thresholds = args.threshold_values
+        thresholds = threshold_values
         fuzzy_bounds = None
-
     result_no_collapse_coord = BasicThreshold(
-        thresholds, fuzzy_factor=args.fuzzy_factor,
-        fuzzy_bounds=fuzzy_bounds, threshold_units=args.threshold_units,
-        below_thresh_ok=args.below_threshold).process(cube)
-
-    if args.vicinity is not None:
+        thresholds, fuzzy_factor=fuzzy_factor,
+        fuzzy_bounds=fuzzy_bounds, threshold_units=threshold_units,
+        below_thresh_ok=below_threshold).process(cube)
+    if vicinity is not None:
         # smooth thresholded occurrences over local vicinity
         result_no_collapse_coord = OccurrenceWithinVicinity(
-            args.vicinity).process(result_no_collapse_coord)
+            vicinity).process(result_no_collapse_coord)
 
         new_cube_name = in_vicinity_name_format(
             result_no_collapse_coord.name())
 
         result_no_collapse_coord.rename(new_cube_name)
-
-    if args.collapse_coord == "None":
-        save_netcdf(result_no_collapse_coord, args.output_filepath)
+    if collapse_coord == "None":
+        result = result_no_collapse_coord
     else:
         # Raise warning if result_no_collapse_coord is masked array
         if np.ma.isMaskedArray(result_no_collapse_coord.data):
             warnings.warn("Collapse-coord option not fully tested with "
                           "masked data.")
         # Take a weighted mean across realizations with equal weights
-        plugin = WeightAndBlend(args.collapse_coord, "linear",
+        plugin = WeightAndBlend(collapse_coord, "linear",
                                 y0val=1.0, ynval=1.0)
         result_collapse_coord = plugin.process(result_no_collapse_coord)
-        save_netcdf(result_collapse_coord, args.output_filepath)
+        result = result_collapse_coord
+    return result
 
 
 if __name__ == "__main__":
