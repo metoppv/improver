@@ -56,7 +56,7 @@ class Test__init__(IrisTest):
         """Test plugin raises an error if cval is None"""
         msg = 'cval is a required argument'
         with self.assertRaisesRegex(ValueError, msg):
-            result = NonLinearWeights(None)
+            NonLinearWeights(None)
 
     def test_fails_cval_set_wrong(self):
         """Test it fails if cval is negative or greater than 1"""
