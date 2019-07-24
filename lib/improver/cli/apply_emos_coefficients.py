@@ -146,9 +146,14 @@ def main(argv=None):
 def process(current_forecast, coeffs, num_realizations=None,
             random_ordering=False, random_seed=None,
             ecc_bounds_warning=False, predictor_of_mean='mean'):
-    """Script to apply coefficients for Ensemble Model Output
-       Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
-       Regression (NGR).
+    """Applying coefficients for Ensemble Model Output Statistics.
+
+    Load in arguments for applying coefficients for Ensemble Model Output
+    Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
+    Regression (NGR). The coefficients are applied to the forecast
+    that is supplied, so as to calibrate the forecast. The calibrated
+    forecast is written to a cube.
+
     Args:
         current_forecast (iris.cube.Cube):
             A Cube containing the forcast to be calibrated. The input format
@@ -185,8 +190,9 @@ def process(current_forecast, coeffs, num_realizations=None,
             String to specify the predictor used to calibrate the forecast
             mean. Currentlu the ensemble mean "mean" as the ensemble
             realization "realization" are supported as options.
-    Returns (iris.cube.Cube):
-        The calibrated forecast cube.
+    Returns:
+        result (iris.cube.Cube):
+            The calibrated forecast cube.
     """
     original_current_forecast = current_forecast.copy()
     msg = ("The current forecast has been provided as {0}. "

@@ -163,9 +163,11 @@ def process(cube, raw_forecast, no_of_percentiles=None,
             sampling_method='quantile', ecc_bounds_warning=False,
             reordering=False, rebadging=False, random_ordering=False,
             random_seed=None, realization_numbers=None):
-    """
+    """Runs Ensemble Copula Coupling processing.
+
     Converts a dataset containing probabilities into one containing ensemble
     realizations using Ensemble Coupla Coupling.
+
     Args:
         cube (iris.cube.Cube):
             Cube expected to contain a percentiles coordinate.
@@ -210,23 +212,24 @@ def process(cube, raw_forecast, no_of_percentiles=None,
             percentiles into realizations.
 
     Returns:
-
+        result (iris.cube.Cube):
+            The processed cube.
     """
-    result_cube = ResamplePercentiles(
+    result = ResamplePercentiles(
         ecc_bounds_warning=ecc_bounds_warning).process(
         cube, no_of_percentiles=no_of_percentiles,
         sampling=sampling_method)
     if reordering:
-        result_cube = EnsembleReordering().process(
-            result_cube, raw_forecast, random_ordering=random_ordering,
+        result = EnsembleReordering().process(
+            result, raw_forecast, random_ordering=random_ordering,
             random_seed=random_seed)
     elif rebadging:
         if realization_numbers is not None:
             realization_numbers = (
                 [int(num) for num in realization_numbers])
-        result_cube = RebadgePercentilesAsRealizations().process(
-            result_cube, ensemble_realization_numbers=realization_numbers)
-    return result_cube
+        result = RebadgePercentilesAsRealizations().process(
+            result, ensemble_realization_numbers=realization_numbers)
+    return result
 
 
 if __name__ == '__main__':

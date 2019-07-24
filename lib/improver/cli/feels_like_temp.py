@@ -73,7 +73,8 @@ def main(argv=None):
 
 
 def process(temperature, wind_speed, relative_humidity, pressure):
-    """
+    """Calculates the feels like temperature using the data in the input cube.
+
     Calculate the feels like temperature using a combination of the wind chill
     index and Steadman's apparent temperature equation with the following
     method:
@@ -102,7 +103,6 @@ def process(temperature, wind_speed, relative_humidity, pressure):
             Cube of feels like temperature. The units of feels like temperature
             will be the dame as the units of temperature cube when it is input
             into the function.
-
     """
     return calculate_feels_like_temperature(temperature, wind_speed,
                                             relative_humidity, pressure)

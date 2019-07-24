@@ -194,14 +194,16 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
             predictor_of_mean='mean', num_realizations=None,
             random_ordering=False, random_seed=None, ecc_bounds_warning=False,
             max_iterations=1000):
-    """Apply the requested ensemble calibration method using the current
-       forecast (to be calibrated) in the form of realizations, probabilities,
-       or percentiles. Historical forecasts in the form of realizations and
-       historical truth data (to use in calibration).
-       If the current forecast is supplied in the form of probabilities or
-       percentiles, these are converted to realizations prior to calibration.
-       After calibration, the mean are variance computed in the calibration
-       are converted to match the format of the current forecast.
+    """Module for ensemble calibration using the EnsembleCalibration plugin.
+
+    Apply the requested ensemble calibration method using the current
+    forecast (to be calibrated) in the form of realizations, probabilities,
+    or percentiles. Historical forecasts in the form of realizations and
+    historical truth data (to use in calibration).
+    If the current forecast is supplied in the form of probabilities or
+    percentiles, these are converted to realizations prior to calibration.
+    After calibration, the mean are variance computed in the calibration
+    are converted to match the format of the current forecast.
 
     Args:
         current_forecast (iris.cube.Cube):

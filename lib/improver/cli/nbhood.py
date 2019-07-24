@@ -240,7 +240,9 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius,
             percentiles=DEFAULT_PERCENTILES, mask_cube=None,
             halo_radius=None, apply_recursive_filter=False, alphas_x_cube=None,
             alphas_y_cube=None, alpha_x=None, alpha_y=None, iterations=1):
-    """Apply the requested neighbourhood method via the
+    """Runs neighbourhood processing.
+
+    Apply the requested neighbourhood method via the
        NeighbourhoodProcessing plugin to a file whose data can be loaded as a
        single iris.cube.Cube.
 

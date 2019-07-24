@@ -146,11 +146,12 @@ def main(argv=None):
 
 
 def process(temperature, humidity, pressure, wind_speed, wind_dir, orography):
-    """
-    Calculate orograhpic enhancement using the ResolveWindComponets() and
-    OrographicEnhancement() plugins. Outputs data on the high resolution
-    orography grid and regridded to the coarser resolution of the input
-    diagnostic variables.
+    """Calculate orograhpic enhancement
+
+    Using the ResolveWindComponets() and OrographicEnhancement() plugins.
+    Outputs data on the high resolution orography grid and regridded to the
+    coarser resolution of the input diagnostic variables.
+
     Args:
         temperature (iris.cube.Cube):
              Cube containing temperature at top of boundary layer.

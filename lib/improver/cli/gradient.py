@@ -77,10 +77,12 @@ def main(argv=None):
 
 
 def process(input_field):
-    """
+    """Calculate the gradient of input field in the x and y direction.
+
     Calculate the difference along the x and y axes and returns the result in
     separate cubes. The difference along each axes is calculated using
     numpy.diff.
+
     Args:
         input_field:
         Cube from which the difference will be calculated.

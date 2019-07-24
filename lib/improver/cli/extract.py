@@ -84,9 +84,13 @@ def main(argv=None):
 
 
 def process(cube, constraints, units=None):
-    """
+    """ Extract a subset of a single cube.
+
     Extracts subset of data from a single cube, subject to equality-based
-    constraints
+    constraints.
+    Using a set of constraints, extract a subcube from the provided cube if it
+    is available.
+
     Args:
         cube:
             The Cube from which a subcube is extracted

@@ -175,11 +175,13 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube,
             minimum_dz=False, extract_percentiles=None,
             ecc_bounds_warning=False, metadata_dict=None,
             suppress_warnings=False):
-    """
+    """Module to run spot data extraction.
+
     Extract diagnostic data from gridded fields for spot data sites. It is
     possible to apply a temperature lapse rate adjustment to temperature data
     that helps to account for differences between to spot sites real altitude
     and that of the grid point from which the temperature data is extracted.
+
     Args:
         neighbour_cube (iris.cube.Cube):
              Cube of spot-data neighbours and the spot site information.

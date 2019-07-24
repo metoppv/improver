@@ -71,11 +71,13 @@ def main(argv=None):
 
 
 def process(cubes):
-    """
+    """Module to run time-lagged ensembles.
+
     This combines the realization from different forecast cycles into one cube.
     It does this by taking an input Cubelist containing forecasts from
     different cycles and merges them into a single cube, removing any
     metadata that does not match.
+
     Args:
         cubes (iris.cube.Cubelist):
             CubeList for the time-lagged ensemble to combine the realizations.

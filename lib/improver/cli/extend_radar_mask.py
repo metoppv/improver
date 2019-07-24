@@ -69,8 +69,13 @@ def main(argv=None):
 
 
 def process(coverage, radar_data, fix_float64):
-    """
-    Extend radar mask based on coverage data.
+    """ Extend radar mask based on coverage data.
+
+    Extends the mask on radar rain-rate data based on the radar coverage
+    composite.
+    Update the mask on the input rain-rate cube to reflect where coverage is
+    valid.
+
     Args:
         coverage (iris.cube.Cube):
             Cube containing the radar data to remask
@@ -80,15 +85,14 @@ def process(coverage, radar_data, fix_float64):
             Check and fix cube for float64 data. Without this, an exception
             will be raised if float64 data is found but no fix applied.
     Returns:
-        (iris.cube.Cube):
+        result (iris.cube.Cube):
             A cube with the remasked radar data.
-
     """
     # extend mask
-    remasked_data = ExtendRadarMask().process(radar_data, coverage)
+    result = ExtendRadarMask().process(radar_data, coverage)
     # Check and fix for float64 data only option:
-    check_cube_not_float64(remasked_data, fix=fix_float64)
-    return remasked_data
+    check_cube_not_float64(result, fix=fix_float64)
+    return result
 
 
 if __name__ == "__main__":

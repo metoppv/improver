@@ -141,8 +141,8 @@ def main(argv=None):
 
 def process(cube, raw_forecast=None, no_of_realizations=None, reordering=False,
             rebadging=False, random_seed=None, ecc_bounds_warning=False):
-    """
-    Convert from probabilities to emsemble realizations.
+    """Convert from probabilities to emsemble realizations.
+
     Args:
         cube (iris.cube.Cube):
             Cube to be processed.

@@ -110,10 +110,12 @@ def main(argv=None):
 
 def process(cubelist, coordinate, central_point, units, width,
             calendar='gregorian', blend_time_using_forecast_period=False):
-    """Uses the TriangularWeightedBlendAcrossAdjacentPoints to blend across
-       a particular coordinate. It does not collapse the coordinate, but
-       instead blends across adjacent points and puts the blended values back
-       in the original coordinate, with adjusted bounds.
+    """Runs weighted blending across adjacent points.
+
+    Uses the TriangularWeightedBlendAcrossAdjacentPoints to blend across
+    a particular coordinate. It does not collapse the coordinate, but
+    instead blends across adjacent points and puts the blended values back
+    in the original coordinate, with adjusted bounds.
 
     Args:
         cubelist (iris.cube.CubeList):
@@ -138,8 +140,9 @@ def process(cubelist, coordinate, central_point, units, width,
             time and forecast_period share a dimension: i.e when all files
             provided are from the same forecast cycle.
 
-    Returns (iris.cube):
-        A processed Cube
+    Returns:
+        result (iris.cube):
+            A processed Cube
     """
 
     # This is left as a placeholder for when we have this capability

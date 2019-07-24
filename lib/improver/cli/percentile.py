@@ -100,7 +100,8 @@ def main(argv=None):
 
 def process(cube, coordinates=False, ecc_bounds_warning=False,
             percentiles=None, no_of_percentiles=None):
-    """
+    """Collapses cube coordinates and calculate percentiled data.
+
     Calculate percentiled data over a given coordinate by collapsing that
     coordinate. Typically used to convert realization data into percentiled
     data, but may calculate over any dimension coodinate. Alternatively
@@ -109,7 +110,8 @@ def process(cube, coordinates=False, ecc_bounds_warning=False,
     percentiles are given at which to calculate values and no
     'number of percentiles' to calculate are specified, the
     following defaults will be used.
-        [0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100]
+    '[0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100]'
+
     Args:
         cube (iris.cube.Cube):
             A Cube for processing.
@@ -131,7 +133,6 @@ def process(cube, coordinates=False, ecc_bounds_warning=False,
     Returns:
         (iris.cube.Cube):
             The processed Cube.
-
     """
     if no_of_percentiles is not None:
         percentiles = choose_set_of_percentiles(no_of_percentiles,

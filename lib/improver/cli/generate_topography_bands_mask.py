@@ -122,7 +122,9 @@ def main(argv=None):
 
 
 def process(landmask, orography, thresholds_dict=None):
-    """ Loops over the supplied orographic bands, adding a cube for each
+    """Runs topographic bands mask generation.
+
+    Loops over the supplied orographic bands, adding a cube for each
     band to the mask cubelist.
 
     Args:

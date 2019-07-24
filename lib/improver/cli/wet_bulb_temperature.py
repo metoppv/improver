@@ -84,10 +84,12 @@ def main(argv=None):
 
 def process(temperature, relative_humidity, pressure,
             convergence_condition=0.05):
-    """
+    """Module to generate wet bulb temperatures.
+
     Call the calculate_wet_bulb_temperature function to calculate wet bulb
     temperatures. This process function splits input cubes over vertical levels
     to mitigate memory issues when trying to operate on multi-level data.
+
     Args:
         temperature (iris.cube.Cube):
             Cube of air temperatures (K).

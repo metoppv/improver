@@ -130,9 +130,11 @@ def main(argv=None):
 
 
 def process(landmask, orography, thresholds_dict=None):
-    """
+    """Runs topographic weights generation.
+
     Calculate the weights depending upon where the orography point is within
     the topographical zones.
+
     Args:
         landmask (iris.cube.Cube):
             Land mask on standard grid. Sea points are masked out in the output
@@ -149,7 +151,6 @@ def process(landmask, orography, thresholds_dict=None):
         (iris.cube.Cube):
             Cube containing the weights depending upon where the orography
             point is within the topographical zones.
-
     """
     if thresholds_dict is None:
         thresholds_dict = THRESHOLDS_DICT

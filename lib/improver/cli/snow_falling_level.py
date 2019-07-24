@@ -101,8 +101,14 @@ def main(argv=None):
 
 def process(temperature, relative_humidity, pressure, orog, land_sea,
             precision=0.005, falling_level_threshold=90.0):
-    """
-    Calculate the continuous falling snow level
+    """Module to calculate continuous snow falling level.
+
+    Calculate the wet bulb temperature integral by firstly calculating the
+    wet bulb temperature from the inputs provided and then calculating the
+    vertical integral of the wet bulb temperature.
+    Find the falling_snow_level by finding the height above sea level
+    corresponding to the falling_level_threshold in the integral data.
+
     Args:
         temperature (iris.cube.Cube):
             Cube of air temperature at heights (m) at the points for which the
@@ -131,7 +137,6 @@ def process(temperature, relative_humidity, pressure, orog, land_sea,
     Returns:
         result (iris.cube.Cube):
             Processed Cube of falling snow level above sea level.
-
     """
     result = FallingSnowLevel(
         precision=precision,

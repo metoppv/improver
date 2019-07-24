@@ -77,8 +77,11 @@ def main(argv=None):
 
 
 def process(wind_direction, backup_method):
-    """
-    Calculates mean wind direction from ensemble realization.
+    """Calculates mean wind direction from ensemble realization.
+
+    Create a cube containing the wind direction averaged over the ensemble
+    realizations.
+
     Args:
         wind_direction (iris.cube.Cube):
             Cube containing the wind direction from multiple ensemble

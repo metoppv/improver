@@ -57,8 +57,11 @@ def main(argv=None):
 
 
 def process(cube, halo_radius):
-    """
-    Generate grid with halo from a source. The grid is populated with zeros.
+    """Generate grid with halo from a source. The grid is populated with zeros.
+
+    Create a template cube defining a new grid by adding a fixed width halo on
+    all sides to the input cube grid. The cube contains no meaningful data.
+
     Args:
         cube (iris.cube.Cube):
             The cube to be processed.
@@ -66,10 +69,12 @@ def process(cube, halo_radius):
             Radius is meters of excess halo to clip. Used where a larger grid
             was defined than the standard grid and we want to clip the grid
             back to the standard grid.
-    Returns (iris.cube.Cube):
-        The processed Cube.
+    Returns:
+        result (iris.cube.Cube):
+            The processed Cube.
     """
-    return create_cube_with_halo(cube, halo_radius)
+    result = create_cube_with_halo(cube, halo_radius)
+    return result
 
 
 if __name__ == '__main__':

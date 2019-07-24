@@ -43,6 +43,7 @@ def main(argv=None):
     Wind-gust and Wind-speed data should be supplied along with the required
     percentile value. The wind-gust diagnostic will be the Max of the specified
     percentile data.
+<<<<<<< HEAD
     Currently:
 
         * Typical gusts is
@@ -50,6 +51,13 @@ def main(argv=None):
         * Extreme gust is
           MAX(wind-gust(95th percentile),wind-speed(100th percentile))
 
+=======
+    Currently
+    * Typical gusts is
+    MAX(wind-gust(50th percentile),wind-speed(95th percentile))
+    * Extreme gust is
+    MAX(wind-gust(95th percentile),wind-speed(100th percentile))
+>>>>>>> 55733e67... Fixed all docstrings for sphinx
     If no percentile values are supplied the code defaults
     to values for Typical gusts.
     """
@@ -95,8 +103,13 @@ def main(argv=None):
 
 
 def process(cube_wg, cube_ws, percentile_gust, percentile_ws):
-    """
-    Create a cube containing the wind_gust diagnostic.
+    """Create a cube containing the wind_gust diagnostic.
+
+    Calculate revised wind-gust data using a specified percentiles of
+    wind-gust data and a specified percentile of wind-speed data through the
+    WindGustDiagnostic plugin. The wind-gust diagnostic will be the Max of the
+    specified percentile data.
+
     Args:
         cube_wg (iris.cube.Cube):
             Cube containing one or more percentiles of wind_gust data.
@@ -105,7 +118,7 @@ def process(cube_wg, cube_ws, percentile_gust, percentile_ws):
         percentile_gust (float):
             Percentile value required from wind-gust cube.
         percentile_ws (float):
-             Percentile value required from wind-speed cube.
+            Percentile value required from wind-speed cube.
 
     Returns:
         result (iris.cube.Cube):

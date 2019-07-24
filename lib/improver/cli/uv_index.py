@@ -66,8 +66,12 @@ def main(argv=None):
 
 
 def process(rad_uv_up, rad_uv_down):
-    """
-    Calculate the UV index using the data in the input cubes.
+    """Calculate the UV index using the data in the input cubes.
+
+    Calculate the uv index using radiation flux in UV downward at surface,
+    radiation flux UV upards at surface and a scaling factor. The scaling
+    factor is configured by the user.
+
     Args:
         rad_uv_up (iris.cube.Cube):
             Cube of radiation flux in UV upwards at surface.

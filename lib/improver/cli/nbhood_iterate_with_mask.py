@@ -149,7 +149,8 @@ def main(argv=None):
 def process(cube, mask_cube, weights, coord_for_masking, radius,
             radii_by_lead_time, sum_or_fraction="fraction", re_mask=False,
             collapse_dimension=False):
-    """
+    """Runs neighbourhooding processing iterating over a coordinate by mask.
+
     Apply the requested neighbourhood method via the
     ApplyNeighbourhoodProcessingWithMask plugin to a file with one diagnostic
     dataset in combination with a cube containing one or more masks.
@@ -164,6 +165,7 @@ def process(cube, mask_cube, weights, coord_for_masking, radius,
     grid points.
     There is an alternative option of collapsing the dimension that we gain
     using this processing using a weighted average.
+
     Args:
         cube (iris.cube.Cube):
             Cube to be processed.

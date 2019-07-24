@@ -196,16 +196,20 @@ def process(cubelist, weights_dict, wts_calc_method, coordinate, cycletime,
             y0val, ynval, cval, weighting_coord,
             model_id_attr='mosg__model_configuration',
             spatial_weights_from_mask=False, fuzzy_length=20000.0):
-    """
+    """Module to run weighted blending.
+
+    Load in arguments and ensure they are set correctly.
+    Then load in the data to blend and calculate default weights
+    using the method chosen before carrying out the blending.
+
     Args:
         cubelist (iris.cube.Cubelist):
             Cubelist of cubes to be blended.
-
         wts_calc_method (string):
             Method to use to calculate weights used in blending.
             "linear" (default): calculate linearly varying blending weights.
             "nonlinear": calculate blending weights that decrease
-                exponentially with increasing blending coordinates.
+            exponentially with increasing blending coordinates.
             "dicts": calculate weights using a dictionary passed in.
         weights_dict (dictionary):
             Dictionary from which to calculate blending weights. Dictionary
@@ -262,7 +266,6 @@ def process(cubelist, weights_dict, wts_calc_method, coordinate, cycletime,
     Returns:
         result (irirs.cube.Cube):
             Merged and blended Cube.
-
     """
 
     plugin = WeightAndBlend(

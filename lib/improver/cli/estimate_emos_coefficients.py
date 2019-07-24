@@ -121,11 +121,14 @@ def main(argv=None):
 
 def process(historic_forecast, truth, distribution, cycletime, units,
             predictor_of_mean='mean', max_iterations=1000):
-    """Loads in arguments for estimating coefficients for Ensemble Model
-       Output Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
-       Regression (NGR). Two sources of input data must be provided: historical
-       forecasts and historical truth data (to use in calibration).
-       The estimated coefficients are output as a cube.
+    """Module for estimate coefficients for Ensemble Model Output Statistics.
+
+    Loads in arguments for estimating coefficients for Ensemble Model
+    Output Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
+    Regression (NGR). Two sources of input data must be provided: historical
+    forecasts and historical truth data (to use in calibration).
+    The estimated coefficients are output as a cube.
+
     Args:
         historic_forecast (iris.cube.Cube):
             The cube containing the historical forecasts sed for calibration.
@@ -155,16 +158,17 @@ def process(historic_forecast, truth, distribution, cycletime, units,
             iterations may require increasing, as there will be more
             coefficients to solve.
 
-    Returns (iris.cube.Cube):
-        Cube containing the coefficients estimated using EMOS. The cube
-        contains a coefficient_index dimension coordinate and a
-        coefficient_name auxiliary coordinate.
+    Returns:
+        result (iris.cube.Cube):
+            Cube containing the coefficients estimated using EMOS. The cube
+            contains a coefficient_index dimension coordinate and a
+            coefficient_name auxiliary coordinate.
     """
-    estcoeffs = EstimateCoefficientsForEnsembleCalibration(
+    result = EstimateCoefficientsForEnsembleCalibration(
         distribution, cycletime, desired_units=units,
         predictor_of_mean_flag=predictor_of_mean,
         max_iterations=max_iterations)
-    return estcoeffs.process(historic_forecast, truth)
+    return result.process(historic_forecast, truth)
 
 
 if __name__ == "__main__":

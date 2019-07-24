@@ -107,7 +107,10 @@ def main(argv=None):
 
 def process(cubelist, operation, new_cube_name,
             metadata_jsonfile=None, warnings_on=False):
-    """
+    """Module for combining Cubes.
+
+    Combine the input cubesinto a single cube using the requested operation.
+    e.g. '+', '-', '*', 'add', 'subtract', 'multiply', 'min', 'max', 'mean'
 
     Args:
         cubelist (iris.cube.CubeList):
