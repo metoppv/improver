@@ -149,21 +149,89 @@ def main(argv=None):
         "required.")
 
     args = parser.parse_args(args=argv)
+    metadata_dict = None
+    if args.metadata_json:
+        with open(args.metadata_json, 'r') as input_file:
+            metadata_dict = json.load(input_file)
+    # Load Cube
     neighbour_cube = load_cube(args.neighbour_filepath)
     diagnostic_cube = load_cube(args.diagnostic_filepath)
     lapse_rate_cube = load_cube(args.temperature_lapse_rate_filepath) if \
         args.temperature_lapse_rate_filepath else None
 
-    result = process(neighbour_cube, diagnostic_cube, lapse_rate_cube, args)
+    # Process Cube
+    result = process(neighbour_cube, diagnostic_cube, lapse_rate_cube,
+                     args.apply_lapse_rate_correction, args.land_constraint,
+                     args.minimum_dz, args.extract_percentiles,
+                     args.ecc_bounds_warning, metadata_dict,
+                     args.suppress_warnings)
 
-    # Save the spot data cube.
+    # Save Cube
     save_netcdf(result, args.output_filepath)
 
 
-def process(neighbour_cube, diagnostic_cube, lapse_rate_cube, args):
+def process(neighbour_cube, diagnostic_cube, lapse_rate_cube,
+            apply_lapse_rate_correction=False, land_constraint=False,
+            minimum_dz=False, extract_percentiles=None,
+            ecc_bounds_warning=False, metadata_dict=None,
+            suppress_warnings=False):
+    """
+    Extract diagnostic data from gridded fields for spot data sites. It is
+    possible to apply a temperature lapse rate adjustment to temperature data
+    that helps to account for differences between to spot sites real altitude
+    and that of the grid point from which the temperature data is extracted.
+    Args:
+        neighbour_cube (iris.cube.Cube):
+             Cube of spot-data neighbours and the spot site information.
+        diagnostic_cube (iris.cube.Cube):
+            Cube containing the diagnostic data to be extracted.
+        lapse_rate_cube (iris.cube.Cube):
+            Cube containing temperature lapse rates. If this cube is provided
+            and a screen temperature cube is being processed, the lapse rates
+            will be used tp adjust the temperature to better represent each
+            spot's site-altitude.
+        apply_lapse_rate_correction (boolean):
+             If True, and a lapse rate cube has been provided, extracted
+             screen temperature will be adjusted to better match the altitude
+             of the spot site for which they have been extracted.
+        land_constraint (boolean):
+            If True, the neighbour cube will be interrogated for grid point
+            neighbour that were identified using a land constraint. This means
+            that the grid points should be land points except for sites where
+            none were found within the search radius when the neighbour cube
+            was created. May be used with minimum_dz.
+        minimum_dz (boolean):
+            If True, the neighbour cube will be interrogated for grid point
+            neighbours that were identified using the minimum height
+            difference constraint. These are grid points that were found to be
+            the closest in altitude to the spot site within the search radius
+            defined when the neighbour cube was created. May be used with
+            land_constraint.
+        extract_percentiles (list<integer> or integer):
+             If set to a percentile value or a list of percentile values,
+             data corresponding to those percentiles will b returned. For
+             example [25, 50, 75] will result in the 25th, 50th and 75th
+             percentiles being returned from a cube of probabilities,
+             percentiles or realizations.
+             Note that for percentiles inputs, the desired percentile(s) must
+             exist in the input cube.
+        ecc_bounds_warning (boolean):
+            If True, where calculated percentiles are outside the ECC bounds
+            range, raises a warning rather than an exception.
+        metadata_json (dictionary):
+            If provided, this dictionary can be used to modify the metadata
+            of the returned cube.
+        suppress_warnings:
+            Suppress warning output. This ooption should only be used if it
+            is known that warnings will be generated but they are not required.
+
+    Returns:
+        result (iris.cube.Cube):
+           The processed cube.
+    """
     neighbour_selection_method = NeighbourSelection(
-        land_constraint=args.land_constraint,
-        minimum_dz=args.minimum_dz).neighbour_finding_method_name()
+        land_constraint=land_constraint,
+        minimum_dz=minimum_dz).neighbour_finding_method_name()
     plugin = SpotExtraction(
         neighbour_selection_method=neighbour_selection_method)
     result = plugin.process(neighbour_cube, diagnostic_cube)
@@ -171,44 +239,44 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube, args):
     # the given percentile if available. This is done after the spot-extraction
     # to minimise processing time; usually there are far fewer spot sites than
     # grid points.
-    if args.extract_percentiles:
+    if extract_percentiles:
         try:
             perc_coordinate = find_percentile_coordinate(result)
         except CoordinateNotFoundError:
             if 'probability_of_' in result.name():
                 result = GeneratePercentilesFromProbabilities(
-                    ecc_bounds_warning=args.ecc_bounds_warning).process(
-                    result, percentiles=args.extract_percentiles)
+                    ecc_bounds_warning=ecc_bounds_warning).process(
+                    result, percentiles=extract_percentiles)
                 result = iris.util.squeeze(result)
             elif result.coords('realization', dim_coords=True):
                 fast_percentile_method = (
                     False if np.ma.isMaskedArray(result.data) else True)
                 result = PercentileConverter(
-                    'realization', percentiles=args.extract_percentiles,
+                    'realization', percentiles=extract_percentiles,
                     fast_percentile_method=fast_percentile_method).process(
                     result)
             else:
                 msg = ('Diagnostic cube is not a known probabilistic type. '
                        'The {} percentile could not be extracted. Extracting '
                        'data from the cube including any leading '
-                       'dimensions.'.format(args.extract_percentiles))
-                if not args.suppress_warnings:
+                       'dimensions.'.format(extract_percentiles))
+                if not suppress_warnings:
                     warnings.warn(msg)
         else:
             constraint = ['{}={}'.format(perc_coordinate.name(),
-                                         args.extract_percentiles)]
+                                         extract_percentiles)]
             perc_result = extract_subcube(result, constraint)
             if perc_result is not None:
                 result = perc_result
             else:
                 msg = ('The percentile diagnostic cube does not contain the '
                        'requested percentile value. Requested {}, available '
-                       '{}'.format(args.extract_percentiles,
+                       '{}'.format(extract_percentiles,
                                    perc_coordinate.points))
                 raise ValueError(msg)
     # Check whether a lapse rate cube has been provided and we are dealing with
     # temperature data and the lapse-rate option is enabled.
-    if args.apply_lapse_rate_correction and lapse_rate_cube:
+    if apply_lapse_rate_correction and lapse_rate_cube:
 
         if not result.name() == "air_temperature":
             msg = ("A lapse rate cube was provided, but the diagnostic being "
@@ -241,19 +309,17 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube, args):
                    "the temperature data does not match that of the data used "
                    "to calculate the lapse rates. As such the temperatures "
                    "were not adjusted with the lapse rates.")
-            if not args.suppress_warnings:
+            if not suppress_warnings:
                 warnings.warn(msg)
-    elif (args.apply_lapse_rate_correction and
+    elif (apply_lapse_rate_correction and
           not lapse_rate_cube):
         msg = ("A lapse rate cube was not provided, but the option to "
                "apply the lapse rate correction was enabled. No lapse rate "
                "correction could be applied.")
-        if not args.suppress_warnings:
+        if not suppress_warnings:
             warnings.warn(msg)
     # Modify final metadata as described by provided JSON file.
-    if args.metadata_json:
-        with open(args.metadata_json, 'r') as input_file:
-            metadata_dict = json.load(input_file)
+    if metadata_dict:
         result = amend_metadata(result, **metadata_dict)
     # Remove the internal model_grid_hash attribute if present.
     result.attributes.pop('model_grid_hash', None)
