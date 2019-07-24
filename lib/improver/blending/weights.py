@@ -585,6 +585,10 @@ class ChooseDefaultWeightsNonLinear:
         Raises:
             ValueError: an inappropriate value of cval is input.
         """
+        if cval is None:
+            raise ValueError('cval is a required argument to the '
+                             'ChooseDefaultWeightsNonLinear plugin')
+
         if cval <= 0.0 or cval > 1.0:
             msg = ('cval must be greater than 0.0 and less '
                    'than or equal to 1.0 cval = {}'.format(cval))

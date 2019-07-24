@@ -152,7 +152,8 @@ class Test__calculate_blending_weights(IrisTest):
         cube = iris.cube.CubeList(
             [ukv_cube_later, ukv_cube_earlier]).merge_cube()
 
-        plugin = WeightAndBlend("forecast_reference_time", "nonlinear")
+        plugin = WeightAndBlend(
+            "forecast_reference_time", "nonlinear", cval=0.85)
         weights = plugin._calculate_blending_weights(cube)
         self.assertArrayAlmostEqual(
             weights.data, np.array([0.5405405, 0.45945945]))
@@ -170,7 +171,8 @@ class Test__calculate_blending_weights(IrisTest):
             [ukv_cube_later, ukv_cube_earlier]).merge_cube()
 
         plugin = WeightAndBlend(
-            "forecast_reference_time", "nonlinear", inverse_ordering=True)
+            "forecast_reference_time", "nonlinear", cval=0.85,
+            inverse_ordering=True)
         weights = plugin._calculate_blending_weights(cube)
         self.assertArrayAlmostEqual(
             weights.data, np.array([0.45945945, 0.5405405]))

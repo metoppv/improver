@@ -88,9 +88,7 @@ class WeightAndBlend():
             self.y0val = y0val
             self.ynval = ynval
         elif self.wts_calc_method == "nonlinear":
-            # the default cval is set here rather than in the CLI arguments
-            # in order to check for invalid argument combinations
-            self.cval = cval if cval else 0.85
+            self.cval = cval
             self.inverse_ordering = inverse_ordering
         else:
             raise ValueError(

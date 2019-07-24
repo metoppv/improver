@@ -52,9 +52,15 @@ class Test__init__(IrisTest):
         result = NonLinearWeights(0.85)
         self.assertAlmostEqual(result.cval, 0.85)
 
+    def test_fails_cval_not_set(self):
+        """Test plugin raises an error if cval is None"""
+        msg = 'cval is a required argument'
+        with self.assertRaisesRegex(ValueError, msg):
+            result = NonLinearWeights(None)
+
     def test_fails_cval_set_wrong(self):
         """Test it fails if cval is negative or greater than 1"""
-        msg = ('cval must be greater than 0.0')
+        msg = 'cval must be greater than 0.0'
         with self.assertRaisesRegex(ValueError, msg):
             NonLinearWeights(-0.1)
         with self.assertRaisesRegex(ValueError, msg):
@@ -124,7 +130,7 @@ class Test_process(IrisTest):
 
     def test_works_with_default_cval(self):
         """Test it works with default cval. """
-        plugin = NonLinearWeights(0.85)
+        plugin = NonLinearWeights(cval=0.85)
         result = plugin.process(self.cube, self.coord_name)
         expected_result = np.array([0.54054054, 0.45945946])
         self.assertArrayAlmostEqual(result.data, expected_result)
@@ -133,7 +139,7 @@ class Test_process(IrisTest):
         """Test inverting the order of the input cube produces inverted weights
         order, with the cube and weights cube still matching in dimensions"""
         reference_cube = self.cube.copy()
-        plugin = NonLinearWeights(0.85)
+        plugin = NonLinearWeights(cval=0.85)
         result = plugin.process(
             self.cube, self.coord_name, inverse_ordering=True)
         expected_result = np.array([0.45945946, 0.54054054])
