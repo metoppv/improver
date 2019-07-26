@@ -76,7 +76,7 @@ def process(rad_uv_up, rad_uv_down):
         rad_uv_up (iris.cube.Cube):
             Cube of radiation flux in UV upwards at surface.
         rad_uv_down (iris.cube.Cube):
-            Cube of radiation fluc in UV downwards at surface.
+            Cube of radiation flux in UV downwards at surface.
 
     Returns:
         result (iris.cube.Cube):

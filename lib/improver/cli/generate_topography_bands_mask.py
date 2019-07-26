@@ -129,7 +129,7 @@ def process(landmask, orography, thresholds_dict=None):
 
     Args:
         landmask (iris.cube.Cube):
-            The land mask on standard grid. If provided dsa points are set to
+            The land mask on standard grid. If provided data points are set to
             zero in every band.
         orography (iris.cube.Cube):
             The orography a standard grid.

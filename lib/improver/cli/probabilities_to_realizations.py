@@ -141,29 +141,33 @@ def main(argv=None):
 
 def process(cube, raw_forecast=None, no_of_realizations=None, reordering=False,
             rebadging=False, random_seed=None, ecc_bounds_warning=False):
-    """Convert from probabilities to emsemble realizations.
+    """Convert from probabilities to ensemble realizations.
 
     Args:
         cube (iris.cube.Cube):
             Cube to be processed.
         raw_forecast (iris.cube.Cube):
-             A raw forecast cube which must be used if using reordering.
+            A raw forecast cube which must be used if using reordering.
+            Default is None.
         no_of_realizations (integer):
             Optional definition of the number of ensemble realizations to
             be generated. These are generated though an intermediate
             percentile representation. Theses percentiles will be
-            distributed regularly with the aim of dividing ino blocks
+            distributed regularly with the aim of dividing into blocks
             of equal probability. If the reordering option is specified
-            and the number of realization is not given the the number
-            of realizations is taken from the num of realizations
+            and the number of realization is not given the number
+            of realizations is taken from the number of realizations
             in the raw forecast cube.
+            Default is None.
         reordering (boolean):
             The option used to create ensemble realizations from percentiles
             by reordering the input percentiles based on the order of the
             raw ensemble.
+            Default is False.
         rebadging (boolean):
             Th option used to create ensemble realizations from percentiles
             by rebadging the input percentiles.
+            Default is False.
         random_seed (integer):
             Option to specify a value for the random seed for testing
             purposes, otherwise the default random seed behaviours is
@@ -171,10 +175,12 @@ def process(cube, raw_forecast=None, no_of_realizations=None, reordering=False,
             random numbers used for splitting tied values within the raw
             ensemble, so that the values from the input percentiles can
             be ordered to match the raw ensemble.
+            Default is None.
         ecc_bounds_warning (boolean):
             If True, where percentiles (calculated as an intermediate output
             before realization) exceed to ECC bounds range, raises a warning
             rather than an exception.
+            Default is False.
 
     Returns:
         result (iris.cube.Cube):

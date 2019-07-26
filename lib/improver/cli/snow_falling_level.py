@@ -129,10 +129,12 @@ def process(temperature, relative_humidity, pressure, orog, land_sea,
         precision (float):
             Precision to which the wet bulb temperature is required: This is
             used by the Newton iteration.
+            Default is 0.005.
         falling_level_threshold (float):
-            Cuttoff threshold for the wet-bulb integral used to calculate the
+            Cutoff threshold for the wet-bulb integral used to calculate the
             falling snow level. This threshold indicates the level at which
             falling snow is deemed to have melted to become rain.
+            Default is 90.0.
 
     Returns:
         result (iris.cube.Cube):

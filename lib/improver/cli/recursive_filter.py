@@ -124,27 +124,34 @@ def process(cube, mask_cube=None, alphas_x_cube=None, alphas_y_cube=None,
         cube (iris.cube.Cube):
             Cube to be processed.
         mask_cube (iris.cube.Cube):
-             Cube to mask the procesed cube.
+            Cube to mask the processed cube.
+            Default is None.
         alphas_x_cube (iris.cube.Cube):
             Cube describing the alpha factors to be used for smoothing in the
             x direction.
+            Default is None.
         alphas_y_cube (iris.cube.Cube):
             Cube describing the alpha factors to be used for smoothing in the
             y direction.
+            Default is None.
         alpha_x (float):
              A single alpha factor (0 < alpha_x < 1) to be applied to every
              grid square in the x direction.
+            Default is None.
         alpha_y (float):
             A single alpha factor (0< alpha_y < 1) to be applied to every grid
             square in the y direction.
+            Default is None.
         iterations (int):
             Number of times to apply the filter. (Typically < 5)
+            Default is 1 (one).
         re_mask (boolean):
             Re-apply mask to recursively filtered output.
+            Default is False.
 
     Returns:
         result (iris.cube.Cube):
-            The processed Cube/
+            The processed Cube.
     """
     result = RecursiveFilter(
         alpha_x=alpha_x, alpha_y=alpha_y,

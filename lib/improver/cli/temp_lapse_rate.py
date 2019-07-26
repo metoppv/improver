@@ -133,14 +133,17 @@ def process(temperature_cube, orography_cube, land_sea_mask_cube,
             Maximum allowable height difference between the central point and
             points in the neighbourhood over which the lapse rate will be
             calculated.
+            Default is 35.
         nbhood_radius (integer):
             Radius of neighbourhood around each point. The neighbourhood
             will be a square array with side length 2*nbhood_radius + 1.
             The default value of 7 is from the reference paper.
         max_lapse_rate (float):
             Maximum lapse rate allowed.
+            Default is 3*improver.constants.DALR.
         min_lapse_rate:
             Minimum lapse rate allowed.
+            Default is improver.constants.DALR.
         return_dalr (boolean):
             If True, returns a cube containing the dry adiabatic lapse rate
             rather than calculating the true lapse rate.

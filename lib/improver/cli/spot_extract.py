@@ -184,24 +184,26 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube,
 
     Args:
         neighbour_cube (iris.cube.Cube):
-             Cube of spot-data neighbours and the spot site information.
+            Cube of spot-data neighbours and the spot site information.
         diagnostic_cube (iris.cube.Cube):
             Cube containing the diagnostic data to be extracted.
         lapse_rate_cube (iris.cube.Cube):
             Cube containing temperature lapse rates. If this cube is provided
             and a screen temperature cube is being processed, the lapse rates
-            will be used tp adjust the temperature to better represent each
+            will be used to adjust the temperature to better represent each
             spot's site-altitude.
         apply_lapse_rate_correction (boolean):
-             If True, and a lapse rate cube has been provided, extracted
-             screen temperature will be adjusted to better match the altitude
-             of the spot site for which they have been extracted.
+            If True, and a lapse rate cube has been provided, extracted
+            screen temperature will be adjusted to better match the altitude
+            of the spot site for which they have been extracted.
+            Default is False.
         land_constraint (boolean):
             If True, the neighbour cube will be interrogated for grid point
             neighbour that were identified using a land constraint. This means
             that the grid points should be land points except for sites where
             none were found within the search radius when the neighbour cube
             was created. May be used with minimum_dz.
+            Default is False.
         minimum_dz (boolean):
             If True, the neighbour cube will be interrogated for grid point
             neighbours that were identified using the minimum height
@@ -209,23 +211,28 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube,
             the closest in altitude to the spot site within the search radius
             defined when the neighbour cube was created. May be used with
             land_constraint.
+            Default is False.
         extract_percentiles (list<integer> or integer):
-             If set to a percentile value or a list of percentile values,
-             data corresponding to those percentiles will b returned. For
-             example [25, 50, 75] will result in the 25th, 50th and 75th
-             percentiles being returned from a cube of probabilities,
-             percentiles or realizations.
-             Note that for percentiles inputs, the desired percentile(s) must
-             exist in the input cube.
+            If set to a percentile value or a list of percentile values,
+            data corresponding to those percentiles will be returned. For
+            example [25, 50, 75] will result in the 25th, 50th and 75th
+            percentiles being returned from a cube of probabilities,
+            percentiles or realizations.
+            Note that for percentiles inputs, the desired percentile(s) must
+            exist in the input cube.
+            Default is None.
         ecc_bounds_warning (boolean):
             If True, where calculated percentiles are outside the ECC bounds
             range, raises a warning rather than an exception.
+            Default is False.
         metadata_dict (dictionary):
             If provided, this dictionary can be used to modify the metadata
             of the returned cube.
-        suppress_warnings:
-            Suppress warning output. This ooption should only be used if it
+            Default is None.
+        suppress_warnings (boolean):
+            Suppress warning output. This option should only be used if it
             is known that warnings will be generated but they are not required.
+            Default is None.
 
     Returns:
         result (iris.cube.Cube):

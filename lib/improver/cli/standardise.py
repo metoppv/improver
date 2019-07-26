@@ -200,12 +200,15 @@ def process(output_data, target_grid=None, source_landsea=None,
             If specified, then regridding of the source against the target
             grid is enabled. If also using landmask-aware regridding then this
             must be land_binary_mask data.
+            Default is None.
         source_landsea (iris.cube.Cube):
             A cube describing the land_binary_mask on the source-grid if
             coastline-aware regridding is required.
+            Default is None.
         metadata_dict (dictionary):
             Dictionary containing required changes that will be applied to
-            the metadata. Defaults to None.
+            the metadata.
+            Default is None.
         regrid_mode (string):
             Selects which regridding techniques to use. Default uses
             iris.analysis.Linear(); "nearest" uses Nearest() (Use for less
@@ -218,28 +221,24 @@ def process(output_data, target_grid=None, source_landsea=None,
             of the source_data domain. Refer to online documentation for
             iris.analysis.
             Modes are -
-            extrapolate -
-            The extrapolation points will take their values from the
-            nearest source point.
-            nan -
-            The extrapolation points will be set to NaN.
-            error -
-            A ValueError exception will be raised notifying an attempt
+            extrapolate -The extrapolation points will take their values
+            from the nearest source point.
+            nan - The extrapolation points will be set to NaN.
+            error - A ValueError exception will be raised notifying an attempt
             to extrapolate.
-            mask -
-            The extrapolation points will always be masked, even if
+            mask - The extrapolation points will always be masked, even if
             the source data is not a MaskedArray.
-            nanmask -
-            If the source data is a MaskedArray the extrapolation
+            nanmask - If the source data is a MaskedArray the extrapolation
             points will be masked. Otherwise they will be set to NaN.
-            Defaults to nanmask.
+            Defaults is 'nanmask'.
         landmask_vicinity (float) -
             Radius of vicinity to search for a coastline, in metres.
-            Defaults value; 25000 m
+            Defaults is 25000 m
         fix_float64 (boolean) -
             If True, checks and fixes cube for float64 data. Without this
             option an exception will be raised if float64 data is found but no
             fix applied.
+            Default is False.
 
     Returns:
         output_data (iris.cube.Cube):

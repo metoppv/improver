@@ -191,7 +191,7 @@ def process(cube, raw_forecast, no_of_percentiles=None,
             warning rather than an exception.
             Default is False.
         reordering (boolean):
-            The option used to create ensemble realizations from percentiles
+            The    option used to create ensemble realizations from percentiles
             by reordering the input percentiles based on the order of the
             raw ensemble forecast.
             Default is False.
