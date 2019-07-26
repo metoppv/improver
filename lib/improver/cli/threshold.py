@@ -129,14 +129,14 @@ def main(argv=None):
         except ValueError as err:
             # Extend error message with hint for common JSON error.
             raise type(err)(err + " in JSON file {}. \nHINT: Try "
-                                  "adding a zero after the decimal point.".format(
-                args.threshold_config))
+                                  "adding a zero after the decimal point.".
+                            format(args.threshold_config))
         except Exception as err:
             # Extend any errors with message about WHERE this occurred.
             raise type(err)(err + " in JSON file {}".format(
                 args.threshold_config))
 
-    result = process(cube, threshold_dict, args.threshold_values,
+    result = process(cube, args.threshold_values, threshold_dict,
                      args.threshold_config, args.threshold_units,
                      args.below_threshold, args.fuzzy_factor,
                      args.collapse_coord, args.vicinity)
@@ -144,10 +144,69 @@ def main(argv=None):
     save_netcdf(result, args.output_filepath)
 
 
-def process(cube, threshold_dict, threshold_values, threshold_config,
+def process(cube, threshold_values, threshold_dict, threshold_config,
             threshold_units=None, below_threshold=False, fuzzy_factor=None,
             collapse_coord="None", vicinity=None):
-    if threshold_config:
+    """Module to apply thresholding to a parameter dataset.
+
+    Calculate the threshold truth values of input data relative to the
+    provided threshold value. By default data are tested to be above the
+    threshold, though the below_threshold boolean enables testing below
+    thresholds.
+    A fuzzy factor or fuzzy bounds may be provided to capture data that is
+    close to the threshold.
+
+    Args:
+        cube (iris.cube.Cube):
+             A cube to be processed.
+        threshold_values (float):
+            Threshold value of values about which to calculate the truth
+            values; e.g. 270 300. Must be omitted if 'threshold_config'
+            is used.
+        threshold_dict (dictionary):
+            Threshold configuration containing threshold values and
+            (optionally) fuzzy bounds. Best used in combination with
+            'threshold_units' It should contain a dictionary of strings that
+            can be interpreted as floats with the structure:
+            "THRESHOLD_VALUE": [LOWER_BOUND, UPPER_BOUND]
+            e.g: {"280.0": [278.0, 282.0],
+            "290.0": [288.0, 292.0]}, or with structure
+            "THRESHOLD_VALUE": "None" (no fuzzy bounds).
+            Repeated thresholds with different bounds are not
+            handled well. Only the last duplicate will be used.
+        TODO sort out errors as they require the file name
+        threshold_config:
+        threshold_units (string):
+            Units of the threshold values. If not provided the units are
+            assumed to be the same as those of the input cube. Specifying
+            the units here will allow a suitable conversion to match
+            the input units if possible.
+        below_threshold (boolean):
+            By default truth values of 1 are returned for data ABOVE the
+            threshold value(s). Using this boolean changes this behaviours
+            to return 1 for data below the threshold values.
+        fuzzy_factor (float):
+            A decimal fraction defining the factor about the threshold value(s)
+            which should be treated as fuzzy. Data which fail a test against
+            the hard threshold value may return a fractional truth value of
+            the fall within this fuzzy factor region.
+            Fuzzy factor must be in the range 0-1, with higher values
+            indicating a narrower fuzzy factor region / sharper threshold.
+            N.B. A fuzzy factor cannot be used with a zero threshold or a
+            threshold_dict.
+        collapse_coord (string):
+            An optional ability to set which coordinate we want to collapse
+            over. The default is set to None.
+        vicinity (float):
+            If True, distance in metres used to define the vicinity within
+            which to search for an occurrence.
+
+    Returns:
+        result (iris.cube.Cube):
+            processed Cube.
+
+    """
+    if threshold_dict:
         try:
             thresholds = []
             fuzzy_bounds = []
@@ -164,12 +223,12 @@ def process(cube, threshold_dict, threshold_values, threshold_config,
                         fuzzy_bounds.append(tuple(threshold_dict[key]))
         except ValueError as err:
             # Extend error message with hint for common JSON error.
-            raise type(err)(err + " in JSON file {}. \nHINT: Try "
-                                  "adding a zero after the decimal point.".format(
-                threshold_config))
+            raise type(err)(err + " in threshold dictionary file {}. \nHINT: "
+                                  "Try adding a zero after the decimal point.".
+                            format(threshold_config))
         except Exception as err:
             # Extend any errors with message about WHERE this occurred.
-            raise type(err)(err + " in JSON file {}".format(
+            raise type(err)(err + " in dictionary file {}".format(
                 threshold_config))
     else:
         thresholds = threshold_values
