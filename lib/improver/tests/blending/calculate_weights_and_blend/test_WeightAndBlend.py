@@ -141,7 +141,8 @@ class Test__calculate_blending_weights(IrisTest):
         self.assertArrayAlmostEqual(weights.data, 0.25*np.ones((4,)))
 
     def test_default_nonlinear(self):
-        """Test non-linear weighting over forecast reference time"""
+        """Test non-linear weighting over forecast reference time, where the
+        earlier cycle has a higher weighting"""
         data = np.ones((3, 3, 3), dtype=np.float32)
         thresholds = np.array([276, 277, 278], dtype=np.float32)
         ukv_cube_earlier = set_up_probability_cube(
@@ -151,14 +152,30 @@ class Test__calculate_blending_weights(IrisTest):
         cube = iris.cube.CubeList(
             [ukv_cube_later, ukv_cube_earlier]).merge_cube()
 
-        plugin = WeightAndBlend("forecast_reference_time", "nonlinear")
-
-        # Note this is the default behaviour for the nonlinear weights plugin,
-        # whereby the earlier cycle has greater weight than the later cycle.
-        # TODO this should be reconsidered
+        plugin = WeightAndBlend(
+            "forecast_reference_time", "nonlinear", cval=0.85)
         weights = plugin._calculate_blending_weights(cube)
         self.assertArrayAlmostEqual(
             weights.data, np.array([0.5405405, 0.45945945]))
+
+    def test_default_nonlinear_inverse(self):
+        """Test non-linear weighting over forecast reference time in reverse
+        order, so that the more recent cycle has a higher weighting"""
+        data = np.ones((3, 3, 3), dtype=np.float32)
+        thresholds = np.array([276, 277, 278], dtype=np.float32)
+        ukv_cube_earlier = set_up_probability_cube(
+            data, thresholds, time=dt(2018, 9, 10, 7), frt=dt(2018, 9, 10, 3))
+        ukv_cube_later = set_up_probability_cube(
+            data, thresholds, time=dt(2018, 9, 10, 7), frt=dt(2018, 9, 10, 4))
+        cube = iris.cube.CubeList(
+            [ukv_cube_later, ukv_cube_earlier]).merge_cube()
+
+        plugin = WeightAndBlend(
+            "forecast_reference_time", "nonlinear", cval=0.85,
+            inverse_ordering=True)
+        weights = plugin._calculate_blending_weights(cube)
+        self.assertArrayAlmostEqual(
+            weights.data, np.array([0.45945945, 0.5405405]))
 
     def test_dict(self):
         """Test dictionary option for model blending with non-equal weights"""
