@@ -59,7 +59,7 @@ class WeightsUtilities:
         """Ensures all weights add up to one.
 
             Args:
-                weights (numpy.array):
+                weights (numpy.ndarray):
                     array of weights
 
             Keyword Args:
@@ -69,7 +69,7 @@ class WeightsUtilities:
                     array is used for the normalisation.
 
             Returns:
-                normalised_weights (numpy.array):
+                normalised_weights (numpy.ndarray):
                     array of weights where sum = 1.0
 
             Raises:
@@ -96,9 +96,9 @@ class WeightsUtilities:
             Args:
                 cube (iris.cube.Cube):
                     The cube that is being blended over blending_coord.
-                weights (numpy.array):
+                weights (numpy.ndarray):
                     Array of weights
-                blending_coord (string):
+                blending_coord (str):
                     Name of the coordinate over which the weights will be used
                     to blend data, e.g. across model name when grid blending.
             Returns:
@@ -485,9 +485,9 @@ class ChooseDefaultWeightsLinear:
         Set up for calculating default weights using linear function.
 
         Args:
-            y0val (int / float):
+            y0val (int or float):
                 Relative weight of first point.  Must be positive.
-            ynval (int / float):
+            ynval (int or float):
                 Relative weight of last point.
         """
         if y0val is None or ynval is None:
@@ -510,7 +510,7 @@ class ChooseDefaultWeightsLinear:
                     Number of weights to create.
 
             Returns:
-                weights (numpy.array):
+                weights (numpy.ndarray):
                     array of weights, sum of all weights = 1.0
         """
         # Special case num_of_weights == 1 i.e. Scalar coordinate.
@@ -539,7 +539,7 @@ class ChooseDefaultWeightsLinear:
         Args:
             cube (iris.cube.Cube):
                 Cube to blend across the coord.
-            coord_name (string):
+            coord_name (str):
                 Name of coordinate in the cube to be blended.
 
         Returns:
@@ -604,7 +604,7 @@ class ChooseDefaultWeightsNonLinear:
                 Number of weights to create
 
         Returns:
-            weights (numpy.array):
+            weights (numpy.ndarray):
                 Normalised array of weights
         """
         weights_list = []
@@ -623,7 +623,7 @@ class ChooseDefaultWeightsNonLinear:
         Args:
             cube (iris.cube.Cube):
                 Cube to be blended across the coord.
-            coord_name (string):
+            coord_name (str):
                 Name of coordinate in the cube to be blended.
 
         Kwargs:
@@ -702,7 +702,7 @@ class ChooseDefaultWeightsTriangular:
         """Create triangular weights.
 
             Args:
-                coord_vals (numpy array):
+                coord_vals (numpy.ndarray):
                     An array of coordinate values that we want to calculate
                     weights for.
                 midpoint (float):
@@ -711,7 +711,7 @@ class ChooseDefaultWeightsTriangular:
                     The width of the triangular function from the centre point.
 
             Returns:
-                weights (numpy.array):
+                weights (numpy.ndarray):
                     array of weights, sum of all weights should equal 1.0.
         """
 
@@ -757,7 +757,7 @@ class ChooseDefaultWeightsTriangular:
             Args:
                 cube (iris.cube.Cube):
                     Cube to blend across the coord.
-                coord_name (string):
+                coord_name (str):
                     Name of coordinate in the cube to be blended.
                 midpoint (float):
                     The centre point of the triangular function.  This is
