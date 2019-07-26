@@ -58,7 +58,7 @@ class WeightsUtilities:
         """Ensures all weights add up to one.
 
             Args:
-                weights (numpy.array):
+                weights (numpy.ndarray):
                     array of weights
 
             Keyword Args:
@@ -68,7 +68,7 @@ class WeightsUtilities:
                     array is used for the normalisation.
 
             Returns:
-                normalised_weights (numpy.array):
+                normalised_weights (numpy.ndarray):
                     array of weights where sum = 1.0
 
             Raises:
@@ -95,9 +95,9 @@ class WeightsUtilities:
             Args:
                 cube (iris.cube.Cube):
                     The cube that is being blended over blending_coord.
-                weights (numpy.array):
+                weights (numpy.ndarray):
                     Array of weights
-                blending_coord (string):
+                blending_coord (str):
                     Name of the coordinate over which the weights will be used
                     to blend data, e.g. across model name when grid blending.
             Returns:
