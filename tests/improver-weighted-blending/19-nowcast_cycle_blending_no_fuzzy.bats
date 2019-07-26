@@ -36,8 +36,8 @@
   KGO="weighted_blending/spatial_weights/kgo/cycle_no_fuzzy.nc"
 
   # Run weighted blending between different nowcast files using spatial weights
-  run improver weighted-blending 'forecast_reference_time' 'weighted_mean' \
-      --ynval 1 --y0val 1 --spatial_weights_from_mask --fuzzy_length 1\
+  run improver weighted-blending 'forecast_reference_time' \
+      --ynval 1 --y0val 1 --spatial_weights_from_mask --fuzzy_length 1 \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/spatial_weights/nowcast_data/20181129T1000Z-PT0002H00M-lwe_precipitation_rate.nc" \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/spatial_weights/nowcast_data/20181129T1000Z-PT0003H00M-lwe_precipitation_rate.nc" \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/spatial_weights/nowcast_data/20181129T1000Z-PT0004H00M-lwe_precipitation_rate.nc" \

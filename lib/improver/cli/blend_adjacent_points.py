@@ -80,11 +80,6 @@ def main(argv=None):
                         'be used when time and forecast_period share a '
                         'dimension: ie when all files provided are from the '
                         'same forecast cycle.')
-    parser.add_argument('weighting_mode', metavar='WEIGHTED_BLEND_MODE',
-                        choices=['weighted_mean'],
-                        help='The method used in the weighted blend. '
-                             '"weighted_mean": calculate a normal weighted'
-                             ' mean across the coordinate.')
     parser.add_argument('input_filepaths', metavar='INPUT_FILES', nargs="+",
                         help='Paths to input NetCDF files including and '
                              'surrounding the central_point.')

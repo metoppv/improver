@@ -37,7 +37,7 @@
 
   # Run weighted blending with weighted_mean mode and check it passes.
   run improver blend-adjacent-points 'forecast_period' '2' --units 'hours' \
-      --width 3.0 'weighted_mean' \
+      --width 3.0 \
       "$IMPROVER_ACC_TEST_DIR/blend-adjacent-points/basic_mean/multiple_probabilities_rain_*H.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]

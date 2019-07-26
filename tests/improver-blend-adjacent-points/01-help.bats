@@ -39,8 +39,8 @@ usage: improver blend-adjacent-points [-h] [--profile]
                                       --width TRIANGLE_WIDTH
                                       [--blend_time_using_forecast_period]
                                       COORDINATE_TO_BLEND_OVER CENTRAL_POINT
-                                      WEIGHTED_BLEND_MODE INPUT_FILES
-                                      [INPUT_FILES ...] OUTPUT_FILE
+                                      INPUT_FILES [INPUT_FILES ...]
+                                      OUTPUT_FILE
 
 Use the TriangularWeightedBlendAcrossAdjacentPoints to blend across a
 particular coordinate. It does not collapse the coordinate, but instead blends
@@ -56,9 +56,6 @@ positional arguments:
                         in the units of the units argument that is passed in.
                         This value should be a point on the coordinate for
                         blending over.
-  WEIGHTED_BLEND_MODE   The method used in the weighted blend.
-                        "weighted_mean": calculate a normal weighted mean
-                        across the coordinate.
   INPUT_FILES           Paths to input NetCDF files including and surrounding
                         the central_point.
   OUTPUT_FILE           The output path for the processed NetCDF.

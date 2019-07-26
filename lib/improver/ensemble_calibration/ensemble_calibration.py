@@ -125,8 +125,12 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         If the predictor_of_mean_flag is the ensemble realizations, this
         function estimates values for alpha, beta, gamma and delta based on the
         equation:
-        N(alpha + beta0 * realization0 + beta1 * realization1,
-          gamma + delta * ensemble_variance),
+
+        .. math::
+          N(alpha + beta0 * realization0 + beta1 * realization1,
+
+          gamma + delta * ensemble\_variance)
+
         where N is a chosen distribution and the number of beta terms
         depends on the number of realizations provided.
 
@@ -591,11 +595,17 @@ class EstimateCoefficientsForEnsembleCalibration(object):
 
         The coefficients relate to adjustments to the ensemble mean or the
         ensemble realizations, and adjustments to the ensemble variance:
-        ::
-            alpha + beta * ensemble mean or
+
+        .. math::
+            alpha + beta * ensemble\_mean
+
+        or
+
+        .. math::
             alpha + beta0 * realization1 + beta1 * realization2
 
-            gamma + delta * ensemble variance
+        .. math::
+            gamma + delta * ensemble\_variance
 
         The default values for the initial guesses are in
         [gamma, delta, alpha, beta] ordering:

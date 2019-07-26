@@ -36,7 +36,7 @@
   KGO="weighted_blending/three_models/kgo.nc"
 
   # Run weighted blending with ukvx and nowcast data using spatial weights
-  run improver weighted-blending 'model_configuration' 'weighted_mean' \
+  run improver weighted-blending 'model_configuration' \
       --spatial_weights_from_mask --wts_calc_method 'dict' \
       --weighting_coord forecast_period --cycletime 20190101T0300Z \
       --wts_dict $IMPROVER_ACC_TEST_DIR/weighted_blending/three_models/blending-weights-preciprate.json \
