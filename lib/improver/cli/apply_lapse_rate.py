@@ -57,17 +57,15 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
-    # Read cubes
+    # Load cubes
     temperature = load_cube(args.temperature_filepath)
     lapse_rate = load_cube(args.lapse_rate_filepath)
     source_orog = load_cube(args.source_orography)
     target_orog = load_cube(args.target_orography)
-
     # Process Cubes
     adjusted_temperature = process(temperature, lapse_rate, source_orog,
                                    target_orog)
-
-    # Save to output file
+    # Save to Cube
     save_netcdf(adjusted_temperature, args.output_file)
 
 

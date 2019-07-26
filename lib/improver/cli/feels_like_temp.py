@@ -65,7 +65,6 @@ def main(argv=None):
     wind_speed = load_cube(args.wind_speed)
     relative_humidity = load_cube(args.relative_humidity)
     pressure = load_cube(args.pressure)
-
     # Process Cube
     result = process(temperature, wind_speed, relative_humidity, pressure)
     # Save Cube
@@ -101,7 +100,7 @@ def process(temperature, wind_speed, relative_humidity, pressure):
     Returns:
         (iris.cube.Cube):
             Cube of feels like temperature. The units of feels like temperature
-            will be the dame as the units of temperature cube when it is input
+            will be the same as the units of temperature cube when it is input
             into the function.
     """
     return calculate_feels_like_temperature(temperature, wind_speed,

@@ -109,12 +109,10 @@ def main(argv=None):
     # Load Cubes
     historic_forecast = load_cube(args.historic_filepath)
     truth = load_cube(args.truth_filepath)
-
-    # Estimate coefficients using Ensemble Model Output Statistics (EMOS).
+    # Process Cube
     coefficients = process(historic_forecast, truth, args.distribution,
                            args.cycletime, args.units, args.predictor_of_mean,
                            args.max_iterations)
-
     # Save Cube
     save_netcdf(coefficients, args.output_filepath)
 
@@ -131,7 +129,7 @@ def process(historic_forecast, truth, distribution, cycletime, units,
 
     Args:
         historic_forecast (iris.cube.Cube):
-            The cube containing the historical forecasts sed for calibration.
+            The cube containing the historical forecasts used for calibration.
         truth (iris.cube.Cube):
             The cube containing the truth used for calibration.
         distribution (string):
@@ -145,11 +143,12 @@ def process(historic_forecast, truth, distribution, cycletime, units,
             The units that calibration should be undertaken in. The historical
             forecast and truth will be converted as required.
         predictor_of_mean (string):
-            String to speciftythe input to calculate the calibrated mean.
+            String to specify the input to calculate the calibrated mean.
             Currently the ensemble mean "mean" and the ensemble realizations
             "realizations" are supported as the predictors.
-        max_iterations:
-            The maximum number of iterations allowed util the minimisation has
+            Default is 'mean'
+        max_iterations (integer):
+            The maximum number of iterations allowed until the minimisation has
             converged to a stable solution. If the maximum number of iterations
             is reached but the minimisation has not yet converged to a stable
             solution, then the available solution is used anyway, and a warning
@@ -157,6 +156,7 @@ def process(historic_forecast, truth, distribution, cycletime, units,
             If the predictor_of_mean is "realizations", then the number of
             iterations may require increasing, as there will be more
             coefficients to solve.
+            Default is 1000.
 
     Returns:
         result (iris.cube.Cube):

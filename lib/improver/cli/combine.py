@@ -81,8 +81,8 @@ def main(argv=None):
                         "will be given. Default=False", default=False)
 
     args = parser.parse_args(args=argv)
-    # Load the cubes
 
+    # Load the cubes
     cubelist = iris.cube.CubeList([])
     new_cube_name = args.new_name
     for filename in args.input_filenames:
@@ -98,10 +98,10 @@ def main(argv=None):
                        " but combining with a cube "
                        "with name, {}.".format(new_cube.name()))
                 warnings.warn(msg)
-
+    # Process Cube
     result = process(cubelist, args.operation, new_cube_name,
                      args.metadata_jsonfile, args.warnings_on)
-
+    # Save Cube
     save_netcdf(result, args.output_filepath)
 
 
@@ -109,7 +109,7 @@ def process(cubelist, operation, new_cube_name,
             metadata_jsonfile=None, warnings_on=False):
     """Module for combining Cubes.
 
-    Combine the input cubesinto a single cube using the requested operation.
+    Combine the input cubes into a single cube using the requested operation.
     e.g. '+', '-', '*', 'add', 'subtract', 'multiply', 'min', 'max', 'mean'
 
     Args:
@@ -117,16 +117,18 @@ def process(cubelist, operation, new_cube_name,
             An iris CubeList to be combined.
         operation (string):
             "+", "-", "*", "add", "subtract", "multiply", "min", "max", "mean"
-            AOperation to use in combining Cubes.
+            An operation to use in combining Cubes.
         new_name (string):
         New name for the resulting dataset. Will default to the name of the
         first dataset if not set.
         metadata_jsonfile (string):
             Filename for the json file containing require changes to the
             metadata.
+            Default is None.
         warnings_on (boolean):
             If True, warning messages where metadata do not march will be
             given.
+            Default is False.
 
     Returns (iris.cube.Cube):
         Returns a cube with the combined data.

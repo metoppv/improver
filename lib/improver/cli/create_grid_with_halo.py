@@ -50,14 +50,16 @@ def main(argv=None):
                         type=float, help="Size of halo (in m) with which to "
                         "pad the input grid.  Default is 162 000 m.")
     args = parser.parse_args(args=argv)
-
+    # Load Cube
     cube = load_cube(args.input_file)
+    # Process Cube
     result = process(cube, args.halo_radius)
+    # Save Cube
     save_netcdf(result, args.output_file)
 
 
 def process(cube, halo_radius):
-    """Generate grid with halo from a source. The grid is populated with zeros.
+    """Generate a zeroed grid with halo from a source cube.
 
     Create a template cube defining a new grid by adding a fixed width halo on
     all sides to the input cube grid. The cube contains no meaningful data.
@@ -66,12 +68,12 @@ def process(cube, halo_radius):
         cube (iris.cube.Cube):
             The cube to be processed.
         halo_radius (float):
-            Radius is meters of excess halo to clip. Used where a larger grid
-            was defined than the standard grid and we want to clip the grid
-            back to the standard grid.
+            Radius in meters of which to pad the input grid.
+            Default is 162,000
+
     Returns:
         result (iris.cube.Cube):
-            The processed Cube.
+            The processed Cube defining the halo-padded grid (data set to 0)
     """
     result = create_cube_with_halo(cube, halo_radius)
     return result

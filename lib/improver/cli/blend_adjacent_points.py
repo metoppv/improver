@@ -98,12 +98,10 @@ def main(argv=None):
 
     # Load Cubelist
     cubelist = load_cubelist(args.input_filepaths)
-
     # Process Cube
     result = process(cubelist, args.coordinate, args.central_point,
                      args.units, args.width, args.calendar,
                      args.blend_time_using_forecast_period)
-
     # Save Cube
     save_netcdf(result, args.output_filepath)
 
@@ -134,14 +132,16 @@ def process(cubelist, coordinate, central_point, units, width,
             in the units of the units argument.
         calendar (string):
             Calendar for parameter_unit if required.
+            Default is 'gregorian'
         blend_time_using_forecast_period (boolean):
-            Boolean that we are blending over time but using the forecast
+            If True if, we are blending over time but using the forecast
             period coordinate as a proxy. Note, this should only be used when
-            time and forecast_period share a dimension: i.e when all files
+            time and forecast_period share a dimension: i.e when all cubes
             provided are from the same forecast cycle.
+            Default is False.
 
     Returns:
-        result (iris.cube):
+        result (iris.cube.Cube):
             A processed Cube
     """
 

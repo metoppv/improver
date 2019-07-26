@@ -178,35 +178,43 @@ def process(cube, mask_cube, weights, coord_for_masking, radius,
             String matching the name of the coordinate that will be used
             for masking.
         radius (float):
-            The radii is metres of the neighbourhood to apply.
+            The radii in metres of the neighbourhood to apply.
             Rounded up to convert into integer number of grid points east and
             north, based on the characteristic spacing at the zero indices of
-            the cube projection-x and y coords.
+            the cube projection-x and y coordinates.
         radii_by_lead_time (float ot List if defining lead times):
-            The radii is metres of the neighbourhood to apply.
+            The radii in metres of the neighbourhood to apply.
             Rounded up to convert into integer number of grid points east and
             north, based on the characteristic spacing at the zero indices of
-            the cube projection-x and y coords.
+            the cube projection-x and y coordinates.
         sum_or_fraction (string):
-            Identifier for whether sum of fraction should be returned from
-            neighbourhooding. The sum represents the sum of the neighbourhood.
+            Identifier for whether sum or fraction should be returned from
+            neighbourhooding.
+            Sum represents the sum of the neighbourhood.
+            Fraction represents the sum of the neighbourhood divided by the
+            neighbourhood area.
+            Default is fraction.
         re_mask (boolean):
             If True, the original un-neighbourhood processed mask
             is applied to mask out the neighbourhood processed cube.
             If False, the original un-neighbourhood processed mask is not
-            applied. Therefore, the neighbourhood processing may result in
+            applied.
+            Therefore, the neighbourhood processing may result in
             values being present in areas that were originally masked.
+            Default is False.
         collapse_dimension (boolean):
             Collapse the dimension from the mask, by doing a weighted mean
             using the weights provided.  This is only suitable when the result
             is left unmasked, so there is data to weight between the points
             in coordinate we are collapsing.
+            Default is False.
 
     Returns:
-        result (iris.cube.Cube):
-            Result of the fully processed Cube.
-        intermediate_cube (iris.cube.Cube):
-            Intermediate Cube before it is collapsed if "collapse_dimension".
+        (tuple): tuple containing:
+            **result** (iris.cube.Cube):
+                A cube after being fully processed.
+            **intermediate_cube** (iris.cube.Cube):
+                A cube before it is collapsed, if 'collapse_dimension' is True.
 
     """
     if radius:

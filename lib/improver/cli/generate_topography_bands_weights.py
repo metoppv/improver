@@ -137,15 +137,15 @@ def process(landmask, orography, thresholds_dict=None):
 
     Args:
         landmask (iris.cube.Cube):
-            Land mask on standard grid. Sea points are masked out in the output
-            array
+            Land mask on standard grid. Sea points are masked out in the
+            output array
         orography (iris.cube.Cube):
             Orography on standard grid.
         thresholds_dict (dictionary):
             Definition of orography bands required.
             The expected format of the dictionary is e.g
-
-                {'bounds':[[0, 50], [50, 200]], 'units': 'm'}
+            {'bounds':[[0, 50], [50, 200]], 'units': 'm'}
+            Default is None
 
     Returns:
         (iris.cube.Cube):

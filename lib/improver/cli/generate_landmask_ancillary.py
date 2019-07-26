@@ -72,7 +72,8 @@ def main(argv=None):
 def process(landmask):
     """Runs landmask ancillary generation.
 
-    Read in the interpolated landmask and round values < 0.5 to False and
+    Read in the interpolated landmask and round
+    values < 0.5 to False
     values >= 0.5 to True.
 
     Args:
@@ -80,7 +81,7 @@ def process(landmask):
             Cube to process
     Returns:
         (iris.cube.Cube):
-            output landmask of boolean values.
+            A cube landmask of boolean values.
     """
     return CorrectLandSeaMask().process(landmask)
 

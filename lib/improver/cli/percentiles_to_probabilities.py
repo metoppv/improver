@@ -114,11 +114,11 @@ def process(percentiles_cube, threshold_cube, output_diagnostic_name):
             values that correspond to these percentiles. The cube passed to
             the process method will contain values of the same diagnostic.
         threshold_cube (iris.cube.Cube):
-            A cube of values that effectively behave a thresholds, for which
+            A cube of values that effectively behave as thresholds, for which
             it is desired to obtain probability values from a percentiled
             reference cube.
         output_diagnostic_name (string):
-            The namw of the cube being created, e.g
+            The name of the cube being created, e.g
             'probability_of_snow_falling_level_below_ground_level'
 
     Returns:

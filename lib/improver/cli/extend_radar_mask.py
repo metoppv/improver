@@ -58,13 +58,12 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
-    # load data
+    # load Cubes
     radar_data = load_cube(args.radar_data_filepath)
     coverage = load_cube(args.coverage_filepath)
     # Process Cube
     remasked_data = process(coverage, radar_data, args.fix_float64)
-
-    # save output file
+    # save Cube.
     save_netcdf(remasked_data, args.output_filepath)
 
 

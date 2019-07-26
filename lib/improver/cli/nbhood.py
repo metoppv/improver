@@ -219,7 +219,6 @@ def main(argv=None):
 
     # Load Cube
     cube = load_cube(args.input_filepath)
-
     # Process Cube
     result = process(cube, args.neighbourhood_output,
                      args.neighbourhood_shape, args.radius,
@@ -229,7 +228,6 @@ def main(argv=None):
                      args.apply_recursive_filter, alphas_x_cube,
                      alphas_y_cube, args.alpha_x, args.alpha_y,
                      args.iterations)
-
     # Save Cube
     save_netcdf(result, args.output_filepath)
 
@@ -243,12 +241,11 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius,
     """Runs neighbourhood processing.
 
     Apply the requested neighbourhood method via the
-       NeighbourhoodProcessing plugin to a file whose data can be loaded as a
-       single iris.cube.Cube.
+    NeighbourhoodProcessing plugin to a Cube.
 
     Args:
         cube (iris.cube.Cube):
-            The Cube to be processed
+            The Cube to be processed.
         neighbourhood_output:
             The form of the results generated using neighbourhood processing.
         neighbourhood_shape (string):
@@ -265,53 +262,67 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius,
             If True processes angles as complex numbers.
             Not compatible with circular kernel, percentiles or recursive
             filter.
+            Default is False.
         weighted_mode (boolean):
             If True the weighting decreases with radius.
             If False a constant weighting is assumed.
             weighted_mode is only applicable for calculating "probability"
             neighbourhood output.
+            Default is False
         sum_or_fraction (string):
             Identifier for whether sum or fraction should be returned from
             neighbourhooding. The sum represents the sum of the neighbourhood.
             The fraction represents the sum of the neighbourhood divided by
             the neighbourhood area.
+            Default is "fraction".
         re_mask (boolean):
             If re_mask is True, the original un-neighbourhood processed mask
             is applied to mask out the neighbourhood processed cube.
             If re_mask is False, the original un-neighbourhood processed mask
             is not applied. Therefore, the neighbourhood processing may result
             in values being present in area that were originally masked.
+            Default is False.
         percentiles (float or None):
             Calculates value at the specified percentiles from the
             neighbourhood surrounding each grid point.
+            Default is improver.constants.DEFAULT_PERCENTILES.
         mask_cube ('iris.cube.Cube'):
             A cube to mask the input file. The data should contain 1 for
             usable points and 0 for discarded points.
+            Default is None.
         halo_radius (float or None):
-            Radius is meters of excess halo to clip. Used where a larger grid
+            Radius in meters of excess halo to clip. Used where a larger grid
             was defined than the standard grid and we want to clip the grid
             back to the standard grid.
+            Default is None.
         apply_recursive_filter (boolean):
             Boolean to apply the recursive filter to a square neighbourhooded
             output dataset, converting it into a Gaussian-like kernel or
             smoothing over short distances.
+            Default is False.
         alphas_x_cube (iris.cube.Cube):
             A Cube used for the smoothing in the x direction when applying
             the recursive filter.
+            Default is None.
         alphas_y_cube (iris.cube.Cube):
             A Cube used for the smoothing in the y direction when applying
             the recursive filter.
+            Default is None.
         alpha_x (float):
-        A signle alpha factor (0 < alpha_x < 1) to be applied to every grid
-        square in the x direction when applying the recursive filter.
+            A single alpha factor (0 < alpha_x < 1) to be applied to every grid
+            square in the x direction when applying the recursive filter.
+            Default is None.
         alpha_y (float):
-        A signle alpha factor (0 < alpha_x < 1) to be applied to every grid
-        square in the y direction when applying the recursive filter.
+            A single alpha factor (0 < alpha_x < 1) to be applied to every grid
+            square in the y direction when applying the recursive filter.
+            Default is None.
         iterations (int):
             The number of times to apply the filter. (typically < 5)
+            Default is 1 (one).
 
-    Returns (iris.cube.Cube):
-        A processed Cube.
+    Returns:
+        result (iris.cube.Cube):
+            A processed Cube.
     """
     if degrees_as_complex:
         # convert cube data into complex numbers
@@ -349,8 +360,7 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius,
             result, alphas_x=alphas_x_cube, alphas_y=alphas_y_cube,
             mask_cube=mask_cube)
 
-    elif neighbourhood_shape == 'circular' and \
-            apply_recursive_filter:
+    elif neighbourhood_shape == 'circular' and apply_recursive_filter:
         raise ValueError('Recursive filter option is not applicable to '
                          'circular neighbourhoods. ')
     if degrees_as_complex:

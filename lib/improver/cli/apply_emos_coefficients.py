@@ -133,12 +133,10 @@ def main(argv=None):
     # Load Cubes
     current_forecast = load_cube(args.forecast_filepath)
     coeffs = load_cube(args.coefficients_filepath)
-
     # Process Cube
     result = process(current_forecast, coeffs, args.num_realizations,
                      args.random_ordering, args.random_seed,
                      args.ecc_bounds_warning, args. predictor_of_mean)
-
     # Save Cube
     save_netcdf(result, args.output_filepath)
 
@@ -156,7 +154,7 @@ def process(current_forecast, coeffs, num_realizations=None,
 
     Args:
         current_forecast (iris.cube.Cube):
-            A Cube containing the forcast to be calibrated. The input format
+            A Cube containing the forecast to be calibrated. The input format
             could be either realizations, probabilities or percentiles.
         coeffs (iris.cube.Cube):
             A cube containing the coefficients used for calibration.
@@ -167,10 +165,12 @@ def process(current_forecast, coeffs, num_realizations=None,
             number of realizations. In addition, this argument is used to
             construct the requested number of realization from the mean and
             variance out put after applying the EMOS coefficients.
+            Default is None.
         random_ordering (boolean):
             Option to reorder the post-processed forecasts randomly. If not
             set, the ordering of the raw ensemble is used. This option is
             only valid when the input format is realizations.
+            Default is False.
         random_seed:
             Option to specify a value for the random seed for testing
             purpose, otherwise the default random seen behaviour is utilised.
@@ -180,16 +180,19 @@ def process(current_forecast, coeffs, num_realizations=None,
             ensemble, or for splitting tied values within the raw ensemble,
             so that the values from the input percentiles can be ordered to
             match the raw ensemble.
+            Default is False.
         ecc_bounds_warning (boolean):
             If True, where the percentiles exceed the ECC bounds range,
             raises a warning rather than an exception. This occurs when the
             current forecasts is in the form of probabilities and is
             converted to percentiles, as part of converting the input
             probabilities into realizations.
+            Default is False.
         predictor_of_mean (string):
             String to specify the predictor used to calibrate the forecast
-            mean. Currentlu the ensemble mean "mean" as the ensemble
+            mean. Currently the ensemble mean "mean" as the ensemble
             realization "realization" are supported as options.
+            Default is 'mean'
     Returns:
         result (iris.cube.Cube):
             The calibrated forecast cube.

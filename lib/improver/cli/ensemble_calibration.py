@@ -180,9 +180,9 @@ def main(argv=None):
         args.distribution, args.predictor_of_mean, args.num_realizations,
         args.random_ordering, args.random_seed, args.ecc_bounds_warning,
         args.max_iterations)
-
     # Save Cube
     save_netcdf(result, args.output_filepath)
+
     # If required, save the mean and variance.
     if args.save_mean:
         save_netcdf(forecast_predictor, args.save_mean)
@@ -202,12 +202,16 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
     historical truth data (to use in calibration).
     If the current forecast is supplied in the form of probabilities or
     percentiles, these are converted to realizations prior to calibration.
-    After calibration, the mean are variance computed in the calibration
-    are converted to match the format of the current forecast.
+    After calibration, the mean and variance computed in the calibration
+    are converted to match the format of the current forecast. i.e
+    If realizations are input, realizations are output.
+    If probabilities are input, probabilities are are output.
+    Also if realizations are input, realizations are regenerated using
+    Ensemble Coupla Coupling.
 
     Args:
         current_forecast (iris.cube.Cube):
-            A cube with the current for cast to be calibrated.
+            A cube with the current forecast to be calibrated.
         historic_forecast (iris.cube.Cube):
             A cube containing historic forecasts to be used for calibration.
         truth (iris.cube.Cube):
@@ -256,13 +260,14 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
             number of iterations may require increasing, as there will be more
             coefficients to solve for.
 
-    Returns(tuple of 3):
-        result (iris.cube.Cube):
-            A cube after being processed.
-        forecast_predictor (iris.cube.Cube):
-            The mean output from EnsembleCalibration.
-        forecast_variance (iris.cube.Cube):
-            The variance output from EnsembleCalibration.
+    Returns:
+        (tuple): tuple containing:
+            **result** (iris.cube.Cube):
+                A cube after being processed.
+            **forecast_predictor** (iris.cube.Cube):
+                The mean output from EnsembleCalibration.
+            **forecast_variance** (iris.cube.Cube):
+                The variance output from EnsembleCalibration.
 
     """
     original_current_forecast = current_forecast.copy()

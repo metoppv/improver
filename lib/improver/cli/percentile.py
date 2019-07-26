@@ -98,13 +98,13 @@ def main(argv=None):
     save_netcdf(result, args.output_filepath)
 
 
-def process(cube, coordinates=False, ecc_bounds_warning=False,
+def process(cube, coordinates, ecc_bounds_warning=False,
             percentiles=None, no_of_percentiles=None):
     """Collapses cube coordinates and calculate percentiled data.
 
     Calculate percentiled data over a given coordinate by collapsing that
     coordinate. Typically used to convert realization data into percentiled
-    data, but may calculate over any dimension coodinate. Alternatively
+    data, but may calculate over any dimension coordinate. Alternatively
     calling this with a dataset containing probabilities will convert those
     to percentiles using the ensemble coupla coupling plugin. If no particular
     percentiles are given at which to calculate values and no
@@ -123,12 +123,15 @@ def process(cube, coordinates=False, ecc_bounds_warning=False,
         ecc_bounds_warning (boolean):
             If True, where calculated percentiles are outside the ECC bounds
             range, raises a warning rather than an exception.
+            Default is False.
         percentiles (list<float> or None):
             Optional definition of percentiles at which to calculate data.
+            Default is None.
         no_of_percentiles (int):
             Optional definition of the number of percentiles to be generated,
             these distributed regularly with the aim of dividing into blocks
             of equal probability.
+            Default is None.
 
     Returns:
         (iris.cube.Cube):
