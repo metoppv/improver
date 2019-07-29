@@ -148,34 +148,136 @@ def main(argv=None):
     args = parser.parse_args(args=argv)
 
     # Open input files
+    metadata_dict = None
     with open(args.site_list_filepath, 'r') as site_file:
-        sitelist = json.load(site_file)
+        site_list = json.load(site_file)
+    if args.metadata_json:
+        with open(args.metadata_json, 'r') as input_file:
+            metadata_dict = json.load(input_file)
+
     orography = load_cube(args.orography_filepath)
     landmask = load_cube(args.landmask_filepath)
-    fargs = (sitelist, orography, landmask)
 
+    result = process(orography, landmask, site_list, metadata_dict,
+                     args.all_methods, args.land_constraint, args.minimum_dz,
+                     args.search_radius, args.node_limit,
+                     args.site_coordinate_system,
+                     args.site_x_coordinate, args.site_y_coordinate)
+
+    # Save the neighbour cube
+    save_netcdf(result, args.output_filepath)
+
+
+def process(orography, landmask, site_list, metadata_dict=None,
+            all_methods=False, land_constraint=None, minimum_dz=None,
+            search_radius=None, node_limit=None, site_coordinate_system=None,
+            site_x_coordinate=None, site_y_coordinate=None):
+    """Module to create neighbour cubes for extracting spot data.
+
+    Determine grid point coordinates within the provided cubes that neighbour
+    spot data sites defined within the provided JSON/Dictionary.
+    If no options are set the returned cube will contain the nearest neighbour
+    found for each site. Other constrained neighbour finding methods can be
+    set with options below.
+    1. Nearest neighbour.
+    2. Nearest land point neighbour.
+    3. Nearest neighbour with minimum height difference.
+    4. Nearest land point neighbour with minimum height difference.
+
+    Args:
+        orography (iris.cube.Cube):
+            Cube of model orography for the model grid on which neighbours are
+            being found.
+        landmask (iris.cube.Cube):
+            Cube of model land mask for the model grid on which neighbours are
+            being found.
+        site_list (dictionary):
+            Dictionary that contains the spot sites for which neighbouring grid
+            points are to be found.
+        metadata_dict (dictionary):
+            Dictionary that can be used to modify the metadata of the
+            returned cube.
+            Default is None.
+        all_methods (boolean):
+            If True, this will return a cube containing the nearest grid point
+            neighbours to spot sites as defined by each possible combination
+            of constraints.
+            Default is False.
+        land_constraint (boolean):
+            If True, this will return a cube containing the nearest grid point
+            neighbours to spot sites that are also land points. May be used
+            with the minimum_dz option.
+            Default is None.
+        minimum_dz (boolean):
+            If True, this will return a cube containing the nearest grid point
+            neighbour to each spot site that is found , within a given search
+            radius, to minimise the height difference between the two. May be
+            used with the land_constraint option.
+            Default is None.
+        search_radius (float):
+            The radius in metres about a spot site within which to search for
+            a grid point neighbour that is land or which has a smaller height
+            difference than the nearest.
+            Default is None.
+        node_limit (integer):
+            When searching within the defined search_radius for suitable
+            neighbours, a KDTree is constructed. This node_limit prevents the
+            tree from becoming too large for large search radii. A default of
+            34 will be set, which is to say the nearest 36 grid points will be
+            considered. If the search radius is likely to contain more than
+            36 points, this value should be increased to ensure all point
+            are considered.
+            Default is None.
+        site_coordinate_system (cartopy coordinate system):
+            The coordinate system in which the sire coordinates are provided
+            within the site list. This must be provided as the name of a
+            cartopy coordinate system. The Default will become PlateCarree.
+            This can be a complete definition, including parameters required
+            to modify a default system. e.g
+            Miller(central_longitude=90)
+            If a globe is required this can be specified as
+            Globe(semimajor_axis=100, semiminor_axis=100)
+            Default is None.
+        site_x_coordinate (string):
+            The key that identifies site x coordinates in the provided site
+            dictionary. Defaults to longitude.
+            Default is None.
+        site_y_coordinate (string):
+            The key that identifies site y coordinates in the provided site
+            dictionary. Defaults to latitude.
+            Default is None.
+
+    Returns:
+        result (iris.cube.Cube):
+            The processed Cube.
+
+    """
     # Filter kwargs for those expected by plugin and which are set.
     # This preserves the plugin defaults for unset options.
-    kwarg_list = ['land_constraint', 'minimum_dz', 'search_radius',
-                  'site_coordinate_system', 'site_x_coordinate', 'node_limit',
-                  'site_y_coordinate']
-    kwargs = {k: v for (k, v) in vars(args).items() if k in kwarg_list and
-              v is not None}
+    args = {
+        'land_constraint': land_constraint,
+        'minimum_dz': minimum_dz,
+        'search_radius': search_radius,
+        'site_coordinate_system': site_coordinate_system,
+        'site_x_coordinate': site_x_coordinate,
+        'node_limit': node_limit,
+        'site_y_coordinate': site_y_coordinate
+    }
+    fargs = (site_list, orography, landmask)
+    kwargs = {k: v for (k, v) in args.items() if v is not None}
 
     # Deal with coordinate systems for sites other than PlateCarree.
     if 'site_coordinate_system' in kwargs.keys():
         scrs = kwargs['site_coordinate_system']
         kwargs['site_coordinate_system'] = safe_eval(scrs, ccrs,
                                                      PROJECTION_LIST)
-
     # Check valid options have been selected.
-    if args.all_methods is True and (kwargs['land_constraint'] is True or
-                                     kwargs['minimum_dz'] is True):
+    if all_methods is True and (kwargs['land_constraint'] is True or
+                                kwargs['minimum_dz'] is True):
         raise ValueError(
             'Cannot use all_methods option with other constraints.')
-
     # Call plugin to generate neighbour cubes
-    if args.all_methods:
+    if all_methods:
         methods = []
         methods.append({
             **kwargs, 'land_constraint': False, 'minimum_dz': False})
@@ -197,19 +299,13 @@ def main(argv=None):
         result = merge_cubes(squeezed_cubes)
     else:
         result = NeighbourSelection(**kwargs).process(*fargs)
-
     result = enforce_coordinate_ordering(
         result,
         ['spot_index', 'neighbour_selection_method', 'grid_attributes'])
-
     # Modify final metadata as described by provided JSON file.
-    if args.metadata_json:
-        with open(args.metadata_json, 'r') as input_file:
-            metadata_dict = json.load(input_file)
+    if metadata_dict:
         result = amend_metadata(result, **metadata_dict)
-
-    # Save the neighbour cube
-    save_netcdf(result, args.output_filepath)
+    return result
 
 
 if __name__ == "__main__":

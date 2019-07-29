@@ -88,13 +88,12 @@ def main(argv=None):
 
     # Load Cubes
     cube = load_cube(args.input_filepath)
-    if args.input_mask_filepath:
-        mask_cube = load_cube(args.input_mask_filepath)
-    else:
-        mask_cube = None
 
+    mask_cube = None
     alphas_x_cube = None
     alphas_y_cube = None
+    if args.input_mask_filepath:
+        mask_cube = load_cube(args.input_mask_filepath)
     if args.input_filepath_alphas_x is not None:
         alphas_x_cube = load_cube(args.input_filepath_alphas_x)
     if args.input_filepath_alphas_y is not None:
@@ -135,8 +134,8 @@ def process(cube, mask_cube=None, alphas_x_cube=None, alphas_y_cube=None,
             y direction.
             Default is None.
         alpha_x (float):
-             A single alpha factor (0 < alpha_x < 1) to be applied to every
-             grid square in the x direction.
+            A single alpha factor (0 < alpha_x < 1) to be applied to every
+            grid square in the x direction.
             Default is None.
         alpha_y (float):
             A single alpha factor (0< alpha_y < 1) to be applied to every grid

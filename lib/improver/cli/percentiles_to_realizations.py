@@ -178,12 +178,12 @@ def process(cube, raw_forecast, no_of_percentiles=None,
             the number of ensemble realizations that will be generated.
             Default is None.
         sampling_method (string):
-             Method to be used for generating the list of percentiles with
-             forecasts generated at each percentile. The options are "quantile"
-             and "random".
-             The quantile option produces equally spaced percentiles which is
-             the preferred option for full ensemble couple coupling with
-             reordering enables.
+            Method to be used for generating the list of percentiles with
+            forecasts generated at each percentile. The options are "quantile"
+            and "random".
+            The quantile option produces equally spaced percentiles which is
+            the preferred option for full ensemble couple coupling with
+            reordering enables.
             Default is 'quantile'.
         ecc_bounds_warning (boolean):
             If True where percentiles (calculated as an intermediate output

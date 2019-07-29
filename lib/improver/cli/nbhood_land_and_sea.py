@@ -116,8 +116,7 @@ def main(argv=None):
 
     cube = load_cube(args.input_filepath)
     mask = load_cube(args.input_mask_filepath, no_lazy_load=True)
-    masking_coordinate = None
-
+    weights = None
     if any(['topographic_zone' in coord.name()
             for coord in mask.coords(dim_coords=True)]):
 
@@ -132,6 +131,81 @@ def main(argv=None):
                           'vertical dimension.')
 
         weights = load_cube(args.weights_for_collapsing_dim, no_lazy_load=True)
+
+    result, intermediate_cube = process(
+        cube, mask, args.radius, args.radii_by_lead_time,
+        weights, args.sum_or_fraction, args.intermediate_filepath)
+
+    save_netcdf(result, args.output_filepath)
+    if args.intermediate_filepath:
+        save_netcdf(intermediate_cube, args.intermediate_filepath)
+
+
+def process(cube, mask, radius, radii_by_lead_time, weights=None,
+            sum_or_fraction="fraction", return_intermediate=False):
+    """ Module to process land and sea separately before combining them.
+
+    Neighbourhood the input dataset over two distinct regions of land and sea.
+    If performed as a single level neighbourhood, a land-sea mask should be
+    provided. If instead topographic_zone neighbourhooding is being employed,
+    the mask should be one of topographic zones. In the latter case a weights
+    array is also needed to collapse the topographic_zone coordinate. These
+    weights are created with the improver generate-topography-bands-weights
+    CLI and should be made using a land-sea mask, which will then be employed
+    within this code to draw the distinction between the two surface types.
+
+    Args:
+        cube (iris.cube.Cube):
+            A cube to be processed.
+        mask (iris.cube.Cube):
+            A cube containing either a mask of topographic zones over land or
+            a land-sea mask.
+        radius (float):
+            The radius in metres of the neighbourhood to apply.
+        radii_by_lead_time (list):
+            The radii for neighbourhood processing and the associated lead
+            times which the radii are valid. The radii are in metre whilst
+            the lead time has units of hours.
+        weights (iris.cube.Cube):
+            A cube containing the weights which are used for collapsing the
+            dimension gained through masking. These weights must have been
+            created using a land-sea mask.
+            Default is None.
+        sum_or_fraction (string):
+            The neighbourhood output can either be in the form of a sum of the
+            neighbourhood, or a fraction calculated by dividing the sum of the
+            neighbourhood by the neighbourhood area.
+            Default is 'fraction'
+        return_intermediate (boolean):
+            If True will return a cube with results following topographic
+            masked neighbourhood processing of land points and prior to
+            collapsing the topographic_zone coordinate. If no topographic
+            masked neighbourhooding occurs, there will be no intermediate cube
+            and a warning.
+
+    Returns:
+        (tuple): tuple containing:
+            **result** (iris.cube.Cube):
+                A cube of the processed data.
+            **intermediate_cube** (iris.cube.Cube or None):
+                A cube of the intermediate data, before collapsing.
+
+    """
+    masking_coordinate = None
+    intermediate_cube = None
+    if any(['topographic_zone' in coord.name()
+            for coord in mask.coords(dim_coords=True)]):
+
+        if mask.attributes['topographic_zones_include_seapoints'] == 'True':
+            raise ValueError('The topographic zones mask cube must have been '
+                             'masked to exclude sea points, but '
+                             'topographic_zones_include_seapoints = True')
+
+        if not weights:
+            raise IOError('A weights cube must be provided if using a mask '
+                          'of topographic zones to collapse the resulting '
+                          'vertical dimension.')
+
         if weights.attributes['topographic_zones_include_seapoints'] == 'True':
             raise ValueError('The weights cube must be masked to exclude sea '
                              'points, but topographic_zones_include_seapoints '
@@ -148,7 +222,7 @@ def main(argv=None):
         sea_only = landmask.copy(data=landmask.data.astype(int))
 
     else:
-        if args.weights_for_collapsing_dim:
+        if weights is None:
             warnings.warn('A weights cube has been provided but will not be '
                           'used as there is no topographic zone coordinate '
                           'to collapse.')
@@ -158,51 +232,45 @@ def main(argv=None):
         sea_only = landmask.copy(
             data=np.logical_not(landmask.data).astype(int))
         land_only = landmask.copy(data=landmask.data.astype(int))
-
-    if args.radius:
-        radius_or_radii = args.radius
+    if radius:
+        radius_or_radii = radius
         lead_times = None
-    elif args.radii_by_lead_time:
-        radius_or_radii = args.radii_by_lead_time[0].split(",")
-        lead_times = args.radii_by_lead_time[1].split(",")
-
-    if args.intermediate_filepath is not None and masking_coordinate is None:
+    elif radii_by_lead_time:
+        radius_or_radii = radii_by_lead_time[0].split(",")
+        lead_times = radii_by_lead_time[1].split(",")
+    if return_intermediate is not None and masking_coordinate is None:
         msg = ('No topographic_zone coordinate found, so no intermediate file '
                'will be saved.')
         warnings.warn(msg)
-
     # Section for neighbourhood processing land points.
     if land_only.data.max() > 0.0:
         if masking_coordinate is not None:
             result_land = ApplyNeighbourhoodProcessingWithAMask(
                 masking_coordinate, radius_or_radii, lead_times=lead_times,
-                sum_or_fraction=args.sum_or_fraction, re_mask=False).process(
-                    cube, mask)
+                sum_or_fraction=sum_or_fraction, re_mask=False).process(
+                cube, mask)
         else:
             result_land = NeighbourhoodProcessing(
                 'square', radius_or_radii, lead_times=lead_times,
-                sum_or_fraction=args.sum_or_fraction, re_mask=True).process(
-                    cube, land_only)
+                sum_or_fraction=sum_or_fraction, re_mask=True).process(
+                cube, land_only)
 
         if masking_coordinate is not None:
-            if args.intermediate_filepath is not None:
-                save_netcdf(
-                    result_land, args.intermediate_filepath)
+            if return_intermediate:
+                intermediate_cube = result_land.copy()
             # Collapse the masking coordinate.
             result_land = CollapseMaskedNeighbourhoodCoordinate(
                 masking_coordinate, weights=weights).process(result_land)
 
         result = result_land
-
     # Section for neighbourhood processing sea points.
     if sea_only.data.max() > 0.0:
         result_sea = NeighbourhoodProcessing(
             'square', radius_or_radii, lead_times=lead_times,
-            sum_or_fraction=args.sum_or_fraction,
+            sum_or_fraction=sum_or_fraction,
             re_mask=True).process(cube, sea_only)
 
         result = result_sea
-
     # Section for combining land and sea points following land and sea points
     # being neighbourhood processed individually.
     if sea_only.data.max() > 0.0 and land_only.data.max() > 0.0:
@@ -210,7 +278,7 @@ def main(argv=None):
         combined_data = result_land.data.filled(0) + result_sea.data.filled(0)
         result = result_land.copy(data=combined_data)
 
-    save_netcdf(result, args.output_filepath)
+    return result, intermediate_cube
 
 
 if __name__ == "__main__":
