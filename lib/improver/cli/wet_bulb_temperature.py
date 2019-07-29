@@ -94,12 +94,13 @@ def process(temperature, relative_humidity, pressure,
         temperature (iris.cube.Cube):
             Cube of air temperatures (K).
         relative_humidity (iris.cube.Cube):
-            Cube pf relative humidities (%, converted to fractional)
+            Cube of relative humidities (%, converted to fractional)
         pressure (iris.cube.Cube):
             Cube of air pressure (Pa).
         convergence_condition (float):
             The precision to which the Newton iterator must converge before
             returning wet bulb temperatures.
+            Default is 0.05.
     Returns:
         result (iris.cube.Cube):
             Cube of wet bulb temperature (K).

@@ -89,7 +89,7 @@ def process(wind_direction, backup_method):
         backup_method (string):
             Backup method to use if the complex numbers approach has low
             confidence.
-            "first_realization" uses he value of realization zero.
+            "first_realization" uses the value of realization zero.
             "neighbourhood" (default) recalculates using the complex numbers
             approach with additional realization extracted from neighbouring
             grid points from all available realizations.

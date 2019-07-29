@@ -162,19 +162,23 @@ def process(wind_speed, silhouette_roughness, sigma, target_orog,
         height_levels (iris.cube.Cube):
             Cube of height levels coincident with wind direction.
             Units of field: m.
+            Default is None.
         veg_roughness_cube (iris.cube.Cube):
             Cube of vegetative roughness length.
             Units of field: m.
+            Default is None.
         output_height_level (float):
             If only a single height level is desired as output from
             wind-downscaling, this option can be used to select the height
             level. If no units are provided with 'output_height_level_units',
             metres are assumed.
+            Default is None.
         output_height_level_units (string):
             If a single height level is selected as output using
             'output_height_level', this additional argument may be used to
             specify the units of the value entered to select the level.
             e.g hPa.
+            Default is 'm'.
 
     Returns:
         wind_speed (iris.cube.Cube):

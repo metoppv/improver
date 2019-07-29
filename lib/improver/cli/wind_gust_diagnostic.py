@@ -107,7 +107,7 @@ def process(cube_wg, cube_ws, percentile_gust, percentile_ws):
 
     Calculate revised wind-gust data using a specified percentiles of
     wind-gust data and a specified percentile of wind-speed data through the
-    WindGustDiagnostic plugin. The wind-gust diagnostic will be the Max of the
+    WindGustDiagnostic plugin. The wind-gust diagnostic will be the max of the
     specified percentile data.
 
     Args:

@@ -235,36 +235,39 @@ def process(cubelist, weights_dict, wts_calc_method, coordinate, cycletime,
             recent forecast).
         cval (float):
             Factor used to determine how skewed the non linear weights will be.
-            A value of 2 implies wqual weighting. If not set, a default value
+            A value of 2 implies equal weighting. If not set, a default value
             of cval=0.85 is set.
         weighting_coord (string):
             Name of coordinate over which linear weights should be scaled.
             This coordinate must be available in the weights dictionary.
         model_id_attr (string):
-            The name of the cube attribute to be used to identiy the source
+            The name of the cube attribute to be used to identify the source
             model for multi-model blends. Default assume Met Office model
             metadata. Must be present on all if blending over models.
+            Default is 'mosg__model_configuration'.
         spatial_weights_from_mask (boolean):
             If True, this option will result in the generation of spatially
             varying weights based on the masks of the data we are blending.
             The one dimensional weights are first calculated using the chosen
-            eights calculation method, but the weights will then be adjusted
+            weights calculation method, but the weights will then be adjusted
             spatially based on where there is masked data in the data we are
             blending. The spatial weights are calculated using the
             SpatiallyVaryingWeightsFromMask plugin.
+            Default is False.
         fuzzy_length (float):
             When calculating spatially varying weights we can smooth the
             weights so that areas close to areas that are masked have lower
             weights than those further away. This fuzzy length controls the
             scale over which the weights are smoothed. The fuzzy length is in
             terms of m, the default is 20km. This distance is then converted
-            into a number of grid squares, which foes not have to be an
+            into a number of grid squares, which does not have to be an
             integer. Assumes the grid spacing is the same in the x and y
             directions and raises an error if this is not true. See
             SpatiallyVaryingWeightsFromMask for more details.
+            Default is 20000.0.
 
     Returns:
-        result (irirs.cube.Cube):
+        result (iris.cube.Cube):
             Merged and blended Cube.
     """
 
