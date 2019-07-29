@@ -40,6 +40,8 @@ from cf_units import Unit
 from improver.psychrometric_calculations.psychrometric_calculations import (
     Utilities)
 
+from improver.tests.set_up_test_cubes import set_up_variable_cube
+
 
 class Test_Utilities(IrisTest):
 
@@ -58,6 +60,19 @@ class Test_Utilities(IrisTest):
         mixing_ratio = Cube([0.1, 0.2, 0.3], long_name='humidity_mixing_ratio',
                             units='1',
                             dim_coords_and_dims=[(longitude, 0)])
+
+
+        data = np.array([[260., 270., 280.]], dtype=np.float32)
+        temperature = set_up_variable_cube(data)
+        data = np.array([[60., 70., 80.]], dtype=np.float32)
+        relative_humidity = set_up_variable_cube(
+            data, name='relative_humidity', units='%')
+        data = np.array([[1.E5, 9.9E4, 9.8E4]], dtype=np.float32)
+        pressure = set_up_variable_cube(
+            data, name='air_pressure', units='Pa')
+        data = np.array([[0.1, 0.2, 0.3]], dtype=np.float32)
+        mixing_ratio = set_up_variable_cube(
+            data, name='humidity_mixing_ratio', units='1')
 
         self.temperature = temperature
         self.pressure = pressure
@@ -83,9 +98,9 @@ class Test_specific_heat_of_moist_air(Test_Utilities):
 
     def test_basic(self):
         """Basic calculation of some moist air specific heat capacities."""
-        expected = [1089.5, 1174., 1258.5]
+        expected = [[1089.499979, 1174.000017, 1258.50001]]
         result = Utilities.specific_heat_of_moist_air(self.mixing_ratio)
-        self.assertArrayEqual(result.data, expected)
+        self.assertArrayAlmostEqual(result.data, expected)
         self.assertEqual(result.units, Unit('J kg-1 K-1'))
 
 
@@ -96,9 +111,9 @@ class Test_latent_heat_of_condensation(Test_Utilities):
 
     def test_basic(self):
         """Basic calculation of some latent heats of condensation."""
-        expected = [2531771., 2508371., 2484971.]
+        expected = [[2531770.999107, 2508371.000223, 2484971.000223]]
         result = Utilities.latent_heat_of_condensation(self.temperature)
-        self.assertArrayEqual(result.data, expected)
+        self.assertArrayAlmostEqual(result.data, expected)
         self.assertEqual(result.units, Unit('J kg-1'))
 
 
@@ -109,12 +124,12 @@ class Test_calculate_enthalpy(Test_Utilities):
 
     def test_basic(self):
         """Basic calculation of some enthalpies."""
-        specific_heat = self.pressure.copy(data=[1089.5, 1174., 1258.5])
+        specific_heat = self.pressure.copy(data=[[1089.5, 1174., 1258.5]])
         specific_heat.units = 'J kg-1 K-1'
-        latent_heat = self.pressure.copy(data=[2531771., 2508371., 2484971.])
+        latent_heat = self.pressure.copy(data=[[2531771., 2508371., 2484971.]])
         latent_heat.units = 'J kg-1'
 
-        expected = [536447.1, 818654.2, 1097871.3]
+        expected = [[536447.103773,  818654.207476, 1097871.329623]]
         result = Utilities.calculate_enthalpy(
             self.mixing_ratio, specific_heat, latent_heat, self.temperature)
 
@@ -130,12 +145,12 @@ class Test_calculate_d_enthalpy_dt(Test_Utilities):
 
     def test_basic(self):
         """Basic calculation of some enthalpy gradients."""
-        specific_heat = self.pressure.copy(data=[1089.5, 1174., 1258.5])
+        specific_heat = self.pressure.copy(data=[[1089.5, 1174., 1258.5]])
         specific_heat.units = 'J kg-1 K-1'
-        latent_heat = self.pressure.copy(data=[2531771., 2508371., 2484971.])
+        latent_heat = self.pressure.copy(data=[[2531771., 2508371., 2484971.]])
         latent_heat.units = 'J kg-1'
 
-        expected = [21631.19827498, 38569.57448917, 52448.13601681]
+        expected = [[21631.198581, 38569.575046, 52448.138051]]
         result = Utilities.calculate_d_enthalpy_dt(
             self.mixing_ratio, specific_heat, latent_heat, self.temperature)
 
@@ -152,7 +167,7 @@ class Test_saturation_vapour_pressure_goff_gratch(Test_Utilities):
         """Basic calculation of some saturated vapour pressures."""
         result = Utilities.saturation_vapour_pressure_goff_gratch(
             self.temperature)
-        expected = [195.64190713, 469.67078994, 990.94206073]
+        expected = [[195.6419, 469.67078, 990.9421]]
 
         np.testing.assert_allclose(result.data, expected, rtol=1.e-5)
         self.assertEqual(result.units, Unit('Pa'))
