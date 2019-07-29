@@ -38,6 +38,7 @@
   # Run cube-combiner processing and check it passes.
   run improver combine \
       --operation='-' \
+      --new-name="probability_of_total_precipitation_rate_between_thresholds" \
       --metadata_jsonfile="$IMPROVER_ACC_TEST_DIR/combine/metadata/prob_precip.json" \
       "$IMPROVER_ACC_TEST_DIR/combine/metadata/precip_prob_0p1.nc" \
       "$IMPROVER_ACC_TEST_DIR/combine/metadata/precip_prob_1p0.nc" \

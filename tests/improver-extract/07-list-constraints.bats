@@ -39,7 +39,7 @@
   run improver extract \
       "$IMPROVER_ACC_TEST_DIR/extract/basic/input.nc" \
       "$TEST_DIR/output.nc" \
-      "threshold=[20, 30]"
+      "wind_speed=[20, 30]"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
