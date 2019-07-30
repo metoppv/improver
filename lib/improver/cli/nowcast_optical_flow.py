@@ -33,7 +33,6 @@
 extrapolate."""
 
 import os
-import json
 import iris
 import numpy as np
 
@@ -42,7 +41,9 @@ from improver.nowcasting.forecasting import CreateExtrapolationForecast
 from improver.nowcasting.optical_flow import OpticalFlow
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
 from improver.utilities.filename import generate_file_name
-from improver.utilities.load import load_cube, load_cubelist
+from improver.utilities.load import load_cubelist
+from improver.utilities.cli_utilities import load_cube_or_none, \
+    load_json_or_none
 from improver.utilities.save import save_netcdf
 
 
@@ -103,12 +104,88 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
+    # Load Cubes and JSON.
+    metadata_dict = load_json_or_none(args.json_file)
     # read input data
     original_cube_list = load_cubelist(args.input_filepaths)
+    oe_cube = load_cube_or_none(args.orographic_enhancement_filepaths)
 
-    if args.orographic_enhancement_filepaths:
-        # Subtract orographic enhancement
-        oe_cube = load_cube(args.orographic_enhancement_filepaths)
+    # Process
+    forecast_cubes, u_and_v_mean = process(
+        original_cube_list, oe_cube, metadata_dict, args.ofc_box_size,
+        args.smart_smoothing_iterations, args.extrapolate,
+        args.max_lead_time, args.lead_time_interval)
+
+    # Save Cubes
+    for wind_cube in u_and_v_mean:
+        file_name = generate_file_name(wind_cube)
+        save_netcdf(wind_cube, os.path.join(args.output_dir, file_name))
+
+    # advect latest input data to the required lead times
+    if args.extrapolate:
+        if args.nowcast_filepaths:
+            if len(args.nowcast_filepaths) != len(forecast_cubes):
+                raise ValueError("Require exactly one output file name for "
+                                 "each forecast lead time")
+
+        for i, cube in enumerate(forecast_cubes):
+            # save to a suitably-named output file
+            if args.nowcast_filepaths:
+                file_name = args.nowcast_filepaths[i]
+            else:
+                file_name = os.path.join(
+                    args.output_dir, generate_file_name(cube))
+            save_netcdf(cube, file_name)
+
+
+def process(original_cube_list, oe_cube=None, metadata_dict=None,
+            ofc_box_size=30, smart_smoothing_iterations=100, extrapolate=False,
+            max_lead_time=360, lead_time_interval=15):
+    """Calculates optical flow advection velocities and can extrapolate data.
+
+    Args:
+        original_cube_list (iris.cube.Cubelist):
+            Cubelist from which to calculate optical flow velocities.
+            The cubes require a 'time' coordinate on which they are sorted,
+            so the order of cubes does not matter.
+        oe_cube (iris.cube.Cube):
+            Cube containing the orographic enhancement fields.
+            Default is None.
+        metadata_dict (dictionary):
+            Dictionary containing required changes to the metadata.
+            Information describing the intended contents of the dictionary is
+            available in improver.utilities.cube_metadata.amend_metadata.
+            Every output cube will have the metadata_dict applied.
+            Default is None.
+        ofc_box_size (integer):
+            square 'box' (in grid spaces) within which to solve the optical
+            flow equations.
+            Default is 30.
+        smart_smoothing_iterations (integer):
+            Number of iterations to perform in enforcing smoothness constraint
+            for optical flow velocities.
+            Default is 100.
+        extrapolate (boolean):
+            If True, advects current data forward to specified lead times.
+            Default is False.
+        max_lead_time (integer):
+            Maximum lead time required (mins). Ignored unless extrapolate is
+            True.
+            Default is 360.
+        lead_time_interval (integer):
+            Interval between required lead times (mins). Ignored unless
+            extrapolate is True.
+            Default is 15.
+
+    Returns:
+        (tuple): tuple containing:
+            **forecast_cubes** (list<Cube>):
+                List of Cubes if extrapolate is True, else None.
+            **u_and_v_mean** (list<Cube>):
+                List of the umean and vmean cubes.
+
+    """
+    if oe_cube:
         cube_list = ApplyOrographicEnhancement("subtract").process(
             original_cube_list, oe_cube)
     else:
@@ -119,71 +196,43 @@ def main(argv=None):
                    "filepaths must be supplied. The names of the cubes "
                    "supplied were: {}".format(cube_names))
             raise ValueError(msg)
-
     # order input files by validity time
     cube_list.sort(key=lambda x: x.coord("time").points[0])
     time_coord = cube_list[-1].coord("time")
-
-    metadata_dict = None
-    if args.json_file:
-        # Load JSON file for metadata amendments.
-        with open(args.json_file, 'r') as input_file:
-            metadata_dict = json.load(input_file)
-
     # calculate optical flow velocities from T-1 to T and T-2 to T-1
-    ofc_plugin = OpticalFlow(iterations=args.smart_smoothing_iterations,
+    ofc_plugin = OpticalFlow(iterations=smart_smoothing_iterations,
                              metadata_dict=metadata_dict)
     ucubes = iris.cube.CubeList([])
     vcubes = iris.cube.CubeList([])
     for older_cube, newer_cube in zip(cube_list[:-1], cube_list[1:]):
         ucube, vcube = ofc_plugin.process(older_cube, newer_cube,
-                                          boxsize=args.ofc_box_size)
+                                          boxsize=ofc_box_size)
         ucubes.append(ucube)
         vcubes.append(vcube)
-
     # average optical flow velocity components
     ucube = ucubes.merge_cube()
     umean = ucube.collapsed("time", iris.analysis.MEAN)
     umean.coord("time").points = time_coord.points
     umean.coord("time").units = time_coord.units
-
     vcube = vcubes.merge_cube()
     vmean = vcube.collapsed("time", iris.analysis.MEAN)
     vmean.coord("time").points = time_coord.points
     vmean.coord("time").units = time_coord.units
 
-    # save mean optical flow components as netcdf files
-    for wind_cube in [umean, vmean]:
-        file_name = generate_file_name(wind_cube)
-        save_netcdf(wind_cube, os.path.join(args.output_dir, file_name))
-
-    # advect latest input data to the required lead times
-    if args.extrapolate:
-
+    u_and_v_mean = [umean, vmean]
+    forecast_cubes = []
+    if extrapolate:
         # generate list of lead times in minutes
-        lead_times = np.arange(0, args.max_lead_time+1,
-                               args.lead_time_interval)
-
-        if args.nowcast_filepaths:
-            if len(args.nowcast_filepaths) != len(lead_times):
-                raise ValueError("Require exactly one output file name for "
-                                 "each forecast lead time")
-
+        lead_times = np.arange(0, max_lead_time + 1,
+                               lead_time_interval)
         forecast_plugin = CreateExtrapolationForecast(
             original_cube_list[-1], umean, vmean,
             orographic_enhancement_cube=oe_cube, metadata_dict=metadata_dict)
         # extrapolate input data to required lead times
         for i, lead_time in enumerate(lead_times):
-            forecast_cube = forecast_plugin.extrapolate(
-                leadtime_minutes=lead_time)
-
-            # save to a suitably-named output file
-            if args.nowcast_filepaths:
-                file_name = args.nowcast_filepaths[i]
-            else:
-                file_name = os.path.join(
-                    args.output_dir, generate_file_name(forecast_cube))
-            save_netcdf(forecast_cube, file_name)
+            forecast_cubes.append(forecast_plugin.extrapolate(
+                leadtime_minutes=lead_time))
+    return forecast_cubes, u_and_v_mean
 
 
 if __name__ == "__main__":
