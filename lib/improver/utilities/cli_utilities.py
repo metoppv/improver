@@ -85,7 +85,7 @@ def radius_or_radii_and_lead(radius, radii_by_lead_time):
         (tuple): tuple containing:
                 **radius_or_radii** (float):
                     Radius or radii.
-                **grady** (list):
+                **lead_times** (list):
                     If radii, list of lead times. Else None.
     """
     if radius:
