@@ -43,7 +43,6 @@ def main(argv=None):
     Wind-gust and Wind-speed data should be supplied along with the required
     percentile value. The wind-gust diagnostic will be the Max of the specified
     percentile data.
-<<<<<<< HEAD
     Currently:
 
         * Typical gusts is
@@ -51,13 +50,6 @@ def main(argv=None):
         * Extreme gust is
           MAX(wind-gust(95th percentile),wind-speed(100th percentile))
 
-=======
-    Currently
-    * Typical gusts is
-    MAX(wind-gust(50th percentile),wind-speed(95th percentile))
-    * Extreme gust is
-    MAX(wind-gust(95th percentile),wind-speed(100th percentile))
->>>>>>> 55733e67... Fixed all docstrings for sphinx
     If no percentile values are supplied the code defaults
     to values for Typical gusts.
     """

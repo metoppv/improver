@@ -63,7 +63,8 @@ def main(argv=None):
     args = ArgParser(**cli_definition).parse_args(args=argv)
 
     cube = load_cube(args.input_filepath)
-    cube_changed = update_stage_v110_metadata(cube)
+
+    cube_changed = process(cube)
 
     # Create normalised file paths to make them comparable
     in_file_norm = os.path.normpath(args.input_filepath)
@@ -73,6 +74,25 @@ def main(argv=None):
         # file.
         cube.data
         save_netcdf(cube, args.output_filepath)
+
+
+def process(cube):
+    """Update grid_id meta-data for StaGE.
+
+    Translates meta-data relating to the grid_id attribute from StaGE
+    version 1.1.0 to StaGE version 1.2.0
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube to be changed.
+
+    Returns:
+        result (iris.cube.Cube):
+            Processed Cube.
+
+    """
+    result = update_stage_v110_metadata(cube)
+    return result
 
 
 if __name__ == "__main__":
