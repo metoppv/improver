@@ -233,6 +233,32 @@ class Test__get_period_sets(rate_cube_set_up):
         self.assertTrue(any(warning_msg in str(item)
                             for item in warning_list))
 
+    @ManageWarnings(record=True)
+    def test_raises_warning_when_no_cubes_returned(self, warning_list=None):
+        """Test function raises a warning when the accumulation period
+        requested is larger than the time range available from the input cubes.
+        In this test the accumulation period is 60 minutes, but the total span
+        of rates cubes covers 10 minutes, resulting
+        in no complete periods available. This test checks that a warning is
+        raised to highlight that only complete periods are returned."""
+
+        time_interval = 60
+        warning_msg = (
+            "The provided cubes result in a partial period given the specified"
+            " accumulation_period, i.e. the number of cubes is insufficient to"
+            " give a set of complete periods. Only complete periods will be"
+            " returned.")
+
+        expected = []
+        plugin = Accumulation(accumulation_period=60*60)
+        result = plugin._get_period_sets(time_interval, self.cubes)
+
+        self.assertListEqual(result, expected)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
+
     def test_raises_exception_for_impossible_aggregation(self):
         """Test function raises an exception when attempting to create an
         accumulation_period that cannot be created from the input cubes."""

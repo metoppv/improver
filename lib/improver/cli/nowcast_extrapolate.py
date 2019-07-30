@@ -113,6 +113,12 @@ def main(argv=None):
         " calculate these accumulations. This interval must be a factor of"
         " the lead_time_interval.")
     accumulation_args.add_argument(
+        "--accumulation_period", type=int, default=15,
+        help="The period over which the accumulation is calculated (mins). "
+        "Only full accumulation periods will be computed, so if the "
+        "lead times are shorter than the accumulation period than these "
+        "lead times will not be calculated.")
+    accumulation_args.add_argument(
         "--accumulation_units", type=str, default='m',
         help="Desired units in which the accumulations should be expressed,"
         "e.g. mm")
@@ -203,8 +209,9 @@ def main(argv=None):
 
     # calculate accumulations if required
     if args.accumulation_fidelity > 0:
-        plugin = Accumulation(accumulation_units=args.accumulation_units,
-                              accumulation_period=args.lead_time_interval * 60)
+        plugin = Accumulation(
+            accumulation_units=args.accumulation_units,
+            accumulation_period=args.accumulation_period * 60)
         accumulation_cubes = plugin.process(forecast_cubes)
 
         # return accumulation cubes
