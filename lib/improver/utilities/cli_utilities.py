@@ -77,7 +77,7 @@ def radius_or_radii_and_lead(radius, radii_by_lead_time):
     Args:
         radius (float or None):
             If it exists it returns it as a radius
-        radii_by_lead_time (string):
+        radii_by_lead_time (list):
             If radius doesn't exist and this does, it splits by a comma
             and gives radius_or_radii [0] and lead_times [1].
 
@@ -88,10 +88,15 @@ def radius_or_radii_and_lead(radius, radii_by_lead_time):
                 **lead_times** (list):
                     If radii, list of lead times. Else None.
     """
+
     if radius:
         radius_or_radii = radius
         lead_times = None
     elif radii_by_lead_time:
         radius_or_radii = radii_by_lead_time[0].split(",")
         lead_times = radii_by_lead_time[1].split(",")
+    else:
+        radius_or_radii = None
+        lead_times = None
+
     return radius_or_radii, lead_times
