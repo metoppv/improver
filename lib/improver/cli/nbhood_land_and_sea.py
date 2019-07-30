@@ -192,8 +192,7 @@ def process(cube, mask, radius, radii_by_lead_time, weights=None,
                 A cube of the intermediate data, before collapsing.
 
     """
-    masking_coordinate = None
-    intermediate_cube = None
+    masking_coordinate = intermediate_cube = None
     if any(['topographic_zone' in coord.name()
             for coord in mask.coords(dim_coords=True)]):
 
@@ -233,8 +232,8 @@ def process(cube, mask, radius, radii_by_lead_time, weights=None,
         sea_only = landmask.copy(
             data=np.logical_not(landmask.data).astype(int))
         land_only = landmask.copy(data=landmask.data.astype(int))
-        radius_or_radii, lead_times = radius_or_radii_and_lead(
-            radius, radii_by_lead_time)
+    radius_or_radii, lead_times = radius_or_radii_and_lead(
+        radius, radii_by_lead_time)
     if return_intermediate is not None and masking_coordinate is None:
         msg = ('No topographic_zone coordinate found, so no intermediate file '
                'will be saved.')
