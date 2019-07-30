@@ -42,6 +42,7 @@ from improver.nowcasting.forecasting import CreateExtrapolationForecast
 from improver.nowcasting.accumulation import Accumulation
 from improver.utilities.filename import generate_file_name
 from improver.utilities.load import load_cube
+from improver.utilities.cli_utilities import load_cube_or_none
 from improver.utilities.save import save_netcdf
 from improver.wind_calculations.wind_components import ResolveWindComponents
 
@@ -117,15 +118,24 @@ def main(argv=None):
         help="Desired units in which the accumulations should be expressed,"
         "e.g. mm")
 
+    # Load Cubes.
     args = parser.parse_args(args=argv)
+    metadata_dict = None
+    if args.json_file:
+        # Load JSON file for metadata amendments.
+        with open(args.json_file, 'r') as input_file:
+            metadata_dict = json.load(input_file)
 
     upath, vpath = (args.eastward_advection_filepath,
                     args.northward_advection_filepath)
     spath, dpath = (args.advection_speed_filepath,
                     args.advection_direction_filepath)
+    scube = dcube = ucube = vcube = None
 
     # load files and initialise advection plugin
     input_cube = load_cube(args.input_filepath)
+    oe_cube = load_cube_or_none(args.orographic_enhancement_filepaths)
+
     if (upath and vpath) and not (spath or dpath):
         ucube = load_cube(upath)
         vcube = load_cube(vpath)
@@ -138,61 +148,21 @@ def main(argv=None):
             raise ValueError(
                 '{} Unable to extract specified pressure level from given '
                 'speed and direction files.'.format(err))
-
-        ucube, vcube = ResolveWindComponents().process(scube, dcube)
     else:
         raise ValueError('Cannot mix advection component velocities with speed'
                          ' and direction')
+    # Process Cubes.
+    accumulation_cubes, forecast_to_return = process(
+        input_cube, ucube, vcube, scube, dcube, oe_cube, metadata_dict,
+        args.max_lead_time, args.lead_time_interval,
+        args.accumulation_fidelity, args.accumulation_units)
 
-    oe_cube = None
-    if args.orographic_enhancement_filepaths:
-        oe_cube = load_cube(args.orographic_enhancement_filepaths)
-
-    metadata_dict = None
-    if args.json_file:
-        # Load JSON file for metadata amendments.
-        with open(args.json_file, 'r') as input_file:
-            metadata_dict = json.load(input_file)
-
-    # generate list of lead times in minutes
-    lead_times = np.arange(0, args.max_lead_time+1,
-                           args.lead_time_interval)
-
-    if args.output_filepaths:
-        if len(args.output_filepaths) != len(lead_times):
-            raise ValueError("Require exactly one output file name for each "
-                             "forecast lead time")
-
-    # determine whether accumulations are also to be returned.
-    time_interval = args.lead_time_interval
-    if args.accumulation_fidelity > 0:
-        fraction, _ = np.modf(args.lead_time_interval /
-                              args.accumulation_fidelity)
-        if fraction != 0:
-            msg = ("The specified lead_time_interval ({}) is not cleanly "
-                   "divisible by the specified accumulation_fidelity ({}). As "
-                   "a result the lead_time_interval cannot be constructed from"
-                   " accumulation cubes at this fidelity.".format(
-                       args.lead_time_interval, args.accumulation_fidelity))
-            raise ValueError(msg)
-
-        time_interval = args.accumulation_fidelity
-        lead_times = np.arange(0, args.max_lead_time+1, time_interval)
-
-    lead_time_filter = args.lead_time_interval // time_interval
-
-    forecast_plugin = CreateExtrapolationForecast(
-        input_cube, ucube, vcube, orographic_enhancement_cube=oe_cube,
-        metadata_dict=metadata_dict)
-
-    # extrapolate input data to required lead times
-    forecast_cubes = iris.cube.CubeList()
-    for i, lead_time in enumerate(lead_times):
-        forecast_cubes.append(
-            forecast_plugin.extrapolate(leadtime_minutes=lead_time))
-
-    # return rate cubes
-    for i, cube in enumerate(forecast_cubes[::lead_time_filter]):
+    # Save Cube.
+    if args.output_filepaths and \
+            len(args.output_filepaths) != len(forecast_to_return):
+        raise ValueError("Require exactly one output file name for each "
+                         "forecast lead time")
+    for i, cube in enumerate(forecast_to_return):
         # save to a suitably-named output file
         if args.output_filepaths:
             file_name = args.output_filepaths[i]
@@ -201,16 +171,111 @@ def main(argv=None):
                 args.output_dir, generate_file_name(cube))
         save_netcdf(cube, file_name)
 
-    # calculate accumulations if required
     if args.accumulation_fidelity > 0:
-        plugin = Accumulation(accumulation_units=args.accumulation_units,
-                              accumulation_period=args.lead_time_interval * 60)
-        accumulation_cubes = plugin.process(forecast_cubes)
-
         # return accumulation cubes
         for i, cube in enumerate(accumulation_cubes):
             file_name = os.path.join(args.output_dir, generate_file_name(cube))
             save_netcdf(cube, file_name)
+
+
+def process(input_cube, ucube, vcube, scube, dcube, oe_cube=None,
+            metadata_dict=None, max_lead_time=360, lead_time_interval=15,
+            accumulation_fidelity=0, accumulation_units='m'):
+    """Module  to extrapolate input cubes given advection velocity fields.
+
+    Args:
+        input_cube (iris.cube.Cube):
+            The input Cube to be processed.
+        ucube (iris.cube.Cube):
+            Cube with the velocities in the x direction.
+        vcube (iris.cube.Cube):
+            Cube with the velocities in the y direction.
+        scube (iris.cube.Cube):
+            Cube containing advection speeds, usually wind speed.
+        dcube (iris.cube.Cube):
+            Cube from which advection speeds are coming. The directions
+            should be on the same grid as the input speeds, including the same
+            vertical levels.
+        oe_cube (iris.cube.Cube):
+            Cube containing the orographic enhancement fields. May have data
+            for multiple times in the cube.
+            Default is None.
+        metadata_dict (dictionary):
+            Dictionary containing the required changes to the metadata.
+            Information describing the intended contents of the dictionary
+            is available in improver.utilities.cube_metadata.amend_metadata.
+            Every output cube will have the metadata_dict applied.
+            Default is None.
+        max_lead_time (integer):
+            Maximum lead time required (mins).
+            Default is 360.
+        lead_time_interval (integer):
+            Interval between required lead times (mins).
+        accumulation_fidelity (integer):
+            If set, this will additionally return accumulations calculated
+            from the advected fields. This fidelity specifies the time
+            interval in minutes between advected fields that is used to
+            calculate these accumulations. This interval must be a factor of
+            the lead_time_interval.
+            Default is 0.
+        accumulation_units (string):
+            Desired units in which the accumulations should be expressed.
+            e.g. 'mm'
+            Default is 'm'
+
+    Returns:
+        (tuple) tuple containing:
+            **accumulation_cubes** (iris.cube.Cubelist):
+                A cubelist containing precipitation accumulation cubes where
+                the accumulation periods are determined by the
+                lead_time_interval.
+            **forecast_to_return** (iris.cube.Cubelist):
+                New cubes with updated time and extrapolated data.
+
+
+    """
+
+    if (scube and dcube) and not (ucube or vcube):
+        ucube, vcube = ResolveWindComponents().process(scube, dcube)
+    elif (ucube or vcube) and (scube or dcube):
+        raise ValueError('Cannot mix advection component velocities with speed'
+                         ' and direction')
+    # generate list of lead times in minutes
+    lead_times = np.arange(0, max_lead_time + 1, lead_time_interval)
+
+    # determine whether accumulations are also to be returned.
+    time_interval = lead_time_interval
+    if accumulation_fidelity > 0:
+        fraction, _ = np.modf(max_lead_time / accumulation_fidelity)
+        if fraction != 0:
+            msg = ("The specified lead_time_interval ({}) is not cleanly "
+                   "divisible by the specified accumulation_fidelity ({}). As "
+                   "a result the lead_time_interval cannot be constructed from"
+                   " accumulation cubes at this fidelity.".
+                   format(lead_time_interval, accumulation_fidelity))
+            raise ValueError(msg)
+
+        time_interval = accumulation_fidelity
+        lead_times = np.arange(0, max_lead_time + 1, time_interval)
+
+    lead_time_filter = lead_time_interval // time_interval
+    forecast_plugin = CreateExtrapolationForecast(
+        input_cube, ucube, vcube, orographic_enhancement_cube=oe_cube,
+        metadata_dict=metadata_dict)
+    # extrapolate input data to required lead times
+    forecast_cubes = iris.cube.CubeList()
+    for i, lead_time in enumerate(lead_times):
+        forecast_cubes.append(
+            forecast_plugin.extrapolate(leadtime_minutes=lead_time))
+    forecast_to_return = forecast_cubes[::lead_time_filter].copy()
+    # return rate cubes
+    # calculate accumulations if required
+    accumulation_cubes = None
+    if accumulation_fidelity > 0:
+        plugin = Accumulation(accumulation_units=accumulation_units,
+                              accumulation_period=lead_time_interval * 60)
+        accumulation_cubes = plugin.process(forecast_cubes)
+    return accumulation_cubes, forecast_to_return
 
 
 if __name__ == "__main__":
