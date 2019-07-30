@@ -38,6 +38,7 @@ import numpy as np
 import iris
 from iris.exceptions import CoordinateNotFoundError
 
+from improver.utilities.cli_utilities import load_cube_or_none
 from improver.wind_calculations import wind_downscaling
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
@@ -110,10 +111,8 @@ def main(argv=None):
     sigma = load_cube(args.sigma_filepath)
     target_orog = load_cube(args.target_orog_filepath)
     standard_orog = load_cube(args.standard_orog_filepath)
-    height_levels = load_cube(args.height_levels_filepath) if \
-        args.height_levels_filepath else None
-    veg_roughness_cube = load_cube(args.veg_roughness_filepath) if \
-        args.veg_roughness_filepath else None
+    height_levels = load_cube_or_none(args.height_levels_filepath)
+    veg_roughness_cube = load_cube_or_none(args.veg_roughness_filepath)
 
     model_resolution = float(args.model_resolution) if \
         args.model_resolution else None

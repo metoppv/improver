@@ -45,6 +45,8 @@ from improver.percentile import PercentileConverter
 from improver.spotdata.apply_lapse_rate import SpotLapseRateAdjust
 from improver.spotdata.spot_extraction import SpotExtraction
 from improver.spotdata.neighbour_finding import NeighbourSelection
+from improver.utilities.cli_utilities import load_json_or_none,\
+    load_cube_or_none
 from improver.utilities.cube_metadata import amend_metadata
 from improver.utilities.cube_checker import find_percentile_coordinate
 from improver.utilities.cube_extraction import extract_subcube
@@ -149,15 +151,12 @@ def main(argv=None):
         "required.")
 
     args = parser.parse_args(args=argv)
-    metadata_dict = None
-    if args.metadata_json:
-        with open(args.metadata_json, 'r') as input_file:
-            metadata_dict = json.load(input_file)
+    metadata_dict = load_json_or_none(args.metadata_json)
+
     # Load Cube
     neighbour_cube = load_cube(args.neighbour_filepath)
     diagnostic_cube = load_cube(args.diagnostic_filepath)
-    lapse_rate_cube = load_cube(args.temperature_lapse_rate_filepath) if \
-        args.temperature_lapse_rate_filepath else None
+    lapse_rate_cube = load_cube_or_none(args.temperature_lapse_rate_filepath)
 
     # Process Cube
     result = process(neighbour_cube, diagnostic_cube, lapse_rate_cube,

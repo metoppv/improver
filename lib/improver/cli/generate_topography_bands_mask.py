@@ -39,6 +39,7 @@ from improver.generate_ancillaries.generate_ancillary import (
     GenerateOrographyBandAncils)
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
+from improver.utilities.cli_utilities import load_json_or_none
 
 # The following dictionary defines the orography altitude bands in metres
 # above/below sea level for which masks are required.
@@ -89,10 +90,8 @@ def main(argv=None):
                               "[950., 6000.]], 'units': 'm'}"))
     args = parser.parse_args(args=argv)
 
-    if args.thresholds_filepath:
-        with open(args.thresholds_filepath, 'r') as filehandle:
-            thresholds_dict = json.loads(filehandle.read())
-    else:
+    thresholds_dict = load_json_or_none(args.thresholds_filepath)
+    if thresholds_dict is None:
         thresholds_dict = THRESHOLDS_DICT
 
     if not os.path.exists(args.output_filepath) or args.force:

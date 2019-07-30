@@ -37,6 +37,7 @@ import json
 import warnings
 
 from improver.argparser import ArgParser
+from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.utilities.cube_checker import check_cube_not_float64
@@ -151,11 +152,8 @@ def main(argv=None):
                "target_grid_filepath")
         raise ValueError(msg)
 
-    # Load Cube
-    metadata_dict = None
-    if args.json_file:
-        with open(args.json_file, 'r') as input_file:
-            metadata_dict = json.load(input_file)
+    # Load Cube and json
+    metadata_dict = load_json_or_none(args.json_file)
     # source file data path is a mandatory argument
     output_data = load_cube(args.source_data_filepath)
     target_grid = None

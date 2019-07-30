@@ -36,6 +36,8 @@ from improver.constants import DEFAULT_PERCENTILES
 from improver.nbhood.nbhood import (
     GeneratePercentilesFromANeighbourhood, NeighbourhoodProcessing)
 from improver.nbhood.recursive_filter import RecursiveFilter
+from improver.utilities.cli_utilities import load_cube_or_none, \
+    radius_or_radii_and_lead
 from improver.utilities.pad_spatial import remove_cube_halo
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
@@ -206,16 +208,10 @@ def main(argv=None):
         if args.apply_recursive_filter:
             parser.error('Cannot process complex numbers with recursive '
                          'filter')
-    mask_cube = None
-    if args.input_mask_filepath:
-        mask_cube = load_cube(args.input_mask_filepath)
 
-    alphas_x_cube = None
-    alphas_y_cube = None
-    if args.input_filepath_alphas_x_cube is not None:
-        alphas_x_cube = load_cube(args.input_filepath_alphas_x_cube)
-    if args.input_filepath_alphas_y_cube is not None:
-        alphas_y_cube = load_cube(args.input_filepath_alphas_y_cube)
+    mask_cube = load_cube_or_none(args.input_mask_filepath)
+    alphas_x_cube = load_cube_or_none(args.input_filepath_alphas_x_cube)
+    alphas_y_cube = load_cube_or_none(args.input_filepath_alphas_y_cube)
 
     # Load Cube
     cube = load_cube(args.input_filepath)
@@ -327,12 +323,8 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius,
     if degrees_as_complex:
         # convert cube data into complex numbers
         cube.data = WindDirection.deg_to_complex(cube.data)
-    if radius:
-        radius_or_radii = radius
-        lead_times = None
-    elif radii_by_lead_time:
-        radius_or_radii = radii_by_lead_time[0].split(",")
-        lead_times = radii_by_lead_time[1].split(",")
+    radius_or_radii, lead_times = radius_or_radii_and_lead(
+        radius, radii_by_lead_time)
 
     if neighbourhood_output == "probabilities":
         result = (

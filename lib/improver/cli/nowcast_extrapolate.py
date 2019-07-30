@@ -32,7 +32,6 @@
 """Script to extrapolate input data given advection velocity fields."""
 
 import os
-import json
 import numpy as np
 
 import iris
@@ -42,7 +41,8 @@ from improver.nowcasting.forecasting import CreateExtrapolationForecast
 from improver.nowcasting.accumulation import Accumulation
 from improver.utilities.filename import generate_file_name
 from improver.utilities.load import load_cube
-from improver.utilities.cli_utilities import load_cube_or_none
+from improver.utilities.cli_utilities import load_cube_or_none,\
+    load_json_or_none
 from improver.utilities.save import save_netcdf
 from improver.wind_calculations.wind_components import ResolveWindComponents
 
@@ -120,11 +120,8 @@ def main(argv=None):
 
     # Load Cubes.
     args = parser.parse_args(args=argv)
-    metadata_dict = None
-    if args.json_file:
-        # Load JSON file for metadata amendments.
-        with open(args.json_file, 'r') as input_file:
-            metadata_dict = json.load(input_file)
+
+    metadata_dict = load_json_or_none(args.json_file)
 
     upath, vpath = (args.eastward_advection_filepath,
                     args.northward_advection_filepath)

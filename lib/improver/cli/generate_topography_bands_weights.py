@@ -37,6 +37,7 @@ import json
 
 from improver.generate_ancillaries.generate_topographic_zone_weights import (
     GenerateTopographicZoneWeights)
+from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
@@ -96,10 +97,8 @@ def main(argv=None):
                               "[950., 6000.]], 'units': 'm'}"))
     args = parser.parse_args(args=argv)
 
-    if args.thresholds_filepath:
-        with open(args.thresholds_filepath, 'r') as filehandle:
-            thresholds_dict = json.loads(filehandle.read())
-    else:
+    thresholds_dict = load_json_or_none(args.thresholds_filepath)
+    if thresholds_dict is None:
         thresholds_dict = THRESHOLDS_DICT
 
     if not os.path.exists(args.output_filepath) or args.force:

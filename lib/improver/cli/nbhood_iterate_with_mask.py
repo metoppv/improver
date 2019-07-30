@@ -36,6 +36,7 @@ from improver.argparser import ArgParser
 from improver.nbhood.use_nbhood import (
     ApplyNeighbourhoodProcessingWithAMask,
     CollapseMaskedNeighbourhoodCoordinate)
+from improver.utilities.cli_utilities import radius_or_radii_and_lead
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
@@ -182,7 +183,7 @@ def process(cube, mask_cube, weights, coord_for_masking, radius,
             Rounded up to convert into integer number of grid points east and
             north, based on the characteristic spacing at the zero indices of
             the cube projection-x and y coordinates.
-        radii_by_lead_time (float ot List if defining lead times):
+        radii_by_lead_time (float or List if defining lead times):
             The radii in metres of the neighbourhood to apply.
             Rounded up to convert into integer number of grid points east and
             north, based on the characteristic spacing at the zero indices of
@@ -217,12 +218,9 @@ def process(cube, mask_cube, weights, coord_for_masking, radius,
                 A cube before it is collapsed, if 'collapse_dimension' is True.
 
     """
-    if radius:
-        radius_or_radii = radius
-        lead_times = None
-    elif radii_by_lead_time:
-        radius_or_radii = radii_by_lead_time[0].split(",")
-        lead_times = radii_by_lead_time[1].split(",")
+    radius_or_radii, lead_times = radius_or_radii_and_lead(
+        radius, radii_by_lead_time)
+
     result = ApplyNeighbourhoodProcessingWithAMask(
         coord_for_masking, radius_or_radii, lead_times=lead_times,
         sum_or_fraction=sum_or_fraction,

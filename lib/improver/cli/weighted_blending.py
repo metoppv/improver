@@ -181,7 +181,7 @@ def main(argv=None):
             weights_dict = json.load(wts)
     else:
         weights_dict = None
-    # load cubes to be blended
+    # Load cubes to be blended.
     cubelist = load_cubelist(args.input_filepaths)
 
     result = process(cubelist, weights_dict, args.wts_calc_method,

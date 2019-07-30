@@ -41,6 +41,7 @@ from improver.nbhood.use_nbhood import (
     ApplyNeighbourhoodProcessingWithAMask,
     CollapseMaskedNeighbourhoodCoordinate)
 from improver.nbhood.nbhood import NeighbourhoodProcessing
+from improver.utilities.cli_utilities import radius_or_radii_and_lead
 from improver.utilities.load import load_cube
 
 from improver.utilities.save import save_netcdf
@@ -232,12 +233,8 @@ def process(cube, mask, radius, radii_by_lead_time, weights=None,
         sea_only = landmask.copy(
             data=np.logical_not(landmask.data).astype(int))
         land_only = landmask.copy(data=landmask.data.astype(int))
-    if radius:
-        radius_or_radii = radius
-        lead_times = None
-    elif radii_by_lead_time:
-        radius_or_radii = radii_by_lead_time[0].split(",")
-        lead_times = radii_by_lead_time[1].split(",")
+        radius_or_radii, lead_times = radius_or_radii_and_lead(
+            radius, radii_by_lead_time)
     if return_intermediate is not None and masking_coordinate is None:
         msg = ('No topographic_zone coordinate found, so no intermediate file '
                'will be saved.')

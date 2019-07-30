@@ -34,6 +34,7 @@
 from improver.argparser import ArgParser
 
 from improver.nbhood.recursive_filter import RecursiveFilter
+from improver.utilities.cli_utilities import load_cube_or_none
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
@@ -86,22 +87,15 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
-    # Load Cubes
+    # Load Cubes.
     cube = load_cube(args.input_filepath)
-
-    mask_cube = None
-    alphas_x_cube = None
-    alphas_y_cube = None
-    if args.input_mask_filepath:
-        mask_cube = load_cube(args.input_mask_filepath)
-    if args.input_filepath_alphas_x is not None:
-        alphas_x_cube = load_cube(args.input_filepath_alphas_x)
-    if args.input_filepath_alphas_y is not None:
-        alphas_y_cube = load_cube(args.input_filepath_alphas_y)
-
+    mask_cube = load_cube_or_none(args.input_mask_filepath)
+    alphas_x_cube = load_cube_or_none(args.input_filepath_alphas_x)
+    alphas_y_cube = load_cube_or_none(args.input_filepath_alphas_y)
+    # Process Cube.
     result = process(cube, mask_cube, alphas_x_cube, alphas_y_cube,
                      args.alpha_x, args.alpha_y, args.iterations, args.re_mask)
-
+    # Save Cube.
     save_netcdf(result, args.output_filepath)
 
 

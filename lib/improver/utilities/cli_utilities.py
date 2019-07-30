@@ -44,13 +44,54 @@ def load_cube_or_none(file_path):
     Returns:
         (iris.cube.Cube):
             A loaded cube.
+            or
+            None
     """
     return load_cube(file_path) if file_path else None
 
+
 def load_json_or_none(file_path):
+    """If there is a path, runs json.load and returns it. Else returns None.
+
+    Args:
+        file_path (string):
+            File path to the json file to load.
+
+    Returns:
+        (dictionary):
+            A dictionary loaded from a json file.
+            or
+            None
+    """
     metadata_dict = None
     if file_path:
         # Load JSON file for metadata amendments.
         with open(file_path, 'r') as input_file:
             metadata_dict = json.load(input_file)
     return metadata_dict
+
+
+def radius_or_radii_and_lead(radius, radii_by_lead_time):
+    """Takes both arguments and returns radius/radii and lead time.
+
+    Args:
+        radius (float or None):
+            If it exists it returns it as a radius
+        radii_by_lead_time (string):
+            If radius doesn't exist and this does, it splits by a comma
+            and gives radius_or_radii [0] and lead_times [1].
+
+    Returns:
+        (tuple): tuple containing:
+                **radius_or_radii** (float):
+                    Radius or radii.
+                **grady** (list):
+                    If radii, list of lead times. Else None.
+    """
+    if radius:
+        radius_or_radii = radius
+        lead_times = None
+    elif radii_by_lead_time:
+        radius_or_radii = radii_by_lead_time[0].split(",")
+        lead_times = radii_by_lead_time[1].split(",")
+    return radius_or_radii, lead_times

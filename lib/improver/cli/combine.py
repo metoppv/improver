@@ -118,7 +118,7 @@ def process(cubelist, operation, new_cube_name,
         operation (string):
             "+", "-", "*", "add", "subtract", "multiply", "min", "max", "mean"
             An operation to use in combining Cubes.
-        new_name (string):
+        new_cube_name (string):
         New name for the resulting dataset. Will default to the name of the
         first dataset if not set.
         metadata_jsonfile (string):
@@ -141,6 +141,7 @@ def process(cubelist, operation, new_cube_name,
         # Read in extraction recipes for all diagnostics.
         with open(metadata_jsonfile, 'r') as input_file:
             new_metadata = json.load(input_file)
+
         if 'coordinates' in new_metadata:
             new_coords = new_metadata['coordinates']
         if 'attributes' in new_metadata:
