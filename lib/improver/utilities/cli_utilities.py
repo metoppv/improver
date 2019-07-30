@@ -31,6 +31,7 @@
 """Provides support utilities for cli scripts."""
 
 from improver.utilities.load import load_cube
+import json
 
 
 def load_cube_or_none(file_path):
@@ -45,3 +46,11 @@ def load_cube_or_none(file_path):
             A loaded cube.
     """
     return load_cube(file_path) if file_path else None
+
+def load_json_or_none(file_path):
+    metadata_dict = None
+    if file_path:
+        # Load JSON file for metadata amendments.
+        with open(file_path, 'r') as input_file:
+            metadata_dict = json.load(input_file)
+    return metadata_dict
