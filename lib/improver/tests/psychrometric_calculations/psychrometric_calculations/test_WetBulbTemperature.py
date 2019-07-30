@@ -31,6 +31,8 @@
 """Unit tests for psychrometric_calculations WetBulbTemperature"""
 
 import unittest
+import numpy as np
+
 import iris
 from iris.cube import Cube
 from iris.tests import IrisTest
@@ -41,40 +43,26 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     WetBulbTemperature)
 from improver.utilities.warnings_handler import ManageWarnings
 
-
-def set_up_cubes_for_wet_bulb_temperature():
-    """Set up cubes required for wet bulb temperature unit tests."""
-    longitude = DimCoord([0, 10, 20], 'longitude', units='degrees')
-    time = DimCoord([1491955200], 'time')
-    temperature = Cube([183.15, 260.65, 338.15], 'air_temperature',
-                       units='K',
-                       dim_coords_and_dims=[(longitude, 0)])
-    temperature.add_aux_coord(time)
-    pressure = Cube([1.E5, 9.9E4, 9.8E4], 'air_pressure', units='Pa',
-                    dim_coords_and_dims=[(longitude, 0)])
-    pressure.add_aux_coord(time)
-    relative_humidity = Cube([60, 70, 80], 'relative_humidity', units='%',
-                             dim_coords_and_dims=[(longitude, 0)])
-    relative_humidity.add_aux_coord(time)
-    mixing_ratio = Cube([0.1, 0.2, 0.3], long_name='humidity_mixing_ratio',
-                        units='1',
-                        dim_coords_and_dims=[(longitude, 0)])
-    mixing_ratio.add_aux_coord(time)
-    return temperature, pressure, relative_humidity, mixing_ratio
+from improver.tests.set_up_test_cubes import (set_up_variable_cube,
+                                              add_coordinate)
 
 
 class Test_WetBulbTemperature(IrisTest):
-
     """Test class for the WetBulbTemperature tests, setting up cubes."""
 
     def setUp(self):
         """Set up the initial conditions for tests."""
-        temperature, pressure, relative_humidity, mixing_ratio = (
-            set_up_cubes_for_wet_bulb_temperature())
-        self.temperature = temperature
-        self.pressure = pressure
-        self.relative_humidity = relative_humidity
-        self.mixing_ratio = mixing_ratio
+        data = np.array([[183.151, 260.65, 338.149]], dtype=np.float32)
+        self.temperature = set_up_variable_cube(data)
+        data = np.array([[60., 70., 80.]], dtype=np.float32)
+        self.relative_humidity = set_up_variable_cube(
+            data, name='relative_humidity', units='%')
+        data = np.array([[1.E5, 9.9E4, 9.8E4]], dtype=np.float32)
+        self.pressure = set_up_variable_cube(
+            data, name='air_pressure', units='Pa')
+        data = np.array([[0.1, 0.2, 0.3]], dtype=np.float32)
+        self.mixing_ratio = set_up_variable_cube(
+            data, name='humidity_mixing_ratio', units='1')
 
 
 class Test__repr__(IrisTest):
@@ -112,8 +100,11 @@ class Test_lookup_svp(Test_WetBulbTemperature):
 
     def test_values(self):
         """Basic extraction of some SVP values from the lookup table."""
-        self.temperature.data[1] = 260.5683203
-        expected = [9.664590e-03, 206., 2.501530e+04]
+        print(self.temperature.data, self.temperature.shape)
+        self.temperature.data[0, 1] = 260.5683203
+        print(self.temperature.data, self.temperature.shape)
+#        expected = [[9.664590e-03, 206., 2.501530e+04]]
+        expected = [[9.666383e-03, 2.060003e+02, 2.501418e+04]]
         result = WetBulbTemperature().lookup_svp(self.temperature)
         self.assertArrayAlmostEqual(result.data, expected)
         self.assertEqual(result.units, Unit('Pa'))
@@ -122,9 +113,9 @@ class Test_lookup_svp(Test_WetBulbTemperature):
     def test_beyond_table_bounds(self, warning_list=None):
         """Extracting SVP values from the lookup table with temperatures beyond
         its valid range. Should return the nearest end of the table."""
-        self.temperature.data[1] = 150.
-        self.temperature.data[2] = 400.
-        expected = [9.664590e-03, 9.664590e-03, 2.501530e+04]
+        self.temperature.data[0, 1] = 150.
+        self.temperature.data[0, 2] = 400.
+        expected = [[9.664590e-03, 9.664590e-03, 2.501530e+04]]
         result = WetBulbTemperature().lookup_svp(self.temperature)
         warning_msg = "Wet bulb temperatures are"
         self.assertTrue(any(item.category == UserWarning

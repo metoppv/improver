@@ -50,34 +50,17 @@ class Test_Utilities(IrisTest):
     def setUp(self):
         """Set up the initial conditions for tests."""
 
-        longitude = DimCoord([0, 10, 20], 'longitude', units='degrees')
-        temperature = Cube([260., 270., 280.], 'air_temperature', units='K',
-                           dim_coords_and_dims=[(longitude, 0)])
-        pressure = Cube([1.E5, 9.9E4, 9.8E4], 'air_pressure', units='Pa',
-                        dim_coords_and_dims=[(longitude, 0)])
-        relative_humidity = Cube([60, 70, 80], 'relative_humidity', units='%',
-                                 dim_coords_and_dims=[(longitude, 0)])
-        mixing_ratio = Cube([0.1, 0.2, 0.3], long_name='humidity_mixing_ratio',
-                            units='1',
-                            dim_coords_and_dims=[(longitude, 0)])
-
-
         data = np.array([[260., 270., 280.]], dtype=np.float32)
-        temperature = set_up_variable_cube(data)
+        self.temperature = set_up_variable_cube(data)
         data = np.array([[60., 70., 80.]], dtype=np.float32)
-        relative_humidity = set_up_variable_cube(
+        self.relative_humidity = set_up_variable_cube(
             data, name='relative_humidity', units='%')
         data = np.array([[1.E5, 9.9E4, 9.8E4]], dtype=np.float32)
-        pressure = set_up_variable_cube(
+        self.pressure = set_up_variable_cube(
             data, name='air_pressure', units='Pa')
         data = np.array([[0.1, 0.2, 0.3]], dtype=np.float32)
-        mixing_ratio = set_up_variable_cube(
+        self.mixing_ratio = set_up_variable_cube(
             data, name='humidity_mixing_ratio', units='1')
-
-        self.temperature = temperature
-        self.pressure = pressure
-        self.relative_humidity = relative_humidity
-        self.mixing_ratio = mixing_ratio
 
 
 class Test__repr__(IrisTest):
