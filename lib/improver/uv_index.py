@@ -61,16 +61,16 @@ def calculate_uv_index(uv_upward, uv_downward, scale_factor=3.6):
         uv_index (iris.cube.Cube):
             A cube of the calculated UV index.
 
-    Raises: ValueError
-        If uv_upward is not named correctly.
-        If uv_downward is not named correctly.
-        If units do not match.
+    Raises:
+        ValueError: If uv_upward is not named correctly.
+        ValueError: If uv_downward is not named correctly.
+        ValueError: If units do not match.
 
     References:
-    Turner, E.C, Manners, J. Morcette, C. J, O'Hagan, J. B,
-    & Smedley, A.R.D. (2017): Toward a New UV Index Diagnostic
-    in the Met Office's Forecast Model. Journal of Advances in
-    Modeling Earth Systems 9, 2654-2671.
+        Turner, E.C, Manners, J. Morcette, C. J, O'Hagan, J. B,
+        & Smedley, A.R.D. (2017): Toward a New UV Index Diagnostic
+        in the Met Office's Forecast Model. Journal of Advances in
+        Modeling Earth Systems 9, 2654-2671.
 
     """
     if uv_upward.name() != 'surface_upwelling_ultraviolet_flux_in_air':

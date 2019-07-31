@@ -454,7 +454,7 @@ def lat_lon_determine(cube):
             A diagnostic cube to examine for coordinate system.
 
     Returns:
-        trg_crs (cartopy.crs/None):
+        trg_crs (cartopy.crs.CRS or None):
             Coordinate system of the diagnostic cube in a cartopy format unless
             it is already a latitude/longitude grid, in which case None is
             returned.
@@ -473,7 +473,7 @@ def lat_lon_transform(trg_crs, latitude, longitude):
     grid into an alternative projection defined by trg_crs.
 
     Args:
-        trg_crs (cartopy.crs/None):
+        trg_crs (cartopy.crs.CRS or None):
             Target coordinate system in cartopy format or None.
 
         latitude (float):
