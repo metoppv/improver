@@ -28,21 +28,20 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+# pylint: disable=E1136
 """Unit tests for saving functionality."""
 
 import os
-import netCDF4
 import unittest
 from unittest import mock
-
-import numpy as np
 from subprocess import call
 from tempfile import mkdtemp
 
+import numpy as np
+from netCDF4 import Dataset
 import iris
 from iris.coords import CellMethod
 from iris.tests import IrisTest
-from netCDF4 import Dataset
 
 from improver.utilities.load import load_cube
 from improver.utilities.save import (
@@ -191,7 +190,7 @@ class Test_save_netcdf(IrisTest):
 
         # Default expected to be compressed.
         save_netcdf(self.cube, self.filepath)
-        cube = netCDF4.Dataset(self.filepath)
+        cube = Dataset(self.filepath)
         var = cube.variables['air_temperature']
         compressed = var.filters().get('complevel', False)
 
@@ -205,7 +204,7 @@ class Test_save_netcdf(IrisTest):
         # Environment variable should prevent compression.
         with mock.patch.dict(os.environ, {'SAVE_COMPRESSED': 'False'}):
             save_netcdf(self.cube, self.filepath)
-        cube = netCDF4.Dataset(self.filepath)
+        cube = Dataset(self.filepath)
         var = cube.variables['air_temperature']
         compressed = var.filters().get('complevel', False)
 
