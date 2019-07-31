@@ -38,10 +38,6 @@ import iris
 
 from improver.utilities.cube_checker import check_cube_not_float64
 
-# To avoid compression in acceptance tests SAVE_COMPRESSED=False exported to
-# environment. Defaults True if not set.
-SAVE_COMPRESSED = ast.literal_eval(os.getenv("SAVE_COMPRESSED", "True"))
-
 
 def _append_metadata_cube(cubelist, global_keys):
     """ Create a metadata cube associated with statistical
@@ -148,6 +144,10 @@ def save_netcdf(cubelist, filename):
     Raises:
         warning if cubelist contains cubes of varying dimensions.
     """
+    # To avoid compression SAVE_COMPRESSED=False can be exported to the
+    # environment. Defaults True if not set.
+    save_compressed = ast.literal_eval(os.getenv("SAVE_COMPRESSED", "True"))
+
     if isinstance(cubelist, iris.cube.Cube):
         cubelist = [cubelist]
 
@@ -181,5 +181,5 @@ def save_netcdf(cubelist, filename):
     cubelist = _append_metadata_cube(cubelist, global_keys)
     iris.fileformats.netcdf.save(cubelist, filename, local_keys=local_keys,
                                  complevel=1, shuffle=True,
-                                 zlib=SAVE_COMPRESSED,
+                                 zlib=save_compressed,
                                  chunksizes=chunksizes)

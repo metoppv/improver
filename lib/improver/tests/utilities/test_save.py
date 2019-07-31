@@ -31,7 +31,10 @@
 """Unit tests for saving functionality."""
 
 import os
+import netCDF4
 import unittest
+from unittest import mock
+
 import numpy as np
 from subprocess import call
 from tempfile import mkdtemp
@@ -181,6 +184,32 @@ class Test_save_netcdf(IrisTest):
         no_units_cube = iris.cube.Cube([1])
         with self.assertRaisesRegex(ValueError, "Cannot save 'unknown' cube"):
             save_netcdf(no_units_cube, self.filepath)
+
+    def test_compressed_by_default(self):
+        """Test saves file with compression by default. This is indicated by
+        the presence of the complevel attribute on the netcdf file."""
+
+        # Default expected to be compressed.
+        save_netcdf(self.cube, self.filepath)
+        cube = netCDF4.Dataset(self.filepath)
+        var = cube.variables['air_temperature']
+        compressed = var.filters().get('complevel', False)
+
+        self.assertTrue(compressed)
+
+    def test_uncompressed_using_env_var(self):
+        """Test saves file without compression if the SAVE_COMPRESSED
+        environment variable is set to False. In this case the complevel
+        attribute should not be present on the netcdf file."""
+
+        # Environment variable should prevent compression.
+        with mock.patch.dict(os.environ, {'SAVE_COMPRESSED': 'False'}):
+            save_netcdf(self.cube, self.filepath)
+        cube = netCDF4.Dataset(self.filepath)
+        var = cube.variables['air_temperature']
+        compressed = var.filters().get('complevel', False)
+
+        self.assertFalse(compressed)
 
 
 class Test__check_for_units(IrisTest):
