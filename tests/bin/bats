@@ -61,6 +61,9 @@ export PATH="$BATS_LIBEXEC:$PATH"
 # tests on different machines. Some CLI test results exhibit precision level
 # sensitivity to the number of threads.
 export OMP_NUM_THREADS=1
+# Environment variable used to turn off compression in save wrapper.
+# SAVE_COMPRESSED="False", results not compressed, tests run faster.
+export SAVE_COMPRESSED="False"
 
 options=()
 arguments=()

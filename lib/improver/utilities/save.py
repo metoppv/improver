@@ -30,11 +30,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for saving netcdf cubes with desired attribute types."""
 
+import os
+import ast
 import cf_units
 import warnings
 import iris
 
 from improver.utilities.cube_checker import check_cube_not_float64
+
+# To avoid compression in acceptance tests SAVE_COMPRESSED=False exported to
+# environment. Defaults True if not set.
+SAVE_COMPRESSED = ast.literal_eval(os.getenv("SAVE_COMPRESSED", "True"))
 
 
 def _append_metadata_cube(cubelist, global_keys):
@@ -174,5 +180,6 @@ def save_netcdf(cubelist, filename):
 
     cubelist = _append_metadata_cube(cubelist, global_keys)
     iris.fileformats.netcdf.save(cubelist, filename, local_keys=local_keys,
-                                 complevel=1, shuffle=True, zlib=True,
+                                 complevel=1, shuffle=True,
+                                 zlib=SAVE_COMPRESSED,
                                  chunksizes=chunksizes)
