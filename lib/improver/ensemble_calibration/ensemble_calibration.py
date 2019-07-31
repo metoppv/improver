@@ -129,7 +129,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         .. math::
           N(alpha + beta0 * realization0 + beta1 * realization1,
 
-          gamma + delta * ensemble\_variance)
+          gamma + delta * ensemble\\_variance)
 
         where N is a chosen distribution and the number of beta terms
         depends on the number of realizations provided.
@@ -597,7 +597,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         ensemble realizations, and adjustments to the ensemble variance:
 
         .. math::
-            alpha + beta * ensemble\_mean
+            alpha + beta * ensemble\\_mean
 
         or
 
@@ -605,7 +605,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             alpha + beta0 * realization1 + beta1 * realization2
 
         .. math::
-            gamma + delta * ensemble\_variance
+            gamma + delta * ensemble\\_variance
 
         The default values for the initial guesses are in
         [gamma, delta, alpha, beta] ordering:
