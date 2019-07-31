@@ -181,7 +181,7 @@ class Test__get_period_sets(rate_cube_set_up):
         result = plugin._get_period_sets(time_interval, self.cubes)
         self.assertIsInstance(result, list)
 
-    def test_returns_expected_cubes(self, warning_list=None):
+    def test_returns_expected_cubes(self):
         """Test function returns lists containing the expected cubes for each
         period. In this test all the cubes are used as the total time span of
         precipitation rates cubes is divisible by the requested accumulation
@@ -335,12 +335,13 @@ class Test_process(rate_cube_set_up):
     def test_does_not_use_incomplete_period_data(self):
         """Test function returns only 2 accumulation periods when a 4 minute
         aggregation period is used with 10 minutes of input data. The trailing
-        2 cubes are insufficient to create another period and so are disgarded.
+        2 cubes are insufficient to create another period and so are discarded.
         A warning is raised by the chunking function and has been tested above,
         so is ignored here.
         """
 
-        plugin = Accumulation(accumulation_period=240)
+        plugin = Accumulation(accumulation_period=240,
+                              forecast_periods=[240, 480])
         result = plugin.process(self.cubes)
         self.assertEqual(len(result), 2)
 
@@ -375,7 +376,8 @@ class Test_process(rate_cube_set_up):
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
 
-        plugin = Accumulation(accumulation_period=300, accumulation_units='mm')
+        plugin = Accumulation(accumulation_period=300, accumulation_units='mm',
+                              forecast_periods=[300, 600])
         result = plugin.process(self.cubes)
 
         self.assertArrayAlmostEqual(result[0].data, expected_t0)
@@ -440,6 +442,8 @@ class Test_process(rate_cube_set_up):
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
 
         plugin = Accumulation(accumulation_units='mm')
+        for acube in self.cubes:
+            print("acube = ", acube.coord("time"))
         result = plugin.process(self.cubes)
 
         self.assertArrayAlmostEqual(result[0].data, expected_t0)

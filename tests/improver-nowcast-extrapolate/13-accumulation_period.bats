@@ -48,7 +48,8 @@
     --northward_advection "$VCOMP" \
     --orographic_enhancement_filepaths \
     "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1" \
-    --accumulation_fidelity 5 --accumulation_period 30
+    --accumulation_fidelity 5 --accumulation_period 15 \
+    --lead_time_interval 5
   [[ "$status" -eq 0 ]]
 
   T0="20181103T1630Z-PT0000H30M-lwe_thickness_of_precipitation_amount.nc"
