@@ -38,15 +38,17 @@ The DEFAULT_UNITS dictionary has the following form.
 
 "unit": <str>
     The standard/default units for the coordinate or diagnostic
-    described by the key.
+    described by the key.  This is mandatory.
 "dtype": <dtype>
     The standard/default data type in which the coordinate points
-    or diagnostic values should be stored.
+    or diagnostic values should be stored.  This is optional; if
+    not set, float32 is assumed.
 """
 
 import numpy as np
 
 DEFAULT_UNITS = {
+    # time coordinates
     "time": {
         "unit": "seconds since 1970-01-01 00:00:00",
         "dtype": np.int64},
@@ -56,10 +58,17 @@ DEFAULT_UNITS = {
     "forecast_period": {
         "unit": "seconds",
         "dtype": np.int32},
-    "lwe_thickness_of_precipitation_amount": {
-        "unit": "m",
-        "dtype": np.float32},
-    "lwe_precipitation_rate": {
-        "unit": "m s-1",
-        "dtype": np.float32},
+    # other standard coordinates
+    "longitude": {"unit": "degrees"},
+    "latitude": {"unit": "degrees"},
+    "projection_x_coordinate": {"unit": "m"},
+    "projection_y_coordinate": {"unit": "m"},
+    "percentile": {"unit": "%"},
+    "probability": {"unit": "1"},
+    # standard diagnostics and suitable substrings
+    "temperature": {"unit": "K"},
+    "thickness": {"unit": "m"},
+    "rainfall_rate": {"unit": "m s-1"},
+    "lwe_snowfall_rate": {"unit": "m s-1"},
+    "lwe_precipitation_rate": {"unit": "m s-1"}
 }

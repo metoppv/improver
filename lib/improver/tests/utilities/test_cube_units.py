@@ -34,10 +34,124 @@ import unittest
 from datetime import datetime
 import numpy as np
 
+import iris
 from iris.tests import IrisTest
 
+import improver.units
 from improver.utilities import cube_units
-from improver.tests.set_up_test_cubes import set_up_variable_cube
+from improver.tests.set_up_test_cubes import (
+    set_up_variable_cube, set_up_probability_cube, set_up_percentile_cube)
+
+
+class Test_enforce_units_and_dtypes(IrisTest):
+    """Test checking with option of enforcement or failure"""
+
+    def setUp(self):
+        """Set up some conformant cubes of air_temperature to test"""
+        data = 275*np.ones((3, 3), dtype=np.float32)
+        self.data_cube = set_up_variable_cube(data)
+
+        data = np.ones((3, 3, 3), dtype=np.float32)
+        thresholds = np.array([272, 273, 274], dtype=np.float32)
+        self.probability_cube = set_up_probability_cube(data, thresholds)
+
+        data = np.array([274*np.ones((3, 3), dtype=np.float32),
+                         275*np.ones((3, 3), dtype=np.float32),
+                         276*np.ones((3, 3), dtype=np.float32)])
+        percentiles = np.array([25, 50, 75], np.float32)
+        self.percentile_cube = set_up_percentile_cube(data, percentiles)
+        # set to real source here, as tests consistency of setup functions
+        # with up-to-date metadata standard
+        cube_units.DEFAULT_UNITS = improver.units.DEFAULT_UNITS
+
+    def test_basic(self):
+        """Test function returns a CubeList"""
+        cubelist = [self.data_cube]
+        result = cube_units.enforce_units_and_dtypes(cubelist)
+        self.assertIsInstance(result, iris.cube.CubeList)
+
+    def test_cube_input(self):
+        """Test function behaves sensibly with a single cube"""
+        result = cube_units.enforce_units_and_dtypes(self.data_cube)
+        self.assertIsInstance(result, iris.cube.CubeList)
+        self.assertArrayAlmostEqual(result[0].data, self.data_cube.data)
+        self.assertEqual(result[0].metadata, self.data_cube.metadata)
+
+    def test_conformant_cubes(self):
+        """Test conformant data, percentile and probability cubes are all
+        passed when enforce=False (ie set to fail on non-conformance)"""
+        cubelist = [
+            self.data_cube, self.probability_cube, self.percentile_cube]
+        result = cube_units.enforce_units_and_dtypes(cubelist, enforce=False)
+        self.assertIsInstance(result, iris.cube.CubeList)
+        for cube, ref in zip(result, cubelist):
+            self.assertArrayAlmostEqual(cube.data, ref.data)
+            self.assertEqual(cube.metadata, ref.metadata)
+
+    def test_wrong_units_enforce(self):
+        """Test units are changed on the returned cube and the input cube is
+        unmodified"""
+        self.data_cube.convert_units('Fahrenheit')
+        result = cube_units.enforce_units_and_dtypes(self.data_cube)
+        self.assertEqual(result[0].units, 'K')
+        self.assertEqual(self.data_cube.units, 'Fahrenheit')
+
+    def test_wrong_units_fail(self):
+        """Test error is raised when enforce=False"""
+        self.data_cube.convert_units('Fahrenheit')
+        msg = "Units Fahrenheit of air_temperature cube do not conform"
+        with self.assertRaisesRegex(ValueError, msg):
+            cube_units.enforce_units_and_dtypes(self.data_cube, enforce=False)
+
+    def test_coord_datatype_fail(self):
+        """Test coordinate datatype non-conformance triggers an error"""
+        self.percentile_cube.coord("percentile").points = (
+            self.percentile_cube.coord("percentile").points.astype(np.int32))
+        print(self.percentile_cube.coord("percentile").dtype)
+        msg = "of coordinate percentile on air_temperature cube"
+        with self.assertRaisesRegex(ValueError, msg):
+            cube_units.enforce_units_and_dtypes(
+                self.percentile_cube, enforce=False)
+
+
+class Test__find_dict_key(IrisTest):
+    """Test method to find suitable substring keys in dictionary"""
+
+    def setUp(self):
+        """Redirect to dummy dictionary"""
+        cube_units.DEFAULT_UNITS = {
+            "time": {
+                "unit": "seconds since 1970-01-01 00:00:00",
+                "dtype": np.int64},
+            "percentile": {"unit": "%"},
+            "probability": {"unit": "1"},
+            "temperature": {"unit": "K"},
+            "rainfall": {"unit": "m s-1"},
+            "rate": {"unit": "m s-1"}
+        }
+
+    def test_match(self):
+        """Test correct identification of single substring match"""
+        result = cube_units._find_dict_key("air_temperature", "")
+        self.assertEqual(result, "temperature")
+
+    def test_probability_match(self):
+        """Test the correct substring is returned for an IMPROVER-style
+        probability cube name that matches multiple substrings"""
+        result = cube_units._find_dict_key(
+            "probability_of_air_temperature_above_threshold", "")
+        self.assertEqual(result, "probability")
+
+    def test_no_matches_error(self):
+        """Test a KeyError is raised if there is no matching substring"""
+        with self.assertRaises(KeyError):
+            cube_units._find_dict_key("snowfall", "")
+
+    def test_multiple_matches_error(self):
+        """Test a KeyError is raised if there are multiple matching substrings
+        """
+        with self.assertRaises(KeyError):
+            cube_units._find_dict_key("rainfall_rate", "")
 
 
 class Test_enforce_coordinate_units_and_dtypes(IrisTest):

@@ -32,14 +32,125 @@
 
 import numpy as np
 
+import iris
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.units import DEFAULT_UNITS
 
 
+def enforce_units_and_dtypes(cubes, coords=None, enforce=True):
+    """
+    Function to check the units and datatypes of cube diagnostics and
+    coordinates against the manifest in improver.units, with option to
+    enforce or fail for non-conforming data.
+
+    Args:
+        cubes (iris.cube.Cube or iris.cube.CubeList):
+            Cube or list of cubes to be checked
+
+    Kwargs:
+        coords (list or None):
+            List of coordinate names to check.  If None, checks all
+            coordinates present on the input cubes.
+        enforce (bool):
+            If True, this function returns a list of conformant cubes.
+            If False, a ValueError is thrown if the cubes do not conform.
+
+    Raises:
+        ValueError: if "enforce=False" and the input cubes do not conform
+            to the datatypes and units standard.
+
+    Returns:
+        new_cubes (iris.cube.CubeList):
+            New cubelist with conformant datatypes and units
+    """
+    # convert input to CubeList
+    if isinstance(cubes, iris.cube.Cube):
+        cubes = [cubes]
+
+    # make a copy of the input cube list
+    new_cubes = enforce_diagnostic_units_and_dtypes(cubes, inplace=False)
+    # set up coordinates to check
+    if coords is not None:
+        all_coords = list(set(coords))
+    else:
+        all_coords = []
+        for cube in cubes:
+            all_coords.extend(
+                [coord.name() for coord in new_cubes[0].coords()])
+        all_coords = list(set(all_coords))
+    # modify the copies cubes in place
+    enforce_coordinate_units_and_dtypes(new_cubes, all_coords)
+
+    if not enforce:
+        # check each cube against its counterpart and fail if changed
+        for cube, ref in zip(new_cubes, cubes):
+            if cube.units != ref.units:
+                msg = ('Units {} of {} cube do not conform to '
+                       'expected standard {}')
+                raise ValueError(msg.format(ref.units, ref.name(), cube.units))
+            if cube.dtype != ref.dtype:
+                msg = ('Datatype {} of {} cube does not conform to '
+                       'expected standard {}')
+                raise ValueError(msg.format(ref.dtype, ref.name(), cube.dtype))
+            for coord in all_coords:
+                try:
+                    if cube.coord(coord).units != ref.coord(coord).units:
+                        msg = ('Units {} of coordinate {} on {} cube do not '
+                               'conform to expected standard')
+                        raise ValueError(msg.format(
+                            cube.coord(coord).units, ref.coord(coord).name(),
+                            ref.name()))
+                    if cube.coord(coord).dtype != ref.coord(coord).dtype:
+                        msg = ('Datatype {} of coordinate {} on {} cube does '
+                               'not conform to expected standard')
+                        raise ValueError(msg.format(
+                            cube.coord(coord).dtype, ref.coord(coord).name(),
+                            ref.name()))
+                except CoordinateNotFoundError:
+                    pass
+
+    return iris.cube.CubeList(new_cubes)
+
+
+def _find_dict_key(input_key, error_msg):
+    """
+    If input_key is not in the DEFAULT_UNITS dict, test for substrings of
+    input_key that are available.  This allows, for example, use of
+    "temperature" and "probability" in the DEFAULT_UNITS dict to avoid multiple
+    duplicate entries.
+
+    Args:
+        input_key (str):
+            Key that didn't return an entry in DEFAULT_UNITS
+        error_msg (str):
+            Error to raise if no matching item is not found
+
+    Returns:
+        str: New key to identify required entry
+
+    Raises:
+        KeyError: If the function finds either zero or multiple matches
+
+    """
+    if "probability" in input_key:
+        # this avoids duplicate results from key matching below
+        return "probability"
+
+    matching_keys = []
+    for key in DEFAULT_UNITS.keys():
+        if key in input_key:
+            matching_keys.append(key)
+    if len(matching_keys) != 1:
+        raise KeyError(error_msg)
+
+    return matching_keys[0]
+
+
 def enforce_coordinate_units_and_dtypes(cubes, coordinates, inplace=True):
     """
     Function to enforce standard units and data types as defined in units.py.
+    If undefined, the expected datatype is np.float32.
 
     By default the cube units are changed in place, but setting inplace to
     False will return a copy of the cubes, leaving the originals unchanged.
@@ -70,12 +181,19 @@ def enforce_coordinate_units_and_dtypes(cubes, coordinates, inplace=True):
 
     for cube in cubes:
         for coord_name in coordinates:
+
             try:
                 unit = DEFAULT_UNITS[coord_name]["unit"]
-                dtype = DEFAULT_UNITS[coord_name]["dtype"]
             except KeyError:
                 msg = "Coordinate {} not defined in units.py"
-                raise KeyError(msg.format(coord_name))
+                # hold the error and check for valid substrings
+                coord_name = _find_dict_key(coord_name, msg.format(coord_name))
+                unit = DEFAULT_UNITS[coord_name]["unit"]
+
+            try:
+                dtype = DEFAULT_UNITS[coord_name]["dtype"]
+            except KeyError:
+                dtype = np.float32
 
             try:
                 coordinate = cube.coord(coord_name)
@@ -100,6 +218,7 @@ def enforce_coordinate_units_and_dtypes(cubes, coordinates, inplace=True):
 def enforce_diagnostic_units_and_dtypes(cubes, inplace=True):
     """
     Function to enforce diagnostic units and data types as defined in units.py.
+    If undefined, the expected datatype is np.float32.
 
     By default the diagnostic units are changed in place, but setting inplace
     to False will return a copy of the cubes, leaving the originals unchanged.
@@ -127,12 +246,19 @@ def enforce_diagnostic_units_and_dtypes(cubes, inplace=True):
 
     for cube in cubes:
         diagnostic = cube.name()
+
         try:
             unit = DEFAULT_UNITS[diagnostic]["unit"]
-            dtype = DEFAULT_UNITS[diagnostic]["dtype"]
         except KeyError:
             msg = "Diagnostic {} not defined in units.py"
-            raise KeyError(msg.format(diagnostic))
+            # hold the error and check for valid substrings
+            diagnostic = _find_dict_key(diagnostic, msg.format(diagnostic))
+            unit = DEFAULT_UNITS[diagnostic]["unit"]
+
+        try:
+            dtype = DEFAULT_UNITS[diagnostic]["dtype"]
+        except KeyError:
+            dtype = np.float32
 
         try:
             cube.convert_units(unit)
