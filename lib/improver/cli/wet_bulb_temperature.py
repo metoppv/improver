@@ -103,6 +103,7 @@ def process(temperature, relative_humidity, pressure,
             The precision to which the Newton iterator must converge before
             returning wet bulb temperatures.
             Default is 0.05.
+
     Returns:
         result (iris.cube.Cube):
             Cube of wet bulb temperature (K).

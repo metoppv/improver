@@ -32,7 +32,6 @@
 
 """Script to run weighted blending."""
 
-import warnings
 import json
 import numpy as np
 

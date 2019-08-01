@@ -61,17 +61,16 @@ def main(argv=None):
                                       'v1.1.0 meta-data')}
 
     args = ArgParser(**cli_definition).parse_args(args=argv)
-
+    # Load Cube
     cube = load_cube(args.input_filepath, no_lazy_load=True)
-
+    # Process Cube
     cube_changed = process(cube)
 
+    # Save Cube
     # Create normalised file paths to make them comparable
     in_file_norm = os.path.normpath(args.input_filepath)
     out_file_norm = os.path.normpath(args.output_filepath)
     if cube_changed or in_file_norm != out_file_norm:
-        # Ensure data are not lazy in case we are writing back to the same
-        # file.
         save_netcdf(cube, args.output_filepath)
 
 

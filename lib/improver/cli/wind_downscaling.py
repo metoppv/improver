@@ -186,6 +186,10 @@ def process(wind_speed, silhouette_roughness, sigma, target_orog,
             The processed Cube.
 
     """
+    if output_height_level_units and not output_height_level:
+        warnings.warn('--output_height_level_units has been set but no '
+                      'associated height level has been provided. These units '
+                      'will have no effect.')
     try:
         wind_speed_iterator = wind_speed.slices_over('realization')
     except CoordinateNotFoundError:

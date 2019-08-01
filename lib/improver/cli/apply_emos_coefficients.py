@@ -160,7 +160,7 @@ def process(current_forecast, coeffs, num_realizations=None,
             A cube containing the coefficients used for calibration.
 
     Kwargs:
-        num_realizations (np.int32):
+        num_realizations (numpy.int32):
             Optional argument to specify the number of ensemble realizations
             to produce. If the current forecast is input as probabilities or
             percentiles then this argument is used to create the requested
@@ -173,7 +173,7 @@ def process(current_forecast, coeffs, num_realizations=None,
             set, the ordering of the raw ensemble is used. This option is
             only valid when the input format is realizations.
             Default is False.
-        random_seed:
+        random_seed (integer):
             Option to specify a value for the random seed for testing
             purpose, otherwise the default random seen behaviour is utilised.
             The random seed is used in the generation of the random numbers
@@ -182,7 +182,7 @@ def process(current_forecast, coeffs, num_realizations=None,
             ensemble, or for splitting tied values within the raw ensemble,
             so that the values from the input percentiles can be ordered to
             match the raw ensemble.
-            Default is False.
+            Default is None.
         ecc_bounds_warning (boolean):
             If True, where the percentiles exceed the ECC bounds range,
             raises a warning rather than an exception. This occurs when the
@@ -242,6 +242,7 @@ def process(current_forecast, coeffs, num_realizations=None,
         current_forecast, coeffs,
         predictor_of_mean_flag=predictor_of_mean)
     calibrated_predictor, calibrated_variance = ac.process()
+
     # If input forecast is probabilities, convert output into probabilities.
     # If input forecast is percentiles, convert output into percentiles.
     # If input forecast is realizations, convert output into realizations.

@@ -98,9 +98,9 @@ def process(wind_direction, backup_method):
         cube_mean_wdir (iris.cube.Cube):
             Cube containing the wind direction averaged from the ensemble
             realizations.
-        cube_r_vals (np.ndarray):
+        cube_r_vals (numpy.ndarray):
             3D array - Radius taken from average complex wind direction angle.
-        cube_confidence_measure (np.ndarray):
+        cube_confidence_measure (numpy.ndarray):
             3D array - The average distance from mean normalised - used as a
             confidence value.
     """

@@ -143,7 +143,11 @@ def main(argv=None):
                 (args.random_ordering is not False)):
             parser.wrong_args_error(
                 'raw_forecast_filepath, random_ordering', 'rebadging')
-
+    realization_numbers = None
+    if args.rebadging:
+        if args.realization_numbers is not None:
+            realization_numbers = (
+                [int(num) for num in args.realization_numbers])
     cube = load_cube(args.input_filepath)
 
     raw_forecast = load_cube_or_none(args.raw_forecast_filepath)
@@ -153,7 +157,7 @@ def main(argv=None):
                           args.sampling_method, args.ecc_bounds_warning,
                           args.reordering, args.rebadging,
                           args.random_ordering, args.random_seed,
-                          args.realization_numbers)
+                          realization_numbers)
 
     # Save Cube
     save_netcdf(result_cube, args.output_filepath)
@@ -193,7 +197,7 @@ def process(cube, raw_forecast, no_of_percentiles=None,
             warning rather than an exception.
             Default is False.
         reordering (boolean):
-            The    option used to create ensemble realizations from percentiles
+            The option used to create ensemble realizations from percentiles
             by reordering the input percentiles based on the order of the
             raw ensemble forecast.
             Default is False.
@@ -234,9 +238,6 @@ def process(cube, raw_forecast, no_of_percentiles=None,
             result, raw_forecast, random_ordering=random_ordering,
             random_seed=random_seed)
     elif rebadging:
-        if realization_numbers is not None:
-            realization_numbers = (
-                [int(num) for num in realization_numbers])
         result = RebadgePercentilesAsRealizations().process(
             result, ensemble_realization_numbers=realization_numbers)
     return result
