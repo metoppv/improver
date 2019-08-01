@@ -79,7 +79,7 @@ def enforce_units_and_dtypes(cubes, coords=None, enforce=True):
             all_coords.extend(
                 [coord.name() for coord in new_cubes[0].coords()])
         all_coords = list(set(all_coords))
-    # modify the copies cubes in place
+    # modify the copied cubes in place
     enforce_coordinate_units_and_dtypes(new_cubes, all_coords)
 
     if not enforce:

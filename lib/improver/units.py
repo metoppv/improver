@@ -70,5 +70,6 @@ DEFAULT_UNITS = {
     "thickness": {"unit": "m"},
     "rainfall_rate": {"unit": "m s-1"},
     "lwe_snowfall_rate": {"unit": "m s-1"},
-    "lwe_precipitation_rate": {"unit": "m s-1"}
+    "lwe_precipitation_rate": {"unit": "m s-1"},
+    "lapse_rate": {"unit": "K m-1"}
 }
