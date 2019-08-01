@@ -124,7 +124,7 @@ def _find_dict_key(input_key, error_msg):
         input_key (str):
             Key that didn't return an entry in DEFAULT_UNITS
         error_msg (str):
-            Error to raise if no matching item is not found
+            Error to raise if no unique match is found
 
     Returns:
         str: New key to identify required entry
