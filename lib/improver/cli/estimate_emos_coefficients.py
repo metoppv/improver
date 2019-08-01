@@ -117,7 +117,7 @@ def main(argv=None):
     save_netcdf(coefficients, args.output_filepath)
 
 
-def process(historic_forecast, truth, distribution, cycletime, units,
+def process(historic_forecast, truth, distribution, cycletime, units=None,
             predictor_of_mean='mean', max_iterations=1000):
     """Module for estimate coefficients for Ensemble Model Output Statistics.
 
@@ -139,14 +139,17 @@ def process(historic_forecast, truth, distribution, cycletime, units,
             This denotes the cycle at which forecasts will be calibrated using
             the calculated EMOS coefficients. The validity time in the output
             coefficients cube will be calculated relative to this cycletime.
-        units :
+
+    Kwargs:
+        units (str):
             The units that calibration should be undertaken in. The historical
             forecast and truth will be converted as required.
+            Default is None.
         predictor_of_mean (string):
             String to specify the input to calculate the calibrated mean.
             Currently the ensemble mean "mean" and the ensemble realizations
             "realizations" are supported as the predictors.
-            Default is 'mean'
+            Default is 'mean'.
         max_iterations (integer):
             The maximum number of iterations allowed until the minimisation has
             converged to a stable solution. If the maximum number of iterations

@@ -40,6 +40,7 @@ import iris
 import cartopy.crs as ccrs
 from improver.argparser import ArgParser, safe_eval
 from improver.spotdata.neighbour_finding import NeighbourSelection
+from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.utilities.cube_metadata import amend_metadata
@@ -148,12 +149,8 @@ def main(argv=None):
     args = parser.parse_args(args=argv)
 
     # Open input files
-    metadata_dict = None
-    with open(args.site_list_filepath, 'r') as site_file:
-        site_list = json.load(site_file)
-    if args.metadata_json:
-        with open(args.metadata_json, 'r') as input_file:
-            metadata_dict = json.load(input_file)
+    site_list = load_json_or_none(args.site_list_filepath)
+    metadata_dict = load_json_or_none(args.metadata_json)
 
     orography = load_cube(args.orography_filepath)
     landmask = load_cube(args.landmask_filepath)
@@ -194,6 +191,8 @@ def process(orography, landmask, site_list, metadata_dict=None,
         site_list (dictionary):
             Dictionary that contains the spot sites for which neighbouring grid
             points are to be found.
+
+    Kwargs:
         metadata_dict (dictionary):
             Dictionary that can be used to modify the metadata of the
             returned cube.

@@ -191,6 +191,8 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube,
             and a screen temperature cube is being processed, the lapse rates
             will be used to adjust the temperature to better represent each
             spot's site-altitude.
+
+    Kwargs:
         apply_lapse_rate_correction (boolean):
             If True, and a lapse rate cube has been provided, extracted
             screen temperature will be adjusted to better match the altitude

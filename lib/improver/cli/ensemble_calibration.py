@@ -225,11 +225,14 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
             dependent upon the input phenomenon. This has to be supported by
             the minimisation function in
             ContinuousRankedProbabilityScoreMinimisers.
+
+    Kwargs:
         predictor_of_mean (string):
-            String to specify the iput to calculate the calibrated mean.
+            String to specify the input to calculate the calibrated mean.
             Currently the ensemble mean "mean" and the ensemble realizations
             "realizations" are supported as the predictors.
-        num_realizations (np.int32):
+            Default is 'mean'.
+        num_realizations (numpy.int32):
             Optional argument to specify the number of ensemble realizations
             to produce. If the current forecast is input as probabilities or
             percentiles then this argument is used to create the requested
@@ -237,7 +240,7 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
             construct the requested number of realizations from the mean and
             variance output after applying the EMOS coefficients.
         random_ordering (boolean):
-            Optional argument to reoprted the post-processed forecasts
+            Optional argument to reorder the post-processed forecasts
             randomly. If not set, the ordering of the raw ensemble is used.
             This option is only valid when the input format is realizations.
         random_seed (int):
@@ -251,7 +254,7 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
             forecast is in the form of probabilities and is converted to
             percentiles, as part of converting the input probabilities into
             realizations.
-        max_iterations (np.int32):
+        max_iterations (numpy.int32):
             The maximum number of iterations allowed until the minimisation has
             converged to a stable solution. If the maximum number of iterations
             is reached, but the minimisation has not yet converged to a stable

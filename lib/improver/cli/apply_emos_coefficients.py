@@ -158,6 +158,8 @@ def process(current_forecast, coeffs, num_realizations=None,
             could be either realizations, probabilities or percentiles.
         coeffs (iris.cube.Cube):
             A cube containing the coefficients used for calibration.
+
+    Kwargs:
         num_realizations (np.int32):
             Optional argument to specify the number of ensemble realizations
             to produce. If the current forecast is input as probabilities or
@@ -193,6 +195,7 @@ def process(current_forecast, coeffs, num_realizations=None,
             mean. Currently the ensemble mean "mean" as the ensemble
             realization "realization" are supported as options.
             Default is 'mean'
+
     Returns:
         result (iris.cube.Cube):
             The calibrated forecast cube.
@@ -220,8 +223,8 @@ def process(current_forecast, coeffs, num_realizations=None,
         # evenly spaced.
         conversion_plugin = ResamplePercentiles(
             ecc_bounds_warning=ecc_bounds_warning)
-    # If percentiles, resample percentiles and then rebadge.
-    # If probabilities, generate percentiles and then rebadge.
+    # If percentiles, re-sample percentiles and then re-badge.
+    # If probabilities, generate percentiles and then re-badge.
     if input_forecast_type in ["percentiles", "probabilities"]:
         if not num_realizations:
             raise ValueError(msg.format(input_forecast_type))

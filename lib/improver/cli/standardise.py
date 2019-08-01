@@ -194,6 +194,8 @@ def process(output_data, target_grid=None, source_landsea=None,
         output_data (iris.cube.Cube):
             Output cube. If the only argument, then it is checked bor float64
             data.
+
+    Kwargs:
         target_grid (iris.cube.Cube):
             If specified, then regridding of the source against the target
             grid is enabled. If also using landmask-aware regridding then this

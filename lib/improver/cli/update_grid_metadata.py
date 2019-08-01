@@ -62,7 +62,7 @@ def main(argv=None):
 
     args = ArgParser(**cli_definition).parse_args(args=argv)
 
-    cube = load_cube(args.input_filepath)
+    cube = load_cube(args.input_filepath, no_lazy_load=True)
 
     cube_changed = process(cube)
 
@@ -72,7 +72,6 @@ def main(argv=None):
     if cube_changed or in_file_norm != out_file_norm:
         # Ensure data are not lazy in case we are writing back to the same
         # file.
-        cube.data
         save_netcdf(cube, args.output_filepath)
 
 

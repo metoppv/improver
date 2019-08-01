@@ -254,6 +254,8 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius,
             Lead time is a List of lead times or forecast periods, at which
             the radii within 'radii' are defined. The lead times are expected
             in hours.
+
+    Kwargs:
         degrees_as_complex (boolean):
             If True processes angles as complex numbers.
             Not compatible with circular kernel, percentiles or recursive
@@ -320,6 +322,35 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius,
         result (iris.cube.Cube):
             A processed Cube.
     """
+    if (neighbourhood_output == "percentiles" and
+            neighbourhood_shape == "square"):
+        raise RuntimeError('neighbourhood_shape="square" cannot be used with'
+                           'neighbourhood_output="percentiles"')
+
+    if (neighbourhood_output == "percentiles" and weighted_mode):
+        raise RuntimeError('weighted_mode cannot be used with'
+                           'neighbourhood_output="percentiles"')
+
+    if (neighbourhood_output == "probabilities" and
+            percentiles != DEFAULT_PERCENTILES):
+        raise RuntimeError('percentiles cannot be DEFAULT_PERCENTILES with'
+                           'neighbourhood_output="probabilities"')
+
+    if (mask_cube and neighbourhood_shape == "circular"):
+        raise RuntimeError('mask_cube cannot be used with'
+                           'neighbourhood_output="circular"')
+
+    if degrees_as_complex:
+        if neighbourhood_output == "percentiles":
+            raise RuntimeError(
+                'Cannot generate percentiles from complex numbers')
+        if neighbourhood_shape == "circular":
+            raise RuntimeError(
+                'Cannot process complex numbers with circular neighbourhoods')
+        if apply_recursive_filter:
+            raise RuntimeError(
+                'Cannot process complex numbers with recursive filter')
+
     if degrees_as_complex:
         # convert cube data into complex numbers
         cube.data = WindDirection.deg_to_complex(cube.data)

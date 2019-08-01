@@ -127,12 +127,12 @@ def main(argv=None):
                     args.northward_advection_filepath)
     spath, dpath = (args.advection_speed_filepath,
                     args.advection_direction_filepath)
-    scube = dcube = ucube = vcube = None
 
     # load files and initialise advection plugin
     input_cube = load_cube(args.input_filepath)
     oe_cube = load_cube_or_none(args.orographic_enhancement_filepaths)
 
+    scube = dcube = ucube = vcube = None
     if (upath and vpath) and not (spath or dpath):
         ucube = load_cube(upath)
         vcube = load_cube(vpath)
@@ -193,6 +193,8 @@ def process(input_cube, ucube, vcube, scube, dcube, oe_cube=None,
             Cube from which advection speeds are coming. The directions
             should be on the same grid as the input speeds, including the same
             vertical levels.
+
+    Kwargs:
         oe_cube (iris.cube.Cube):
             Cube containing the orographic enhancement fields. May have data
             for multiple times in the cube.

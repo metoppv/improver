@@ -173,6 +173,7 @@ def main(argv=None):
     if ((args.wts_calc_method == "nonlinear") and np.any([args.y0val,
                                                           args.ynval])):
         parser.wrong_args_error('y0val, ynval', 'non-linear')
+
     if (args.wts_calc_method == "dict") and not args.wts_dict:
         parser.error('Dictionary is required if --wts_calc_method="dict"')
 
@@ -181,6 +182,7 @@ def main(argv=None):
             weights_dict = json.load(wts)
     else:
         weights_dict = None
+
     # Load cubes to be blended.
     cubelist = load_cubelist(args.input_filepaths)
 
@@ -240,6 +242,8 @@ def process(cubelist, weights_dict, wts_calc_method, coordinate, cycletime,
         weighting_coord (string):
             Name of coordinate over which linear weights should be scaled.
             This coordinate must be available in the weights dictionary.
+
+    Kwargs:
         model_id_attr (string):
             The name of the cube attribute to be used to identify the source
             model for multi-model blends. Default assume Met Office model
@@ -270,6 +274,13 @@ def process(cubelist, weights_dict, wts_calc_method, coordinate, cycletime,
         result (iris.cube.Cube):
             Merged and blended Cube.
     """
+    if (wts_calc_method == "linear") and cval:
+        raise RuntimeError('Method: linear does not accept arguments: cval')
+    if ((wts_calc_method == "nonlinear") and np.any([y0val, ynval])):
+        raise RuntimeError('Method: non-linear does not accept arguments:'
+                           ' y0val, ynval')
+    if (wts_calc_method == "dict") and not weights_dict:
+        raise RuntimeError('Dictionary is required if wts_calc_method="dict"')
 
     plugin = WeightAndBlend(
         coordinate, wts_calc_method,

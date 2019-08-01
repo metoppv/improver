@@ -167,6 +167,8 @@ def process(cube, mask, radius, radii_by_lead_time, weights=None,
             The radii for neighbourhood processing and the associated lead
             times which the radii are valid. The radii are in metre whilst
             the lead time has units of hours.
+
+    Kwargs:
         weights (iris.cube.Cube):
             A cube containing the weights which are used for collapsing the
             dimension gained through masking. These weights must have been

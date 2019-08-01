@@ -94,6 +94,8 @@ def process(cube, constraints, units=None):
             The Cube from which a sub-cube is extracted
         constraints (list):
             List of string constraints with keys and values split by '='
+
+    Kwargs:
         units (list):
             List of units as strings corresponding to each coordinate in the
             list of constraints. One or more "units" may be None and units may

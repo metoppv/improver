@@ -173,6 +173,8 @@ def process(cube, raw_forecast, no_of_percentiles=None,
             Cube expected to contain a percentiles coordinate.
         raw_forecast (iris.cube.Cube):
             Cube if raw (not post processed) weather data.
+
+    Kwargs:
         no_of_percentiles (int):
             The number of percentiles to be generated. This is also equal to
             the number of ensemble realizations that will be generated.

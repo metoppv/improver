@@ -34,10 +34,10 @@
 from improver.argparser import ArgParser
 
 import iris
-import json
 import warnings
 
 from improver.cube_combiner import CubeCombiner
+from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
@@ -82,6 +82,7 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
+    new_metadata = load_json_or_none(args.metadata_jsonfile)
     # Load the cubes
     cubelist = iris.cube.CubeList([])
     new_cube_name = args.new_name
@@ -100,13 +101,13 @@ def main(argv=None):
                 warnings.warn(msg)
     # Process Cube
     result = process(cubelist, args.operation, new_cube_name,
-                     args.metadata_jsonfile, args.warnings_on)
+                     new_metadata, args.warnings_on)
     # Save Cube
     save_netcdf(result, args.output_filepath)
 
 
 def process(cubelist, operation, new_cube_name,
-            metadata_jsonfile=None, warnings_on=False):
+            new_metadata=None, warnings_on=False):
     """Module for combining Cubes.
 
     Combine the input cubes into a single cube using the requested operation.
@@ -119,29 +120,27 @@ def process(cubelist, operation, new_cube_name,
             "+", "-", "*", "add", "subtract", "multiply", "min", "max", "mean"
             An operation to use in combining Cubes.
         new_cube_name (string):
-        New name for the resulting dataset. Will default to the name of the
-        first dataset if not set.
-        metadata_jsonfile (string):
-            Filename for the json file containing require changes to the
-            metadata.
+            New name for the resulting dataset. Will default to the name of the
+            first dataset if not set.
+
+    Kwargs:
+        new_metadata (dictionary):
+            Dictionary of required changes to the metadata.
             Default is None.
         warnings_on (boolean):
             If True, warning messages where metadata do not march will be
             given.
             Default is False.
 
-    Returns (iris.cube.Cube):
-        Returns a cube with the combined data.
+    Returns
+        result (iris.cube.Cube):
+            Returns a cube with the combined data.
     """
     # Load the metadata changes if required
     new_coords = None
     new_attr = None
     expanded_coord = None
-    if metadata_jsonfile:
-        # Read in extraction recipes for all diagnostics.
-        with open(metadata_jsonfile, 'r') as input_file:
-            new_metadata = json.load(input_file)
-
+    if new_metadata:
         if 'coordinates' in new_metadata:
             new_coords = new_metadata['coordinates']
         if 'attributes' in new_metadata:

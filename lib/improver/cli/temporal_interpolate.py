@@ -131,6 +131,8 @@ def process(cube_0, cube_1, interval_in_mins=None, in_times=None,
             Cube containing the data at the beginning.
         cube_1 (iris.cube.Cube):
             Cube containing the data at the end.
+
+    Kwargs:
         interval_in_mins (int):
             Specifies the interval in minutes at which to interpolate between
             the two input cubes.

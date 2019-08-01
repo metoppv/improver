@@ -175,7 +175,10 @@ def process(cube, threshold_values, threshold_dict, threshold_config,
             Repeated thresholds with different bounds are not
             handled well. Only the last duplicate will be used.
         TODO sort out errors as they require the file name
-        threshold_config:
+        threshold_config (string):
+            For error handling.
+
+    Kwargs:
         threshold_units (string):
             Units of the threshold values. If not provided the units are
             assumed to be the same as those of the input cube. Specifying

@@ -188,6 +188,8 @@ def process(cube, mask_cube, weights, coord_for_masking, radius,
             Rounded up to convert into integer number of grid points east and
             north, based on the characteristic spacing at the zero indices of
             the cube projection-x and y coordinates.
+
+    Kwargs:
         sum_or_fraction (string):
             Identifier for whether sum or fraction should be returned from
             neighbourhooding.

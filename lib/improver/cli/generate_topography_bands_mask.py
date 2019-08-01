@@ -33,7 +33,6 @@
 
 from improver.argparser import ArgParser
 import os
-import json
 
 from improver.generate_ancillaries.generate_ancillary import (
     GenerateOrographyBandAncils)
@@ -96,14 +95,10 @@ def main(argv=None):
 
     if not os.path.exists(args.output_filepath) or args.force:
         orography = load_cube(args.input_filepath_standard_orography)
-        orography = next(orography.slices([orography.coord(axis='y'),
-                                           orography.coord(axis='x')]))
         landmask = None
         if args.input_filepath_landmask:
             try:
                 landmask = load_cube(args.input_filepath_landmask)
-                landmask = next(landmask.slices([landmask.coord(axis='y'),
-                                                 landmask.coord(axis='x')]))
             except IOError as err:
                 msg = ("Loading land mask has been unsuccessful: {}. "
                        "This may be because the land mask could not be "
@@ -132,17 +127,26 @@ def process(landmask, orography, thresholds_dict=None):
             zero in every band.
         orography (iris.cube.Cube):
             The orography a standard grid.
+
+    Kwargs:
         thresholds_dict (dictionary):
             Definition of orography bands required. Has key-value pairs of
             "bounds": list of list of airs of bounds for each band and
             "units":"string containing units of bounds", for example:
             {'bounds' :[[0, 100], [100, 200]], 'units':"m"}
             Default is None.
+
     Returns:
         result (iris.cube.Cube):
             list of orographic band mask cubes.
 
     """
+    if landmask:
+        landmask = next(landmask.slices(
+            [landmask.coord(axis='y'), landmask.coord(axis='x')]))
+    orography = next(orography.slices(
+        [orography.coord(axis='y'), orography.coord(axis='x')]))
+
     if thresholds_dict is None:
         thresholds_dict = THRESHOLDS_DICT
     result = GenerateOrographyBandAncils().process(

@@ -33,7 +33,6 @@
 
 from improver.argparser import ArgParser
 import os
-import json
 
 from improver.generate_ancillaries.generate_topographic_zone_weights import (
     GenerateTopographicZoneWeights)
@@ -98,14 +97,9 @@ def main(argv=None):
     args = parser.parse_args(args=argv)
 
     thresholds_dict = load_json_or_none(args.thresholds_filepath)
-    if thresholds_dict is None:
-        thresholds_dict = THRESHOLDS_DICT
 
     if not os.path.exists(args.output_filepath) or args.force:
         orography = load_cube(args.input_filepath_standard_orography)
-        orography = next(orography.slices([orography.coord(axis='y'),
-                                           orography.coord(axis='x')]))
-
         landmask = None
         if args.input_filepath_landmask:
             try:
@@ -117,9 +111,6 @@ def main(argv=None):
                        'improver-generate-landmask-ancillary first.').format(
                            err, args.input_filepath_landmask)
                 raise IOError(msg)
-
-            landmask = next(landmask.slices([landmask.coord(axis='y'),
-                                             landmask.coord(axis='x')]))
 
         result = process(landmask, orography, thresholds_dict)
         # Save Cube
@@ -140,6 +131,8 @@ def process(landmask, orography, thresholds_dict=None):
             output array
         orography (iris.cube.Cube):
             Orography on standard grid.
+
+    Kwargs:
         thresholds_dict (dictionary):
             Definition of orography bands required.
             The expected format of the dictionary is e.g
@@ -151,6 +144,11 @@ def process(landmask, orography, thresholds_dict=None):
             Cube containing the weights depending upon where the orography
             point is within the topographical zones.
     """
+    orography = next(orography.slices([orography.coord(axis='y'),
+                                       orography.coord(axis='x')]))
+    if landmask:
+        landmask = next(landmask.slices([landmask.coord(axis='y'),
+                                         landmask.coord(axis='x')]))
     if thresholds_dict is None:
         thresholds_dict = THRESHOLDS_DICT
     result = GenerateTopographicZoneWeights().process(

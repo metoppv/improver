@@ -120,6 +120,8 @@ def process(cube, coordinates, ecc_bounds_warning=False,
             calculate percentiles. This coordinate will no longer be present
             in the output cube, as it will have been replaced by the
             percentile coordinate.
+
+    Kwargs:
         ecc_bounds_warning (boolean):
             If True, where calculated percentiles are outside the ECC bounds
             range, raises a warning rather than an exception.

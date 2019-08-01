@@ -106,7 +106,6 @@ def main(argv=None):
 
     # Load Cubes and JSON.
     metadata_dict = load_json_or_none(args.json_file)
-    # read input data
     original_cube_list = load_cubelist(args.input_filepaths)
     oe_cube = load_cube_or_none(args.orographic_enhancement_filepaths)
 
@@ -148,6 +147,8 @@ def process(original_cube_list, oe_cube=None, metadata_dict=None,
             Cubelist from which to calculate optical flow velocities.
             The cubes require a 'time' coordinate on which they are sorted,
             so the order of cubes does not matter.
+
+    Kwargs:
         oe_cube (iris.cube.Cube):
             Cube containing the orographic enhancement fields.
             Default is None.

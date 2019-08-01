@@ -140,7 +140,7 @@ def main(argv=None):
     save_netcdf(cube, args.output_filepath)
 
 
-def process(cube, raw_forecast=None, no_of_realizations=None, reordering=False,
+def process(cube, raw_forecast, no_of_realizations=None, reordering=False,
             rebadging=False, random_seed=None, ecc_bounds_warning=False):
     """Convert from probabilities to ensemble realizations.
 
@@ -149,7 +149,8 @@ def process(cube, raw_forecast=None, no_of_realizations=None, reordering=False,
             Cube to be processed.
         raw_forecast (iris.cube.Cube):
             A raw forecast cube which must be used if using reordering.
-            Default is None.
+
+    Kwargs:
         no_of_realizations (integer):
             Optional definition of the number of ensemble realizations to
             be generated. These are generated though an intermediate
