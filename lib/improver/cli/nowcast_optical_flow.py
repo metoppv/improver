@@ -158,22 +158,22 @@ def process(original_cube_list, oe_cube=None, metadata_dict=None,
             available in improver.utilities.cube_metadata.amend_metadata.
             Every output cube will have the metadata_dict applied.
             Default is None.
-        ofc_box_size (integer):
+        ofc_box_size (int):
             square 'box' (in grid spaces) within which to solve the optical
             flow equations.
             Default is 30.
-        smart_smoothing_iterations (integer):
+        smart_smoothing_iterations (int):
             Number of iterations to perform in enforcing smoothness constraint
             for optical flow velocities.
             Default is 100.
-        extrapolate (boolean):
+        extrapolate (bool):
             If True, advects current data forward to specified lead times.
             Default is False.
-        max_lead_time (integer):
+        max_lead_time (int):
             Maximum lead time required (mins). Ignored unless extrapolate is
             True.
             Default is 360.
-        lead_time_interval (integer):
+        lead_time_interval (int):
             Interval between required lead times (mins). Ignored unless
             extrapolate is True.
             Default is 15.

@@ -110,24 +110,24 @@ def process(cubelist, coordinate, central_point, units, width,
     Args:
         cubelist (iris.cube.CubeList):
             CubeList including and surrounding the central point.
-        coordinate (string):
+        coordinate
             The coordinate over which the blending will be applied.
         central_point (float):
             Central point at which the output from the triangular weighted
             blending will be calculated. This should be in the units of the
             units argument that is passed in. This value should be a point
             on the coordinate for blending over.
-        units (string):
+        units
             Units of the central_point and width
         width (float):
             Width of the triangular weighting function used in the blending,
             in the units of the units argument.
 
     Kwargs:
-        calendar (string):
+        calendar
             Calendar for parameter_unit if required.
             Default is 'gregorian'
-        blend_time_using_forecast_period (boolean):
+        blend_time_using_forecast_period (bool):
             If True, if we are blending over time but using the forecast
             period coordinate as a proxy. Note, this should only be used when
             time and forecast_period share a dimension: i.e when all cubes

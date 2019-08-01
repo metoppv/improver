@@ -116,18 +116,18 @@ def process(cubelist, operation, new_cube_name,
     Args:
         cubelist (iris.cube.CubeList):
             An iris CubeList to be combined.
-        operation (string):
+        operation
             "+", "-", "*", "add", "subtract", "multiply", "min", "max", "mean"
             An operation to use in combining Cubes.
-        new_cube_name (string):
+        new_cube_name
             New name for the resulting dataset. Will default to the name of the
             first dataset if not set.
 
     Kwargs:
-        new_metadata (dictionary):
+        new_metadata (dict):
             Dictionary of required changes to the metadata.
             Default is None.
-        warnings_on (boolean):
+        warnings_on (bool):
             If True, warning messages where metadata do not march will be
             given.
             Default is False.

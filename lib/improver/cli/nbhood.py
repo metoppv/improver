@@ -244,7 +244,7 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius,
             The Cube to be processed.
         neighbourhood_output:
             The form of the results generated using neighbourhood processing.
-        neighbourhood_shape (string):
+        neighbourhood_shape (str):
             Name of the neighbourhood method to use. Options:
             'circular', 'square'.
         radius(float):
@@ -256,24 +256,24 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius,
             in hours.
 
     Kwargs:
-        degrees_as_complex (boolean):
+        degrees_as_complex (bool):
             If True processes angles as complex numbers.
             Not compatible with circular kernel, percentiles or recursive
             filter.
             Default is False.
-        weighted_mode (boolean):
+        weighted_mode (bool):
             If True the weighting decreases with radius.
             If False a constant weighting is assumed.
             weighted_mode is only applicable for calculating "probability"
             neighbourhood output.
             Default is False
-        sum_or_fraction (string):
+        sum_or_fraction (str):
             Identifier for whether sum or fraction should be returned from
             neighbourhooding. The sum represents the sum of the neighbourhood.
             The fraction represents the sum of the neighbourhood divided by
             the neighbourhood area.
             Default is "fraction".
-        re_mask (boolean):
+        re_mask (bool):
             If re_mask is True, the original un-neighbourhood processed mask
             is applied to mask out the neighbourhood processed cube.
             If re_mask is False, the original un-neighbourhood processed mask
@@ -293,7 +293,7 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius,
             was defined than the standard grid and we want to clip the grid
             back to the standard grid.
             Default is None.
-        apply_recursive_filter (boolean):
+        apply_recursive_filter (bool):
             Boolean to apply the recursive filter to a square neighbourhooded
             output dataset, converting it into a Gaussian-like kernel or
             smoothing over short distances.

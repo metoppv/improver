@@ -209,14 +209,14 @@ def process(output_data, target_grid=None, source_landsea=None,
             Dictionary containing required changes that will be applied to
             the metadata.
             Default is None.
-        regrid_mode (string):
+        regrid_mode (str):
             Selects which regridding techniques to use. Default uses
             iris.analysis.Linear(); "nearest" uses Nearest() (Use for less
             continuous fields, e.g precipitation.); "nearest-with-mask"
             ensures that target data are sources from points with the same
             mask value (Use for coast-line-dependant variables
             like temperature).
-        extrapolation_mode (string):
+        extrapolation_mode (str):
             Mode to use for extrapolation data into regions beyond the limits
             of the source_data domain. Refer to online documentation for
             iris.analysis.

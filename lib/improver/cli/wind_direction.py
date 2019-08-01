@@ -86,7 +86,7 @@ def process(wind_direction, backup_method):
         wind_direction (iris.cube.Cube):
             Cube containing the wind direction from multiple ensemble
             realizations.
-        backup_method (string):
+        backup_method (str):
             Backup method to use if the complex numbers approach has low
             confidence.
             "first_realization" uses the value of realization zero.

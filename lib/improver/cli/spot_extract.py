@@ -193,19 +193,19 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube,
             spot's site-altitude.
 
     Kwargs:
-        apply_lapse_rate_correction (boolean):
+        apply_lapse_rate_correction (bool):
             If True, and a lapse rate cube has been provided, extracted
             screen temperature will be adjusted to better match the altitude
             of the spot site for which they have been extracted.
             Default is False.
-        land_constraint (boolean):
+        land_constraint (bool):
             If True, the neighbour cube will be interrogated for grid point
             neighbour that were identified using a land constraint. This means
             that the grid points should be land points except for sites where
             none were found within the search radius when the neighbour cube
             was created. May be used with minimum_dz.
             Default is False.
-        minimum_dz (boolean):
+        minimum_dz (bool):
             If True, the neighbour cube will be interrogated for grid point
             neighbours that were identified using the minimum height
             difference constraint. These are grid points that were found to be
@@ -222,7 +222,7 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube,
             Note that for percentiles inputs, the desired percentile(s) must
             exist in the input cube.
             Default is None.
-        ecc_bounds_warning (boolean):
+        ecc_bounds_warning (bool):
             If True, where calculated percentiles are outside the ECC bounds
             range, raises a warning rather than an exception.
             Default is False.
@@ -230,7 +230,7 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube,
             If provided, this dictionary can be used to modify the metadata
             of the returned cube.
             Default is None.
-        suppress_warnings (boolean):
+        suppress_warnings (bool):
             Suppress warning output. This option should only be used if it
             is known that warnings will be generated but they are not required.
             Default is None.

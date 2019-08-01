@@ -183,7 +183,7 @@ def process(cube, raw_forecast, no_of_percentiles=None,
             The number of percentiles to be generated. This is also equal to
             the number of ensemble realizations that will be generated.
             Default is None.
-        sampling_method (string):
+        sampling_method (str):
             Method to be used for generating the list of percentiles with
             forecasts generated at each percentile. The options are "quantile"
             and "random".
@@ -191,21 +191,21 @@ def process(cube, raw_forecast, no_of_percentiles=None,
             the preferred option for full ensemble couple coupling with
             reordering enables.
             Default is 'quantile'.
-        ecc_bounds_warning (boolean):
+        ecc_bounds_warning (bool):
             If True where percentiles (calculated as an intermediate output
             before realization) exceed the ECC bounds range, raises a
             warning rather than an exception.
             Default is False.
-        reordering (boolean):
+        reordering (bool):
             The option used to create ensemble realizations from percentiles
             by reordering the input percentiles based on the order of the
             raw ensemble forecast.
             Default is False.
-        rebadging (boolean):
+        rebadging (bool):
             The option used to create ensemble realizations from percentiles
             by rebadging the input percentiles.
             Default is False.
-        random_ordering (boolean):
+        random_ordering (bool):
             If random_ordering is True, the post-processed forecasts are
             reordered randomly, rather than using the ordering of the
             raw ensemble.

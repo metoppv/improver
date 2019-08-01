@@ -174,7 +174,7 @@ def process(wind_speed, silhouette_roughness, sigma, target_orog,
             level. If no units are provided with 'output_height_level_units',
             metres are assumed.
             Default is None.
-        output_height_level_units (string):
+        output_height_level_units (str):
             If a single height level is selected as output using
             'output_height_level', this additional argument may be used to
             specify the units of the value entered to select the level.

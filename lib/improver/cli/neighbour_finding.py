@@ -197,17 +197,17 @@ def process(orography, landmask, site_list, metadata_dict=None,
             Dictionary that can be used to modify the metadata of the
             returned cube.
             Default is None.
-        all_methods (boolean):
+        all_methods (bool):
             If True, this will return a cube containing the nearest grid point
             neighbours to spot sites as defined by each possible combination
             of constraints.
             Default is False.
-        land_constraint (boolean):
+        land_constraint (bool):
             If True, this will return a cube containing the nearest grid point
             neighbours to spot sites that are also land points. May be used
             with the minimum_dz option.
             Default is None.
-        minimum_dz (boolean):
+        minimum_dz (bool):
             If True, this will return a cube containing the nearest grid point
             neighbour to each spot site that is found , within a given search
             radius, to minimise the height difference between the two. May be
@@ -218,7 +218,7 @@ def process(orography, landmask, site_list, metadata_dict=None,
             a grid point neighbour that is land or which has a smaller height
             difference than the nearest.
             Default is None.
-        node_limit (integer):
+        node_limit (int):
             When searching within the defined search_radius for suitable
             neighbours, a KDTree is constructed. This node_limit prevents the
             tree from becoming too large for large search radii. A default of
@@ -237,11 +237,11 @@ def process(orography, landmask, site_list, metadata_dict=None,
             If a globe is required this can be specified as
             Globe(semimajor_axis=100, semiminor_axis=100)
             Default is None.
-        site_x_coordinate (string):
+        site_x_coordinate (str):
             The key that identifies site x coordinates in the provided site
             dictionary. Defaults to longitude.
             Default is None.
-        site_y_coordinate (string):
+        site_y_coordinate (str):
             The key that identifies site y coordinates in the provided site
             dictionary. Defaults to latitude.
             Default is None.

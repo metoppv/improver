@@ -140,7 +140,7 @@ def process(cube_0, cube_1, interval_in_mins=None, in_times=None,
             will raise an exception.
             If intervals_in_mins is set then in_times can not be used.
             Default is None.
-        in_times (string):
+        in_times (str):
             Specifies the times in the format {YYYYMMDD}T{HHMM}Z
             at which to interpolate between the two input cubes.
             Where {YYYYMMDD} is year, month, day and {HHMM} is hour and minutes
@@ -148,7 +148,7 @@ def process(cube_0, cube_1, interval_in_mins=None, in_times=None,
             by a space.
             If in_times are set, interval_in_mins can not be used.
             Default is None.
-        interpolation_method (string):
+        interpolation_method (str):
             ["linear", "solar", "daynight"]
             Specifies the interpolation method;
             solar interpolates using the solar elevation,

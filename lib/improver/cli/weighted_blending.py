@@ -206,7 +206,7 @@ def process(cubelist, weights_dict, wts_calc_method, coordinate, cycletime,
     Args:
         cubelist (iris.cube.Cubelist):
             Cubelist of cubes to be blended.
-        wts_calc_method (string):
+        wts_calc_method (str):
             Method to use to calculate weights used in blending.
             "linear" (default): calculate linearly varying blending weights.
             "nonlinear": calculate blending weights that decrease
@@ -216,9 +216,9 @@ def process(cubelist, weights_dict, wts_calc_method, coordinate, cycletime,
             Dictionary from which to calculate blending weights. Dictionary
             format is as specified in the
             improver.blending.weights.ChoosingWeightsLinear
-        coordinate (string):
+        coordinate (str):
             The coordinate over which the blending will be applied.
-        cycletime (string):
+        cycletime (str):
             The forecast reference time to be used after blending has been
             applied, in the format YYYYMMDDTHHMMZ. If not provided, the
             blended file take the latest available forecast reference time
@@ -238,17 +238,17 @@ def process(cubelist, weights_dict, wts_calc_method, coordinate, cycletime,
             Factor used to determine how skewed the non linear weights will be.
             A value of 2 implies equal weighting. If not set, a default value
             of cval=0.85 is set.
-        weighting_coord (string):
+        weighting_coord (str):
             Name of coordinate over which linear weights should be scaled.
             This coordinate must be available in the weights dictionary.
 
     Kwargs:
-        model_id_attr (string):
+        model_id_attr (str):
             The name of the cube attribute to be used to identify the source
             model for multi-model blends. Default assume Met Office model
             metadata. Must be present on all if blending over models.
             Default is 'mosg__model_configuration'.
-        spatial_weights_from_mask (boolean):
+        spatial_weights_from_mask (bool):
             If True, this option will result in the generation of spatially
             varying weights based on the masks of the data we are blending.
             The one dimensional weights are first calculated using the chosen

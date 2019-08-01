@@ -174,12 +174,12 @@ def process(cube, mask, radius, radii_by_lead_time, weights=None,
             dimension gained through masking. These weights must have been
             created using a land-sea mask.
             Default is None.
-        sum_or_fraction (string):
+        sum_or_fraction (str):
             The neighbourhood output can either be in the form of a sum of the
             neighbourhood, or a fraction calculated by dividing the sum of the
             neighbourhood by the neighbourhood area.
             Default is 'fraction'
-        return_intermediate (boolean):
+        return_intermediate (bool):
             If True will return a cube with results following topographic
             masked neighbourhood processing of land points and prior to
             collapsing the topographic_zone coordinate. If no topographic

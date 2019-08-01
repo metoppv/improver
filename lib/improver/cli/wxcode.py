@@ -160,7 +160,7 @@ def process(cubes, wxtree='high_resolution'):
         cubes (iris.cube.Cubelist):
             A cubelist containing the diagnostics required for the
             weather symbols decision tree, these at co-incident times.
-        wxtree (string):
+        wxtree (str):
             Weather Code tree.
             Choices are high_resolution or global.
             Default is 'high_resolution'.

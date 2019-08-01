@@ -216,18 +216,18 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
             A cube containing historic forecasts to be used for calibration.
         truth (iris.cube.Cube):
             A Cube containing the historic truth data for calibration.
-        units (string):
+        units (str):
             The unit that calibration should br undertaken in. The current
             forecast, historical forecast and truth will be converted as
             required.
-        distribution (string):
+        distribution (str):
             The distribution that will be used fore calibration. This will be
             dependent upon the input phenomenon. This has to be supported by
             the minimisation function in
             ContinuousRankedProbabilityScoreMinimisers.
 
     Kwargs:
-        predictor_of_mean (string):
+        predictor_of_mean (str):
             String to specify the input to calculate the calibrated mean.
             Currently the ensemble mean "mean" and the ensemble realizations
             "realizations" are supported as the predictors.
@@ -239,7 +239,7 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
             number of realizations. In addition, this argument is used to
             construct the requested number of realizations from the mean and
             variance output after applying the EMOS coefficients.
-        random_ordering (boolean):
+        random_ordering (bool):
             Optional argument to reorder the post-processed forecasts
             randomly. If not set, the ordering of the raw ensemble is used.
             This option is only valid when the input format is realizations.
@@ -248,7 +248,7 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
             random_seed.
             If the random_seed is None, no random seed is set, so the random
             values generated are no reproducible.
-        ecc_bounds_warning(boolean):
+        ecc_bounds_warning(bool):
             If True, where te percentiles exceed the ECC bounds range, raises
             a warning rather than an exception. This occurs when the current
             forecast is in the form of probabilities and is converted to

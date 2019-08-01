@@ -132,25 +132,25 @@ def process(historic_forecast, truth, distribution, cycletime, units=None,
             The cube containing the historical forecasts used for calibration.
         truth (iris.cube.Cube):
             The cube containing the truth used for calibration.
-        distribution (string):
+        distribution (str):
             The distribution that will be used for calibration. This will be
             dependant upon the input phenomenon.
-        cycletime (string):
+        cycletime (str):
             This denotes the cycle at which forecasts will be calibrated using
             the calculated EMOS coefficients. The validity time in the output
             coefficients cube will be calculated relative to this cycletime.
 
     Kwargs:
-        units (str):
+        units
             The units that calibration should be undertaken in. The historical
             forecast and truth will be converted as required.
             Default is None.
-        predictor_of_mean (string):
+        predictor_of_mean (str):
             String to specify the input to calculate the calibrated mean.
             Currently the ensemble mean "mean" and the ensemble realizations
             "realizations" are supported as the predictors.
             Default is 'mean'.
-        max_iterations (integer):
+        max_iterations (int):
             The maximum number of iterations allowed until the minimisation has
             converged to a stable solution. If the maximum number of iterations
             is reached but the minimisation has not yet converged to a stable

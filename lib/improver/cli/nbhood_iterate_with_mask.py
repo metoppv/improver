@@ -175,7 +175,7 @@ def process(cube, mask_cube, weights, coord_for_masking, radius,
         weights (iris.cube.Cube):
             Cube containing the weights which are used for collapsing the
             dimension gained through masking.
-        coord_for_masking (string):
+        coord_for_masking (str):
             String matching the name of the coordinate that will be used
             for masking.
         radius (float):
@@ -190,14 +190,14 @@ def process(cube, mask_cube, weights, coord_for_masking, radius,
             the cube projection-x and y coordinates.
 
     Kwargs:
-        sum_or_fraction (string):
+        sum_or_fraction (str):
             Identifier for whether sum or fraction should be returned from
             neighbourhooding.
             Sum represents the sum of the neighbourhood.
             Fraction represents the sum of the neighbourhood divided by the
             neighbourhood area.
             Default is fraction.
-        re_mask (boolean):
+        re_mask (bool):
             If True, the original un-neighbourhood processed mask
             is applied to mask out the neighbourhood processed cube.
             If False, the original un-neighbourhood processed mask is not
@@ -205,7 +205,7 @@ def process(cube, mask_cube, weights, coord_for_masking, radius,
             Therefore, the neighbourhood processing may result in
             values being present in areas that were originally masked.
             Default is False.
-        collapse_dimension (boolean):
+        collapse_dimension (bool):
             Collapse the dimension from the mask, by doing a weighted mean
             using the weights provided.  This is only suitable when the result
             is left unmasked, so there is data to weight between the points

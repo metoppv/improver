@@ -117,7 +117,7 @@ def process(percentiles_cube, threshold_cube, output_diagnostic_name):
             A cube of values that effectively behave as thresholds, for which
             it is desired to obtain probability values from a percentiled
             reference cube.
-        output_diagnostic_name (string):
+        output_diagnostic_name (str):
             The name of the cube being created, e.g
             'probability_of_snow_falling_level_below_ground_level'
 

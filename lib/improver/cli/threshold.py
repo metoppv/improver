@@ -176,12 +176,12 @@ def process(cube, threshold_values, threshold_dict, threshold_units=None,
             handled well. Only the last duplicate will be used.
 
     Kwargs:
-        threshold_units (string):
+        threshold_units (str):
             Units of the threshold values. If not provided the units are
             assumed to be the same as those of the input cube. Specifying
             the units here will allow a suitable conversion to match
             the input units if possible.
-        below_threshold (boolean):
+        below_threshold (bool):
             By default truth values of 1 are returned for data ABOVE the
             threshold value(s). Using this boolean changes this behaviours
             to return 1 for data below the threshold values.
@@ -194,7 +194,7 @@ def process(cube, threshold_values, threshold_dict, threshold_units=None,
             indicating a narrower fuzzy factor region / sharper threshold.
             N.B. A fuzzy factor cannot be used with a zero threshold or a
             threshold_dict.
-        collapse_coord (string):
+        collapse_coord (str):
             An optional ability to set which coordinate we want to collapse
             over. The default is set to None.
         vicinity (float):

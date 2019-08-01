@@ -151,7 +151,7 @@ def process(cube, raw_forecast, no_of_realizations=None, reordering=False,
             A raw forecast cube which must be used if using reordering.
 
     Kwargs:
-        no_of_realizations (integer):
+        no_of_realizations (int):
             Optional definition of the number of ensemble realizations to
             be generated. These are generated though an intermediate
             percentile representation. Theses percentiles will be
@@ -161,16 +161,16 @@ def process(cube, raw_forecast, no_of_realizations=None, reordering=False,
             of realizations is taken from the number of realizations
             in the raw forecast cube.
             Default is None.
-        reordering (boolean):
+        reordering (bool):
             The option used to create ensemble realizations from percentiles
             by reordering the input percentiles based on the order of the
             raw ensemble.
             Default is False.
-        rebadging (boolean):
+        rebadging (bool):
             Th option used to create ensemble realizations from percentiles
             by rebadging the input percentiles.
             Default is False.
-        random_seed (integer):
+        random_seed (int):
             Option to specify a value for the random seed for testing
             purposes, otherwise the default random seed behaviours is
             utilised. The random seed is used in the generation of the
@@ -178,7 +178,7 @@ def process(cube, raw_forecast, no_of_realizations=None, reordering=False,
             ensemble, so that the values from the input percentiles can
             be ordered to match the raw ensemble.
             Default is None.
-        ecc_bounds_warning (boolean):
+        ecc_bounds_warning (bool):
             If True, where percentiles (calculated as an intermediate output
             before realization) exceed to ECC bounds range, raises a warning
             rather than an exception.

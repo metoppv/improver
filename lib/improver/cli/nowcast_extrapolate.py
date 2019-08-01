@@ -205,19 +205,19 @@ def process(input_cube, ucube, vcube, scube, dcube, oe_cube=None,
             is available in improver.utilities.cube_metadata.amend_metadata.
             Every output cube will have the metadata_dict applied.
             Default is None.
-        max_lead_time (integer):
+        max_lead_time (int):
             Maximum lead time required (mins).
             Default is 360.
-        lead_time_interval (integer):
+        lead_time_interval (int):
             Interval between required lead times (mins).
-        accumulation_fidelity (integer):
+        accumulation_fidelity (int):
             If set, this will additionally return accumulations calculated
             from the advected fields. This fidelity specifies the time
             interval in minutes between advected fields that is used to
             calculate these accumulations. This interval must be a factor of
             the lead_time_interval.
             Default is 0.
-        accumulation_units (string):
+        accumulation_units (str):
             Desired units in which the accumulations should be expressed.
             e.g. 'mm'
             Default is 'm'
