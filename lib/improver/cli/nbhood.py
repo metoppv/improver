@@ -186,7 +186,7 @@ def main(argv=None):
             args.neighbourhood_shape == "square"):
         parser.wrong_args_error('square', 'neighbourhood_shape')
 
-    if (args.neighbourhood_output == "percentiles" and args.weighted_mode):
+    if args.neighbourhood_output == "percentiles" and args.weighted_mode:
         parser.wrong_args_error(
             'weighted_mode', 'neighbourhood_shape=percentiles')
 
@@ -195,7 +195,7 @@ def main(argv=None):
         parser.wrong_args_error(
             'percentiles', 'neighbourhood_shape=probabilities')
 
-    if (args.input_mask_filepath and args.neighbourhood_shape == "circular"):
+    if args.input_mask_filepath and args.neighbourhood_shape == "circular":
         parser.wrong_args_error(
             'neighbourhood_shape=circular', 'input_mask_filepath')
 
@@ -326,14 +326,14 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius,
             neighbourhood_shape == "square"):
         raise RuntimeError('neighbourhood_shape="square" cannot be used with'
                            'neighbourhood_output="percentiles"')
-    if (neighbourhood_output == "percentiles" and weighted_mode):
+    if neighbourhood_output == "percentiles" and weighted_mode:
         raise RuntimeError('weighted_mode cannot be used with'
                            'neighbourhood_output="percentiles"')
     if (neighbourhood_output == "probabilities" and
             percentiles != DEFAULT_PERCENTILES):
         raise RuntimeError('percentiles cannot be DEFAULT_PERCENTILES with'
                            'neighbourhood_output="probabilities"')
-    if (mask_cube and neighbourhood_shape == "circular"):
+    if mask_cube and neighbourhood_shape == "circular":
         raise RuntimeError('mask_cube cannot be used with'
                            'neighbourhood_output="circular"')
 

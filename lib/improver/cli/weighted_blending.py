@@ -275,7 +275,7 @@ def process(cubelist, weights_dict, wts_calc_method, coordinate, cycletime,
     """
     if (wts_calc_method == "linear") and cval:
         raise RuntimeError('Method: linear does not accept arguments: cval')
-    if ((wts_calc_method == "nonlinear") and np.any([y0val, ynval])):
+    if (wts_calc_method == "nonlinear") and np.any([y0val, ynval]):
         raise RuntimeError('Method: non-linear does not accept arguments:'
                            ' y0val, ynval')
     if (wts_calc_method == "dict") and not weights_dict:

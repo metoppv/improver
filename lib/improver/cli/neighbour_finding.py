@@ -277,15 +277,12 @@ def process(orography, landmask, site_list, metadata_dict=None,
             'Cannot use all_methods option with other constraints.')
     # Call plugin to generate neighbour cubes
     if all_methods:
-        methods = []
-        methods.append({
-            **kwargs, 'land_constraint': False, 'minimum_dz': False})
-        methods.append({
-            **kwargs, 'land_constraint': True, 'minimum_dz': False})
-        methods.append({
-            **kwargs, 'land_constraint': False, 'minimum_dz': True})
-        methods.append({
-            **kwargs, 'land_constraint': True, 'minimum_dz': True})
+        methods = [
+            {**kwargs, 'land_constraint': False, 'minimum_dz': False},
+            {**kwargs, 'land_constraint': True, 'minimum_dz': False},
+            {**kwargs, 'land_constraint': False, 'minimum_dz': True},
+            {**kwargs, 'land_constraint': True, 'minimum_dz': True}
+        ]
 
         all_methods = iris.cube.CubeList([])
         for method in methods:

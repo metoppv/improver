@@ -149,7 +149,7 @@ def process(cubelist, coordinate, central_point, units, width,
     # This is left as a placeholder for when we have this capability
     if coordinate == 'time':
         units = Unit(units, calendar)
-    if (blend_time_using_forecast_period and coordinate == 'forecast_period'):
+    if blend_time_using_forecast_period and coordinate == 'forecast_period':
         cube = MergeCubes().process(cubelist, check_time_bounds_ranges=True)
     elif blend_time_using_forecast_period:
         msg = ('"--blend_time_using_forecast_period" can only be used with '

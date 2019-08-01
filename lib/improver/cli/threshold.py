@@ -144,7 +144,7 @@ def main(argv=None):
     save_netcdf(result, args.output_filepath)
 
 
-def process(cube, threshold_values, threshold_dict,threshold_units=None,
+def process(cube, threshold_values, threshold_dict, threshold_units=None,
             below_threshold=False, fuzzy_factor=None,
             collapse_coord="None", vicinity=None):
     """Module to apply thresholding to a parameter dataset.
