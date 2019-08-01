@@ -148,20 +148,20 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
-    # Open input files
+    # Load Cubes and JSON.
     site_list = load_json_or_none(args.site_list_filepath)
     metadata_dict = load_json_or_none(args.metadata_json)
-
     orography = load_cube(args.orography_filepath)
     landmask = load_cube(args.landmask_filepath)
 
+    # Process Cube.
     result = process(orography, landmask, site_list, metadata_dict,
                      args.all_methods, args.land_constraint, args.minimum_dz,
                      args.search_radius, args.node_limit,
                      args.site_coordinate_system,
                      args.site_x_coordinate, args.site_y_coordinate)
 
-    # Save the neighbour cube
+    # Save Cube.
     save_netcdf(result, args.output_filepath)
 
 

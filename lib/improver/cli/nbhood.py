@@ -326,29 +326,26 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius,
             neighbourhood_shape == "square"):
         raise RuntimeError('neighbourhood_shape="square" cannot be used with'
                            'neighbourhood_output="percentiles"')
-
     if (neighbourhood_output == "percentiles" and weighted_mode):
         raise RuntimeError('weighted_mode cannot be used with'
                            'neighbourhood_output="percentiles"')
-
     if (neighbourhood_output == "probabilities" and
             percentiles != DEFAULT_PERCENTILES):
         raise RuntimeError('percentiles cannot be DEFAULT_PERCENTILES with'
                            'neighbourhood_output="probabilities"')
-
     if (mask_cube and neighbourhood_shape == "circular"):
         raise RuntimeError('mask_cube cannot be used with'
                            'neighbourhood_output="circular"')
 
     if degrees_as_complex:
         if neighbourhood_output == "percentiles":
-            raise RuntimeError(
+            raise ValueError(
                 'Cannot generate percentiles from complex numbers')
         if neighbourhood_shape == "circular":
-            raise RuntimeError(
+            raise ValueError(
                 'Cannot process complex numbers with circular neighbourhoods')
         if apply_recursive_filter:
-            raise RuntimeError(
+            raise ValueError(
                 'Cannot process complex numbers with recursive filter')
 
     if degrees_as_complex:

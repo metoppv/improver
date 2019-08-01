@@ -92,9 +92,11 @@ def main(argv=None):
     # Load Cube
     cube = load_cube(args.input_filepath)
 
+    # Process Cube
     result = process(cube, args.coordinates, args.ecc_bounds_warning,
                      args.percentiles, args.no_of_percentiles)
 
+    # Save Cube
     save_netcdf(result, args.output_filepath)
 
 
@@ -136,7 +138,7 @@ def process(cube, coordinates, ecc_bounds_warning=False,
             Default is None.
 
     Returns:
-        (iris.cube.Cube):
+        result (iris.cube.Cube):
             The processed Cube.
     """
     if no_of_percentiles is not None:

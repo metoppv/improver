@@ -220,8 +220,8 @@ def process(cube, mask_cube, weights, coord_for_masking, radius,
                 A cube before it is collapsed, if 'collapse_dimension' is True.
 
     """
-    radius_or_radii, lead_times = radius_or_radii_and_lead(
-        radius, radii_by_lead_time)
+    radius_or_radii, lead_times = radius_or_radii_and_lead(radius,
+                                                           radii_by_lead_time)
 
     result = ApplyNeighbourhoodProcessingWithAMask(
         coord_for_masking, radius_or_radii, lead_times=lead_times,

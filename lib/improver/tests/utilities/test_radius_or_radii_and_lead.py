@@ -36,20 +36,27 @@ from improver.utilities.cli_utilities import radius_or_radii_and_lead
 
 
 class TestRadiusOrRadiiAndLead(unittest.TestCase):
+    """Tests radius_or_radii_and_lead to split the data correctly."""
 
     def test_radius(self):
+        """Tests a correct radius and a radii/lead of None.
+        radius_or_radii is the first input, lead is None."""
         radius, lead = radius_or_radii_and_lead(3.3, None)
 
         self.assertEqual(radius, 3.3)
         self.assertIsNone(lead)
 
     def test_both_None(self):
+        """ Tests if both are None then both are returned None."""
         radius, lead = radius_or_radii_and_lead(None, None)
 
         self.assertIsNone(radius)
         self.assertIsNone(lead)
 
     def test_radii_and_lead(self):
+        """Tests if radius is None and radii/lead is a list of csv.
+        radius_or_radii is the [0] of the second index separated on the commas
+        lead is the [1] of the second index separated on the commas."""
         radii, lead = radius_or_radii_and_lead(
             None, ["0,36,72,144", "18000,54000,90000,162000"])
 
@@ -57,6 +64,8 @@ class TestRadiusOrRadiiAndLead(unittest.TestCase):
         self.assertEqual(lead, ['18000', '54000', '90000', '162000'])
 
     def test_both_used(self):
+        """Tests if both arguments are used.
+        The output is the same as if the second argument is None."""
         radius, lead = radius_or_radii_and_lead(
             3.3, ["0,36,72,144", "18000,54000,90000,162000"])
 
