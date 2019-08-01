@@ -137,15 +137,15 @@ def main(argv=None):
                 args.threshold_config))
 
     result = process(cube, args.threshold_values, threshold_dict,
-                     args.threshold_config, args.threshold_units,
+                     args.threshold_units,
                      args.below_threshold, args.fuzzy_factor,
                      args.collapse_coord, args.vicinity)
 
     save_netcdf(result, args.output_filepath)
 
 
-def process(cube, threshold_values, threshold_dict, threshold_config,
-            threshold_units=None, below_threshold=False, fuzzy_factor=None,
+def process(cube, threshold_values, threshold_dict,threshold_units=None,
+            below_threshold=False, fuzzy_factor=None,
             collapse_coord="None", vicinity=None):
     """Module to apply thresholding to a parameter dataset.
 
@@ -174,9 +174,6 @@ def process(cube, threshold_values, threshold_dict, threshold_config,
             "THRESHOLD_VALUE": "None" (no fuzzy bounds).
             Repeated thresholds with different bounds are not
             handled well. Only the last duplicate will be used.
-        TODO sort out errors as they require the file name
-        threshold_config (string):
-            For error handling.
 
     Kwargs:
         threshold_units (string):
@@ -226,16 +223,15 @@ def process(cube, threshold_values, threshold_dict, threshold_config,
                         fuzzy_bounds.append(tuple(threshold_dict[key]))
         except ValueError as err:
             # Extend error message with hint for common JSON error.
-            raise type(err)(err + " in threshold dictionary file {}. \nHINT: "
-                                  "Try adding a zero after the decimal point.".
-                            format(threshold_config))
+            raise type(err)(err + " in threshold dictionary file. \nHINT: "
+                                  "Try adding a zero after the decimal point.")
         except Exception as err:
             # Extend any errors with message about WHERE this occurred.
-            raise type(err)(err + " in dictionary file {}".format(
-                threshold_config))
+            raise type(err)(err + " in dictionary file.")
     else:
         thresholds = threshold_values
         fuzzy_bounds = None
+
     result_no_collapse_coord = BasicThreshold(
         thresholds, fuzzy_factor=fuzzy_factor,
         fuzzy_bounds=fuzzy_bounds, threshold_units=threshold_units,
