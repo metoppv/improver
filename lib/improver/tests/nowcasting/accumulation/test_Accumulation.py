@@ -442,8 +442,6 @@ class Test_process(rate_cube_set_up):
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
 
         plugin = Accumulation(accumulation_units='mm')
-        for acube in self.cubes:
-            print("acube = ", acube.coord("time"))
         result = plugin.process(self.cubes)
 
         self.assertArrayAlmostEqual(result[0].data, expected_t0)

@@ -215,7 +215,6 @@ class Accumulation:
         """
         fp_point = cube.coord("forecast_period").points[0]
         if fp_point not in self.forecast_periods:
-            print("Not calculating accumulations for {}".format(fp_point))
             return None, None
         end_point, = iris_time_to_datetime(cube.coord("time"))
         start_point = (
