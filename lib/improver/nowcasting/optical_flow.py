@@ -86,6 +86,14 @@ class OpticalFlow(object):
     """
     Class to calculate advection velocities along two orthogonal spatial axes
     from time-separated fields using an optical flow algorithm
+
+    References:
+        Bowler, N., Pierce, C. and Seed, A. 2004: Development of a
+        precipitation nowcasting algorithm based upon optical flow
+        techniques. Journal of Hydrology, 288, 74-91.
+        
+        Friedrich, Martina M. 2017: STEPS investigation summary. Internal
+        Met Office Document.
     """
 
     def __init__(self, data_smoothing_method='box', iterations=100,
@@ -114,10 +122,6 @@ class OpticalFlow(object):
             ValueError:
                 If iterations < 20
 
-        References:
-            Bowler, N., Pierce, C. and Seed, A. 2004: Development of a
-            precipitation nowcasting algorithm based upon optical flow
-            techniques. Journal of Hydrology, 288, 74-91.
         """
 
         if iterations < 20:
@@ -248,10 +252,6 @@ class OpticalFlow(object):
                     1D numpy array containing weights values associated with
                     each listed box.
 
-        References:
-            Bowler, N., Pierce, C. and Seed, A. 2004: Development of a
-            precipitation nowcasting algorithm based upon optical flow
-            techniques. Journal of Hydrology, 288, 74-91.
         """
         boxes = []
         weights = []
@@ -344,10 +344,6 @@ class OpticalFlow(object):
             smoothed_field (np.ndarray):
                 Smoothed data on input-shaped grid
 
-        References:
-            Bowler, N., Pierce, C. and Seed, A. 2004: Development of a
-            precipitation nowcasting algorithm based upon optical flow
-            techniques. Journal of Hydrology, 288, 74-91.
         """
         if method == 'kernel':
             kernel = self.makekernel(radius)
@@ -431,10 +427,6 @@ class OpticalFlow(object):
             grid_data (np.ndarray):
                 Smoothed displacement vectors on input data grid
 
-        References:
-            Bowler, N., Pierce, C. and Seed, A. 2004: Development of a
-            precipitation nowcasting algorithm based upon optical flow
-            techniques. Journal of Hydrology, 288, 74-91.
         """
         v_orig = np.copy(box_data)
 
@@ -471,9 +463,6 @@ class OpticalFlow(object):
             velocity (np.ndarray):
                 2-column matrix (u, v) containing scalar displacement values
 
-        References:
-            Friedrich, Martina M. 2017: STEPS investigation summary. Internal
-            Met Office Document.
         """
         deriv_t = deriv_t.reshape([deriv_t.size, 1])
         m_to_invert = (deriv_xy.transpose()).dot(deriv_xy)
