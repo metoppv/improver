@@ -49,7 +49,7 @@ class WeightAndBlend():
     """
     def __init__(self, blend_coord, wts_calc_method,
                  weighting_coord=None, wts_dict=None,
-                 y0val=None, ynval=None, cval=None):
+                 y0val=None, ynval=None, cval=None, inverse_ordering=False):
         """
         Initialise central parameters
 
@@ -72,6 +72,10 @@ class WeightAndBlend():
                 Relative weight of last file for default linear weights plugin
             cval (float):
                 Parameter for default non-linear weights plugin
+            inverse_ordering (bool):
+                Option to invert weighting order for non-linear weights plugin
+                so that higher blend coordinate values get higher weights (eg
+                if cycle blending over forecast reference time).
         """
         self.blend_coord = blend_coord
         self.wts_calc_method = wts_calc_method
@@ -84,7 +88,8 @@ class WeightAndBlend():
             self.y0val = y0val
             self.ynval = ynval
         elif self.wts_calc_method == "nonlinear":
-            self.cval = cval if cval else 0.85
+            self.cval = cval
+            self.inverse_ordering = inverse_ordering
         else:
             raise ValueError(
                 "Weights calculation method '{}' unrecognised".format(
@@ -103,15 +108,12 @@ class WeightAndBlend():
             weights (iris.cube.Cube):
                 Cube containing 1D array of weights for blending
         """
-        # calculate blending weights
         if self.wts_calc_method == "dict":
-            # get dictionary access
             if "model" in self.blend_coord:
                 config_coord = "model_configuration"
             else:
                 config_coord = self.blend_coord
 
-            # calculate linear weights from dictionary
             weights = ChooseWeightsLinear(
                 self.weighting_coord, self.wts_dict,
                 config_coord_name=config_coord).process(cube)
@@ -122,10 +124,8 @@ class WeightAndBlend():
                     cube, self.blend_coord)
 
         elif self.wts_calc_method == "nonlinear":
-            # this is set here rather than in the CLI arguments in order to
-            # check for invalid argument combinations
             weights = ChooseDefaultWeightsNonLinear(self.cval).process(
-                cube, self.blend_coord)
+                cube, self.blend_coord, inverse_ordering=self.inverse_ordering)
 
         return weights
 

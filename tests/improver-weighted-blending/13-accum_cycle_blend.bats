@@ -31,14 +31,13 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "weighted-blending nonlinear cval" {
+@test "weighted-blending linear with-time-bounds" {
   improver_check_skip_acceptance
-  KGO="weighted_blending/options_nonlin/kgo.nc"
+  KGO="weighted_blending/accum_cycle_blend/kgo.nc"
 
-  # Run weighted blending with non linear weights and sub-options and check it passes.
-  run improver weighted-blending --wts_calc_method 'nonlinear' \
-      'forecast_reference_time' --cval 1.0 \
-      "$IMPROVER_ACC_TEST_DIR/weighted_blending/basic_lin/multiple_probabilities_rain_*H.nc" \
+  # Run weighted blending with linear weights and check it passes.
+  run improver weighted-blending 'forecast_reference_time' --y0val=1 --ynval=1 \
+      $IMPROVER_ACC_TEST_DIR/weighted_blending/accum_cycle_blend/ukv_prob_accum_PT?H.nc \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

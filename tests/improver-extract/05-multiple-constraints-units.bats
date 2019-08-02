@@ -39,7 +39,7 @@
   run improver extract \
       "$IMPROVER_ACC_TEST_DIR/extract/basic/input.nc" \
       "$TEST_DIR/output.nc" \
-      threshold=20000 realization=2 \
+      wind_speed=20000 realization=2 \
       --units 'mm s-1' None
   [[ "$status" -eq 0 ]]
 

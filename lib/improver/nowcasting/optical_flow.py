@@ -230,6 +230,11 @@ class OpticalFlow(object):
         1 and 2.  The final boxes in the list will be smaller if the size of
         the data field is not an exact multiple of "boxsize".
 
+        Note that the weights calculated below are valid for precipitation
+        rates in mm/hr. This is a result of the constant 0.8 that is used,
+        noting that in the source paper a value of 0.75 is used; see equation
+        8. in Bowler et al. 2004.
+
         Args:
             field (np.ndarray):
                 Input field (partial derivative)
@@ -709,6 +714,18 @@ class OpticalFlow(object):
         check_if_grid_is_equal_area(cube1)
         check_if_grid_is_equal_area(cube2)
 
+        # convert units to mm/hr as these avoid the need to manipulate tiny
+        # decimals
+        try:
+            cube1 = cube1.copy()
+            cube2 = cube2.copy()
+            cube1.convert_units('mm/hr')
+            cube2.convert_units('mm/hr')
+        except ValueError as err:
+            msg = ('Input data are in units that cannot be converted to mm/hr '
+                   'which are the required units for use with optical flow.')
+            raise ValueError(msg) from err
+
         # check time difference is positive
         time1 = (cube1.coord("time").units).num2date(
             cube1.coord("time").points[0])
@@ -754,6 +771,13 @@ class OpticalFlow(object):
                                    cube1.coord(axis='x')])).data
         data2 = next(cube2.slices([cube2.coord(axis='y'),
                                    cube2.coord(axis='x')])).data
+
+        # fill any mask with 0 values so fill_values are not spread into the
+        # domain when smoothing the fields.
+        if np.ma.is_masked(data1):
+            data1 = data1.filled(0)
+        if np.ma.is_masked(data2):
+            data2 = data2.filled(0)
 
         # if input arrays have no non-zero values, set velocities to zero here
         # and raise a warning
