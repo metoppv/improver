@@ -91,7 +91,7 @@ class OpticalFlow(object):
         Bowler, N., Pierce, C. and Seed, A. 2004: Development of a
         precipitation nowcasting algorithm based upon optical flow
         techniques. Journal of Hydrology, 288, 74-91.
-        
+
         Friedrich, Martina M. 2017: STEPS investigation summary. Internal
         Met Office Document.
     """
