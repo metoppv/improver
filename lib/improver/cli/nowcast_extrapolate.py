@@ -209,9 +209,12 @@ def main(argv=None):
 
     # calculate accumulations if required
     if args.accumulation_fidelity > 0:
+        lead_times = (
+            np.arange(0, args.max_lead_time + 1, args.lead_time_interval))
         plugin = Accumulation(
             accumulation_units=args.accumulation_units,
-            accumulation_period=args.accumulation_period * 60)
+            accumulation_period=args.accumulation_period * 60,
+            forecast_periods=lead_times * 60)
         accumulation_cubes = plugin.process(forecast_cubes)
 
         # return accumulation cubes
