@@ -79,8 +79,10 @@ class Accumulation:
     def __repr__(self):
         """Represent the plugin instance as a string."""
         result = ('<Accumulation: accumulation_units={}, '
-                  'accumulation_period={}s>')
-        return result.format(self.accumulation_units, self.accumulation_period)
+                  'accumulation_period={}s, '
+                  'forecast_periods={}s>')
+        return result.format(self.accumulation_units, self.accumulation_period,
+                             self.forecast_periods)
 
     @staticmethod
     def sort_cubes_by_time(cubes):
@@ -117,6 +119,12 @@ class Accumulation:
         Returns:
             (tuple): tuple containing
 
+                **cubes**: iris.cube.CubeList
+                    Modified version of the input cube list of precipitation
+                    rates that have had the units of the coordinates and
+                    cube data enforced. The cube list has also been sorted by
+                    time.
+
                 **time_interval** (float):
                     Interval between the timesteps from the input cubelist.
 
@@ -137,6 +145,7 @@ class Accumulation:
         cubes = enforce_coordinate_units_and_dtypes(
             cubes, ['time', 'forecast_reference_time', 'forecast_period'],
             inplace=False)
+
         enforce_diagnostic_units_and_dtypes(cubes)
 
         # Sort cubes into time order and calculate intervals.
@@ -171,11 +180,10 @@ class Accumulation:
                    "total accumulation period.".format(
                        self.accumulation_period, time_interval))
             raise ValueError(msg)
-        return time_interval, integral
+        return cubes, time_interval, integral
 
-    def _calculate_accumulations(self, cubes, cube, time_interval, integral):
-        """Calculate the accumulation for the requested accumulation period
-        by finding the subset of cubes from the input cubelist that are
+    def _get_cube_subsets(self, cubes, cube, integral):
+        """Finding the subset of cubes from the input cubelist that are
         within the accumulation period, based on the input cube defining the
         upper bound of the accumulation period and the length of the
         accumulation period.
@@ -186,8 +194,6 @@ class Accumulation:
                 to calculate the accumulation.
             cube (iris.cube.Cube):
                 Cube defining the upper bound of the accumulation period.
-            time_interval (float):
-                Interval between the timesteps from the input cubelist.
             integral (int)
                 Integer value based on how many times the accumulation
                 period is divisible by the time interval. This therefore
@@ -195,14 +201,6 @@ class Accumulation:
                 accumulation period.
 
         Returns:
-            accumulations (numpy.ndarray) or None:
-                If either the forecast period given by the input cube is not
-                a requested forecast_period at which to calculate the
-                accumulations, or the number of input cubelist is only
-                sufficient to partially cover the desired accumulation, then
-                None is returned.
-                If an accumulation can be successfully computed, then a
-                numpy array is returned.
             cube_subset (iris.cube.Cubelist) or None:
                 Cubelist that defines the cubes used to calculate
                 the accumulations.
@@ -215,7 +213,7 @@ class Accumulation:
         """
         fp_point = cube.coord("forecast_period").points[0]
         if fp_point not in self.forecast_periods:
-            return None, None
+            return None
         end_point, = iris_time_to_datetime(cube.coord("time"))
         start_point = (
             end_point - timedelta(seconds=int(self.accumulation_period)))
@@ -231,8 +229,34 @@ class Accumulation:
                 "is insufficient to give a set of complete periods. Only "
                 "complete periods will be returned.")
             warnings.warn(msg)
-            return None, None
+            return None
+        return cube_subset
 
+    def _calculate_accumulation(self, cube_subset, time_interval):
+        """Calculate the accumulation for the requested accumulation period
+        by finding the subset of cubes from the input cubelist that are
+        within the accumulation period, based on the input cube defining the
+        upper bound of the accumulation period and the length of the
+        accumulation period.
+
+        Args:
+            cube_subset (iris.cube.CubeList):
+                Cubelist containing all the rates cubes that will be used
+                to calculate the accumulation.
+            time_interval (float):
+                Interval between the timesteps from the input cubelist.
+
+        Returns:
+            accumulation (numpy.ndarray) or None:
+                If either the forecast period given by the input cube is not
+                a requested forecast_period at which to calculate the
+                accumulations, or the number of input cubelist is only
+                sufficient to partially cover the desired accumulation, then
+                None is returned.
+                If an accumulation can be successfully computed, then a
+                numpy array is returned.
+
+        """
         accumulation = 0.
         # Accumulations are calculated using the mean precipitation rate
         # calculated from the rates cubes that bookend the desired period.
@@ -240,7 +264,7 @@ class Accumulation:
         for start_cube, end_cube in iterator:
             accumulation += ((start_cube.data + end_cube.data) *
                              time_interval * 0.5)
-        return accumulation, cube_subset
+        return accumulation
 
     def _set_metadata(self, cube_subset):
         """Set the metadata on the accumulation cube. This includes
@@ -285,14 +309,15 @@ class Accumulation:
                 the accumulation periods are determined by plugin argument
                 accumulation_period.
         """
-        time_interval, integral = self._check_inputs(cubes)
+        cubes, time_interval, integral = self._check_inputs(cubes)
 
         accumulation_cubes = iris.cube.CubeList()
         for cube in cubes:
-            accumulation, cube_subset = self._calculate_accumulations(
-                cubes, cube, time_interval, integral)
-            if accumulation is None:
+            cube_subset = self._get_cube_subsets(cubes, cube, integral)
+            if cube_subset is None:
                 continue
+            accumulation = self._calculate_accumulation(
+                cube_subset, time_interval)
             accumulation_cube = self._set_metadata(cube_subset)
 
             # Calculate new data and insert into cube.
