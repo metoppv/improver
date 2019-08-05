@@ -1,29 +1,17 @@
-.. toctree::
-   :caption: Theme Documentation
-   :maxdepth: 2
-
-   about
-   contributing
-
-
-Welcome to IMPROVER's documentation
-===================================
-
-IMPROVER is a library of algorithms for meteorological post-processing and verification.
-Please see the :doc:`improver` for API documentation.
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
-
-Packages and Modules
-====================
+.. include:: ../about.rst
 
 .. toctree::
+   :caption: Indices and tables
+   :maxdepth: 1
+   :hidden:
+
+   genindex
+   modindex
+   search
+
+
+.. toctree::
+   :caption: Packages and Modules
    :maxdepth: 4
 
    improver

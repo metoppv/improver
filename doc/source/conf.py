@@ -173,6 +173,7 @@ html_theme = 'default'
 # documentation.
 #
 html_theme_options = {
+    'logo_only': True
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
