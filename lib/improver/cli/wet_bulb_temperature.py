@@ -92,11 +92,11 @@ def process(temperature, relative_humidity, pressure,
 
     Args:
         temperature (iris.cube.Cube):
-            Cube of air temperatures (K).
+            Cube of air temperatures.
         relative_humidity (iris.cube.Cube):
-            Cube of relative humidities (%, converted to fractional)
+            Cube of relative humidities.
         pressure (iris.cube.Cube):
-            Cube of air pressure (Pa).
+            Cube of air pressure.
 
     Kwargs:
         convergence_condition (float):

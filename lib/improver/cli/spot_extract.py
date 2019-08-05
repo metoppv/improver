@@ -213,7 +213,7 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube,
             defined when the neighbour cube was created. May be used with
             land_constraint.
             Default is False.
-        extract_percentiles (list<integer> or integer):
+        extract_percentiles (list or integer):
             If set to a percentile value or a list of percentile values,
             data corresponding to those percentiles will be returned. For
             example [25, 50, 75] will result in the 25th, 50th and 75th

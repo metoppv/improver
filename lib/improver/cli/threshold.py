@@ -160,7 +160,7 @@ def process(cube, threshold_values, threshold_dict, threshold_units=None,
         cube (iris.cube.Cube):
              A cube to be processed.
         threshold_values (float):
-            Threshold value of values about which to calculate the truth
+            Threshold value or values about which to calculate the truth
             values; e.g. 270 300. Must be omitted if 'threshold_config'
             is used.
         threshold_dict (dictionary):
@@ -188,8 +188,8 @@ def process(cube, threshold_values, threshold_dict, threshold_units=None,
         fuzzy_factor (float):
             A decimal fraction defining the factor about the threshold value(s)
             which should be treated as fuzzy. Data which fail a test against
-            the hard threshold value may return a fractional truth value of
-            the fall within this fuzzy factor region.
+            the hard threshold value may return a fractional truth value if
+            they fall within this fuzzy factor region.
             Fuzzy factor must be in the range 0-1, with higher values
             indicating a narrower fuzzy factor region / sharper threshold.
             N.B. A fuzzy factor cannot be used with a zero threshold or a

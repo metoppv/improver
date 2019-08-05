@@ -164,9 +164,10 @@ def process(cube, mask, radius, radii_by_lead_time, weights=None,
         radius (float):
             The radius in metres of the neighbourhood to apply.
         radii_by_lead_time (list):
-            The radii for neighbourhood processing and the associated lead
-            times which the radii are valid. The radii are in metre whilst
-            the lead time has units of hours.
+            A list with the radius in metres at [0] and the lead_time at [1]
+            Lead time is a List of lead times or forecast periods, at which
+            the radii within 'radii' are defined. The lead times are expected
+            in hours.
 
     Kwargs:
         weights (iris.cube.Cube):

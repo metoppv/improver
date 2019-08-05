@@ -139,6 +139,7 @@ def process(historic_forecast, truth, distribution, cycletime, units=None,
             This denotes the cycle at which forecasts will be calibrated using
             the calculated EMOS coefficients. The validity time in the output
             coefficients cube will be calculated relative to this cycletime.
+            This cycletime is in the format YYYYMMDDTHHMMZ.
 
     Kwargs:
         units
@@ -147,8 +148,8 @@ def process(historic_forecast, truth, distribution, cycletime, units=None,
             Default is None.
         predictor_of_mean (str):
             String to specify the input to calculate the calibrated mean.
-            Currently the ensemble mean "mean" and the ensemble realizations
-            "realizations" are supported as the predictors.
+            Currently the ensemble mean ("mean") and the ensemble realizations
+            ("realizations") are supported as the predictors.
             Default is 'mean'.
         max_iterations (int):
             The maximum number of iterations allowed until the minimisation has

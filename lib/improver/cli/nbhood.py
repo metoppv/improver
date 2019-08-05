@@ -244,11 +244,19 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius,
             The Cube to be processed.
         neighbourhood_output:
             The form of the results generated using neighbourhood processing.
+            If "probabilities" is selected, the mean probability with a
+            neighbourhood is calulated. If "percentiles" is selected, then
+            the percentiles are calculated with a neighbourhood. Calculating
+            percentiles from a neighbourhood is only supported for a circular
+            neighbourhood.
+            Options: "probabilities", "percentiles".
         neighbourhood_shape (str):
-            Name of the neighbourhood method to use. Options:
-            'circular', 'square'.
+            Name of the neighbourhood method to use. Only a "circular"
+            neighbourhood shape is applicable for calculating "percentiles"
+            output.
+            Options: "circular", "square".
         radius(float):
-            The radius in metres if the neighbourhood to apply
+            The radius in metres of the neighbourhood to apply
         radii_by_lead_time(list):
             A list with the radius in metres at [0] and the lead_time at [1]
             Lead time is a List of lead times or forecast periods, at which
@@ -265,7 +273,7 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius,
             If True the weighting decreases with radius.
             If False a constant weighting is assumed.
             weighted_mode is only applicable for calculating "probability"
-            neighbourhood output.
+            neighbourhood output using the circular kernal.
             Default is False
         sum_or_fraction (str):
             Identifier for whether sum or fraction should be returned from
@@ -285,11 +293,12 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius,
             neighbourhood surrounding each grid point.
             Default is improver.constants.DEFAULT_PERCENTILES.
         mask_cube ('iris.cube.Cube'):
-            A cube to mask the input file. The data should contain 1 for
+            A cube to mask the input cube. The data should contain 1 for
             usable points and 0 for discarded points.
+            Only supported with square neighbourhoods.
             Default is None.
         halo_radius (float or None):
-            Radius in meters of excess halo to clip. Used where a larger grid
+            Radius in metres of excess halo to clip. Used where a larger grid
             was defined than the standard grid and we want to clip the grid
             back to the standard grid.
             Default is None.

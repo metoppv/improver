@@ -118,8 +118,9 @@ def main(argv=None):
 def process(landmask, orography, thresholds_dict=None):
     """Runs topographic bands mask generation.
 
-    Loops over the supplied orographic bands, adding a cube for each
-    band to the mask cubelist.
+    Reads orography and landmask fields of a cube. Creates a series of masks,
+    where each mask excludes data below or equal to the lower threshold and
+    excludes data above the upper threshold.
 
     Args:
         landmask (iris.cube.Cube):
@@ -134,7 +135,12 @@ def process(landmask, orography, thresholds_dict=None):
             "bounds": list of list of pairs of bounds for each band and
             "units":"string containing units of bounds", for example:
             {'bounds' :[[0, 100], [100, 200]], 'units':"m"}
-            Default is None.
+            The default dictionary has the following form:
+            {'bounds': [[-500., 50.], [50., 100.],
+            [100., 150.],[150., 200.], [200., 250.],
+            [250., 300.], [300., 400.], [400., 500.],
+            [500., 650.],[650., 800.], [800., 950.],
+            [950., 6000.]], 'units': 'm'}
 
     Returns:
         result (iris.cube.Cube):

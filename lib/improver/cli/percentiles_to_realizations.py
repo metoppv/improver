@@ -169,7 +169,7 @@ def process(cube, raw_forecast, no_of_percentiles=None,
             random_seed=None, realization_numbers=None):
     """Runs Ensemble Copula Coupling processing.
 
-    Converts a dataset containing probabilities into one containing ensemble
+    Converts a dataset containing percentiles into one containing ensemble
     realizations using Ensemble Coupla Coupling.
 
     Args:
@@ -189,7 +189,7 @@ def process(cube, raw_forecast, no_of_percentiles=None,
             and "random".
             The quantile option produces equally spaced percentiles which is
             the preferred option for full ensemble couple coupling with
-            reordering enables.
+            reordering enabled.
             Default is 'quantile'.
         ecc_bounds_warning (bool):
             If True where percentiles (calculated as an intermediate output
@@ -220,7 +220,7 @@ def process(cube, raw_forecast, no_of_percentiles=None,
             so that the values from the input percentiles can be ordered to
             match the raw ensemble.
             Default is None.
-        realization_numbers (list<int>):
+        realization_numbers (list):
             A list of ensemble realization numbers to use when rebadging the
             percentiles into realizations.
             Default is None.

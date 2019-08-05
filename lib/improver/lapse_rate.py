@@ -341,7 +341,7 @@ class LapseRate(object):
 
         Returns:
             lapse_rate_cube (iris.cube.Cube):
-                Cube containing lapse rate (Km-1)
+                Cube containing lapse rate (K m-1)
 
         Raises
         ------

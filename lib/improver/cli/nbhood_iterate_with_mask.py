@@ -184,10 +184,10 @@ def process(cube, mask_cube, weights, coord_for_masking, radius,
             north, based on the characteristic spacing at the zero indices of
             the cube projection-x and y coordinates.
         radii_by_lead_time (float or List if defining lead times):
-            The radii in metres of the neighbourhood to apply.
-            Rounded up to convert into integer number of grid points east and
-            north, based on the characteristic spacing at the zero indices of
-            the cube projection-x and y coordinates.
+            A list with the radius in metres at [0] and the lead_time at [1]
+            Lead time is a List of lead times or forecast periods, at which
+            the radii within 'radii' are defined. The lead times are expected
+            in hours.
 
     Kwargs:
         sum_or_fraction (str):
@@ -209,7 +209,7 @@ def process(cube, mask_cube, weights, coord_for_masking, radius,
             Collapse the dimension from the mask, by doing a weighted mean
             using the weights provided.  This is only suitable when the result
             is left unmasked, so there is data to weight between the points
-            in coordinate we are collapsing.
+            in the coordinate we are collapsing.
             Default is False.
 
     Returns:

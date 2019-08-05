@@ -140,7 +140,10 @@ def main(argv=None):
 def process(original_cube_list, oe_cube=None, metadata_dict=None,
             ofc_box_size=30, smart_smoothing_iterations=100, extrapolate=False,
             max_lead_time=360, lead_time_interval=15):
-    """Calculates optical flow advection velocities and can extrapolate data.
+    """Calculates optical flow and can (optionally) extrapolate data.
+
+    Calculates optical flow components from input fields and (optionally)
+    extrapolate to required lead times.
 
     Args:
         original_cube_list (iris.cube.Cubelist):
@@ -159,7 +162,7 @@ def process(original_cube_list, oe_cube=None, metadata_dict=None,
             Every output cube will have the metadata_dict applied.
             Default is None.
         ofc_box_size (int):
-            square 'box' (in grid spaces) within which to solve the optical
+            Size of square 'box' (in grid spaces) within which to solve the optical
             flow equations.
             Default is 30.
         smart_smoothing_iterations (int):

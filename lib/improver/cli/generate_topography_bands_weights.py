@@ -122,8 +122,14 @@ def main(argv=None):
 def process(landmask, orography, thresholds_dict=None):
     """Runs topographic weights generation.
 
-    Calculate the weights depending upon where the orography point is within
-    the topographical zones.
+    Reads the orography and landmask fields of a cube. Creates a series of
+    topographic zone weights to indicate where an orography point sits within
+    the defined topographic bands. If the orography point is in the centre of
+    a topographic band, then a single band will have a weight 1.0.
+    If the orography point is at the edge of a topographic band, then the
+    upper band will have a 0.5 weight whlst the lower band will also have a
+    0.5 weight. Otherwise the weight will vary linearlybetween the centre of
+    a topographic band and the edge.
 
     Args:
         landmask (iris.cube.Cube):
@@ -137,7 +143,12 @@ def process(landmask, orography, thresholds_dict=None):
             Definition of orography bands required.
             The expected format of the dictionary is e.g
             {'bounds':[[0, 50], [50, 200]], 'units': 'm'}
-            Default is None
+            The default dictionary has the following form:
+            {'bounds': [[-500., 50.], [50., 100.],
+            [100., 150.],[150., 200.], [200., 250.],
+            [250., 300.], [300., 400.], [400., 500.],
+            [500., 650.],[650., 800.], [800., 950.],
+            [950., 6000.]], 'units': 'm'}
 
     Returns:
         (iris.cube.Cube):

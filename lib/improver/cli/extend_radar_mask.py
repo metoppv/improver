@@ -70,10 +70,8 @@ def main(argv=None):
 def process(coverage, radar_data, fix_float64):
     """ Extend radar mask based on coverage data.
 
-    Extends the mask on radar rain-rate data based on the radar coverage
-    composite.
-    Update the mask on the input rain-rate cube to reflect where coverage is
-    valid.
+    Extends the mask on radar data based on the radar coverage composite.
+    Update the mask on the input cube to reflect where coverage is valid.
 
     Args:
         coverage (iris.cube.Cube):

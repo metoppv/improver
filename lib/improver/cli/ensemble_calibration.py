@@ -205,7 +205,7 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
     After calibration, the mean and variance computed in the calibration
     are converted to match the format of the current forecast. i.e
     If realizations are input, realizations are output.
-    If probabilities are input, probabilities are are output.
+    If probabilities are input, probabilities are output.
     Also if realizations are input, realizations are regenerated using
     Ensemble Coupla Coupling.
 
@@ -217,7 +217,7 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
         truth (iris.cube.Cube):
             A Cube containing the historic truth data for calibration.
         units (str):
-            The unit that calibration should br undertaken in. The current
+            The unit that calibration should be undertaken in. The current
             forecast, historical forecast and truth will be converted as
             required.
         distribution (str):
@@ -245,7 +245,12 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
             This option is only valid when the input format is realizations.
         random_seed (int):
             If random_seed is an integer, the integer value is used for the
-            random_seed.
+            random_seed. The random seed is used in the generation of the
+            random numbers used for either the random_ordering option to order
+            the input percentiles randomly, rather than use the ordering from
+            the raw ensemble, or for splitting tied values within the raw
+            ensemble, so that the values from the input percentiles can be
+            ordered to match the raw ensemble.
             If the random_seed is None, no random seed is set, so the random
             values generated are not reproducible.
         ecc_bounds_warning(bool):

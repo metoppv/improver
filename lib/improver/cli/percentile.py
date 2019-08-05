@@ -117,7 +117,7 @@ def process(cube, coordinates, ecc_bounds_warning=False,
     Args:
         cube (iris.cube.Cube):
             A Cube for processing.
-        coordinates (string or list<string>):
+        coordinates (string or list):
             Coordinate or coordinates over which to collapse data and
             calculate percentiles. This coordinate will no longer be present
             in the output cube, as it will have been replaced by the
@@ -128,7 +128,7 @@ def process(cube, coordinates, ecc_bounds_warning=False,
             If True, where calculated percentiles are outside the ECC bounds
             range, raises a warning rather than an exception.
             Default is False.
-        percentiles (list<float> or None):
+        percentiles (list or None):
             Optional definition of percentiles at which to calculate data.
             Default is None.
         no_of_percentiles (int):

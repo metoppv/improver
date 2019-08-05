@@ -200,7 +200,7 @@ def process(cubelist, weights_dict, wts_calc_method, coordinate, cycletime,
     """Module to run weighted blending.
 
     Load in arguments and ensure they are set correctly.
-    Then load in the data to blend and calculate default weights
+    Then load in the data to blend and calculate weights
     using the method chosen before carrying out the blending.
 
     Args:
@@ -236,8 +236,7 @@ def process(cubelist, weights_dict, wts_calc_method, coordinate, cycletime,
             recent forecast).
         cval (float):
             Factor used to determine how skewed the non-linear weights will be.
-            A value of 2 implies equal weighting. If not set, a default value
-            of cval=0.85 is set in the plugin.
+            A value of 2 implies equal weighting.
         weighting_coord (str):
             Name of coordinate over which linear weights should be scaled.
             This coordinate must be available in the weights dictionary.

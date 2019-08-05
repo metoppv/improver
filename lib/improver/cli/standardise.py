@@ -217,7 +217,7 @@ def process(output_data, target_grid=None, source_landsea=None,
             mask value (Use for coast-line-dependant variables
             like temperature).
         extrapolation_mode (str):
-            Mode to use for extrapolation data into regions beyond the limits
+            Mode to use for extrapolating data into regions beyond the limits
             of the source_data domain. Refer to online documentation for
             iris.analysis.
             Modes are -
@@ -231,10 +231,10 @@ def process(output_data, target_grid=None, source_landsea=None,
             nanmask - If the source data is a MaskedArray the extrapolation
             points will be masked. Otherwise they will be set to NaN.
             Defaults is 'nanmask'.
-        landmask_vicinity (float) -
+        landmask_vicinity (float):
             Radius of vicinity to search for a coastline, in metres.
             Defaults is 25000 m
-        fix_float64 (boolean) -
+        fix_float64 (boolean):
             If True, checks and fixes cube for float64 data. Without this
             option an exception will be raised if float64 data is found but no
             fix applied.

@@ -134,7 +134,7 @@ def process(cube, mask_cube=None, alphas_x_cube=None, alphas_y_cube=None,
             grid square in the x direction.
             Default is None.
         alpha_y (float):
-            A single alpha factor (0< alpha_y < 1) to be applied to every grid
+            A single alpha factor (0 < alpha_y < 1) to be applied to every grid
             square in the y direction.
             Default is None.
         iterations (int):

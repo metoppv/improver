@@ -128,7 +128,7 @@ def process(cubelist, coordinate, central_point, units, width,
             Calendar for parameter_unit if required.
             Default is 'gregorian'
         blend_time_using_forecast_period (bool):
-            If True, if we are blending over time but using the forecast
+            If True, we are blending over time but using the forecast
             period coordinate as a proxy. Note, this should only be used when
             time and forecast_period share a dimension: i.e when all cubes
             provided are from the same forecast cycle.

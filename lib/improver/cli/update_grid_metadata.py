@@ -78,7 +78,10 @@ def process(cube):
     """Update grid_id meta-data for StaGE.
 
     Translates meta-data relating to the grid_id attribute from StaGE
-    version 1.1.0 to StaGE version 1.2.0
+    version 1.1.0 to StaGE version 1.2.0.
+    Files that have no "grid_id" attribute are not recognised as v1.1.0 and
+    are not changed. Has no effect if input_file and output_file are the
+    same and contain a cube with non v1.1.0 meta-data.
 
     Args:
         cube (iris.cube.Cube):

@@ -166,7 +166,7 @@ def process(current_forecast, coeffs, num_realizations=None,
             percentiles then this argument is used to create the requested
             number of realizations. In addition, this argument is used to
             construct the requested number of realizations from the mean and
-            variance out put after applying the EMOS coefficients.
+            variance output after applying the EMOS coefficients.
             Default is None.
         random_ordering (bool):
             Option to reorder the post-processed forecasts randomly. If not

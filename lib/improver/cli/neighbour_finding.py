@@ -209,7 +209,7 @@ def process(orography, landmask, site_list, metadata_dict=None,
             Default is None.
         minimum_dz (bool):
             If True, this will return a cube containing the nearest grid point
-            neighbour to each spot site that is found , within a given search
+            neighbour to each spot site that is found, within a given search
             radius, to minimise the height difference between the two. May be
             used with the land_constraint option.
             Default is None.
@@ -222,7 +222,7 @@ def process(orography, landmask, site_list, metadata_dict=None,
             When searching within the defined search_radius for suitable
             neighbours, a KDTree is constructed. This node_limit prevents the
             tree from becoming too large for large search radii. A default of
-            34 will be set, which is to say the nearest 36 grid points will be
+            36 will be set, which is to say the nearest 36 grid points will be
             considered. If the search radius is likely to contain more than
             36 points, this value should be increased to ensure all point
             are considered.

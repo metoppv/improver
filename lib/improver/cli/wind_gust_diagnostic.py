@@ -106,7 +106,7 @@ def process(cube_wg, cube_ws, percentile_gust, percentile_ws):
         cube_wg (iris.cube.Cube):
             Cube containing one or more percentiles of wind_gust data.
         cube_ws (iris.cube.Cube):
-            Cube containing one ore more percentiles of wind_speed data.
+            Cube containing one or more percentiles of wind_speed data.
         percentile_gust (float):
             Percentile value required from wind-gust cube.
         percentile_ws (float):

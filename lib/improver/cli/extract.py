@@ -93,7 +93,14 @@ def process(cube, constraints, units=None):
         cube:
             The Cube from which a sub-cube is extracted
         constraints (list):
-            List of string constraints with keys and values split by '='
+            The constraint(s) to be applied.  These must be of the form
+            "key=value", eg "threshold=1".  Scalars, boolean and string
+            values are supported.  Comma-separated lists
+            (eg "key=[value1,value2]") are supported. These comma-separated
+            lists can either extract all values specified in the list or all
+            values specified within a range e.g. key=[value1:value2].
+            When a range is specified, this is inclusive of the endpoints of
+            the range.
 
     Kwargs:
         units (list):
