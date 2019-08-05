@@ -274,6 +274,14 @@ def process(cubelist, weights_dict, wts_calc_method, coordinate, cycletime,
             Merged and blended Cube.
     """
 
+    if (wts_calc_method == "linear") and cval:
+        raise RuntimeError('Method: linear does not accept arguments: cval')
+    if (wts_calc_method == "nonlinear") and np.any([y0val, ynval]):
+        raise RuntimeError('Method: non-linear does not accept arguments:'
+                           ' y0val, ynval')
+    if (wts_calc_method == "dict") and not weights_dict:
+        raise RuntimeError('Dictionary is required if wts_calc_method="dict"')
+    
     plugin = WeightAndBlend(
         coordinate, wts_calc_method,
         weighting_coord=weighting_coord, wts_dict=weights_dict,

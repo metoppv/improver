@@ -152,8 +152,8 @@ def process(cube_0, cube_1, interval_in_mins=None, in_times=None,
             ["linear", "solar", "daynight"]
             Specifies the interpolation method;
             solar interpolates using the solar elevation,
-            daynight uses linear interpolation but sets night time points to 0.0
-            linear is linear interpolation.
+            daynight uses linear interpolation but sets night time points to
+            0.0 linear is linear interpolation.
             Default is linear.
 
     Returns:
