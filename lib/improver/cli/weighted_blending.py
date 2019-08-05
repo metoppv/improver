@@ -281,7 +281,7 @@ def process(cubelist, weights_dict, wts_calc_method, coordinate, cycletime,
                            ' y0val, ynval')
     if (wts_calc_method == "dict") and not weights_dict:
         raise RuntimeError('Dictionary is required if wts_calc_method="dict"')
-    
+
     plugin = WeightAndBlend(
         coordinate, wts_calc_method,
         weighting_coord=weighting_coord, wts_dict=weights_dict,
