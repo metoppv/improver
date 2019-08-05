@@ -235,7 +235,8 @@ class Test__check_inputs(rate_cube_set_up):
         expected_time_interval = 60
         expected_integral = 20
         expected_cubes = self.cubes.copy()
-        [cube.convert_units("m/s") for cube in expected_cubes]
+        for cube in expected_cubes:
+            cube.convert_units("m/s")
         accumulation_period = 20*60
         forecast_periods = [15]
         plugin = Accumulation(accumulation_period=accumulation_period,
@@ -386,6 +387,7 @@ class Test_process(rate_cube_set_up):
     """Tests the process method results in the expected outputs."""
 
     def setUp(self):
+        """Set up forecast periods used for testing."""
         super().setUp()
         self.forecast_periods = [
             cube.coord("forecast_period").points for cube in self.cubes[1:]]

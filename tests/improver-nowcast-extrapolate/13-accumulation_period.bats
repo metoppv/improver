@@ -48,7 +48,7 @@
     --northward_advection "$VCOMP" \
     --orographic_enhancement_filepaths \
     "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1" \
-    --accumulation_fidelity 5 --accumulation_period 15 \
+    --accumulation_fidelity 5 --accumulation_period 30 \
     --lead_time_interval 5
   [[ "$status" -eq 0 ]]
 

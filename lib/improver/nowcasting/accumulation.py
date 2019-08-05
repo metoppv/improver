@@ -232,7 +232,8 @@ class Accumulation:
             return None
         return cube_subset
 
-    def _calculate_accumulation(self, cube_subset, time_interval):
+    @staticmethod
+    def _calculate_accumulation(cube_subset, time_interval):
         """Calculate the accumulation for the requested accumulation period
         by finding the subset of cubes from the input cubelist that are
         within the accumulation period, based on the input cube defining the
@@ -266,7 +267,8 @@ class Accumulation:
                              time_interval * 0.5)
         return accumulation
 
-    def _set_metadata(self, cube_subset):
+    @staticmethod
+    def _set_metadata(cube_subset):
         """Set the metadata on the accumulation cube. This includes
         expanding the bounds to cover the accumulation period with the
         point within the time and forecast_period coordinates recorded as the
