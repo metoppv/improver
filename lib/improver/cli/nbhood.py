@@ -228,8 +228,8 @@ def main(argv=None):
     save_netcdf(result, args.output_filepath)
 
 
-def process(cube, neighbourhood_output, neighbourhood_shape, radius,
-            radii_by_lead_time, degrees_as_complex=False,
+def process(cube, neighbourhood_output, neighbourhood_shape, radius=None,
+            radii_by_lead_time=None, degrees_as_complex=False,
             weighted_mode=False, sum_or_fraction="fraction", re_mask=False,
             percentiles=DEFAULT_PERCENTILES, mask_cube=None,
             halo_radius=None, apply_recursive_filter=False, alphas_x_cube=None,
@@ -242,7 +242,7 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius,
     Args:
         cube (iris.cube.Cube):
             The Cube to be processed.
-        neighbourhood_output:
+        neighbourhood_output (str):
             The form of the results generated using neighbourhood processing.
             If "probabilities" is selected, the mean probability with a
             neighbourhood is calulated. If "percentiles" is selected, then
@@ -255,6 +255,8 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius,
             neighbourhood shape is applicable for calculating "percentiles"
             output.
             Options: "circular", "square".
+
+    Kwargs:
         radius(float):
             The radius in metres of the neighbourhood to apply
         radii_by_lead_time(list):
@@ -262,8 +264,6 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius,
             Lead time is a List of lead times or forecast periods, at which
             the radii within 'radii' are defined. The lead times are expected
             in hours.
-
-    Kwargs:
         degrees_as_complex (bool):
             If True processes angles as complex numbers.
             Not compatible with circular kernel, percentiles or recursive

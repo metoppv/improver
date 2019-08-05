@@ -67,7 +67,7 @@ def main(argv=None):
     save_netcdf(remasked_data, args.output_filepath)
 
 
-def process(coverage, radar_data, fix_float64):
+def process(coverage, radar_data, fix_float64=False):
     """ Extend radar mask based on coverage data.
 
     Extends the mask on radar data based on the radar coverage composite.
@@ -78,9 +78,12 @@ def process(coverage, radar_data, fix_float64):
             Cube containing the radar data to remask
         radar_data (iris.cube.Cube):
             Cube containing the radar coverage data.
+
+    Keyword Args:
         fix_float64 (bool):
             Check and fix cube for float64 data. Without this, an exception
             will be raised if float64 data is found but no fix applied.
+
     Returns:
         result (iris.cube.Cube):
             A cube with the remasked radar data.

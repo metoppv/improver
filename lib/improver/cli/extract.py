@@ -90,7 +90,7 @@ def process(cube, constraints, units=None):
     is available.
 
     Args:
-        cube:
+        cube (iris.cube.Cube):
             The Cube from which a sub-cube is extracted
         constraints (list):
             The constraint(s) to be applied.  These must be of the form

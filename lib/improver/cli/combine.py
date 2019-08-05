@@ -116,10 +116,10 @@ def process(cubelist, operation, new_cube_name,
     Args:
         cubelist (iris.cube.CubeList):
             An iris CubeList to be combined.
-        operation
+        operation (str):
             "+", "-", "*", "add", "subtract", "multiply", "min", "max", "mean"
             An operation to use in combining Cubes.
-        new_cube_name
+        new_cube_name (str):
             New name for the resulting dataset. Will default to the name of the
             first dataset if not set.
 

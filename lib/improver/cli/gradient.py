@@ -76,7 +76,7 @@ def main(argv=None):
         raise IOError(msg)
 
 
-def process(input_field):
+def process(cube):
     """Calculate the gradient of input field in the x and y direction.
 
     Calculate the difference along the x and y axes and returns the result in
@@ -84,8 +84,8 @@ def process(input_field):
     numpy.diff.
 
     Args:
-        input_field:
-        Cube from which the difference will be calculated.
+        cube (iris.cube.Cube):
+            Cube from which the difference will be calculated.
 
     Returns:
         gradients (iris.cube.Cubelist):
@@ -93,7 +93,7 @@ def process(input_field):
             The first Cube is the difference along the Y axis
             The second Cube is the difference along the X axis
     """
-    gradients = DifferenceBetweenAdjacentGridSquares().process(input_field)
+    gradients = DifferenceBetweenAdjacentGridSquares().process(cube)
     gradients = iris.cube.CubeList([gradients[0], gradients[1]])
     return gradients
 
