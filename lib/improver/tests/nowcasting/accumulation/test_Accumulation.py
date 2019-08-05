@@ -188,7 +188,8 @@ class Test__check_inputs(rate_cube_set_up):
         expected_time_interval = 60
         expected_integral = 10
         expected_cubes = self.cubes.copy()
-        [cube.convert_units("m/s") for cube in expected_cubes]
+        for cube in expected_cubes:
+            cube.convert_units("m/s")
         cubes, time_interval, integral = (
             Accumulation()._check_inputs(self.cubes))
         self.assertEqual(cubes, expected_cubes)
@@ -202,7 +203,8 @@ class Test__check_inputs(rate_cube_set_up):
         expected_time_interval = 60
         expected_integral = 60
         expected_cubes = self.cubes.copy()
-        [cube.convert_units("m/s") for cube in expected_cubes]
+        for cube in expected_cubes:
+            cube.convert_units("m/s")
         accumulation_period = 60*60
         plugin = Accumulation(accumulation_period=accumulation_period)
         cubes, time_interval, integral = plugin._check_inputs(self.cubes)
@@ -218,7 +220,8 @@ class Test__check_inputs(rate_cube_set_up):
         expected_time_interval = 60
         expected_integral = 10
         expected_cubes = self.cubes.copy()
-        [cube.convert_units("m/s") for cube in expected_cubes]
+        for cube in expected_cubes:
+            cube.convert_units("m/s")
         forecast_periods = [60]
         plugin = Accumulation(forecast_periods=forecast_periods)
         cubes, time_interval, integral = plugin._check_inputs(self.cubes)
