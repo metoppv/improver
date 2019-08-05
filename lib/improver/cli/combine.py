@@ -128,7 +128,7 @@ def process(cubelist, operation, new_cube_name,
             Dictionary of required changes to the metadata.
             Default is None.
         warnings_on (bool):
-            If True, warning messages where metadata do not march will be
+            If True, warning messages where metadata do not match will be
             given.
             Default is False.
 

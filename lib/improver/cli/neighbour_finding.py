@@ -228,7 +228,7 @@ def process(orography, landmask, site_list, metadata_dict=None,
             are considered.
             Default is None.
         site_coordinate_system (cartopy coordinate system):
-            The coordinate system in which the sire coordinates are provided
+            The coordinate system in which the site coordinates are provided
             within the site list. This must be provided as the name of a
             cartopy coordinate system. The Default will become PlateCarree.
             This can be a complete definition, including parameters required

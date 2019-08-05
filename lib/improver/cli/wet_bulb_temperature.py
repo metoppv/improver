@@ -84,9 +84,9 @@ def main(argv=None):
 
 def process(temperature, relative_humidity, pressure,
             convergence_condition=0.05):
-    """Module to generate wet bulb temperatures.
+    """Module to generate wet-bulb temperatures.
 
-    Call the calculate_wet_bulb_temperature function to calculate wet bulb
+    Call the calculate_wet_bulb_temperature function to calculate wet-bulb
     temperatures. This process function splits input cubes over vertical levels
     to mitigate memory issues when trying to operate on multi-level data.
 
@@ -101,12 +101,12 @@ def process(temperature, relative_humidity, pressure,
     Kwargs:
         convergence_condition (float):
             The precision to which the Newton iterator must converge before
-            returning wet bulb temperatures.
+            returning wet-bulb temperatures.
             Default is 0.05.
 
     Returns:
         result (iris.cube.Cube):
-            Cube of wet bulb temperature (K).
+            Cube of wet-bulb temperature (K).
 
     """
     result = (WetBulbTemperature(precision=convergence_condition).

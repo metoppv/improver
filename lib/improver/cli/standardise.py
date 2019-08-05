@@ -187,7 +187,7 @@ def process(output_data, target_grid=None, source_landsea=None,
     Standardise a source cube. Available options are regridding
     (bi-linear or nearest-neighbour, optionally with land-mask
     awareness), updating meta-data and converting float64 data to
-    float32. A check for float64 data compliance can be make by only
+    float32. A check for float64 data compliance can be made by only
     specifying a source cube with no other arguments.
 
     Args:

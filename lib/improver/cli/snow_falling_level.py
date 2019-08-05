@@ -103,9 +103,9 @@ def process(temperature, relative_humidity, pressure, orog, land_sea,
             precision=0.005, falling_level_threshold=90.0):
     """Module to calculate continuous snow falling level.
 
-    Calculate the wet bulb temperature integral by firstly calculating the
-    wet bulb temperature from the inputs provided and then calculating the
-    vertical integral of the wet bulb temperature.
+    Calculate the wet-bulb temperature integral by firstly calculating the
+    wet-bulb temperature from the inputs provided and then calculating the
+    vertical integral of the wet-bulb temperature.
     Find the falling_snow_level by finding the height above sea level
     corresponding to the falling_level_threshold in the integral data.
 
@@ -129,7 +129,7 @@ def process(temperature, relative_humidity, pressure, orog, land_sea,
 
     Kwargs:
         precision (float):
-            Precision to which the wet bulb temperature is required: This is
+            Precision to which the wet-bulb temperature is required: This is
             used by the Newton iteration.
             Default is 0.005.
         falling_level_threshold (float):

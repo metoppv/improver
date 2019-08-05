@@ -165,7 +165,7 @@ def process(current_forecast, coeffs, num_realizations=None,
             to produce. If the current forecast is input as probabilities or
             percentiles then this argument is used to create the requested
             number of realizations. In addition, this argument is used to
-            construct the requested number of realization from the mean and
+            construct the requested number of realizations from the mean and
             variance out put after applying the EMOS coefficients.
             Default is None.
         random_ordering (bool):
@@ -175,7 +175,7 @@ def process(current_forecast, coeffs, num_realizations=None,
             Default is False.
         random_seed (int):
             Option to specify a value for the random seed for testing
-            purpose, otherwise the default random seen behaviour is utilised.
+            purposes, otherwise the default random seen behaviour is utilised.
             The random seed is used in the generation of the random numbers
             used for either the random_ordering option to order the input
             percentiles randomly, rather than use the ordering from the raw

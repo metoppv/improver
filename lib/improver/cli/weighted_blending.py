@@ -235,9 +235,9 @@ def process(cubelist, weights_dict, wts_calc_method, coordinate, cycletime,
             would normally be expected (to give greater weight to the more
             recent forecast).
         cval (float):
-            Factor used to determine how skewed the non linear weights will be.
+            Factor used to determine how skewed the non-linear weights will be.
             A value of 2 implies equal weighting. If not set, a default value
-            of cval=0.85 is set.
+            of cval=0.85 is set in the plugin.
         weighting_coord (str):
             Name of coordinate over which linear weights should be scaled.
             This coordinate must be available in the weights dictionary.
@@ -273,13 +273,6 @@ def process(cubelist, weights_dict, wts_calc_method, coordinate, cycletime,
         result (iris.cube.Cube):
             Merged and blended Cube.
     """
-    if (wts_calc_method == "linear") and cval:
-        raise RuntimeError('Method: linear does not accept arguments: cval')
-    if (wts_calc_method == "nonlinear") and np.any([y0val, ynval]):
-        raise RuntimeError('Method: non-linear does not accept arguments:'
-                           ' y0val, ynval')
-    if (wts_calc_method == "dict") and not weights_dict:
-        raise RuntimeError('Dictionary is required if wts_calc_method="dict"')
 
     plugin = WeightAndBlend(
         coordinate, wts_calc_method,

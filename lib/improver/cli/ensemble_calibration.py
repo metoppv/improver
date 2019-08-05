@@ -221,7 +221,7 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
             forecast, historical forecast and truth will be converted as
             required.
         distribution (str):
-            The distribution that will be used fore calibration. This will be
+            The distribution that will be used for calibration. This will be
             dependent upon the input phenomenon. This has to be supported by
             the minimisation function in
             ContinuousRankedProbabilityScoreMinimisers.
@@ -247,9 +247,9 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
             If random_seed is an integer, the integer value is used for the
             random_seed.
             If the random_seed is None, no random seed is set, so the random
-            values generated are no reproducible.
+            values generated are not reproducible.
         ecc_bounds_warning(bool):
-            If True, where te percentiles exceed the ECC bounds range, raises
+            If True, where the percentiles exceed the ECC bounds range, raises
             a warning rather than an exception. This occurs when the current
             forecast is in the form of probabilities and is converted to
             percentiles, as part of converting the input probabilities into
@@ -258,7 +258,7 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
             The maximum number of iterations allowed until the minimisation has
             converged to a stable solution. If the maximum number of iterations
             is reached, but the minimisation has not yet converged to a stable
-            solution, the the available solution is used anyway and a warning
+            solution, the available solution is used anyway and a warning
             is raised. If the predictor_of_mean is "realizations", then the
             number of iterations may require increasing, as there will be more
             coefficients to solve for.

@@ -178,7 +178,7 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube,
 
     Extract diagnostic data from gridded fields for spot data sites. It is
     possible to apply a temperature lapse rate adjustment to temperature data
-    that helps to account for differences between to spot sites real altitude
+    that helps to account for differences between the spot site's real altitude
     and that of the grid point from which the temperature data is extracted.
 
     Args:
@@ -200,7 +200,7 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube,
             Default is False.
         land_constraint (bool):
             If True, the neighbour cube will be interrogated for grid point
-            neighbour that were identified using a land constraint. This means
+            neighbours that were identified using a land constraint. This means
             that the grid points should be land points except for sites where
             none were found within the search radius when the neighbour cube
             was created. May be used with minimum_dz.

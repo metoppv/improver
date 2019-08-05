@@ -131,7 +131,7 @@ def process(landmask, orography, thresholds_dict=None):
     Kwargs:
         thresholds_dict (dictionary):
             Definition of orography bands required. Has key-value pairs of
-            "bounds": list of list of airs of bounds for each band and
+            "bounds": list of list of pairs of bounds for each band and
             "units":"string containing units of bounds", for example:
             {'bounds' :[[0, 100], [100, 200]], 'units':"m"}
             Default is None.
