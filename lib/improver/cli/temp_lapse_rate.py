@@ -152,7 +152,7 @@ def process(temperature_cube, orography_cube, land_sea_mask_cube,
 
     Returns:
         result (iris.cube.Cube):
-            Cube containing lapse rate (Km-1)
+            Cube containing lapse rate (K m-1)
 
     """
     if return_dalr:

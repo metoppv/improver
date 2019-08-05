@@ -71,8 +71,8 @@ def load_json_or_none(file_path):
     return metadata_dict
 
 
-def radius_or_radii_and_lead(radius, radii_by_lead_time):
-    """Takes both arguments and returns radius/radii and lead time.
+def radius_or_radii_and_lead(radius=None, radii_by_lead_time=None):
+    """Takes either argument and returns radius/radii and lead time.
 
     Args:
         radius (float or None):
@@ -87,7 +87,13 @@ def radius_or_radii_and_lead(radius, radii_by_lead_time):
                     Radius or radii.
                 **lead_times** (list):
                     If radii, list of lead times. Else None.
+
+    Raises:
+        TypeError:
+            When both radius and radii_by_lead_time are null.
     """
+    if radius is None and radii_by_lead_time is None:
+        raise TypeError("Need either a radius or a Radii_by_lead_time.")
 
     if radius:
         radius_or_radii = radius

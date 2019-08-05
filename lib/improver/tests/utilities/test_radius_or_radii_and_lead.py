@@ -48,10 +48,8 @@ class TestRadiusOrRadiiAndLead(unittest.TestCase):
 
     def test_both_None(self):
         """ Tests if both are None then both are returned None."""
-        radius, lead = radius_or_radii_and_lead(None, None)
-
-        self.assertIsNone(radius)
-        self.assertIsNone(lead)
+        with self.assertRaises(TypeError):
+            radius_or_radii_and_lead(None, None)
 
     def test_radii_and_lead(self):
         """Tests if radius is None and radii/lead is a list of csv.
