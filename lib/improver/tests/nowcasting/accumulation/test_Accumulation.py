@@ -177,7 +177,6 @@ class Test_sort_cubes_by_time(rate_cube_set_up):
         self.assertArrayEqual(times, expected)
 
 
-
 class Test__check_inputs(rate_cube_set_up):
 
     """Test the _check_inputs method."""
@@ -263,7 +262,6 @@ class Test__check_inputs(rate_cube_set_up):
     def test_raises_exception_for_impossible_aggregation(self):
         """Test function raises an exception when attempting to create an
         accumulation_period that cannot be created from the input cubes."""
-
 
         plugin = Accumulation(accumulation_period=119)
         msg = "The specified accumulation period "
@@ -368,7 +366,7 @@ class Test__set_metadata(rate_cube_set_up):
         expected_units = Unit("m")
         expected_time_point = [datetime.datetime(2017, 11, 10, 4, 10)]
         expected_time_bounds = [(datetime.datetime(2017, 11, 10, 4, 0),
-                            datetime.datetime(2017, 11, 10, 4, 10))]
+                                 datetime.datetime(2017, 11, 10, 4, 10))]
         expected_fp_point = 600
         expected_fp_bounds = [[0, 600]]
         result = Accumulation()._set_metadata(self.cubes)
