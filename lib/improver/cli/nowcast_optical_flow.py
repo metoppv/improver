@@ -162,8 +162,8 @@ def process(original_cube_list, oe_cube=None, metadata_dict=None,
             Every output cube will have the metadata_dict applied.
             Default is None.
         ofc_box_size (int):
-            Size of square 'box' (in grid spaces) within which to solve the optical
-            flow equations.
+            Size of square 'box' (in grid spaces) within which to solve
+            the optical flow equations.
             Default is 30.
         smart_smoothing_iterations (int):
             Number of iterations to perform in enforcing smoothness constraint
