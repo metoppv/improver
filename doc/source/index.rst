@@ -1,10 +1,13 @@
-.. IMPROVER documentation master file, created by
-   sphinx-quickstart on Fri May 19 13:27:21 2017.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. toctree::
+   :caption: Theme Documentation
+   :maxdepth: 2
 
-Welcome to IMPROVER's documentation!
-====================================
+   about
+   contributing
+
+
+Welcome to IMPROVER's documentation
+===================================
 
 IMPROVER is a library of algorithms for meteorological post-processing and verification.
 Please see the :doc:`improver` for API documentation.
