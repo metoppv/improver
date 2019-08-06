@@ -15,22 +15,6 @@ IMPROVER: Probabilistic meteorological post processing
 
 IMPROVER_ is an open source project being led by the Met Office in the UK to
 create a probabilistic post processing system for ensemble weather prediction
-systems.
+models.
 
 .. _IMPROVER: https://github.com/metoppv/improver
-
-
-Using IMPROVER
---------------
-
-IMPROVER does not currently include installation functionality. The code can be
-used by cloning this repository and calling the command line interfaces (CLIs)
-from a linux/unix terminal or by importing the modules directly into Python.
-
-.. code:: console
-
-    git clone https://github.com/metoppv/improver.git <local directory>
-
-The list of dependencies can be found in the `environment.yml`_ file.
-
-.. _environment.yml: https://github.com/metoppv/improver/blob/master/environment.yml
