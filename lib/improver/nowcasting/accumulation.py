@@ -34,12 +34,10 @@ accumulations from advected radar fields. It is also possible to create longer
 accumulations from shorter intervals.
 """
 import warnings
-from datetime import timedelta
 import numpy as np
 
 import iris
 from improver.utilities.cube_manipulation import expand_bounds
-from improver.utilities.temporal import iris_time_to_datetime
 from improver.utilities.cube_units import (enforce_coordinate_units_and_dtypes,
                                            enforce_diagnostic_units_and_dtypes)
 
