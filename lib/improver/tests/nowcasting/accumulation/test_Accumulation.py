@@ -284,27 +284,13 @@ class Test__get_cube_subsets(rate_cube_set_up):
         used for each accumulation period is expected to consist of 5 + 1
         cubes, so the integral is 5."""
         expected_cube_subset = self.cubes[:6]
-        upper_bound_cube = self.cubes[5]
+        upper_bound_fp, = self.cubes[5].coord("forecast_period").points
         integral = 5
         plugin = Accumulation(
             accumulation_period=5*60,
             forecast_periods=np.array([5])*60)
         result = plugin._get_cube_subsets(
-            self.cubes, upper_bound_cube, integral)
-        self.assertEqual(expected_cube_subset, result)
-
-    def test_not_a_desired_forecast_period(self):
-        """Test that if the forecast period of the upper bound cube is
-        not within the list of requested forecast periods, then the
-        subset of cubes returned is equal to None."""
-        expected_cube_subset = None
-        upper_bound_cube = self.cubes[-1]
-        integral = None
-        plugin = Accumulation(
-            accumulation_period=5*60,
-            forecast_periods=np.array([11])*60)
-        result = plugin._get_cube_subsets(
-            self.cubes, upper_bound_cube, integral)
+            self.cubes, upper_bound_fp, integral)
         self.assertEqual(expected_cube_subset, result)
 
     @ManageWarnings(record=True)
@@ -318,13 +304,13 @@ class Test__get_cube_subsets(rate_cube_set_up):
             " accumulation_period, i.e. the number of cubes is insufficient to"
             " give a set of complete periods. Only complete periods will be"
             " returned.")
-        upper_bound_cube = self.cubes[5]
+        upper_bound_fp = self.cubes[5].coord("forecast_period").points
         integral = 0
         plugin = Accumulation(
             accumulation_period=5*60,
             forecast_periods=np.array([5])*60)
         result = plugin._get_cube_subsets(
-            self.cubes, upper_bound_cube, integral)
+            self.cubes, upper_bound_fp, integral)
         self.assertEqual(expected_cube_subset, result)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))

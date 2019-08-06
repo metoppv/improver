@@ -182,18 +182,19 @@ class Accumulation:
             raise ValueError(msg)
         return cubes, time_interval, integral
 
-    def _get_cube_subsets(self, cubes, cube, integral):
+    def _get_cube_subsets(self, cubes, forecast_period, integral):
         """Finding the subset of cubes from the input cubelist that are
-        within the accumulation period, based on the input cube defining the
-        upper bound of the accumulation period and the length of the
-        accumulation period.
+        within the accumulation period, based on the required forecast period
+        that defines the upper bound of the accumulation period and the length
+        of the accumulation period.
 
         Args:
             cubes (iris.cube.CubeList):
                 Cubelist containing all the rates cubes that will be used
                 to calculate the accumulation.
-            cube (iris.cube.Cube):
-                Cube defining the upper bound of the accumulation period.
+            forecast_period (int):
+                Forecast period matching the upper bound of the accumulation
+                period.
             integral (int)
                 Integer value based on how many times the accumulation
                 period is divisible by the time interval. This therefore
@@ -211,9 +212,8 @@ class Accumulation:
                 insufficient to give a set of complete periods. Only complete
                 periods will be returned.
         """
-        fp_point = cube.coord("forecast_period").points[0]
-        if fp_point not in self.forecast_periods:
-            return None
+        constr = iris.Constraint(forecast_period=forecast_period)
+        cube, = cubes.extract(constr)
         end_point, = iris_time_to_datetime(cube.coord("time"))
         start_point = (
             end_point - timedelta(seconds=int(self.accumulation_period)))
@@ -314,8 +314,9 @@ class Accumulation:
         cubes, time_interval, integral = self._check_inputs(cubes)
 
         accumulation_cubes = iris.cube.CubeList()
-        for cube in cubes:
-            cube_subset = self._get_cube_subsets(cubes, cube, integral)
+        for forecast_period in self.forecast_periods:
+            cube_subset = self._get_cube_subsets(
+                cubes, forecast_period, integral)
             if cube_subset is None:
                 continue
             accumulation = self._calculate_accumulation(
