@@ -155,7 +155,7 @@ def process(original_cube_list, oe_cube=None, metadata_dict=None,
         oe_cube (iris.cube.Cube):
             Cube containing the orographic enhancement fields.
             Default is None.
-        metadata_dict (dictionary):
+        metadata_dict (dict):
             Dictionary containing required changes to the metadata.
             Information describing the intended contents of the dictionary is
             available in improver.utilities.cube_metadata.amend_metadata.

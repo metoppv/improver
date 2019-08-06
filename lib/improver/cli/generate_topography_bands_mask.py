@@ -130,7 +130,7 @@ def process(landmask, orography, thresholds_dict=None):
             The orography a standard grid.
 
     Keyword Args:
-        thresholds_dict (dictionary):
+        thresholds_dict (dict):
             Definition of orography bands required. Has key-value pairs of
             "bounds": list of list of pairs of bounds for each band and
             "units":"string containing units of bounds", for example:

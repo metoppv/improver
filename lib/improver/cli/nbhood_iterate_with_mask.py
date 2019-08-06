@@ -147,8 +147,8 @@ def main(argv=None):
         save_netcdf(intermediate_cube, args.intermediate_filepath)
 
 
-def process(cube, mask_cube, weights, coord_for_masking, radius,
-            radii_by_lead_time, sum_or_fraction="fraction", re_mask=False,
+def process(cube, mask_cube, weights, coord_for_masking, radius=None,
+            radii_by_lead_time=None, sum_or_fraction="fraction", re_mask=False,
             collapse_dimension=False):
     """Runs neighbourhooding processing iterating over a coordinate by mask.
 
@@ -178,18 +178,20 @@ def process(cube, mask_cube, weights, coord_for_masking, radius,
         coord_for_masking (str):
             String matching the name of the coordinate that will be used
             for masking.
+
+    Keyword Args:
         radius (float):
             The radius in metres of the neighbourhood to apply.
             Rounded up to convert into integer number of grid points east and
             north, based on the characteristic spacing at the zero indices of
             the cube projection-x and y coordinates.
+            Default is None.
         radii_by_lead_time (float or List if defining lead times):
             A list with the radius in metres at [0] and the lead_time at [1]
             Lead time is a List of lead times or forecast periods, at which
             the radii within 'radii' are defined. The lead times are expected
             in hours.
-
-    Keyword Args:
+            Default is None.
         sum_or_fraction (str):
             Identifier for whether sum or fraction should be returned from
             neighbourhooding.

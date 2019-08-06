@@ -140,6 +140,7 @@ def process(cube, coordinates, ecc_bounds_warning=False,
     Returns:
         result (iris.cube.Cube):
             The processed Cube.
+
     """
     if no_of_percentiles is not None:
         percentiles = choose_set_of_percentiles(no_of_percentiles,

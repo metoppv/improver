@@ -144,8 +144,8 @@ def main(argv=None):
     save_netcdf(result, args.output_filepath)
 
 
-def process(cube, threshold_values, threshold_dict, threshold_units=None,
-            below_threshold=False, fuzzy_factor=None,
+def process(cube, threshold_values=None, threshold_dict=None,
+            threshold_units=None, below_threshold=False, fuzzy_factor=None,
             collapse_coord="None", vicinity=None):
     """Module to apply thresholding to a parameter dataset.
 
@@ -159,23 +159,25 @@ def process(cube, threshold_values, threshold_dict, threshold_units=None,
     Args:
         cube (iris.cube.Cube):
              A cube to be processed.
+
+    Keyword Args:
         threshold_values (float):
             Threshold value or values about which to calculate the truth
             values; e.g. 270 300. Must be omitted if 'threshold_config'
             is used.
-        threshold_dict (dictionary):
+            Default is None.
+        threshold_dict (dict):
             Threshold configuration containing threshold values and
             (optionally) fuzzy bounds. Best used in combination with
             'threshold_units' It should contain a dictionary of strings that
             can be interpreted as floats with the structure:
             "THRESHOLD_VALUE": [LOWER_BOUND, UPPER_BOUND]
-            e.g: {"280.0": [278.0, 282.0],
-            "290.0": [288.0, 292.0]}, or with structure
+            e.g: {"280.0": [278.0, 282.0], "290.0": [288.0, 292.0]},
+            or with structure
             "THRESHOLD_VALUE": "None" (no fuzzy bounds).
             Repeated thresholds with different bounds are not
             handled well. Only the last duplicate will be used.
-
-    Keyword Args:
+            Default is None.
         threshold_units (str):
             Units of the threshold values. If not provided the units are
             assumed to be the same as those of the input cube. Specifying
@@ -206,6 +208,9 @@ def process(cube, threshold_values, threshold_dict, threshold_units=None,
             processed Cube.
 
     """
+    if threshold_dict and threshold_values:
+        raise RuntimeError('threshold_dict cannot be used '
+                           'with threshold_values')
     if threshold_dict:
         try:
             thresholds = []

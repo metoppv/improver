@@ -185,16 +185,16 @@ def main(argv=None):
     # Load cubes to be blended.
     cubelist = load_cubelist(args.input_filepaths)
 
-    result = process(cubelist, weights_dict, args.wts_calc_method,
-                     args.coordinate, args.cycletime, args.y0val, args.ynval,
-                     args.cval, args.weighting_coord, args.model_id_attr,
+    result = process(cubelist, args.wts_calc_method, args.coordinate,
+                     args.cycletime, args.weighting_coord, weights_dict,
+                     args.y0val, args.ynval, args.cval, args.model_id_attr,
                      args.spatial_weights_from_mask, args.fuzzy_length)
 
     save_netcdf(result, args.output_filepath)
 
 
-def process(cubelist, weights_dict, wts_calc_method, coordinate, cycletime,
-            y0val, ynval, cval, weighting_coord,
+def process(cubelist, wts_calc_method, coordinate, cycletime, weighting_coord,
+            weights_dict=None, y0val=None, ynval=None, cval=None,
             model_id_attr='mosg__model_configuration',
             spatial_weights_from_mask=False, fuzzy_length=20000.0):
     """Module to run weighted blending.
@@ -212,10 +212,6 @@ def process(cubelist, weights_dict, wts_calc_method, coordinate, cycletime,
             "nonlinear": calculate blending weights that decrease
             exponentially with increasing blending coordinates.
             "dicts": calculate weights using a dictionary passed in.
-        weights_dict (dictionary):
-            Dictionary from which to calculate blending weights. Dictionary
-            format is as specified in the
-            improver.blending.weights.ChoosingWeightsLinear
         coordinate (str):
             The coordinate over which the blending will be applied.
         cycletime (str):
@@ -223,10 +219,19 @@ def process(cubelist, weights_dict, wts_calc_method, coordinate, cycletime,
             applied, in the format YYYYMMDDTHHMMZ. If not provided, the
             blended file take the latest available forecast reference time
             from the input cubes supplied.
+        weighting_coord (str):
+            Name of coordinate over which linear weights should be scaled.
+            This coordinate must be available in the weights dictionary.
+
+    Keyword Args:
+        weights_dict (dict):
+            Dictionary from which to calculate blending weights. Dictionary
+            format is as specified in the
+            improver.blending.weights.ChoosingWeightsLinear
         y0val (float):
             The relative value of the weighting start point (lowest value of
             blend coord) for choosing default linear weights.
-            This must be a positive float or 0.
+            If used this must be a positive float or 0.
         ynval (float):
             The relative value of the weighting end point (highest value of
             blend coord) for choosing default linear weights. This must be a
@@ -237,11 +242,6 @@ def process(cubelist, weights_dict, wts_calc_method, coordinate, cycletime,
         cval (float):
             Factor used to determine how skewed the non-linear weights will be.
             A value of 2 implies equal weighting.
-        weighting_coord (str):
-            Name of coordinate over which linear weights should be scaled.
-            This coordinate must be available in the weights dictionary.
-
-    Keyword Args:
         model_id_attr (str):
             The name of the cube attribute to be used to identify the source
             model for multi-model blends. Default assume Met Office model

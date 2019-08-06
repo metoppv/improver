@@ -175,7 +175,7 @@ def main(argv=None):
             save_netcdf(cube, file_name)
 
 
-def process(input_cube, ucube, vcube, scube, dcube, oe_cube=None,
+def process(input_cube, u_cube, v_cube, s_cube, d_cube, oe_cube=None,
             metadata_dict=None, max_lead_time=360, lead_time_interval=15,
             accumulation_fidelity=0, accumulation_units='m'):
     """Module  to extrapolate input cubes given advection velocity fields.
@@ -183,23 +183,31 @@ def process(input_cube, ucube, vcube, scube, dcube, oe_cube=None,
     Args:
         input_cube (iris.cube.Cube):
             The input Cube to be processed.
-        ucube (iris.cube.Cube):
+        u_cube (iris.cube.Cube):
             Cube with the velocities in the x direction.
-        vcube (iris.cube.Cube):
+            Must be used with v_cube.
+            s_cube and d_cube must be None.
+        v_cube (iris.cube.Cube):
             Cube with the velocities in the y direction.
-        scube (iris.cube.Cube):
+            Must be used with u_cube.
+            s_cube and d_cube must be None.
+        s_cube (iris.cube.Cube):
             Cube containing advection speeds, usually wind speed.
-        dcube (iris.cube.Cube):
+            Must be used with d_cube.
+            u_cube and v_cube must be None.
+        d_cube (iris.cube.Cube):
             Cube from which advection speeds are coming. The directions
             should be on the same grid as the input speeds, including the same
             vertical levels.
+            Must be used with d_cube.
+            u_cube and v_cube must be None.
 
     Keyword Args:
         oe_cube (iris.cube.Cube):
             Cube containing the orographic enhancement fields. May have data
             for multiple times in the cube.
             Default is None.
-        metadata_dict (dictionary):
+        metadata_dict (dict):
             Dictionary containing the required changes to the metadata.
             Information describing the intended contents of the dictionary
             is available in improver.utilities.cube_metadata.amend_metadata.
@@ -234,9 +242,9 @@ def process(input_cube, ucube, vcube, scube, dcube, oe_cube=None,
 
     """
 
-    if (scube and dcube) and not (ucube or vcube):
-        ucube, vcube = ResolveWindComponents().process(scube, dcube)
-    elif (ucube or vcube) and (scube or dcube):
+    if (s_cube and d_cube) and not (u_cube or v_cube):
+        u_cube, v_cube = ResolveWindComponents().process(s_cube, d_cube)
+    elif (u_cube or v_cube) and (s_cube or d_cube):
         raise ValueError('Cannot mix advection component velocities with speed'
                          ' and direction')
     # generate list of lead times in minutes
@@ -259,7 +267,7 @@ def process(input_cube, ucube, vcube, scube, dcube, oe_cube=None,
 
     lead_time_filter = lead_time_interval // time_interval
     forecast_plugin = CreateExtrapolationForecast(
-        input_cube, ucube, vcube, orographic_enhancement_cube=oe_cube,
+        input_cube, u_cube, v_cube, orographic_enhancement_cube=oe_cube,
         metadata_dict=metadata_dict)
     # extrapolate input data to required lead times
     forecast_cubes = iris.cube.CubeList()

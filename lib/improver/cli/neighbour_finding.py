@@ -188,12 +188,12 @@ def process(orography, landmask, site_list, metadata_dict=None,
         landmask (iris.cube.Cube):
             Cube of model land mask for the model grid on which neighbours are
             being found.
-        site_list (dictionary):
+        site_list (dict):
             Dictionary that contains the spot sites for which neighbouring grid
             points are to be found.
 
     Keyword Args:
-        metadata_dict (dictionary):
+        metadata_dict (dict):
             Dictionary that can be used to modify the metadata of the
             returned cube.
             Default is None.

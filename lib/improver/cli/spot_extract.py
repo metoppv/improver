@@ -226,7 +226,7 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube,
             If True, where calculated percentiles are outside the ECC bounds
             range, raises a warning rather than an exception.
             Default is False.
-        metadata_dict (dictionary):
+        metadata_dict (dict):
             If provided, this dictionary can be used to modify the metadata
             of the returned cube.
             Default is None.

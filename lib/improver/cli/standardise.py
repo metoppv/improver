@@ -205,7 +205,7 @@ def process(output_data, target_grid=None, source_landsea=None,
             A cube describing the land_binary_mask on the source-grid if
             coastline-aware regridding is required.
             Default is None.
-        metadata_dict (dictionary):
+        metadata_dict (dict):
             Dictionary containing required changes that will be applied to
             the metadata.
             Default is None.

@@ -163,7 +163,7 @@ def main(argv=None):
     save_netcdf(result_cube, args.output_filepath)
 
 
-def process(cube, raw_forecast, no_of_percentiles=None,
+def process(cube, raw_forecast=None, no_of_percentiles=None,
             sampling_method='quantile', ecc_bounds_warning=False,
             reordering=False, rebadging=False, random_ordering=False,
             random_seed=None, realization_numbers=None):
@@ -175,10 +175,11 @@ def process(cube, raw_forecast, no_of_percentiles=None,
     Args:
         cube (iris.cube.Cube):
             Cube expected to contain a percentiles coordinate.
-        raw_forecast (iris.cube.Cube):
-            Cube of raw (not post processed) weather data.
 
     Keyword Args:
+        raw_forecast (iris.cube.Cube):
+            Cube of raw (not post processed) weather data.
+            This option is compulsory, if the reordering option is selected.
         no_of_percentiles (int):
             The number of percentiles to be generated. This is also equal to
             the number of ensemble realizations that will be generated.
@@ -229,6 +230,17 @@ def process(cube, raw_forecast, no_of_percentiles=None,
         result (iris.cube.Cube):
             The processed Cube.
     """
+    if reordering:
+        if realization_numbers is not None:
+            raise TypeError('realization_numbers cannot be used with '
+                            'reordering.')
+    if rebadging:
+        if raw_forecast is not None:
+            raise TypeError('rebadging cannot be used with raw_forecast.')
+    if rebadging:
+        if random_ordering is not False:
+            raise TypeError('rebadging cannot be used with random_ordering.')
+
     result = ResamplePercentiles(
         ecc_bounds_warning=ecc_bounds_warning).process(
         cube, no_of_percentiles=no_of_percentiles,

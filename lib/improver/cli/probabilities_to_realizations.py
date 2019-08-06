@@ -140,17 +140,18 @@ def main(argv=None):
     save_netcdf(cube, args.output_filepath)
 
 
-def process(cube, raw_forecast, no_of_realizations=None, reordering=False,
+def process(cube, raw_forecast=None, no_of_realizations=None, reordering=False,
             rebadging=False, random_seed=None, ecc_bounds_warning=False):
     """Convert from probabilities to ensemble realizations.
 
     Args:
         cube (iris.cube.Cube):
             Cube to be processed.
-        raw_forecast (iris.cube.Cube):
-            A raw forecast cube which must be used if using reordering.
 
     Keyword Args:
+        raw_forecast (iris.cube.Cube):
+            Cube of raw (not post processed) weather data.
+            This option is compulsory, if the reordering option is selected.
         no_of_realizations (int):
             Optional definition of the number of ensemble realizations to
             be generated. These are generated though an intermediate
@@ -188,12 +189,22 @@ def process(cube, raw_forecast, no_of_realizations=None, reordering=False,
         result (iris.cube.Cube):
             Processed result Cube.
     """
+    if rebadging:
+        if raw_forecast is not None:
+            raise TypeError('rebadging cannot be used with raw_forecast.')
+        if random_seed is not None:
+            raise TypeError('rebadging cannot be used with random_seed.')
+
     if reordering:
         no_of_realizations = no_of_realizations
         # If no_of_realizations is not given, take the number from the raw
         # ensemble cube.
         if no_of_realizations is None:
             no_of_realizations = len(raw_forecast.coord("realization").points)
+            if raw_forecast is None:
+                message = ("You must supply a raw forecast if using the "
+                           "reordering option.")
+                raise ValueError(message)
 
         cube = GeneratePercentilesFromProbabilities(
             ecc_bounds_warning=ecc_bounds_warning).process(

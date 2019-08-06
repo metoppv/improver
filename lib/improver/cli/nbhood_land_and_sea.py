@@ -142,7 +142,7 @@ def main(argv=None):
         save_netcdf(intermediate_cube, args.intermediate_filepath)
 
 
-def process(cube, mask, radius, radii_by_lead_time, weights=None,
+def process(cube, mask, radius=None, radii_by_lead_time=None, weights=None,
             sum_or_fraction="fraction", return_intermediate=False):
     """ Module to process land and sea separately before combining them.
 
@@ -161,15 +161,20 @@ def process(cube, mask, radius, radii_by_lead_time, weights=None,
         mask (iris.cube.Cube):
             A cube containing either a mask of topographic zones over land or
             a land-sea mask.
+
+    Keyword Args:
         radius (float):
             The radius in metres of the neighbourhood to apply.
+            Rounded up to convert into integer number of grid points east and
+            north, based on the characteristic spacing at the zero indices of
+            the cube projection-x and y coordinates.
+            Default is None.
         radii_by_lead_time (list):
             A list with the radius in metres at [0] and the lead_time at [1]
             Lead time is a List of lead times or forecast periods, at which
             the radii within 'radii' are defined. The lead times are expected
             in hours.
-
-    Keyword Args:
+            Default is None
         weights (iris.cube.Cube):
             A cube containing the weights which are used for collapsing the
             dimension gained through masking. These weights must have been
