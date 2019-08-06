@@ -4,11 +4,11 @@
    :caption: About IMPROVER
    :maxdepth: 2
 
-   About <about.rst>
+   about
    Contributing <https://github.com/metoppv/improver/blob/master/CONTRIBUTING.md>
 
 .. toctree::
-   :caption: Packages and Modules
+   :caption: The Code
    :maxdepth: 4
 
    improver
