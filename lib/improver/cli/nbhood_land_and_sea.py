@@ -169,7 +169,7 @@ def process(cube, mask, radius, radii_by_lead_time, weights=None,
             the radii within 'radii' are defined. The lead times are expected
             in hours.
 
-    Kwargs:
+    Keyword Args:
         weights (iris.cube.Cube):
             A cube containing the weights which are used for collapsing the
             dimension gained through masking. These weights must have been

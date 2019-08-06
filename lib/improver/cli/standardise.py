@@ -195,7 +195,7 @@ def process(output_data, target_grid=None, source_landsea=None,
             Output cube. If the only argument, then it is checked bor float64
             data.
 
-    Kwargs:
+    Keyword Args:
         target_grid (iris.cube.Cube):
             If specified, then regridding of the source against the target
             grid is enabled. If also using landmask-aware regridding then this
@@ -234,7 +234,7 @@ def process(output_data, target_grid=None, source_landsea=None,
         landmask_vicinity (float):
             Radius of vicinity to search for a coastline, in metres.
             Defaults is 25000 m
-        fix_float64 (boolean):
+        fix_float64 (bool):
             If True, checks and fixes cube for float64 data. Without this
             option an exception will be raised if float64 data is found but no
             fix applied.

@@ -123,7 +123,7 @@ def process(cubelist, coordinate, central_point, units, width,
             Width of the triangular weighting function used in the blending,
             in the units of the units argument.
 
-    Kwargs:
+    Keyword Args:
         calendar
             Calendar for parameter_unit if required.
             Default is 'gregorian'

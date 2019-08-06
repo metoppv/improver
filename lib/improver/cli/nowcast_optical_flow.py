@@ -151,7 +151,7 @@ def process(original_cube_list, oe_cube=None, metadata_dict=None,
             The cubes require a 'time' coordinate on which they are sorted,
             so the order of cubes does not matter.
 
-    Kwargs:
+    Keyword Args:
         oe_cube (iris.cube.Cube):
             Cube containing the orographic enhancement fields.
             Default is None.

@@ -159,7 +159,7 @@ def process(wind_speed, silhouette_roughness, sigma, target_orog,
             standard grid)
             Units of field: m.
 
-    Kwargs:
+    Keyword Args:
         height_levels (iris.cube.Cube):
             Cube of height levels coincident with wind direction.
             Units of field: m.

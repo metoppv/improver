@@ -194,7 +194,7 @@ def process(input_cube, ucube, vcube, scube, dcube, oe_cube=None,
             should be on the same grid as the input speeds, including the same
             vertical levels.
 
-    Kwargs:
+    Keyword Args:
         oe_cube (iris.cube.Cube):
             Cube containing the orographic enhancement fields. May have data
             for multiple times in the cube.

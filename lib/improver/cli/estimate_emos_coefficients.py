@@ -141,7 +141,7 @@ def process(historic_forecast, truth, distribution, cycletime, units=None,
             coefficients cube will be calculated relative to this cycletime.
             This cycletime is in the format YYYYMMDDTHHMMZ.
 
-    Kwargs:
+    Keyword Args:
         units
             The units that calibration should be undertaken in. The historical
             forecast and truth will be converted as required.

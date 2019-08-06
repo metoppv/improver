@@ -150,7 +150,7 @@ def process(cube, raw_forecast, no_of_realizations=None, reordering=False,
         raw_forecast (iris.cube.Cube):
             A raw forecast cube which must be used if using reordering.
 
-    Kwargs:
+    Keyword Args:
         no_of_realizations (int):
             Optional definition of the number of ensemble realizations to
             be generated. These are generated though an intermediate

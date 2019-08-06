@@ -127,7 +127,7 @@ def process(temperature, relative_humidity, pressure, orog, land_sea,
             the continuous falling snow level is being calculated. Land points
             are set to 1, sea points are set to 0.
 
-    Kwargs:
+    Keyword Args:
         precision (float):
             Precision to which the wet-bulb temperature is required: This is
             used by the Newton iteration.

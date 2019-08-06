@@ -130,7 +130,7 @@ def process(temperature_cube, orography_cube, land_sea_mask_cube,
             True for land-points.
             False for sea.
 
-    Kwargs:
+    Keyword Args:
         max_height_diff (float):
             Maximum allowable height difference between the central point and
             points in the neighbourhood over which the lapse rate will be

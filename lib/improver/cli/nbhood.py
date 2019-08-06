@@ -256,7 +256,7 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius=None,
             output.
             Options: "circular", "square".
 
-    Kwargs:
+    Keyword Args:
         radius(float):
             The radius in metres of the neighbourhood to apply
         radii_by_lead_time(list):

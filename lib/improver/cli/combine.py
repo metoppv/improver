@@ -123,7 +123,7 @@ def process(cubelist, operation, new_cube_name,
             New name for the resulting dataset. Will default to the name of the
             first dataset if not set.
 
-    Kwargs:
+    Keyword Args:
         new_metadata (dict):
             Dictionary of required changes to the metadata.
             Default is None.

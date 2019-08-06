@@ -226,7 +226,7 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
             the minimisation function in
             ContinuousRankedProbabilityScoreMinimisers.
 
-    Kwargs:
+    Keyword Args:
         predictor_of_mean (str):
             String to specify the input to calculate the calibrated mean.
             Currently the ensemble mean "mean" and the ensemble realizations

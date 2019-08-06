@@ -178,7 +178,7 @@ def process(cube, raw_forecast, no_of_percentiles=None,
         raw_forecast (iris.cube.Cube):
             Cube of raw (not post processed) weather data.
 
-    Kwargs:
+    Keyword Args:
         no_of_percentiles (int):
             The number of percentiles to be generated. This is also equal to
             the number of ensemble realizations that will be generated.

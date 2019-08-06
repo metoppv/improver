@@ -98,7 +98,7 @@ def process(temperature, relative_humidity, pressure,
         pressure (iris.cube.Cube):
             Cube of air pressure.
 
-    Kwargs:
+    Keyword Args:
         convergence_condition (float):
             The precision to which the Newton iterator must converge before
             returning wet-bulb temperatures.

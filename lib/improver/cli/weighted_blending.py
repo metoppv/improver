@@ -241,7 +241,7 @@ def process(cubelist, weights_dict, wts_calc_method, coordinate, cycletime,
             Name of coordinate over which linear weights should be scaled.
             This coordinate must be available in the weights dictionary.
 
-    Kwargs:
+    Keyword Args:
         model_id_attr (str):
             The name of the cube attribute to be used to identify the source
             model for multi-model blends. Default assume Met Office model

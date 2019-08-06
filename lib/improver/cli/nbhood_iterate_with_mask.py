@@ -189,7 +189,7 @@ def process(cube, mask_cube, weights, coord_for_masking, radius,
             the radii within 'radii' are defined. The lead times are expected
             in hours.
 
-    Kwargs:
+    Keyword Args:
         sum_or_fraction (str):
             Identifier for whether sum or fraction should be returned from
             neighbourhooding.

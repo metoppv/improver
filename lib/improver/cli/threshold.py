@@ -175,7 +175,7 @@ def process(cube, threshold_values, threshold_dict, threshold_units=None,
             Repeated thresholds with different bounds are not
             handled well. Only the last duplicate will be used.
 
-    Kwargs:
+    Keyword Args:
         threshold_units (str):
             Units of the threshold values. If not provided the units are
             assumed to be the same as those of the input cube. Specifying
