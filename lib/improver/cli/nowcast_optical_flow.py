@@ -188,6 +188,10 @@ def process(original_cube_list, oe_cube=None, metadata_dict=None,
             **u_and_v_mean** (list<Cube>):
                 List of the umean and vmean cubes.
 
+    Raises:
+        ValueError:
+            If there is no oe_cube but a cube is called 'precipitation_rate'.
+
     """
     if oe_cube:
         cube_list = ApplyOrographicEnhancement("subtract").process(

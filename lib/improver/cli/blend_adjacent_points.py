@@ -137,6 +137,14 @@ def process(cubelist, coordinate, central_point, units, width,
     Returns:
         result (iris.cube.Cube):
             A processed Cube
+
+    Raises:
+        ValueError:
+            If coordinate has "time" in it.
+        ValueError:
+            If blend_time_forecast_period is not used with forecast_period
+            coordinate.
+
     """
     # TriangularWeightedBlendAcrossAdjacentPoints can't currently handle
     # blending over times where iris reads the coordinate points as datetime

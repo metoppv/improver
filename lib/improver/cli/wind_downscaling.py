@@ -185,6 +185,10 @@ def process(wind_speed, silhouette_roughness, sigma, target_orog,
         wind_speed (iris.cube.Cube):
             The processed Cube.
 
+    Rises:
+        ValueError:
+            If the requested height value is not found.
+
     """
     if output_height_level_units and not output_height_level:
         warnings.warn('--output_height_level_units has been set but no '

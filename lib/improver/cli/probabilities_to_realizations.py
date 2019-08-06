@@ -188,6 +188,14 @@ def process(cube, raw_forecast=None, no_of_realizations=None, reordering=False,
     Returns:
         result (iris.cube.Cube):
             Processed result Cube.
+
+    Raises:
+        TypeError:
+            If rebadging is used with raw_forecast.
+        TypeError:
+            If rebadging is used with random_seed.
+        ValueError:
+            If raw_forecast isn't supplied when using reordering.
     """
     if rebadging:
         if raw_forecast is not None:

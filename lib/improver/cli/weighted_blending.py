@@ -271,6 +271,14 @@ def process(cubelist, wts_calc_method, coordinate, cycletime, weighting_coord,
     Returns:
         result (iris.cube.Cube):
             Merged and blended Cube.
+
+    Raises:
+        RuntimeError:
+            If calc_method is linear and cval is not None.
+        RuntimeError:
+            If calc_method is nonlinear and either y0val and ynval is not None.
+        RuntimeError:
+            If calc_method is dict and weights_dict is None.
     """
 
     if (wts_calc_method == "linear") and cval:
@@ -278,7 +286,7 @@ def process(cubelist, wts_calc_method, coordinate, cycletime, weighting_coord,
     if (wts_calc_method == "nonlinear") and np.any([y0val, ynval]):
         raise RuntimeError('Method: non-linear does not accept arguments:'
                            ' y0val, ynval')
-    if (wts_calc_method == "dict") and not weights_dict:
+    if (wts_calc_method == "dict") and weights_dict is None:
         raise RuntimeError('Dictionary is required if wts_calc_method="dict"')
 
     plugin = WeightAndBlend(

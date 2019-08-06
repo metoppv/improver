@@ -102,7 +102,7 @@ def main(argv=None):
 
 def process(cube, coordinates, ecc_bounds_warning=False,
             percentiles=None, no_of_percentiles=None):
-    """Collapses cube coordinates and calculate percentiled data.
+    r"""Collapses cube coordinates and calculate percentiled data.
 
     Calculate percentiled data over a given coordinate by collapsing that
     coordinate. Typically used to convert realization data into percentiled
@@ -117,7 +117,7 @@ def process(cube, coordinates, ecc_bounds_warning=False,
     Args:
         cube (iris.cube.Cube):
             A Cube for processing.
-        coordinates (string or list):
+        coordinates (str or list):
             Coordinate or coordinates over which to collapse data and
             calculate percentiles. This coordinate will no longer be present
             in the output cube, as it will have been replaced by the
@@ -140,6 +140,15 @@ def process(cube, coordinates, ecc_bounds_warning=False,
     Returns:
         result (iris.cube.Cube):
             The processed Cube.
+
+    Raises:
+        ValueError:
+            If the cube name does not contain 'probability_of\_' and
+            coordinates isn't used.
+
+    Warns:
+        Warning:
+            If 'probability_of\_' is in the cube name and coordinates is used.
 
     """
     if no_of_percentiles is not None:

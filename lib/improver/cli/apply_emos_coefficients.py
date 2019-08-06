@@ -199,6 +199,12 @@ def process(current_forecast, coeffs, num_realizations=None,
     Returns:
         result (iris.cube.Cube):
             The calibrated forecast cube.
+
+    Raises:
+        ValueError:
+            If the forecast type is 'percentiles' or 'probabilities' while no
+            num_realizations are given.
+
     """
     original_current_forecast = current_forecast.copy()
     msg = ("The current forecast has been provided as {0}. "

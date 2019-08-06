@@ -250,7 +250,15 @@ def process(orography, landmask, site_list, metadata_dict=None,
         result (iris.cube.Cube):
             The processed Cube.
 
+    Raises:
+        ValueError:
+            If all_methods is used with land_constraint or minimum_dz.
+
     """
+    # Check valid options have been selected.
+    if all_methods is True and (land_constraint or minimum_dz):
+        raise ValueError(
+            'Cannot use all_methods option with other constraints.')
     # Filter kwargs for those expected by plugin and which are set.
     # This preserves the plugin defaults for unset options.
     args = {
@@ -270,11 +278,6 @@ def process(orography, landmask, site_list, metadata_dict=None,
         scrs = kwargs['site_coordinate_system']
         kwargs['site_coordinate_system'] = safe_eval(scrs, ccrs,
                                                      PROJECTION_LIST)
-    # Check valid options have been selected.
-    if all_methods is True and (kwargs['land_constraint'] is True or
-                                kwargs['minimum_dz'] is True):
-        raise ValueError(
-            'Cannot use all_methods option with other constraints.')
     # Call plugin to generate neighbour cubes
     if all_methods:
         methods = [

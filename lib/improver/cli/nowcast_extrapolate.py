@@ -228,7 +228,7 @@ def process(input_cube, u_cube, v_cube, s_cube, d_cube, oe_cube=None,
         accumulation_units (str):
             Desired units in which the accumulations should be expressed.
             e.g. 'mm'
-            Default is 'm'
+            Default is 'm'.
 
     Returns:
         (tuple) tuple containing:
@@ -239,7 +239,13 @@ def process(input_cube, u_cube, v_cube, s_cube, d_cube, oe_cube=None,
             **forecast_to_return** (iris.cube.Cubelist):
                 New cubes with updated time and extrapolated data.
 
-
+    Raises:
+        ValueError:
+            can either use s_cube and d_cube or u_cube and v_cube.
+            Therefore: (s and d)⊕(u and v)
+        ValueError:
+            If accumulation_fidelity is greater than 0 and max_lead_time is not
+            cleanly divisible by accumulation_fidelity.
     """
 
     if (s_cube and d_cube) and not (u_cube or v_cube):

@@ -199,6 +199,20 @@ def process(cube, mask, radius=None, radii_by_lead_time=None, weights=None,
             **intermediate_cube** (iris.cube.Cube or None):
                 A cube of the intermediate data, before collapsing.
 
+    Raises:
+        ValueError:
+            If the topographic zone mask has the attribute
+            topographic_zones_include_seapoints.
+        IOError:
+            if a weights cube isn't given and a topographic_zone mask is given.
+        ValueError:
+            If the weights cube has the attribute
+            topographic_zones_include_seapoints.
+
+    Warns:
+        warning:
+            A weights cube has been provided but no topographic zone.
+
     """
     masking_coordinate = intermediate_cube = None
     if any(['topographic_zone' in coord.name()

@@ -207,6 +207,14 @@ def process(cube, threshold_values=None, threshold_dict=None,
         result (iris.cube.Cube):
             processed Cube.
 
+    Raises:
+        RuntimeError:
+            If threshold_dict and threshold_values are both used.
+
+     Warns:
+        warning:
+            If collapsing coordinates with a masked array.
+
     """
     if threshold_dict and threshold_values:
         raise RuntimeError('threshold_dict cannot be used '

@@ -238,6 +238,31 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube,
     Returns:
         result (iris.cube.Cube):
            The processed cube.
+
+    Raises:
+        ValueError:
+            If the percentile diagnostic cube does not contain the requested
+            percentile value.
+        ValueError:
+            If the lapse rate cube was provided but the diagnostic being
+            processed is not air temperature.
+        ValueError:
+            If the lapse rate cube provided does not have the name
+            "air_temperature_lapse_rate"
+        ValueError:
+            If the lapse rate cube does not contain a single valued height
+            coordinate.
+
+    Warns:
+        warning:
+           If diagnostic cube is not a known probabilistic type.
+        warning:
+            If a lapse rate cube was provided, but the height of the
+            temperature does not match that of the data used.
+        warning:
+            If a lapse rate cube was not provided, but the option to apply
+            the lapse rate correction was enabled.
+
     """
     neighbour_selection_method = NeighbourSelection(
         land_constraint=land_constraint,

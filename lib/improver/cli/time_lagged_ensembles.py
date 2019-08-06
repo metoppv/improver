@@ -85,6 +85,10 @@ def process(cubes):
     Returns:
         result (iris.cube.Cube):
             Merged Cube.
+
+    Raises:
+        ValueError:
+            If cubes have mismatched validity times.
     """
 
     # Warns if a single file is input

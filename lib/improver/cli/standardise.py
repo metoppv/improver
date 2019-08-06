@@ -244,6 +244,17 @@ def process(output_data, target_grid=None, source_landsea=None,
         output_data (iris.cube.Cube):
             Processed cube.
 
+    Raises:
+        ValueError:
+            If regrid_mode is "nearest-with-mask" but no landmask cube has
+            been provided.
+
+    Warns:
+        warning:
+            If the 'source_landsea' did not have a cube named land_binary_mask.
+        warning:
+            If the 'target_grid' did not have a cube named land_binary_mask.
+
     """
     # Process
     if fix_float64:

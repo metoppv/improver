@@ -142,7 +142,7 @@ def process(historic_forecast, truth, distribution, cycletime, units=None,
             This cycletime is in the format YYYYMMDDTHHMMZ.
 
     Keyword Args:
-        units
+        units (str):
             The units that calibration should be undertaken in. The historical
             forecast and truth will be converted as required.
             Default is None.

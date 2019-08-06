@@ -330,6 +330,26 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius=None,
     Returns:
         result (iris.cube.Cube):
             A processed Cube.
+
+    Raises:
+        RuntimeError:
+            If neighbourhood_shape is used with the wrong neighbourhood
+            output.
+        RuntimeError:
+            If weighted_mode is used with the wrong neighbourhood_output.
+        RuntimeError:
+            If neighbourhood_output='probabilities' and the default
+            percentiles are used.
+        RuntimeError:
+            If neighbourhood_shape='circular' is used with mask cube.
+        ValueError:
+            If degree_as_complex is used with
+            neighbourhood_output='percentiles'.
+        ValueError:
+            If degree_as_complex is used with neighbourhood_shape='circular'.
+        ValueError:
+            If degree_as_complex is used with apply_recursive_filter.
+
     """
     if (neighbourhood_output == "percentiles" and
             neighbourhood_shape == "square"):

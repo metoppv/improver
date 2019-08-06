@@ -277,6 +277,10 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
             **forecast_variance** (iris.cube.Cube):
                 The variance output from EnsembleCalibration.
 
+    Raises:
+        ValueError:
+            If forecast type is 'percentiles' or 'probabilities' while no
+            num_realizations are given.
     """
     original_current_forecast = current_forecast.copy()
     msg = ("The current forecast has been provided as {0}. "
