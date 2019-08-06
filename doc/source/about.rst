@@ -65,6 +65,28 @@ This simple example covers one step in a processing chain. Additional informatio
     bin/improver nbhood -h
 
 
+Publications & Presentations
+----------------------------
+
+Below are links to publicly accessible publications & presentations that relate to IMPROVER.
+
+1. `Generating probabilistic forecasts from convection permitting ensembles`_
+
+   - Nigel Roberts
+
+2. `Creating a probabilistic, multi-model post-processing system (IMPROVER) at the Met Office`_
+
+   - Gavin Evans
+
+3. `Topographic neighbourhood processing`_
+
+   - Fiona Rust
+
+.. _Generating probabilistic forecasts from convection permitting ensembles: https://presentations.copernicus.org/EMS2017-277_presentation.pdf
+.. _Creating a probabilistic, multi-model post-processing system (IMPROVER) at the Met Office: https://presentations.copernicus.org/EMS2018-20_presentation.pdf
+.. _Topographic neighbourhood processing: https://presentations.copernicus.org/EMS2018-70_presentation.pdf
+
+
 
 Contributing
 ------------

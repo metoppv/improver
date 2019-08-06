@@ -1,4 +1,4 @@
-.. include:: ../frontpage.rst
+.. include:: frontpage.rst
 
 .. toctree::
    :caption: About IMPROVER
