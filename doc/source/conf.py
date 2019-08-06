@@ -96,7 +96,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'IMPROVER'
-copyright = u'2017, Met Office'
+copyright = u'2019, Met Office'
 author = u'Met Office'
 
 # The version info for the project you're documenting, acts as replacement for

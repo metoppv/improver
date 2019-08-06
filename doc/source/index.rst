@@ -1,14 +1,12 @@
-.. include:: ../about.rst
+.. include:: ../frontpage.rst
 
 .. toctree::
-   :caption: Indices and tables
+   :caption: About IMPROVER
    :maxdepth: 2
    :hidden:
 
-   genindex
-   modindex
-   search
-
+   about
+   contributing
 
 .. toctree::
    :caption: Packages and Modules
