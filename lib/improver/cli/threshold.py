@@ -128,13 +128,13 @@ def main(argv=None):
                 threshold_dict = json.load(input_file)
         except ValueError as err:
             # Extend error message with hint for common JSON error.
-            raise type(err)(err + " in JSON file {}. \nHINT: Try "
-                                  "adding a zero after the decimal point.".
-                            format(args.threshold_config))
+            raise type(err)("{} in JSON file {}. \nHINT: Try "
+                            "adding a zero after the decimal point.".
+                            format(err, args.threshold_config))
         except Exception as err:
             # Extend any errors with message about WHERE this occurred.
-            raise type(err)(err + " in JSON file {}".format(
-                args.threshold_config))
+            raise type(err)("{} in JSON file {}".format(
+                err, args.threshold_config))
 
     result = process(cube, args.threshold_values, threshold_dict,
                      args.threshold_units,
@@ -236,11 +236,12 @@ def process(cube, threshold_values=None, threshold_dict=None,
                         fuzzy_bounds.append(tuple(threshold_dict[key]))
         except ValueError as err:
             # Extend error message with hint for common JSON error.
-            raise type(err)(err + " in threshold dictionary file. \nHINT: "
-                                  "Try adding a zero after the decimal point.")
+            raise type(err)(
+                "{} in threshold dictionary file. \nHINT: Try adding a zero "
+                "after the decimal point.".format(err))
         except Exception as err:
             # Extend any errors with message about WHERE this occurred.
-            raise type(err)(err + " in dictionary file.")
+            raise type(err)("{} in dictionary file.".format(err))
     else:
         thresholds = threshold_values
         fuzzy_bounds = None

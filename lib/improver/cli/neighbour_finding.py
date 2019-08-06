@@ -31,21 +31,20 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to create neighbour cubes for extracting spot data."""
 
-import json
-
 from argparse import RawDescriptionHelpFormatter
 from textwrap import wrap
 
-import iris
 import cartopy.crs as ccrs
+import iris
+
 from improver.argparser import ArgParser, safe_eval
 from improver.spotdata.neighbour_finding import NeighbourSelection
 from improver.utilities.cli_utilities import load_json_or_none
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
-from improver.utilities.cube_metadata import amend_metadata
 from improver.utilities.cube_manipulation import (merge_cubes,
                                                   enforce_coordinate_ordering)
+from improver.utilities.cube_metadata import amend_metadata
+from improver.utilities.load import load_cube
+from improver.utilities.save import save_netcdf
 
 PROJECTION_LIST = [
     'AlbersEqualArea', 'AzimuthalEquidistant', 'EuroPP', 'Geocentric',

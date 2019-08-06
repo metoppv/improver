@@ -31,11 +31,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run spotdata extraction."""
 
-import json
 import warnings
-import numpy as np
 
 import iris
+import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.argparser import ArgParser
@@ -43,13 +42,13 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
     GeneratePercentilesFromProbabilities
 from improver.percentile import PercentileConverter
 from improver.spotdata.apply_lapse_rate import SpotLapseRateAdjust
-from improver.spotdata.spot_extraction import SpotExtraction
 from improver.spotdata.neighbour_finding import NeighbourSelection
-from improver.utilities.cli_utilities import load_json_or_none,\
+from improver.spotdata.spot_extraction import SpotExtraction
+from improver.utilities.cli_utilities import load_json_or_none, \
     load_cube_or_none
-from improver.utilities.cube_metadata import amend_metadata
 from improver.utilities.cube_checker import find_percentile_coordinate
 from improver.utilities.cube_extraction import extract_subcube
+from improver.utilities.cube_metadata import amend_metadata
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
