@@ -2,7 +2,7 @@
 
 .. toctree::
    :caption: Indices and tables
-   :maxdepth: 1
+   :maxdepth: 2
    :hidden:
 
    genindex

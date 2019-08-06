@@ -173,7 +173,6 @@ html_theme = 'default'
 # documentation.
 #
 html_theme_options = {
-    'logo_only': True
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -191,7 +190,7 @@ html_theme_options = {
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
 #
-html_logo = "../files/improver_logo.png"
+html_logo = "../files/improver_logo_small.png"
 
 # The name of an image file (relative to this directory) to use as a favicon of
 # the docs.  This file should be a Windows icon file (.ico) being 16x16 or
