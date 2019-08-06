@@ -21,7 +21,7 @@ systems.
 
 
 Using IMPROVER
-==============
+--------------
 
 IMPROVER does not currently include installation functionality. The code can be
 used by cloning this repository and calling the command line interfaces (CLIs)
@@ -31,13 +31,6 @@ from a linux/unix terminal or by importing the modules directly into Python.
 
     git clone https://github.com/metoppv/improver.git <local directory>
 
-The list of dependencies can be found in the environment.yml file.
+The list of dependencies can be found in the `environment.yml`_ file.
 
-
-Contributing
-============
-
-If you would like to contribute to the IMPROVER project, you can find more
-information on contributing in our `how to contribute section`_.
-
-.. _how to contribute section: contributing.html
+.. _environment.yml: https://github.com/metoppv/improver/blob/master/environment.yml

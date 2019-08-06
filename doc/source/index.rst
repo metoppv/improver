@@ -3,10 +3,9 @@
 .. toctree::
    :caption: About IMPROVER
    :maxdepth: 2
-   :hidden:
 
-   about
-   contributing
+   About <about.rst>
+   Contributing <https://github.com/metoppv/improver/blob/master/CONTRIBUTING.md>
 
 .. toctree::
    :caption: Packages and Modules
