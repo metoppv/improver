@@ -193,8 +193,8 @@ class Accumulation:
                 Cubelist containing all the rates cubes that will be used
                 to calculate the accumulation.
             forecast_period (int):
-                Forecast period matching the upper bound of the accumulation
-                period.
+                Forecast period in seconds matching the upper bound of the
+                accumulation period.
             integral (int)
                 Integer value based on how many times the accumulation
                 period is divisible by the time interval. This therefore
@@ -212,13 +212,9 @@ class Accumulation:
                 insufficient to give a set of complete periods. Only complete
                 periods will be returned.
         """
-        constr = iris.Constraint(forecast_period=forecast_period)
-        cube, = cubes.extract(constr)
-        end_point, = iris_time_to_datetime(cube.coord("time"))
-        start_point = (
-            end_point - timedelta(seconds=int(self.accumulation_period)))
+        start_point = forecast_period - self.accumulation_period
         constr = iris.Constraint(
-            time=lambda cell: start_point <= cell.point <= end_point)
+            forecast_period=lambda fp: start_point <= fp <= forecast_period)
 
         cube_subset = cubes.extract(constr)
 
