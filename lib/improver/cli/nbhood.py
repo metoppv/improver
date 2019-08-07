@@ -292,7 +292,7 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius=None,
             Calculates value at the specified percentiles from the
             neighbourhood surrounding each grid point.
             Default is improver.constants.DEFAULT_PERCENTILES.
-        mask_cube ('iris.cube.Cube'):
+        mask_cube (iris.cube.Cube):
             A cube to mask the input cube. The data should contain 1 for
             usable points and 0 for discarded points.
             Only supported with square neighbourhoods.

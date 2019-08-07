@@ -233,8 +233,8 @@ def process(current_forecast, coeffs, num_realizations=None,
                 "argument is used to define the number of realizations "
                 "to construct from the input {0}, so if the "
                 "current forecast is provided as {0} then "
-                "num_realizations must be defined.".
-                    format(input_forecast_type))
+                "num_realizations must be defined.".format(
+                    input_forecast_type))
         current_forecast = conversion_plugin.process(
             current_forecast, no_of_percentiles=num_realizations)
         current_forecast = (
