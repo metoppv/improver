@@ -207,13 +207,6 @@ def process(current_forecast, coeffs, num_realizations=None,
 
     """
     original_current_forecast = current_forecast.copy()
-    msg = ("The current forecast has been provided as {0}. "
-           "These {0} need to be converted to realizations "
-           "for ensemble calibration. The args.num_realizations "
-           "argument is used to define the number of realizations "
-           "to construct from the input {0}, so if the "
-           "current forecast is provided as {0} then "
-           "args.num_realizations must be defined.")
     try:
         find_percentile_coordinate(current_forecast)
         input_forecast_type = "percentiles"
@@ -233,7 +226,15 @@ def process(current_forecast, coeffs, num_realizations=None,
     # If probabilities, generate percentiles and then re-badge.
     if input_forecast_type in ["percentiles", "probabilities"]:
         if not num_realizations:
-            raise ValueError(msg.format(input_forecast_type))
+            raise ValueError(
+                "The current forecast has been provided as {0}. "
+                "These {0} need to be converted to realizations "
+                "for ensemble calibration. The num_realizations "
+                "argument is used to define the number of realizations "
+                "to construct from the input {0}, so if the "
+                "current forecast is provided as {0} then "
+                "num_realizations must be defined.".
+                    format(input_forecast_type))
         current_forecast = conversion_plugin.process(
             current_forecast, no_of_percentiles=num_realizations)
         current_forecast = (

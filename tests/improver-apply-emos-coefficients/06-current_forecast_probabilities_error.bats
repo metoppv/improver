@@ -40,7 +40,7 @@
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-ValueError: The current forecast has been provided as probabilities. These probabilities need to be converted to realizations for ensemble calibration. The args.num_realizations argument is used to define the number of realizations to construct from the input probabilities, so if the current forecast is provided as probabilities then args.num_realizations must be defined.
+ValueError: The current forecast has been provided as probabilities. These probabilities need to be converted to realizations for ensemble calibration. The num_realizations argument is used to define the number of realizations to construct from the input probabilities, so if the current forecast is provided as probabilities then num_realizations must be defined.
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }
