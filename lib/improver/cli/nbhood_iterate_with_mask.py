@@ -233,7 +233,7 @@ def process(cube, mask_cube, weights, coord_for_masking, radius=None,
     # Collapse with the masking dimension.
     if collapse_dimension:
         result = CollapseMaskedNeighbourhoodCoordinate(
-            coord_for_masking, weights=weights).process(result)
+            coord_for_masking, weights).process(result)
     return result, intermediate_cube
 
 

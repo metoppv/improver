@@ -64,7 +64,8 @@ def main(argv=None):
         "file. If no options are set the returned netCDF file will contain the"
         " nearest neighbour found for each site. Other constrained neighbour "
         "finding methods can be set with options below.")
-    options = ("\n\nThese methods are:\n\n 1. nearest neighbour\n"
+    options = ("\n\nThese methods are:\n\n"
+               " 1. nearest neighbour\n"
                " 2. nearest land point neighbour\n"
                " 3. nearest neighbour with minimum height difference\n"
                " 4. nearest land point neighbour with minimum height "

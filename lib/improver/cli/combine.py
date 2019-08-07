@@ -120,8 +120,7 @@ def process(cubelist, operation, new_cube_name,
             "+", "-", "*", "add", "subtract", "multiply", "min", "max", "mean"
             An operation to use in combining Cubes.
         new_cube_name (str):
-            New name for the resulting dataset. Will default to the name of the
-            first dataset if not set.
+            New name for the resulting dataset.
 
     Keyword Args:
         new_metadata (dict):

@@ -96,9 +96,11 @@ def process(cube, constraints, units=None):
             The constraint(s) to be applied.  These must be of the form
             "key=value", eg "threshold=1".  Scalars, boolean and string
             values are supported.  Comma-separated lists
-            (eg "key=[value1,value2]") are supported. These comma-separated
-            lists can either extract all values specified in the list or all
-            values specified within a range e.g. key=[value1:value2].
+            e.g. key=[value1,value2,value3]
+            are supported.
+            These comma-separated lists can either extract all values
+            specified in the list or all values specified within a range
+            e.g. key=[value1:value3].
             When a range is specified, this is inclusive of the endpoints of
             the range.
 
