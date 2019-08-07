@@ -48,7 +48,7 @@ class Test__repr__(IrisTest):
         """Test that the __repr__ returns the expected string."""
         result = str(SaturatedVapourPressureTable())
         msg = ('<SaturatedVapourPressureTable: t_min: {}; t_max: {}; '
-               't_increment: {}>'.format(183.15, 338.15, 0.1))
+               't_increment: {}>'.format(183.15, 338.25, 0.1))
         self.assertEqual(result, msg)
 
 
