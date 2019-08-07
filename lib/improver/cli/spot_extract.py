@@ -168,7 +168,7 @@ def main(argv=None):
     save_netcdf(result, args.output_filepath)
 
 
-def process(neighbour_cube, diagnostic_cube, lapse_rate_cube,
+def process(neighbour_cube, diagnostic_cube, lapse_rate_cube=None,
             apply_lapse_rate_correction=False, land_constraint=False,
             minimum_dz=False, extract_percentiles=None,
             ecc_bounds_warning=False, metadata_dict=None,
@@ -185,13 +185,13 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube,
             Cube of spot-data neighbours and the spot site information.
         diagnostic_cube (iris.cube.Cube):
             Cube containing the diagnostic data to be extracted.
+
+    Keyword Args:
         lapse_rate_cube (iris.cube.Cube):
             Cube containing temperature lapse rates. If this cube is provided
             and a screen temperature cube is being processed, the lapse rates
             will be used to adjust the temperature to better represent each
             spot's site-altitude.
-
-    Keyword Args:
         apply_lapse_rate_correction (bool):
             If True, and a lapse rate cube has been provided, extracted
             screen temperature will be adjusted to better match the altitude
