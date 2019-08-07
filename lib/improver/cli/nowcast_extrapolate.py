@@ -115,9 +115,9 @@ def main(argv=None):
     accumulation_args.add_argument(
         "--accumulation_period", type=int, default=15,
         help="The period over which the accumulation is calculated (mins). "
-        "Only full accumulation periods will be computed, so if the "
-        "lead times are shorter than the accumulation period than these "
-        "lead times will not be calculated.")
+        "Only full accumulation periods will be computed. At lead times "
+        "that are shorter than the accumulation period, no accumulation "
+        "output will be produced.")
     accumulation_args.add_argument(
         "--accumulation_units", type=str, default='m',
         help="Desired units in which the accumulations should be expressed,"

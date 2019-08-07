@@ -304,10 +304,10 @@ class Test__get_cube_subsets(rate_cube_set_up):
             " accumulation_period, i.e. the number of cubes is insufficient to"
             " give a set of complete periods. Only complete periods will be"
             " returned.")
-        upper_bound_fp = self.cubes[5].coord("forecast_period").points
-        integral = 0
+        upper_bound_fp = self.cubes[8].coord("forecast_period").points
+        integral = 10
         plugin = Accumulation(
-            accumulation_period=5*60,
+            accumulation_period=10*60,
             forecast_periods=np.array([5])*60)
         result = plugin._get_cube_subsets(
             self.cubes, upper_bound_fp, integral)
@@ -324,10 +324,12 @@ class Test__calculate_accumulation(rate_cube_set_up):
 
     def test_basic(self):
         """Check the calculations of the accumulations, where an accumulation
-        is constructed from the cube subset by using 50% of the precipitation
-        rates cubes that bookend the accumulation period and 100% of the
-        precipitation rates cubes that are fully within the accumulation
-        period."""
+        is computed by finding the mean rate between each adjacent pair of
+        cubes within the cube_subset and multiplying this mean rate by the
+        time_interval, in order to compute an accumulation. In this case,
+        as the cube_subset only contains a pair of cubes, then the
+        accumulation from this pair will be the same as the total accumulation.
+        """
         expected_t0 = np.array([
             [0.015, 0.03, 0.03, 0.03, 0.03, 0.06, 0.09, 0.09, 0.09, 0.09],
             [0.015, 0.03, 0.03, 0.03, 0.03, np.nan, np.nan, 0.09, 0.09, 0.09],
