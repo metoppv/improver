@@ -100,7 +100,7 @@ def main(argv=None):
     save_netcdf(result, args.output_filepath)
 
 
-def process(cube, coordinates, ecc_bounds_warning=False,
+def process(cube, coordinates=None, ecc_bounds_warning=False,
             percentiles=None, no_of_percentiles=None):
     r"""Collapses cube coordinates and calculate percentiled data.
 
@@ -117,13 +117,17 @@ def process(cube, coordinates, ecc_bounds_warning=False,
     Args:
         cube (iris.cube.Cube):
             A Cube for processing.
-        coordinates (str or list):
-            Coordinate or coordinates over which to collapse data and
-            calculate percentiles. This coordinate will no longer be present
-            in the output cube, as it will have been replaced by the
-            percentile coordinate.
 
     Keyword Args:
+        coordinates (str or list):
+            Coordinate or coordinates over which to collapse data and
+            calculate percentiles; e.g. 'realization' or 'latitude longitude'.
+            This argument must be provided when collapsing a coordinate or
+            coordinates to create percentiles, but is redundant when
+            converting probabilities to percentiles and may be omitted. This
+            coordinate(s) will be removed and replaced by a percentile
+            coordinate.
+            Default is None.
         ecc_bounds_warning (bool):
             If True, where calculated percentiles are outside the ECC bounds
             range, raises a warning rather than an exception.
