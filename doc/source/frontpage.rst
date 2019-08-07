@@ -1,5 +1,5 @@
 ******************************************************
-IMPROVER: Probabilistic meteorological post processing
+IMPROVER: Probabilistic meteorological post-processing
 ******************************************************
 
 .. image:: https://img.shields.io/badge/License-BSD%203--Clause-blue.svg
@@ -13,7 +13,7 @@ IMPROVER: Probabilistic meteorological post processing
    :alt: Build Status
 
 
-IMPROVER_ is an open source project being led by the Met Office in the UK to create a probabilistic post processing system for ensemble weather prediction models. The aim is to extract the best possible probabilistic forecasts from multiple ensemble models, combining data from convection permitting and parameterised forecasts into a seamless blend.
+IMPROVER_ is an open source project being led by the Met Office in the UK to create a probabilistic post-processing system for ensemble weather prediction models. The aim is to extract the best possible probabilistic forecasts from multiple ensemble models, combining data from convection permitting and parameterised forecasts into a seamless blend.
 
 .. _IMPROVER: https://github.com/metoppv/improver
 
