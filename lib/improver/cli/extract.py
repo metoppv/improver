@@ -94,7 +94,7 @@ def process(cube, constraints, units=None):
     Args:
         cube (iris.cube.Cube):
             The Cube from which a sub-cube is extracted
-        constraints (list):
+        constraints (str):
             The constraint(s) to be applied.  These must be of the form
             "key=value", eg "threshold=1".  Scalars, boolean and string
             values are supported.  Comma-separated lists
