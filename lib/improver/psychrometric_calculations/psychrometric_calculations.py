@@ -307,7 +307,7 @@ class WetBulbTemperature(object):
                 A cube of saturated vapour pressures (Pa).
         """
         T_min = svp_table.T_MIN
-        T_max = svp_table.T_MAX
+        T_max = svp_table.T_MAX - svp_table.T_INCREMENT
         delta_T = svp_table.T_INCREMENT
         self.check_range(temperature, T_min, T_max)
         temperatures = temperature.data
