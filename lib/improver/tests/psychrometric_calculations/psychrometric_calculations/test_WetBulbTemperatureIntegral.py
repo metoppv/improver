@@ -78,18 +78,16 @@ class Test_process(Test_WetBulbTemperature):
         height_attribute = {"positive": "up"}
 
         self.temperature_cube = add_coordinate(
-            self.temperature, self.height_points, 'height', coord_units='m')
-        self.temperature_cube.coord('height').attributes = height_attribute
+            self.temperature, self.height_points, 'height', coord_units='m',
+            attributes=height_attribute)
 
         self.relative_humidity_cube = add_coordinate(
             self.relative_humidity, self.height_points, 'height',
-            coord_units='m')
-        self.relative_humidity_cube.coord('height').attributes = (
-            height_attribute)
+            coord_units='m', attributes=height_attribute)
 
         self.pressure_cube = add_coordinate(
-            self.pressure, self.height_points, 'height', coord_units='m')
-        self.pressure_cube.coord('height').attributes = height_attribute
+            self.pressure, self.height_points, 'height', coord_units='m',
+            attributes=height_attribute)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)

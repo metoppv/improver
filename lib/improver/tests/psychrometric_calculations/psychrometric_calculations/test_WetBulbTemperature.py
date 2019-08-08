@@ -43,8 +43,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     WetBulbTemperature)
 from improver.utilities.warnings_handler import ManageWarnings
 
-from improver.tests.set_up_test_cubes import (set_up_variable_cube,
-                                              add_coordinate)
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 IGNORED_MESSAGES = ["Wet bulb temperatures are being calculated"]
 WARNING_TYPES = [UserWarning]

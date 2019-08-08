@@ -390,7 +390,8 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
 
 
 def add_coordinate(incube, coord_points, coord_name, coord_units=None,
-                   dtype=np.float32, order=None, is_datetime=False):
+                   dtype=np.float32, order=None, is_datetime=False,
+                   attributes=None):
     """
     Function to duplicate a sample cube with an additional coordinate to create
     a cubelist. The cubelist is merged to create a single cube, which can be
@@ -420,6 +421,8 @@ def add_coordinate(incube, coord_points, coord_name, coord_units=None,
             list of datetime objects and need converting.  In this case the
             "coord_units" argument is overridden and the time points provided
             in seconds.  The "dtype" argument is overridden and set to int64.
+        attributes (dict):
+            Optional coordinate attributes.
 
     Returns:
         iris.cube.Cube:
@@ -448,7 +451,7 @@ def add_coordinate(incube, coord_points, coord_name, coord_units=None,
         temp_cube = cube.copy()
         temp_cube.add_aux_coord(
             DimCoord(np.array([val], dtype=dtype), long_name=coord_name,
-                     units=coord_units))
+                     units=coord_units, attributes=attributes))
 
         # recalculate forecast period if time or frt have been updated
         if is_datetime and "time" in coord_name:

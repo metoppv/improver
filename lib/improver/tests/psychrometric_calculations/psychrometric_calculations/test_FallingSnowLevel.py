@@ -444,9 +444,6 @@ class Test_process(IrisTest):
     def setUp(self):
         """Set up cubes."""
 
-        temp_vals = [278.0, 280.0, 285.0, 286.0]
-        pressure_vals = [93856.0, 95034.0, 96216.0, 97410.0]
-
         data = np.ones((3, 3), dtype=np.float32)
         relh_data = np.ones((3, 3), dtype=np.float32) * 0.65
 
@@ -461,8 +458,8 @@ class Test_process(IrisTest):
         temperature = set_up_variable_cube(data, spatial_grid='equalarea')
         temperature = add_coordinate(temperature, [0, 1], 'realization')
         self.temperature_cube = add_coordinate(
-            temperature, self.height_points, 'height', coord_units='m')
-        self.temperature_cube.coord('height').attributes = height_attribute
+            temperature, self.height_points, 'height', coord_units='m',
+            attributes=height_attribute)
 
         relative_humidity = set_up_variable_cube(
             relh_data, name='relative_humidity', units='%',
@@ -470,17 +467,19 @@ class Test_process(IrisTest):
         relative_humidity = add_coordinate(
             relative_humidity, [0, 1], 'realization')
         self.relative_humidity_cube = add_coordinate(
-            relative_humidity, self.height_points, 'height', coord_units='m')
-        self.relative_humidity_cube.coord('height').attributes = (
-            height_attribute)
+            relative_humidity, self.height_points, 'height', coord_units='m',
+            attributes=height_attribute)
 
         pressure = set_up_variable_cube(
             data, name='air_pressure', units='Pa', spatial_grid='equalarea')
         pressure = add_coordinate(pressure, [0, 1], 'realization')
         self.pressure_cube = add_coordinate(
-            pressure, self.height_points, 'height', coord_units='m')
-        self.pressure_cube.coord('height').attributes = height_attribute
+            pressure, self.height_points, 'height', coord_units='m',
+            attributes=height_attribute)
 
+        # Assign different temperatures and pressures to each height.
+        temp_vals = [278.0, 280.0, 285.0, 286.0]
+        pressure_vals = [93856.0, 95034.0, 96216.0, 97410.0]
         for i in range(0, 3):
             self.temperature_cube.data[i, ::] = temp_vals[i+1]
             self.pressure_cube.data[i, ::] = pressure_vals[i+1]
