@@ -225,9 +225,16 @@ class SaturatedVapourPressureTable(object):
     Plugin to create a saturated vapour pressure lookup table.
     """
 
-    def __init__(self, t_min=183.15, t_max=338.15, t_increment=0.1):
+    def __init__(self, t_min=183.15, t_max=338.25, t_increment=0.1):
         """
-        Initialise class.
+        Create a table of saturated vapour pressures that can be interpolated
+        through to obtain an SVP value for any temperature within the range
+        t_min --> (t_max - t_increment).
+
+        The default min/max values create a table that provides SVP values
+        covering the temperature range -90C to +65.1C. Note that the last
+        bin is not used, so the SVP value corresponding to +65C is the highest
+        that will be used.
 
         Args:
             t_min (float):

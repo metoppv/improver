@@ -53,7 +53,7 @@ import numpy as np
 # These values describe the range in temperatures covered by the table and
 # the increments at which data points are given.
 T_MIN = 183.15
-T_MAX = 338.15
+T_MAX = 338.25
 T_INCREMENT = 0.1
 
 DATA = np.array([
@@ -367,5 +367,5 @@ DATA = np.array([
     2.338401e+04, 2.348988e+04, 2.359615e+04, 2.370283e+04, 2.380993e+04,
     2.391743e+04, 2.402534e+04, 2.413367e+04, 2.424241e+04, 2.435156e+04,
     2.446114e+04, 2.457113e+04, 2.468154e+04, 2.479237e+04, 2.490363e+04,
-    2.501530e+04
+    2.501530e+04, 2.512741e+04
 ])
