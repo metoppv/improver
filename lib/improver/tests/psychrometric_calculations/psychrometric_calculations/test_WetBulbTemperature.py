@@ -137,7 +137,7 @@ class Test_pressure_correct_svp(Test_WetBulbTemperature):
         """Basic pressure correction of water vapour SVPs to give SVPs in
         air."""
         svp = self.pressure.copy(data=[[197.41815, 474.1368, 999.5001]])
-        expected = [[ 199.265975,  476.293096, 1006.391004]]
+        expected = [[199.265975, 476.293096, 1006.391004]]
         result = WetBulbTemperature().pressure_correct_svp(
             svp, self.temperature, self.pressure)
 

@@ -471,7 +471,8 @@ class Test_process(IrisTest):
             relative_humidity, [0, 1], 'realization')
         self.relative_humidity_cube = add_coordinate(
             relative_humidity, self.height_points, 'height', coord_units='m')
-        self.relative_humidity_cube.coord('height').attributes = height_attribute
+        self.relative_humidity_cube.coord('height').attributes = (
+            height_attribute)
 
         pressure = set_up_variable_cube(
             data, name='air_pressure', units='Pa', spatial_grid='equalarea')
