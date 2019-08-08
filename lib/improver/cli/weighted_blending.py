@@ -36,6 +36,7 @@ import json
 import numpy as np
 
 from improver.argparser import ArgParser
+from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.load import load_cubelist
 from improver.utilities.save import save_netcdf
 
@@ -176,11 +177,7 @@ def main(argv=None):
     if (args.wts_calc_method == "dict") and not args.wts_dict:
         parser.error('Dictionary is required if --wts_calc_method="dict"')
 
-    if args.wts_calc_method == "dict":
-        with open(args.wts_dict, 'r') as wts:
-            weights_dict = json.load(wts)
-    else:
-        weights_dict = None
+    weights_dict = load_json_or_none(args.wts_dict)
 
     # Load cubes to be blended.
     cubelist = load_cubelist(args.input_filepaths)
@@ -283,9 +280,11 @@ def process(cubelist, wts_calc_method, coordinate, cycletime, weighting_coord,
 
     if (wts_calc_method == "linear") and cval:
         raise RuntimeError('Method: linear does not accept arguments: cval')
+
     if (wts_calc_method == "nonlinear") and np.any([y0val, ynval]):
         raise RuntimeError('Method: non-linear does not accept arguments:'
                            ' y0val, ynval')
+
     if (wts_calc_method == "dict") and weights_dict is None:
         raise RuntimeError('Dictionary is required if wts_calc_method="dict"')
 

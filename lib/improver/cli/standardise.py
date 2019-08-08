@@ -246,6 +246,11 @@ def process(output_data, target_grid=None, source_landsea=None,
 
     Raises:
         ValueError:
+            If source landsea is supplied but regrid mode not
+            nearest-with-mask.
+        ValueError:
+            If source landsea is supplied but not target grid.
+        ValueError:
             If regrid_mode is "nearest-with-mask" but no landmask cube has
             been provided.
 
@@ -256,6 +261,16 @@ def process(output_data, target_grid=None, source_landsea=None,
             If the 'target_grid' did not have a cube named land_binary_mask.
 
     """
+    if (source_landsea and
+            "nearest-with-mask" not in regrid_mode):
+        msg = ("Land-mask file supplied without appropriate regrid_mode. "
+               "Use --regrid_mode=nearest-with-mask.")
+        raise ValueError(msg)
+
+    if source_landsea and not target_grid:
+        msg = ("Cannot specify input_landmask_filepath without "
+               "target_grid_filepath")
+        raise ValueError(msg)
     # Process
     if fix_float64:
         check_cube_not_float64(output_data, fix=True)
@@ -280,14 +295,17 @@ def process(output_data, target_grid=None, source_landsea=None,
                 msg = ("An argument has been specified that requires an input "
                        "landmask cube but none has been provided")
                 raise ValueError(msg)
+
             if "land_binary_mask" not in source_landsea.name():
                 msg = ("Expected land_binary_mask in input_landmask cube "
                        "but found {}".format(repr(source_landsea)))
                 warnings.warn(msg)
+
             if "land_binary_mask" not in target_grid.name():
                 msg = ("Expected land_binary_mask in target_grid cube "
                        "but found {}".format(repr(target_grid)))
                 warnings.warn(msg)
+
             output_data = RegridLandSea(
                 vicinity_radius=landmask_vicinity).process(
                 output_data, source_landsea, target_grid)

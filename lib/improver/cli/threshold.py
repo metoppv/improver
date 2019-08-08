@@ -119,6 +119,7 @@ def main(argv=None):
         raise parser.error("--threshold_config option is not compatible "
                            "with --fuzzy_factor option.")
 
+    # Load Cube
     cube = load_cube(args.input_filepath)
     threshold_dict = None
     if args.threshold_config:
@@ -136,11 +137,12 @@ def main(argv=None):
             raise type(err)("{} in JSON file {}".format(
                 err, args.threshold_config))
 
+    # Process Cube
     result = process(cube, args.threshold_values, threshold_dict,
                      args.threshold_units,
                      args.below_threshold, args.fuzzy_factor,
                      args.collapse_coord, args.vicinity)
-
+    # Save Cube
     save_netcdf(result, args.output_filepath)
 
 
@@ -250,15 +252,15 @@ def process(cube, threshold_values=None, threshold_dict=None,
         thresholds, fuzzy_factor=fuzzy_factor,
         fuzzy_bounds=fuzzy_bounds, threshold_units=threshold_units,
         below_thresh_ok=below_threshold).process(cube)
+
     if vicinity is not None:
         # smooth thresholded occurrences over local vicinity
         result_no_collapse_coord = OccurrenceWithinVicinity(
             vicinity).process(result_no_collapse_coord)
-
         new_cube_name = in_vicinity_name_format(
             result_no_collapse_coord.name())
-
         result_no_collapse_coord.rename(new_cube_name)
+
     if collapse_coord == "None":
         result = result_no_collapse_coord
     else:

@@ -204,6 +204,7 @@ def process(original_cube_list, oe_cube=None, metadata_dict=None,
                    "filepaths must be supplied. The names of the cubes "
                    "supplied were: {}".format(cube_names))
             raise ValueError(msg)
+
     # order input files by validity time
     cube_list.sort(key=lambda x: x.coord("time").points[0])
     time_coord = cube_list[-1].coord("time")
@@ -217,11 +218,13 @@ def process(original_cube_list, oe_cube=None, metadata_dict=None,
                                           boxsize=ofc_box_size)
         ucubes.append(ucube)
         vcubes.append(vcube)
+
     # average optical flow velocity components
     ucube = ucubes.merge_cube()
     umean = ucube.collapsed("time", iris.analysis.MEAN)
     umean.coord("time").points = time_coord.points
     umean.coord("time").units = time_coord.units
+
     vcube = vcubes.merge_cube()
     vmean = vcube.collapsed("time", iris.analysis.MEAN)
     vmean.coord("time").points = time_coord.points
@@ -240,6 +243,7 @@ def process(original_cube_list, oe_cube=None, metadata_dict=None,
         for i, lead_time in enumerate(lead_times):
             forecast_cubes.append(forecast_plugin.extrapolate(
                 leadtime_minutes=lead_time))
+
     return forecast_cubes, u_and_v_mean
 
 

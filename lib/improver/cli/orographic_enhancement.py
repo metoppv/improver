@@ -178,10 +178,10 @@ def process(temperature, humidity, pressure, wind_speed, wind_dir, orography):
                     the 1km Transverse Mercator UKPP grid domain.
     """
     # resolve u and v wind components
-    uwind, vwind = ResolveWindComponents().process(wind_speed, wind_dir)
+    u_wind, v_wind = ResolveWindComponents().process(wind_speed, wind_dir)
     # calculate orographic enhancement
     orogenh_high_res, orogenh_standard = OrographicEnhancement().process(
-        temperature, humidity, pressure, uwind, vwind, orography)
+        temperature, humidity, pressure, u_wind, v_wind, orography)
     return orogenh_high_res, orogenh_standard
 
 

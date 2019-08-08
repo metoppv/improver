@@ -160,14 +160,13 @@ def process(cube, coordinates=None, ecc_bounds_warning=False,
                                                 sampling="quantile")
     # TODO: Correct when formal cf-standards exists
     if 'probability_of_' in cube.name():
+        result = GeneratePercentilesFromProbabilities(
+            ecc_bounds_warning=ecc_bounds_warning).process(
+            cube, percentiles=percentiles)
         if coordinates:
             warnings.warn("Converting probabilities to percentiles. The "
                           "provided COORDINATES_TO_COLLAPSE variable will "
                           "not be used.")
-
-        result = GeneratePercentilesFromProbabilities(
-            ecc_bounds_warning=ecc_bounds_warning).process(
-            cube, percentiles=percentiles)
     else:
         if not coordinates:
             raise ValueError("To collapse a coordinate to calculate "

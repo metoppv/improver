@@ -86,18 +86,6 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
-    if args.min_lapse_rate > args.max_lapse_rate:
-        msg = 'Minimum lapse rate specified is greater than the maximum.'
-        raise ValueError(msg)
-
-    if args.max_height_diff < 0:
-        msg = 'Maximum height difference specified is less than zero.'
-        raise ValueError(msg)
-
-    if args.nbhood_radius < 0:
-        msg = 'Neighbourhood radius specified is less than zero.'
-        raise ValueError(msg)
-
     # Load Cubes
     temperature_cube = load_cube(args.temperature_filepath)
     orography_cube = None
@@ -105,6 +93,7 @@ def main(argv=None):
     if not args.return_dalr:
         orography_cube = load_cube(args.orography_filepath)
         land_sea_mask_cube = load_cube(args.land_sea_mask_filepath)
+
     # Process Cube
     result = process(temperature_cube, orography_cube, land_sea_mask_cube,
                      args.max_height_diff, args.nbhood_radius,
@@ -154,7 +143,27 @@ def process(temperature_cube, orography_cube, land_sea_mask_cube,
         result (iris.cube.Cube):
             Cube containing lapse rate (K m-1)
 
+    Raises:
+        ValueError:
+            If minimum lapse rate is greater than maximum.
+        ValueError:
+            If Maximum height difference is less than zero.
+        ValueError:
+            If neighbourhood radius is less than zero.
+
     """
+    if min_lapse_rate > max_lapse_rate:
+        msg = 'Minimum lapse rate specified is greater than the maximum.'
+        raise ValueError(msg)
+
+    if max_height_diff < 0:
+        msg = 'Maximum height difference specified is less than zero.'
+        raise ValueError(msg)
+
+    if nbhood_radius < 0:
+        msg = 'Neighbourhood radius specified is less than zero.'
+        raise ValueError(msg)
+
     if return_dalr:
         result = temperature_cube.copy(
             data=np.full_like(temperature_cube.data, U_DALR.points[0]))

@@ -99,12 +99,15 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
+    # Load Cubes
     cube_0 = load_cube(args.infiles[0])
     cube_1 = load_cube(args.infiles[1])
 
+    # Process Cubes
     interpolated_cubes = process(cube_0, cube_1, args.interval_in_mins,
                                  args.times, args.interpolation_method)
 
+    # Save Cubes
     len_files = len(args.output_files)
     len_cubes = len(interpolated_cubes)
     if len_files == len_cubes:

@@ -105,6 +105,13 @@ def main(argv=None):
                       'associated height level has been provided. These units '
                       'will have no effect.')
 
+    # Turn string to float
+    model_resolution = float(args.model_resolution) if \
+        args.model_resolution else None
+    output_height_level = float(args.output_height_level) if \
+        args.output_height_level else None
+
+    # Load Cube
     wind_speed = load_cube(args.wind_speed_filepath)
     silhouette_roughness = load_cube(
         args.silhouette_roughness_filepath)
@@ -114,11 +121,7 @@ def main(argv=None):
     height_levels = load_cube_or_none(args.height_levels_filepath)
     veg_roughness_cube = load_cube_or_none(args.veg_roughness_filepath)
 
-    model_resolution = float(args.model_resolution) if \
-        args.model_resolution else None
-    output_height_level = float(args.output_height_level) if \
-        args.output_height_level else None
-
+    # Process Cube
     wind_speed = process(wind_speed, silhouette_roughness, sigma, target_orog,
                          standard_orog, model_resolution, height_levels,
                          veg_roughness_cube, output_height_level,
@@ -191,7 +194,7 @@ def process(wind_speed, silhouette_roughness, sigma, target_orog,
 
     """
     if output_height_level_units and not output_height_level:
-        warnings.warn('--output_height_level_units has been set but no '
+        warnings.warn('output_height_level_units has been set but no '
                       'associated height level has been provided. These units '
                       'will have no effect.')
     try:

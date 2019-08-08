@@ -150,12 +150,12 @@ def main(argv=None):
         "required.")
 
     args = parser.parse_args(args=argv)
-    metadata_dict = load_json_or_none(args.metadata_json)
 
-    # Load Cube
+    # Load Cube and JSON.
     neighbour_cube = load_cube(args.neighbour_filepath)
     diagnostic_cube = load_cube(args.diagnostic_filepath)
     lapse_rate_cube = load_cube_or_none(args.temperature_lapse_rate_filepath)
+    metadata_dict = load_json_or_none(args.metadata_json)
 
     # Process Cube
     result = process(neighbour_cube, diagnostic_cube, lapse_rate_cube,
@@ -269,6 +269,7 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube=None,
     plugin = SpotExtraction(
         neighbour_selection_method=neighbour_selection_method)
     result = plugin.process(neighbour_cube, diagnostic_cube)
+
     # If a probability or percentile diagnostic cube is provided, extract
     # the given percentile if available. This is done after the spot-extraction
     # to minimise processing time; usually there are far fewer spot sites than
@@ -311,7 +312,6 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube=None,
     # Check whether a lapse rate cube has been provided and we are dealing with
     # temperature data and the lapse-rate option is enabled.
     if apply_lapse_rate_correction and lapse_rate_cube:
-
         if not result.name() == "air_temperature":
             msg = ("A lapse rate cube was provided, but the diagnostic being "
                    "processed is not air temperature and cannot be adjusted.")
@@ -338,20 +338,20 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube=None,
             plugin = SpotLapseRateAdjust(
                 neighbour_selection_method=neighbour_selection_method)
             result = plugin.process(result, neighbour_cube, lapse_rate_cube)
-        else:
-            msg = ("A lapse rate cube was provided, but the height of "
-                   "the temperature data does not match that of the data used "
-                   "to calculate the lapse rates. As such the temperatures "
-                   "were not adjusted with the lapse rates.")
-            if not suppress_warnings:
-                warnings.warn(msg)
-    elif (apply_lapse_rate_correction and
-          not lapse_rate_cube):
-        msg = ("A lapse rate cube was not provided, but the option to "
-               "apply the lapse rate correction was enabled. No lapse rate "
-               "correction could be applied.")
+        elif not suppress_warnings:
+            warnings.warn(
+                "A lapse rate cube was provided, but the height of the "
+                "temperature data does not match that of the data used "
+                "to calculate the lapse rates. As such the temperatures "
+                "were not adjusted with the lapse rates.")
+
+    elif apply_lapse_rate_correction and not lapse_rate_cube:
         if not suppress_warnings:
-            warnings.warn(msg)
+            warnings.warn(
+                "A lapse rate cube was not provided, but the option to "
+                "apply the lapse rate correction was enabled. No lapse rate "
+                "correction could be applied.")
+
     # Modify final metadata as described by provided JSON file.
     if metadata_dict:
         result = amend_metadata(result, **metadata_dict)

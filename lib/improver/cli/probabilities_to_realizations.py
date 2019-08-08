@@ -210,7 +210,7 @@ def process(cube, raw_forecast=None, no_of_realizations=None, reordering=False,
         if no_of_realizations is None:
             no_of_realizations = len(raw_forecast.coord("realization").points)
             if raw_forecast is None:
-                message = ("You must supply a raw forecast if using the "
+                message = ("You must supply a raw forecast cube if using the "
                            "reordering option.")
                 raise ValueError(message)
 

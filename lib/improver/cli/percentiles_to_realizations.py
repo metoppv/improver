@@ -143,13 +143,15 @@ def main(argv=None):
                 (args.random_ordering is not False)):
             parser.wrong_args_error(
                 'raw_forecast_filepath, random_ordering', 'rebadging')
+
+    # Convert the string of realization_numbers to a list of ints.
     realization_numbers = None
     if args.rebadging:
         if args.realization_numbers is not None:
             realization_numbers = (
                 [int(num) for num in args.realization_numbers])
-    cube = load_cube(args.input_filepath)
 
+    cube = load_cube(args.input_filepath)
     raw_forecast = load_cube_or_none(args.raw_forecast_filepath)
 
     # Process Cube
@@ -221,7 +223,7 @@ def process(cube, raw_forecast=None, no_of_percentiles=None,
             so that the values from the input percentiles can be ordered to
             match the raw ensemble.
             Default is None.
-        realization_numbers (list):
+        realization_numbers (list of ints):
             A list of ensemble realization numbers to use when rebadging the
             percentiles into realizations.
             Default is None.
