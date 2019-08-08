@@ -345,11 +345,11 @@ def set_utc_offset(longitudes):
     when no more rigorous source of timeszone information is provided.
 
     Args:
-        longitudes (List):
+        longitudes (list):
             List of longitudes.
 
     Returns:
-        utc_offsets (List):
+        utc_offsets (list):
             List of utc_offsets calculated using longitude.
     """
     return np.floor((np.array(longitudes) + 7.5)/15.)
@@ -376,7 +376,7 @@ def get_forecast_times(forecast_length, forecast_date=None,
             unset it defaults to the latest 6 hour cycle as a start time.
 
     Returns:
-        forecast_times (list of datetime.datetime objects):
+        forecast_times (list of datetime.datetime):
             A list of python datetime.datetime objects that represent the
             times at which diagnostic data should be extracted.
 

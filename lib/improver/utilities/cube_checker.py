@@ -119,7 +119,7 @@ def check_cube_coordinates(cube, new_cube, exception_coordinates=None):
         new_cube (iris.cube.Cube):
             The cube that must be checked and adjusted using the coordinate
             order from the original cube.
-        exception_coordinates (List of strings or None):
+        exception_coordinates (list of str or None):
             The names of the coordinates that are permitted to be within the
             new_cube but are not available within the original cube.
 
@@ -201,7 +201,7 @@ def find_dimension_coordinate_mismatch(
                 second_cube - first_cube
 
     Returns:
-        result (List):
+        result (list):
             List of the dimension coordinates that are only present in
             one out of the two cubes.
 

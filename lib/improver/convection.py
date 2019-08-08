@@ -138,7 +138,7 @@ class DiagnoseConvectivePrecipitation(object):
                 Cubelist containing cubes from which the convective ratio
                 will be calculated. The cube should have been thresholded,
                 so that values within cube.data are between 0.0 and 1.0.
-            threshold_list (List):
+            threshold_list (list):
                 The list of thresholds.
 
         Returns:

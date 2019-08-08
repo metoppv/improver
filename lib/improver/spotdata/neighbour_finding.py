@@ -167,7 +167,7 @@ class NeighbourSelection:
         of each rejected site are printed.
 
         Args:
-            sites (list of dicts):
+            sites (list of dict):
                 A list of dictionaries defining the spot sites for which
                 neighbours are to be found. e.g.:
 
@@ -401,7 +401,7 @@ class NeighbourSelection:
         of the selected grid point neighbour.
 
         Args:
-            sites (list of dicts):
+            sites (list of dict):
                 A list of dictionaries defining the spot sites for which
                 neighbours are to be found. e.g.:
 

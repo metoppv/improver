@@ -106,9 +106,9 @@ class Accumulation:
                 The time interval between the input precipitation rate cubes in
                 seconds.
             cubes (list):
-                The input precitation rate cubes.
+                The input precipitation rate cubes.
         Returns:
-            cube_subsets (list of lists):
+            cube_subsets (list of list of iris.cube.Cube):
                 A list containing lists which comprise the rates cubes required
                 to construct a sequence of accumulation cubes that match the
                 period given by self.accumulation_period. If

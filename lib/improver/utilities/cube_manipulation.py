@@ -88,7 +88,7 @@ def strip_var_names(cubes):
     to help concatenation.
 
     Args:
-        cubes (iris.cube.cubelist or iris.cube.cube):
+        cubes (iris.cube.Cubelist or iris.cube.Cube):
             Cubes to be concatenated.
 
     Returns:
@@ -456,11 +456,11 @@ def merge_cubes(cubes):
     Wrapper for MergeCubes().process()
 
     Args:
-        cubes (iris.cube.cubelist or iris.cube.cube):
+        cubes (iris.cube.Cubelist or iris.cube.Cube):
             Cubes to be merged.
 
     Returns:
-        result (iris.cube.cube):
+        result (iris.cube.Cube):
             Merged cube.
     """
     result = MergeCubes().process(cubes)
@@ -498,14 +498,14 @@ def compare_attributes(cubes, attribute_filter=None):
     Function to compare attributes of cubes
 
     Args:
-        cubes (iris.cube.cubelist):
+        cubes (iris.cube.Cubelist):
             List of cubes to compare (must be more than 1)
     Keyword Args:
         attribute_filter (string or None):
             A string to filter which attributes are actually compared. If None
             all attributes are compared.
     Returns:
-        unmatching_attributes (List):
+        unmatching_attributes (list):
             List of dictionaries of unmatching attributes
     Warns:
         Warning: If only a single cube is supplied
@@ -543,11 +543,11 @@ def compare_coords(cubes):
     Function to compare the coordinates of the cubes
 
     Args:
-        cubes (iris.cube.cubelist):
+        cubes (iris.cube.Cubelist):
             List of cubes to compare (must be more than 1)
 
     Returns:
-        unmatching_coords (List):
+        unmatching_coords (list):
             List of dictionaries of unmatching coordinates
             Number of dictionaries equals number of cubes
             unless cubes is a single cube in which case

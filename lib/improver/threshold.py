@@ -82,7 +82,7 @@ class BasicThreshold(object):
                 7.5     |   1.0
 
         Args:
-            thresholds (list of floats or float):
+            thresholds (list of float or float):
                 The threshold points for 'significant' datapoints.
 
         Keyword Args:
@@ -90,7 +90,7 @@ class BasicThreshold(object):
                 Specifies lower bound for fuzzy membership value when
                 multiplied by each threshold. Upper bound is equivalent linear
                 distance above threshold. If None, no fuzzy_factor is applied.
-            fuzzy_bounds (list of tuples):
+            fuzzy_bounds (list of tuple):
                 Lower and upper bounds for fuzziness.
                 List should be of same length as thresholds.
                 Each entry in list should be a tuple of two floats
@@ -192,7 +192,7 @@ class BasicThreshold(object):
         Args:
             cube (iris.cube.Cube):
                 Cube containing thresholded data (1s and 0s)
-            threshold (numpy.float32):
+            threshold (numpy.float):
                 Value at which the data has been thresholded
 
         Returns:

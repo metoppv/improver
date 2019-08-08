@@ -379,7 +379,7 @@ class SquareNeighbourhood(object):
                 square neighbourhood.
 
         Returns:
-            neighbourhood_averaged_cube (iris.cube):
+            neighbourhood_averaged_cube (iris.cube.Cube):
                 Cube containing the smoothed field after the square
                 neighbourhood method has been applied with halo added.
         """
