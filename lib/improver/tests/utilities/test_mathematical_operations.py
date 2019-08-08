@@ -284,7 +284,7 @@ class Test_perform_integration(IrisTest):
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([5., 10.]))
 
-    def test_data(self):
+    def test_positive_values_in_data(self):
         """Test that the resulting cube contains the expected data following
         vertical integration."""
         expected = np.array(
@@ -307,11 +307,66 @@ class Test_perform_integration(IrisTest):
             result.coord("height").points, np.array([5., 10.]))
         self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_start_point_positive(self):
+    def test_zero_values_in_data(self):
+        """Test that the resulting cube contains the expected data following
+        vertical integration where some of the values in the data are equal
+        to zero. This provides a baseline as the Integration plugin is
+        currently restricted so that only positive values contribute towards
+        the integral."""
+        expected = np.array(
+            [[[[30.00, 32.50, 32.50],
+               [32.50, 32.50, 32.50],
+               [32.50, 32.50, 32.50]]],
+             [[[10.00, 25.00, 25.00],
+               [25.00, 25.00, 25.00],
+               [25.00, 25.00, 25.00]]]])
+        self.negative_upper_bounds_cube.data[0, :, 0, 0] = 0
+        coord_name = "height"
+        direction = "negative"
+        result = (
+            Integration(
+                coord_name, direction_of_integration=direction
+                ).perform_integration(
+                    self.negative_upper_bounds_cube,
+                    self.negative_lower_bounds_cube,
+                    self.negative_integrated_cube))
+        self.assertArrayAlmostEqual(
+            result.coord("height").points, np.array([5., 10.]))
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_negative_and_positive_values_in_data(self):
+        """Test that the resulting cube contains the expected data following
+        vertical integration where some of the values in the data are negative.
+        This shows that both zero values and negative values have no impact
+        on the integration as the Integration plugin is currently
+        restricted so that only positive values contribute towards the
+        integral."""
+        expected = np.array(
+            [[[[30.00, 32.50, 32.50],
+               [32.50, 32.50, 32.50],
+               [32.50, 32.50, 32.50]]],
+             [[[10.00, 25.00, 25.00],
+               [25.00, 25.00, 25.00],
+               [25.00, 25.00, 25.00]]]])
+        self.negative_upper_bounds_cube.data[0, :, 0, 0] = -1
+        coord_name = "height"
+        direction = "negative"
+        result = (
+            Integration(
+                coord_name, direction_of_integration=direction
+                ).perform_integration(
+                    self.negative_upper_bounds_cube,
+                    self.negative_lower_bounds_cube,
+                    self.negative_integrated_cube))
+        self.assertArrayAlmostEqual(
+            result.coord("height").points, np.array([5., 10.]))
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_start_point_positive_direction(self):
         """Test that the resulting cube contains the expected data when a
         start_point is specified, so that only part of the column is
         integrated. For integration in the positive direction (equivalent to
-        integrating downwards for a height coordinate), the presense of a
+        integrating downwards for a height coordinate), the presence of a
         start_point indicates that the integration may start above the
         lowest height within the column to be integrated."""
         expected = np.array(
@@ -333,7 +388,7 @@ class Test_perform_integration(IrisTest):
             result.coord("height").points, np.array([20.]))
         self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_start_point_negative(self):
+    def test_start_point_negative_direction(self):
         """Test that the resulting cube contains the expected data when a
         start_point is specified, so that only part of the column is
         integrated. For integration in the negative direction (equivalent to
@@ -359,7 +414,7 @@ class Test_perform_integration(IrisTest):
             result.coord("height").points, np.array([5.]))
         self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_end_point_positive(self):
+    def test_end_point_positive_direction(self):
         """Test that the resulting cube contains the expected data when a
         end_point is specified, so that only part of the column is
         integrated. For integration in the negative direction (equivalent to
@@ -385,7 +440,7 @@ class Test_perform_integration(IrisTest):
             result.coord("height").points, np.array([10.]))
         self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_end_point_negative(self):
+    def test_end_point_negative_direction(self):
         """Test that the resulting cube contains the expected data when a
         end_point is specified, so that only part of the column is
         integrated. For integration in the negative direction (equivalent to
@@ -411,7 +466,7 @@ class Test_perform_integration(IrisTest):
             result.coord("height").points, np.array([10.]))
         self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_start_point_at_bound_positive(self):
+    def test_start_point_at_bound_positive_direction(self):
         """Test that the resulting cube contains the expected data when a
         start_point is specified, so that only part of the column is
         integrated. In this instance, the start_point of 10 is equal to the
@@ -444,7 +499,7 @@ class Test_perform_integration(IrisTest):
             result.coord("height").points, np.array([20.]))
         self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_end_point_at_bound_negative(self):
+    def test_end_point_at_bound_negative_direction(self):
         """Test that the resulting cube contains the expected data when a
         end_point is specified, so that only part of the column is
         integrated. In this instance, the end_point of 10 is equal to the
