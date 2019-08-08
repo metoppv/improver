@@ -306,8 +306,11 @@ class WetBulbTemperature(object):
             svp (iris.cube.Cube):
                 A cube of saturated vapour pressures (Pa).
         """
-        T_min = svp_table.T_MIN
+        # We subtract T_INCREMENT from T_MAX to get the upper bound to which we
+        # clip input temperatures. This ensures that we do not attempt an
+        # interpolation that requires a value beyond the SVP table maximum.
         T_max = svp_table.T_MAX - svp_table.T_INCREMENT
+        T_min = svp_table.T_MIN
         delta_T = svp_table.T_INCREMENT
         self.check_range(temperature, T_min, T_max)
         temperatures = temperature.data
