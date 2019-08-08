@@ -186,31 +186,26 @@ class Test__check_inputs(rate_cube_set_up):
         returned. Also test that the returned list of cubes has the
         expected units."""
         expected_time_interval = 60
-        expected_integral = 10
         expected_cubes = self.cubes.copy()
         for cube in expected_cubes:
             cube.convert_units("m/s")
-        cubes, time_interval, integral = (
-            Accumulation()._check_inputs(self.cubes))
+        cubes, time_interval = Accumulation()._check_inputs(self.cubes)
         self.assertEqual(cubes, expected_cubes)
         self.assertEqual(time_interval, expected_time_interval)
-        self.assertEqual(integral, expected_integral)
 
     def test_specify_accumulation_period(self):
         """Test that the expected time interval and integral value is
         returned when the accumulation period is specified. Also test that the
         returned list of cubes has the expected units."""
         expected_time_interval = 60
-        expected_integral = 60
         expected_cubes = self.cubes.copy()
         for cube in expected_cubes:
             cube.convert_units("m/s")
         accumulation_period = 60*60
         plugin = Accumulation(accumulation_period=accumulation_period)
-        cubes, time_interval, integral = plugin._check_inputs(self.cubes)
+        cubes, time_interval = plugin._check_inputs(self.cubes)
         self.assertEqual(cubes, expected_cubes)
         self.assertEqual(time_interval, expected_time_interval)
-        self.assertEqual(integral, expected_integral)
         self.assertEqual(plugin.accumulation_period, accumulation_period)
 
     def test_specify_forecast_period(self):
@@ -218,16 +213,14 @@ class Test__check_inputs(rate_cube_set_up):
         returned when the forecast periods are specified. Also test that the
         returned list of cubes has the expected units."""
         expected_time_interval = 60
-        expected_integral = 10
         expected_cubes = self.cubes.copy()
         for cube in expected_cubes:
             cube.convert_units("m/s")
         forecast_periods = [600]
         plugin = Accumulation(forecast_periods=forecast_periods)
-        cubes, time_interval, integral = plugin._check_inputs(self.cubes)
+        cubes, time_interval = plugin._check_inputs(self.cubes)
         self.assertEqual(cubes, expected_cubes)
         self.assertEqual(time_interval, expected_time_interval)
-        self.assertEqual(integral, expected_integral)
         self.assertEqual(plugin.forecast_periods, forecast_periods)
 
     def test_specify_accumulation_period_and_forecast_period(self):
@@ -236,7 +229,6 @@ class Test__check_inputs(rate_cube_set_up):
         specified. Also test that the returned list of cubes has the expected
         units."""
         expected_time_interval = 60
-        expected_integral = 20
         expected_cubes = self.cubes.copy()
         for cube in expected_cubes:
             cube.convert_units("m/s")
@@ -244,10 +236,9 @@ class Test__check_inputs(rate_cube_set_up):
         forecast_periods = np.array([15])*60
         plugin = Accumulation(accumulation_period=accumulation_period,
                               forecast_periods=forecast_periods)
-        cubes, time_interval, integral = plugin._check_inputs(self.cubes)
+        cubes, time_interval = plugin._check_inputs(self.cubes)
         self.assertEqual(cubes, expected_cubes)
         self.assertEqual(time_interval, expected_time_interval)
-        self.assertEqual(integral, expected_integral)
 
     def test_raises_exception_for_unevenly_spaced_cubes(self):
         """Test function raises an exception if the input cubes are not
