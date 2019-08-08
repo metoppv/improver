@@ -379,7 +379,7 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
             axis=0
         )
 
-        # Convert back to float32 (numpy.percentile always gives float64 here...)
+        # Convert back to float32 (np.percentile always gives float64 here...)
         perc_data = perc_data.astype(np.float32)
 
         # Return to 3D

@@ -130,7 +130,7 @@ class DiagnoseConvectivePrecipitation(object):
               and lower thresholds were exceeded.
             * A zero value, if the lower threshold was exceeded, whilst the
               higher threshold was not exceeded.
-            * A NaN value (numpy.nan), if neither the higher or lower thresholds
+            * A NaN value (np.nan), if neither the higher or lower thresholds
               were exceeded, such that the convective ratio was 0/0.
 
         Args:
