@@ -93,11 +93,11 @@ def set_up_wxcube(time_points=None):
     Set up a wxcube
 
     Args:
-        time_points (np.ndarray):
+        time_points (numpy.ndarray):
            Array of time points
 
     Returns:
-        cube (Iris.cube.Cube):
+        cube (iris.cube.Cube):
             cube of weather codes set to 1
             data shape (time_points, 16, 16)
             grid covers 0 to 30km west of origin and
@@ -155,11 +155,11 @@ def set_up_wxcube_lat_lon(time_points=None):
     Set up a lat-lon wxcube
 
     Args:
-        time_points (np.ndarray):
+        time_points (numpy.ndarray):
            Array of time points
 
     Returns:
-        cube (Iris.cube.Cube):
+        cube (iris.cube.Cube):
             lat lon cube of weather codes set to 1
             data shape (time_points, 16, 16)
             grid covering 8W to 7E, 49N to 64N

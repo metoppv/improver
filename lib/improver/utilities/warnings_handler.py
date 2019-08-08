@@ -54,7 +54,7 @@ class ManageWarnings(object):
                 A list containing the Warning category for each of the
                 messages. If not provided then the Warning Category is
                 assumed to be UserWarning for each of the messages.
-            record (Boolean):
+            record (bool):
                 A flag for whether to store any warnings that are not
                 ignored. Default is False which means warnings go to
                 standard error. When set to True the warnings are

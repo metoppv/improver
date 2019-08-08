@@ -307,7 +307,7 @@ class LapseRate(object):
                Each row contains the height values of each neighbourhood.
 
         Returns:
-            height_diff_mask (np.ndarray):
+            height_diff_mask (numpy.ndarray):
                 A 2D array of boolean values.
 
         """
@@ -332,7 +332,7 @@ class LapseRate(object):
             temperature_cube (iris.cube.Cube):
                 Cube of air temperatures (K).
 
-            orography_cube (Iris.cube.Cube):
+            orography_cube (iris.cube.Cube):
                 Cube containing orography data (metres)
 
             land_sea_mask_cube (iris.cube.Cube):

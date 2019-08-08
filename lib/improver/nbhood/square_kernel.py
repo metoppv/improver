@@ -57,16 +57,16 @@ class SquareNeighbourhood(object):
         Initialise class.
 
         Keyword Args:
-            weighted_mode (boolean):
+            weighted_mode (bool):
                 This is included to allow a standard interface for both the
                 square and circular neighbourhood plugins.
-            sum_or_fraction (string):
+            sum_or_fraction (str):
                 Identifier for whether sum or fraction should be returned from
                 neighbourhooding. The sum represents the sum of the
                 neighbourhood. The fraction represents the sum of the
                 neighbourhood divided by the neighbourhood area.
                 Valid options are "sum" or "fraction".
-            re_mask (boolean):
+            re_mask (bool):
                 If re_mask is True, the original un-neighbourhood processed
                 mask is applied to mask out the neighbourhood processed cube.
                 If re_mask is False, the original un-neighbourhood processed
@@ -102,7 +102,7 @@ class SquareNeighbourhood(object):
         will contain the cumulative sum from the origin to that grid point.
 
         Args:
-            cube (Iris.cube.Cube):
+            cube (iris.cube.Cube):
                 Cube to which the cumulative summing along the y and x
                 direction will be applied. The cube should contain only x and
                 y dimensions, so will generally be a slice of a cube ordered
@@ -113,7 +113,7 @@ class SquareNeighbourhood(object):
                 Flag indicating whether cube.data contains complex values.
 
         Returns:
-            summed_cube (Iris.cube.Cube):
+            summed_cube (iris.cube.Cube):
                 Cube to which the cumulative summing
                 along the y and x direction has been applied.
         """
@@ -191,7 +191,7 @@ class SquareNeighbourhood(object):
                 Number of columns
 
         Returns:
-            neighbourhood_total (np.array):
+            neighbourhood_total (numpy.ndarray):
                 Array containing the calculated neighbourhood total.
         """
         flattened = summed_cube.data.flatten()
@@ -311,21 +311,21 @@ class SquareNeighbourhood(object):
         Set up a cube ready for neighourhooding the data.
 
         Args:
-            cube (Iris.cube.Cube):
+            cube (iris.cube.Cube):
                 Cube that will be checked for whether the data is masked
                 or nan. The cube should contain only x and y dimensions,
                 so will generally be a slice of a cube.
         Keyword Args:
-            mask_cube (Iris.cube.Cube):
+            mask_cube (iris.cube.Cube):
                 Input Cube containing the array to be used as a mask.
 
         Returns:
             (tuple) : tuple containing:
-                **cube** (Iris.cube.Cube):
+                **cube** (iris.cube.Cube):
                     Cube with masked or NaN values set to 0.0
-                **mask** (Iris.cube.Cube):
+                **mask** (iris.cube.Cube):
                     Cube with masked or NaN values set to 0.0
-                **nan_array** (np.array):
+                **nan_array** (numpy.ndarray):
                     numpy array to be used to set the values within
                     the data of the output cube to be NaN.
 
@@ -367,19 +367,19 @@ class SquareNeighbourhood(object):
         3. Apply neighbourhood processing to the cumulated array.
 
         Args:
-            cube (Iris.cube.Cube):
+            cube (iris.cube.Cube):
                 Cube with masked or NaN values set to 0.0
-            mask (Iris.cube.Cube):
+            mask (iris.cube.Cube):
                 Cube with masked or NaN values set to 0.0
-            grid_cells_x (Float):
+            grid_cells_x (float):
                 The number of grid cells along the x axis used to create a
                 square neighbourhood.
-            grid_cells_y (Float):
+            grid_cells_y (float):
                 The number of grid cells along the y axis used to create a
                 square neighbourhood.
 
         Returns:
-            neighbourhood_averaged_cube (Iris.cube):
+            neighbourhood_averaged_cube (iris.cube):
                 Cube containing the smoothed field after the square
                 neighbourhood method has been applied with halo added.
         """
@@ -416,22 +416,22 @@ class SquareNeighbourhood(object):
         the range of the original cube.
 
         Args:
-            neighbourhood_averaged_cube (Iris.cube.Cube):
+            neighbourhood_averaged_cube (iris.cube.Cube):
                 Cube containing the smoothed field after the square
                 neighbourhood method has been applied.
-            original_cube (Iris.cube.Cube or None):
+            original_cube (iris.cube.Cube or None):
                 The original cube slice.
-            mask (Iris.cube.Cube):
+            mask (iris.cube.Cube):
                 The mask cube created by set_up_cubes_to_be_neighbourhooded.
-            grid_cells_x (Float):
+            grid_cells_x (float):
                 The number of grid cells along the x axis used to create a
                 square neighbourhood.
-            grid_cells_y (Float):
+            grid_cells_y (float):
                 The number of grid cells along the y axis used to create a
                 square neighbourhood.
 
         Returns:
-            neighbourhood_averaged_cube (Iris.cube.Cube):
+            neighbourhood_averaged_cube (iris.cube.Cube):
                 Cube containing the smoothed field after the square
                 neighbourhood method has been applied and halo removed.
         """
@@ -467,19 +467,19 @@ class SquareNeighbourhood(object):
            if required.
 
         Args:
-            cube (Iris.cube.Cube):
+            cube (iris.cube.Cube):
                 Cube containing the array to which the square neighbourhood
                 will be applied.
-            radius (Float):
+            radius (float):
                 Radius in metres for use in specifying the number of
                 grid cells used to create a square neighbourhood.
 
         Keyword Args:
-            mask_cube (Iris.cube.Cube):
+            mask_cube (iris.cube.Cube):
                 Cube containing the array to be used as a mask.
 
         Returns:
-            neighbourhood_averaged_cube (Iris.cube.Cube):
+            neighbourhood_averaged_cube (iris.cube.Cube):
                 Cube containing the smoothed field after the square
                 neighbourhood method has been applied.
         """

@@ -262,7 +262,7 @@ class OrographicEnhancement:
         The mask is therefore "True" if any of these conditions are false.
 
         Returns:
-            mask (np.ndarray):
+            mask (numpy.ndarray):
                 Boolean mask - where True, set orographic enhancement to a
                 default zero value
         """
@@ -288,7 +288,7 @@ class OrographicEnhancement:
                        (R_WATER_VAPOUR * temperature)) * 60 * 60
 
         Returns:
-            point_orogenh (np.ndarray):
+            point_orogenh (numpy.ndarray):
                 Orographic enhancement values in mm/h
         """
         mask = np.logical_not(self._generate_mask())
@@ -306,16 +306,16 @@ class OrographicEnhancement:
         Generate 3d array of distances to upstream components
 
         Args:
-            wind_speed (np.ndarray):
+            wind_speed (numpy.ndarray):
                 2D array of wind speeds
-            max_roi (np.ndarray):
+            max_roi (numpy.ndarray):
                 2D array of maximum ranges of influence in grid squares
-            max_sin_cos (np.ndarray):
+            max_sin_cos (numpy.ndarray):
                 2D array containing the larger of sin(wind_direction) or
                 cos(wind_direction) with respect to grid north
 
         Returns:
-            distance (np.ndarray):
+            distance (numpy.ndarray):
                 3D array of source-to-destination distances in grid points,
                 with np.nan filled in for out of range values
         """
@@ -343,20 +343,20 @@ class OrographicEnhancement:
         ordering [y, x].
 
         Args:
-            wind_speed (np.ndarray):
+            wind_speed (numpy.ndarray):
                 2D array of wind speed magnitudes
-            distance (np.ndarray):
+            distance (numpy.ndarray):
                 3D array of grid point source-to-destination distances
-            sin_wind_dir (np.ndarray):
+            sin_wind_dir (numpy.ndarray):
                 2D array of sin wind direction wrt grid north
-            cos_wind_dir (np.ndarray):
+            cos_wind_dir (numpy.ndarray):
                 2D array of cos wind direction wrt grid north
 
         Returns:
             (tuple): tuple containing:
-                **x_source** (np.ndarray):
+                **x_source** (numpy.ndarray):
                     3D array of source point x-coordinates
-                **y_source** (np.ndarray):
+                **y_source** (numpy.ndarray):
                     3D array of source point y-coordinates
         """
         xpos, ypos = np.meshgrid(np.arange(wind_speed.shape[1]),
@@ -384,12 +384,12 @@ class OrographicEnhancement:
         according to source-destination distance.
 
         Args:
-            point_orogenh (np.ndarray):
+            point_orogenh (numpy.ndarray):
                 2D array of point orographic enhancement values
-            x_source (np.ndarray):
+            x_source (numpy.ndarray):
                 3D array of x-coordinates of source points from which to read
                 upstream contribution
-            y_source (np.ndarray):
+            y_source (numpy.ndarray):
                 3D array of y-coordinates of source points from which to read
                 upstream contribution
             distance:
@@ -399,10 +399,10 @@ class OrographicEnhancement:
 
         Returns:
             (tuple): tuple containing:
-                **orogenh** (np.ndarray):
+                **orogenh** (numpy.ndarray):
                     2D array containing a weighted sum of orographic
                     enhancement components from upstream source points
-                **sum_of_weights** (np.ndarray):
+                **sum_of_weights** (numpy.ndarray):
                     2D array containing weights for normalisation
         """
         source_values = np.fromiter(
@@ -430,11 +430,11 @@ class OrographicEnhancement:
         Add upstream component to site orographic enhancement
 
         Args:
-            point_orogenh (np.ndarray):
+            point_orogenh (numpy.ndarray):
                 Site orographic enhancement in mm h-1
 
         Returns:
-            orogenh (np.ndarray):
+            orogenh (numpy.ndarray):
                 Total orographic enhancement in mm h-1
         """
         # get wind speed and sin / cos direction wrt grid North
@@ -477,7 +477,7 @@ class OrographicEnhancement:
         Casts coordinate points and bounds explicitly to np.float32.
 
         Args:
-            orogenh_data (np.ndarray):
+            orogenh_data (numpy.ndarray):
                 Orographic enhancement value in mm h-1
             reference_cube (iris.cube.Cube):
                 Cube with the correct time and forecast period coordinates on

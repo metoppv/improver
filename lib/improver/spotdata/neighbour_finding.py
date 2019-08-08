@@ -121,7 +121,7 @@ class NeighbourSelection:
         provided.
 
         Returns:
-            method_name (string):
+            method_name (str):
                 A string that describes the neighbour finding method employed.
                 This is essentially a concatenation of the options.
         """
@@ -138,10 +138,10 @@ class NeighbourSelection:
         want in this case, as such only the first two columns are returned.
 
         Args:
-            x_points (np.array):
+            x_points (numpy.ndarray):
                 An array of x coordinates to be transformed in conjunction
                 with the corresponding y coordinates.
-            y_points (np.array):
+            y_points (numpy.ndarray):
                 An array of y coordinates to be transformed in conjunction
                 with the corresponding x coordinates.
             cube (iris.cube.Cube):
@@ -174,13 +174,13 @@ class NeighbourSelection:
                    [{'altitude': 11.0, 'latitude': 57.867000579833984,
                     'longitude': -5.632999897003174, 'wmo_id': 3034}]
 
-            site_coords (np.array):
+            site_coords (numpy.ndarray):
                 An array of shape (n_sites, 2) that contains the spot site
                 coordinates in the coordinate system of the model cube.
-            site_x_coords (np.array):
+            site_x_coords (numpy.ndarray):
                 The x coordinates of the spot sites in their original
                 coordinate system, from which invalid sites must be removed.
-            site_y_coords (np.array):
+            site_y_coords (numpy.ndarray):
                 The y coordinates of the spot sites in their original
                 coordinate system, from which invalid sites must be removed.
             cube (iris.cube.Cube):
@@ -234,13 +234,13 @@ class NeighbourSelection:
         grid points to a site.
 
         Args:
-            site_coords (np.array):
+            site_coords (numpy.ndarray):
                 An array of shape (n_sites, 2) that contains the x and y
                 coordinates of the sites.
             cube (iris.cube.Cube):
                 Cube containing a representative grid.
         Returns:
-            nearest_indices (np.array):
+            nearest_indices (numpy.ndarray):
                 A list of shape (n_sites, 2) that contains the x and y indices
                 of the nearest grid points to the sites.
         """
@@ -265,14 +265,14 @@ class NeighbourSelection:
             cube (iris.cube.Cube):
                 A cube from which is taken the globe for which the geocentric
                 coordinates are being calculated.
-            x_coords (np.array):
+            x_coords (numpy.ndarray):
                 An array of x coordinates that will represent one axis of the
                 mesh of coordinates to be transformed.
-            y_coords (np.array):
+            y_coords (numpy.ndarray):
                 An array of y coordinates that will represent one axis of the
                 mesh of coordinates to be transformed.
         Returns:
-            cartesian_nodes (np.array):
+            cartesian_nodes (numpy.ndarray):
                 An array of all the xyz combinations that describe the nodes of
                 the grid, now in 3D geocentric cartesian coordinates. The shape
                 of the array is (n_nodes, 3), order x[:, 0], y[:, 1], z[:, 2].
@@ -299,7 +299,7 @@ class NeighbourSelection:
                 scipy.spatial.ckdtree.cKDTree:
                     A KDTree containing the required nodes, built using the
                     scipy cKDTree method.
-                index_nodes (np.array):
+                index_nodes (numpy.ndarray):
                     An array of shape (n_nodes, 2) that contains the x and y
                     indices that correspond to the selected node,
                     e.g. node=100 -->  x_coord_index=10, y_coord_index=300,
@@ -341,18 +341,18 @@ class NeighbourSelection:
                 A cube of orography, used to obtain the grid point altitudes.
             site_altitude (float):
                 The altitude of the spot site being considered.
-            index_nodes (np.array):
+            index_nodes (numpy.ndarray):
                 An array of shape (n_nodes, 2) that contains the x and y
                 indices that correspond to the selected node,
-            distance (np.array):
+            distance (numpy.ndarray):
                 An array that contains the distances from the spot site to each
                 grid point neighbour being considered. The number maybe np.inf
                 if the site is beyond the search_radius.
-            indices (np.array):
+            indices (numpy.ndarray):
                 An array of tree node indices identifying the neigbouring grid
                 points, the list corresponding to the array of distances.
         Returns:
-            grid_point (np.array or None):
+            grid_point (numpy.ndarray or None):
                 A 2-element array giving the x and y indices of the chosen grid
                 point neighbour. Returns None if no valid neighbours were found
                 in the tree query.

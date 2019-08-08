@@ -180,7 +180,7 @@ class SpatiallyVaryingWeightsFromMask(object):
                 coordinate in this cube matches the string given by
                 blend_coord and the length of this coord must match the
                 length of the same coordinate in weights_from_mask.
-            blend_coord (string):
+            blend_coord (str):
                 The string that will match to a coordinate in both input cube.
                 This is the coordinate that the input cubes will be sliced
                 along and then multiplied. The corresponds to the coordinate
@@ -226,7 +226,7 @@ class SpatiallyVaryingWeightsFromMask(object):
                 This cube must have a coordinate matching the name given by
                 blend_coord which corresponds to the dimension along
                 which the normalisation is needed.
-            blend_coord (string):
+            blend_coord (str):
                 The string that will match to a coordinate in both input cube.
                 This coordinate corresponds to the dimension along which the
                 normalisation is needed.
@@ -268,7 +268,7 @@ class SpatiallyVaryingWeightsFromMask(object):
                 The cube that will be collapsed along the blend_coord
                 using the spatial weights generated using this plugin. Must
                 be masked where there is invalid data.
-            blend_coord (string):
+            blend_coord (str):
                 A string containing the name of the coordinate that the
                 cube_to_collapse will be collapsed along. Also matches the
                 coordinate in one_dimensional_weights_cube.
@@ -347,7 +347,7 @@ class SpatiallyVaryingWeightsFromMask(object):
                 name given blend_coord. This cube contains 1D weights
                 that will be applied along the blend_coord but need
                 adjusting spatially based on missing data.
-            blend_coord (string):
+            blend_coord (str):
                 A string containing the name of the coordinate that the
                 cube_to_collapse will be collapsed along. Also matches the
                 coordinate in one_dimensional_weights_cube.

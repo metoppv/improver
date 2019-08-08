@@ -203,9 +203,9 @@ class ArgParser(ArgumentParser):
         groups of arguments.
 
         Args:
-            args (string):
+            args (str):
                 The incompatible arguments
-            method (string):
+            method (str):
                 The method with which the arguments are incompatible
 
         Raises:
@@ -225,7 +225,7 @@ def safe_eval(command, module, allowed):
     method without it being readily possible to trigger malicious code.
 
     Args:
-        command (string):
+        command (str):
             A string identifying the function/method/object that is to be
             returned from the provided module.
         module (module):

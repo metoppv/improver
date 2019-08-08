@@ -170,7 +170,7 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
     - configurable attributes
 
     Args:
-        data (np.ndarray):
+        data (numpy.ndarray):
             2D (y-x ordered) or 3D (realization-y-x ordered) array of data
             to put into the cube.
 
@@ -270,7 +270,7 @@ def set_up_percentile_cube(data, percentiles, name='air_temperature',
     - configurable attributes
 
     Args:
-        data (np.ndarray):
+        data (numpy.ndarray):
             3D (percentile-y-x ordered) array of data to put into the cube
         percentiles (list):
             List of int / float percentile values whose length must match the
@@ -330,7 +330,7 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
     "probability_of_X_above(or below)_threshold" convention
 
     Args:
-        data (np.ndarray):
+        data (numpy.ndarray):
             3D (threshold-y-x ordered) array of data to put into the cube
         thresholds (list):
             List of int / float threshold values whose length must match the

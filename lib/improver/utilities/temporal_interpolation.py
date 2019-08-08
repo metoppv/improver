@@ -214,12 +214,12 @@ class TemporalInterpolation(object):
         Args:
             dtval (datetime.datetime):
                 Date and time.
-            lats (np.array):
+            lats (numpy.ndarray):
                 Array 2d of latitudes for each point
-            lons (np.array):
+            lons (numpy.ndarray):
                 Array 2d of longitudes for each point
         Returns:
-            sin_phi (np.array):
+            sin_phi (numpy.ndarray):
                 Array of sine of solar elevation at each point
 
         """
@@ -241,9 +241,9 @@ class TemporalInterpolation(object):
                 cube containing x and y axis
         Returns:
             (tuple) : tuple containing:
-                **lats** (np.array):
+                **lats** (numpy.ndarray):
                     2d Array of latitudes for each point.
-                **lons** (np.array):
+                **lons** (numpy.ndarray):
                     2d Array of longitudes for each point.
 
         """

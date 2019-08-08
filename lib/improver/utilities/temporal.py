@@ -130,7 +130,7 @@ def forecast_period_coord(
     coordinate will have units of seconds.
 
     Args:
-        cube (Iris.cube.Cube):
+        cube (iris.cube.Cube):
             Cube from which the lead times will be determined.
 
     Keyword Args:

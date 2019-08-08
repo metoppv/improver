@@ -48,12 +48,12 @@ def _make_mask_cube(
             Dictionary of coordinate on the model ancillary file.
         topographic_bounds(list):
             List containing the lower and upper thresholds defining the mask
-        topographic_units (string):
+        topographic_units (str):
             Name of the units of the topographic zone coordinate of the output
             cube.
 
     Keyword Args:
-        sea_points_included (boolean):
+        sea_points_included (bool):
             Default is False. Value for the output cube attribute
             'topographic_zones_include_seapoints', signifying whether sea
             points have been included when the ancillary is generated.
@@ -217,7 +217,7 @@ class GenerateOrographyBandAncils(object):
                 band.
 
         Keyword Args:
-            units (string):
+            units (str):
                 Units to be fed to CF_units to create a unit for the cube.
                 The unit must be convertable to meters. If no unit is given
                 this will default to meters.

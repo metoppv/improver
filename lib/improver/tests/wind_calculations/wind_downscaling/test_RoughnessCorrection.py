@@ -235,7 +235,7 @@ class TestMultiPoint(object):
             height (float):
                 Value for height in metres for zeroth slice of wind,
                 default None
-            aslist (boolean):
+            aslist (bool):
                 Make wind cube into a CubeList of height slices or not,
                 default False
         """

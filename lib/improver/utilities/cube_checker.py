@@ -83,7 +83,7 @@ def check_for_x_and_y_axes(cube, require_dim_coords=False):
     Check whether the cube has an x and y axis, otherwise raise an error.
 
     Args:
-        cube (Iris.cube.Cube):
+        cube (iris.cube.Cube):
             Cube to be checked for x and y axes.
         require_dim_coords (bool):
             If true the x and y coordinates must be dimension coordinates.
@@ -189,9 +189,9 @@ def find_dimension_coordinate_mismatch(
     two cubes.
 
     Args:
-        first_cube (Iris.cube.Cube):
+        first_cube (iris.cube.Cube):
             First cube to compare.
-        second_cube (Iris.cube.Cube):
+        second_cube (iris.cube.Cube):
             Second cube to compare.
         two_way_mismatch (Logical):
             If True, a two way mismatch is calculated e.g.
@@ -221,9 +221,9 @@ def spatial_coords_match(first_cube, second_cube):
     Determine if the x and y coords in the two cubes are the same.
 
     Args:
-        first_cube (Iris.cube.Cube):
+        first_cube (iris.cube.Cube):
             First cube to compare.
-        second_cube (Iris.cube.Cube):
+        second_cube (iris.cube.Cube):
             Second cube to compare.
 
     Returns:

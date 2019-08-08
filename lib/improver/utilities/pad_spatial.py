@@ -55,7 +55,7 @@ def pad_coord(coord, width, method):
         width (int):
             The width of padding in grid cells (the extent of the
             neighbourhood radius in grid cells in a given direction).
-        method (string):
+        method (str):
             A string determining whether the coordinate is being expanded
             or contracted. Options: 'remove' to remove points from coord;
             'add' to add points to coord.
@@ -136,18 +136,18 @@ def _create_cube_with_padded_data(source_cube, data, coord_x, coord_y):
     cube.
 
     Args:
-        source_cube (Iris.cube.Cube):
+        source_cube (iris.cube.Cube):
             Template cube used for copying metadata and non x and y axes
             coordinates.
         data (Numpy array):
             Data to be put into the new cube.
-        coord_x (Iris.coords.DimCoord):
+        coord_x (iris.coords.DimCoord):
             Coordinate to be added to the new cube to represent the x axis.
-        coord_y (Iris.coords.DimCoord):
+        coord_y (iris.coords.DimCoord):
             Coordinate to be added to the new cube to represent the y axis.
 
     Returns:
-        new_cube (Iris.cube.Cube):
+        new_cube (iris.cube.Cube):
             Cube built from the template cube using the requested data and
             the supplied x and y axis coordinates.
     """

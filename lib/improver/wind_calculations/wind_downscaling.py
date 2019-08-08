@@ -67,13 +67,13 @@ class FrictionVelocity(object):
         """Initialise the class.
 
         Args:
-            u_href (np.ndarray):
+            u_href (numpy.ndarray):
                 A 2D array of float32 for the wind speed at h_ref
-            h_ref (np.ndarray):
+            h_ref (numpy.ndarray):
                 A 2D array of float32 for the reference heights
-            z_0 (np.ndarray):
+            z_0 (numpy.ndarray):
                 A 2D array of float32 for the vegetative roughness lengths
-            mask (np.ndarray):
+            mask (numpy.ndarray):
                 A 2D array of booleans where True indicates calculate u*
 
         Notes:
@@ -106,7 +106,7 @@ class FrictionVelocity(object):
         roughness length.
 
         Returns:
-            ustar (np.ndarray):
+            ustar (numpy.ndarray):
                 A 2D array of float32 friction velocities
 
         """
@@ -142,20 +142,20 @@ class RoughnessCorrectionUtilities(object):
         correction given the ancillary file inputs:
 
         Args:
-            a_over_s (np.ndarray):
+            a_over_s (numpy.ndarray):
                 2D array float32 - Silhouette roughness field, dimensionless
                 ancillary data, calculated according to Robinson, D. (2008)
                 - Ancillary file creation for the UM, Unified Model
                 Documentation Paper 73.
-            sigma (np.ndarray):
+            sigma (numpy.ndarray):
                 2D array float32 - Standard deviation field of height in the
                 grid cell, units of length
-            z_0 (np.ndarray):
+            z_0 (numpy.ndarray):
                 2D array float32 - Vegetative roughness height field,
                 units of length
-            pporo (np.ndarray):
+            pporo (numpy.ndarray):
                 2D array float32 - Post processing grid orography field
-            modoro (np.ndarray):
+            modoro (numpy.ndarray):
                 2D array float32 - Model orography field interpolated to post
                 processing grid
             ppres (float):
@@ -206,10 +206,10 @@ class RoughnessCorrectionUtilities(object):
 
         Returns:
             (tuple) : tuple containing:
-                **hcmask** (np.ndarray):
+                **hcmask** (numpy.ndarray):
                     2D array of booleans- True for land-points,
                     false for Sea (HC)
-                **rcmask** (np.ndarray):
+                **rcmask** (numpy.ndarray):
                     2D array of booleans- additionally False for
                     invalid z_0 (RC)
 
@@ -239,12 +239,12 @@ class RoughnessCorrectionUtilities(object):
         height (h_o_2).
 
         Args:
-            sigma (np.ndarray):
+            sigma (numpy.ndarray):
                 2D array of float32 - standard deviation of height in
                 grid cell.
 
         Returns:
-            h_o_2 (np.ndarray):
+            h_o_2 (numpy.ndarray):
                 2D array of float32 - half peak-to-trough height.
 
         Comments:
@@ -300,7 +300,7 @@ class RoughnessCorrectionUtilities(object):
               = \\rm{a\\_over\\_s} * \\pi / \\rm{h\\_over\\_2}
 
         Returns:
-            wavn (np.ndarray):
+            wavn (numpy.ndarray):
                 2D array float32 - wavenumber in units of inverse units of
                 supplied h_over_2.
 
@@ -336,7 +336,7 @@ class RoughnessCorrectionUtilities(object):
         epsilon in both Vosper and Clark)
 
         Returns:
-            h_ref (np.ndarray):
+            h_ref (numpy.ndarray):
                 2D array float32 - reference height for roughness correction
 
         """
@@ -360,16 +360,16 @@ class RoughnessCorrectionUtilities(object):
         """Function to perform the roughness correction.
 
         Args:
-            hgrid (np.ndarray):
+            hgrid (numpy.ndarray):
                 3D or 1D array float32 - height above orography
-            uold (np.ndarray):
+            uold (numpy.ndarray):
                 3D array float32 - original velocities at hgrid.
-            mask (np.ndarray):
+            mask (numpy.ndarray):
                  2D array of bools that is True for land-points, False for Sea
                  and False for invalid z_0.
 
         Returns:
-            unew (np.ndarray):
+            unew (numpy.ndarray):
                 3D np.array float32 - Corrected wind speed on hgrid. Above
                 href, this is equal to uold.
 
@@ -406,19 +406,19 @@ class RoughnessCorrectionUtilities(object):
         """Function to interpolate u_in on h_in at hhere.
 
         Args:
-            u_in (np.ndarray):
+            u_in (numpy.ndarray):
                 3D array float32 - velocity on h_in layer, last dim is height
-            h_in(np.ndarray):
+            h_in(numpy.ndarray):
                 3D or 1D array float32 - height layer array
-            hhere (np.ndarray):
+            hhere (numpy.ndarray):
                 2D array float32 - height grid to interpolate at
-            mask (np.ndarray):
+            mask (numpy.ndarray):
                 2D array of bools - mask the final result for uath
             dolog (bool):
                 if True, log interpolation, default False
 
         Returns:
-            uath (np.ndarray):
+            uath (numpy.ndarray):
                 2D array float32 - velocity interpolated at h
 
         """
@@ -468,19 +468,19 @@ class RoughnessCorrectionUtilities(object):
         """Simple 1D linear interpolation for 2D grid inputs level.
 
         Args:
-            xup (np.ndarray):
+            xup (numpy.ndarray):
                 2D array float32 - upper x-bins
-            xlow (np.ndarray):
+            xlow (numpy.ndarray):
                 2D array float32 - lower x-bins
-            at_x (np.ndarray):
+            at_x (numpy.ndarray):
                 2D array float32 - x values to interpolate y at
-            yup (np.ndarray):
+            yup (numpy.ndarray):
                 2D array float32 - y(xup)
-            ylow (np.ndarray):
+            ylow (numpy.ndarray):
                 2D array float32 - y(xlow)
 
         Returns:
-            interp (np.ndarray):
+            interp (numpy.ndarray):
                 2D array float32 - y(at_x) assuming a lin function
                 between xlow and xup
 
@@ -501,19 +501,19 @@ class RoughnessCorrectionUtilities(object):
         ground level.
 
         Args:
-            xup (np.ndarray):
+            xup (numpy.ndarray):
                 2D array float32 - upper x-bins
-            xlow (np.ndarray):
+            xlow (numpy.ndarray):
                 2D array float32 - lower x-bins
-            at_x (np.ndarray):
+            at_x (numpy.ndarray):
                 2D array float32 - x values to interpolate y at
-            yup (np.ndarray):
+            yup (numpy.ndarray):
                 2D array float32 - y(xup)
-            ylow (np.ndarray):
+            ylow (numpy.ndarray):
                 2D array float32 -y(xlow)
 
         Returns:
-            loginterp (np.ndarray):
+            loginterp (numpy.ndarray):
                 2D array float32 - y(at_x) assuming a log function
                 between xlow and xup
 
@@ -535,18 +535,18 @@ class RoughnessCorrectionUtilities(object):
         """Function to calculate the additive height correction.
 
         Args:
-            u_a (np.ndarray):
+            u_a (numpy.ndarray):
                 2D array float32 - outer velocity, e.g. velocity at h_ref_orig
-            heightg (np.ndarray):
+            heightg (numpy.ndarray):
                 1D or 3D array float32 - heights above orography
-            mask (np.ndarray):
+            mask (numpy.ndarray):
                 3D array of bools - Masks the hc_add result
             onemfrac (float or np.ndarray):
                 Currently, scalar = 1. But can be a function of position and
                 height, e.g. a 3D array (float32)
 
         Returns:
-            hc_add (np.ndarray):
+            hc_add (numpy.ndarray):
                 3D array float32 - additive height correction to wind speed
 
         Comments:
@@ -587,7 +587,7 @@ class RoughnessCorrectionUtilities(object):
         grid height.
 
         Returns:
-            delt_z (np.ndarray):
+            delt_z (numpy.ndarray):
                 2D array float32 - height difference, ppgrid-model
 
         """
@@ -600,13 +600,13 @@ class RoughnessCorrectionUtilities(object):
         """Function to call HC and RC (height and roughness corrections).
 
         Args:
-            hgrid (np.ndarray):
+            hgrid (numpy.ndarray):
                 1D or 3D array float32 - height grid of wind input
-            uorig (np.ndarray):
+            uorig (numpy.ndarray):
                 3D array float32 - wind speed on these levels
 
         Returns:
-            result (np.ndarray):
+            result (numpy.ndarray):
                 sum of  unew: 3D array float32 - RC corrected windspeed
                 on levels HC: 3D array float32 - HC additional part
 
@@ -883,7 +883,7 @@ class RoughnessCorrection(object):
                 3D or 4D - representing the wind data.
 
         Returns:
-            hld (np.ndarray):
+            hld (numpy.ndarray):
                 1D or 3D array - representing the height grid.
 
         """

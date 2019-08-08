@@ -161,7 +161,7 @@ def daynight_terminator(longitudes, day_of_year, utc_hour):
     for the given longitudes.
 
     Args:
-        longitudes (numpy.array):
+        longitudes (numpy.ndarray):
             Array of longitudes.
             longitudes needs to be between 180.0 and -180.0 degrees
         day_of_year (int):
@@ -170,7 +170,7 @@ def daynight_terminator(longitudes, day_of_year, utc_hour):
             Hour of the day in UTC
 
     Returns:
-        latitudes (numpy.array):
+        latitudes (numpy.ndarray):
             latitudes of the daynight terminator
     """
     if day_of_year < 0 or day_of_year > 365:

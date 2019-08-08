@@ -96,10 +96,10 @@ class BasicThreshold(object):
                 Each entry in list should be a tuple of two floats
                 representing the lower and upper bounds respectively.
                 If None, no fuzzy_bounds are applied.
-            threshold_units (string):
+            threshold_units (str):
                 Units of the threshold values. If not provided the units are
                 assumed to be the same as those of the input cube.
-            below_thresh_ok (boolean):
+            below_thresh_ok (bool):
                 True to count points as significant if *below* the threshold,
                 False to count points as significant if *above* the threshold.
 
@@ -192,7 +192,7 @@ class BasicThreshold(object):
         Args:
             cube (iris.cube.Cube):
                 Cube containing thresholded data (1s and 0s)
-            threshold (np.float32):
+            threshold (numpy.float32):
                 Value at which the data has been thresholded
 
         Returns:

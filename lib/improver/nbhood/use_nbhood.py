@@ -93,7 +93,7 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
         Initialise the class.
 
         Args:
-            coord_for_masking (string):
+            coord_for_masking (str):
                 String matching the name of the coordinate that will be used
                 for masking.
             radii (float or List if defining lead times):
@@ -107,18 +107,18 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
                 List of lead times or forecast periods, at which the radii
                 within 'radii' are defined. The lead times are expected
                 in hours.
-            weighted_mode (boolean):
+            weighted_mode (bool):
                 If True, use a circle for neighbourhood kernel with
                 weighting decreasing with radius.
                 If False, use a circle with constant weighting.
-            sum_or_fraction (string):
+            sum_or_fraction (str):
                 Identifier for whether sum or fraction should be returned from
                 neighbourhooding. The sum represents the sum of the
                 neighbourhood.
                 The fraction represents the sum of the neighbourhood divided by
                 the neighbourhood area. "fraction" is the default.
                 Valid options are "sum" or "fraction".
-            re_mask (boolean):
+            re_mask (bool):
                 If re_mask is True, the original un-neighbourhood processed
                 mask is applied to mask out the neighbourhood processed cube.
                 If re_mask is False, the original un-neighbourhood processed
@@ -154,14 +154,14 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
            single cube.
 
         Args:
-            cube (Iris.cube.Cube):
+            cube (iris.cube.Cube):
                 Cube containing the array to which the square neighbourhood
                 will be applied.
-            mask_cube (Iris.cube.Cube):
+            mask_cube (iris.cube.Cube):
                 Cube containing the array to be used as a mask.
 
         Returns:
-            concatenated_cube (Iris.cube.Cube):
+            concatenated_cube (iris.cube.Cube):
                 Cube containing the smoothed field after the square
                 neighbourhood method has been applied when applying masking
                 for each point along the coord_for_masking coordinate.
@@ -298,7 +298,7 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
         Initialise the class.
 
         Args:
-            coord_masked (string):
+            coord_masked (str):
                 String matching the name of the coordinate that has been used
                 for masking.
             weights (cube):
@@ -375,12 +375,12 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
         probability.
 
         Args:
-            cube (Iris.cube.Cube):
+            cube (iris.cube.Cube):
                 Cube containing the array to which the square neighbourhood
                 with a mask has been applied.
 
         Returns:
-            result (Iris.cube.Cube):
+            result (iris.cube.Cube):
                 Cube containing the weighted mean from neighbourhood after
                 collapsing the chosen coordinate.
 

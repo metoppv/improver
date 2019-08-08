@@ -235,15 +235,15 @@ class ChooseWeightsLinear:
         Returns:
             (tuple): tuple containing
 
-                **source_points** (np.ndarray):
+                **source_points** (numpy.ndarray):
                     Points within the configuration dictionary that will
                     be used as the input to the interpolation.
 
-                **target_points** (np.ndarray):
+                **target_points** (numpy.ndarray):
                     Points within the cube that will be the target points
                     for the interpolation.
 
-                **source_weights** (np.ndarray):
+                **source_weights** (numpy.ndarray):
                     Weights from the configuration dictionary that will be
                     used as the input to the interpolation.
 
@@ -281,13 +281,13 @@ class ChooseWeightsLinear:
         source_weights can be a multi-dimensional numpy array.
 
         Args:
-            source_points (np.ndarray):
+            source_points (numpy.ndarray):
                 Points within the configuration dictionary that will
                 be used as the input to the interpolation.
-            target_points (np.ndarray):
+            target_points (numpy.ndarray):
                 Points within the cube that will be the target points
                 for the interpolation.
-            source_weights (np.ndarray):
+            source_weights (numpy.ndarray):
                 Weights from the configuration dictionary that will be
                 used as the input to the interpolation.
             fill_value (tuple):
@@ -300,7 +300,7 @@ class ChooseWeightsLinear:
                 Axis along which the interpolation will occur.
 
         Returns:
-            weights (np.ndarray):
+            weights (numpy.ndarray):
                 Weights corresponding to target_points following interpolation.
         """
         f_out = interp1d(source_points, source_weights, axis=axis,
@@ -317,7 +317,7 @@ class ChooseWeightsLinear:
             cube (iris.cube.Cube):
                 Cube containing the coordinate information that will be used
                 for setting up the new_weights_cube.
-            weights (np.ndarray):
+            weights (numpy.ndarray):
                 Weights calculated following interpolation.
 
         Returns:

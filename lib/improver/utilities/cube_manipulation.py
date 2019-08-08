@@ -88,7 +88,7 @@ def strip_var_names(cubes):
     to help concatenation.
 
     Args:
-        cubes (Iris cubelist or Iris cube):
+        cubes (iris.cube.cubelist or iris.cube.cube):
             Cubes to be concatenated.
 
     Returns:
@@ -318,7 +318,7 @@ def concatenate_cubes(
             Cubes to be concatenated.
         coords_to_slice_over (list):
             Coordinates to be sliced over.
-        master_coord (string):
+        master_coord (str):
             Coordinate that the other coordinates will be associated with.
         coordinates_for_association (list):
             List of coordinates to be associated with the master_coord.
@@ -456,11 +456,11 @@ def merge_cubes(cubes):
     Wrapper for MergeCubes().process()
 
     Args:
-        cubes (Iris cubelist or Iris cube):
+        cubes (iris.cube.cubelist or iris.cube.cube):
             Cubes to be merged.
 
     Returns:
-        result (Iris cube):
+        result (iris.cube.cube):
             Merged cube.
     """
     result = MergeCubes().process(cubes)
@@ -498,7 +498,7 @@ def compare_attributes(cubes, attribute_filter=None):
     Function to compare attributes of cubes
 
     Args:
-        cubes (Iris cubelist):
+        cubes (iris.cube.cubelist):
             List of cubes to compare (must be more than 1)
     Keyword Args:
         attribute_filter (string or None):
@@ -543,7 +543,7 @@ def compare_coords(cubes):
     Function to compare the coordinates of the cubes
 
     Args:
-        cubes (Iris cubelist):
+        cubes (iris.cube.cubelist):
             List of cubes to compare (must be more than 1)
 
     Returns:
@@ -617,7 +617,7 @@ def build_coordinate(data, long_name=None,
             The data type of the coordinate points, e.g. int
         units (str (optional)):
             String defining the coordinate units.
-        bounds (np.array (optional)):
+        bounds (numpy.ndarray (optional)):
             A (len(data), 2) array that defines coordinate bounds.
         coord_system(iris.coord_systems.<coord_system> (optional)):
             A coordinate system in which the dimension coordinates are defined.
@@ -685,9 +685,9 @@ def sort_coord_in_cube(cube, coord, order="ascending"):
     Args:
         cube (iris.cube.Cube):
             The input cube to be sorted.
-        coord (string):
+        coord (str):
             Name of the coordinate to be sorted.
-        order (string):
+        order (str):
             Choice of how to order the sorted coordinate.
             Options are either "ascending" or "descending".
 
