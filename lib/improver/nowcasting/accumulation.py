@@ -65,7 +65,7 @@ class Accumulation:
                 cubes. The default is None, in which case an accumulation is
                 calculated across the span of time covered by the input rates
                 cubes.
-            forecast_periods (list):
+            forecast_periods (iterable):
                 The forecast periods in seconds that define the end of an
                 accumulation period.
 
@@ -126,15 +126,11 @@ class Accumulation:
                 **time_interval** (float):
                     Interval between the timesteps from the input cubelist.
 
-                **integral** (int):
-                    Integer value based on how many times the accumulation
-                    period is divisible by the time interval. This therefore
-                    indicates how many timesteps are expected within an
-                    accumulation period.
-
         Raises:
             ValueError: The input rates cubes must be at regularly spaced
                 time intervals.
+            ValueError: The accumulation period is less than the time interval
+                between the rates cubes.
             ValueError: The specified accumulation period is not cleanly
                 divisible by the time interval.
 
@@ -150,7 +146,8 @@ class Accumulation:
         cubes, times = self.sort_cubes_by_time(cubes)
 
         try:
-            time_interval, = np.unique(np.diff(times, axis=0))
+            time_interval, = np.unique(np.diff(times, axis=0)).astype(
+                np.int32)
         except ValueError:
             msg = ("Accumulation is designed to work with "
                    "rates cubes at regular time intervals. Cubes "
@@ -164,15 +161,26 @@ class Accumulation:
             self.accumulation_period, = (
                 cubes[-1].coord("forecast_period").points)
 
-        if self.forecast_periods is None:
-            # If no forecast periods are specified, then the accumulation
-            # periods calculated will end at the forecast period from
-            # each of the input cubes.
-            self.forecast_periods = [
-                cube.coord("forecast_period").points for cube in cubes]
+        # Ensure that the accumulation period is int32.
+        self.accumulation_period = np.int32(self.accumulation_period)
 
         fraction, integral = np.modf(self.accumulation_period / time_interval)
 
+        # Check whether the accumulation period is less than the time_interval
+        # i.e. the integral is equal to zero. In this case, the rates cubes
+        # are too widely spaced to compute the requested accumulation period.
+        if integral == 0:
+            msg = (
+                "The accumulation_period is less than the time interval "
+                "between the rates cubes. The rates cubes provided are "
+                "therefore insufficient for computing the accumulation period "
+                "requested. accumulation period specified: {}, "
+                "time interval specified: {}".format(
+                    self.accumulation_period, time_interval))
+            raise ValueError(msg)
+
+        # Ensure the accumulation period is cleanly divisible by the time
+        # interval.
         if fraction != 0:
             msg = ("The specified accumulation period ({}) is not divisible "
                    "by the time intervals between rates cubes ({}). As "
@@ -180,9 +188,28 @@ class Accumulation:
                    "total accumulation period.".format(
                        self.accumulation_period, time_interval))
             raise ValueError(msg)
-        return cubes, time_interval, integral
 
-    def _get_cube_subsets(self, cubes, forecast_period, integral):
+        if self.forecast_periods is None:
+            # If no forecast periods are specified, then the accumulation
+            # periods calculated will end at the forecast period from
+            # each of the input cubes.
+            self.forecast_periods = [
+                cube.coord("forecast_period").points for cube in cubes
+                if cube.coord("forecast_period").points >= time_interval]
+
+        # Check whether any forecast periods are less than the accumulation
+        # period. This is expected if the accumulation period is e.g. 1 hour,
+        # however, the forecast periods are e.g. [15, 30, 45] minutes.
+        # In this case, the forecast periods are filtered, so that only
+        # complete accumulation periods will be calculated.
+        if any(self.forecast_periods < self.accumulation_period):
+            forecast_periods = [fp for fp in self.forecast_periods
+                                if fp >= self.accumulation_period]
+            self.forecast_periods = forecast_periods
+
+        return cubes, time_interval
+
+    def _get_cube_subsets(self, cubes, forecast_period):
         """Finding the subset of cubes from the input cubelist that are
         within the accumulation period, based on the required forecast period
         that defines the upper bound of the accumulation period and the length
@@ -195,14 +222,9 @@ class Accumulation:
             forecast_period (int or numpy.ndarray):
                 Forecast period in seconds matching the upper bound of the
                 accumulation period.
-            integral (int)
-                Integer value based on how many times the accumulation
-                period is divisible by the time interval between the rates
-                cubes. This therefore indicates how many timesteps are expected
-                within an accumulation period.
 
         Returns:
-            cube_subset (iris.cube.Cubelist or None):
+            iris.cube.Cubelist:
                 Cubelist that defines the cubes used to calculate
                 the accumulations.
 
@@ -221,17 +243,7 @@ class Accumulation:
         constr = iris.Constraint(
             forecast_period=lambda fp: start_point <= fp <= forecast_period)
 
-        cube_subset = cubes.extract(constr)
-
-        if len(cube_subset) != int(integral + 1):
-            msg = (
-                "The provided cubes result in a partial period given the "
-                "specified accumulation_period, i.e. the number of cubes "
-                "is insufficient to give a set of complete periods. Only "
-                "complete periods will be returned.")
-            warnings.warn(msg)
-            return None
-        return cube_subset
+        return cubes.extract(constr)
 
     @staticmethod
     def _calculate_accumulation(cube_subset, time_interval):
@@ -313,15 +325,12 @@ class Accumulation:
                 the accumulation periods are determined by plugin argument
                 accumulation_period.
         """
-        cubes, time_interval, integral = self._check_inputs(cubes)
+        cubes, time_interval = self._check_inputs(cubes)
 
         accumulation_cubes = iris.cube.CubeList()
 
         for forecast_period in self.forecast_periods:
-            cube_subset = self._get_cube_subsets(
-                cubes, forecast_period, integral)
-            if cube_subset is None:
-                continue
+            cube_subset = self._get_cube_subsets(cubes, forecast_period)
             accumulation = self._calculate_accumulation(
                 cube_subset, time_interval)
             accumulation_cube = self._set_metadata(cube_subset)

@@ -115,9 +115,9 @@ Calculate accumulations from advected fields:
   --accumulation_period ACCUMULATION_PERIOD
                         The period over which the accumulation is calculated
                         (mins). Only full accumulation periods will be
-                        computed, so if the lead times are shorter than the
-                        accumulation period than these lead times will not be
-                        calculated.
+                        computed. At lead times that are shorter than the
+                        accumulation period, no accumulation output will be
+                        produced.
   --accumulation_units ACCUMULATION_UNITS
                         Desired units in which the accumulations should be
                         expressed,e.g. mm

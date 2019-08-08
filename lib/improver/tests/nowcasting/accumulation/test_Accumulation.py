@@ -222,7 +222,7 @@ class Test__check_inputs(rate_cube_set_up):
         expected_cubes = self.cubes.copy()
         for cube in expected_cubes:
             cube.convert_units("m/s")
-        forecast_periods = [60]
+        forecast_periods = [600]
         plugin = Accumulation(forecast_periods=forecast_periods)
         cubes, time_interval, integral = plugin._check_inputs(self.cubes)
         self.assertEqual(cubes, expected_cubes)
@@ -241,7 +241,7 @@ class Test__check_inputs(rate_cube_set_up):
         for cube in expected_cubes:
             cube.convert_units("m/s")
         accumulation_period = 20*60
-        forecast_periods = [15]
+        forecast_periods = np.array([15])*60
         plugin = Accumulation(accumulation_period=accumulation_period,
                               forecast_periods=forecast_periods)
         cubes, time_interval, integral = plugin._check_inputs(self.cubes)
@@ -262,6 +262,22 @@ class Test__check_inputs(rate_cube_set_up):
 
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(self.cubes)
+
+    def test_raises_exception_for_small_accumulation_period(self):
+        """Test that if the forecast period of the upper bound cube is
+        not within the list of requested forecast periods, then the
+        subset of cubes returned is equal to None."""
+        msg = (
+            "The accumulation_period is less than the time interval "
+            "between the rates cubes. The rates cubes provided are "
+            "therefore insufficient for computing the accumulation period "
+            "requested.")
+        reduced_cubelist = iris.cube.CubeList([self.cubes[0], self.cubes[-1]])
+        plugin = Accumulation(
+            accumulation_period=5*60,
+            forecast_periods=np.array([5])*60)
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.process(reduced_cubelist)
 
     def test_raises_exception_for_impossible_aggregation(self):
         """Test function raises an exception when attempting to create an
@@ -285,37 +301,11 @@ class Test__get_cube_subsets(rate_cube_set_up):
         cubes, so the integral is 5."""
         expected_cube_subset = self.cubes[:6]
         upper_bound_fp, = self.cubes[5].coord("forecast_period").points
-        integral = 5
         plugin = Accumulation(
             accumulation_period=5*60,
             forecast_periods=np.array([5])*60)
-        result = plugin._get_cube_subsets(
-            self.cubes, upper_bound_fp, integral)
+        result = plugin._get_cube_subsets(self.cubes, upper_bound_fp)
         self.assertEqual(expected_cube_subset, result)
-
-    @ManageWarnings(record=True)
-    def test_partial_period(self, warning_list=None):
-        """Test that if the forecast period of the upper bound cube is
-        not within the list of requested forecast periods, then the
-        subset of cubes returned is equal to None."""
-        expected_cube_subset = None
-        expected_warning_msg = (
-            "The provided cubes result in a partial period given the specified"
-            " accumulation_period, i.e. the number of cubes is insufficient to"
-            " give a set of complete periods. Only complete periods will be"
-            " returned.")
-        upper_bound_fp = self.cubes[8].coord("forecast_period").points
-        integral = 10
-        plugin = Accumulation(
-            accumulation_period=10*60,
-            forecast_periods=np.array([5])*60)
-        result = plugin._get_cube_subsets(
-            self.cubes, upper_bound_fp, integral)
-        self.assertEqual(expected_cube_subset, result)
-        self.assertTrue(any(item.category == UserWarning
-                            for item in warning_list))
-        self.assertTrue(any(expected_warning_msg in str(item)
-                            for item in warning_list))
 
 
 class Test__calculate_accumulation(rate_cube_set_up):
@@ -390,6 +380,20 @@ class Test_process(rate_cube_set_up):
             accumulation_period=60, forecast_periods=self.forecast_periods)
         result = plugin.process(self.cubes)
         self.assertIsInstance(result, iris.cube.CubeList)
+
+    def test_accumulation_length(self):
+        """Test to check that the length of the accumulation period is
+        consistent across all output cubes. Only complete periods are
+        required."""
+
+        accumulation_length = 120
+        plugin = Accumulation(
+            accumulation_period=accumulation_length,
+            forecast_periods=self.forecast_periods)
+        result = plugin.process(self.cubes)
+        for cube in result:
+            self.assertEqual(np.diff(cube.coord("forecast_period").bounds),
+                             accumulation_length)
 
     def test_returns_masked_cubes(self):
         """Test function returns a list of masked cubes for masked input
