@@ -212,6 +212,7 @@ def process(current_forecast, coeffs, num_realizations=None,
         input_forecast_type = "percentiles"
     except CoordinateNotFoundError:
         input_forecast_type = "realizations"
+
     if current_forecast.name().startswith("probability_of"):
         input_forecast_type = "probabilities"
         # If probabilities, convert to percentiles.
@@ -222,6 +223,7 @@ def process(current_forecast, coeffs, num_realizations=None,
         # evenly spaced.
         conversion_plugin = ResamplePercentiles(
             ecc_bounds_warning=ecc_bounds_warning)
+
     # If percentiles, re-sample percentiles and then re-badge.
     # If probabilities, generate percentiles and then re-badge.
     if input_forecast_type in ["percentiles", "probabilities"]:
@@ -239,11 +241,13 @@ def process(current_forecast, coeffs, num_realizations=None,
             current_forecast, no_of_percentiles=num_realizations)
         current_forecast = (
             RebadgePercentilesAsRealizations().process(current_forecast))
+
     # Default number of ensemble realizations is the number in
     # the raw forecast.
     if not num_realizations:
         num_realizations = len(
             current_forecast.coord('realization').points)
+
     # Apply coefficients as part of Ensemble Model Output Statistics (EMOS).
     ac = ApplyCoefficientsFromEnsembleCalibration(
         current_forecast, coeffs,

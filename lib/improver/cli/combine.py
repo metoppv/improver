@@ -83,7 +83,7 @@ def main(argv=None):
     args = parser.parse_args(args=argv)
 
     new_metadata = load_json_or_none(args.metadata_jsonfile)
-    # Load the cubes
+    # Load cubes
     cubelist = iris.cube.CubeList([])
     new_cube_name = args.new_name
     for filename in args.input_filenames:
@@ -99,9 +99,11 @@ def main(argv=None):
                        " but combining with a cube "
                        "with name, {}.".format(new_cube.name()))
                 warnings.warn(msg)
+
     # Process Cube
     result = process(cubelist, args.operation, new_cube_name,
                      new_metadata, args.warnings_on)
+
     # Save Cube
     save_netcdf(result, args.output_filepath)
 

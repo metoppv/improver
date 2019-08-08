@@ -283,18 +283,12 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
             num_realizations are given.
     """
     original_current_forecast = current_forecast.copy()
-    msg = ("The current forecast has been provided as {0}. "
-           "These {0} need to be converted to realizations "
-           "for ensemble calibration. The args.num_realizations "
-           "argument is used to define the number of realizations "
-           "to construct from the input {0}, so if the "
-           "current forecast is provided as {0} then "
-           "args.num_realizations must be defined.")
     try:
         find_percentile_coordinate(current_forecast)
         input_forecast_type = "percentiles"
     except CoordinateNotFoundError:
         input_forecast_type = "realizations"
+
     if current_forecast.name().startswith("probability_of"):
         input_forecast_type = "probabilities"
         # If probabilities, convert to percentiles.
@@ -305,26 +299,38 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
         # evenly spaced.
         conversion_plugin = ResamplePercentiles(
             ecc_bounds_warning=ecc_bounds_warning)
+
     # If percentiles, resample percentiles and then rebadge.
     # If probabilities, generate percentiles and then rebadge.
     if input_forecast_type in ["percentiles", "probabilities"]:
         if not num_realizations:
-            raise ValueError(msg.format(input_forecast_type))
+            raise ValueError(
+                "The current forecast has been provided as {0}. "
+                "These {0} need to be converted to realizations "
+                "for ensemble calibration. The args.num_realizations "
+                "argument is used to define the number of realizations "
+                "to construct from the input {0}, so if the "
+                "current forecast is provided as {0} then "
+                "args.num_realizations must be defined.".format(
+                    input_forecast_type))
         current_forecast = conversion_plugin.process(
             current_forecast, no_of_percentiles=num_realizations)
         current_forecast = (
             RebadgePercentilesAsRealizations().process(current_forecast))
+
     # Default number of ensemble realizations is the number in
     # the raw forecast.
     if not num_realizations:
         num_realizations = len(
             current_forecast.coord('realization').points)
+
     # Ensemble-Calibration to calculate the mean and variance.
     forecast_predictor, forecast_variance = EnsembleCalibration(
         distribution, units,
         predictor_of_mean_flag=predictor_of_mean,
         max_iterations=max_iterations).process(
         current_forecast, historic_forecast, truth)
+
     # If input forecast is probabilities, convert output into probabilities.
     # If input forecast is percentiles, convert output into percentiles.
     # If input forecast is realizations, convert output into realizations.

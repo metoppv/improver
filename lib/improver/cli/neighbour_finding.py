@@ -154,14 +154,14 @@ def main(argv=None):
     orography = load_cube(args.orography_filepath)
     landmask = load_cube(args.landmask_filepath)
 
-    # Process Cube.
+    # Process Cube
     result = process(orography, landmask, site_list, metadata_dict,
                      args.all_methods, args.land_constraint, args.minimum_dz,
                      args.search_radius, args.node_limit,
                      args.site_coordinate_system,
                      args.site_x_coordinate, args.site_y_coordinate)
 
-    # Save Cube.
+    # Save Cube
     save_netcdf(result, args.output_filepath)
 
 
@@ -259,6 +259,7 @@ def process(orography, landmask, site_list, metadata_dict=None,
     if all_methods is True and (land_constraint or minimum_dz):
         raise ValueError(
             'Cannot use all_methods option with other constraints.')
+
     # Filter kwargs for those expected by plugin and which are set.
     # This preserves the plugin defaults for unset options.
     args = {
@@ -295,12 +296,15 @@ def process(orography, landmask, site_list, metadata_dict=None,
         for index, cube in enumerate(all_methods):
             cube.coord('neighbour_selection_method').points = index
             squeezed_cubes.append(iris.util.squeeze(cube))
+
         result = merge_cubes(squeezed_cubes)
     else:
         result = NeighbourSelection(**kwargs).process(*fargs)
+
     result = enforce_coordinate_ordering(
         result,
         ['spot_index', 'neighbour_selection_method', 'grid_attributes'])
+
     # Modify final metadata as described by provided JSON file.
     if metadata_dict:
         result = amend_metadata(result, **metadata_dict)

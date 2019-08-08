@@ -69,8 +69,10 @@ def main(argv=None):
 
     # Load Cube
     cube = load_cube(args.input_file)
+
     # Process Cube
     output_cube = process(cube, args.constraints, args.units)
+
     # Save Cube
     if output_cube is None and args.ignore_failure:
         save_netcdf(cube, args.output_file)

@@ -157,11 +157,14 @@ def process(landmask, orography, thresholds_dict=None):
     """
     orography = next(orography.slices([orography.coord(axis='y'),
                                        orography.coord(axis='x')]))
+
     if landmask:
         landmask = next(landmask.slices([landmask.coord(axis='y'),
                                          landmask.coord(axis='x')]))
+
     if thresholds_dict is None:
         thresholds_dict = THRESHOLDS_DICT
+
     result = GenerateTopographicZoneWeights().process(
         orography, thresholds_dict, landmask=landmask)
     return result

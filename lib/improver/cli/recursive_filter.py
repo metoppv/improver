@@ -92,10 +92,10 @@ def main(argv=None):
     mask_cube = load_cube_or_none(args.input_mask_filepath)
     alphas_x_cube = load_cube_or_none(args.input_filepath_alphas_x)
     alphas_y_cube = load_cube_or_none(args.input_filepath_alphas_y)
-    # Process Cube.
+    # Process Cube
     result = process(cube, mask_cube, alphas_x_cube, alphas_y_cube,
                      args.alpha_x, args.alpha_y, args.iterations, args.re_mask)
-    # Save Cube.
+    # Save Cube
     save_netcdf(result, args.output_filepath)
 
 

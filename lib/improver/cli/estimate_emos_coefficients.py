@@ -109,6 +109,7 @@ def main(argv=None):
     # Load Cubes
     historic_forecast = load_cube(args.historic_filepath)
     truth = load_cube(args.truth_filepath)
+
     # Process Cube
     coefficients = process(historic_forecast, truth, args.distribution,
                            args.cycletime, args.units, args.predictor_of_mean,
@@ -172,6 +173,7 @@ def process(historic_forecast, truth, distribution, cycletime, units=None,
         distribution, cycletime, desired_units=units,
         predictor_of_mean_flag=predictor_of_mean,
         max_iterations=max_iterations)
+
     return result.process(historic_forecast, truth)
 
 

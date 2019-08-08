@@ -50,10 +50,13 @@ def main(argv=None):
                         type=float, help="Size of halo (in m) with which to "
                         "pad the input grid.  Default is 162 000 m.")
     args = parser.parse_args(args=argv)
+
     # Load Cube
     cube = load_cube(args.input_file)
+
     # Process Cube
     result = process(cube, args.halo_radius)
+
     # Save Cube
     save_netcdf(result, args.output_file)
 

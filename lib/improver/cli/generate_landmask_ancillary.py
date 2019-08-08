@@ -61,8 +61,10 @@ def main(argv=None):
     if not os.path.exists(args.output_filepath) or args.force:
         # Load Cube
         landmask = load_cube(args.input_filepath_standard)
+
         # Process Cube
         land_binary_mask = process(landmask)
+
         # Save Cube
         save_netcdf(land_binary_mask, args.output_filepath)
     else:

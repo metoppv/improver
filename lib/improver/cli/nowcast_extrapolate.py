@@ -118,7 +118,7 @@ def main(argv=None):
         help="Desired units in which the accumulations should be expressed,"
         "e.g. mm")
 
-    # Load Cubes.
+    # Load Cubes
     args = parser.parse_args(args=argv)
 
     metadata_dict = load_json_or_none(args.json_file)
@@ -148,13 +148,14 @@ def main(argv=None):
     else:
         raise ValueError('Cannot mix advection component velocities with speed'
                          ' and direction')
-    # Process Cubes.
+
+    # Process Cubes
     accumulation_cubes, forecast_to_return = process(
         input_cube, ucube, vcube, scube, dcube, oe_cube, metadata_dict,
         args.max_lead_time, args.lead_time_interval,
         args.accumulation_fidelity, args.accumulation_units)
 
-    # Save Cube.
+    # Save Cube
     if args.output_filepaths and \
             len(args.output_filepaths) != len(forecast_to_return):
         raise ValueError("Require exactly one output file name for each "
@@ -275,11 +276,13 @@ def process(input_cube, u_cube, v_cube, s_cube, d_cube, oe_cube=None,
     forecast_plugin = CreateExtrapolationForecast(
         input_cube, u_cube, v_cube, orographic_enhancement_cube=oe_cube,
         metadata_dict=metadata_dict)
+
     # extrapolate input data to required lead times
     forecast_cubes = iris.cube.CubeList()
     for i, lead_time in enumerate(lead_times):
         forecast_cubes.append(
             forecast_plugin.extrapolate(leadtime_minutes=lead_time))
+
     forecast_to_return = forecast_cubes[::lead_time_filter].copy()
     # return rate cubes
     # calculate accumulations if required
@@ -288,6 +291,7 @@ def process(input_cube, u_cube, v_cube, s_cube, d_cube, oe_cube=None,
         plugin = Accumulation(accumulation_units=accumulation_units,
                               accumulation_period=lead_time_interval * 60)
         accumulation_cubes = plugin.process(forecast_cubes)
+
     return accumulation_cubes, forecast_to_return
 
 

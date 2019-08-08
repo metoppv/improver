@@ -254,41 +254,42 @@ def process(cube, mask, radius=None, radii_by_lead_time=None, weights=None,
         sea_only = landmask.copy(
             data=np.logical_not(landmask.data).astype(int))
         land_only = landmask.copy(data=landmask.data.astype(int))
+
     radius_or_radii, lead_times = radius_or_radii_and_lead(
         radius, radii_by_lead_time)
+
     if return_intermediate is not None and masking_coordinate is None:
-        msg = ('No topographic_zone coordinate found, so no intermediate file '
-               'will be saved.')
-        warnings.warn(msg)
+        warnings.warn('No topographic_zone coordinate found, so no '
+                      'intermediate file will be saved.')
+
     # Section for neighbourhood processing land points.
     if land_only.data.max() > 0.0:
-        if masking_coordinate is not None:
-            result_land = ApplyNeighbourhoodProcessingWithAMask(
-                masking_coordinate, radius_or_radii, lead_times=lead_times,
-                sum_or_fraction=sum_or_fraction, re_mask=False).process(
-                cube, mask)
-        else:
+        if masking_coordinate is None:
             result_land = NeighbourhoodProcessing(
                 'square', radius_or_radii, lead_times=lead_times,
                 sum_or_fraction=sum_or_fraction, re_mask=True).process(
                 cube, land_only)
+        else:
+            result_land = ApplyNeighbourhoodProcessingWithAMask(
+                masking_coordinate, radius_or_radii, lead_times=lead_times,
+                sum_or_fraction=sum_or_fraction, re_mask=False).process(
+                cube, mask)
 
-        if masking_coordinate is not None:
             if return_intermediate:
                 intermediate_cube = result_land.copy()
             # Collapse the masking coordinate.
             result_land = CollapseMaskedNeighbourhoodCoordinate(
                 masking_coordinate, weights=weights).process(result_land)
-
         result = result_land
+
     # Section for neighbourhood processing sea points.
     if sea_only.data.max() > 0.0:
         result_sea = NeighbourhoodProcessing(
             'square', radius_or_radii, lead_times=lead_times,
             sum_or_fraction=sum_or_fraction,
             re_mask=True).process(cube, sea_only)
-
         result = result_sea
+
     # Section for combining land and sea points following land and sea points
     # being neighbourhood processed individually.
     if sea_only.data.max() > 0.0 and land_only.data.max() > 0.0:

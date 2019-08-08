@@ -107,7 +107,7 @@ def main(argv=None):
                            err, args.input_filepath_landmask)
                 raise IOError(msg)
         # Process Cube
-        result = process(landmask, orography, thresholds_dict)
+        result = process(orography, landmask, thresholds_dict)
 
         # Save Cube
         save_netcdf(result, args.output_filepath)
@@ -115,7 +115,7 @@ def main(argv=None):
         print('File already exists here: ', args.output_filepath)
 
 
-def process(landmask, orography, thresholds_dict=None):
+def process(orography, landmask=None, thresholds_dict=None):
     """Runs topographic bands mask generation.
 
     Reads orography and landmask fields of a cube. Creates a series of masks,
@@ -123,13 +123,14 @@ def process(landmask, orography, thresholds_dict=None):
     excludes data above the upper threshold.
 
     Args:
-        landmask (iris.cube.Cube):
-            The land mask on standard grid. If provided data points are set to
-            zero in every band.
         orography (iris.cube.Cube):
             The orography a standard grid.
 
     Keyword Args:
+        landmask (iris.cube.Cube):
+            The land mask on standard grid. If provided data points are set to
+            zero in every band.
+            Default is None.
         thresholds_dict (dict):
             Definition of orography bands required. Has key-value pairs of
             "bounds": list of list of pairs of bounds for each band and
@@ -150,11 +151,13 @@ def process(landmask, orography, thresholds_dict=None):
     if landmask:
         landmask = next(landmask.slices(
             [landmask.coord(axis='y'), landmask.coord(axis='x')]))
+
     orography = next(orography.slices(
         [orography.coord(axis='y'), orography.coord(axis='x')]))
 
     if thresholds_dict is None:
         thresholds_dict = THRESHOLDS_DICT
+
     result = GenerateOrographyBandAncils().process(
         orography, thresholds_dict, landmask=landmask)
     result = result.concatenate_cube()

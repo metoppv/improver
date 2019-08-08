@@ -62,6 +62,7 @@ def main(argv=None):
     lapse_rate = load_cube(args.lapse_rate_filepath)
     source_orog = load_cube(args.source_orography)
     target_orog = load_cube(args.target_orography)
+
     # Process Cubes
     adjusted_temperature = process(temperature, lapse_rate, source_orog,
                                    target_orog)

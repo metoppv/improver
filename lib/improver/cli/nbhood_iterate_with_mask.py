@@ -131,17 +131,19 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
+    # Load Cubes
     cube = load_cube(args.input_filepath)
     mask_cube = load_cube(args.input_mask_filepath)
-
     weights = load_cube(args.weights_for_collapsing_dim) if \
         args.collapse_dimension else None
 
+    # Process Cube
     result, intermediate_cube = process(
         cube, mask_cube, weights, args.coord_for_masking, args.radius,
         args.radii_by_lead_time, args.sum_or_fraction, args.re_mask,
         args.collapse_dimension)
 
+    # Save Cube
     save_netcdf(result, args.output_filepath)
     if args.intermediate_filepath is not None:
         save_netcdf(intermediate_cube, args.intermediate_filepath)
@@ -230,6 +232,7 @@ def process(cube, mask_cube, weights, coord_for_masking, radius=None,
         sum_or_fraction=sum_or_fraction,
         re_mask=re_mask).process(cube, mask_cube)
     intermediate_cube = result.copy()
+
     # Collapse with the masking dimension.
     if collapse_dimension:
         result = CollapseMaskedNeighbourhoodCoordinate(
