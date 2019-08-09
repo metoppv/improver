@@ -59,7 +59,7 @@ def _make_mask_cube(
             points have been included when the ancillary is generated.
 
     Returns:
-        mask_cube (cube):
+        mask_cube (iris.cube.Cube):
             Cube containing the mask_data array, with appropriate coordinate
             and attribute information.
     """
@@ -121,7 +121,7 @@ class CorrectLandSeaMask(object):
                 input landmask on standard grid.
 
         Returns:
-            standard_landmask (cube):
+            standard_landmask (iris.cube.Cube):
                 output landmask of boolean values.
         """
         mask_sea = np.ma.masked_less(standard_landmask.data, 0.5).mask
@@ -223,7 +223,7 @@ class GenerateOrographyBandAncils(object):
                 this will default to meters.
 
         Returns:
-            mask_cube (cube):
+            mask_cube (iris.cube.Cube):
                 Cube containing topographical band mask.
 
         Raises:

@@ -92,7 +92,7 @@ def strip_var_names(cubes):
             Cubes to be concatenated.
 
     Returns:
-        cubes (Iris CubeList):
+        cubes (iris.cube.CubeList):
             CubeList containing original cubes without a var_name on the cube,
             or on the coordinates.
             Note: This internal function modifies the incoming cubes
