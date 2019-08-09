@@ -211,7 +211,7 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
 
     Args:
         current_forecast (iris.cube.Cube):
-            A cube with the current forecast to be calibrated.
+            A Cube containing the current forecast to be calibrated.
         historic_forecast (iris.cube.Cube):
             A cube containing historic forecasts to be used for calibration.
         truth (iris.cube.Cube):
