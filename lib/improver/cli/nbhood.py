@@ -258,9 +258,9 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius=None,
             Options: "circular", "square".
 
     Keyword Args:
-        radius(float):
+        radius (float):
             The radius in metres of the neighbourhood to apply
-        radii_by_lead_time(list):
+        radii_by_lead_time (list):
             A list with the radius in metres at [0] and the lead_time at [1]
             Lead time is a List of lead times or forecast periods, at which
             the radii within 'radii' are defined. The lead times are expected

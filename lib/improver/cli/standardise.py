@@ -272,10 +272,7 @@ def process(output_data, target_grid=None, source_landsea=None,
                "target_grid_filepath")
         raise ValueError(msg)
     # Process
-    if fix_float64:
-        check_cube_not_float64(output_data, fix=True)
-    else:
-        check_cube_not_float64(output_data, fix=False)
+    check_cube_not_float64(output_data, fix=fix_float64)
     # Re-grid with options:
     # if a target grid file has been specified, then regrid optionally
     # applying float64 data check, metadata change, Iris nearest and

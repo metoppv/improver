@@ -127,8 +127,8 @@ def process(landmask, orography, thresholds_dict=None):
     the defined topographic bands. If the orography point is in the centre of
     a topographic band, then a single band will have a weight 1.0.
     If the orography point is at the edge of a topographic band, then the
-    upper band will have a 0.5 weight whlst the lower band will also have a
-    0.5 weight. Otherwise the weight will vary linearlybetween the centre of
+    upper band will have a 0.5 weight whilst the lower band will also have a
+    0.5 weight. Otherwise the weight will vary linearly between the centre of
     a topographic band and the edge.
 
     Args:

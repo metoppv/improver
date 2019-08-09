@@ -172,9 +172,9 @@ def process(historic_forecast, truth, distribution, cycletime, units=None,
     result = EstimateCoefficientsForEnsembleCalibration(
         distribution, cycletime, desired_units=units,
         predictor_of_mean_flag=predictor_of_mean,
-        max_iterations=max_iterations)
+        max_iterations=max_iterations).process(historic_forecast, truth)
 
-    return result.process(historic_forecast, truth)
+    return result
 
 
 if __name__ == "__main__":

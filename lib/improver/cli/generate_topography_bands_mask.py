@@ -145,7 +145,7 @@ def process(orography, landmask=None, thresholds_dict=None):
 
     Returns:
         result (iris.cube.Cube):
-            list of orographic band mask cubes.
+            list of orographic band mask cube.
 
     """
     if landmask:

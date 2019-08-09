@@ -188,7 +188,7 @@ def process(cube, mask_cube, weights, coord_for_masking, radius=None,
             north, based on the characteristic spacing at the zero indices of
             the cube projection-x and y coordinates.
             Default is None.
-        radii_by_lead_time (float or List if defining lead times):
+        radii_by_lead_time (float or list of float):
             A list with the radius in metres at [0] and the lead_time at [1]
             Lead time is a List of lead times or forecast periods, at which
             the radii within 'radii' are defined. The lead times are expected

@@ -132,7 +132,7 @@ def process(temperature_cube, orography_cube, land_sea_mask_cube,
         max_lapse_rate (float):
             Maximum lapse rate allowed.
             Default is 3*improver.constants.DALR.
-        min_lapse_rate ():
+        min_lapse_rate (float):
             Minimum lapse rate allowed.
             Default is improver.constants.DALR.
         return_dalr (bool):

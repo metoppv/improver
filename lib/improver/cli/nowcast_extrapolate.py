@@ -130,17 +130,18 @@ def main(argv=None):
 
     # load files and initialise advection plugin
     input_cube = load_cube(args.input_filepath)
-    oe_cube = load_cube_or_none(args.orographic_enhancement_filepaths)
+    orographic_enhancement_cube = load_cube_or_none(
+        args.orographic_enhancement_filepaths)
 
-    scube = dcube = ucube = vcube = None
+    speed_cube = direction_cube = ucube = vcube = None
     if (upath and vpath) and not (spath or dpath):
         ucube = load_cube(upath)
         vcube = load_cube(vpath)
     elif (spath and dpath) and not (upath or vpath):
         level_constraint = Constraint(pressure=args.pressure_level)
         try:
-            scube = load_cube(spath, constraints=level_constraint)
-            dcube = load_cube(dpath, constraints=level_constraint)
+            speed_cube = load_cube(spath, constraints=level_constraint)
+            direction_cube = load_cube(dpath, constraints=level_constraint)
         except ValueError as err:
             raise ValueError(
                 '{} Unable to extract specified pressure level from given '
@@ -151,9 +152,10 @@ def main(argv=None):
 
     # Process Cubes
     accumulation_cubes, forecast_to_return = process(
-        input_cube, ucube, vcube, scube, dcube, oe_cube, metadata_dict,
-        args.max_lead_time, args.lead_time_interval,
-        args.accumulation_fidelity, args.accumulation_units)
+        input_cube, ucube, vcube, speed_cube, direction_cube,
+        orographic_enhancement_cube, metadata_dict, args.max_lead_time,
+        args.lead_time_interval, args.accumulation_fidelity,
+        args.accumulation_units)
 
     # Save Cube
     if args.output_filepaths and \
@@ -176,9 +178,10 @@ def main(argv=None):
             save_netcdf(cube, file_name)
 
 
-def process(input_cube, u_cube, v_cube, s_cube, d_cube, oe_cube=None,
-            metadata_dict=None, max_lead_time=360, lead_time_interval=15,
-            accumulation_fidelity=0, accumulation_units='m'):
+def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
+            orographic_enhancement_cube=None, metadata_dict=None,
+            max_lead_time=360, lead_time_interval=15, accumulation_fidelity=0,
+            accumulation_units='m'):
     """Module  to extrapolate input cubes given advection velocity fields.
 
     Args:
@@ -192,11 +195,11 @@ def process(input_cube, u_cube, v_cube, s_cube, d_cube, oe_cube=None,
             Cube with the velocities in the y direction.
             Must be used with u_cube.
             s_cube and d_cube must be None.
-        s_cube (iris.cube.Cube):
+        speed_cube (iris.cube.Cube):
             Cube containing advection speeds, usually wind speed.
             Must be used with d_cube.
             u_cube and v_cube must be None.
-        d_cube (iris.cube.Cube):
+        direction_cube (iris.cube.Cube):
             Cube from which advection speeds are coming. The directions
             should be on the same grid as the input speeds, including the same
             vertical levels.
@@ -204,7 +207,7 @@ def process(input_cube, u_cube, v_cube, s_cube, d_cube, oe_cube=None,
             u_cube and v_cube must be None.
 
     Keyword Args:
-        oe_cube (iris.cube.Cube):
+        orographic_enhancement_cube (iris.cube.Cube):
             Cube containing the orographic enhancement fields. May have data
             for multiple times in the cube.
             Default is None.
@@ -249,9 +252,10 @@ def process(input_cube, u_cube, v_cube, s_cube, d_cube, oe_cube=None,
             cleanly divisible by accumulation_fidelity.
     """
 
-    if (s_cube and d_cube) and not (u_cube or v_cube):
-        u_cube, v_cube = ResolveWindComponents().process(s_cube, d_cube)
-    elif (u_cube or v_cube) and (s_cube or d_cube):
+    if (speed_cube and direction_cube) and not (u_cube or v_cube):
+        u_cube, v_cube = ResolveWindComponents().process(
+            speed_cube, direction_cube)
+    elif (u_cube or v_cube) and (speed_cube or direction_cube):
         raise ValueError('Cannot mix advection component velocities with speed'
                          ' and direction')
     # generate list of lead times in minutes
@@ -274,7 +278,8 @@ def process(input_cube, u_cube, v_cube, s_cube, d_cube, oe_cube=None,
 
     lead_time_filter = lead_time_interval // time_interval
     forecast_plugin = CreateExtrapolationForecast(
-        input_cube, u_cube, v_cube, orographic_enhancement_cube=oe_cube,
+        input_cube, u_cube, v_cube,
+        orographic_enhancement_cube=orographic_enhancement_cube,
         metadata_dict=metadata_dict)
 
     # extrapolate input data to required lead times

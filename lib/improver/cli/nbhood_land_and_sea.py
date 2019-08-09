@@ -224,9 +224,9 @@ def process(cube, mask, radius=None, radii_by_lead_time=None, weights=None,
                              'topographic_zones_include_seapoints = True')
 
         if not weights:
-            raise IOError('A weights cube must be provided if using a mask '
-                          'of topographic zones to collapse the resulting '
-                          'vertical dimension.')
+            raise TypeError('A weights cube must be provided if using a mask '
+                            'of topographic zones to collapse the resulting '
+                            'vertical dimension.')
 
         if weights.attributes['topographic_zones_include_seapoints'] == 'True':
             raise ValueError('The weights cube must be masked to exclude sea '
