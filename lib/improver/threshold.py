@@ -192,7 +192,7 @@ class BasicThreshold(object):
         Args:
             cube (iris.cube.Cube):
                 Cube containing thresholded data (1s and 0s)
-            threshold (numpy.float):
+            threshold (float):
                 Value at which the data has been thresholded
 
         Returns:

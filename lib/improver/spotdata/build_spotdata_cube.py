@@ -74,7 +74,7 @@ def build_spotdata_cube(data, name, units,
             Float or 1d array of site latitudes in degrees
         longitude (float or np.ndarray):
             Float or 1d array of site longitudes in degrees
-        wmo_id (string or list):
+        wmo_id (str or list):
             String or list of site 5-digit WMO identifiers
 
     Kwargs:

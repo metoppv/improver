@@ -367,7 +367,7 @@ def get_forecast_times(forecast_length, forecast_date=None,
         forecast_length (int):
             An integer giving the desired length of the forecast output in
             hours (e.g. 48 for a two day forecast period).
-        forecast_date (string (YYYYMMDD)):
+        forecast_date (str):
             A string of format YYYYMMDD defining the start date for which
             forecasts are required. If unset it defaults to today in UTC.
         forecast_time (int):

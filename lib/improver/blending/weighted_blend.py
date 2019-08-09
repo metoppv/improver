@@ -657,7 +657,7 @@ class WeightedBlendAcrossWholeDimension:
         Args:
             weights (numpy.ndarray):
                 Array of weights shaped to match the data cube.
-            blend_dim (integer):
+            blend_dim (int):
                 The dimension in the weights array that is being collapsed.
         Raises:
             ValueError: Raised if the weights do not sum to 1 over the blending

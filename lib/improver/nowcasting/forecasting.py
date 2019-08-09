@@ -164,7 +164,7 @@ class AdvectField():
                 2D float array of advected data values with masked "no data"
                 regions
         """
-        # Cater for special case where timestep (integer) is 0
+        # Cater for special case where timestep (int) is 0
         if timestep == 0:
             return data
 

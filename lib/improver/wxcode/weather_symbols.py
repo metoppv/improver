@@ -206,7 +206,7 @@ class WeatherSymbols(object):
         Create a string representing a comparison condition.
 
         Args:
-            extract_constraint (string or list of strings):
+            extract_constraint (str or list of str):
                 A string, or list of strings, encoding iris constraints
                 that will be used to extract the correct diagnostic cube
                 (by name) from the input cube list and the correct threshold
@@ -315,7 +315,7 @@ class WeatherSymbols(object):
         Construct an iris constraint.
 
         Args:
-            diagnostics (string or list of strings):
+            diagnostics (str or list of str):
                 The names of the diagnostics to be extracted from the CubeList.
             thresholds (iris.AuxCoord or list of iris.AuxCoord):
                 All thresholds within the given diagnostic cubes that are
@@ -327,7 +327,7 @@ class WeatherSymbols(object):
                 coordinate name from diagnostic name
 
         Returns:
-            string or list of strings:
+            (str or list of str):
                 String, or list of strings, encoding iris cube constraints.
         """
         def _constraint_string(diagnostic, threshold_name, threshold_val):

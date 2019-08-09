@@ -198,7 +198,7 @@ def update_coord(cube, coord_name, changes, warnings_on=False):
             Cube containing combined data.
         coord_name (str):
             Name of the coordinate being updated.
-        changes (string or dict):
+        changes (str or dict):
             Details on coordinate to be updated.
             If changes = 'delete' the coordinate is deleted.
             More detail is available in

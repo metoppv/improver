@@ -544,7 +544,7 @@ def get_nearest_coords(cube, latitude, longitude, iname, jname):
         latitude/longitude (floats):
             Latitude/longitude coordinates of spot data site of interest.
 
-        iname/jname (strings):
+        iname/jname (str):
             Strings giving the names of the y/x coordinates to be searched.
 
     Returns:

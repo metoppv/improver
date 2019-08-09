@@ -88,7 +88,7 @@ def strip_var_names(cubes):
     to help concatenation.
 
     Args:
-        cubes (iris.cube.Cubelist or iris.cube.Cube):
+        cubes (iris.cube.CubeList or iris.cube.Cube):
             Cubes to be concatenated.
 
     Returns:
@@ -456,7 +456,7 @@ def merge_cubes(cubes):
     Wrapper for MergeCubes().process()
 
     Args:
-        cubes (iris.cube.Cubelist or iris.cube.Cube):
+        cubes (iris.cube.CubeList or iris.cube.Cube):
             Cubes to be merged.
 
     Returns:
@@ -477,7 +477,7 @@ def get_filtered_attributes(cube, attribute_filter=None):
             A cube from which attributes partially matching the
             attribute_filter will be returned.
     Keyword Args:
-        attribute_filter (string or None):
+        attribute_filter (str or None):
             A string to match, or partially match, against attributes to build
             a filtered attribute dictionary. If None, all attributes are
             returned.
@@ -498,10 +498,10 @@ def compare_attributes(cubes, attribute_filter=None):
     Function to compare attributes of cubes
 
     Args:
-        cubes (iris.cube.Cubelist):
+        cubes (iris.cube.CubeList):
             List of cubes to compare (must be more than 1)
     Keyword Args:
-        attribute_filter (string or None):
+        attribute_filter (str or None):
             A string to filter which attributes are actually compared. If None
             all attributes are compared.
     Returns:
@@ -543,7 +543,7 @@ def compare_coords(cubes):
     Function to compare the coordinates of the cubes
 
     Args:
-        cubes (iris.cube.Cubelist):
+        cubes (iris.cube.CubeList):
             List of cubes to compare (must be more than 1)
 
     Returns:

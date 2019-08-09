@@ -51,17 +51,17 @@ class RecursiveFilter(object):
         Initialise the class.
 
         Keyword Args:
-            alpha_x (Float or None):
+            alpha_x (float or None):
                 Filter parameter: A constant used to weight the
                 recursive filter along the x-axis. Defined such
                 that 0 < alpha_x < 1.0
-            alpha_y (Float or None):
+            alpha_y (float or None):
                 Filter parameter: A constant used to weight the
                 recursive filter along the y-axis. Defined such
                 that 0 < alpha_y < 1.0
-            iterations (integer or None):
+            iterations (int or None):
                 The number of iterations of the recursive filter.
-            edge_width (integer):
+            edge_width (int):
                 Half the width of the padding halo applied before
                 recursive filtering.
             re_mask (bool):
@@ -130,7 +130,7 @@ class RecursiveFilter(object):
             alphas (numpy array):
                 Matching 2D array of alpha values that will be used when
                 applying the recursive filter along the specified axis.
-            axis (integer):
+            axis (int):
                 Index of the spatial axis (0 or 1) over which to recurse.
 
         Returns:
@@ -169,7 +169,7 @@ class RecursiveFilter(object):
             alphas (numpy array):
                 Matching 2D array of alpha values that will be used when
                 applying the recursive filter along the specified axis.
-            axis (integer):
+            axis (int):
                 Index of the spatial axis (0 or 1) over which to recurse.
 
         Returns:
@@ -203,7 +203,7 @@ class RecursiveFilter(object):
             alphas_y (iris.cube.Cube):
                 2D cube containing array of alpha values that will be used
                 when applying the recursive filter along the y-axis.
-            iterations (integer):
+            iterations (int):
                 The number of iterations of the recursive filter
 
         Returns:
