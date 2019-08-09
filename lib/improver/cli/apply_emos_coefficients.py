@@ -190,7 +190,7 @@ def process(current_forecast, coeffs, num_realizations=None,
             converted to percentiles, as part of converting the input
             probabilities into realizations.
             Default is False.
-        predictor_of_mean
+        predictor_of_mean (str):
             String to specify the predictor used to calibrate the forecast
             mean. Currently the ensemble mean "mean" as the ensemble
             realization "realization" are supported as options.
