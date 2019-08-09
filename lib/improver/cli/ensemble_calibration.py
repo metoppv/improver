@@ -253,7 +253,7 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
             ordered to match the raw ensemble.
             If the random_seed is None, no random seed is set, so the random
             values generated are not reproducible.
-        ecc_bounds_warning(bool):
+        ecc_bounds_warning (bool):
             If True, where the percentiles exceed the ECC bounds range, raises
             a warning rather than an exception. This occurs when the current
             forecast is in the form of probabilities and is converted to
