@@ -42,9 +42,9 @@ def _make_mask_cube(
     Makes cube from numpy masked array generated from orography fields.
 
     Args:
-        mask_data (numpy masked array):
+        mask_data (numpy.ma.core.MaskedArray):
             The numpy array to make a cube from.
-        coords (dictionary):
+        coords (dict):
             Dictionary of coordinate on the model ancillary file.
         topographic_bounds(list):
             List containing the lower and upper thresholds defining the mask
@@ -117,7 +117,7 @@ class CorrectLandSeaMask(object):
              and values >=0.5 to True.
 
         Args:
-            standard_landmask:
+            standard_landmask (iris.cube.Cube):
                 input landmask on standard grid.
 
         Returns:
@@ -270,7 +270,7 @@ class GenerateOrographyBandAncils(object):
             orography (iris.cube.Cube):
                 orography on standard grid.
 
-            threshold_dict (dictionary):
+            threshold_dict (dict):
                 Definition of orography bands required. Has key-value pairs of
                 "bounds": list of list of pairs of bounds for each band and
                 "units":"string containing units of bounds", for example::

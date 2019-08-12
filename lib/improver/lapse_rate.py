@@ -129,6 +129,10 @@ class SaveNeighbourhood(object):
         Create the global variables that allows the "filter" function
         to save each extracted buffer into "allbuffers".
 
+        Args:
+            allbuffers (numpy.ndarray):
+                Where to save each extracted buffer.
+
         """
         # Initialises the iterator.
         self.i = 0
@@ -143,7 +147,7 @@ class SaveNeighbourhood(object):
         requires a return value - so use zero.
 
         Args:
-            buffer (array):
+            buffer (numpy.ndarray):
                 Array containing neighourbood points.
 
         Returns:
@@ -257,11 +261,11 @@ class LapseRate(object):
         to find the local lapse rate.
 
         Args:
-            temperature(1D numpy.ndarray):
+            temperature (1D numpy.ndarray):
                 Contains the temperature values for the central point and its
                 neighbours.
 
-            orography(1D numpy.ndarray):
+            orography (1D numpy.ndarray):
                 Contains the height values for the central point and its
                 neighbours.
 

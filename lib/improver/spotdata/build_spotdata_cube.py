@@ -79,7 +79,7 @@ def build_spotdata_cube(data, name, units,
 
     Kwargs:
         scalar_coords (list):
-            Optional list of iris.coord.AuxCoord instances
+            Optional list of iris.coords.AuxCoord instances
         neighbour_methods (list):
             Optional list of neighbour method names, e.g. 'nearest'
         neighbour_methods_dim (int):

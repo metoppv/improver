@@ -233,7 +233,7 @@ def iris_time_to_datetime(time_coord):
     Convert iris time to python datetime object. Working in UTC.
 
     Args:
-        time_coord (iris.coord.Coord):
+        time_coord (iris.coords.Coord):
             Iris time coordinate element(s).
 
     Returns:

@@ -119,7 +119,7 @@ class ArgParser(ArgumentParser):
                 ArgParser.CENTRALIZED_ARGUMENTS dictionary.
                 (For more details, see the add_arguments method).
                 Default is None, which does not add additional arguments.
-            kwargs (dictionary):
+            **kwargs:
                 Additional keyword arguments which are passed to the superclass
                 constructor (argparse.ArgumentParser), e.g: the `description`
                 of the ArgumentParser.

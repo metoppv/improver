@@ -102,10 +102,10 @@ def create_coefficients_cube(
 
             **result** (iris.cube.Cube) - The resulting EMOS
                 coefficients cube.
-            **x_coord** (iris.coord.DimCoord): The x coordinate
+            **x_coord** (iris.coords.DimCoord): The x coordinate
                 appropriate for describing the domain that the EMOS
                 coefficients cube is valid for.
-            **y_coord** (iris.coord.DimCoord): The y coordinate
+            **y_coord** (iris.coords.DimCoord): The y coordinate
                 appropriate for describing the domain that the EMOS
                 coefficients cube is valid for.
 

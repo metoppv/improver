@@ -65,7 +65,7 @@ def construct_xy_coords(ypoints, xpoints, spatial_grid):
 
     Returns:
         y_coord, x_coord (tuple):
-            Tuple of iris.coord.DimCoord instances
+            Tuple of iris.coords.DimCoord instances
     """
     if spatial_grid == 'latlon':
         # make a lat-lon grid including the UK area
@@ -110,7 +110,7 @@ def construct_scalar_time_coords(time, time_bounds, frt):
 
     Returns:
         coord_dims (list):
-            List of iris.coord.DimCoord instances with the associated "None"
+            List of iris.coords.DimCoord instances with the associated "None"
             dimension (format required by iris.cube.Cube initialisation).
     """
     # generate time coordinate points

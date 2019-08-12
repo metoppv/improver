@@ -600,7 +600,7 @@ def build_coordinate(data, long_name=None,
                      template_coord=None,
                      custom_function=None):
     """
-    Construct an iris.coord.Dim/Auxcoord using the provided options.
+    Construct an iris.coords.Dim/Auxcoord using the provided options.
 
     Args:
         data (int or list of numpy.ndarray):
@@ -613,7 +613,7 @@ def build_coordinate(data, long_name=None,
             CF Name of the coordinate to be built.
         var_name (str):
             Variable name
-        coord_type (iris.coord.AuxCoord or iris.coord.DimCoord):
+        coord_type (iris.coords.AuxCoord or iris.coords.DimCoord):
             Selection between Dim and Aux coord.
         data_type (<type>):
             The data type of the coordinate points, e.g. int
@@ -623,7 +623,7 @@ def build_coordinate(data, long_name=None,
             A (len(data), 2) array that defines coordinate bounds.
         coord_system(iris.coord_systems.<coord_system>):
             A coordinate system in which the dimension coordinates are defined.
-        template_coord (iris.coord.Coord):
+        template_coord (iris.coords.Coord):
             A coordinate to copy.
         custom_function (function):
             A function to apply to the data values before constructing the

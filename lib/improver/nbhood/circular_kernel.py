@@ -55,7 +55,7 @@ def circular_kernel(fullranges, ranges, weighted_mode):
         fullranges (numpy.ndarray):
             Number of grid cells in all dimensions used to create the kernel.
             This should have the value 0 for any dimension other than x and y.
-        ranges (Tuple):
+        ranges (tuple):
             Number of grid cells in the x and y direction used to create
             the kernel.
         weighted_mode (bool):
@@ -148,7 +148,7 @@ class CircularNeighbourhood(object):
             cube (iris.cube.Cube):
                 Cube containing to array to apply CircularNeighbourhood
                 processing to.
-            ranges (Tuple):
+            ranges (tuple):
                 Number of grid cells in the x and y direction used to create
                 the kernel.
 
