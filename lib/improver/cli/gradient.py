@@ -88,12 +88,12 @@ def process(cube):
             Cube from which the difference will be calculated.
 
     Returns:
-        gradients (iris.cube.Cubelist):
+        gradients (iris.cube.CubeList):
             A Cubelist containing a Cube representing the difference along the
             Y axis, and a Cube representing the difference along the X axis.
     """
-    gradients = DifferenceBetweenAdjacentGridSquares().process(cube)
-    gradients = iris.cube.CubeList([gradients[0], gradients[1]])
+    y_grad, x_grad = DifferenceBetweenAdjacentGridSquares().process(cube)
+    gradients = iris.cube.CubeList([y_grad, x_grad])
     return gradients
 
 

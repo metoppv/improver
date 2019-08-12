@@ -41,8 +41,8 @@ from improver.nowcasting.forecasting import CreateExtrapolationForecast
 from improver.nowcasting.accumulation import Accumulation
 from improver.utilities.filename import generate_file_name
 from improver.utilities.load import load_cube
-from improver.utilities.cli_utilities import load_cube_or_none,\
-    load_json_or_none
+from improver.utilities.cli_utilities import (load_cube_or_none,
+                                              load_json_or_none)
 from improver.utilities.save import save_netcdf
 from improver.wind_calculations.wind_components import ResolveWindComponents
 
