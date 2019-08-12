@@ -441,7 +441,10 @@ class Test_process(IrisTest):
     """Test the FallingSnowLevel processing works"""
 
     def setUp(self):
-        """Set up cubes."""
+        """Set up orography and land-sea mask cubes. Also create temperature,
+        pressure, and relative humidity cubes that contain multiple height
+        levels.
+        """
 
         data = np.ones((3, 3), dtype=np.float32)
         relh_data = np.ones((3, 3), dtype=np.float32) * 0.65

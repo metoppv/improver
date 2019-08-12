@@ -64,7 +64,13 @@ class Test_process(Test_WetBulbTemperature):
 
     """Test the calculation of the wet bulb temperature integral from
     temperature, pressure, and relative humidity information using the
-    process function. Integration is calculated in the vertical."""
+    process function. Integration is calculated in the vertical.
+
+    The wet bulb temperature calculated at each level, and the difference in
+    height between the levels are used to calculate an integrated wet bulb
+    temperature. This is used to ascertain the degree of melting that initially
+    frozen precipitation undergoes.
+    """
 
     def setUp(self):
         """Set up cubes."""
