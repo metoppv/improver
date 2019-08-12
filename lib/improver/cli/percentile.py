@@ -102,7 +102,7 @@ def main(argv=None):
 
 def process(cube, coordinates=None, ecc_bounds_warning=False,
             percentiles=None, no_of_percentiles=None):
-    """Collapses cube coordinates and calculate percentiled data.
+    r"""Collapses cube coordinates and calculate percentiled data.
 
     Calculate percentiled data over a given coordinate by collapsing that
     coordinate. Typically used to convert realization data into percentiled
