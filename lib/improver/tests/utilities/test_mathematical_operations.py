@@ -268,6 +268,14 @@ class Test_perform_integration(IrisTest):
         self.negative_integrated_cube.data = (
             np.zeros(self.negative_integrated_cube.shape))
 
+        self.expected_data_zero_or_negative = np.array(
+            [[[[30.00, 32.50, 32.50],
+               [32.50, 32.50, 32.50],
+               [32.50, 32.50, 32.50]]],
+             [[[10.00, 25.00, 25.00],
+               [25.00, 25.00, 25.00],
+               [25.00, 25.00, 25.00]]]])
+
     def test_basic(self):
         """Test that a cube is returned by the perform_integration method with
         the expected coordinate points."""
@@ -313,13 +321,6 @@ class Test_perform_integration(IrisTest):
         to zero. This provides a baseline as the Integration plugin is
         currently restricted so that only positive values contribute towards
         the integral."""
-        expected = np.array(
-            [[[[30.00, 32.50, 32.50],
-               [32.50, 32.50, 32.50],
-               [32.50, 32.50, 32.50]]],
-             [[[10.00, 25.00, 25.00],
-               [25.00, 25.00, 25.00],
-               [25.00, 25.00, 25.00]]]])
         self.negative_upper_bounds_cube.data[0, :, 0, 0] = 0
         coord_name = "height"
         direction = "negative"
@@ -332,7 +333,8 @@ class Test_perform_integration(IrisTest):
                     self.negative_integrated_cube))
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([5., 10.]))
-        self.assertArrayAlmostEqual(result.data, expected)
+        self.assertArrayAlmostEqual(
+            result.data, self.expected_data_zero_or_negative)
 
     def test_negative_and_positive_values_in_data(self):
         """Test that the resulting cube contains the expected data following
@@ -341,13 +343,6 @@ class Test_perform_integration(IrisTest):
         on the integration as the Integration plugin is currently
         restricted so that only positive values contribute towards the
         integral."""
-        expected = np.array(
-            [[[[30.00, 32.50, 32.50],
-               [32.50, 32.50, 32.50],
-               [32.50, 32.50, 32.50]]],
-             [[[10.00, 25.00, 25.00],
-               [25.00, 25.00, 25.00],
-               [25.00, 25.00, 25.00]]]])
         self.negative_upper_bounds_cube.data[0, :, 0, 0] = -1
         coord_name = "height"
         direction = "negative"
@@ -360,7 +355,8 @@ class Test_perform_integration(IrisTest):
                     self.negative_integrated_cube))
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([5., 10.]))
-        self.assertArrayAlmostEqual(result.data, expected)
+        self.assertArrayAlmostEqual(
+            result.data, self.expected_data_zero_or_negative)
 
     def test_start_point_positive_direction(self):
         """Test that the resulting cube contains the expected data when a
