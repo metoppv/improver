@@ -70,6 +70,8 @@ def process(cube, halo_radius=162000):
     Args:
         cube (iris.cube.Cube):
             The cube to be processed.
+
+    Keyword Args:
         halo_radius (float):
             Radius in metres of which to pad the input grid.
             Default is 162,000
