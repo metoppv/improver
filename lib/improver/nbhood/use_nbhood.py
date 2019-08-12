@@ -154,14 +154,14 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
            single cube.
 
         Args:
-            cube (Iris.cube.Cube):
+            cube (iris.cube.Cube):
                 Cube containing the array to which the square neighbourhood
                 will be applied.
-            mask_cube (Iris.cube.Cube):
+            mask_cube (iris.cube.Cube):
                 Cube containing the array to be used as a mask.
 
         Returns:
-            concatenated_cube (Iris.cube.Cube):
+            concatenated_cube (iris.cube.Cube):
                 Cube containing the smoothed field after the square
                 neighbourhood method has been applied when applying masking
                 for each point along the coord_for_masking coordinate.
@@ -375,12 +375,12 @@ class CollapseMaskedNeighbourhoodCoordinate(object):
         probability.
 
         Args:
-            cube (Iris.cube.Cube):
+            cube (iris.cube.Cube):
                 Cube containing the array to which the square neighbourhood
                 with a mask has been applied.
 
         Returns:
-            result (Iris.cube.Cube):
+            result (iris.cube.Cube):
                 Cube containing the weighted mean from neighbourhood after
                 collapsing the chosen coordinate.
 
