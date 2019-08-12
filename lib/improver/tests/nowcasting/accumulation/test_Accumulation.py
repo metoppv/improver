@@ -182,9 +182,8 @@ class Test__check_inputs(rate_cube_set_up):
     """Test the _check_inputs method."""
 
     def test_basic(self):
-        """Test that the expected time_interval and integral value is
-        returned. Also test that the returned list of cubes has the
-        expected units."""
+        """Test that the expected time_interval is returned and that the
+        returned list of cubes has the expected units."""
         expected_time_interval = 60
         expected_cubes = self.cubes.copy()
         for cube in expected_cubes:
@@ -194,9 +193,9 @@ class Test__check_inputs(rate_cube_set_up):
         self.assertEqual(time_interval, expected_time_interval)
 
     def test_specify_accumulation_period(self):
-        """Test that the expected time interval and integral value is
-        returned when the accumulation period is specified. Also test that the
-        returned list of cubes has the expected units."""
+        """Test that the expected time interval is returned when the
+        accumulation period is specified. Also test that the returned list of
+        cubes has the expected units."""
         expected_time_interval = 60
         expected_cubes = self.cubes.copy()
         for cube in expected_cubes:
@@ -209,9 +208,9 @@ class Test__check_inputs(rate_cube_set_up):
         self.assertEqual(plugin.accumulation_period, accumulation_period)
 
     def test_specify_forecast_period(self):
-        """Test that the expected time interval and integral value is
-        returned when the forecast periods are specified. Also test that the
-        returned list of cubes has the expected units."""
+        """Test that the expected time interval is returned when the forecast
+        periods are specified. Also test that the returned list of cubes has
+        the expected units."""
         expected_time_interval = 60
         expected_cubes = self.cubes.copy()
         for cube in expected_cubes:
@@ -224,10 +223,9 @@ class Test__check_inputs(rate_cube_set_up):
         self.assertEqual(plugin.forecast_periods, forecast_periods)
 
     def test_specify_accumulation_period_and_forecast_period(self):
-        """Test that the expected time interval and integral value is
-        returned when the accumulation period and forecast periods are
-        specified. Also test that the returned list of cubes has the expected
-        units."""
+        """Test that the expected time interval is returned when the
+        accumulation period and forecast periods are specified. Also test that
+        the returned list of cubes has the expected units."""
         expected_time_interval = 60
         expected_cubes = self.cubes.copy()
         for cube in expected_cubes:
@@ -288,8 +286,7 @@ class Test__get_cube_subsets(rate_cube_set_up):
     def test_basic(self):
         """Test that the subset of cubes that are within the accumulation
         period are correctly identified. In this case, the subset of cubes
-        used for each accumulation period is expected to consist of 5 + 1
-        cubes, so the integral is 5."""
+        used for each accumulation period is expected to consist of 6 cubes."""
         expected_cube_subset = self.cubes[:6]
         upper_bound_fp, = self.cubes[5].coord("forecast_period").points
         plugin = Accumulation(

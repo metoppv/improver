@@ -228,11 +228,6 @@ class Accumulation:
                 Cubelist that defines the cubes used to calculate
                 the accumulations.
 
-        Warns:
-            Warning: The provided cubes result in a partial period given the
-                specified accumulation_period, i.e. the number of cubes is
-                insufficient to give a set of complete periods. Only complete
-                periods will be returned.
         """
         # If the input is a numpy array, get the integer value from the array
         # for use in the constraint.
