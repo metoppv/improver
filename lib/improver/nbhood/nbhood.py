@@ -68,14 +68,14 @@ class BaseNeighbourhoodProcessing(object):
             neighbourhood_method (Class object):
                 Instance of the class containing the method that will be used
                 for the neighbourhood processing.
-            radii (float or List if defining lead times):
+            radii (float or list if defining lead times):
                 The radii in metres of the neighbourhood to apply.
                 Rounded up to convert into integer number of grid
                 points east and north, based on the characteristic spacing
                 at the zero indices of the cube projection-x and y coords.
 
         Keyword Args:
-            lead_times (None or List):
+            lead_times (list):
                 List of lead times or forecast periods, at which the radii
                 within 'radii' are defined. The lead times are expected
                 in hours.
@@ -276,7 +276,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
                 at the zero indices of the cube projection-x and y coords.
 
         Keyword Args:
-            lead_times (None or List):
+            lead_times (list):
                 List of lead times or forecast periods, at which the radii
                 within 'radii' are defined. The lead times are expected
                 in hours.

@@ -64,7 +64,7 @@ class DiagnoseConvectivePrecipitation(object):
             neighbourhood_method (str):
                 Name of the neighbourhood method to use. Options: 'circular',
                 'square'.
-            radii (float or List if defining lead times):
+            radii (float or list if defining lead times):
                 The radii in metres of the neighbourhood to apply.
                 Rounded up to convert into integer number of grid
                 points east and north, based on the characteristic spacing
@@ -75,7 +75,7 @@ class DiagnoseConvectivePrecipitation(object):
             below_thresh_ok (bool):
                 True to count points as significant if *below* the threshold,
                 False to count points as significant if *above* the threshold.
-            lead_times (None or List):
+            lead_times (list):
                 List of lead times or forecast periods, at which the radii
                 within radii are defined. The lead times are expected
                 in hours.
