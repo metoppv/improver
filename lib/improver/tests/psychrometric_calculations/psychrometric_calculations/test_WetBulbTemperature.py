@@ -45,16 +45,13 @@ from improver.utilities.warnings_handler import ManageWarnings
 
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 
-IGNORED_MESSAGES = ["Wet bulb temperatures are being calculated"]
-WARNING_TYPES = [UserWarning]
-
 
 class Test_WetBulbTemperature(IrisTest):
     """Test class for the WetBulbTemperature tests, setting up cubes."""
 
     def setUp(self):
         """Set up the initial conditions for tests."""
-        data = np.array([[183.15, 260.65, 338.15]], dtype=np.float32)
+        data = np.array([[185.0, 260.65, 338.15]], dtype=np.float32)
         self.temperature = set_up_variable_cube(data)
         data = np.array([[60., 70., 80.]], dtype=np.float32)
         self.relative_humidity = set_up_variable_cube(
@@ -100,12 +97,10 @@ class Test_lookup_svp(Test_WetBulbTemperature):
 
     """Test the lookup of saturated vapour pressures."""
 
-    @ManageWarnings(
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_values(self):
         """Basic extraction of some SVP values from the lookup table."""
         self.temperature.data[0, 1] = 260.56833
-        expected = [[9.664590e-03, 2.06000274e+02, 2.501530e+04]]
+        expected = [[1.350531e-02, 2.06000274e+02, 2.501530e+04]]
         result = WetBulbTemperature().lookup_svp(self.temperature)
         self.assertArrayAlmostEqual(result.data, expected)
         self.assertEqual(result.units, Unit('Pa'))
@@ -114,9 +109,9 @@ class Test_lookup_svp(Test_WetBulbTemperature):
     def test_beyond_table_bounds(self, warning_list=None):
         """Extracting SVP values from the lookup table with temperatures beyond
         its valid range. Should return the nearest end of the table."""
-        self.temperature.data[0, 1] = 150.
+        self.temperature.data[0, 0] = 150.
         self.temperature.data[0, 2] = 400.
-        expected = [[9.664590e-03, 9.664590e-03, 2.501530e+04]]
+        expected = [[9.664590e-03, 2.075279e+02, 2.501530e+04]]
         result = WetBulbTemperature().lookup_svp(self.temperature)
         warning_msg = "Wet bulb temperatures are"
         self.assertTrue(any(item.category == UserWarning
@@ -136,7 +131,7 @@ class Test_pressure_correct_svp(Test_WetBulbTemperature):
         """Basic pressure correction of water vapour SVPs to give SVPs in
         air."""
         svp = self.pressure.copy(data=[[197.41815, 474.1368, 999.5001]])
-        expected = [[199.265975, 476.293096, 1006.391004]]
+        expected = [[199.226956, 476.293096, 1006.391004]]
         result = WetBulbTemperature().pressure_correct_svp(
             svp, self.temperature, self.pressure)
 
@@ -149,8 +144,6 @@ class Test__calculate_mixing_ratio(Test_WetBulbTemperature):
     """Test the calculation of the specific mixing ratio from temperature,
     and pressure information using the SVP."""
 
-    @ManageWarnings(
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_values(self):
         """Basic mixing ratio calculation."""
 
@@ -167,8 +160,6 @@ class Test_calculate_wet_bulb_temperature(Test_WetBulbTemperature):
     """Test the calculation of wet bulb temperatures from temperature,
     pressure, and relative humidity information."""
 
-    @ManageWarnings(
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_cube_metadata(self):
         """Check metadata of returned cube."""
 
@@ -179,20 +170,16 @@ class Test_calculate_wet_bulb_temperature(Test_WetBulbTemperature):
         self.assertEqual(result.units, Unit('K'))
         self.assertEqual(result.name(), 'wet_bulb_temperature')
 
-    @ManageWarnings(
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_values(self):
         """Basic wet bulb temperature calculation."""
 
-        expected = np.array([[183.15, 259.88306, 333.96063]], dtype=np.float32)
+        expected = np.array([[185.0, 259.88306, 333.96063]], dtype=np.float32)
         result = WetBulbTemperature().calculate_wet_bulb_temperature(
             self.temperature, self.relative_humidity, self.pressure)
 
         self.assertArrayAlmostEqual(result.data, expected)
         self.assertEqual(result.units, Unit('K'))
 
-    @ManageWarnings(
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_different_units(self):
         """Basic wet bulb temperature calculation with a unit conversion
         required."""
@@ -201,7 +188,7 @@ class Test_calculate_wet_bulb_temperature(Test_WetBulbTemperature):
         self.relative_humidity.convert_units('1')
         self.pressure.convert_units('kPa')
 
-        expected = np.array([[183.15, 259.88306, 333.96063]], dtype=np.float32)
+        expected = np.array([[185.0, 259.88306, 333.96063]], dtype=np.float32)
         result = WetBulbTemperature().calculate_wet_bulb_temperature(
             self.temperature, self.relative_humidity, self.pressure)
 
@@ -239,8 +226,6 @@ class Test_process(Test_WetBulbTemperature):
             new_cube = iris.util.new_axis(new_cube, 'time')
         return new_cube
 
-    @ManageWarnings(
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_cube_metadata(self):
         """Check metadata of returned cube."""
 
@@ -251,22 +236,18 @@ class Test_process(Test_WetBulbTemperature):
         self.assertEqual(result.units, Unit('K'))
         self.assertEqual(result.name(), 'wet_bulb_temperature')
 
-    @ManageWarnings(
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_values_single_level(self):
         """Basic wet bulb temperature calculation as if calling the
         calculate_wet_bulb_temperature function directly with single
         level data."""
 
-        expected = np.array([[183.15, 259.88306, 333.96063]], dtype=np.float32)
+        expected = np.array([[185.0, 259.88306, 333.96063]], dtype=np.float32)
         result = WetBulbTemperature().process(
             self.temperature, self.relative_humidity, self.pressure)
 
         self.assertArrayAlmostEqual(result.data, expected)
         self.assertEqual(result.units, Unit('K'))
 
-    @ManageWarnings(
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_values_multi_level(self):
         """Basic wet bulb temperature calculation using multi-level
         data."""
@@ -274,7 +255,7 @@ class Test_process(Test_WetBulbTemperature):
         temperature = self._make_multi_level(self.temperature)
         relative_humidity = self._make_multi_level(self.relative_humidity)
         pressure = self._make_multi_level(self.pressure)
-        expected = np.array([[183.15, 259.88306, 333.96063]], dtype=np.float32)
+        expected = np.array([[185.0, 259.88306, 333.96063]], dtype=np.float32)
 
         result = WetBulbTemperature().process(
             temperature, relative_humidity, pressure)
@@ -298,8 +279,6 @@ class Test_process(Test_WetBulbTemperature):
             WetBulbTemperature().process(
                 temperature, relative_humidity, pressure)
 
-    @ManageWarnings(
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_cube_multi_level(self):
         """Check the cube is returned with expected formatting after the data
         has been sliced and reconstructed."""

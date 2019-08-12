@@ -42,12 +42,8 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     WetBulbTemperatureIntegral)
 from improver.tests.psychrometric_calculations.psychrometric_calculations.\
     test_WetBulbTemperature import Test_WetBulbTemperature
-from improver.utilities.warnings_handler import ManageWarnings
 
 from improver.tests.set_up_test_cubes import add_coordinate
-
-IGNORED_MESSAGES = ["Wet bulb temperatures are being calculated"]
-WARNING_TYPES = [UserWarning]
 
 
 class Test__repr__(IrisTest):
@@ -89,8 +85,6 @@ class Test_process(Test_WetBulbTemperature):
             self.pressure, self.height_points, 'height', coord_units='m',
             attributes=height_attribute)
 
-    @ManageWarnings(
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_basic(self):
         """Test that the wet bulb temperature integral returns a cube
         with the expected name."""
@@ -104,8 +98,6 @@ class Test_process(Test_WetBulbTemperature):
         self.assertEqual(wb_temp.name(), "wet_bulb_temperature")
         self.assertEqual(wb_temp.units, Unit('celsius'))
 
-    @ManageWarnings(
-        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_data(self):
         """Test that the wet bulb temperature integral returns a cube
         containing the expected data."""
@@ -113,9 +105,9 @@ class Test_process(Test_WetBulbTemperature):
             [[[0.0, 0.0, 608.1063]],
              [[0.0, 0.0, 912.1595]]], dtype=np.float32)
         expected_wb_temp = np.array(
-            [[[-90.00001, -13.266943, 60.81063]],
-             [[-90.00001, -13.266943, 60.81063]],
-             [[-90.00001, -13.266943, 60.81063]]], dtype=np.float32)
+            [[[-88.15, -13.266943, 60.81063]],
+             [[-88.15, -13.266943, 60.81063]],
+             [[-88.15, -13.266943, 60.81063]]], dtype=np.float32)
         wb_temp, wb_temp_int = WetBulbTemperatureIntegral().process(
             self.temperature_cube, self.relative_humidity_cube,
             self.pressure_cube)
