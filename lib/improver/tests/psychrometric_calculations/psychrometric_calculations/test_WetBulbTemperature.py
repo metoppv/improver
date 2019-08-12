@@ -31,6 +31,8 @@
 """Unit tests for psychrometric_calculations WetBulbTemperature"""
 
 import unittest
+import numpy as np
+
 import iris
 from iris.cube import Cube
 from iris.tests import IrisTest
@@ -41,40 +43,25 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     WetBulbTemperature)
 from improver.utilities.warnings_handler import ManageWarnings
 
-
-def set_up_cubes_for_wet_bulb_temperature():
-    """Set up cubes required for wet bulb temperature unit tests."""
-    longitude = DimCoord([0, 10, 20], 'longitude', units='degrees')
-    time = DimCoord([1491955200], 'time')
-    temperature = Cube([183.15, 260.65, 338.15], 'air_temperature',
-                       units='K',
-                       dim_coords_and_dims=[(longitude, 0)])
-    temperature.add_aux_coord(time)
-    pressure = Cube([1.E5, 9.9E4, 9.8E4], 'air_pressure', units='Pa',
-                    dim_coords_and_dims=[(longitude, 0)])
-    pressure.add_aux_coord(time)
-    relative_humidity = Cube([60, 70, 80], 'relative_humidity', units='%',
-                             dim_coords_and_dims=[(longitude, 0)])
-    relative_humidity.add_aux_coord(time)
-    mixing_ratio = Cube([0.1, 0.2, 0.3], long_name='humidity_mixing_ratio',
-                        units='1',
-                        dim_coords_and_dims=[(longitude, 0)])
-    mixing_ratio.add_aux_coord(time)
-    return temperature, pressure, relative_humidity, mixing_ratio
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
 class Test_WetBulbTemperature(IrisTest):
-
     """Test class for the WetBulbTemperature tests, setting up cubes."""
 
     def setUp(self):
         """Set up the initial conditions for tests."""
-        temperature, pressure, relative_humidity, mixing_ratio = (
-            set_up_cubes_for_wet_bulb_temperature())
-        self.temperature = temperature
-        self.pressure = pressure
-        self.relative_humidity = relative_humidity
-        self.mixing_ratio = mixing_ratio
+        data = np.array([[185.0, 260.65, 338.15]], dtype=np.float32)
+        self.temperature = set_up_variable_cube(data)
+        data = np.array([[60., 70., 80.]], dtype=np.float32)
+        self.relative_humidity = set_up_variable_cube(
+            data, name='relative_humidity', units='%')
+        data = np.array([[1.E5, 9.9E4, 9.8E4]], dtype=np.float32)
+        self.pressure = set_up_variable_cube(
+            data, name='air_pressure', units='Pa')
+        data = np.array([[0.1, 0.2, 0.3]], dtype=np.float32)
+        self.mixing_ratio = set_up_variable_cube(
+            data, name='humidity_mixing_ratio', units='1')
 
 
 class Test__repr__(IrisTest):
@@ -112,8 +99,8 @@ class Test_lookup_svp(Test_WetBulbTemperature):
 
     def test_values(self):
         """Basic extraction of some SVP values from the lookup table."""
-        self.temperature.data[1] = 260.5683203
-        expected = [9.664590e-03, 206., 2.501530e+04]
+        self.temperature.data[0, 1] = 260.56833
+        expected = [[1.350531e-02, 2.06000274e+02, 2.501530e+04]]
         result = WetBulbTemperature().lookup_svp(self.temperature)
         self.assertArrayAlmostEqual(result.data, expected)
         self.assertEqual(result.units, Unit('Pa'))
@@ -122,9 +109,9 @@ class Test_lookup_svp(Test_WetBulbTemperature):
     def test_beyond_table_bounds(self, warning_list=None):
         """Extracting SVP values from the lookup table with temperatures beyond
         its valid range. Should return the nearest end of the table."""
-        self.temperature.data[1] = 150.
-        self.temperature.data[2] = 400.
-        expected = [9.664590e-03, 9.664590e-03, 2.501530e+04]
+        self.temperature.data[0, 0] = 150.
+        self.temperature.data[0, 2] = 400.
+        expected = [[9.664590e-03, 2.075279e+02, 2.501530e+04]]
         result = WetBulbTemperature().lookup_svp(self.temperature)
         warning_msg = "Wet bulb temperatures are"
         self.assertTrue(any(item.category == UserWarning
@@ -143,8 +130,8 @@ class Test_pressure_correct_svp(Test_WetBulbTemperature):
     def test_values(self):
         """Basic pressure correction of water vapour SVPs to give SVPs in
         air."""
-        svp = self.pressure.copy(data=[197.41815, 474.1368, 999.5001])
-        expected = [199.265984, 476.293085, 1006.390954]
+        svp = self.pressure.copy(data=[[197.41815, 474.1368, 999.5001]])
+        expected = [[199.226956, 476.293096, 1006.391004]]
         result = WetBulbTemperature().pressure_correct_svp(
             svp, self.temperature, self.pressure)
 
@@ -160,7 +147,7 @@ class Test__calculate_mixing_ratio(Test_WetBulbTemperature):
     def test_values(self):
         """Basic mixing ratio calculation."""
 
-        expected = [6.067447e-08, 1.310793e-03, 0.1770631]
+        expected = [[6.06744631e-08, 1.31079322e-03, 1.77063149e-01]]
         result = WetBulbTemperature()._calculate_mixing_ratio(
             self.temperature, self.pressure)
 
@@ -186,7 +173,7 @@ class Test_calculate_wet_bulb_temperature(Test_WetBulbTemperature):
     def test_values(self):
         """Basic wet bulb temperature calculation."""
 
-        expected = [183.15, 259.883055, 333.960651]
+        expected = np.array([[185.0, 259.88306, 333.96063]], dtype=np.float32)
         result = WetBulbTemperature().calculate_wet_bulb_temperature(
             self.temperature, self.relative_humidity, self.pressure)
 
@@ -201,7 +188,7 @@ class Test_calculate_wet_bulb_temperature(Test_WetBulbTemperature):
         self.relative_humidity.convert_units('1')
         self.pressure.convert_units('kPa')
 
-        expected = [183.15, 259.883055, 333.960651]
+        expected = np.array([[185.0, 259.88306, 333.96063]], dtype=np.float32)
         result = WetBulbTemperature().calculate_wet_bulb_temperature(
             self.temperature, self.relative_humidity, self.pressure)
 
@@ -254,7 +241,7 @@ class Test_process(Test_WetBulbTemperature):
         calculate_wet_bulb_temperature function directly with single
         level data."""
 
-        expected = [183.15, 259.883055, 333.960651]
+        expected = np.array([[185.0, 259.88306, 333.96063]], dtype=np.float32)
         result = WetBulbTemperature().process(
             self.temperature, self.relative_humidity, self.pressure)
 
@@ -268,7 +255,7 @@ class Test_process(Test_WetBulbTemperature):
         temperature = self._make_multi_level(self.temperature)
         relative_humidity = self._make_multi_level(self.relative_humidity)
         pressure = self._make_multi_level(self.pressure)
-        expected = [183.15, 259.883055, 333.960651]
+        expected = np.array([[185.0, 259.88306, 333.96063]], dtype=np.float32)
 
         result = WetBulbTemperature().process(
             temperature, relative_humidity, pressure)

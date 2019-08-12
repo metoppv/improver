@@ -403,6 +403,17 @@ class test_add_coordinate(IrisTest):
         self.assertEqual(result.coord('height').dtype, np.float32)
         self.assertEqual(result.coord('height').units, self.height_unit)
 
+    def test_adding_coordinate_with_attribute(self):
+        """Test addition of a leading height coordinate with an appropriate
+        attribute."""
+        height_attribute = {"positive": "up"}
+        result = add_coordinate(
+            self.input_cube, self.height_points, 'height',
+            coord_units=self.height_unit, attributes=height_attribute)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertEqual(result.coord_dims('height'), (0,))
+        self.assertEqual(result.coord('height').attributes, height_attribute)
+
     def test_reorder(self):
         """Test new coordinate can be placed in different positions"""
         input_cube = set_up_variable_cube(np.ones((4, 3, 4), dtype=np.float32))
