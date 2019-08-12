@@ -107,9 +107,9 @@ def main(argv=None):
 
     # Turn string to float
     model_resolution = float(args.model_resolution) if \
-        args.model_resolution else None
+        args.model_resolution is not None else None
     output_height_level = float(args.output_height_level) if \
-        args.output_height_level else None
+        args.output_height_level is not None else None
 
     # Load Cube
     wind_speed = load_cube(args.wind_speed_filepath)

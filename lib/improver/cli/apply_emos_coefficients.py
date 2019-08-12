@@ -136,7 +136,7 @@ def main(argv=None):
     # Process Cube
     result = process(current_forecast, coeffs, args.num_realizations,
                      args.random_ordering, args.random_seed,
-                     args.ecc_bounds_warning, args. predictor_of_mean)
+                     args.ecc_bounds_warning, args.predictor_of_mean)
     # Save Cube
     save_netcdf(result, args.output_filepath)
 

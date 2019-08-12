@@ -94,10 +94,9 @@ def main(argv=None):
         if args.warnings_on:
             if (args.new_name is None and
                     new_cube_name != new_cube.name()):
-                msg = ("Defaulting to first "
-                       "cube name, {}".format(new_cube_name) +
-                       " but combining with a cube "
-                       "with name, {}.".format(new_cube.name()))
+                msg = ("Defaulting to first cube name, {} but combining with"
+                       "a cube with name, {}.".format(
+                            new_cube_name, new_cube.name()))
                 warnings.warn(msg)
 
     # Process Cube

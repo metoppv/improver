@@ -191,6 +191,7 @@ def process(cube, mask, radius=None, radii_by_lead_time=None, weights=None,
             collapsing the topographic_zone coordinate. If no topographic
             masked neighbourhooding occurs, there will be no intermediate cube
             and a warning.
+            Default is False.
 
     Returns:
         (tuple): tuple containing:

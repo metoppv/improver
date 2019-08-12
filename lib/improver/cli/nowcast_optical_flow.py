@@ -42,8 +42,8 @@ from improver.nowcasting.optical_flow import OpticalFlow
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
 from improver.utilities.filename import generate_file_name
 from improver.utilities.load import load_cubelist
-from improver.utilities.cli_utilities import load_cube_or_none, \
-    load_json_or_none
+from improver.utilities.cli_utilities import (load_cube_or_none,
+                                              load_json_or_none)
 from improver.utilities.save import save_netcdf
 
 
@@ -146,7 +146,7 @@ def process(original_cube_list, oe_cube=None, metadata_dict=None,
     extrapolate to required lead times.
 
     Args:
-        original_cube_list (iris.cube.Cubelist):
+        original_cube_list (iris.cube.CubeList):
             Cubelist from which to calculate optical flow velocities.
             The cubes require a 'time' coordinate on which they are sorted,
             so the order of cubes does not matter.

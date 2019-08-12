@@ -89,9 +89,8 @@ def process(cube):
 
     Returns:
         gradients (iris.cube.Cubelist):
-            A cubelist with both cubes in.
-            The first Cube is the difference along the Y axis
-            The second Cube is the difference along the X axis
+            A Cubelist containing a Cube representing the difference along the
+            Y axis, and a Cube representing the difference along the X axis.
     """
     gradients = DifferenceBetweenAdjacentGridSquares().process(cube)
     gradients = iris.cube.CubeList([gradients[0], gradients[1]])
