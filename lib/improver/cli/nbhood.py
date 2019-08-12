@@ -246,7 +246,7 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius=None,
         neighbourhood_output (str):
             The form of the results generated using neighbourhood processing.
             If "probabilities" is selected, the mean probability with a
-            neighbourhood is calulated. If "percentiles" is selected, then
+            neighbourhood is calculated. If "percentiles" is selected, then
             the percentiles are calculated with a neighbourhood. Calculating
             percentiles from a neighbourhood is only supported for a circular
             neighbourhood.
