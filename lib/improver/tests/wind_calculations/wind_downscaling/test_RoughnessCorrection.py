@@ -162,17 +162,17 @@ class TestMultiPoint(object):
         """Set up multi-point tests.
 
         Args:
-            nx_ny (int or an np.array([x,y])):
+            nx_ny (int or numpy.ndarray([x,y])):
                 Sets dimension for tests.
-            AoS (float or 1D or 2D numpy.array):
+            AoS (float or 1D or 2D numpy.ndarray):
                 Silhouette roughness field
-            Sigma (float or 1D or 2D numpy.array):
+            Sigma (float or 1D or 2D numpy.ndarray):
                 Standard deviation field of height in grid cell
-            z_0 (float or 1D or 2D numpy.array):
+            z_0 (float or 1D or 2D numpy.ndarray):
                 Vegetative roughness field
-            pporog (float or 1D or 2D numpy.array):
+            pporog (float or 1D or 2D numpy.ndarray):
                 Unsmoothed orography field on post-processing grid
-            modelorog (float or 1D or 2D numpy.array):
+            modelorog (float or 1D or 2D numpy.ndarray):
                 Model orography field on post-processing grid
 
         """
@@ -226,7 +226,7 @@ class TestMultiPoint(object):
         array.
 
         Args:
-            wind (2D or 3D numpy.array)
+            wind (2D or 3D numpy.ndarray)
                 Multi-level wind target data
 
         Keyword Args:
@@ -305,7 +305,7 @@ class TestSinglePoint(object):
                 Unsmoothed orography on post-processing grid
             modelorog (float):
                 Model orography on post-processing grid
-            heightlevels (1D numpy.array):
+            heightlevels (1D numpy.ndarray):
                 Height level array
 
         """
@@ -333,7 +333,7 @@ class TestSinglePoint(object):
         axis in m.
 
         Args:
-            wind (1D or 2D numpy.array):
+            wind (1D or 2D numpy.ndarray):
                 Array of wind speeds
 
         Keyword Args:

@@ -541,7 +541,7 @@ class RoughnessCorrectionUtilities(object):
                 1D or 3D array float32 - heights above orography
             mask (numpy.ndarray):
                 3D array of bools - Masks the hc_add result
-            onemfrac (float or np.ndarray):
+            onemfrac (float or numpy.ndarray):
                 Currently, scalar = 1. But can be a function of position and
                 height, e.g. a 3D array (float32)
 
@@ -798,7 +798,7 @@ class RoughnessCorrection(object):
                 holding the model orography on post processing grid
 
         Returns:
-            np.ndarray:
+            numpy.ndarray:
                 Containing bools describing whether or not the tests passed
 
         """

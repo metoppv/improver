@@ -254,7 +254,7 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
         Args:
             slice_2d (iris.cube.Cube):
                 2d cube to be padded with a halo.
-            kernel (Numpy array):
+            kernel (numpy.ndarray):
                 Kernel used to specify the neighbourhood to consider when
                 calculating the percentiles within a neighbourhood.
 

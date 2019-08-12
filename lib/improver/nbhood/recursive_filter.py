@@ -124,17 +124,17 @@ class RecursiveFilter(object):
                 Bi-1 = New value at gridpoint i-1
 
         Args:
-            grid (numpy array):
+            grid (numpy.ndarray):
                 2D array containing the input data to which the recursive
                 filter will be applied.
-            alphas (numpy array):
+            alphas (numpy.ndarray):
                 Matching 2D array of alpha values that will be used when
                 applying the recursive filter along the specified axis.
             axis (int):
                 Index of the spatial axis (0 or 1) over which to recurse.
 
         Returns:
-            grid (numpy array):
+            grid (numpy.ndarray):
                 2D array containing the smoothed field after the recursive
                 filter method has been applied to the input array in the
                 forward direction along the specified axis.
@@ -163,17 +163,17 @@ class RecursiveFilter(object):
                 Bi+1 = New value at gridpoint i+1
 
         Args:
-            grid (numpy array):
+            grid (numpy.ndarray):
                 2D array containing the input data to which the recursive
                 filter will be applied.
-            alphas (numpy array):
+            alphas (numpy.ndarray):
                 Matching 2D array of alpha values that will be used when
                 applying the recursive filter along the specified axis.
             axis (int):
                 Index of the spatial axis (0 or 1) over which to recurse.
 
         Returns:
-            grid (numpy array):
+            grid (numpy.ndarray):
                 2D array containing the smoothed field after the recursive
                 filter method has been applied to the input array in the
                 backwards direction along the specified axis.

@@ -506,7 +506,7 @@ class ChooseDefaultWeightsLinear:
         """Create linear weights
 
             Args:
-                num_of_weights (positive integer):
+                num_of_weights (positive int):
                     Number of weights to create.
 
             Returns:

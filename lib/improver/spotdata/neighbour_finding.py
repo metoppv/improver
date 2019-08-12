@@ -149,7 +149,7 @@ class NeighbourSelection:
                 provides the coordinate system onto which the spot site's
                 coordinates should be remapped.
         Returns:
-            np.array:
+            numpy.ndarray:
                 An array containing the x and y coordinates of the spot sites
                 in the target coordinate system, shaped as (n_sites, 2). The
                 z coordinate column is excluded from the return.

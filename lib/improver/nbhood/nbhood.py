@@ -106,7 +106,7 @@ class BaseNeighbourhoodProcessing(object):
                 Array of forecast times found in cube.
 
         Returns:
-            radii (float or np.array of float):
+            radii (float or numpy.ndarray of float):
                 Required neighbourhood sizes.
         """
         if cube_lead_times is None:
@@ -222,14 +222,14 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
         Args:
             neighbourhood_method (str):
                 Name of the neighbourhood method to use. Options: 'circular'.
-            radii (float or List if defining lead times):
+            radii (float or list):
                 The radii in metres of the neighbourhood to apply.
                 Rounded up to convert into integer number of grid
                 points east and north, based on the characteristic spacing
                 at the zero indices of the cube projection-x and y coords.
 
         Keyword Args:
-            lead_times (None or List):
+            lead_times (list, optional):
                 List of lead times or forecast periods, at which the radii
                 within 'radii' are defined. The lead times are expected
                 in hours.
@@ -269,7 +269,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
             neighbourhood_method (str):
                 Name of the neighbourhood method to use. Options: 'circular',
                 'square'.
-            radii (float or List if defining lead times):
+            radii (float or list):
                 The radii in metres of the neighbourhood to apply.
                 Rounded up to convert into integer number of grid
                 points east and north, based on the characteristic spacing

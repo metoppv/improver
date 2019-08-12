@@ -139,7 +139,7 @@ def _create_cube_with_padded_data(source_cube, data, coord_x, coord_y):
         source_cube (iris.cube.Cube):
             Template cube used for copying metadata and non x and y axes
             coordinates.
-        data (Numpy array):
+        data (numpy.ndarray):
             Data to be put into the new cube.
         coord_x (iris.coords.DimCoord):
             Coordinate to be added to the new cube to represent the x axis.

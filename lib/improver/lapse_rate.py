@@ -257,11 +257,11 @@ class LapseRate(object):
         to find the local lapse rate.
 
         Args:
-            temperature(1D np.array):
+            temperature(1D numpy.ndarray):
                 Contains the temperature values for the central point and its
                 neighbours.
 
-            orography(1D np.array):
+            orography(1D numpy.ndarray):
                 Contains the height values for the central point and its
                 neighbours.
 
@@ -303,7 +303,7 @@ class LapseRate(object):
         the maximum.
 
         Args:
-            all_orog_subsections(2D np.array):
+            all_orog_subsections(2D numpy.ndarray):
                Each row contains the height values of each neighbourhood.
 
         Returns:

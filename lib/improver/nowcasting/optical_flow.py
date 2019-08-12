@@ -245,8 +245,8 @@ class OpticalFlow(object):
 
         Returns:
             (tuple) : tuple containing:
-                **boxes** (list):
-                    List of np.ndarrays of size boxsize*boxsize containing
+                **boxes** (list of numpy.ndarray):
+                    List of numpy.ndarrays of size boxsize*boxsize containing
                     slices of data from input field.
                 **weights** (numpy.ndarray):
                     1D numpy array containing weights values associated with

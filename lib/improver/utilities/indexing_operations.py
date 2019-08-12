@@ -62,7 +62,7 @@ def choose(index_array, array_set):
        different colours.
 
     Args:
-        index_array (numpy.ndarray of ints):
+        index_array (numpy.ndarray of int):
             This array must contain integers in the range [0, N-1], where N is
             if the length of the leading dimension of the array_set array.
             These integers determine how array_set will be reordered in the

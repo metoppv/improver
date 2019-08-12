@@ -218,7 +218,7 @@ class DifferenceBetweenAdjacentGridSquares(object):
             coord_name (str):
                 The name of the coordinate over which the difference
                 have been calculated.
-            diff_along_axis (numpy array):
+            diff_along_axis (numpy.ndarray):
                 Array containing the differences.
 
         Returns:
@@ -483,7 +483,7 @@ def lat_lon_transform(trg_crs, latitude, longitude):
             Longitude coordinate.
 
     Returns:
-        x, y (floats):
+        x, y (float):
             Longitude and latitude transformed into the target coordinate
             system.
 
@@ -541,7 +541,7 @@ def get_nearest_coords(cube, latitude, longitude, iname, jname):
         cube (iris.cube.Cube):
             Cube containing a representative grid.
 
-        latitude/longitude (floats):
+        latitude/longitude (float):
             Latitude/longitude coordinates of spot data site of interest.
 
         iname/jname (str):

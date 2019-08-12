@@ -603,32 +603,32 @@ def build_coordinate(data, long_name=None,
     Construct an iris.coord.Dim/Auxcoord using the provided options.
 
     Args:
-        data (number/list/np.array):
+        data (int  or list or numpy.ndarray):
             List or array of values to populate the coordinate points.
-        long_name (str (optional)):
+        long_name (str, optional):
             Name of the coordinate to be built.
-        standard_name (str (optional)):
+        standard_name (str, optional):
             CF Name of the coordinate to be built.
-        var_name (str (optional)):
+        var_name (str, optional):
             Variable name
-        coord_type (iris.coord.AuxCoord or iris.coord.DimCoord (optional)):
+        coord_type (iris.coord.AuxCoord or iris.coord.DimCoord):
             Selection between Dim and Aux coord.
-        data_type (<type> (optional)):
+        data_type (<type>, optional):
             The data type of the coordinate points, e.g. int
-        units (str (optional)):
+        units (str):
             String defining the coordinate units.
-        bounds (numpy.ndarray (optional)):
+        bounds (numpy.ndarray, optional):
             A (len(data), 2) array that defines coordinate bounds.
-        coord_system(iris.coord_systems.<coord_system> (optional)):
+        coord_system(iris.coord_systems.<coord_system>, optional):
             A coordinate system in which the dimension coordinates are defined.
-        template_coord (iris.coord):
+        template_coord (iris.coord, optional):
             A coordinate to copy.
-        custom_function (function (optional)):
+        custom_function (function, optional):
             A function to apply to the data values before constructing the
             coordinate, e.g. np.nan_to_num.
 
     Returns:
-        crd_out(iris coordinate):
+        crd_out(iris.coords.Coord):
             Dim or Auxcoord as chosen.
 
     """
