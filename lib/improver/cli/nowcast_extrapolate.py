@@ -114,6 +114,12 @@ def main(argv=None):
         " calculate these accumulations. This interval must be a factor of"
         " the lead_time_interval.")
     accumulation_args.add_argument(
+        "--accumulation_period", type=int, default=15,
+        help="The period over which the accumulation is calculated (mins). "
+        "Only full accumulation periods will be computed. At lead times "
+        "that are shorter than the accumulation period, no accumulation "
+        "output will be produced.")
+    accumulation_args.add_argument(
         "--accumulation_units", type=str, default='m',
         help="Desired units in which the accumulations should be expressed,"
         "e.g. mm")
@@ -155,7 +161,7 @@ def main(argv=None):
         input_cube, ucube, vcube, speed_cube, direction_cube,
         orographic_enhancement_cube, metadata_dict, args.max_lead_time,
         args.lead_time_interval, args.accumulation_fidelity,
-        args.accumulation_units)
+        args.accumulation_period, args.accumulation_units)
 
     # Save Cube
     if args.output_filepaths and \
@@ -181,7 +187,7 @@ def main(argv=None):
 def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
             orographic_enhancement_cube=None, metadata_dict=None,
             max_lead_time=360, lead_time_interval=15, accumulation_fidelity=0,
-            accumulation_units='m'):
+            accumulation_period=15, accumulation_units='m'):
     """Module  to extrapolate input cubes given advection velocity fields.
 
     Args:
@@ -229,6 +235,11 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
             calculate these accumulations. This interval must be a factor of
             the lead_time_interval.
             Default is 0.
+        accumulation_period (int):
+            The period over which the accumulation is calculated (mins).
+            Only full accumulation periods will be computed. At lead times
+            that are shorter than the accumulation period, no accumulation
+            output will be produced.
         accumulation_units (str):
             Desired units in which the accumulations should be expressed.
             e.g. 'mm'
@@ -293,8 +304,13 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
     # calculate accumulations if required
     accumulation_cubes = None
     if accumulation_fidelity > 0:
-        plugin = Accumulation(accumulation_units=accumulation_units,
-                              accumulation_period=lead_time_interval * 60)
+        lead_times = (
+            np.arange(lead_time_interval, max_lead_time + 1,
+                      lead_time_interval))
+        plugin = Accumulation(
+            accumulation_units=accumulation_units,
+            accumulation_period=accumulation_period * 60,
+            forecast_periods=lead_times * 60)
         accumulation_cubes = plugin.process(forecast_cubes)
 
     return accumulation_cubes, forecast_to_return

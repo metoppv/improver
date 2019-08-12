@@ -46,6 +46,7 @@ usage: improver nowcast-extrapolate [-h] [--profile]
                                     [--max_lead_time MAX_LEAD_TIME]
                                     [--lead_time_interval LEAD_TIME_INTERVAL]
                                     [--accumulation_fidelity ACCUMULATION_FIDELITY]
+                                    [--accumulation_period ACCUMULATION_PERIOD]
                                     [--accumulation_units ACCUMULATION_UNITS]
                                     INPUT_FILEPATH
 
@@ -111,6 +112,12 @@ Calculate accumulations from advected fields:
                         between advected fields that is used to calculate
                         these accumulations. This interval must be a factor of
                         the lead_time_interval.
+  --accumulation_period ACCUMULATION_PERIOD
+                        The period over which the accumulation is calculated
+                        (mins). Only full accumulation periods will be
+                        computed. At lead times that are shorter than the
+                        accumulation period, no accumulation output will be
+                        produced.
   --accumulation_units ACCUMULATION_UNITS
                         Desired units in which the accumulations should be
                         expressed,e.g. mm
