@@ -73,7 +73,9 @@ class Test_process(Test_WetBulbTemperature):
     """
 
     def setUp(self):
-        """Set up cubes."""
+        """Set up temperature, pressure, and relative humidity cubes that
+        contain multiple height levels; in this case the values of these
+        diagnostics are identical on each level."""
         super().setUp()
 
         self.height_points = np.array([5., 10., 20.])
