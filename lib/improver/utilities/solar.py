@@ -73,7 +73,7 @@ def calc_solar_hour_angle(longitudes, day_of_year, utc_hour):
     https://www.esrl.noaa.gov/gmd/grad/solcalc/sollinks.html
 
     Args:
-        longitudes (float or numpy.array):
+        longitudes (float or numpy.ndarray):
             A single Longitude or array of Longitudes
             longitudes needs to be between 180.0 and -180.0 degrees
         day_of_year (int):
@@ -82,7 +82,7 @@ def calc_solar_hour_angle(longitudes, day_of_year, utc_hour):
             Hour of the day in UTC
 
     Returns:
-        solar_hour_angle (float or numpy.array)
+        solar_hour_angle (float or numpy.ndarray)
             Hour angles in degrees East-West
     """
     if day_of_year < 0 or day_of_year > 365:
@@ -112,10 +112,10 @@ def calc_solar_elevation(latitudes, longitudes, day_of_year, utc_hour,
     Calculate the Solar elevation.
 
     Args:
-        latitudes (float or numpy.array):
+        latitudes (float or numpy.ndarray):
             A single Latitude or array of Latitudes
             latitudes needs to be between -90.0 and 90.0
-        longitudes (float or numpy.array):
+        longitudes (float or numpy.ndarray):
             A single Longitude or array of Longitudes
             longitudes needs to be between 180.0 and -180.0
         day_of_year (int):
@@ -127,7 +127,7 @@ def calc_solar_elevation(latitudes, longitudes, day_of_year, utc_hour,
             Default False.
 
     Returns:
-        solar_elevation (float or numpy.array):
+        solar_elevation (float or numpy.ndarray):
             Solar elevation in degrees for each location.
     """
     if np.min(latitudes) < -90.0 or np.max(latitudes) > 90.0:
@@ -161,7 +161,7 @@ def daynight_terminator(longitudes, day_of_year, utc_hour):
     for the given longitudes.
 
     Args:
-        longitudes (numpy.array):
+        longitudes (numpy.ndarray):
             Array of longitudes.
             longitudes needs to be between 180.0 and -180.0 degrees
         day_of_year (int):
@@ -170,7 +170,7 @@ def daynight_terminator(longitudes, day_of_year, utc_hour):
             Hour of the day in UTC
 
     Returns:
-        latitudes (numpy.array):
+        latitudes (numpy.ndarray):
             latitudes of the daynight terminator
     """
     if day_of_year < 0 or day_of_year > 365:

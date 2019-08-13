@@ -47,7 +47,7 @@ class Integration(object):
         Initialise class.
 
         Args:
-            coord_name_to_integrate (string):
+            coord_name_to_integrate (str):
                 Name of the coordinate to be integrated.
 
         Keyword Args:
@@ -59,7 +59,7 @@ class Integration(object):
                 Point at which to end the integration.
                 Default is None. If end_point is None, integration will
                 continue until the last available point.
-            direction_of_integration (string):
+            direction_of_integration (str):
                 Description of the direction in which to integrate.
                 Options are 'positive' or 'negative'.
                 'positive' corresponds to the values within the array
@@ -91,12 +91,12 @@ class Integration(object):
         the specified direction.
 
         Args:
-            cube (Iris.cube.Cube):
+            cube (iris.cube.Cube):
                 The cube containing the coordinate to check.
                 Note that the input cube will be modified by this method.
 
         Returns:
-            cube (Iris.cube.Cube):
+            cube (iris.cube.Cube):
                 The cube containing a coordinate that is monotonically
                 increasing in the desired direction.
 
@@ -282,11 +282,11 @@ class Integration(object):
                desired direction.
 
         Args:
-            cube (Iris.cube.Cube):
+            cube (iris.cube.Cube):
                 Cube containing the data to be integrated.
 
         Returns:
-            integrated_cube (Iris.cube.Cube):
+            integrated_cube (iris.cube.Cube):
                 The cube containing the result of the integration.
                 This will contain the same metadata as the input cube.
 

@@ -555,7 +555,7 @@ class GeneratePercentilesFromProbabilities(object):
                 forecast_probabilities cube is used as the number of
                 percentiles. This argument is mutually exclusive with
                 percentiles.
-            percentiles (list of floats):
+            percentiles (list of float):
                 The desired percentile values in the interval [0, 100].
                 This argument is mutually exclusive with no_of_percentiles.
             sampling (str):

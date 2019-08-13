@@ -48,11 +48,11 @@ def load_and_extract(cube_filepath, height_value, units):
     If no matching level is available an error is raised.
 
     Args:
-        cube_filepath (string):
+        cube_filepath (str):
             Path to the input NetCDF file.
         height_value (float):
             The boundary height to be extracted with the input units.
-        units (string):
+        units (str):
             The units of the height level to be extracted.
     Returns:
         cube (iris.cube.Cube):

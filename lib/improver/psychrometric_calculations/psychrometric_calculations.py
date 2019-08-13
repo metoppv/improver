@@ -535,7 +535,7 @@ class WetBulbTemperatureIntegral(object):
             precision (float):
                 The precision to which the Newton iterator must converge
                 before returning wet bulb temperatures.
-            coord_name_to_integrate (string):
+            coord_name_to_integrate (str):
                 Name of the coordinate to be integrated.
             start_point (float or None):
                 Point at which to start the integration.
@@ -545,7 +545,7 @@ class WetBulbTemperatureIntegral(object):
                 Point at which to end the integration.
                 Default is None. If end_point is None, integration will
                 continue until the last available point.
-            direction_of_integration (string):
+            direction_of_integration (str):
                 Description of the direction in which to integrate.
                 Options are 'positive' or 'negative'.
                 'positive' corresponds to the values within the array
@@ -659,15 +659,15 @@ class FallingSnowLevel(object):
         at that point will be set to np.nan.
 
         Args:
-            wb_int_data (np.array):
+            wb_int_data (numpy.ndarray):
                 Wet bulb integral data on heights
-            orog_data (np.array):
+            orog_data (numpy.ndarray):
                 Orographic data
-            heights (np.array):
+            heights (numpy.ndarray):
                 heights agl
 
         Returns:
-            snow_level_data (np.array):
+            snow_level_data (numpy.ndarray):
                 Falling snow level data asl.
 
         """
@@ -695,11 +695,11 @@ class FallingSnowLevel(object):
         Set these points to the highest height level + orography.
 
         Args:
-            snow_level_data (np.array):
+            snow_level_data (numpy.ndarray):
                 Falling snow level data (m).
-            orog_data (np.array):
+            orog_data (numpy.ndarray):
                 Orographic data (m)
-            highest_wb_int_data (np.array):
+            highest_wb_int_data (numpy.ndarray):
                 Wet bulb integral data on highest level (K m).
             highest_height (float):
                 Highest height at which the integral starts (m).
@@ -763,18 +763,18 @@ class FallingSnowLevel(object):
             2 m (I-threshold)}}{-m}}
 
         Args:
-            max_wb_integral (numpy.array):
+            max_wb_integral (numpy.ndarray):
                 The wet bulb temperature integral at sea level.
-            gradient (numpy.array):
+            gradient (numpy.ndarray):
                 The gradient of the line of best fit we are using in the
                 extrapolation.
-            intercept (numpy.array):
+            intercept (numpy.ndarray):
                 The intercept of the line of best fit we are using in the
                 extrapolation.
-            snow_falling_level (numpy.array)
+            snow_falling_level (numpy.ndarray)
                 The snow falling level array with values filled in with snow
                 falling levels calculated through extrapolation.
-            sea points (numpy.array)
+            sea points (numpy.ndarray)
                 A boolean array with True where the points are sea points.
 
         """
@@ -818,13 +818,13 @@ class FallingSnowLevel(object):
         specified by a start_point and end_point.
 
         Args:
-            wet_bulb_temperature (numpy.array):
+            wet_bulb_temperature (numpy.ndarray):
                 The wet bulb temperature profile at each grid point, with
                 height as the leading dimension.
-            heights (numpy.array):
+            heights (numpy.ndarray):
                 The vertical height levels above orography, matching the
                 leading dimension of the wet_bulb_temperature.
-            sea_points (numpy.array):
+            sea_points (numpy.ndarray):
                 A boolean array with True where the points are sea points.
 
         Keyword Args:
@@ -838,12 +838,12 @@ class FallingSnowLevel(object):
         Returns:
             (tuple): tuple containing
 
-                **gradient** (numpy.array) - An array, the same shape as a
+                **gradient** (numpy.ndarray) - An array, the same shape as a
                 2D slice of the wet_bulb_temperature input, containing the
                 gradients of the fitted straight line at each point where it
                 could be found, filled with zeros elsewhere.
 
-                **intercept** (numpy.array) - An array, the same shape as a
+                **intercept** (numpy.ndarray) - An array, the same shape as a
                 2D slice of the wet_bulb_temperature input, containing the
                 intercepts of the fitted straight line at each point where it
                 could be found, filled with zeros elsewhere.
@@ -894,19 +894,19 @@ class FallingSnowLevel(object):
         Assumes that height is the first axis in the wet_bulb_integral array.
 
         Args:
-            snow_level_data(numpy.array):
+            snow_level_data(numpy.ndarray):
                 The snow falling level array, filled with values for points
                 whose wet bulb temperature integral crossed the theshold.
-            land_sea_data (numpy.array):
+            land_sea_data (numpy.ndarray):
                 The binary land-sea mask
-            max_wb_integral (numpy.array):
+            max_wb_integral (numpy.ndarray):
                 The wet bulb temperature integral at the final height level
                 used in the integration. This has the maximum values for the
                 wet bulb temperature integral at any level.
-            wet_bulb_temperature (numpy.array):
+            wet_bulb_temperature (numpy.ndarray):
                 The wet bulb temperature profile at each grid point, with
                 height as the leading dimension.
-            heights (numpy.array):
+            heights (numpy.ndarray):
                 The vertical height levels above orography, matching the
                 leading dimension of the wet_bulb_temperature.
 
@@ -954,16 +954,16 @@ class FallingSnowLevel(object):
         missing data.
 
         Args:
-            snow_level_data (numpy.array):
+            snow_level_data (numpy.ndarray):
                 The snow falling level array, filled with values for points
                 whose wet bulb temperature integral crossed the theshold.
-            max_in_nbhood_orog (numpy.array):
+            max_in_nbhood_orog (numpy.ndarray):
                 The array containing maximum of the orography field in
                 a given radius.
             orog_data(numpy.data):
                 The array containing the orography data.
         Returns:
-            snow_filled (numpy.array):
+            snow_filled (numpy.ndarray):
                 The snow falling level array with missing data filled by
                 horizontal interpolation.
         """

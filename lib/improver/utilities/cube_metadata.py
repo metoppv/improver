@@ -103,7 +103,7 @@ def add_coord(cube, coord_name, changes, warnings_on=False):
     Args:
         cube (iris.cube.Cube):
             Cube containing combined data.
-        coord_name (string):
+        coord_name (str):
             Name of the coordinate being added.
         changes (dict):
             Details of coordinate to be added to the cube, with string keys.
@@ -196,9 +196,9 @@ def update_coord(cube, coord_name, changes, warnings_on=False):
     Args:
         cube (iris.cube.Cube):
             Cube containing combined data.
-        coord_name (string):
+        coord_name (str):
             Name of the coordinate being updated.
-        changes (string or dict):
+        changes (str or dict):
             Details on coordinate to be updated.
             If changes = 'delete' the coordinate is deleted.
             More detail is available in
@@ -296,7 +296,7 @@ def update_attribute(cube, attribute_name, changes, warnings_on=False):
     Args:
         cube (iris.cube.Cube):
             Cube containing combined data.
-        attribute_name (string):
+        attribute_name (str):
             Name of the attribute being updated.
         changes (object):
             attribute value or
@@ -755,7 +755,7 @@ def create_coordinate_hash(cube):
             The cube from which x and y coordinates will be used to
             generate a hash.
     Returns:
-        coordinate_hash (string):
+        coordinate_hash (str):
             A hash created using the x and y coordinates of the input cube.
     """
     hashable_data = [cube.coord(axis='x'), cube.coord(axis='y')]

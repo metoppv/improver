@@ -167,13 +167,13 @@ class OpticalFlow(object):
         attempt to interpolate returns an empty array: [].
 
         Args:
-            data (np.ndarray):
+            data (numpy.ndarray):
                 2D gridded data (dimensions M x N)
             axis (int or None):
                 Optional (0 or 1): average over 2 adjacent points along the
                 specified axis, rather than all 4 corners
         Returns:
-            midpoints (np.ndarray):
+            midpoints (numpy.ndarray):
                 2D gridded interpolated average (dimensions M-1 x N-1 if
                 axis=None; M-1 x N if axis=0; M x N-1 if axis=1)
         """
@@ -197,7 +197,7 @@ class OpticalFlow(object):
                 Axis over which to calculate the spatial derivative (0 or 1)
 
         Returns:
-            (np.ndarray):
+            (numpy.ndarray):
                 Smoothed spatial derivative
         """
         outdata = []
@@ -218,7 +218,7 @@ class OpticalFlow(object):
         array, and smooth to the original grid shape.
 
         Returns:
-            (np.ndarray):
+            (numpy.ndarray):
                 Smoothed temporal derivative
         """
         tdiff = self.data2 - self.data1
@@ -240,15 +240,15 @@ class OpticalFlow(object):
         8. in Bowler et al. 2004.
 
         Args:
-            field (np.ndarray):
+            field (numpy.ndarray):
                 Input field (partial derivative)
 
         Returns:
             (tuple) : tuple containing:
-                **boxes** (list):
-                    List of np.ndarrays of size boxsize*boxsize containing
+                **boxes** (list of numpy.ndarray):
+                    List of numpy.ndarrays of size boxsize*boxsize containing
                     slices of data from input field.
-                **weights** (np.ndarray):
+                **weights** (numpy.ndarray):
                     1D numpy array containing weights values associated with
                     each listed box.
 
@@ -274,11 +274,11 @@ class OpticalFlow(object):
         equations are solved) to input data grid.
 
         Args:
-            box_data (np.ndarray):
+            box_data (numpy.ndarray):
                 Displacement of subbox on box grid
 
         Returns:
-            grid_data (np.ndarray):
+            grid_data (numpy.ndarray):
                 Displacement on original data grid
         """
         grid_data = np.repeat(np.repeat(box_data, self.boxsize, axis=0),
@@ -314,7 +314,7 @@ class OpticalFlow(object):
                 Kernel radius or half box size for smoothing
 
         Returns:
-            kernel_2d (np.ndarray):
+            kernel_2d (numpy.ndarray):
                 Kernel to use for generating a smoothed field.
 
         """
@@ -333,7 +333,7 @@ class OpticalFlow(object):
         in equation 7 in Bowler et al. 2004.
 
         Args:
-            field (np.ndarray):
+            field (numpy.ndarray):
                 Input field to be smoothed
             radius (int):
                 Kernel radius or half box size for smoothing
@@ -341,7 +341,7 @@ class OpticalFlow(object):
                 Method to use: 'box' (as in STEPS) or 'kernel'
 
         Returns:
-            smoothed_field (np.ndarray):
+            smoothed_field (numpy.ndarray):
                 Smoothed data on input-shaped grid
 
         """
@@ -365,15 +365,15 @@ class OpticalFlow(object):
         data structure from which to calculate displacements.
 
         Args:
-            vel_point (np.ndarray):
+            vel_point (numpy.ndarray):
                 Original unsmoothed data
-            vel_iter (np.ndarray):
+            vel_iter (numpy.ndarray):
                 Latest iteration of smart-smoothed displacement
-            weights (np.ndarray):
+            weights (numpy.ndarray):
                 Weight of each grid point for averaging
 
         Returns:
-            vel (np.ndarray):
+            vel (numpy.ndarray):
                 Next iteration of smart-smoothed displacement
         """
         # define kernel for neighbour weighting
@@ -418,13 +418,13 @@ class OpticalFlow(object):
         Bowler et al. 2004, equations 9-11.
 
         Args:
-            box_data (np.ndarray):
+            box_data (numpy.ndarray):
                 Displacements on box grid (modified by this function)
-            weights (np.ndarray):
+            weights (numpy.ndarray):
                 Weights for smart smoothing
 
         Returns:
-            grid_data (np.ndarray):
+            grid_data (numpy.ndarray):
                 Smoothed displacement vectors on input data grid
 
         """
@@ -453,14 +453,14 @@ class OpticalFlow(object):
         In these cases, the function returns displacements of 0.
 
         Args:
-            deriv_xy (np.ndarray):
+            deriv_xy (numpy.ndarray):
                 2-column matrix containing partial field derivatives d/dx
                 (first column) and d/dy (second column)
-            deriv_t (np.ndarray):
+            deriv_t (numpy.ndarray):
                 1-column matrix containing partial field derivatives d/dt
 
         Returns:
-            velocity (np.ndarray):
+            velocity (numpy.ndarray):
                 2-column matrix (u, v) containing scalar displacement values
 
         """
@@ -484,11 +484,11 @@ class OpticalFlow(object):
         smoothing weights with zeros.  Modifies ALL input arrays in place.
 
         Args:
-            umat (np.ndarray):
+            umat (numpy.ndarray):
                 Displacement vectors in the x direction
-            vmat (np.ndarray):
+            vmat (numpy.ndarray):
                 Displacement vectors in the y direction
-            weights (np.ndarray):
+            weights (numpy.ndarray):
                 Weights for smart smoothing
         """
         flag = (np.abs(umat) + np.abs(vmat)) > vmat.shape[0]/3.
@@ -503,18 +503,18 @@ class OpticalFlow(object):
         "self.boxsize" sidelength have the same displacement components.
 
         Args:
-            partial_dx (np.ndarray):
+            partial_dx (numpy.ndarray):
                 2D array of partial input field derivatives d/dx
-            partial_dy (np.ndarray):
+            partial_dy (numpy.ndarray):
                 2D array of partial input field derivatives d/dy
-            partial_dt (np.ndarray):
+            partial_dt (numpy.ndarray):
                 2D array of partial input field derivatives d/dt
 
         Returns:
             (tuple) : tuple containing:
-                **umat** (np.ndarray):
+                **umat** (numpy.ndarray):
                     2D array of displacements in the x-direction
-                **vmat** (np.ndarray):
+                **vmat** (numpy.ndarray):
                     2D array of displacements in the y-direction
         """
 
@@ -566,7 +566,7 @@ class OpticalFlow(object):
         where there is rain within the domain have zero advection velocities.
 
         Args:
-            vel_comp (np.ndarray):
+            vel_comp (numpy.ndarray):
                 Advection velocity that will be checked to assess the
                 proportion of zeroes present in this field.
             rain_mask (tuple):
@@ -603,9 +603,9 @@ class OpticalFlow(object):
         fields.
 
         Args:
-            data1 (np.ndarray):
+            data1 (numpy.ndarray):
                 2D input data array from time 1
-            data2 (np.ndarray):
+            data2 (numpy.ndarray):
                 2D input data array from time 2
             xaxis (int):
                 Index of x coordinate axis
@@ -616,9 +616,9 @@ class OpticalFlow(object):
 
         Returns:
             (tuple) : tuple containing:
-                **ucomp** (np.ndarray):
+                **ucomp** (numpy.ndarray):
                     Advection displacement (grid squares) in the x direction
-                **vcomp** (np.ndarray):
+                **vcomp** (numpy.ndarray):
                     Advection displacement (grid squares) in the y direction
         """
         # Smooth input data

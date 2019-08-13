@@ -259,14 +259,14 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
             initial_guess (list):
                 List of optimised coefficients.
                 Order of coefficients is [gamma, delta, alpha, beta].
-            forecast_predictor (np.ndarray):
+            forecast_predictor (numpy.ndarray):
                 Data to be used as the predictor,
                 either the ensemble mean or the ensemble realizations.
-            truth (np.ndarray):
+            truth (numpy.ndarray):
                 Data to be used as truth.
-            forecast_var (np.ndarray):
+            forecast_var (numpy.ndarray):
                 Ensemble variance data.
-            sqrt_pi (np.ndarray):
+            sqrt_pi (numpy.ndarray):
                 Square root of Pi
             predictor_of_mean_flag (str):
                 String to specify the input to calculate the calibrated mean.
@@ -318,14 +318,14 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
             initial_guess (list):
                 List of optimised coefficients.
                 Order of coefficients is [gamma, delta, alpha, beta].
-            forecast_predictor (np.ndarray):
+            forecast_predictor (numpy.ndarray):
                 Data to be used as the predictor,
                 either the ensemble mean or the ensemble realizations.
-            truth (np.ndarray):
+            truth (numpy.ndarray):
                 Data to be used as truth.
-            forecast_var (np.ndarray):
+            forecast_var (numpy.ndarray):
                 Ensemble variance data.
-            sqrt_pi (np.ndarray):
+            sqrt_pi (numpy.ndarray):
                 Square root of Pi
             predictor_of_mean_flag (str):
                 String to specify the input to calculate the calibrated mean.

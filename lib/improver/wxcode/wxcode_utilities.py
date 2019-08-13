@@ -78,10 +78,10 @@ DAYNIGHT_CODES = [1, 3, 10, 14, 17, 20, 23, 26, 29]
 def add_wxcode_metadata(cube):
     """ Add weather code metadata to a cube
     Args:
-        cube (Iris.cube.Cube):
+        cube (iris.cube.Cube):
             Cube which needs weather code metadata added.
     Returns:
-        cube (Iris.cube.Cube):
+        cube (iris.cube.Cube):
             Cube with weather code metadata added.
     """
     cube.long_name = "weather_code"
@@ -102,7 +102,7 @@ def expand_nested_lists(query, key):
     Args:
         query (dict):
             A single query from the decision tree.
-        key (string):
+        key (str):
             A string denoting the field to be taken from the dict.
 
     Returns:
@@ -122,11 +122,11 @@ def update_daynight(cubewx):
     """ Update weather cube depending on whether it is day or night
 
     Args:
-        cubewx(Iris.cube.Cube):
+        cubewx(iris.cube.Cube):
             Cube containing only daytime weather symbols.
 
     Returns:
-        cubewx_daynight(Iris.cube.Cube):
+        cubewx_daynight(iris.cube.Cube):
             Cube containing day and night weather symbols
 
     Raises:

@@ -38,6 +38,7 @@ below:
 * Benjamin Ayliffe (Met Office, UK)
 * Mark Baker (Met Office, UK)
 * Laurence Beard (Met Office, UK)
+* Neil Crosswaite (Met Office, UK)
 * Gavin Evans (Met Office, UK)
 * Ben Fitzpatrick (Met Office, UK)
 * Martina Friedrich (Met Office, UK, pre-GitHub)

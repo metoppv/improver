@@ -130,7 +130,7 @@ def forecast_period_coord(
     coordinate will have units of seconds.
 
     Args:
-        cube (Iris.cube.Cube):
+        cube (iris.cube.Cube):
             Cube from which the lead times will be determined.
 
     Keyword Args:
@@ -233,7 +233,7 @@ def iris_time_to_datetime(time_coord):
     Convert iris time to python datetime object. Working in UTC.
 
     Args:
-        time_coord (iris.coord.Coord):
+        time_coord (iris.coords.Coord):
             Iris time coordinate element(s).
 
     Returns:
@@ -345,11 +345,11 @@ def set_utc_offset(longitudes):
     when no more rigorous source of timeszone information is provided.
 
     Args:
-        longitudes (List):
+        longitudes (list):
             List of longitudes.
 
     Returns:
-        utc_offsets (List):
+        utc_offsets (list):
             List of utc_offsets calculated using longitude.
     """
     return np.floor((np.array(longitudes) + 7.5)/15.)
@@ -367,7 +367,7 @@ def get_forecast_times(forecast_length, forecast_date=None,
         forecast_length (int):
             An integer giving the desired length of the forecast output in
             hours (e.g. 48 for a two day forecast period).
-        forecast_date (string (YYYYMMDD)):
+        forecast_date (str):
             A string of format YYYYMMDD defining the start date for which
             forecasts are required. If unset it defaults to today in UTC.
         forecast_time (int):
@@ -376,7 +376,7 @@ def get_forecast_times(forecast_length, forecast_date=None,
             unset it defaults to the latest 6 hour cycle as a start time.
 
     Returns:
-        forecast_times (list of datetime.datetime objects):
+        forecast_times (list of datetime.datetime):
             A list of python datetime.datetime objects that represent the
             times at which diagnostic data should be extracted.
 

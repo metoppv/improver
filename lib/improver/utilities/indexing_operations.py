@@ -62,18 +62,18 @@ def choose(index_array, array_set):
        different colours.
 
     Args:
-        index_array (np.array of ints):
+        index_array (numpy.ndarray of int):
             This array must contain integers in the range [0, N-1], where N is
             if the length of the leading dimension of the array_set array.
             These integers determine how array_set will be reordered in the
             returned array.
-        array_set (np.array):
+        array_set (numpy.ndarray):
             A multi-dimensional array, where the leading dimension is in effect
             an indexing dimension. Within this leading dimension are the
             sub-arrays from which values are to be extracted at positions that
             match those given in the index_array.
     Returns:
-        result (np.array):
+        result (numpy.ndarray):
             An array containing the reordered data extracted from array_set.
             The returned array will have the same shape as the index_array and
             array_set arrays.

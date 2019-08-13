@@ -156,12 +156,12 @@ class Test_forecast_period_coord(IrisTest):
         self.cube = set_up_variable_cube(np.ones((1, 3, 3), dtype=np.float32))
 
     def test_basic(self):
-        """Test that an iris.coord.DimCoord is returned."""
+        """Test that an iris.coords.DimCoord is returned."""
         result = forecast_period_coord(self.cube)
         self.assertIsInstance(result, iris.coords.DimCoord)
 
     def test_basic_AuxCoord(self):
-        """Test that an iris.coord.AuxCoord is returned."""
+        """Test that an iris.coords.AuxCoord is returned."""
         self.cube.remove_coord('forecast_period')
         result = forecast_period_coord(
             self.cube, force_lead_time_calculation=True)

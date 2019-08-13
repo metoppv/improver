@@ -40,9 +40,9 @@ def create_range_constraint(coord_name, value):
     Create a constraint that is representative of a range.
 
     Args:
-        coord_name (string):
+        coord_name (str):
             Name of the coordinate for which the constraint will be created.
-        value (string):
+        value (str):
             A string containing the range information.
             It is assumed that the input value is of the form: "[2:10]".
 
@@ -62,7 +62,7 @@ def is_complex_parsing_required(value):
     Currently, this is solely determined by the presence of a colon (:).
 
     Args:
-        value (string):
+        value (str):
            A string that will be parsed.
 
     Returns:

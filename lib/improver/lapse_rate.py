@@ -129,6 +129,10 @@ class SaveNeighbourhood(object):
         Create the global variables that allows the "filter" function
         to save each extracted buffer into "allbuffers".
 
+        Args:
+            allbuffers (numpy.ndarray):
+                Where to save each extracted buffer.
+
         """
         # Initialises the iterator.
         self.i = 0
@@ -143,7 +147,7 @@ class SaveNeighbourhood(object):
         requires a return value - so use zero.
 
         Args:
-            buffer (array):
+            buffer (numpy.ndarray):
                 Array containing neighourbood points.
 
         Returns:
@@ -257,11 +261,11 @@ class LapseRate(object):
         to find the local lapse rate.
 
         Args:
-            temperature(1D np.array):
+            temperature (1D numpy.ndarray):
                 Contains the temperature values for the central point and its
                 neighbours.
 
-            orography(1D np.array):
+            orography (1D numpy.ndarray):
                 Contains the height values for the central point and its
                 neighbours.
 
@@ -303,11 +307,11 @@ class LapseRate(object):
         the maximum.
 
         Args:
-            all_orog_subsections(2D np.array):
+            all_orog_subsections(2D numpy.ndarray):
                Each row contains the height values of each neighbourhood.
 
         Returns:
-            height_diff_mask (np.ndarray):
+            height_diff_mask (numpy.ndarray):
                 A 2D array of boolean values.
 
         """
@@ -332,7 +336,7 @@ class LapseRate(object):
             temperature_cube (iris.cube.Cube):
                 Cube of air temperatures (K).
 
-            orography_cube (Iris.cube.Cube):
+            orography_cube (iris.cube.Cube):
                 Cube containing orography data (metres)
 
             land_sea_mask_cube (iris.cube.Cube):

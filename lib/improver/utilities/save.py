@@ -48,7 +48,7 @@ def _append_metadata_cube(cubelist, global_keys):
             List of attributes to be treated as global across cubes and within
             any netCDF files produced using these cubes.
     Returns:
-        iris.cube.Cubelist with appended metadata cube
+        iris.cube.CubeList with appended metadata cube
     """
     keys_for_global_attr = {}
 

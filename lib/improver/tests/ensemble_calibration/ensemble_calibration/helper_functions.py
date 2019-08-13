@@ -65,9 +65,9 @@ class EnsembleCalibrationAssertions(IrisTest):
         machines would only be aiming to match to 4 decimal places.
 
         Args:
-            first (np.array):
+            first (numpy.ndarray):
                 First array to compare.
-            second (np.array):
+            second (numpy.ndarray):
                 Second array to compare.
          """
         self.assertArrayAlmostEqual(first, second, decimal=4)
@@ -82,9 +82,9 @@ class EnsembleCalibrationAssertions(IrisTest):
         machines would only be aiming to match to 4 decimal places.
 
         Args:
-            first (np.array):
+            first (numpy.ndarray):
                 First array to compare.
-            second (np.array):
+            second (numpy.ndarray):
                 Second array to compare.
          """
         self.assertArrayAlmostEqual(first, second, decimal=4)
