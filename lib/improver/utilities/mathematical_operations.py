@@ -38,7 +38,12 @@ from improver.utilities.cube_manipulation import sort_coord_in_cube
 
 
 class Integration(object):
-    """Perform integration along a chosen coordinate."""
+    """Perform integration along a chosen coordinate. This class currently
+    supports the integration of positive values only, in order to
+    support its usage as part of computing the wet-bulb temperature integral.
+    Generalisation of this class to support standard numerical integration
+    can be undertaken, if required.
+    """
 
     def __init__(self, coord_name_to_integrate,
                  start_point=None, end_point=None,
@@ -241,9 +246,15 @@ class Integration(object):
                         continue
             stride = np.abs(upper_bound - lower_bound)
             upper_half_of_stride = upper_bounds_slice.data * 0.0
+            # Restrict the integration to only consider positive values.
+            # This condition is specific for the computation of the wet-bulb
+            # temperature integral.
             uindex = np.where(upper_bounds_slice.data > 0)
             upper_half_of_stride[uindex] = (upper_bounds_slice.data[uindex] *
                                             0.5 * stride)
+            # Restrict the integration to only consider positive values.
+            # This condition is specific for the computation of the wet-bulb
+            # temperature integral.
             lindex = np.where(lower_bounds_slice.data > 0)
             lower_half_of_stride = lower_bounds_slice.data * 0.0
             lower_half_of_stride[lindex] = (lower_bounds_slice.data[lindex] *
