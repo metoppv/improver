@@ -48,17 +48,14 @@ The DEFAULT_UNITS dictionary has the following form.
 import numpy as np
 
 DEFAULT_UNITS = {
-    # time coordinates
+    # time coordinates and suitable substrings
     "time": {
-        "unit": "seconds since 1970-01-01 00:00:00",
-        "dtype": np.int64},
-    "forecast_reference_time": {
         "unit": "seconds since 1970-01-01 00:00:00",
         "dtype": np.int64},
     "forecast_period": {
         "unit": "seconds",
         "dtype": np.int32},
-    # other standard coordinates
+    # other standard coordinates and substrings
     "longitude": {"unit": "degrees"},
     "latitude": {"unit": "degrees"},
     "projection_x_coordinate": {"unit": "m"},
@@ -68,8 +65,7 @@ DEFAULT_UNITS = {
     # standard diagnostics and suitable substrings
     "temperature": {"unit": "K"},
     "thickness": {"unit": "m"},
-    "rainfall_rate": {"unit": "m s-1"},
-    "lwe_snowfall_rate": {"unit": "m s-1"},
-    "lwe_precipitation_rate": {"unit": "m s-1"},
+    "fall_rate": {"unit": "m s-1"},
+    "precipitation_rate": {"unit": "m s-1"},
     "lapse_rate": {"unit": "K m-1"}
 }

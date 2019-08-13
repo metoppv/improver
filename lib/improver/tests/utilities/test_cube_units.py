@@ -49,7 +49,7 @@ class Test_enforce_units_and_dtypes(IrisTest):
     def setUp(self):
         """Set up some conformant cubes of air_temperature to test"""
         data = 275*np.ones((3, 3), dtype=np.float32)
-        self.data_cube = set_up_variable_cube(data)
+        self.data_cube = set_up_variable_cube(data, spatial_grid='equalarea')
 
         data = np.ones((3, 3, 3), dtype=np.float32)
         thresholds = np.array([272, 273, 274], dtype=np.float32)
@@ -60,7 +60,7 @@ class Test_enforce_units_and_dtypes(IrisTest):
                          276*np.ones((3, 3), dtype=np.float32)])
         percentiles = np.array([25, 50, 75], np.float32)
         self.percentile_cube = set_up_percentile_cube(data, percentiles)
-        # set to real source here, as tests consistency of setup functions
+        # set to real source here, to test consistency of setup functions
         # with up-to-date metadata standard
         cube_units.DEFAULT_UNITS = improver.units.DEFAULT_UNITS
 
@@ -88,26 +88,49 @@ class Test_enforce_units_and_dtypes(IrisTest):
             self.assertArrayAlmostEqual(cube.data, ref.data)
             self.assertEqual(cube.metadata, ref.metadata)
 
-    def test_wrong_units_enforce(self):
+    def test_data_units_enforce(self):
         """Test units are changed on the returned cube and the input cube is
         unmodified"""
         self.data_cube.convert_units('Fahrenheit')
-        result = cube_units.enforce_units_and_dtypes(self.data_cube)
-        self.assertEqual(result[0].units, 'K')
+        result, = cube_units.enforce_units_and_dtypes(self.data_cube)
+        self.assertEqual(result.units, 'K')
         self.assertEqual(self.data_cube.units, 'Fahrenheit')
 
-    def test_wrong_units_fail(self):
+    def test_coord_units_enforce(self):
+        """Test coordinate units are enforced and the input cube is
+        unmodified"""
+        test_coord = 'projection_x_coordinate'
+        self.data_cube.coord(test_coord).convert_units('km')
+        result, = cube_units.enforce_units_and_dtypes(self.data_cube)
+        self.assertEqual(self.data_cube.coord(test_coord).units, 'km')
+        self.assertEqual(result.coord(test_coord).units, 'm')
+
+    def test_units_fail(self):
         """Test error is raised when enforce=False"""
         self.data_cube.convert_units('Fahrenheit')
         msg = "Units Fahrenheit of air_temperature cube do not conform"
         with self.assertRaisesRegex(ValueError, msg):
             cube_units.enforce_units_and_dtypes(self.data_cube, enforce=False)
 
-    def test_coord_datatype_fail(self):
-        """Test coordinate datatype non-conformance triggers an error"""
+    def test_data_datatype_enforce(self):
+        """Test dataset datatypes are enforced"""
+        self.data_cube.data = self.data_cube.data.astype(np.float64)
+        result, = cube_units.enforce_units_and_dtypes(self.data_cube)
+        self.assertEqual(result.dtype, np.float32)
+
+    def test_coord_datatype_enforce(self):
+        """Test coordinate datatypes are enforced (using substring processing)
+        """
+        test_coord = 'forecast_reference_time'
+        self.data_cube.coord(test_coord).points = (
+             self.data_cube.coord(test_coord).points.astype(np.float64))
+        result, = cube_units.enforce_units_and_dtypes(self.data_cube)
+        self.assertEqual(result.coord(test_coord).dtype, np.int64)
+
+    def test_datatype_fail(self):
+        """Test error is raised when enforce=False"""
         self.percentile_cube.coord("percentile").points = (
             self.percentile_cube.coord("percentile").points.astype(np.int32))
-        print(self.percentile_cube.coord("percentile").dtype)
         msg = "of coordinate percentile on air_temperature cube"
         with self.assertRaisesRegex(ValueError, msg):
             cube_units.enforce_units_and_dtypes(

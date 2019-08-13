@@ -181,17 +181,17 @@ def enforce_coordinate_units_and_dtypes(cubes, coordinates, inplace=True):
 
     for cube in cubes:
         for coord_name in coordinates:
-
+            coord_key = coord_name
             try:
-                unit = DEFAULT_UNITS[coord_name]["unit"]
+                unit = DEFAULT_UNITS[coord_key]["unit"]
             except KeyError:
                 msg = "Coordinate {} not defined in units.py"
                 # hold the error and check for valid substrings
-                coord_name = _find_dict_key(coord_name, msg.format(coord_name))
-                unit = DEFAULT_UNITS[coord_name]["unit"]
+                coord_key = _find_dict_key(coord_key, msg.format(coord_key))
+                unit = DEFAULT_UNITS[coord_key]["unit"]
 
             try:
-                dtype = DEFAULT_UNITS[coord_name]["dtype"]
+                dtype = DEFAULT_UNITS[coord_key]["dtype"]
             except KeyError:
                 dtype = np.float32
 
