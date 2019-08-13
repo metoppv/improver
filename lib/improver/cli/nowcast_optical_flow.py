@@ -137,8 +137,9 @@ def main(argv=None):
             save_netcdf(cube, file_name)
 
 
-def process(original_cube_list, oe_cube=None, metadata_dict=None,
-            ofc_box_size=30, smart_smoothing_iterations=100, extrapolate=False,
+def process(original_cube_list, orographic_enhancement_cube=None,
+            metadata_dict=None, ofc_box_size=30,
+            smart_smoothing_iterations=100, extrapolate=False,
             max_lead_time=360, lead_time_interval=15):
     """Calculates optical flow and can (optionally) extrapolate data.
 
@@ -152,7 +153,7 @@ def process(original_cube_list, oe_cube=None, metadata_dict=None,
             so the order of cubes does not matter.
 
     Keyword Args:
-        oe_cube (iris.cube.Cube):
+        orographic_enhancement_cube (iris.cube.Cube):
             Cube containing the orographic enhancement fields.
             Default is None.
         metadata_dict (dict):
@@ -193,9 +194,9 @@ def process(original_cube_list, oe_cube=None, metadata_dict=None,
             If there is no oe_cube but a cube is called 'precipitation_rate'.
 
     """
-    if oe_cube:
+    if orographic_enhancement_cube:
         cube_list = ApplyOrographicEnhancement("subtract").process(
-            original_cube_list, oe_cube)
+            original_cube_list, orographic_enhancement_cube)
     else:
         cube_list = original_cube_list
         if any("precipitation_rate" in cube.name() for cube in cube_list):
@@ -211,34 +212,35 @@ def process(original_cube_list, oe_cube=None, metadata_dict=None,
     # calculate optical flow velocities from T-1 to T and T-2 to T-1
     ofc_plugin = OpticalFlow(iterations=smart_smoothing_iterations,
                              metadata_dict=metadata_dict)
-    ucubes = iris.cube.CubeList([])
-    vcubes = iris.cube.CubeList([])
+    u_cubes = iris.cube.CubeList([])
+    v_cubes = iris.cube.CubeList([])
     for older_cube, newer_cube in zip(cube_list[:-1], cube_list[1:]):
         ucube, vcube = ofc_plugin.process(older_cube, newer_cube,
                                           boxsize=ofc_box_size)
-        ucubes.append(ucube)
-        vcubes.append(vcube)
+        u_cubes.append(ucube)
+        v_cubes.append(vcube)
 
     # average optical flow velocity components
-    ucube = ucubes.merge_cube()
-    umean = ucube.collapsed("time", iris.analysis.MEAN)
-    umean.coord("time").points = time_coord.points
-    umean.coord("time").units = time_coord.units
+    u_cube = u_cubes.merge_cube()
+    u_mean = u_cube.collapsed("time", iris.analysis.MEAN)
+    u_mean.coord("time").points = time_coord.points
+    u_mean.coord("time").units = time_coord.units
 
-    vcube = vcubes.merge_cube()
-    vmean = vcube.collapsed("time", iris.analysis.MEAN)
-    vmean.coord("time").points = time_coord.points
-    vmean.coord("time").units = time_coord.units
+    v_cube = v_cubes.merge_cube()
+    v_mean = v_cube.collapsed("time", iris.analysis.MEAN)
+    v_mean.coord("time").points = time_coord.points
+    v_mean.coord("time").units = time_coord.units
 
-    u_and_v_mean = [umean, vmean]
+    u_and_v_mean = [u_mean, v_mean]
     forecast_cubes = []
     if extrapolate:
         # generate list of lead times in minutes
         lead_times = np.arange(0, max_lead_time + 1,
                                lead_time_interval)
         forecast_plugin = CreateExtrapolationForecast(
-            original_cube_list[-1], umean, vmean,
-            orographic_enhancement_cube=oe_cube, metadata_dict=metadata_dict)
+            original_cube_list[-1], u_mean, v_mean,
+            orographic_enhancement_cube=orographic_enhancement_cube,
+            metadata_dict=metadata_dict)
         # extrapolate input data to required lead times
         for i, lead_time in enumerate(lead_times):
             forecast_cubes.append(forecast_plugin.extrapolate(

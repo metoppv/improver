@@ -193,7 +193,7 @@ def process(wind_speed, silhouette_roughness, sigma, target_orog,
             If the requested height value is not found.
 
     """
-    if output_height_level_units and not output_height_level:
+    if output_height_level_units and output_height_level is None:
         warnings.warn('output_height_level_units has been set but no '
                       'associated height level has been provided. These units '
                       'will have no effect.')
@@ -218,7 +218,7 @@ def process(wind_speed, silhouette_roughness, sigma, target_orog,
     non_dim_coords = [x.name() for x in wind_speed.coords(dim_coords=False)]
     if 'realization' in non_dim_coords:
         wind_speed = iris.util.new_axis(wind_speed, 'realization')
-    if output_height_level:
+    if output_height_level is not None:
         constraints = {'height': output_height_level}
         units = {'height': output_height_level_units}
         single_level = apply_extraction(

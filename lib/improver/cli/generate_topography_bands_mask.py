@@ -132,10 +132,9 @@ def process(orography, landmask=None, thresholds_dict=None):
             zero in every band.
             Default is None.
         thresholds_dict (dict):
-            Definition of orography bands required. Has key-value pairs of
-            "bounds": list of list of pairs of bounds for each band and
-            "units":"string containing units of bounds", for example:
-            {'bounds' :[[0, 100], [100, 200]], 'units':"m"}
+            Definition of orography bands required.
+            The expected format of the dictionary is e.g
+            {'bounds':[[0, 50], [50, 200]], 'units': 'm'}
             The default dictionary has the following form:
             {'bounds': [[-500., 50.], [50., 100.],
             [100., 150.],[150., 200.], [200., 250.],

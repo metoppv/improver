@@ -71,7 +71,6 @@ def main(argv=None):
         # Save Cube
         save_netcdf(gradients, args.output_filepath)
     else:
-        print(args.output_filepath)
         msg = 'File already exists here: {}'.format(args.output_filepath)
         raise IOError(msg)
 

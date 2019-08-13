@@ -212,7 +212,7 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube=None,
             defined when the neighbour cube was created. May be used with
             land_constraint.
             Default is False.
-        extract_percentiles (list or integer):
+        extract_percentiles (list or int):
             If set to a percentile value or a list of percentile values,
             data corresponding to those percentiles will be returned. For
             example [25, 50, 75] will result in the 25th, 50th and 75th
@@ -274,7 +274,7 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube=None,
     # the given percentile if available. This is done after the spot-extraction
     # to minimise processing time; usually there are far fewer spot sites than
     # grid points.
-    if extract_percentiles:
+    if extract_percentiles is not None:
         try:
             perc_coordinate = find_percentile_coordinate(result)
         except CoordinateNotFoundError:

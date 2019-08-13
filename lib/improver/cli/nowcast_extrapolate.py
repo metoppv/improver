@@ -228,6 +228,7 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
             Default is 360.
         lead_time_interval (int):
             Interval between required lead times (mins).
+            Default is 15.
         accumulation_fidelity (int):
             If set, this will additionally return accumulations calculated
             from the advected fields. This fidelity specifies the time
@@ -280,9 +281,9 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
             msg = ("The specified lead_time_interval ({}) is not cleanly "
                    "divisible by the specified accumulation_fidelity ({}). As "
                    "a result the lead_time_interval cannot be constructed from"
-                   " accumulation cubes at this fidelity.".
-                   format(lead_time_interval, accumulation_fidelity))
-            raise ValueError(msg)
+                   " accumulation cubes at this fidelity.")
+            raise ValueError(msg.format(lead_time_interval,
+                                        accumulation_fidelity))
 
         time_interval = accumulation_fidelity
         lead_times = np.arange(0, max_lead_time + 1, time_interval)

@@ -259,7 +259,7 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
             forecast is in the form of probabilities and is converted to
             percentiles, as part of converting the input probabilities into
             realizations.
-        max_iterations (numpy.int32):
+        max_iterations (int):
             The maximum number of iterations allowed until the minimisation has
             converged to a stable solution. If the maximum number of iterations
             is reached, but the minimisation has not yet converged to a stable
@@ -320,6 +320,7 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
 
     # Default number of ensemble realizations is the number in
     # the raw forecast.
+    # If None or 0 it takes from the length of current_forecast.
     if not num_realizations:
         num_realizations = len(
             current_forecast.coord('realization').points)

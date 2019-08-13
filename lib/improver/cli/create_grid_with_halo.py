@@ -61,7 +61,7 @@ def main(argv=None):
     save_netcdf(result, args.output_file)
 
 
-def process(cube, halo_radius=162000):
+def process(cube, halo_radius=162000.0):
     """Generate a zeroed grid with halo from a source cube.
 
     Create a template cube defining a new grid by adding a fixed width halo on

@@ -272,8 +272,8 @@ def process(output_data, target_grid=None, source_landsea=None,
                "target_grid_filepath")
         raise ValueError(msg)
     # Process
-    check_cube_not_float64(output_data, fix=fix_float64)
     # Re-grid with options:
+    check_cube_not_float64(output_data, fix=fix_float64)
     # if a target grid file has been specified, then regrid optionally
     # applying float64 data check, metadata change, Iris nearest and
     # extrapolation mode as required.
@@ -316,9 +316,9 @@ def process(output_data, target_grid=None, source_landsea=None,
     # change the metadata
     if metadata_dict:
         output_data = amend_metadata(output_data, **metadata_dict)
-    # Check and fix for float64 data only option:
-    if fix_float64:
-        check_cube_not_float64(output_data, fix=True)
+
+    check_cube_not_float64(output_data, fix=fix_float64)
+
     return output_data
 
 
