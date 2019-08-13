@@ -38,7 +38,7 @@
   # Run weighted blending with linear weights for two input files and check it
   # passes.
   run improver weighted-blending 'model_configuration' \
-      --ynval 1 --y0val 1 \
+      --ynval 1 --y0val 1 --model_id_attr mosg__model_configuration \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/model/ukv_input.nc" \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/model/enuk_input.nc" \
       "$TEST_DIR/output.nc"
