@@ -175,9 +175,9 @@ class WeatherSymbols(object):
                 A single query from the decision tree.
         Returns:
             (tuple): tuple containing:
-                **inverted_threshold** (string):
+                **inverted_threshold** (str):
                     A string representing the inverted comparison.
-                **inverted_combination** (string):
+                **inverted_combination** (str):
                     A string representing the inverted combination
         """
         threshold = test_conditions['threshold_condition']
@@ -206,12 +206,12 @@ class WeatherSymbols(object):
         Create a string representing a comparison condition.
 
         Args:
-            extract_constraint (string or list of strings):
+            extract_constraint (str or list of str):
                 A string, or list of strings, encoding iris constraints
                 that will be used to extract the correct diagnostic cube
                 (by name) from the input cube list and the correct threshold
                 from that cube.
-            condition (string):
+            condition (str):
                 The condition statement (e.g. greater than, >).
             probability_threshold (float):
                 The probability value to use in the comparison.
@@ -247,7 +247,7 @@ class WeatherSymbols(object):
             conditions (list):
                 A list of conditions to be combined into a single comparison
                 statement.
-            condition_combination (string):
+            condition_combination (str):
                 The method by which multiple conditions should be combined,
                 either AND or OR.
         Returns:
@@ -315,7 +315,7 @@ class WeatherSymbols(object):
         Construct an iris constraint.
 
         Args:
-            diagnostics (string or list of strings):
+            diagnostics (str or list of str):
                 The names of the diagnostics to be extracted from the CubeList.
             thresholds (iris.AuxCoord or list of iris.AuxCoord):
                 All thresholds within the given diagnostic cubes that are
@@ -327,7 +327,7 @@ class WeatherSymbols(object):
                 coordinate name from diagnostic name
 
         Returns:
-            string or list of strings:
+            (str or list of str):
                 String, or list of strings, encoding iris cube constraints.
         """
         def _constraint_string(diagnostic, threshold_name, threshold_val):
@@ -335,13 +335,13 @@ class WeatherSymbols(object):
             Return iris constraint as a string for deferred creation of the
             lambda functions.
             Args:
-                diagnostic (string):
+                diagnostic (str):
                     Name of diagnostic
-                threshold_name (string):
+                threshold_name (str):
                     Name of threshold coordinate on input cubes
                 threshold_val (float):
                     Value of threshold coordinate required
-            Returns: (string)
+            Returns: (str)
             """
             return ("iris.Constraint(name='{diagnostic}', {threshold_name}="
                     "lambda cell: {threshold_val} * {float_min} < cell < "
@@ -389,7 +389,7 @@ class WeatherSymbols(object):
             graph (dict):
                 A dictionary that describes each node in the tree,
                 e.g. {<node_name>: [<succeed_name>, <fail_name>]}
-            start (string):
+            start (str):
                 The node name of the tree root (currently always
                 heavy_precipitation).
             end (int):

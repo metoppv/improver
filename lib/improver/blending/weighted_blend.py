@@ -363,16 +363,16 @@ class PercentileBlendingAggregator:
             along a given axis of a cube.
 
         Args:
-            data (np.array):
+            data (numpy.ndarray):
                    Array containing the data to blend
             axis (int):
                    The index of the coordinate dimension in the cube. This
                    dimension will be aggregated over.
-            arr_percent(np.array):
+            arr_percent(numpy.ndarray):
                      Array of percentile values e.g
                      [0, 20.0, 50.0, 70.0, 100.0],
                      same size as the percentile dimension of data.
-            arr_weights(np.array):
+            arr_weights(numpy.ndarray):
                      Array of weights, same size as the axis dimension of data.
             perc_dim (int):
                      The index of the percentile coordinate
@@ -380,7 +380,7 @@ class PercentileBlendingAggregator:
              hence the rename.)
 
         Returns:
-            result (np.array):
+            result (numpy.ndarray):
                      containing the weighted percentile blend data across
                      the chosen coord. The dimension associated with axis
                      has been collapsed, and the rest of the dimensions remain.
@@ -435,18 +435,18 @@ class PercentileBlendingAggregator:
             a given axis of percentile data for a single grid point.
 
         Args:
-            perc_values (np.array):
+            perc_values (numpy.ndarray):
                 Array containing the percentile values to blend, with
                 shape: (length of coord to blend, num of percentiles)
-            percentiles (np.array):
+            percentiles (numpy.ndarray):
                 Array of percentile values e.g [0, 20.0, 50.0, 70.0, 100.0],
                 same size as the percentile dimension of data.
-            weights (np.array):
+            weights (numpy.ndarray):
                 Array of weights, same size as the axis dimension of data,
                 that we will blend over.
 
         Returns:
-            new_combined_perc (np.array):
+            new_combined_perc (numpy.ndarray):
                 Array containing the weighted percentile blend data
                 across the chosen coord
         """
@@ -498,7 +498,7 @@ class WeightedBlendAcrossWholeDimension:
         """Set up for a Weighted Blending plugin
 
         Args:
-            coord (string):
+            coord (str):
                 The name of the coordinate dimension over which the cube will
                 be blended.
 
@@ -607,7 +607,7 @@ class WeightedBlendAcrossWholeDimension:
             weights (iris.cube.Cube):
                 Cube of blending weights.
         Returns:
-            weights_array (np.array):
+            weights_array (numpy.ndarray):
                 An array of weights that matches the cube data shape.
         Raises:
             ValueError: If weights cube coordinates do not match the diagnostic
@@ -655,9 +655,9 @@ class WeightedBlendAcrossWholeDimension:
         Checks that weights across the blending dimension sum up to 1.
 
         Args:
-            weights (np.array):
+            weights (numpy.ndarray):
                 Array of weights shaped to match the data cube.
-            blend_dim (integer):
+            blend_dim (int):
                 The dimension in the weights array that is being collapsed.
         Raises:
             ValueError: Raised if the weights do not sum to 1 over the blending
@@ -683,7 +683,7 @@ class WeightedBlendAcrossWholeDimension:
             weights (iris.cube.Cube or None):
                 Cube of blending weights or None.
         Returns:
-            weights_array (np.array):
+            weights_array (numpy.ndarray):
                 An array of weights that matches the cube data shape.
         """
         if weights:
@@ -720,7 +720,7 @@ class WeightedBlendAcrossWholeDimension:
             weights (iris.cube.Cube or None):
                 Cube of blending weights or None.
         Returns:
-            weights_array (np.array):
+            weights_array (numpy.ndarray):
                 An array of weights that matches the cube data shape.
         """
         # Percentile blending preserves the percentile dimension, but we will

@@ -41,9 +41,9 @@ from iris.tests import IrisTest
 from improver.psychrometric_calculations.psychrometric_calculations import (
     WetBulbTemperatureIntegral)
 from improver.tests.psychrometric_calculations.psychrometric_calculations.\
-    test_WetBulbTemperature import set_up_cubes_for_wet_bulb_temperature
-from improver.tests.utilities.test_mathematical_operations import (
-    set_up_height_cube)
+    test_WetBulbTemperature import Test_WetBulbTemperature
+
+from improver.tests.set_up_test_cubes import add_coordinate
 
 
 class Test__repr__(IrisTest):
@@ -60,23 +60,38 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test_process(IrisTest):
+class Test_process(Test_WetBulbTemperature):
 
     """Test the calculation of the wet bulb temperature integral from
     temperature, pressure, and relative humidity information using the
-    process function. Integration is calculated in the vertical."""
+    process function. Integration is calculated in the vertical.
+
+    The wet bulb temperature calculated at each level, and the difference in
+    height between the levels are used to calculate an integrated wet bulb
+    temperature. This is used to ascertain the degree of melting that initially
+    frozen precipitation undergoes.
+    """
 
     def setUp(self):
-        """Set up cubes."""
-        temperature, pressure, relative_humidity, _ = (
-            set_up_cubes_for_wet_bulb_temperature())
+        """Set up temperature, pressure, and relative humidity cubes that
+        contain multiple height levels; in this case the values of these
+        diagnostics are identical on each level."""
+        super().setUp()
+
         self.height_points = np.array([5., 10., 20.])
-        self.temperature_cube = set_up_height_cube(
-            self.height_points, cube=temperature)
-        self.relative_humidity_cube = (
-            set_up_height_cube(self.height_points, cube=relative_humidity))
-        self.pressure_cube = set_up_height_cube(
-            self.height_points, cube=pressure)
+        height_attribute = {"positive": "up"}
+
+        self.temperature_cube = add_coordinate(
+            self.temperature, self.height_points, 'height', coord_units='m',
+            attributes=height_attribute)
+
+        self.relative_humidity_cube = add_coordinate(
+            self.relative_humidity, self.height_points, 'height',
+            coord_units='m', attributes=height_attribute)
+
+        self.pressure_cube = add_coordinate(
+            self.pressure, self.height_points, 'height', coord_units='m',
+            attributes=height_attribute)
 
     def test_basic(self):
         """Test that the wet bulb temperature integral returns a cube
@@ -95,12 +110,12 @@ class Test_process(IrisTest):
         """Test that the wet bulb temperature integral returns a cube
         containing the expected data."""
         expected_wb_int = np.array(
-            [[0.0, 0.0, 608.106507],
-             [0.0, 0.0, 912.159761]])
+            [[[0.0, 0.0, 608.1063]],
+             [[0.0, 0.0, 912.1595]]], dtype=np.float32)
         expected_wb_temp = np.array(
-            [[-90., -13.26694545, 60.81065074],
-             [-90., -13.26694545, 60.81065074],
-             [-90., -13.26694545, 60.81065074]])
+            [[[-88.15, -13.266943, 60.81063]],
+             [[-88.15, -13.266943, 60.81063]],
+             [[-88.15, -13.266943, 60.81063]]], dtype=np.float32)
         wb_temp, wb_temp_int = WetBulbTemperatureIntegral().process(
             self.temperature_cube, self.relative_humidity_cube,
             self.pressure_cube)

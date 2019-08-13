@@ -169,7 +169,7 @@ def check_precision_loss(dtype, data, precision=5):
     Args:
         dtype (dtype):
             The data type to which the data is being converted.
-        data (np.ndarray):
+        data (numpy.ndarray):
             The data that is to be checked for precision loss under data type
             conversion.
     Keyword Args:

@@ -51,7 +51,7 @@ def add_dimensions_to_cube(cube, new_dims):
     Args:
         cube (iris.cube.Cube):
             The cube we want to add dimensions to.
-        new_dims (dictionary):
+        new_dims (dict):
             A dictionary containing the names of the dimensions you want to
             add and the number of points you want in that dimension.
             e.g {"threshold": 3, "realization": 4}

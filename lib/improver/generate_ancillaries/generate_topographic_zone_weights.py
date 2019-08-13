@@ -59,10 +59,10 @@ class GenerateTopographicZoneWeights(object):
         the midpoint, unless the band being processed is the uppermost band.
 
         Args:
-            topographic_zone_weights (np.ndarray):
+            topographic_zone_weights (numpy.ndarray):
                 Weights that we have already calculated for the points
                 within the orography band.
-            orography_band (np.ndarray):
+            orography_band (numpy.ndarray):
                 All points within the orography band of interest.
             midpoint (float):
                 The midpoint of the band the point is in.
@@ -73,7 +73,7 @@ class GenerateTopographicZoneWeights(object):
                 The highest index for the bands coordinate in the weights.
 
         Returns:
-            topographic_zone_weights (np.ndarray):
+            topographic_zone_weights (numpy.ndarray):
                 Weights that we have already calculated for the points within
                 the orography band that has been updated to account for the
                 upper adjacent band.
@@ -102,10 +102,10 @@ class GenerateTopographicZoneWeights(object):
         the midpoint, unless the band being processed is the lowest band.
 
         Args:
-            topographic_zone_weights (np.ndarray):
+            topographic_zone_weights (numpy.ndarray):
                 Weights that we have already calculated for the points
                 within the orography band.
-            orography_band (np.ndarray):
+            orography_band (numpy.ndarray):
                 All points within the orography band of interest.
             midpoint (float):
                 The midpoint of the band the point is in.
@@ -114,7 +114,7 @@ class GenerateTopographicZoneWeights(object):
                 processed.
 
         Returns:
-            topographic_zone_weights (np.ndarray):
+            topographic_zone_weights (numpy.ndarray):
                 Topographic zone array containing the weights that we have
                 already calculated for the points within the orography band
                 that has been updated to account for the lower adjacent band.
@@ -142,7 +142,7 @@ class GenerateTopographicZoneWeights(object):
         assumed to be in the middle of the band.
 
         Args:
-            points (np.ndarray):
+            points (numpy.ndarray):
                 The points at which to find the weights.
                 e.g. np.array([125]) or np.array([125, 140]).
             band (list):
@@ -151,7 +151,7 @@ class GenerateTopographicZoneWeights(object):
                 e.g. [100., 200.].
 
         Returns:
-            interpolated_weights (np.ndarray):
+            interpolated_weights (numpy.ndarray):
                 The weights generated to indicate the contribution of each
                 point to a band.
         """

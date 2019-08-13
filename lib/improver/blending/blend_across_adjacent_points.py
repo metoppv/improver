@@ -52,13 +52,13 @@ class TriangularWeightedBlendAcrossAdjacentPoints(object):
         """Set up for a Weighted Blending plugin
 
         Args:
-            coord (string):
+            coord (str):
                 The name of a coordinate dimension in the cube that we
                 will blend over.
             central_point (float or int):
                 Central point at which the output from the triangular weighted
                 blending will be calculated.
-            parameter_units (string):
+            parameter_units (str):
                 The units of the width of the triangular weighting function
                 and the units of the central_point.
                 This does not need to be the same as the units of the

@@ -51,20 +51,20 @@ class RecursiveFilter(object):
         Initialise the class.
 
         Keyword Args:
-            alpha_x (Float or None):
+            alpha_x (float or None):
                 Filter parameter: A constant used to weight the
                 recursive filter along the x-axis. Defined such
                 that 0 < alpha_x < 1.0
-            alpha_y (Float or None):
+            alpha_y (float or None):
                 Filter parameter: A constant used to weight the
                 recursive filter along the y-axis. Defined such
                 that 0 < alpha_y < 1.0
-            iterations (integer or None):
+            iterations (int or None):
                 The number of iterations of the recursive filter.
-            edge_width (integer):
+            edge_width (int):
                 Half the width of the padding halo applied before
                 recursive filtering.
-            re_mask (boolean):
+            re_mask (bool):
                 If re_mask is True, the original un-recursively filtered
                 mask is applied to mask out the recursively filtered cube.
                 If re_mask is False, the original un-recursively filtered
@@ -124,17 +124,17 @@ class RecursiveFilter(object):
                 Bi-1 = New value at gridpoint i-1
 
         Args:
-            grid (numpy array):
+            grid (numpy.ndarray):
                 2D array containing the input data to which the recursive
                 filter will be applied.
-            alphas (numpy array):
+            alphas (numpy.ndarray):
                 Matching 2D array of alpha values that will be used when
                 applying the recursive filter along the specified axis.
-            axis (integer):
+            axis (int):
                 Index of the spatial axis (0 or 1) over which to recurse.
 
         Returns:
-            grid (numpy array):
+            grid (numpy.ndarray):
                 2D array containing the smoothed field after the recursive
                 filter method has been applied to the input array in the
                 forward direction along the specified axis.
@@ -163,17 +163,17 @@ class RecursiveFilter(object):
                 Bi+1 = New value at gridpoint i+1
 
         Args:
-            grid (numpy array):
+            grid (numpy.ndarray):
                 2D array containing the input data to which the recursive
                 filter will be applied.
-            alphas (numpy array):
+            alphas (numpy.ndarray):
                 Matching 2D array of alpha values that will be used when
                 applying the recursive filter along the specified axis.
-            axis (integer):
+            axis (int):
                 Index of the spatial axis (0 or 1) over which to recurse.
 
         Returns:
-            grid (numpy array):
+            grid (numpy.ndarray):
                 2D array containing the smoothed field after the recursive
                 filter method has been applied to the input array in the
                 backwards direction along the specified axis.
@@ -194,20 +194,20 @@ class RecursiveFilter(object):
         Method to run the recursive filter.
 
         Args:
-            cube (Iris.cube.Cube):
+            cube (iris.cube.Cube):
                 2D cube containing the input data to which the recursive
                 filter will be applied.
-            alphas_x (Iris.cube.Cube):
+            alphas_x (iris.cube.Cube):
                 2D cube containing array of alpha values that will be used
                 when applying the recursive filter along the x-axis.
-            alphas_y (Iris.cube.Cube):
+            alphas_y (iris.cube.Cube):
                 2D cube containing array of alpha values that will be used
                 when applying the recursive filter along the y-axis.
-            iterations (integer):
+            iterations (int):
                 The number of iterations of the recursive filter
 
         Returns:
-            cube (Iris.cube.Cube):
+            cube (iris.cube.Cube):
                 Cube containing the smoothed field after the recursive filter
                 method has been applied to the input cube.
         """
@@ -232,13 +232,13 @@ class RecursiveFilter(object):
         Set up the alpha parameter.
 
         Args:
-            cube (Iris.cube.Cube):
+            cube (iris.cube.Cube):
                 2D cube containing the input data to which the recursive
                 filter will be applied.
-            alpha (Float):
+            alpha (float):
                 The constant used to weight the recursive filter in that
                 direction: Defined such that 0.0 < alpha < 1.0
-            alphas_cube (Iris.cube.Cube or None):
+            alphas_cube (iris.cube.Cube or None):
                 Cube containing array of alpha values that will be used
                 when applying the recursive filter in a specific direction.
 
@@ -251,7 +251,7 @@ class RecursiveFilter(object):
                         of data array
 
         Returns:
-            alphas_cube (Iris.cube.Cube):
+            alphas_cube (iris.cube.Cube):
                 Cube containing a padded array of alpha values
                 for the specified direction.
         """
@@ -302,23 +302,23 @@ class RecursiveFilter(object):
            values for the original input cube.
 
         Args:
-            cube (Iris.cube.Cube):
+            cube (iris.cube.Cube):
                 Cube containing the input data to which the recursive filter
                 will be applied.
 
         Keyword Args:
-            alphas_x (Iris.cube.Cube or None):
+            alphas_x (iris.cube.Cube or None):
                 Cube containing array of alpha values that will be used when
                 applying the recursive filter along the x-axis.
-            alphas_y (Iris.cube.Cube or None):
+            alphas_y (iris.cube.Cube or None):
                 Cube containing array of alpha values that will be used when
                 applying the recursive filter along the y-axis.
-            mask_cube (Iris.cube.Cube or None):
+            mask_cube (iris.cube.Cube or None):
                 Cube containing an external mask to apply to the cube before
                 applying the recursive filter.
 
         Returns:
-            new_cube (Iris.cube.Cube):
+            new_cube (iris.cube.Cube):
                 Cube containing the smoothed field after the recursive filter
                 method has been applied.
         """

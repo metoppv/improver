@@ -53,7 +53,7 @@ def check_if_grid_is_equal_area(cube):
     """Identify whether the grid is an equal area grid.
     If not, raise an error.
     Args:
-        cube (Iris.cube.Cube):
+        cube (iris.cube.Cube):
             Cube with coordinates that will be cMAhecked.
     Raises:
         ValueError : Invalid grid: projection_x/y coords required
@@ -91,18 +91,18 @@ def convert_distance_into_number_of_grid_cells(
     input distance in metres.
 
     Args:
-        cube (Iris.cube.Cube):
+        cube (iris.cube.Cube):
             Cube containing the x and y coordinates, which will be used for
             calculating the number of grid cells in the x and y direction,
             which equates to the requested distance in the x and y direction.
-        distance (Float):
+        distance (float):
             Distance in metres.
 
     Kwargs:
         max_distance_in_grid_cells (int or None):
             Maximum distance in grid cells.  Defaults to None, which bypasses
             the check.
-        int_grid_cells (boolean):
+        int_grid_cells (bool):
             If true only integer number of grid_cells are returned, rounded
             down. If false the number of grid_cells returned will be a float.
 
@@ -213,16 +213,16 @@ class DifferenceBetweenAdjacentGridSquares(object):
         metadata.
 
         Args:
-            cube (Iris.cube.Cube):
+            cube (iris.cube.Cube):
                 Cube from which the differences have been calculated.
-            coord_name (String):
+            coord_name (str):
                 The name of the coordinate over which the difference
                 have been calculated.
-            diff_along_axis (numpy array):
+            diff_along_axis (numpy.ndarray):
                 Array containing the differences.
 
         Returns:
-            diff_cube (Iris.cube.Cube):
+            diff_cube (iris.cube.Cube):
                 Cube containing the differences calculated along the
                 specified axis.
         """
@@ -265,14 +265,14 @@ class DifferenceBetweenAdjacentGridSquares(object):
         coordinate.
 
         Args:
-            cube (Iris.cube.Cube):
+            cube (iris.cube.Cube):
                 Cube from which the differences will be calculated.
-            coord_axis (String):
+            coord_axis (str):
                 Short-hand reference for the x or y coordinate, as allowed by
                 iris.util.guess_coord_axis.
 
         Returns:
-            diff_cube (Iris.cube.Cube):
+            diff_cube (iris.cube.Cube):
                 Cube after the differences have been calculated along the
                 specified axis.
         """
@@ -290,17 +290,17 @@ class DifferenceBetweenAdjacentGridSquares(object):
         adjacent grid squares.
 
         Args:
-            diff_cube (Iris.cube.Cube):
+            diff_cube (iris.cube.Cube):
                 Cube containing differences along the x or y axis
-            ref_cube (Iris.cube.Cube):
+            ref_cube (iris.cube.Cube):
                 Cube with correct output dimensions
-            coord_axis (String):
+            coord_axis (str):
                 Short-hand reference for the x or y coordinate, as allowed by
                 iris.util.guess_coord_axis.
 
 
         Returns:
-            gradient (Iris.cube.Cube):
+            gradient (iris.cube.Cube):
                 A cube of the gradients in the coordinate direction specified.
         """
         grid_spacing = np.diff(diff_cube.coord(axis=coord_axis).points)[0]
@@ -316,11 +316,11 @@ class DifferenceBetweenAdjacentGridSquares(object):
         calculated using numpy.diff.
 
         Args:
-            cube (Iris.cube.Cube):
+            cube (iris.cube.Cube):
                 Cube from which the differences will be calculated.
 
         Kwargs:
-            gradient (boolean):
+            gradient (bool):
                 Optionally return gradient rather than difference.  This has
                 dimensions of original grid, rather than losing 1 row & col,
                 which is achieved by linear interpolation (note this will
@@ -328,10 +328,10 @@ class DifferenceBetweenAdjacentGridSquares(object):
 
         Returns:
             (tuple) : tuple containing:
-                **diff_along_y_cube** (Iris.cube.Cube):
+                **diff_along_y_cube** (iris.cube.Cube):
                     Cube after the differences have been calculated along the
                     y axis.
-                **diff_along_x_cube** (Iris.cube.Cube):
+                **diff_along_x_cube** (iris.cube.Cube):
                     Cube after the differences have been calculated along the
                     x axis.
 
@@ -377,11 +377,11 @@ class OccurrenceWithinVicinity(object):
         the maximum value within the vicinity is chosen.
 
         Args:
-            cube (Iris.cube.Cube):
+            cube (iris.cube.Cube):
                 Thresholded cube.
 
         Returns:
-            cube (Iris.cube.Cube):
+            cube (iris.cube.Cube):
                 Cube where the occurrences have been spatially spread, so that
                 they're equally likely to have occurred anywhere within the
                 vicinity defined using the specified distance.
@@ -422,7 +422,7 @@ class OccurrenceWithinVicinity(object):
         2d and subsequently merged back together.
 
         Args:
-            cube (Iris.cube.Cube):
+            cube (iris.cube.Cube):
                 Thresholded cube.
 
         Returns:
@@ -483,7 +483,7 @@ def lat_lon_transform(trg_crs, latitude, longitude):
             Longitude coordinate.
 
     Returns:
-        x, y (floats):
+        x, y (float):
             Longitude and latitude transformed into the target coordinate
             system.
 
@@ -505,9 +505,9 @@ def transform_grid_to_lat_lon(cube):
 
     Returns
         (tuple): tuple containing
-            **lats** (np.array):
+            **lats** (numpy.ndarray):
                 Array of cube.data.shape of Latitude values
-            **lons** (np.array):
+            **lons** (numpy.ndarray):
                 Array of cube.data.shape of Longitude values
 
     """
@@ -541,10 +541,10 @@ def get_nearest_coords(cube, latitude, longitude, iname, jname):
         cube (iris.cube.Cube):
             Cube containing a representative grid.
 
-        latitude/longitude (floats):
+        latitude/longitude (float):
             Latitude/longitude coordinates of spot data site of interest.
 
-        iname/jname (strings):
+        iname/jname (str):
             Strings giving the names of the y/x coordinates to be searched.
 
     Returns:
@@ -572,7 +572,7 @@ class RegridLandSea():
         Initialise class
 
         Keyword Args:
-            extrapolation_mode (string):
+            extrapolation_mode (str):
                 Mode to use for extrapolating data into regions
                 beyond the limits of the source_data domain.
                 Available modes are documented in
@@ -660,15 +660,15 @@ class RegridLandSea():
         specified vicinity radius.
 
         Args:
-            cube (Iris.cube.Cube):
+            cube (iris.cube.Cube):
                 Cube of data to be updated (on same grid as output_land).
-            input_land (Iris.cube.Cube):
+            input_land (iris.cube.Cube):
                 Cube of land_binary_mask data on the grid from which "cube" has
                 been reprojected (it is expected that the iris.analysis.Nearest
                 method would have been used).
                 This is used to determine where the input model data is
                 representing land and sea points.
-            output_land (Iris.cube.Cube):
+            output_land (iris.cube.Cube):
                 Cube of land_binary_mask data on target grid.
         """
         # Check cube and output_land are on the same grid:

@@ -39,10 +39,8 @@ from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
     FallingSnowLevel)
-from improver.tests.ensemble_calibration.ensemble_calibration.\
-    helper_functions import set_up_cube
-from improver.tests.utilities.test_mathematical_operations import (
-    set_up_height_cube)
+from improver.tests.set_up_test_cubes import (set_up_variable_cube,
+                                              add_coordinate)
 
 
 class Test__repr__(IrisTest):
@@ -443,54 +441,52 @@ class Test_process(IrisTest):
     """Test the FallingSnowLevel processing works"""
 
     def setUp(self):
-        """Set up cubes."""
+        """Set up orography and land-sea mask cubes. Also create temperature,
+        pressure, and relative humidity cubes that contain multiple height
+        levels."""
 
+        data = np.ones((3, 3), dtype=np.float32)
+        relh_data = np.ones((3, 3), dtype=np.float32) * 0.65
+
+        self.height_points = [5., 195., 200.]
+        height_attribute = {"positive": "up"}
+
+        self.orog = set_up_variable_cube(
+            data, name='surface_altitude', units='m', spatial_grid='equalarea')
+        self.land_sea = set_up_variable_cube(
+            data, name='land_binary_mask', units=1, spatial_grid='equalarea')
+
+        temperature = set_up_variable_cube(data, spatial_grid='equalarea')
+        temperature = add_coordinate(temperature, [0, 1], 'realization')
+        self.temperature_cube = add_coordinate(
+            temperature, self.height_points, 'height', coord_units='m',
+            attributes=height_attribute)
+
+        relative_humidity = set_up_variable_cube(
+            relh_data, name='relative_humidity', units='%',
+            spatial_grid='equalarea')
+        relative_humidity = add_coordinate(
+            relative_humidity, [0, 1], 'realization')
+        self.relative_humidity_cube = add_coordinate(
+            relative_humidity, self.height_points, 'height', coord_units='m',
+            attributes=height_attribute)
+
+        pressure = set_up_variable_cube(
+            data, name='air_pressure', units='Pa', spatial_grid='equalarea')
+        pressure = add_coordinate(pressure, [0, 1], 'realization')
+        self.pressure_cube = add_coordinate(
+            pressure, self.height_points, 'height', coord_units='m',
+            attributes=height_attribute)
+
+        # Assign different temperatures and pressures to each height.
         temp_vals = [278.0, 280.0, 285.0, 286.0]
         pressure_vals = [93856.0, 95034.0, 96216.0, 97410.0]
-
-        data = np.ones((2, 1, 3, 3))
-        relh_data = np.ones((2, 1, 3, 3)) * 0.65
-
-        temperature = set_up_cube(data, 'air_temperature', 'K',
-                                  realizations=np.array([0, 1]))
-        relative_humidity = set_up_cube(relh_data, 'relative_humidity', '%',
-                                        realizations=np.array([0, 1]))
-        pressure = set_up_cube(data, 'air_pressure', 'Pa',
-                               realizations=np.array([0, 1]))
-        self.height_points = np.array([5., 195., 200.])
-        self.temperature_cube = set_up_height_cube(
-            self.height_points, cube=temperature)
-        self.relative_humidity_cube = (
-            set_up_height_cube(self.height_points, cube=relative_humidity))
-        self.pressure_cube = set_up_height_cube(
-            self.height_points, cube=pressure)
         for i in range(0, 3):
             self.temperature_cube.data[i, ::] = temp_vals[i+1]
             self.pressure_cube.data[i, ::] = pressure_vals[i+1]
             # Add hole in middle of data.
-            self.temperature_cube.data[i, :, :, 1, 1] = temp_vals[i]
-            self.pressure_cube.data[i, :, :, 1, 1] = pressure_vals[i]
-
-        x_coord = iris.coords.DimCoord(np.linspace(-2000, 2000, 3),
-                                       'projection_x_coordinate', units='m')
-        y_coord = iris.coords.DimCoord(np.linspace(-2000, 2000, 3),
-                                       'projection_y_coordinate', units='m')
-        self.orog = iris.cube.Cube(np.ones((3, 3)),
-                                   standard_name='surface_altitude', units='m')
-        self.land_sea = iris.cube.Cube(np.ones((3, 3)),
-                                       standard_name='land_binary_mask',
-                                       units='m')
-        cubes = [self.temperature_cube, self.relative_humidity_cube,
-                 self.pressure_cube]
-        for cube in cubes:
-            cube.remove_coord("latitude")
-            cube.remove_coord("longitude")
-            cube.add_dim_coord(x_coord, 3)
-            cube.add_dim_coord(y_coord, 4)
-        cubes = [self.orog, self.land_sea]
-        for cube in cubes:
-            cube.add_dim_coord(x_coord, 0)
-            cube.add_dim_coord(y_coord, 1)
+            self.temperature_cube.data[i, :, 1, 1] = temp_vals[i]
+            self.pressure_cube.data[i, :, 1, 1] = pressure_vals[i]
 
     def test_basic(self):
         """Test that process returns a cube with the right name and units."""
@@ -498,7 +494,7 @@ class Test_process(IrisTest):
         result = FallingSnowLevel().process(
             self.temperature_cube, self.relative_humidity_cube,
             self.pressure_cube, self.orog, self.land_sea)
-        expected = np.ones((2, 3, 3)) * 66.88732723
+        expected = np.ones((2, 3, 3), dtype=np.float32) * 66.88566
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), "falling_snow_level_asl")
         self.assertEqual(result.units, Unit('m'))
@@ -507,7 +503,7 @@ class Test_process(IrisTest):
     def test_data(self):
         """Test that the falling snow level process returns a cube
         containing the expected data when points at sea-level."""
-        expected = np.ones((2, 3, 3)) * 65.88732723
+        expected = np.ones((2, 3, 3), dtype=np.float32) * 65.88566
         orog = self.orog
         orog.data = orog.data * 0.0
         orog.data[1, 1] = 100.0

@@ -117,7 +117,7 @@ class Accumulation:
         Returns:
             (tuple): tuple containing
 
-                **cubes**: iris.cube.CubeList
+                **cubes** (iris.cube.CubeList):
                     Modified version of the input cube list of precipitation
                     rates that have had the units of the coordinates and
                     cube data enforced. The cube list has also been sorted by

@@ -53,7 +53,7 @@ def rescale(data, data_range=None, scale_range=(0., 1.),
             List containing two floats
             Lowest and highest value after rescaling.
             Defaults to (0., 1.)
-        clip (boolean):
+        clip (bool):
             If True, points where data were outside the scaling range
             will be set to the scale min or max appropriately.
             Default is False which continues the scaling beyond min and
@@ -111,7 +111,7 @@ def apply_double_scaling(data_cube, scaled_cube,
             Expected to be numpy.minimum (default) or numpy.maximum.
 
     Returns:
-        data (numpy.array):
+        data (numpy.ndarray):
             Output data from data_cube after rescaling and combining with
             scaled_cube.
             This array will have the same dimensions as scaled_cube.

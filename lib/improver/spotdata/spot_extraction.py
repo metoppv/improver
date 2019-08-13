@@ -114,7 +114,7 @@ class SpotExtraction():
             diagnostic_cube (iris.cube.Cube):
                 A cube of diagnostic data from which spot data is being taken.
         Returns:
-            spot_values (np.array):
+            spot_values (numpy.ndarray):
                 An array of diagnostic values at the grid coordinates found
                 within the coordinate cube.
         """
@@ -137,7 +137,7 @@ class SpotExtraction():
             diagnostic_cube (iris.cube.Cube):
                 The cube is needed to provide the name and units of the
                 diagnostic that is being processed.
-            spot_values (np.array):
+            spot_values (numpy.ndarray):
                 An array containing the diagnostic values extracted for the
                 required spot sites.
         Returns:

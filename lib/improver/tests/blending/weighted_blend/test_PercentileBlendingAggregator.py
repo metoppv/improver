@@ -125,7 +125,7 @@ def generate_matching_weights_array(weights, shape):
     """Create an array of weights that matches the shape of the cube.
 
     Args:
-        weights (np.array):
+        weights (numpy.ndarray):
             An array of weights that needs to be broadcast to match the
             specified shape.
         shape (tuple):

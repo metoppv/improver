@@ -50,7 +50,7 @@ def set_up_orography_cube(data):
     setup utility but removing all time coordinates
 
     Args:
-        data (np.array):
+        data (numpy.ndarray):
             Orography data to populate the cube
     """
     orography = set_up_variable_cube(
