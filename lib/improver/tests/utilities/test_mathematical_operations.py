@@ -362,9 +362,9 @@ class Test_perform_integration(IrisTest):
         """Test that the resulting cube contains the expected data when a
         start_point is specified, so that only part of the column is
         integrated. For integration in the positive direction (equivalent to
-        integrating downwards for a height coordinate), the presence of a
-        start_point indicates that the integration may start above the
-        lowest height within the column to be integrated."""
+        integrating downwards for the height coordinate in the input cube),
+        the presence of a start_point indicates that the integration may start
+        above the lowest height within the column to be integrated."""
         expected = np.array(
             [[[25.00, 25.00, 25.00],
               [25.00, 25.00, 25.00],
@@ -388,9 +388,9 @@ class Test_perform_integration(IrisTest):
         """Test that the resulting cube contains the expected data when a
         start_point is specified, so that only part of the column is
         integrated. For integration in the negative direction (equivalent to
-        integrating downwards for a height coordinate), the presense of a
-        start_point indicates that the integration may start below the
-        highest height within the column to be integrated."""
+        integrating downwards for the height coordinate in the input cube),
+        the presence of a start_point indicates that the integration may start
+        below the highest height within the column to be integrated."""
         expected = np.array(
             [[[20.00, 7.50, 7.50],
               [7.50, 7.50, 7.50],
@@ -413,10 +413,10 @@ class Test_perform_integration(IrisTest):
     def test_end_point_positive_direction(self):
         """Test that the resulting cube contains the expected data when a
         end_point is specified, so that only part of the column is
-        integrated. For integration in the negative direction (equivalent to
-        integrating downwards for a height coordinate), the presense of an
-        end_point indicates that the integration may end below the
-        highest height within the column to be integrated."""
+        integrated. For integration in the positive direction (equivalent to
+        integrating downwards for the height coordinate in the input cube),
+        the presence of an end_point indicates that the integration may end
+        below the highest height within the column to be integrated."""
         expected = np.array(
             [[[20.00, 7.50, 7.50],
               [7.50, 7.50, 7.50],
@@ -440,9 +440,9 @@ class Test_perform_integration(IrisTest):
         """Test that the resulting cube contains the expected data when a
         end_point is specified, so that only part of the column is
         integrated. For integration in the negative direction (equivalent to
-        integrating downwards for a height coordinate), the presense of an
-        end_point indicates that the integration may end above the
-        lowest height within the column to be integrated."""
+        integrating downwards for the height coordinate in the input cube),
+        the presence of an end_point indicates that the integration may end
+        above the lowest height within the column to be integrated."""
         expected = np.array(
             [[[25.00, 25.00, 25.00],
               [25.00, 25.00, 25.00],
@@ -473,9 +473,9 @@ class Test_perform_integration(IrisTest):
         integration.
 
         For integration in the positive direction (equivalent to
-        integrating downwards for a height coordinate), the presense of a
-        start_point indicates that the integration may start above the
-        lowest height within the column to be integrated."""
+        integrating downwards for the height coordinate in the input cube),
+        the presence of a start_point indicates that the integration may start
+        above the lowest height within the column to be integrated."""
         expected = np.array(
             [[[25.00, 25.00, 25.00],
               [25.00, 25.00, 25.00],
@@ -505,9 +505,9 @@ class Test_perform_integration(IrisTest):
         end_point is included within the integration.
 
         For integration in the negative direction (equivalent to
-        integrating downwards for a height coordinate), the presense of an
-        end_point indicates that the integration may end above the
-        lowest height within the column to be integrated."""
+        integrating downwards for the height coordinate in the input cube),
+        the presence of an end_point indicates that the integration may end
+        above the lowest height within the column to be integrated."""
         expected = np.array(
             [[[25.00, 25.00, 25.00],
               [25.00, 25.00, 25.00],
