@@ -81,8 +81,8 @@ def main(argv=None):
                         default=None,
                         help='The name of the netCDF file attribute to be '
                              'used to identify the source model for '
-                             'multi-model blends. Default assumes Met Office '
-                             'model metadata. Must be present on all input '
+                             'multi-model blends. Default is None. '
+                             'Must be present on all input '
                              'files if blending over models.')
     parser.add_argument('--spatial_weights_from_mask',
                         action='store_true', default=False,
