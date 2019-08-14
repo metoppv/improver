@@ -31,19 +31,18 @@
 """Unit tests for the wind_direction.WindDirection plugin."""
 
 import unittest
+
 import numpy as np
-
-from iris.tests import IrisTest
-from iris.cube import Cube
-from iris.coords import DimCoord
 from cf_units import Unit
+from iris.coords import DimCoord
+from iris.cube import Cube
+from iris.tests import IrisTest
 
-from improver.wind_calculations.wind_direction import WindDirection
 from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_temperature_cube
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube)
-from improver.utilities.warnings_handler import ManageWarnings
+from improver.wind_calculations.wind_direction import WindDirection
 
 # Data to test complex/degree handling functions.
 # Complex angles equivalent to np.arange(0., 360, 10) degrees.

@@ -30,8 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Provides support utilities for cli scripts."""
 
-from improver.utilities.load import load_cube
 import json
+
+from improver.utilities.load import load_cube
 
 
 def load_cube_or_none(file_path):

@@ -31,7 +31,6 @@
 """Module containing plugin to resolve wind components."""
 
 import numpy as np
-
 from iris.analysis import Linear
 from iris.analysis.cartography import rotate_winds
 from iris.coord_systems import GeogCS

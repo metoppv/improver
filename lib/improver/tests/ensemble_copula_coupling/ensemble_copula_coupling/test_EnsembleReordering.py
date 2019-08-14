@@ -36,9 +36,9 @@ Unit tests for the
 import itertools
 import unittest
 
-from iris.cube import Cube, CubeList
-from iris.tests import IrisTest
 import numpy as np
+from iris.cube import Cube
+from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     EnsembleReordering as Plugin)

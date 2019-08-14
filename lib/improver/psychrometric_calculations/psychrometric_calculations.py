@@ -32,20 +32,20 @@
 
 import warnings
 
-import numpy as np
 import iris
-from stratify import interpolate
-from scipy.interpolate import griddata
-from scipy.stats import linregress
-from scipy.spatial.qhull import QhullError
+import numpy as np
 from cf_units import Unit
+from scipy.interpolate import griddata
+from scipy.spatial.qhull import QhullError
+from scipy.stats import linregress
+from stratify import interpolate
 
+import improver.constants as cc
 from improver.psychrometric_calculations import svp_table
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.mathematical_operations import Integration
 from improver.utilities.spatial import (
     OccurrenceWithinVicinity, convert_number_of_grid_cells_into_distance)
-import improver.constants as cc
 
 
 class Utilities(object):

@@ -33,13 +33,12 @@ This module defines the optical flow velocity calculation and extrapolation
 classes for advection nowcasting.
 """
 import warnings
-import numpy as np
 
+import iris
+import numpy as np
 import scipy.linalg
 import scipy.ndimage
 import scipy.signal
-
-import iris
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 
 from improver.utilities.cube_checker import check_for_x_and_y_axes

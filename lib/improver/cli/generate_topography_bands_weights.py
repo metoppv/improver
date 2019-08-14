@@ -31,9 +31,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run topographic bands weights generation."""
 
-from improver.argparser import ArgParser
 import os
 
+from improver.argparser import ArgParser
 from improver.generate_ancillaries.generate_topographic_zone_weights import (
     GenerateTopographicZoneWeights)
 from improver.utilities.cli_utilities import load_json_or_none

@@ -32,8 +32,10 @@
 
 
 import unittest
+
 import cartopy.crs as ccrs
 import iris
+
 from improver.argparser import safe_eval
 
 

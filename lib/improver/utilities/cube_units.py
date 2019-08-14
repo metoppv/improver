@@ -31,7 +31,6 @@
 """ Provides support utilities for manipulating cube units."""
 
 import numpy as np
-
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.units import DEFAULT_UNITS

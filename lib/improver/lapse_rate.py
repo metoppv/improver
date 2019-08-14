@@ -30,17 +30,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing lapse rate calculation plugins."""
 
+import iris
 import numpy as np
+from iris.analysis.maths import multiply
+from iris.exceptions import CoordinateNotFoundError
 from numpy.linalg import lstsq
 from scipy.ndimage import generic_filter
 
-import iris
-from iris.analysis.maths import multiply
-from iris.exceptions import CoordinateNotFoundError
-
+from improver.constants import DALR
 from improver.utilities.cube_checker import (
     check_cube_not_float64, spatial_coords_match)
-from improver.constants import DALR
 
 
 def apply_gridded_lapse_rate(temperature, lapse_rate, source_orog, dest_orog):

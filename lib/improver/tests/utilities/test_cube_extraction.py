@@ -31,12 +31,12 @@
 """ Unit tests for cube extraction utilities """
 
 import unittest
-import numpy as np
 
 import iris
-from iris.tests import IrisTest
+import numpy as np
 from iris.coords import DimCoord
 from iris.exceptions import CoordinateNotFoundError
+from iris.tests import IrisTest
 
 from improver.utilities.cube_checker import find_threshold_coordinate
 from improver.utilities.cube_extraction import (

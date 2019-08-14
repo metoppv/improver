@@ -30,13 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for nbhood.ApplyNeighbourhoodProcessingWithAMask."""
 
-from collections import OrderedDict
 import unittest
+from collections import OrderedDict
 
 import iris
-from iris.tests import IrisTest
-from iris.coords import DimCoord
 import numpy as np
+from iris.coords import DimCoord
+from iris.tests import IrisTest
 
 from improver.nbhood.use_nbhood import ApplyNeighbourhoodProcessingWithAMask
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (

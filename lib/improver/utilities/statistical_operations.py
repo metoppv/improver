@@ -30,10 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain statistical operations."""
 
+import warnings
+
 import iris
 import numpy as np
-import warnings
 from iris.exceptions import CoordinateNotFoundError
+
 from improver.utilities.cube_checker import (find_percentile_coordinate,
                                              check_cube_coordinates)
 

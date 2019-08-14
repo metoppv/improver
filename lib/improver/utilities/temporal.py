@@ -31,22 +31,19 @@
 """Provide support utilities for making temporal calculations."""
 
 import re
-
+import warnings
 from datetime import datetime
 from datetime import time as dt_time
 from datetime import timedelta
 from datetime import timezone
-import warnings
-
-import numpy as np
 
 import cf_units as unit
-from cf_units import Unit
-
 import iris
+import numpy as np
+from cf_units import Unit
 from iris import Constraint
-from iris.time import PartialDateTime
 from iris.exceptions import CoordinateNotFoundError
+from iris.time import PartialDateTime
 
 from improver.utilities.cube_manipulation import build_coordinate
 

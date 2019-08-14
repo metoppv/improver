@@ -33,14 +33,14 @@ Unit tests for the function "cube_manipulation.compare_attributes".
 """
 
 import unittest
-import numpy as np
 
 import iris
+import numpy as np
 from iris.tests import IrisTest
 
-from improver.utilities.cube_manipulation import compare_attributes
-from improver.tests.ensemble_calibration.ensemble_calibration.\
+from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_temperature_cube
+from improver.utilities.cube_manipulation import compare_attributes
 from improver.utilities.warnings_handler import ManageWarnings
 
 

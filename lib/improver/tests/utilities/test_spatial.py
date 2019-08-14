@@ -32,18 +32,18 @@
  spatial.py."""
 
 import unittest
-import numpy as np
 from datetime import datetime as dt
 
+import cartopy.crs as ccrs
 import cf_units
-from iris.tests import IrisTest
+import numpy as np
 from iris import Constraint
-from iris.coords import AuxCoord, DimCoord
 from iris import coord_systems
 from iris.coord_systems import GeogCS
-from iris.time import PartialDateTime
+from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube, CubeList
-import cartopy.crs as ccrs
+from iris.tests import IrisTest
+from iris.time import PartialDateTime
 
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube, set_up_cube_lat_long)

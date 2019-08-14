@@ -31,11 +31,12 @@
 """Module containing wind direction averaging plugins."""
 
 import iris
-from iris.coords import CellMethod
 import numpy as np
+from iris.coords import CellMethod
+
+from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.cube_checker import (
     check_cube_coordinates, check_cube_not_float64)
-from improver.nbhood.nbhood import NeighbourhoodProcessing
 
 
 class WindDirection(object):

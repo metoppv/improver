@@ -31,11 +31,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to combine netcdf data."""
 
-from improver.argparser import ArgParser
-
-import iris
 import warnings
 
+import iris
+
+from improver.argparser import ArgParser
 from improver.cube_combiner import CubeCombiner
 from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.load import load_cube

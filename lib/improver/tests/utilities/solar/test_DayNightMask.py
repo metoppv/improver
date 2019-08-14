@@ -31,10 +31,10 @@
 """ Unit tests for DayNightMask class """
 
 import unittest
-import numpy as np
 
-import iris
 import cf_units as unit
+import iris
+import numpy as np
 from iris.tests import IrisTest
 
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (

@@ -33,14 +33,14 @@ Unit tests for the function "cube_manipulation.expand_bounds".
 """
 import unittest
 from datetime import datetime as dt
-import numpy as np
-from cf_units import date2num
 
 import iris
+import numpy as np
+from cf_units import date2num
 from iris.tests import IrisTest
 
-from improver.utilities.cube_manipulation import expand_bounds
 from improver.tests.set_up_test_cubes import set_up_variable_cube
+from improver.utilities.cube_manipulation import expand_bounds
 
 TIME_UNIT = 'seconds since 1970-01-01 00:00:00'
 CALENDAR = 'gregorian'

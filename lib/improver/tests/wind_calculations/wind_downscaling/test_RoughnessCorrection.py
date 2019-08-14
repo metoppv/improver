@@ -33,15 +33,14 @@
 
 import unittest
 
-from cf_units import Unit
-import numpy as np
-
 import iris
+import numpy as np
+from cf_units import Unit
 from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
-from improver.grids import STANDARD_GRID_CCRS
 from improver.constants import RMDI
+from improver.grids import STANDARD_GRID_CCRS
 from improver.wind_calculations.wind_downscaling import RoughnessCorrection
 
 

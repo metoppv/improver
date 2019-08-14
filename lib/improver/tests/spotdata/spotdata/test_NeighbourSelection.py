@@ -31,15 +31,15 @@
 """Unit tests for NeighbourSelection class"""
 
 import unittest
+
+import cartopy.crs as ccrs
+import iris
 import numpy as np
 import scipy
-
-import iris
 from iris.tests import IrisTest
-import cartopy.crs as ccrs
 
-from improver.utilities.cube_metadata import create_coordinate_hash
 from improver.spotdata.neighbour_finding import NeighbourSelection
+from improver.utilities.cube_metadata import create_coordinate_hash
 from improver.utilities.warnings_handler import ManageWarnings
 
 

@@ -31,18 +31,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run wind downscaling."""
 
-from improver.argparser import ArgParser
 import warnings
 
-import numpy as np
 import iris
+import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 
+from improver.argparser import ArgParser
 from improver.utilities.cli_utilities import load_cube_or_none
-from improver.wind_calculations import wind_downscaling
+from improver.utilities.cube_extraction import apply_extraction
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
-from improver.utilities.cube_extraction import apply_extraction
+from improver.wind_calculations import wind_downscaling
 
 
 def main(argv=None):

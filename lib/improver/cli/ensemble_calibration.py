@@ -32,7 +32,6 @@
 """Script to run ensemble calibration."""
 
 import numpy as np
-
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.argparser import ArgParser

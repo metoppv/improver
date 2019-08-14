@@ -34,7 +34,6 @@ Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
 Regression (NGR)."""
 
 import numpy as np
-
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.argparser import ArgParser

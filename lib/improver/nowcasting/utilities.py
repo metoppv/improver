@@ -31,13 +31,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module with utilities required for nowcasting."""
 
-import numpy as np
-
-from cf_units import Unit
 import iris
+import numpy as np
+from cf_units import Unit
 
 from improver.cube_combiner import CubeCombiner
-from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.temporal import (
     extract_nearest_time_point, iris_time_to_datetime)
 

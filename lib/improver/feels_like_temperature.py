@@ -33,7 +33,7 @@
 import numpy as np
 
 from improver.psychrometric_calculations.psychrometric_calculations \
-     import WetBulbTemperature
+    import WetBulbTemperature
 
 
 def calculate_wind_chill(temperature, wind_speed):

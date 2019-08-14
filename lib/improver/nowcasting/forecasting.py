@@ -33,8 +33,8 @@ This module defines plugins used to create nowcast extrapolation forecasts.
 """
 import datetime
 import warnings
-import numpy as np
 
+import numpy as np
 from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 

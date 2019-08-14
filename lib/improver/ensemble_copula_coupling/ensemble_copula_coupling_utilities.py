@@ -34,11 +34,11 @@ plugins.
 
 """
 import copy
-import numpy as np
 import random
 
 import cf_units as unit
 import iris
+import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_constants \

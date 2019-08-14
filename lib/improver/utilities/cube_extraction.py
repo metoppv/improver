@@ -31,7 +31,9 @@
 """ Utilities to parse a list of constraints and extract matching subcube """
 
 from ast import literal_eval
+
 import iris
+
 from improver.utilities.cube_constraints import create_sorted_lambda_constraint
 
 

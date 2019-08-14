@@ -33,10 +33,10 @@
 import iris
 import numpy as np
 
-from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
-from improver.threshold import BasicThreshold
 from improver.nbhood.nbhood import NeighbourhoodProcessing
+from improver.threshold import BasicThreshold
 from improver.utilities.cube_checker import find_threshold_coordinate
+from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
 
 
 class DiagnoseConvectivePrecipitation(object):

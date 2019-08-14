@@ -32,12 +32,12 @@
 
 import unittest
 from datetime import datetime
-import numpy as np
 
+import numpy as np
 from iris.tests import IrisTest
 
-from improver.utilities import cube_units
 from improver.tests.set_up_test_cubes import set_up_variable_cube
+from improver.utilities import cube_units
 
 
 class Test_enforce_coordinate_units_and_dtypes(IrisTest):

@@ -31,12 +31,11 @@
 """Module to create the weights used to blend data."""
 
 import copy
-import cf_units
 
+import cf_units
+import iris
 import numpy as np
 from scipy.interpolate import interp1d
-
-import iris
 
 from improver.utilities.cube_manipulation import (
     check_cube_coordinates, sort_coord_in_cube)

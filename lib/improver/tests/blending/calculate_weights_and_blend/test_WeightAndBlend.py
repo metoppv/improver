@@ -31,18 +31,17 @@
 """Tests for the WeightAndBlend plugin"""
 
 import unittest
-import numpy as np
 from datetime import datetime as dt
 
 import iris
+import numpy as np
 from iris.tests import IrisTest
 
 from improver.blending.calculate_weights_and_blend import WeightAndBlend
 from improver.blending.weighted_blend import MergeCubesForWeightedBlending
-from improver.utilities.warnings_handler import ManageWarnings
 from improver.tests.set_up_test_cubes import (
     set_up_probability_cube, set_up_variable_cube)
-
+from improver.utilities.warnings_handler import ManageWarnings
 
 MODEL_WEIGHTS = {
     "nc_det": {"forecast_period": [0, 4, 8],

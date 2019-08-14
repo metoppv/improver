@@ -37,8 +37,8 @@ import unittest
 
 import numpy as np
 from iris.coords import DimCoord
-from iris.tests import IrisTest
 from iris.cube import Cube
+from iris.tests import IrisTest
 
 from improver.utilities.ancillary_creation import OrographicAlphas
 from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares

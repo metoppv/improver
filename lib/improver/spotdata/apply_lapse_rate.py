@@ -31,9 +31,9 @@
 
 """Apply temperature lapse rate adjustments to a spot data cube."""
 
+import iris
 import numpy as np
 
-import iris
 from improver.spotdata.spot_extraction import (SpotExtraction,
                                                check_grid_match)
 

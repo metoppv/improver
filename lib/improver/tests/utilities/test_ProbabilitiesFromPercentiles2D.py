@@ -33,15 +33,15 @@ Unit tests for the plugin ProbabilitiesFromPercentiles2D
 """
 
 import unittest
-import numpy as np
 
 import iris
-from iris.tests import IrisTest
+import numpy as np
 from iris.coords import DimCoord
 from iris.exceptions import CoordinateNotFoundError
+from iris.tests import IrisTest
 
-from improver.utilities.cube_manipulation import build_coordinate
 from improver.utilities.cube_checker import find_percentile_coordinate
+from improver.utilities.cube_manipulation import build_coordinate
 from improver.utilities.statistical_operations import \
     ProbabilitiesFromPercentiles2D
 from improver.utilities.warnings_handler import ManageWarnings
