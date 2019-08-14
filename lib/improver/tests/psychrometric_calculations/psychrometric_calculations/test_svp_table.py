@@ -31,8 +31,10 @@
 """Unit tests for saturated vapour pressure table."""
 
 import unittest
+
 import numpy as np
 from iris.tests import IrisTest
+
 from improver.psychrometric_calculations import svp_table
 from improver.utilities.ancillary_creation import SaturatedVapourPressureTable
 

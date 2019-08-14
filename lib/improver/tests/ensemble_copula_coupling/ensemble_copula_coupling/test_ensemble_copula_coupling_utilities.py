@@ -34,12 +34,12 @@ Unit tests for the
 """
 import unittest
 
+import numpy as np
 from cf_units import Unit
 from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
-import numpy as np
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
     import (choose_set_of_percentiles, create_cube_with_percentiles,
@@ -49,9 +49,9 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
             restore_non_probabilistic_dimensions)
 from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import (
-        set_up_cube, set_up_temperature_cube, set_up_spot_temperature_cube,
-        add_forecast_reference_time_and_forecast_period,
-        set_up_probability_above_threshold_temperature_cube)
+    set_up_cube, set_up_temperature_cube, set_up_spot_temperature_cube,
+    add_forecast_reference_time_and_forecast_period,
+    set_up_probability_above_threshold_temperature_cube)
 
 
 class Test_concatenate_2d_array_with_2d_array_endpoints(IrisTest):

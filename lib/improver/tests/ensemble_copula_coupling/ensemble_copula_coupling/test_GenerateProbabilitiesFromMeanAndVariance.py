@@ -35,8 +35,8 @@ Unit tests for GenerateProbabiltiesFromMeanAndVariance
 import unittest
 
 import iris
-from iris.tests import IrisTest
 import numpy as np
+from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     GenerateProbabilitiesFromMeanAndVariance as Plugin)
