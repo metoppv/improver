@@ -106,18 +106,75 @@ def main(argv=None):
                              'to solve for.')
     args = parser.parse_args(args=argv)
 
+    # Load Cubes
     historic_forecast = load_cube(args.historic_filepath)
     truth = load_cube(args.truth_filepath)
 
-    # Estimate coefficients using Ensemble Model Output Statistics (EMOS).
-    estcoeffs = EstimateCoefficientsForEnsembleCalibration(
-        args.distribution, args.cycletime, desired_units=args.units,
-        predictor_of_mean_flag=args.predictor_of_mean,
-        max_iterations=args.max_iterations)
-    coefficients = (
-        estcoeffs.process(historic_forecast, truth))
-
+    # Process Cube
+    coefficients = process(historic_forecast, truth, args.distribution,
+                           args.cycletime, args.units, args.predictor_of_mean,
+                           args.max_iterations)
+    # Save Cube
     save_netcdf(coefficients, args.output_filepath)
+
+
+def process(historic_forecast, truth, distribution, cycletime, units=None,
+            predictor_of_mean='mean', max_iterations=1000):
+    """Module for estimate coefficients for Ensemble Model Output Statistics.
+
+    Loads in arguments for estimating coefficients for Ensemble Model
+    Output Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
+    Regression (NGR). Two sources of input data must be provided: historical
+    forecasts and historical truth data (to use in calibration).
+    The estimated coefficients are output as a cube.
+
+    Args:
+        historic_forecast (iris.cube.Cube):
+            The cube containing the historical forecasts used for calibration.
+        truth (iris.cube.Cube):
+            The cube containing the truth used for calibration.
+        distribution (str):
+            The distribution that will be used for calibration. This will be
+            dependant upon the input phenomenon.
+        cycletime (str):
+            This denotes the cycle at which forecasts will be calibrated using
+            the calculated EMOS coefficients. The validity time in the output
+            coefficients cube will be calculated relative to this cycletime.
+            This cycletime is in the format YYYYMMDDTHHMMZ.
+
+    Keyword Args:
+        units (str):
+            The units that calibration should be undertaken in. The historical
+            forecast and truth will be converted as required.
+            Default is None.
+        predictor_of_mean (str):
+            String to specify the input to calculate the calibrated mean.
+            Currently the ensemble mean ("mean") and the ensemble realizations
+            ("realizations") are supported as the predictors.
+            Default is 'mean'.
+        max_iterations (int):
+            The maximum number of iterations allowed until the minimisation has
+            converged to a stable solution. If the maximum number of iterations
+            is reached but the minimisation has not yet converged to a stable
+            solution, then the available solution is used anyway, and a warning
+            is raised.
+            If the predictor_of_mean is "realizations", then the number of
+            iterations may require increasing, as there will be more
+            coefficients to solve.
+            Default is 1000.
+
+    Returns:
+        result (iris.cube.Cube):
+            Cube containing the coefficients estimated using EMOS. The cube
+            contains a coefficient_index dimension coordinate and a
+            coefficient_name auxiliary coordinate.
+    """
+    result = EstimateCoefficientsForEnsembleCalibration(
+        distribution, cycletime, desired_units=units,
+        predictor_of_mean_flag=predictor_of_mean,
+        max_iterations=max_iterations).process(historic_forecast, truth)
+
+    return result
 
 
 if __name__ == "__main__":

@@ -55,11 +55,35 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
+    # Load Cube
     rad_uv_up = load_cube(args.radiation_flux_upward)
     rad_uv_down = load_cube(args.radiation_flux_downward)
 
-    result = calculate_uv_index(rad_uv_up, rad_uv_down)
+    # Process Cube
+    result = process(rad_uv_up, rad_uv_down)
+    # Save Cube
     save_netcdf(result, args.output_filepath)
+
+
+def process(rad_uv_up, rad_uv_down):
+    """Calculate the UV index using the data in the input cubes.
+
+    Calculate the uv index using radiation flux in UV downward at surface,
+    radiation flux UV upwards at surface and a scaling factor. The scaling
+    factor is configured by the user.
+
+    Args:
+        rad_uv_up (iris.cube.Cube):
+            Cube of radiation flux in UV upwards at surface.
+        rad_uv_down (iris.cube.Cube):
+            Cube of radiation flux in UV downwards at surface.
+
+    Returns:
+        result (iris.cube.Cube):
+            Processed Cube.
+    """
+    result = calculate_uv_index(rad_uv_up, rad_uv_down)
+    return result
 
 
 if __name__ == "__main__":

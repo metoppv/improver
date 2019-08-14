@@ -63,7 +63,7 @@ def main(argv=None):
                              'This value should be a point on the '
                              'coordinate for blending over.')
     parser.add_argument('--units', metavar='UNIT_STRING', required=True,
-                        help='Units of the the central_point and width.')
+                        help='Units of the central_point and width.')
     parser.add_argument('--calendar', metavar='CALENDAR',
                         default='gregorian',
                         help='Calendar for parameter_unit if required. '
@@ -88,36 +88,89 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
+    # Load Cubelist
+    cubelist = load_cubelist(args.input_filepaths)
+    # Process Cube
+    result = process(cubelist, args.coordinate, args.central_point,
+                     args.units, args.width, args.calendar,
+                     args.blend_time_using_forecast_period)
+    # Save Cube
+    save_netcdf(result, args.output_filepath)
+
+
+def process(cubelist, coordinate, central_point, units, width,
+            calendar='gregorian', blend_time_using_forecast_period=False):
+    """Runs weighted blending across adjacent points.
+
+    Uses the TriangularWeightedBlendAcrossAdjacentPoints to blend across
+    a particular coordinate. It does not collapse the coordinate, but
+    instead blends across adjacent points and puts the blended values back
+    in the original coordinate, with adjusted bounds.
+
+    Args:
+        cubelist (iris.cube.CubeList):
+            CubeList including and surrounding the central point.
+        coordinate (str):
+            The coordinate over which the blending will be applied.
+        central_point (float):
+            Central point at which the output from the triangular weighted
+            blending will be calculated. This should be in the units of the
+            units argument that is passed in. This value should be a point
+            on the coordinate for blending over.
+        units (str):
+            Units of the central_point and width
+        width (float):
+            Width of the triangular weighting function used in the blending,
+            in the units of the units argument.
+
+    Keyword Args:
+        calendar (str)
+            Calendar for parameter_unit if required.
+            Default is 'gregorian'.
+        blend_time_using_forecast_period (bool):
+            If True, we are blending over time but using the forecast
+            period coordinate as a proxy. Note, this should only be used when
+            time and forecast_period share a dimension: i.e when all cubes
+            provided are from the same forecast cycle.
+            Default is False.
+
+    Returns:
+        result (iris.cube.Cube):
+            A processed Cube
+
+    Raises:
+        ValueError:
+            If coordinate has "time" in it.
+        ValueError:
+            If blend_time_forecast_period is not used with forecast_period
+            coordinate.
+
+    """
     # TriangularWeightedBlendAcrossAdjacentPoints can't currently handle
     # blending over times where iris reads the coordinate points as datetime
-    # objects.  Fail here to avoid unhelpful errors downstream.
-    if "time" in args.coordinate:
+    # objects. Fail here to avoid unhelpful errors downstream.
+    if "time" in coordinate:
         msg = ("Cannot blend over {} coordinate (points encoded as datetime "
-               "objects)".format(args.coordinate))
+               "objects)".format(coordinate))
         raise ValueError(msg)
 
     # This is left as a placeholder for when we have this capability
-    if args.coordinate == 'time':
-        units = Unit(args.units, args.calendar)
-    else:
-        units = args.units
+    if coordinate == 'time':
+        units = Unit(units, calendar)
 
-    cubelist = load_cubelist(args.input_filepaths)
-
-    if (args.blend_time_using_forecast_period and
-            args.coordinate == 'forecast_period'):
+    if blend_time_using_forecast_period and coordinate == 'forecast_period':
         cube = MergeCubes().process(cubelist, check_time_bounds_ranges=True)
-    elif args.blend_time_using_forecast_period:
+    elif blend_time_using_forecast_period:
         msg = ('"--blend_time_using_forecast_period" can only be used with '
                '"forecast_period" coordinate')
         raise ValueError(msg)
     else:
         cube = MergeCubes().process(cubelist)
 
-    BlendingPlugin = TriangularWeightedBlendAcrossAdjacentPoints(
-        args.coordinate, args.central_point, units, args.width)
-    result = BlendingPlugin.process(cube)
-    save_netcdf(result, args.output_filepath)
+    blending_plugin = TriangularWeightedBlendAcrossAdjacentPoints(
+        coordinate, central_point, units, width)
+    result = blending_plugin.process(cube)
+    return result
 
 
 if __name__ == "__main__":

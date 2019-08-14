@@ -99,32 +99,15 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
+    # Load Cubes
     cube_0 = load_cube(args.infiles[0])
     cube_1 = load_cube(args.infiles[1])
-    time_0, = iris_time_to_datetime(cube_0.coord('time'))
-    time_1, = iris_time_to_datetime(cube_1.coord('time'))
-    if time_0 < time_1:
-        cube_start = cube_0
-        cube_end = cube_1
-    else:
-        cube_start = cube_1
-        cube_end = cube_0
 
-    interval = args.interval_in_mins
-    method = args.interpolation_method
-    if args.times is None:
-        times = args.times
-    else:
-        times = []
-        for timestr in args.times:
-            times.append(cycletime_to_datetime(timestr))
+    # Process Cubes
+    interpolated_cubes = process(cube_0, cube_1, args.interval_in_mins,
+                                 args.times, args.interpolation_method)
 
-    interpolated_cubes = (
-        TemporalInterpolation(interval_in_minutes=interval,
-                              times=times,
-                              interpolation_method=method).process(cube_start,
-                                                                   cube_end))
-
+    # Save Cubes
     len_files = len(args.output_files)
     len_cubes = len(interpolated_cubes)
     if len_files == len_cubes:
@@ -135,6 +118,77 @@ def main(argv=None):
                "{} files given but {} required.".format(len_files,
                                                         len_cubes))
         raise ValueError(msg)
+
+
+def process(cube_0, cube_1, interval_in_mins=None, in_times=None,
+            interpolation_method='linear'):
+    """Module to interpolate data between validity times.
+
+    Interpolate data to intermediate times between the validity times of two
+    cubes. This can be used to fill in missing data (e.g. for radar fields)
+    or to ensure data is available at the required intervals when model data
+    is not available at these times.
+
+    Args:
+        cube_0 (iris.cube.Cube):
+            Cube containing the data at the beginning.
+        cube_1 (iris.cube.Cube):
+            Cube containing the data at the end.
+
+    Keyword Args:
+        interval_in_mins (int):
+            Specifies the interval in minutes at which to interpolate between
+            the two input cubes.
+            A number of minutes which does not divide up the interval equally
+            will raise an exception.
+            If intervals_in_mins is set then in_times can not be used.
+            Default is None.
+        in_times (str):
+            Specifies the times in the format {YYYYMMDD}T{HHMM}Z
+            at which to interpolate between the two input cubes.
+            Where {YYYYMMDD} is year, month, day and {HHMM} is hour and minutes
+            e.g 20180116T0100Z. More than one time can be provided separated
+            by a space.
+            If in_times are set, interval_in_mins can not be used.
+            Default is None.
+        interpolation_method (str):
+            ["linear", "solar", "daynight"]
+            Specifies the interpolation method;
+            solar interpolates using the solar elevation,
+            daynight uses linear interpolation but sets night time points to
+            0.0 linear is linear interpolation.
+            Default is linear.
+
+    Returns:
+        result (iris.cube.Cubelist):
+            A list of cubes interpolated to the desired times. The
+            interpolated cubes will always be in chronological order of
+            earliest to latest regardless of the order of the input.
+    """
+    time_0, = iris_time_to_datetime(cube_0.coord('time'))
+    time_1, = iris_time_to_datetime(cube_1.coord('time'))
+    if time_0 < time_1:
+        cube_start = cube_0
+        cube_end = cube_1
+    else:
+        cube_start = cube_1
+        cube_end = cube_0
+
+    interval = interval_in_mins
+    method = interpolation_method
+    if in_times is None:
+        times = in_times
+    else:
+        times = []
+        for timestr in in_times:
+            times.append(cycletime_to_datetime(timestr))
+
+    result = (
+        TemporalInterpolation(interval_in_minutes=interval,
+                              times=times,
+                              interpolation_method=method).process(cube_start,
+                                                                   cube_end))
+    return result
 
 
 if __name__ == "__main__":

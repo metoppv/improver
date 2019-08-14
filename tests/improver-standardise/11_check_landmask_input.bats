@@ -42,7 +42,7 @@
       --output_filepath "$TEST_DIR/output.nc" --regrid_mode="nearest-with-mask"
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__TEXT__' || true
-UserWarning: Expected land_binary_mask in target_grid_filepath
+UserWarning: Expected land_binary_mask in target_grid cube
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 

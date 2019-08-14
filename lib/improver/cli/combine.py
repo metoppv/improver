@@ -34,10 +34,10 @@
 from improver.argparser import ArgParser
 
 import iris
-import json
 import warnings
 
 from improver.cube_combiner import CubeCombiner
+from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
@@ -81,31 +81,66 @@ def main(argv=None):
                         "will be given. Default=False", default=False)
 
     args = parser.parse_args(args=argv)
-    # Load the cubes
-    cubes = iris.cube.CubeList([])
+
+    new_metadata = load_json_or_none(args.metadata_jsonfile)
+    # Load cubes
+    cubelist = iris.cube.CubeList([])
     new_cube_name = args.new_name
     for filename in args.input_filenames:
         new_cube = load_cube(filename)
-        cubes.append(new_cube)
+        cubelist.append(new_cube)
         if new_cube_name is None:
             new_cube_name = new_cube.name()
         if args.warnings_on:
             if (args.new_name is None and
                     new_cube_name != new_cube.name()):
-                msg = ("Defaulting to first "
-                       "cube name, {}".format(new_cube_name) +
-                       " but combining with a cube "
-                       "with name, {}.".format(new_cube.name()))
+                msg = ("Defaulting to first cube name, {} but combining with"
+                       "a cube with name, {}.".format(
+                            new_cube_name, new_cube.name()))
                 warnings.warn(msg)
 
+    # Process Cube
+    result = process(cubelist, args.operation, new_cube_name,
+                     new_metadata, args.warnings_on)
+
+    # Save Cube
+    save_netcdf(result, args.output_filepath)
+
+
+def process(cubelist, operation, new_cube_name,
+            new_metadata=None, warnings_on=False):
+    """Module for combining Cubes.
+
+    Combine the input cubes into a single cube using the requested operation.
+    e.g. '+', '-', '*', 'add', 'subtract', 'multiply', 'min', 'max', 'mean'
+
+    Args:
+        cubelist (iris.cube.CubeList):
+            An iris CubeList to be combined.
+        operation (str):
+            "+", "-", "*", "add", "subtract", "multiply", "min", "max", "mean"
+            An operation to use in combining Cubes.
+        new_cube_name (str):
+            New name for the resulting dataset.
+
+    Keyword Args:
+        new_metadata (dict):
+            Dictionary of required changes to the metadata.
+            Default is None.
+        warnings_on (bool):
+            If True, warning messages where metadata do not match will be
+            given.
+            Default is False.
+
+    Returns
+        result (iris.cube.Cube):
+            Returns a cube with the combined data.
+    """
     # Load the metadata changes if required
     new_coords = None
     new_attr = None
     expanded_coord = None
-    if args.metadata_jsonfile:
-        # Read in extraction recipes for all diagnostics.
-        with open(args.metadata_jsonfile, 'r') as input_file:
-            new_metadata = json.load(input_file)
+    if new_metadata:
         if 'coordinates' in new_metadata:
             new_coords = new_metadata['coordinates']
         if 'attributes' in new_metadata:
@@ -114,14 +149,13 @@ def main(argv=None):
             expanded_coord = new_metadata['expanded_coord']
 
     result = (
-        CubeCombiner(args.operation, warnings_on=args.warnings_on).process(
-            cubes,
+        CubeCombiner(operation, warnings_on=warnings_on).process(
+            cubelist,
             new_cube_name,
             revised_coords=new_coords,
             revised_attributes=new_attr,
             expanded_coord=expanded_coord))
-
-    save_netcdf(result, args.output_filepath)
+    return result
 
 
 if __name__ == "__main__":

@@ -38,6 +38,7 @@ import numpy as np
 import iris
 from iris.exceptions import CoordinateNotFoundError
 
+from improver.utilities.cli_utilities import load_cube_or_none
 from improver.wind_calculations import wind_downscaling
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
@@ -104,20 +105,98 @@ def main(argv=None):
                       'associated height level has been provided. These units '
                       'will have no effect.')
 
+    # Turn string to float
+    model_resolution = float(args.model_resolution) if \
+        args.model_resolution is not None else None
+    output_height_level = float(args.output_height_level) if \
+        args.output_height_level is not None else None
+
+    # Load Cube
     wind_speed = load_cube(args.wind_speed_filepath)
-    silhouette_roughness_filepath = load_cube(
+    silhouette_roughness = load_cube(
         args.silhouette_roughness_filepath)
     sigma = load_cube(args.sigma_filepath)
     target_orog = load_cube(args.target_orog_filepath)
     standard_orog = load_cube(args.standard_orog_filepath)
-    if args.height_levels_filepath:
-        height_levels = load_cube(args.height_levels_filepath)
-    else:
-        height_levels = None
-    if args.veg_roughness_filepath:
-        veg_roughness_cube = load_cube(args.veg_roughness_filepath)
-    else:
-        veg_roughness_cube = None
+    height_levels = load_cube_or_none(args.height_levels_filepath)
+    veg_roughness_cube = load_cube_or_none(args.veg_roughness_filepath)
+
+    # Process Cube
+    wind_speed = process(wind_speed, silhouette_roughness, sigma, target_orog,
+                         standard_orog, model_resolution, height_levels,
+                         veg_roughness_cube, output_height_level,
+                         args.output_height_level_units)
+
+    # Save Cube
+    save_netcdf(wind_speed, args.output_filepath)
+
+
+def process(wind_speed, silhouette_roughness, sigma, target_orog,
+            standard_orog, model_resolution, height_levels=None,
+            veg_roughness_cube=None, output_height_level=None,
+            output_height_level_units='m'):
+    """Module to run wind downscaling.
+
+    Run wind downscaling to apply roughness correction and height correction
+    to wind fields as described in Howard and Clark (2007). All inputs must
+    be on the same standard grid.
+
+    Args:
+        wind_speed (iris.cube.Cube):
+            Cube of wind speed on standard grid.
+            Any units can be supplied.
+        silhouette_roughness (iris.cube.Cube):
+            Cube of model silhouette roughness.
+            Units of field: dimensionless.
+        sigma (iris.cube.Cube):
+            Cube of standard deviation of model orography height.
+            Units of field: m.
+        target_orog (iris.cube.Cube):
+            Cube of orography to downscale fields to.
+            Units of field: m.
+        standard_orog (iris.cube.Cube):
+            Cube of orography on standard grid. (interpolated model orography).
+            Units of field: m.
+        model_resolution (float):
+            Original resolution of model orography (before interpolation to
+            standard grid)
+            Units of field: m.
+
+    Keyword Args:
+        height_levels (iris.cube.Cube):
+            Cube of height levels coincident with wind direction.
+            Units of field: m.
+            Default is None.
+        veg_roughness_cube (iris.cube.Cube):
+            Cube of vegetative roughness length.
+            Units of field: m.
+            Default is None.
+        output_height_level (float):
+            If only a single height level is desired as output from
+            wind-downscaling, this option can be used to select the height
+            level. If no units are provided with 'output_height_level_units',
+            metres are assumed.
+            Default is None.
+        output_height_level_units (str):
+            If a single height level is selected as output using
+            'output_height_level', this additional argument may be used to
+            specify the units of the value entered to select the level.
+            e.g hPa.
+            Default is 'm'.
+
+    Returns:
+        wind_speed (iris.cube.Cube):
+            The processed Cube.
+
+    Rises:
+        ValueError:
+            If the requested height value is not found.
+
+    """
+    if output_height_level_units and output_height_level is None:
+        warnings.warn('output_height_level_units has been set but no '
+                      'associated height level has been provided. These units '
+                      'will have no effect.')
     try:
         wind_speed_iterator = wind_speed.slices_over('realization')
     except CoordinateNotFoundError:
@@ -126,25 +205,22 @@ def main(argv=None):
     for wind_speed_slice in wind_speed_iterator:
         result = (
             wind_downscaling.RoughnessCorrection(
-                silhouette_roughness_filepath, sigma, target_orog,
-                standard_orog, float(args.model_resolution),
+                silhouette_roughness, sigma, target_orog,
+                standard_orog, model_resolution,
                 z0_cube=veg_roughness_cube,
                 height_levels_cube=height_levels).process(wind_speed_slice))
         wind_speed_list.append(result)
-
     # Temporary fix for chunking problems when merging cubes
     max_npoints = max([np.prod(cube.data.shape) for cube in wind_speed_list])
     while iris._lazy_data._MAX_CHUNK_SIZE < max_npoints:
         iris._lazy_data._MAX_CHUNK_SIZE *= 2
-
     wind_speed = wind_speed_list.merge_cube()
     non_dim_coords = [x.name() for x in wind_speed.coords(dim_coords=False)]
     if 'realization' in non_dim_coords:
         wind_speed = iris.util.new_axis(wind_speed, 'realization')
-
-    if args.output_height_level:
-        constraints = {'height': float(args.output_height_level)}
-        units = {'height': args.output_height_level_units}
+    if output_height_level is not None:
+        constraints = {'height': output_height_level}
+        units = {'height': output_height_level_units}
         single_level = apply_extraction(
             wind_speed, iris.Constraint(**constraints), units)
         if not single_level:
@@ -155,8 +231,7 @@ def main(argv=None):
                     wind_speed.coord('height').points,
                     wind_speed.coord('height').units))
         wind_speed = single_level
-
-    save_netcdf(wind_speed, args.output_filepath)
+    return wind_speed
 
 
 if __name__ == "__main__":

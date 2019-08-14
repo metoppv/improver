@@ -36,6 +36,7 @@ from improver.argparser import ArgParser
 from improver.nbhood.use_nbhood import (
     ApplyNeighbourhoodProcessingWithAMask,
     CollapseMaskedNeighbourhoodCoordinate)
+from improver.utilities.cli_utilities import radius_or_radii_and_lead
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
@@ -130,29 +131,113 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
+    # Load Cubes
     cube = load_cube(args.input_filepath)
     mask_cube = load_cube(args.input_mask_filepath)
+    weights = load_cube(args.weights_for_collapsing_dim) if \
+        args.collapse_dimension else None
 
-    if args.radius:
-        radius_or_radii = args.radius
-        lead_times = None
-    elif args.radii_by_lead_time:
-        radius_or_radii = args.radii_by_lead_time[0].split(",")
-        lead_times = args.radii_by_lead_time[1].split(",")
+    # Process Cube
+    result, intermediate_cube = process(
+        cube, mask_cube, weights, args.coord_for_masking, args.radius,
+        args.radii_by_lead_time, args.sum_or_fraction, args.re_mask,
+        args.collapse_dimension)
+
+    # Save Cube
+    save_netcdf(result, args.output_filepath)
+    if args.intermediate_filepath is not None:
+        save_netcdf(intermediate_cube, args.intermediate_filepath)
+
+
+def process(cube, mask_cube, weights, coord_for_masking, radius=None,
+            radii_by_lead_time=None, sum_or_fraction="fraction", re_mask=False,
+            collapse_dimension=False):
+    """Runs neighbourhooding processing iterating over a coordinate by mask.
+
+    Apply the requested neighbourhood method via the
+    ApplyNeighbourhoodProcessingWithMask plugin to a file with one diagnostic
+    dataset in combination with a cube containing one or more masks.
+    The mask dataset may have an extra dimension compared to the input
+    diagnostic. In this case, the user specifies the name of the extra
+    coordinate and this coordinate is iterated over so each mask is applied
+    to separate slices over the input cube. These intermediate masked datasets
+    are then concatenated, resulting in a dataset that has been processed
+    using multiple masks and has gained an extra dimension from the masking.
+    There is also an option to re-mask the output dataset, so that after
+    neighbourhood processing non-zero values are only present for unmasked
+    grid points.
+    There is an alternative option of collapsing the dimension that we gain
+    using this processing using a weighted average.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube to be processed.
+        mask_cube (iris.cube.Cube):
+            Cube to act as a mask.
+        weights (iris.cube.Cube):
+            Cube containing the weights which are used for collapsing the
+            dimension gained through masking.
+        coord_for_masking (str):
+            String matching the name of the coordinate that will be used
+            for masking.
+
+    Keyword Args:
+        radius (float):
+            The radius in metres of the neighbourhood to apply.
+            Rounded up to convert into integer number of grid points east and
+            north, based on the characteristic spacing at the zero indices of
+            the cube projection-x and y coordinates.
+            Default is None.
+        radii_by_lead_time (float or list of float):
+            A list with the radius in metres at [0] and the lead_time at [1]
+            Lead time is a List of lead times or forecast periods, at which
+            the radii within 'radii' are defined. The lead times are expected
+            in hours.
+            Default is None.
+        sum_or_fraction (str):
+            Identifier for whether sum or fraction should be returned from
+            neighbourhooding.
+            Sum represents the sum of the neighbourhood.
+            Fraction represents the sum of the neighbourhood divided by the
+            neighbourhood area.
+            Default is fraction.
+        re_mask (bool):
+            If True, the original un-neighbourhood processed mask
+            is applied to mask out the neighbourhood processed cube.
+            If False, the original un-neighbourhood processed mask is not
+            applied.
+            Therefore, the neighbourhood processing may result in
+            values being present in areas that were originally masked.
+            Default is False.
+        collapse_dimension (bool):
+            Collapse the dimension from the mask, by doing a weighted mean
+            using the weights provided.  This is only suitable when the result
+            is left unmasked, so there is data to weight between the points
+            in the coordinate we are collapsing.
+            Default is False.
+
+    Returns:
+        (tuple): tuple containing:
+            **result** (iris.cube.Cube):
+                A cube after being fully processed.
+            **intermediate_cube** (iris.cube.Cube):
+                A cube before it is collapsed, if 'collapse_dimension' is True.
+
+    """
+    radius_or_radii, lead_times = radius_or_radii_and_lead(radius,
+                                                           radii_by_lead_time)
 
     result = ApplyNeighbourhoodProcessingWithAMask(
-        args.coord_for_masking, radius_or_radii, lead_times=lead_times,
-        sum_or_fraction=args.sum_or_fraction,
-        re_mask=args.re_mask).process(cube, mask_cube)
+        coord_for_masking, radius_or_radii, lead_times=lead_times,
+        sum_or_fraction=sum_or_fraction,
+        re_mask=re_mask).process(cube, mask_cube)
+    intermediate_cube = result.copy()
 
-    if args.intermediate_filepath is not None:
-        save_netcdf(result, args.intermediate_filepath)
     # Collapse with the masking dimension.
-    if args.collapse_dimension:
-        weights = load_cube(args.weights_for_collapsing_dim)
+    if collapse_dimension:
         result = CollapseMaskedNeighbourhoodCoordinate(
-            args.coord_for_masking, weights=weights).process(result)
-    save_netcdf(result, args.output_filepath)
+            coord_for_masking, weights).process(result)
+    return result, intermediate_cube
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,19 +28,48 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""Unit tests for utilities.cli_utilities."""
 
-. $IMPROVER_DIR/tests/lib/utils
+import unittest
 
-@test "apply-emos-coefficients using percentiles when num_realizations argument not specified" {
-  improver_check_skip_acceptance
-  # Run apply-emos-coefficients when percentiles are input as the current forecast.
-  run improver apply-emos-coefficients \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/percentiles/input.nc" \
-      "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/kgo.nc" \
-      "$TEST_DIR/output.nc"
-  [[ "$status" -eq 1 ]]
-  read -d '' expected <<'__TEXT__' || true
-ValueError: The current forecast has been provided as percentiles. These percentiles need to be converted to realizations for ensemble calibration. The num_realizations argument is used to define the number of realizations to construct from the input percentiles, so if the current forecast is provided as percentiles then num_realizations must be defined.
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
-}
+from improver.utilities.cli_utilities import radius_or_radii_and_lead
+
+
+class TestRadiusOrRadiiAndLead(unittest.TestCase):
+    """Tests radius_or_radii_and_lead to split the data correctly."""
+
+    def test_radius(self):
+        """Tests a correct radius and a radii/lead of None.
+        radius_or_radii is the first input, lead is None."""
+        radius, lead = radius_or_radii_and_lead(3.3, None)
+
+        self.assertEqual(radius, 3.3)
+        self.assertIsNone(lead)
+
+    def test_both_None(self):
+        """ Tests if both are None then both are returned None."""
+        with self.assertRaises(TypeError):
+            radius_or_radii_and_lead(None, None)
+
+    def test_radii_and_lead(self):
+        """Tests if radius is None and radii/lead is a list of csv.
+        radius_or_radii is the [0] of the second index separated on the commas
+        lead is the [1] of the second index separated on the commas."""
+        radii, lead = radius_or_radii_and_lead(
+            None, ["0,36,72,144", "18000,54000,90000,162000"])
+
+        self.assertEqual(radii, ['0', '36', '72', '144'])
+        self.assertEqual(lead, ['18000', '54000', '90000', '162000'])
+
+    def test_both_used(self):
+        """Tests if both arguments are used.
+        The output is the same as if the second argument is None."""
+        radius, lead = radius_or_radii_and_lead(
+            3.3, ["0,36,72,144", "18000,54000,90000,162000"])
+
+        self.assertEqual(radius, 3.3)
+        self.assertIsNone(lead)
+
+
+if __name__ == '__main__':
+    unittest.main()

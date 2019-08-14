@@ -33,12 +33,12 @@
 
 from improver.argparser import ArgParser
 import os
-import json
 
 from improver.generate_ancillaries.generate_ancillary import (
     GenerateOrographyBandAncils)
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
+from improver.utilities.cli_utilities import load_json_or_none
 
 # The following dictionary defines the orography altitude bands in metres
 # above/below sea level for which masks are required.
@@ -89,17 +89,12 @@ def main(argv=None):
                               "[950., 6000.]], 'units': 'm'}"))
     args = parser.parse_args(args=argv)
 
-    if args.thresholds_filepath:
-        with open(args.thresholds_filepath, 'r') as filehandle:
-            thresholds_dict = json.loads(filehandle.read())
-    else:
+    thresholds_dict = load_json_or_none(args.thresholds_filepath)
+    if thresholds_dict is None:
         thresholds_dict = THRESHOLDS_DICT
 
     if not os.path.exists(args.output_filepath) or args.force:
         orography = load_cube(args.input_filepath_standard_orography)
-        orography = next(orography.slices([orography.coord(axis='y'),
-                                           orography.coord(axis='x')]))
-
         landmask = None
         if args.input_filepath_landmask:
             try:
@@ -111,16 +106,61 @@ def main(argv=None):
                        'improver-generate-landmask-ancillary first.').format(
                            err, args.input_filepath_landmask)
                 raise IOError(msg)
+        # Process Cube
+        result = process(orography, landmask, thresholds_dict)
 
-            landmask = next(landmask.slices([landmask.coord(axis='y'),
-                                             landmask.coord(axis='x')]))
-
-        result = GenerateOrographyBandAncils().process(
-            orography, thresholds_dict, landmask=landmask)
-        result = result.concatenate_cube()
+        # Save Cube
         save_netcdf(result, args.output_filepath)
     else:
         print('File already exists here: ', args.output_filepath)
+
+
+def process(orography, landmask=None, thresholds_dict=None):
+    """Runs topographic bands mask generation.
+
+    Reads orography and landmask fields of a cube. Creates a series of masks,
+    where each mask excludes data below or equal to the lower threshold and
+    excludes data above the upper threshold.
+
+    Args:
+        orography (iris.cube.Cube):
+            The orography a standard grid.
+
+    Keyword Args:
+        landmask (iris.cube.Cube):
+            The land mask on standard grid. If provided data points are set to
+            zero in every band.
+            Default is None.
+        thresholds_dict (dict):
+            Definition of orography bands required.
+            The expected format of the dictionary is e.g
+            {'bounds':[[0, 50], [50, 200]], 'units': 'm'}
+            The default dictionary has the following form:
+            {'bounds': [[-500., 50.], [50., 100.],
+            [100., 150.],[150., 200.], [200., 250.],
+            [250., 300.], [300., 400.], [400., 500.],
+            [500., 650.],[650., 800.], [800., 950.],
+            [950., 6000.]], 'units': 'm'}
+
+    Returns:
+        result (iris.cube.Cube):
+            list of orographic band mask cube.
+
+    """
+    if landmask:
+        landmask = next(landmask.slices(
+            [landmask.coord(axis='y'), landmask.coord(axis='x')]))
+
+    orography = next(orography.slices(
+        [orography.coord(axis='y'), orography.coord(axis='x')]))
+
+    if thresholds_dict is None:
+        thresholds_dict = THRESHOLDS_DICT
+
+    result = GenerateOrographyBandAncils().process(
+        orography, thresholds_dict, landmask=landmask)
+    result = result.concatenate_cube()
+    return result
 
 
 if __name__ == "__main__":

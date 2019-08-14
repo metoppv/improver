@@ -36,6 +36,8 @@ from improver.constants import DEFAULT_PERCENTILES
 from improver.nbhood.nbhood import (
     GeneratePercentilesFromANeighbourhood, NeighbourhoodProcessing)
 from improver.nbhood.recursive_filter import RecursiveFilter
+from improver.utilities.cli_utilities import (load_cube_or_none,
+                                              radius_or_radii_and_lead)
 from improver.utilities.pad_spatial import remove_cube_halo
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
@@ -184,7 +186,7 @@ def main(argv=None):
             args.neighbourhood_shape == "square"):
         parser.wrong_args_error('square', 'neighbourhood_shape')
 
-    if (args.neighbourhood_output == "percentiles" and args.weighted_mode):
+    if args.neighbourhood_output == "percentiles" and args.weighted_mode:
         parser.wrong_args_error(
             'weighted_mode', 'neighbourhood_shape=percentiles')
 
@@ -193,7 +195,7 @@ def main(argv=None):
         parser.wrong_args_error(
             'percentiles', 'neighbourhood_shape=probabilities')
 
-    if (args.input_mask_filepath and args.neighbourhood_shape == "circular"):
+    if args.input_mask_filepath and args.neighbourhood_shape == "circular":
         parser.wrong_args_error(
             'neighbourhood_shape=circular', 'input_mask_filepath')
 
@@ -207,73 +209,225 @@ def main(argv=None):
             parser.error('Cannot process complex numbers with recursive '
                          'filter')
 
+    # Load Cube
     cube = load_cube(args.input_filepath)
-    if args.degrees_as_complex:
+    mask_cube = load_cube_or_none(args.input_mask_filepath)
+    alphas_x_cube = load_cube_or_none(args.input_filepath_alphas_x_cube)
+    alphas_y_cube = load_cube_or_none(args.input_filepath_alphas_y_cube)
+
+    # Process Cube
+    result = process(cube, args.neighbourhood_output,
+                     args.neighbourhood_shape, args.radius,
+                     args.radii_by_lead_time, args.degrees_as_complex,
+                     args.weighted_mode, args.sum_or_fraction, args.re_mask,
+                     args.percentiles, mask_cube, args.halo_radius,
+                     args.apply_recursive_filter, alphas_x_cube,
+                     alphas_y_cube, args.alpha_x, args.alpha_y,
+                     args.iterations)
+
+    # Save Cube
+    save_netcdf(result, args.output_filepath)
+
+
+def process(cube, neighbourhood_output, neighbourhood_shape, radius=None,
+            radii_by_lead_time=None, degrees_as_complex=False,
+            weighted_mode=False, sum_or_fraction="fraction", re_mask=False,
+            percentiles=DEFAULT_PERCENTILES, mask_cube=None,
+            halo_radius=None, apply_recursive_filter=False, alphas_x_cube=None,
+            alphas_y_cube=None, alpha_x=None, alpha_y=None, iterations=1):
+    """Runs neighbourhood processing.
+
+    Apply the requested neighbourhood method via the
+    NeighbourhoodProcessing plugin to a Cube.
+
+    Args:
+        cube (iris.cube.Cube):
+            The Cube to be processed.
+        neighbourhood_output (str):
+            The form of the results generated using neighbourhood processing.
+            If "probabilities" is selected, the mean probability with a
+            neighbourhood is calculated. If "percentiles" is selected, then
+            the percentiles are calculated with a neighbourhood. Calculating
+            percentiles from a neighbourhood is only supported for a circular
+            neighbourhood.
+            Options: "probabilities", "percentiles".
+        neighbourhood_shape (str):
+            Name of the neighbourhood method to use. Only a "circular"
+            neighbourhood shape is applicable for calculating "percentiles"
+            output.
+            Options: "circular", "square".
+
+    Keyword Args:
+        radius (float):
+            The radius in metres of the neighbourhood to apply
+        radii_by_lead_time (list):
+            A list with the radius in metres at [0] and the lead_time at [1]
+            Lead time is a List of lead times or forecast periods, at which
+            the radii within 'radii' are defined. The lead times are expected
+            in hours.
+        degrees_as_complex (bool):
+            If True processes angles as complex numbers.
+            Not compatible with circular kernel, percentiles or recursive
+            filter.
+            Default is False.
+        weighted_mode (bool):
+            If True the weighting decreases with radius.
+            If False a constant weighting is assumed.
+            weighted_mode is only applicable for calculating "probability"
+            neighbourhood output using the circular kernal.
+            Default is False
+        sum_or_fraction (str):
+            Identifier for whether sum or fraction should be returned from
+            neighbourhooding. The sum represents the sum of the neighbourhood.
+            The fraction represents the sum of the neighbourhood divided by
+            the neighbourhood area.
+            Default is "fraction".
+        re_mask (bool):
+            If re_mask is True, the original un-neighbourhood processed mask
+            is applied to mask out the neighbourhood processed cube.
+            If re_mask is False, the original un-neighbourhood processed mask
+            is not applied. Therefore, the neighbourhood processing may result
+            in values being present in area that were originally masked.
+            Default is False.
+        percentiles (float or None):
+            Calculates value at the specified percentiles from the
+            neighbourhood surrounding each grid point.
+            Default is improver.constants.DEFAULT_PERCENTILES.
+        mask_cube (iris.cube.Cube):
+            A cube to mask the input cube. The data should contain 1 for
+            usable points and 0 for discarded points.
+            Only supported with square neighbourhoods.
+            Default is None.
+        halo_radius (float or None):
+            Radius in metres of excess halo to clip. Used where a larger grid
+            was defined than the standard grid and we want to clip the grid
+            back to the standard grid.
+            Default is None.
+        apply_recursive_filter (bool):
+            Boolean to apply the recursive filter to a square neighbourhooded
+            output dataset, converting it into a Gaussian-like kernel or
+            smoothing over short distances.
+            Default is False.
+        alphas_x_cube (iris.cube.Cube):
+            A Cube used for the smoothing in the x direction when applying
+            the recursive filter.
+            Default is None.
+        alphas_y_cube (iris.cube.Cube):
+            A Cube used for the smoothing in the y direction when applying
+            the recursive filter.
+            Default is None.
+        alpha_x (float):
+            A single alpha factor (0 < alpha_x < 1) to be applied to every grid
+            square in the x direction when applying the recursive filter.
+            Default is None.
+        alpha_y (float):
+            A single alpha factor (0 < alpha_x < 1) to be applied to every grid
+            square in the y direction when applying the recursive filter.
+            Default is None.
+        iterations (int):
+            The number of times to apply the filter. (typically < 5)
+            Default is 1 (one).
+
+    Returns:
+        result (iris.cube.Cube):
+            A processed Cube.
+
+    Raises:
+        RuntimeError:
+            If neighbourhood_shape is used with the wrong neighbourhood
+            output.
+        RuntimeError:
+            If weighted_mode is used with the wrong neighbourhood_output.
+        RuntimeError:
+            If neighbourhood_output='probabilities' and the default
+            percentiles are used.
+        RuntimeError:
+            If neighbourhood_shape='circular' is used with mask cube.
+        ValueError:
+            If degree_as_complex is used with
+            neighbourhood_output='percentiles'.
+        ValueError:
+            If degree_as_complex is used with neighbourhood_shape='circular'.
+        ValueError:
+            If degree_as_complex is used with apply_recursive_filter.
+        ValueError:
+            If neighbourhood_shape is 'circular' and apply_recursive_function
+            is True.
+
+    """
+    if (neighbourhood_output == "percentiles" and
+            neighbourhood_shape == "square"):
+        raise RuntimeError('neighbourhood_shape="square" cannot be used with'
+                           'neighbourhood_output="percentiles"')
+
+    if neighbourhood_output == "percentiles" and weighted_mode:
+        raise RuntimeError('weighted_mode cannot be used with'
+                           'neighbourhood_output="percentiles"')
+
+    if (neighbourhood_output == "probabilities" and
+            percentiles != DEFAULT_PERCENTILES):
+        raise RuntimeError('percentiles cannot be DEFAULT_PERCENTILES with'
+                           'neighbourhood_output="probabilities"')
+
+    if mask_cube and neighbourhood_shape == "circular":
+        raise RuntimeError('mask_cube cannot be used with'
+                           'neighbourhood_output="circular"')
+
+    if neighbourhood_shape == 'circular' and apply_recursive_filter:
+        raise ValueError('Recursive filter option is not applicable to '
+                         'circular neighbourhoods. ')
+
+    if degrees_as_complex:
+        if neighbourhood_output == "percentiles":
+            raise ValueError(
+                'Cannot generate percentiles from complex numbers')
+        if neighbourhood_shape == "circular":
+            raise ValueError(
+                'Cannot process complex numbers with circular neighbourhoods')
+        if apply_recursive_filter:
+            raise ValueError(
+                'Cannot process complex numbers with recursive filter')
+
+    if degrees_as_complex:
         # convert cube data into complex numbers
         cube.data = WindDirection.deg_to_complex(cube.data)
 
-    if args.radius:
-        radius_or_radii = args.radius
-        lead_times = None
-    elif args.radii_by_lead_time:
-        radius_or_radii = args.radii_by_lead_time[0].split(",")
-        lead_times = args.radii_by_lead_time[1].split(",")
+    radius_or_radii, lead_times = radius_or_radii_and_lead(
+        radius, radii_by_lead_time)
 
-    if args.input_mask_filepath:
-        mask_cube = load_cube(args.input_mask_filepath)
-    else:
-        mask_cube = None
-
-    if args.neighbourhood_output == "probabilities":
+    if neighbourhood_output == "probabilities":
         result = (
             NeighbourhoodProcessing(
-                args.neighbourhood_shape, radius_or_radii,
+                neighbourhood_shape, radius_or_radii,
                 lead_times=lead_times,
-                weighted_mode=args.weighted_mode,
-                sum_or_fraction=args.sum_or_fraction, re_mask=args.re_mask
-                ).process(cube, mask_cube=mask_cube))
-    elif args.neighbourhood_output == "percentiles":
+                weighted_mode=weighted_mode,
+                sum_or_fraction=sum_or_fraction, re_mask=re_mask
+            ).process(cube, mask_cube=mask_cube))
+    elif neighbourhood_output == "percentiles":
         result = (
             GeneratePercentilesFromANeighbourhood(
-                args.neighbourhood_shape, radius_or_radii,
+                neighbourhood_shape, radius_or_radii,
                 lead_times=lead_times,
-                percentiles=args.percentiles
-                ).process(cube))
+                percentiles=percentiles
+            ).process(cube))
 
     # If the '--apply-recursive-filter' option has been specified in the
     # input command, pass the neighbourhooded 'result' cube obtained above
     # through the recursive-filter plugin before saving the output.
     # The recursive filter is only applicable to square neighbourhoods.
-
-    if args.neighbourhood_shape == 'square' and args.apply_recursive_filter:
-
-        alphas_x_cube = None
-        alphas_y_cube = None
-
-        if args.input_filepath_alphas_x_cube is not None:
-            alphas_x_cube = load_cube(args.input_filepath_alphas_x_cube)
-        if args.input_filepath_alphas_y_cube is not None:
-            alphas_y_cube = load_cube(args.input_filepath_alphas_y_cube)
-
+    if neighbourhood_shape == 'square' and apply_recursive_filter:
         result = RecursiveFilter(
-            alpha_x=args.alpha_x, alpha_y=args.alpha_y,
-            iterations=args.iterations, re_mask=args.re_mask).process(
-                result, alphas_x=alphas_x_cube, alphas_y=alphas_y_cube,
-                mask_cube=mask_cube)
+            alpha_x=alpha_x, alpha_y=alpha_y,
+            iterations=iterations, re_mask=re_mask).process(
+            result, alphas_x=alphas_x_cube, alphas_y=alphas_y_cube,
+            mask_cube=mask_cube)
 
-    elif args.neighbourhood_shape == 'circular' and \
-            args.apply_recursive_filter:
-        raise ValueError('Recursive filter option is not applicable to '
-                         'circular neighbourhoods. ')
-
-    if args.degrees_as_complex:
+    if degrees_as_complex:
         # convert neighbourhooded cube back to degrees
         result.data = WindDirection.complex_to_deg(result.data)
-
-    if args.halo_radius is not None:
-        result = remove_cube_halo(result, args.halo_radius)
-
-    save_netcdf(result, args.output_filepath)
+    if halo_radius is not None:
+        result = remove_cube_halo(result, halo_radius)
+    return result
 
 
 if __name__ == "__main__":

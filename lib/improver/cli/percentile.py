@@ -88,23 +88,87 @@ def main(argv=None):
                        "aim of dividing into blocks of equal probability.")
 
     args = parser.parse_args(args=argv)
+
+    # Load Cube
     cube = load_cube(args.input_filepath)
-    percentiles = args.percentiles
-    if args.no_of_percentiles is not None:
-        percentiles = choose_set_of_percentiles(args.no_of_percentiles,
+
+    # Process Cube
+    result = process(cube, args.coordinates, args.ecc_bounds_warning,
+                     args.percentiles, args.no_of_percentiles)
+
+    # Save Cube
+    save_netcdf(result, args.output_filepath)
+
+
+def process(cube, coordinates=None, ecc_bounds_warning=False,
+            percentiles=None, no_of_percentiles=None):
+    r"""Collapses cube coordinates and calculate percentiled data.
+
+    Calculate percentiled data over a given coordinate by collapsing that
+    coordinate. Typically used to convert realization data into percentiled
+    data, but may calculate over any dimension coordinate. Alternatively
+    calling this with a dataset containing probabilities will convert those
+    to percentiles using the ensemble coupla coupling plugin. If no particular
+    percentiles are given at which to calculate values and no
+    'number of percentiles' to calculate are specified, the
+    following defaults will be used.
+    '[0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100]'
+
+    Args:
+        cube (iris.cube.Cube):
+            A Cube for processing.
+
+    Keyword Args:
+        coordinates (str or list):
+            Coordinate or coordinates over which to collapse data and
+            calculate percentiles; e.g. 'realization' or 'latitude longitude'.
+            This argument must be provided when collapsing a coordinate or
+            coordinates to create percentiles, but is redundant when
+            converting probabilities to percentiles and may be omitted. This
+            coordinate(s) will be removed and replaced by a percentile
+            coordinate.
+            Default is None.
+        ecc_bounds_warning (bool):
+            If True, where calculated percentiles are outside the ECC bounds
+            range, raises a warning rather than an exception.
+            Default is False.
+        percentiles (list or None):
+            Optional definition of percentiles at which to calculate data.
+            Default is None.
+        no_of_percentiles (int):
+            Optional definition of the number of percentiles to be generated,
+            these distributed regularly with the aim of dividing into blocks
+            of equal probability.
+            Default is None.
+
+    Returns:
+        result (iris.cube.Cube):
+            The processed Cube.
+
+    Raises:
+        ValueError:
+            If the cube name does not contain 'probability_of\_' and
+            coordinates isn't used.
+
+    Warns:
+        Warning:
+            If 'probability_of\_' is in the cube name and coordinates is used.
+
+    """
+    if no_of_percentiles is not None:
+        percentiles = choose_set_of_percentiles(no_of_percentiles,
                                                 sampling="quantile")
     # TODO: Correct when formal cf-standards exists
     if 'probability_of_' in cube.name():
-        if args.coordinates:
+        result = GeneratePercentilesFromProbabilities(
+            ecc_bounds_warning=ecc_bounds_warning).process(
+            cube, percentiles=percentiles)
+        if coordinates:
             warnings.warn("Converting probabilities to percentiles. The "
                           "provided COORDINATES_TO_COLLAPSE variable will "
                           "not be used.")
-
-        result = GeneratePercentilesFromProbabilities(
-            ecc_bounds_warning=args.ecc_bounds_warning).process(
-                cube, percentiles=percentiles)
     else:
-        if not args.coordinates:
+        if not coordinates:
             raise ValueError("To collapse a coordinate to calculate "
                              "percentiles, a coordinate or list of "
                              "coordinates must be provided.")
@@ -122,10 +186,9 @@ def main(argv=None):
             cube.data = cube.data.data
 
         result = PercentileConverter(
-            args.coordinates, percentiles=percentiles,
+            coordinates, percentiles=percentiles,
             fast_percentile_method=fast_percentile_method).process(cube)
-
-    save_netcdf(result, args.output_filepath)
+    return result
 
 
 if __name__ == "__main__":

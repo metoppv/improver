@@ -84,14 +84,48 @@ def main(argv=None):
                         "probability_of_snow_falling_level_below_ground_level")
     args = parser.parse_args(args=argv)
 
+    # Load Cubes
     threshold_cube = load_cube(args.threshold_filepath)
     percentiles_cube = load_cube(args.percentiles_filepath)
 
-    result = ProbabilitiesFromPercentiles2D(percentiles_cube,
-                                            args.output_diagnostic_name)
-    probability_cube = result.process(threshold_cube)
+    # Process Cubes
+    probability_cube = process(percentiles_cube, threshold_cube,
+                               args.output_diagnostic_name)
 
+    # Save Cubes
     save_netcdf(probability_cube, args.output_filepath)
+
+
+def process(percentiles_cube, threshold_cube, output_diagnostic_name):
+    """Calculates probability from a percentiled field.
+
+    Plugin generates probabilities at a fixed threshold (height) from a set
+    of (height) percentiles.
+
+    Args:
+        percentiles_cube (iris.cube.Cube):
+            The percentiled field from which probabilities will be obtained
+            using the input cube.
+            This cube should contain a percentiles dimension, with fields of
+            values that correspond to these percentiles. The cube passed to
+            the process method will contain values of the same diagnostic.
+        threshold_cube (iris.cube.Cube):
+            A cube of values that effectively behave as thresholds, for which
+            it is desired to obtain probability values from a percentiled
+            reference cube.
+        output_diagnostic_name (str):
+            The name of the cube being created, e.g
+            'probability_of_snow_falling_level_below_ground_level'
+
+    Returns:
+        probability_cube (iris.cube.Cube):
+            A cube of probabilities obtained by interpolating between
+            percentile values at the "threshold" level.
+    """
+    result = ProbabilitiesFromPercentiles2D(percentiles_cube,
+                                            output_diagnostic_name)
+    probability_cube = result.process(threshold_cube)
+    return probability_cube
 
 
 if __name__ == "__main__":

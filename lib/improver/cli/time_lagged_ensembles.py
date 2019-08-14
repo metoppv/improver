@@ -42,7 +42,8 @@ from improver.utilities.time_lagging import GenerateTimeLaggedEnsemble
 
 def main(argv=None):
     """Load in the arguments and ensure they are set correctly. Then run
-    the time-lagged ensembles on the input cubes."""
+    the time-lagged ensembles on the input cubes.
+    """
     parser = ArgParser(
         description='This combines the realizations from different forecast '
                     'cycles into one cube. It does this by taking an input '
@@ -63,11 +64,39 @@ def main(argv=None):
         new_cube = load_cube(filename)
         cubes.append(new_cube)
 
+    # Process Cube
+    result = process(cubes)
+
+    # Save Cube
+    save_netcdf(result, args.output_file)
+
+
+def process(cubes):
+    """Module to run time-lagged ensembles.
+
+    This combines the realization from different forecast cycles into one cube.
+    It does this by taking an input Cubelist containing forecasts from
+    different cycles and merges them into a single cube, removing any
+    metadata that does not match.
+
+    Args:
+        cubes (iris.cube.Cubelist):
+            CubeList for the time-lagged ensemble to combine the realizations.
+
+    Returns:
+        result (iris.cube.Cube):
+            Merged Cube.
+
+    Raises:
+        ValueError:
+            If cubes have mismatched validity times.
+    """
+
     # Warns if a single file is input
     if len(cubes) == 1:
         warnings.warn('Only a single cube input, so time lagging will have '
                       'no effect.')
-        save_netcdf(cubes[0], args.output_file)
+        return cubes[0]
     # Raises an error if the validity times do not match
     else:
         for i, this_cube in enumerate(cubes):
@@ -78,8 +107,7 @@ def main(argv=None):
                     msg = ("Cubes with mismatched validity times are not "
                            "compatible.")
                     raise ValueError(msg)
-        result = GenerateTimeLaggedEnsemble().process(cubes)
-        save_netcdf(result, args.output_file)
+        return GenerateTimeLaggedEnsemble().process(cubes)
 
 
 if __name__ == "__main__":

@@ -86,41 +86,101 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
-    if args.min_lapse_rate > args.max_lapse_rate:
+    # Load Cubes
+    temperature_cube = load_cube(args.temperature_filepath)
+    orography_cube = None
+    land_sea_mask_cube = None
+    if not args.return_dalr:
+        orography_cube = load_cube(args.orography_filepath)
+        land_sea_mask_cube = load_cube(args.land_sea_mask_filepath)
+
+    # Process Cube
+    result = process(temperature_cube, orography_cube, land_sea_mask_cube,
+                     args.max_height_diff, args.nbhood_radius,
+                     args.max_lapse_rate, args.min_lapse_rate,
+                     args.return_dalr)
+
+    # Save Cube
+    save_netcdf(result, args.output_filepath)
+
+
+def process(temperature_cube, orography_cube, land_sea_mask_cube,
+            max_height_diff=35, nbhood_radius=7, max_lapse_rate=3*DALR,
+            min_lapse_rate=DALR, return_dalr=False):
+    """Calculate temperature lapse rates in units of K m-1 over orography grid.
+
+    Args:
+        temperature_cube (iris.cube.Cube):
+            A cube of air temperature to be processed (K).
+        orography_cube (iris.cube.Cube):
+             A Cube containing orography data (metres).
+        land_sea_mask_cube (iris.cube.Cube):
+            A cube containing a binary land-sea mask.
+            True for land-points.
+            False for sea.
+
+    Keyword Args:
+        max_height_diff (float):
+            Maximum allowable height difference between the central point and
+            points in the neighbourhood over which the lapse rate will be
+            calculated.
+            Default is 35.
+        nbhood_radius (int):
+            Radius of neighbourhood around each point. The neighbourhood
+            will be a square array with side length 2*nbhood_radius + 1.
+            The default value of 7 is from the reference paper.
+        max_lapse_rate (float):
+            Maximum lapse rate allowed.
+            Default is 3*improver.constants.DALR.
+        min_lapse_rate (float):
+            Minimum lapse rate allowed.
+            Default is improver.constants.DALR.
+        return_dalr (bool):
+            If True, returns a cube containing the dry adiabatic lapse rate
+            rather than calculating the true lapse rate.
+
+    Returns:
+        result (iris.cube.Cube):
+            Cube containing lapse rate (K m-1)
+
+    Raises:
+        ValueError:
+            If minimum lapse rate is greater than maximum.
+        ValueError:
+            If Maximum height difference is less than zero.
+        ValueError:
+            If neighbourhood radius is less than zero.
+
+    """
+    if min_lapse_rate > max_lapse_rate:
         msg = 'Minimum lapse rate specified is greater than the maximum.'
         raise ValueError(msg)
 
-    if args.max_height_diff < 0:
+    if max_height_diff < 0:
         msg = 'Maximum height difference specified is less than zero.'
         raise ValueError(msg)
 
-    if args.nbhood_radius < 0:
+    if nbhood_radius < 0:
         msg = 'Neighbourhood radius specified is less than zero.'
         raise ValueError(msg)
 
-    temperature_cube = load_cube(args.temperature_filepath)
-
-    if args.return_dalr:
+    if return_dalr:
         result = temperature_cube.copy(
             data=np.full_like(temperature_cube.data, U_DALR.points[0]))
         result.rename('air_temperature_lapse_rate')
         result.units = U_DALR.units
     else:
-        orography_cube = load_cube(args.orography_filepath)
-        land_sea_mask_cube = load_cube(args.land_sea_mask_filepath)
         result = LapseRate(
-            max_height_diff=args.max_height_diff,
-            nbhood_radius=args.nbhood_radius,
-            max_lapse_rate=args.max_lapse_rate,
-            min_lapse_rate=args.min_lapse_rate).process(temperature_cube,
-                                                        orography_cube,
-                                                        land_sea_mask_cube)
-
+            max_height_diff=max_height_diff,
+            nbhood_radius=nbhood_radius,
+            max_lapse_rate=max_lapse_rate,
+            min_lapse_rate=min_lapse_rate).process(temperature_cube,
+                                                   orography_cube,
+                                                   land_sea_mask_cube)
     attributes = {"title": "delete", "source": "delete",
                   "history": "delete", "um_version": "delete"}
     result = amend_metadata(result, attributes=attributes)
-
-    save_netcdf(result, args.output_filepath)
+    return result
 
 
 if __name__ == "__main__":

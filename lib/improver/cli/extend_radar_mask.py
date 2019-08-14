@@ -58,18 +58,43 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
-    # load data
+    # Load Cubes
     radar_data = load_cube(args.radar_data_filepath)
     coverage = load_cube(args.coverage_filepath)
 
-    # extend mask
-    remasked_data = ExtendRadarMask().process(radar_data, coverage)
+    # Process Cube
+    remasked_data = process(coverage, radar_data, args.fix_float64)
 
-    # Check and fix for float64 data only option:
-    check_cube_not_float64(remasked_data, fix=args.fix_float64)
-
-    # save output file
+    # Save Cube
     save_netcdf(remasked_data, args.output_filepath)
+
+
+def process(coverage, radar_data, fix_float64=False):
+    """ Extend radar mask based on coverage data.
+
+    Extends the mask on radar data based on the radar coverage composite.
+    Update the mask on the input cube to reflect where coverage is valid.
+
+    Args:
+        coverage (iris.cube.Cube):
+            Cube containing the radar data to remask
+        radar_data (iris.cube.Cube):
+            Cube containing the radar coverage data.
+
+    Keyword Args:
+        fix_float64 (bool):
+            Check and fix cube for float64 data. Without this, an exception
+            will be raised if float64 data is found but no fix applied.
+
+    Returns:
+        result (iris.cube.Cube):
+            A cube with the remasked radar data.
+    """
+    # extend mask
+    result = ExtendRadarMask().process(radar_data, coverage)
+    # Check and fix for float64 data only option:
+    check_cube_not_float64(result, fix=fix_float64)
+    return result
 
 
 if __name__ == "__main__":

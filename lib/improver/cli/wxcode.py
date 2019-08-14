@@ -135,8 +135,8 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
+    # Load Cube
     cubes = load_cubelist(args.input_filepaths, no_lazy_load=True)
-
     required_number_of_inputs = n_files
     if args.wxtree == 'global':
         required_number_of_inputs = n_files_global
@@ -146,8 +146,32 @@ def main(argv=None):
                                        required_number_of_inputs)
         raise argparse.ArgumentTypeError(msg)
 
-    result = (WeatherSymbols(wxtree=args.wxtree).process(cubes))
+    # Process Cube
+    result = process(cubes, args.wxtree)
+
+    # Save Cube
     save_netcdf(result, args.output_filepath)
+
+
+def process(cubes, wxtree='high_resolution'):
+    """ Processes cube for Weather symbols.
+
+    Args:
+        cubes (iris.cube.Cubelist):
+            A cubelist containing the diagnostics required for the
+            weather symbols decision tree, these at co-incident times.
+        wxtree (str):
+            Weather Code tree.
+            Choices are high_resolution or global.
+            Default is 'high_resolution'.
+
+    Returns:
+        result (iris.cube.Cube):
+            A cube of weather symbols.
+
+    """
+    result = WeatherSymbols(wxtree=wxtree).process(cubes)
+    return result
 
 
 if __name__ == "__main__":

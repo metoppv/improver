@@ -51,9 +51,37 @@ def main(argv=None):
                         "pad the input grid.  Default is 162 000 m.")
     args = parser.parse_args(args=argv)
 
+    # Load Cube
     cube = load_cube(args.input_file)
-    halo_cube = create_cube_with_halo(cube, args.halo_radius)
-    save_netcdf(halo_cube, args.output_file)
+
+    # Process Cube
+    result = process(cube, args.halo_radius)
+
+    # Save Cube
+    save_netcdf(result, args.output_file)
+
+
+def process(cube, halo_radius=162000.0):
+    """Generate a zeroed grid with halo from a source cube.
+
+    Create a template cube defining a new grid by adding a fixed width halo on
+    all sides to the input cube grid. The cube contains no meaningful data.
+
+    Args:
+        cube (iris.cube.Cube):
+            The cube to be processed.
+
+    Keyword Args:
+        halo_radius (float):
+            Radius in metres of which to pad the input grid.
+            Default is 162,000
+
+    Returns:
+        result (iris.cube.Cube):
+            The processed Cube defining the halo-padded grid (data set to 0)
+    """
+    result = create_cube_with_halo(cube, halo_radius)
+    return result
 
 
 if __name__ == '__main__':

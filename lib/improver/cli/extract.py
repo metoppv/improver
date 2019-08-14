@@ -67,17 +67,57 @@ def main(argv=None):
                         'return the input cube.')
     args = parser.parse_args(args=argv)
 
+    # Load Cube
     cube = load_cube(args.input_file)
 
-    output_cube = extract_subcube(cube, args.constraints, args.units)
+    # Process Cube
+    output_cube = process(cube, args.constraints, args.units)
 
+    # Save Cube
     if output_cube is None and args.ignore_failure:
         save_netcdf(cube, args.output_file)
     elif output_cube is None:
-        msg = ("Constraint(s) could not be matched in input cube")
+        msg = "Constraint(s) could not be matched in input cube"
         raise ValueError(msg)
     else:
         save_netcdf(output_cube, args.output_file)
+
+
+def process(cube, constraints, units=None):
+    """ Extract a subset of a single cube.
+
+    Extracts subset of data from a single cube, subject to equality-based
+    constraints.
+    Using a set of constraints, extract a sub-cube from the provided cube if it
+    is available.
+
+    Args:
+        cube (iris.cube.Cube):
+            The Cube from which a sub-cube is extracted
+        constraints (list):
+            The constraint(s) to be applied.  These must be of the form
+            "key=value", eg "threshold=1".  Scalars, boolean and string
+            values are supported.  Comma-separated lists
+            e.g. key=[value1,value2,value3]
+            are supported.
+            These comma-separated lists can either extract all values
+            specified in the list or all values specified within a range
+            e.g. key=[value1:value3].
+            When a range is specified, this is inclusive of the endpoints of
+            the range.
+
+    Keyword Args:
+        units (list):
+            List of units as strings corresponding to each coordinate in the
+            list of constraints. One or more "units" may be None and units may
+            only be associated with coordinate constraints.
+
+    Returns:
+        (iris.cube.Cube):
+            A single cube matching the input constraints or None. If no
+            sub-cube is found within the cube that matches the constraints.
+    """
+    return extract_subcube(cube, constraints, units)
 
 
 if __name__ == '__main__':
