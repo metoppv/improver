@@ -68,7 +68,8 @@ def enforce_units_and_dtypes(cubes, coords=None, enforce=True):
     if isinstance(cubes, iris.cube.Cube):
         cubes = [cubes]
 
-    # make a copy of the input cube list
+    # return a new cube list from the inputs in which data units and datatypes
+    # have been enforced
     new_cubes = enforce_diagnostic_units_and_dtypes(cubes, inplace=False)
     # set up coordinates to check
     if coords is not None:
@@ -77,7 +78,7 @@ def enforce_units_and_dtypes(cubes, coords=None, enforce=True):
         all_coords = []
         for cube in cubes:
             all_coords.extend(
-                [coord.name() for coord in new_cubes[0].coords()])
+                [coord.name() for coord in cube.coords()])
         all_coords = list(set(all_coords))
     # modify the copied cubes in place
     enforce_coordinate_units_and_dtypes(new_cubes, all_coords)
@@ -97,16 +98,16 @@ def enforce_units_and_dtypes(cubes, coords=None, enforce=True):
                 try:
                     if cube.coord(coord).units != ref.coord(coord).units:
                         msg = ('Units {} of coordinate {} on {} cube do not '
-                               'conform to expected standard')
+                               'conform to expected standard {}')
                         raise ValueError(msg.format(
-                            cube.coord(coord).units, ref.coord(coord).name(),
-                            ref.name()))
+                            ref.coord(coord).units, ref.coord(coord).name(),
+                            ref.name(), cube.coord(coord).units))
                     if cube.coord(coord).dtype != ref.coord(coord).dtype:
                         msg = ('Datatype {} of coordinate {} on {} cube does '
-                               'not conform to expected standard')
+                               'not conform to expected standard {}')
                         raise ValueError(msg.format(
-                            cube.coord(coord).dtype, ref.coord(coord).name(),
-                            ref.name()))
+                            ref.coord(coord).dtype, ref.coord(coord).name(),
+                            ref.name(), cube.coord(coord).dtype))
                 except CoordinateNotFoundError:
                     pass
 
@@ -142,7 +143,7 @@ def _find_dict_key(input_key, error_msg):
         if key in input_key:
             matching_keys.append(key)
     if len(matching_keys) != 1:
-        raise KeyError(error_msg)
+        raise KeyError(error_msg, 'matching keys:', matching_keys)
 
     return matching_keys[0]
 

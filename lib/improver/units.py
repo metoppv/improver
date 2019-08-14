@@ -62,10 +62,10 @@ DEFAULT_UNITS = {
     "projection_y_coordinate": {"unit": "m"},
     "percentile": {"unit": "%"},
     "probability": {"unit": "1"},
-    # standard diagnostics and suitable substrings
-    "temperature": {"unit": "K"},
-    "thickness": {"unit": "m"},
+    # standard diagnostics and suitable substrings (alphabetised for clarity)
     "fall_rate": {"unit": "m s-1"},
+    "lapse_rate": {"unit": "K m-1"},
     "precipitation_rate": {"unit": "m s-1"},
-    "lapse_rate": {"unit": "K m-1"}
+    "temperature": {"unit": "K"},
+    "thickness": {"unit": "m"}
 }

@@ -105,12 +105,21 @@ class Test_enforce_units_and_dtypes(IrisTest):
         self.assertEqual(self.data_cube.coord(test_coord).units, 'km')
         self.assertEqual(result.coord(test_coord).units, 'm')
 
-    def test_units_fail(self):
+    def test_data_units_fail(self):
         """Test error is raised when enforce=False"""
         self.data_cube.convert_units('Fahrenheit')
         msg = "Units Fahrenheit of air_temperature cube do not conform"
         with self.assertRaisesRegex(ValueError, msg):
             cube_units.enforce_units_and_dtypes(self.data_cube, enforce=False)
+
+    def test_coord_units_fail(self):
+        """Test error is raised when enforce=False"""
+        self.probability_cube.coord(
+            'air_temperature').convert_units('Fahrenheit')
+        msg = "Units Fahrenheit of coordinate air_temperature on probability_"
+        with self.assertRaisesRegex(ValueError, msg):
+            cube_units.enforce_units_and_dtypes(
+                self.probability_cube, enforce=False)
 
     def test_data_datatype_enforce(self):
         """Test dataset datatypes are enforced"""
@@ -127,20 +136,42 @@ class Test_enforce_units_and_dtypes(IrisTest):
         result, = cube_units.enforce_units_and_dtypes(self.data_cube)
         self.assertEqual(result.coord(test_coord).dtype, np.int64)
 
-    def test_datatype_fail(self):
+    def test_data_datatype_fail(self):
         """Test error is raised when enforce=False"""
-        self.percentile_cube.coord("percentile").points = (
-            self.percentile_cube.coord("percentile").points.astype(np.int32))
+        self.percentile_cube.data = (
+            self.percentile_cube.data.astype(np.float64))
+        msg = "of air_temperature cube does not conform"
+        with self.assertRaisesRegex(ValueError, msg):
+            cube_units.enforce_units_and_dtypes(
+                self.percentile_cube, enforce=False)
+
+    def test_coord_datatype_fail(self):
+        """Test error is raised when enforce=False"""
+        self.percentile_cube.coord('percentile').points = (
+            self.percentile_cube.coord('percentile').points.astype(np.int32))
         msg = "of coordinate percentile on air_temperature cube"
         with self.assertRaisesRegex(ValueError, msg):
             cube_units.enforce_units_and_dtypes(
                 self.percentile_cube, enforce=False)
 
+    def test_coordinates_correctly_identified(self):
+        """Test all coordinates in a heterogeneous cube list are identified and
+        corrected"""
+        self.percentile_cube.coord('percentile').points = (
+            self.percentile_cube.coord('percentile').points.astype(np.int32))
+        self.probability_cube.coord(
+            'air_temperature').convert_units('Fahrenheit')
+        result = cube_units.enforce_units_and_dtypes(
+            [self.percentile_cube, self.probability_cube])
+        self.assertEqual(result[0].coord('percentile').dtype, np.float32)
+        self.assertEqual(result[1].coord('air_temperature').units, 'K')
+
 
 class Test__find_dict_key(IrisTest):
     """Test method to find suitable substring keys in dictionary"""
 
-    def setUp(self):
+    @staticmethod
+    def setUp():
         """Redirect to dummy dictionary"""
         cube_units.DEFAULT_UNITS = {
             "time": {
