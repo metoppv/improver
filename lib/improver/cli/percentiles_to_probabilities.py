@@ -99,12 +99,8 @@ def main(argv=None):
 def process(percentiles_cube, threshold_cube, output_diagnostic_name):
     """Calculates probability from a percentiled field.
 
-    Calculate probability from a percentiled field at a 2D threshold level.
-    E.g for 2D percentile levels at different heights, calculate probability
-    that height is at ground level, where the threshold contains a 2D
-    topography field.
-    Slices the percentile cube over any non-spatial coordinates if present
-    and call the percentile interpolation method for each resulting cube.
+    Plugin generates probabilities at a fixed threshold (height) from a set
+    of (height) percentiles.
 
     Args:
         percentiles_cube (iris.cube.Cube):
