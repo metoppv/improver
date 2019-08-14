@@ -38,7 +38,7 @@ def load_cube_or_none(file_path):
     """If there is a filepath, loads a cube and returns it, else returns None.
 
     Args:
-        file_path (string):
+        file_path (str):
             File path to the file to load as a cube.
 
     Returns:
@@ -54,7 +54,7 @@ def load_json_or_none(file_path):
     """If there is a path, runs json.load and returns it. Else returns None.
 
     Args:
-        file_path (string):
+        file_path (str):
             File path to the json file to load.
 
     Returns:
