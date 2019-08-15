@@ -83,8 +83,8 @@ optional arguments:
   --model_id_attr MODEL_ID_ATTR
                         The name of the netCDF file attribute to be used to
                         identify the source model for multi-model blends.
-                        Default assumes Met Office model metadata. Must be
-                        present on all input files if blending over models.
+                        Default is None. Must be present on all input files if
+                        blending over models.
   --spatial_weights_from_mask
                         If set this option will result in the generation of
                         spatially varying weights based on the masks of the
