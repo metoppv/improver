@@ -30,19 +30,20 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Provides support utilities for cli scripts."""
 
-from improver.utilities.load import load_cube
 import json
+
+from improver.utilities.load import load_cube
 
 
 def load_cube_or_none(file_path):
     """If there is a filepath, loads a cube and returns it, else returns None.
 
     Args:
-        file_path (str):
+        file_path (str or None):
             File path to the file to load as a cube.
 
     Returns:
-        (iris.cube.Cube):
+        (iris.cube.Cube or None):
             A loaded cube.
             or
             None
@@ -54,11 +55,11 @@ def load_json_or_none(file_path):
     """If there is a path, runs json.load and returns it. Else returns None.
 
     Args:
-        file_path (str):
+        file_path (str or None):
             File path to the json file to load.
 
     Returns:
-        (dictionary):
+        (dict or None):
             A dictionary loaded from a json file.
             or
             None
@@ -74,10 +75,11 @@ def load_json_or_none(file_path):
 def radius_or_radii_and_lead(radius=None, radii_by_lead_time=None):
     """Takes either argument and returns radius/radii and lead time.
 
+
     Args:
         radius (float or None):
             If it exists it returns it as a radius
-        radii_by_lead_time (list):
+        radii_by_lead_time (list of str or None):
             If radius doesn't exist and this does, it splits by a comma
             and gives radius_or_radii [0] and lead_times [1].
 
@@ -101,8 +103,5 @@ def radius_or_radii_and_lead(radius=None, radii_by_lead_time=None):
     elif radii_by_lead_time:
         radius_or_radii = radii_by_lead_time[0].split(",")
         lead_times = radii_by_lead_time[1].split(",")
-    else:
-        radius_or_radii = None
-        lead_times = None
 
     return radius_or_radii, lead_times

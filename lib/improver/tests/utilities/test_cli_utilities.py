@@ -29,13 +29,23 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for utilities.cli_utilities."""
-
+import json
+import os
 import unittest
+from subprocess import call as Call
+from tempfile import mkdtemp
 
-from improver.utilities.cli_utilities import radius_or_radii_and_lead
+import iris
+import numpy as np
+
+from improver.tests.set_up_test_cubes import set_up_variable_cube
+from improver.utilities.cli_utilities import (radius_or_radii_and_lead,
+                                              load_json_or_none,
+                                              load_cube_or_none)
+from improver.utilities.save import save_netcdf
 
 
-class TestRadiusOrRadiiAndLead(unittest.TestCase):
+class Test_radius_or_radii_and_lead(unittest.TestCase):
     """Tests radius_or_radii_and_lead to split the data correctly."""
 
     def test_radius(self):
@@ -69,6 +79,54 @@ class TestRadiusOrRadiiAndLead(unittest.TestCase):
 
         self.assertEqual(radius, 3.3)
         self.assertIsNone(lead)
+
+
+class Test_load_json_or_none(unittest.TestCase):
+    """Tests load_json_or_none to call loading json or return None."""
+
+    def setUp(self):
+        self.directory = mkdtemp()
+        self.filepath = os.path.join(self.directory, "temp.json")
+        self.data = {'test': 1, 'testing': 2}
+        with open(self.filepath, 'w') as outfile:
+            json.dump(self.data, outfile)
+
+    def tearDown(self):
+        """Remove temporary directories created for testing."""
+        Call(['rm', '-f', self.filepath])
+        Call(['rmdir', self.directory])
+
+    def test_if_none(self):
+        """Tests if input is None it returns None"""
+        self.assertIsNone(load_json_or_none(None))
+
+    def test_if_file(self):
+        """Tests if the file exists and it loads it."""
+        self.assertEqual(load_json_or_none(self.filepath), self.data)
+
+
+class Test_load_cube_or_none(unittest.TestCase):
+    """Tests load_cube_or_none to call loading json or return None."""
+
+    def setUp(self):
+        """Set up variables for use in testing."""
+        self.directory = mkdtemp()
+        self.filepath = os.path.join(self.directory, "temp.nc")
+        self.cube = set_up_variable_cube(np.ones((3, 3, 3), dtype=np.float32))
+        save_netcdf(self.cube, self.filepath)
+
+    def tearDown(self):
+        """Remove temporary directories created for testing."""
+        Call(['rm', '-f', self.filepath])
+        Call(['rmdir', self.directory])
+
+    def test_if_none(self):
+        """Tests if input is None it returns None"""
+        self.assertIsNone(load_cube_or_none(None))
+
+    def test_if_file(self):
+        """Tests if the file exists and it loads it as a cube."""
+        self.assertIsInstance(load_cube_or_none(self.filepath), iris.cube.Cube)
 
 
 if __name__ == '__main__':
