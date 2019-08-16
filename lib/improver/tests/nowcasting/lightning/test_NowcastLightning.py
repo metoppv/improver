@@ -62,7 +62,7 @@ def set_up_lightning_test_cubes(validity_time=dt(2015, 11, 23, 7),
             forecast_reference_time: 2015-11-23 07:00:00
             forecast_period: 0 seconds
 
-    Kwargs:
+    Args:
         grid_points (int):
             Number of points along each spatial axis (square grid)
         validity_time (datetime.datetime):

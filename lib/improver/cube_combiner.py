@@ -51,7 +51,6 @@ class CubeCombiner(object):
         Args:
             operation (str):
                 Operation (+, - etc) to apply to the incoming cubes.
-        Keyword Args:
             warnings_on (bool):
                 If True output warnings for mismatching metadata.
 
@@ -118,7 +117,6 @@ class CubeCombiner(object):
                 Cube List contain the cubes to combine.
             new_diagnostic_name (str):
                 New name for the combined diagnostic.
-        Keyword Args:
             revised_coords (dict or None):
                 Revised coordinates for combined cube.
             revised_attributes (dict or None):

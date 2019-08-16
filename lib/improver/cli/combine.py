@@ -122,8 +122,6 @@ def process(cubelist, operation, new_cube_name,
             An operation to use in combining Cubes.
         new_cube_name (str):
             New name for the resulting dataset.
-
-    Keyword Args:
         new_metadata (dict):
             Dictionary of required changes to the metadata.
             Default is None.

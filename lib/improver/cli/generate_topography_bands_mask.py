@@ -125,8 +125,6 @@ def process(orography, landmask=None, thresholds_dict=None):
     Args:
         orography (iris.cube.Cube):
             The orography a standard grid.
-
-    Keyword Args:
         landmask (iris.cube.Cube):
             The land mask on standard grid. If provided data points are set to
             zero in every band.

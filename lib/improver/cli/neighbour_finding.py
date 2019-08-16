@@ -191,8 +191,6 @@ def process(orography, landmask, site_list, metadata_dict=None,
         site_list (dict):
             Dictionary that contains the spot sites for which neighbouring grid
             points are to be found.
-
-    Keyword Args:
         metadata_dict (dict):
             Dictionary that can be used to modify the metadata of the
             returned cube.

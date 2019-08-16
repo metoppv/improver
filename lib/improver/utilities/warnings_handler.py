@@ -46,7 +46,7 @@ class ManageWarnings(object):
         Set up a decorator with the warnings we want to ignore and what
         we want to do with any remaining warnings.
 
-        Keyword Args:
+        Args:
             ignored_messages (list of str):
                 A list of messages, one for each warning message we
                 want to ignore.

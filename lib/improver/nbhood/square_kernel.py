@@ -56,7 +56,7 @@ class SquareNeighbourhood(object):
         """
         Initialise class.
 
-        Keyword Args:
+        Args:
             weighted_mode (bool):
                 This is included to allow a standard interface for both the
                 square and circular neighbourhood plugins.
@@ -107,8 +107,6 @@ class SquareNeighbourhood(object):
                 direction will be applied. The cube should contain only x and
                 y dimensions, so will generally be a slice of a cube ordered
                 so that y is first in the cube (i.e. axis=0).
-
-        Kwargs:
             iscomplex (bool):
                 Flag indicating whether cube.data contains complex values.
 
@@ -243,11 +241,12 @@ class SquareNeighbourhood(object):
                 Must be passed through cumulate_array method first.
                 The cube should contain only x and y dimensions,
                 so will generally be a slice of a cube.
-            cells_x, cells_y (int):
-                The radius of the neighbourhood in grid points, in the x and y
-                directions (excluding the central grid point).
-
-        Kwargs:
+            cells_x (int):
+                The radius of the neighbourhood in grid points, in the x
+                direction (excluding the central grid point).
+            cells_y (int):
+                The radius of the neighbourhood in grid points, in the y
+                direction (excluding the central grid point).
             iscomplex (bool):
                 Flag indicating whether cube.data contains complex values.
 
@@ -315,7 +314,6 @@ class SquareNeighbourhood(object):
                 Cube that will be checked for whether the data is masked
                 or nan. The cube should contain only x and y dimensions,
                 so will generally be a slice of a cube.
-        Keyword Args:
             mask_cube (iris.cube.Cube):
                 Input Cube containing the array to be used as a mask.
 
@@ -473,8 +471,6 @@ class SquareNeighbourhood(object):
             radius (float):
                 Radius in metres for use in specifying the number of
                 grid cells used to create a square neighbourhood.
-
-        Keyword Args:
             mask_cube (iris.cube.Cube):
                 Cube containing the array to be used as a mask.
 

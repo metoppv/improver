@@ -53,7 +53,7 @@ class Accumulation:
         """
         Initialise the plugin.
 
-        Kwargs:
+        Args:
             accumulation_units (str):
                 The physical units in which the accumulation should be
                 returned. The default is metres.

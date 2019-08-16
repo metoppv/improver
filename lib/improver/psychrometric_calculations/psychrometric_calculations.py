@@ -531,7 +531,7 @@ class WetBulbTemperatureIntegral(object):
         """
         Initialise class.
 
-        Keyword Args:
+        Args:
             precision (float):
                 The precision to which the Newton iterator must converge
                 before returning wet bulb temperatures.
@@ -616,7 +616,7 @@ class FallingSnowLevel(object):
         """
         Initialise class.
 
-        Keyword Args:
+        Args:
             precision (float):
                 The precision to which the Newton iterator must converge
                 before returning wet bulb temperatures.
@@ -663,7 +663,7 @@ class FallingSnowLevel(object):
                 Wet bulb integral data on heights
             orog_data (numpy.ndarray):
                 Orographic data
-            heights (numpy.ndarray):
+            height_points (numpy.ndarray):
                 heights agl
 
         Returns:
@@ -771,10 +771,10 @@ class FallingSnowLevel(object):
             intercept (numpy.ndarray):
                 The intercept of the line of best fit we are using in the
                 extrapolation.
-            snow_falling_level (numpy.ndarray)
+            snow_falling_level (numpy.ndarray):
                 The snow falling level array with values filled in with snow
                 falling levels calculated through extrapolation.
-            sea points (numpy.ndarray)
+            sea_points (numpy.ndarray):
                 A boolean array with True where the points are sea points.
 
         """
@@ -826,8 +826,6 @@ class FallingSnowLevel(object):
                 leading dimension of the wet_bulb_temperature.
             sea_points (numpy.ndarray):
                 A boolean array with True where the points are sea points.
-
-        Keyword Args:
             start_point (int):
                 The index of the the starting height we want to use in our
                 linear fit.

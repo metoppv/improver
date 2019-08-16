@@ -68,7 +68,7 @@ class SpatiallyVaryingWeightsFromMask(object):
         """
         Initialise class.
 
-        Keyword Args:
+        Args:
             fuzzy_length (int or float):
                 The length in terms of number of grid squares, over which the
                 weights from the input data mask are smoothed. This is used

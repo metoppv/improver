@@ -97,8 +97,6 @@ def convert_distance_into_number_of_grid_cells(
             which equates to the requested distance in the x and y direction.
         distance (float):
             Distance in metres.
-
-    Kwargs:
         max_distance_in_grid_cells (int or None):
             Maximum distance in grid cells.  Defaults to None, which bypasses
             the check.
@@ -319,13 +317,6 @@ class DifferenceBetweenAdjacentGridSquares(object):
             cube (iris.cube.Cube):
                 Cube from which the differences will be calculated.
 
-        Kwargs:
-            gradient (bool):
-                Optionally return gradient rather than difference.  This has
-                dimensions of original grid, rather than losing 1 row & col,
-                which is achieved by linear interpolation (note this will
-                smooth over local maxima & minima).
-
         Returns:
             (tuple) : tuple containing:
                 **diff_along_y_cube** (iris.cube.Cube):
@@ -540,16 +531,18 @@ def get_nearest_coords(cube, latitude, longitude, iname, jname):
     Args:
         cube (iris.cube.Cube):
             Cube containing a representative grid.
-
-        latitude/longitude (float):
-            Latitude/longitude coordinates of spot data site of interest.
-
-        iname/jname (str):
-            Strings giving the names of the y/x coordinates to be searched.
+        latitude (float):
+            Latitude coordinates of spot data site of interest.
+        longitude (float):
+            Longitude coordinates of spot data site of interest.
+        iname (str):
+            String giving the name of the y coordinates to be searched.
+        jname (str):
+            String giving the names of the x coordinates to be searched.
 
     Returns:
-        i_latitude/j_latitude (int):
-            Grid coordinates of the nearest grid point to the spot data site.
+        Tuple[int, int]: Grid coordinates of the nearest grid point to the
+        spot data site.
 
     """
     i_latitude = cube.coord(iname).nearest_neighbour_index(latitude)
@@ -571,7 +564,7 @@ class RegridLandSea():
         """
         Initialise class
 
-        Keyword Args:
+        Args:
             extrapolation_mode (str):
                 Mode to use for extrapolating data into regions
                 beyond the limits of the source_data domain.

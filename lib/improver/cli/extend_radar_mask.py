@@ -80,8 +80,6 @@ def process(coverage, radar_data, fix_float64=False):
             Cube containing the radar data to remask
         radar_data (iris.cube.Cube):
             Cube containing the radar coverage data.
-
-    Keyword Args:
         fix_float64 (bool):
             Check and fix cube for float64 data. Without this, an exception
             will be raised if float64 data is found but no fix applied.

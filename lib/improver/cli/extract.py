@@ -105,8 +105,6 @@ def process(cube, constraints, units=None):
             e.g. key=[value1:value3].
             When a range is specified, this is inclusive of the endpoints of
             the range.
-
-    Keyword Args:
         units (list):
             List of units as strings corresponding to each coordinate in the
             list of constraints. One or more "units" may be None and units may

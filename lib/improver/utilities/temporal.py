@@ -54,7 +54,6 @@ def cycletime_to_datetime(cycletime, cycletime_format="%Y%m%dT%H%MZ"):
         cycletime (str):
             A cycletime that can be converted into a datetime using the
             cycletime_format supplied.
-    Keyword Args:
         cycletime_format (str):
             String containing the desired format for the cycletime.
     Returns:
@@ -72,7 +71,6 @@ def datetime_to_cycletime(adatetime, cycletime_format="%Y%m%dT%H%MZ"):
         adatetime (datetime.datetime):
             A datetime that can be converted into a cycletime using the
             cycletime_format supplied.
-    Keyword Args:
         cycletime_format (str):
             String containing the desired format for the cycletime.
     Returns:
@@ -93,8 +91,6 @@ def cycletime_to_number(
         cycletime (str):
             A cycletime that can be converted into a datetime using the
             cycletime_format supplied.
-
-    Keyword Args:
         cycletime_format (str):
             String containg the appropriate directives to indicate how
             the output datetime should display.
@@ -127,8 +123,6 @@ def forecast_period_coord(
     Args:
         cube (iris.cube.Cube):
             Cube from which the lead times will be determined.
-
-    Keyword Args:
         force_lead_time_calculation (bool):
             Force the lead time to be calculated from the
             forecast_reference_time and the time coordinate, even if

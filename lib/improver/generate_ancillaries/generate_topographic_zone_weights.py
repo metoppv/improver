@@ -173,7 +173,6 @@ class GenerateTopographicZoneWeights(object):
                 Definition of orography bands required.
                 The expected format of the dictionary is e.g.
                 `{'bounds': [[0, 50], [50, 200]], 'units': 'm'}`
-        Keyword Args:
             landmask (iris.cube.Cube):
                 Land mask on standard grid. If provided sea points are masked
                 out in the output array.

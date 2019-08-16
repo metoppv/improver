@@ -100,8 +100,6 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
                 Rounded up to convert into integer number of grid
                 points east and north, based on the characteristic spacing
                 at the zero indices of the cube projection-x and y coords.
-
-        Keyword Args:
             lead_times (list):
                 List of lead times or forecast periods, at which the radii
                 within 'radii' are defined. The lead times are expected

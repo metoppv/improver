@@ -60,8 +60,6 @@ class WeightsUtilities:
             Args:
                 weights (numpy.ndarray):
                     array of weights
-
-            Keyword Args:
                 axis (int):
                     The axis that we want to normalise along for a multiple
                     dimensional array. Defaults to None, meaning the whole
@@ -156,8 +154,6 @@ class ChooseWeightsLinear:
                 an initial set of weights and information regarding the
                 points along the specified coordinate at which the weights are
                 valid. An example dictionary is shown below.
-
-        Keyword Args:
             config_coord_name (str):
                 Name of the coordinate used to select the configuration.
                 For example, if the intention is to create weights that scale
@@ -293,8 +289,6 @@ class ChooseWeightsLinear:
                 Values to be used if extrapolation is required. The
                 fill values are used for target_points that are outside
                 the source_points grid.
-
-        Keyword Args:
             axis (int):
                 Axis along which the interpolation will occur.
 
@@ -624,8 +618,6 @@ class ChooseDefaultWeightsNonLinear:
                 Cube to be blended across the coord.
             coord_name (str):
                 Name of coordinate in the cube to be blended.
-
-        Kwargs:
             inverse_ordering (bool):
                 The input cube blend coordinate will be in ascending order,
                 so that calculated blend weights decrease with increasing

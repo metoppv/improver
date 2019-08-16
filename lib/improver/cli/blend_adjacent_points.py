@@ -122,8 +122,6 @@ def process(cubelist, coordinate, central_point, units, width,
         width (float):
             Width of the triangular weighting function used in the blending,
             in the units of the units argument.
-
-    Keyword Args:
         calendar (str)
             Calendar for parameter_unit if required.
             Default is 'gregorian'.

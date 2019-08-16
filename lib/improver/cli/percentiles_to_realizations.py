@@ -176,8 +176,6 @@ def process(cube, raw_forecast=None, no_of_percentiles=None,
     Args:
         cube (iris.cube.Cube):
             Cube expected to contain a percentiles coordinate.
-
-    Keyword Args:
         raw_forecast (iris.cube.Cube):
             Cube of raw (not post processed) weather data.
             This option is compulsory, if the reordering option is selected.

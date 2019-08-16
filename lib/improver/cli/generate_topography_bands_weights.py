@@ -137,8 +137,6 @@ def process(landmask, orography, thresholds_dict=None):
             output array
         orography (iris.cube.Cube):
             Orography on standard grid.
-
-    Keyword Args:
         thresholds_dict (dict):
             Definition of orography bands required.
             The expected format of the dictionary is e.g

@@ -50,7 +50,7 @@ def profile_start():
 def profile_hook_enable(dump_filename=None):
     """Register a hook to gather and dump profile information at exit.
 
-    Keyword Args:
+    Args:
         dump_filename (str):
             File path to dump profiling info into at exit.
     """
@@ -65,8 +65,6 @@ def profile_stop(profiler, sort_field='cumulative', dump_filename=None,
     Args:
         profiler (cProfile.Profile):
             Active profiling instance.
-
-    Keyword Args:
         sort_field (str):
             pstats.Stats sort field for ordering profiling results.
         dump_filename (str):

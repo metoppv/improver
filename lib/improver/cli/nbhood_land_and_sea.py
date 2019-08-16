@@ -161,8 +161,6 @@ def process(cube, mask, radius=None, radii_by_lead_time=None, weights=None,
         mask (iris.cube.Cube):
             A cube containing either a mask of topographic zones over land or
             a land-sea mask.
-
-    Keyword Args:
         radius (float):
             The radius in metres of the neighbourhood to apply.
             Rounded up to convert into integer number of grid points east and

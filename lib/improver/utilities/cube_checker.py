@@ -43,8 +43,6 @@ def check_cube_not_float64(cube, fix=False):
     Args:
         cube (iris.cube.Cube):
             The input cube that will be checked for float64 inclusion.
-
-    Keyword Args:
         fix (bool):
             If fix is True, then the cube is amended to not include float64
             data, otherwise, an error will be raised if float64 data is found.

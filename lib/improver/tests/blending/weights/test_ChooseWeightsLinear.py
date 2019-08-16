@@ -53,8 +53,8 @@ def set_up_basic_model_config_cube(frt=None, time_points=None):
     """Set up cube with dimensions of time x air_temperature x lat x lon, plus
      model id and configuration scalar coordinates
 
-    Kwargs:
-        frt (datetime):
+    Args:
+        frt (datetime.datetime):
             Forecast reference time point
         time_points (list):
             List of times as datetime instances to create a dim coord

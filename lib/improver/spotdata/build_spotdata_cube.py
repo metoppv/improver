@@ -75,8 +75,6 @@ def build_spotdata_cube(data, name, units,
             Float or 1d array of site longitudes in degrees
         wmo_id (str or list):
             String or list of site 5-digit WMO identifiers
-
-    Kwargs:
         scalar_coords (list):
             Optional list of iris.coords.AuxCoord instances
         neighbour_methods (list):

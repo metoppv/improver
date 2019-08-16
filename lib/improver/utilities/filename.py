@@ -49,13 +49,11 @@ def generate_file_name(cube, parameter=None, include_period=False):
     Args:
         cube (iris.cube.Cube):
             Cube containing nowcast data
-
-    Kwargs:
         parameter (str):
             Optional parameter name to use in the output filename rather than
             taking the name of the cube diagnostic.
         include_period (bool):
-            Keyword argument to indicate whether a period, accumulation or
+            Optional argument to indicate whether a period, accumulation or
             time window identifier should be included within the filename.
 
     Returns:

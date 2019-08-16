@@ -99,7 +99,7 @@ class OpticalFlow(object):
         Initialise the class with smoothing parameters for estimating gridded
         u- and v- velocities via optical flow.
 
-        Keyword Args:
+        Args:
             data_smoothing_method (str):
                 Smoothing method to be used on input fields before estimating
                 partial derivatives.  Can be square 'box' (as used in STEPS) or
@@ -567,8 +567,6 @@ class OpticalFlow(object):
                 proportion of zeroes present in this field.
             rain_mask (tuple):
                 Array indices where there is rain.
-
-        Keyword Args:
             zero_vel_threshold (float):
                 Fractional value to specify the proportion of zero values
                 that the advection field should contain at a maximum.
@@ -654,8 +652,6 @@ class OpticalFlow(object):
                 2D cube from (earlier) time 1
             cube2 (iris.cube.Cube):
                 2D cube from (later) time 2
-
-        Kwargs:
             boxsize (int):
                 The side length of the square box over which to solve the
                 optical flow constraint.  This should be greater than the

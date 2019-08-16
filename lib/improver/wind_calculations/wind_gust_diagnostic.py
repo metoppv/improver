@@ -114,6 +114,9 @@ class WindGustDiagnostic(object):
         Args:
             cube (iris.cube.Cube):
                 Cube containing the wind-gust diagnostic data.
+            perc_coord (iris.coords.Coord):
+                Percentile coordinate
+
         Returns:
             result (iris.cube.Cube):
                 Cube containing the wind-gust diagnostic data with

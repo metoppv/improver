@@ -47,7 +47,7 @@ class SpotLapseRateAdjust:
 
     def __init__(self, neighbour_selection_method='nearest'):
         """
-        Keyword Args:
+        Args:
             neighbour_selection_method (str):
                 The neighbour cube may contain one or several sets of grid
                 coordinates that match a spot site. These are determined by

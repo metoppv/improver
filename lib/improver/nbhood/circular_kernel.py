@@ -101,7 +101,7 @@ class CircularNeighbourhood(object):
         """
         Initialise class.
 
-        Keyword Args:
+        Args:
             weighted_mode (bool):
                 If True, use a circle for neighbourhood kernel with
                 weighting decreasing with radius.
@@ -191,8 +191,6 @@ class CircularNeighbourhood(object):
             radius (float):
                 Radius in metres for use in specifying the number of
                 grid cells used to create a circular neighbourhood.
-
-        Keyword Args:
             mask_cube (iris.cube.Cube or None):
                 Cube containing the array to be used as a mask.
 
@@ -226,7 +224,7 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
         """
         Initialise class.
 
-        Keyword Args:
+        Args:
             percentiles (list or float):
                 Percentile values at which to calculate; if not provided uses
                 DEFAULT_PERCENTILES.
@@ -402,8 +400,6 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
             radius (float):
                 Radius in metres for use in specifying the number of
                 grid cells used to create a circular neighbourhood.
-
-        Keyword Args:
             mask_cube (iris.cube.Cube or None):
                 Cube containing the array to be used as a mask.
 

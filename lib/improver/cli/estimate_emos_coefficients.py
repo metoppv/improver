@@ -233,8 +233,6 @@ def process(historic_forecast, truth, combined, historic_forecast_dict,
             the calculated EMOS coefficients. The validity time in the output
             coefficients cube will be calculated relative to this cycletime.
             This cycletime is in the format YYYYMMDDTHHMMZ.
-
-    Keyword Args:
         units (str):
             The units that calibration should be undertaken in. The historical
             forecast and truth will be converted as required.
