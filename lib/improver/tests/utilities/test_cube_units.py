@@ -166,6 +166,27 @@ class Test_enforce_units_and_dtypes(IrisTest):
         self.assertEqual(result[0].coord('percentile').dtype, np.float32)
         self.assertEqual(result[1].coord('air_temperature').units, 'K')
 
+    def test_subset_of_coordinates(self):
+        """Test function can enforce on a selected subset of coordinates and
+        leave all others unchanged"""
+        self.percentile_cube.coord('percentile').points = (
+            self.percentile_cube.coord('percentile').points.astype(np.int32))
+        self.percentile_cube.coord('time').convert_units(
+            'hours since 1970-01-01 00:00:00')
+        self.probability_cube.coord(
+            'air_temperature').convert_units('Fahrenheit')
+        self.probability_cube.coord('forecast_period').convert_units('h')
+
+        result = cube_units.enforce_units_and_dtypes(
+            [self.percentile_cube, self.probability_cube],
+            coords=["time", "forecast_period"])
+        self.assertEqual(result[0].coord('percentile').dtype, np.int32)
+        self.assertEqual(
+            result[0].coord('time').units, 'seconds since 1970-01-01 00:00:00')
+        self.assertEqual(
+            result[1].coord('air_temperature').units, 'Fahrenheit')
+        self.assertEqual(result[1].coord('forecast_period').units, 's')
+
 
 class Test__find_dict_key(IrisTest):
     """Test method to find suitable substring keys in dictionary"""
