@@ -47,6 +47,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     GenerateProbabilitiesFromMeanAndVariance,
     RebadgePercentilesAsRealizations,
     ResamplePercentiles)
+from improver.utilities.cli_utilities import load_cube_or_none
 from improver.utilities.cube_checker import find_percentile_coordinate
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
@@ -75,8 +76,8 @@ def main(argv=None):
              'probabilities or percentiles.')
     parser.add_argument(
         'coefficients_filepath',
-        metavar='COEFFICIENTS_FILEPATH',
-        help='A path to an input NetCDF file containing the '
+        metavar='COEFFICIENTS_FILEPATH', nargs='?',
+        help='(Optional) A path to an input NetCDF file containing the '
              'coefficients used for calibration.')
     parser.add_argument(
         'output_filepath', metavar='OUTPUT_FILEPATH',
@@ -132,7 +133,7 @@ def main(argv=None):
 
     # Load Cubes
     current_forecast = load_cube(args.forecast_filepath)
-    coeffs = load_cube(args.coefficients_filepath)
+    coeffs = load_cube_or_none(args.coefficients_filepath)
     # Process Cube
     result = process(current_forecast, coeffs, args.num_realizations,
                      args.random_ordering, args.random_seed,
@@ -156,8 +157,8 @@ def process(current_forecast, coeffs, num_realizations=None,
         current_forecast (iris.cube.Cube):
             A Cube containing the forecast to be calibrated. The input format
             could be either realizations, probabilities or percentiles.
-        coeffs (iris.cube.Cube):
-            A cube containing the coefficients used for calibration.
+        coeffs (iris.cube.Cube or None):
+            A cube containing the coefficients used for calibration or None.
 
     Keyword Args:
         num_realizations (numpy.int32):
@@ -206,6 +207,9 @@ def process(current_forecast, coeffs, num_realizations=None,
             num_realizations are given.
 
     """
+    if coeffs is None:
+        return current_forecast
+
     original_current_forecast = current_forecast.copy()
     try:
         find_percentile_coordinate(current_forecast)

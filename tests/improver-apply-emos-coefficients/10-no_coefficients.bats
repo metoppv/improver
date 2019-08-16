@@ -31,23 +31,15 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "apply-emos-coefficients using non-default predictor 'realizations'" {
+@test "apply-emos-coefficients for diagnostic with assumed gaussian distribution" {
   improver_check_skip_acceptance
-  if python -c "import statsmodels" &> /dev/null; then
-      COEFFS="estimate-emos-coefficients/realizations/with_statsmodels_kgo.nc"
-      KGO="ensemble-calibration/realizations/with_statsmodels_kgo.nc"
-  else
-      COEFFS="estimate-emos-coefficients/realizations/without_statsmodels_kgo.nc"
-      KGO="ensemble-calibration/realizations/without_statsmodels_kgo.nc"
-  fi
+  KGO="ensemble-calibration/gaussian/input.nc"
 
   # Apply EMOS coefficients to calibrate the input forecast
   # and check that the calibrated forecast matches the kgo.
   run improver apply-emos-coefficients \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/input.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$COEFFS" \
-      "$TEST_DIR/output.nc" \
-      --predictor_of_mean 'realizations' --random_seed 0
+      "$TEST_DIR/output.nc" --random_seed 0
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
