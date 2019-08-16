@@ -31,14 +31,15 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "estimate-emos-coefficients for diagnostic with assumed truncated gaussian distribution" {
+@test "estimate-emos-coefficients for combined historic forecasts and truths" {
   improver_check_skip_acceptance
-  KGO="estimate-emos-coefficients/truncated_gaussian/kgo.nc"
+  KGO="estimate-emos-coefficients/gaussian/kgo.nc"
 
   # Estimate the EMOS coefficients and check that they match the kgo.
-  run improver estimate-emos-coefficients 'truncated gaussian' '20170605T0300Z' \
-      --historic_filepath "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/truncated_gaussian/history/*.nc" \
-      --truth_filepath "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/truncated_gaussian/truth/*.nc" \
+  run improver estimate-emos-coefficients 'gaussian' '20170605T0300Z' \
+      --combined_filepath "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/*/*.nc" \
+      --historic_forecast_identifier "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/combined_input/historic_forecast.json" \
+      --truth_identifier "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/combined_input/truth.json" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

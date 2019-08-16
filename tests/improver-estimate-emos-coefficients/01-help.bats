@@ -35,11 +35,15 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver estimate-emos-coefficients [-h] [--profile]
                                            [--profile_file PROFILE_FILE]
+                                           [--historic_filepath HISTORIC_FILEPATH]
+                                           [--truth_filepath TRUTH_FILEPATH]
+                                           [--combined_filepath COMBINED_FILEPATH]
+                                           [--historic_forecast_identifier HISTORIC_FORECAST_IDENTIFIER]
+                                           [--truth_identifier TRUTH_IDENTIFIER]
                                            [--units UNITS]
                                            [--predictor_of_mean PREDICTOR_OF_MEAN]
                                            [--max_iterations MAX_ITERATIONS]
                                            DISTRIBUTION CYCLETIME
-                                           HISTORIC_FILEPATH TRUTH_FILEPATH
                                            OUTPUT_FILEPATH
 
 Estimate coefficients for Ensemble Model Output Statistics (EMOS), otherwise
@@ -55,10 +59,6 @@ positional arguments:
                         validity time in the output coefficients cube will be
                         calculated relative to this cycletime. This cycletime
                         is in the format YYYYMMDDTHHMMZ.
-  HISTORIC_FILEPATH     A path to an input NetCDF file containing the historic
-                        forecast(s) used for calibration.
-  TRUTH_FILEPATH        A path to an input NetCDF file containing the historic
-                        truth analyses used for calibration.
   OUTPUT_FILEPATH       The output path for the processed NetCDF
 
 optional arguments:
@@ -66,6 +66,22 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
+  --historic_filepath HISTORIC_FILEPATH
+                        A path to an input NetCDF file containing the historic
+                        forecast(s) used for calibration.
+  --truth_filepath TRUTH_FILEPATH
+                        A path to an input NetCDF file containing the historic
+                        truth analyses used for calibration.
+  --combined_filepath COMBINED_FILEPATH
+                        The path to the input NetCDF files containing both the
+                        historic forecast(s) and truth analyses used for
+                        calibration.
+  --historic_forecast_identifier HISTORIC_FORECAST_IDENTIFIER
+                        The path to a json file containing metadata
+                        information that defines the historic forecast.
+  --truth_identifier TRUTH_IDENTIFIER
+                        The path to a json file containing metadata
+                        information that defines the truth.
   --units UNITS         The units that calibration should be undertaken in.
                         The historical forecast and truth will be converted as
                         required.

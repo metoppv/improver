@@ -38,8 +38,8 @@
   # Run ensemble calibration with percentiles rebadged as realizations.
   run improver ensemble-calibration 'K' 'gaussian' \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/rebadged_percentiles/input.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
+      --historic_filepath "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
+      --truth_filepath "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

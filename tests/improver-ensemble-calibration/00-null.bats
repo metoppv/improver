@@ -34,6 +34,11 @@
   [[ "$status" -eq 2 ]]
   expected="usage: improver ensemble-calibration [-h] [--profile]
                                      [--profile_file PROFILE_FILE]
+                                     [--historic_filepath HISTORIC_DATA_FILE]
+                                     [--truth_filepath TRUTH_DATA_FILE]
+                                     [--combined_filepath COMBINED_FILEPATH]
+                                     [--historic_forecast_identifier HISTORIC_FORECAST_IDENTIFIER]
+                                     [--truth_identifier TRUTH_IDENTIFIER]
                                      [--predictor_of_mean CALIBRATE_MEAN_FLAG]
                                      [--save_mean MEAN_FILE]
                                      [--save_variance VARIANCE_FILE]
@@ -43,8 +48,7 @@
                                      [--ecc_bounds_warning]
                                      [--max_iterations MAX_ITERATIONS]
                                      UNITS_TO_CALIBRATE_IN DISTRIBUTION
-                                     INPUT_FILE HISTORIC_DATA_FILE
-                                     TRUTH_DATA_FILE OUTPUT_FILE
+                                     INPUT_FILE OUTPUT_FILE
 "
   [[ "$output" =~ "$expected" ]]
 }

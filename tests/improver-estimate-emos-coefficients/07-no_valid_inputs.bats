@@ -31,20 +31,15 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "estimate-emos-coefficients for diagnostic with assumed truncated gaussian distribution" {
+@test "estimate-emos-coefficients for no valid inputs" {
   improver_check_skip_acceptance
-  KGO="estimate-emos-coefficients/truncated_gaussian/kgo.nc"
 
-  # Estimate the EMOS coefficients and check that they match the kgo.
-  run improver estimate-emos-coefficients 'truncated gaussian' '20170605T0300Z' \
-      --historic_filepath "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/truncated_gaussian/history/*.nc" \
-      --truth_filepath "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/truncated_gaussian/truth/*.nc" \
+  # Estimate the EMOS coefficients and check the expected warning is raised.
+  run improver estimate-emos-coefficients 'gaussian' '20170605T0300Z' \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
-
-  improver_check_recreate_kgo "output.nc" $KGO
-
-  # Run nccmp to compare the output and kgo realizations and check it passes.
-  improver_compare_output_lower_precision "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
+  read -d '' expected <<'__TEXT__' || true
+UserWarning: In order to calculate the EMOS coefficients then either
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
 }

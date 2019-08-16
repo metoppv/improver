@@ -38,6 +38,8 @@ from iris.exceptions import CoordinateNotFoundError
 from improver.argparser import ArgParser
 from improver.ensemble_calibration.ensemble_calibration import (
     EnsembleCalibration)
+from improver.ensemble_calibration.ensemble_calibration_utilities import (
+    SplitHistoricForecastAndTruth)
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     EnsembleReordering,
     GeneratePercentilesFromMeanAndVariance,
@@ -45,8 +47,10 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     GenerateProbabilitiesFromMeanAndVariance,
     RebadgePercentilesAsRealizations,
     ResamplePercentiles)
+from improver.utilities.cli_utilities import (
+    load_cube_or_none, load_json_or_none)
 from improver.utilities.cube_checker import find_percentile_coordinate
-from improver.utilities.load import load_cube
+from improver.utilities.load import load_cube, load_cubelist
 from improver.utilities.save import save_netcdf
 
 
@@ -89,14 +93,29 @@ def main(argv=None):
              'to be processed. The file provided could be in the form of '
              'realizations, probabilities or percentiles.')
     parser.add_argument(
-        'historic_filepath', metavar='HISTORIC_DATA_FILE',
+        '--historic_filepath', metavar='HISTORIC_DATA_FILE',
         help='A path to an input NetCDF file containing the historic '
              'forecast(s) used for calibration. The file provided must be in '
              'the form of realizations.')
     parser.add_argument(
-        'truth_filepath', metavar='TRUTH_DATA_FILE',
+        '--truth_filepath', metavar='TRUTH_DATA_FILE',
         help='A path to an input NetCDF file containing the historic truth '
              'analyses used for calibration.')
+    parser.add_argument(
+        '--combined_filepath', metavar='COMBINED_FILEPATH',
+        default=None,
+        help='The path to the input NetCDF files containing both the historic '
+             'forecast(s) and truth analyses used for calibration.')
+    parser.add_argument(
+        "--historic_forecast_identifier",
+        metavar='HISTORIC_FORECAST_IDENTIFIER',
+        help='The path to a json file containing metadata information that '
+             'defines the historic forecast.')
+    parser.add_argument(
+        "--truth_identifier", metavar='TRUTH_IDENTIFIER',
+        help='The path to a json file containing metadata information that '
+             'defines the truth.')
+    # Output filepath
     parser.add_argument(
         'output_filepath', metavar='OUTPUT_FILE',
         help='The output path for the processed NetCDF')
@@ -172,14 +191,33 @@ def main(argv=None):
 
     # Load cubes
     current_forecast = load_cube(args.input_filepath)
-    historic_forecast = load_cube(args.historic_filepath)
-    truth = load_cube(args.truth_filepath)
+    historic_forecast = load_cube_or_none(args.historic_filepath)
+    truth = load_cube_or_none(args.truth_filepath)
+
+    combined = (load_cubelist(args.combined_filepath)
+                if args.combined_filepath else None)
+    historic_forecast_dict = (
+        load_json_or_none(args.historic_forecast_identifier))
+    truth_dict = load_json_or_none(args.truth_identifier)
+
+    if not any([historic_forecast, truth, combined]):
+        msg = ("In order to calculate the EMOS coefficients then either "
+               "the historic_filepath {} and the truth_filepath {} "
+               "should be specified, or the input_filepaths {} should be "
+               "specified alongside the historic_forecast_identifier {} and "
+               "truth_identifier {}. In this case the arguments provided "
+               "were not adequate.".format(
+                    args.historic_filepath, args.truth_filepath,
+                    args.input_filepath, args.historic_forecast_identifier,
+                    args.truth_identifier))
+        raise ValueError(msg)
+
     # Process Cubes
     result, forecast_predictor, forecast_variance = process(
-        current_forecast, historic_forecast, truth, args.units,
-        args.distribution, args.predictor_of_mean, args.num_realizations,
-        args.random_ordering, args.random_seed, args.ecc_bounds_warning,
-        args.max_iterations)
+        current_forecast, historic_forecast, truth, combined,
+        historic_forecast_dict, truth_dict, args.units, args.distribution,
+        args.predictor_of_mean, args.num_realizations, args.random_ordering,
+        args.random_seed, args.ecc_bounds_warning, args.max_iterations)
     # Save Cube
     save_netcdf(result, args.output_filepath)
 
@@ -190,7 +228,8 @@ def main(argv=None):
         save_netcdf(forecast_variance, args.save_variance)
 
 
-def process(current_forecast, historic_forecast, truth, units, distribution,
+def process(current_forecast, historic_forecast, truth, combined,
+            historic_forecast_dict, truth_dict, units, distribution,
             predictor_of_mean='mean', num_realizations=None,
             random_ordering=False, random_seed=None, ecc_bounds_warning=False,
             max_iterations=1000):
@@ -216,6 +255,25 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
             A cube containing historic forecasts to be used for calibration.
         truth (iris.cube.Cube):
             A Cube containing the historic truth data for calibration.
+        combined (iris.cube.CubeList):
+            A cubelist containing a combination of historic forecasts and
+            associated truths.
+        historic_forecast_dict (dict):
+            Dictionary specifying the metadata that defines the historic
+            forecast. For example:
+                {
+                    "attributes": {
+                        "mosg__model_configuration": "uk_ens"
+                    }
+                }
+        truth_dict (dict):
+            Dictionary specifying the metadata that defines the truth.
+            For example:
+                {
+                    "attributes": {
+                        "mosg__model_configuration": "uk_det"
+                    }
+                }
         units (str):
             The unit that calibration should be undertaken in. The current
             forecast, historical forecast and truth will be converted as
@@ -324,6 +382,12 @@ def process(current_forecast, historic_forecast, truth, units, distribution,
     if not num_realizations:
         num_realizations = len(
             current_forecast.coord('realization').points)
+
+    # Separate the historic forecasts and the associated truths, if these
+    # have been supplied as a single input.
+    if combined is not None:
+        historic_forecast, truth = SplitHistoricForecastAndTruth(
+            historic_forecast_dict, truth_dict).process(combined)
 
     # Ensemble-Calibration to calculate the mean and variance.
     forecast_predictor, forecast_variance = EnsembleCalibration(

@@ -34,11 +34,16 @@ Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
 Regression (NGR)."""
 
 import numpy as np
+import warnings
 
 from improver.argparser import ArgParser
 from improver.ensemble_calibration.ensemble_calibration import (
     EstimateCoefficientsForEnsembleCalibration)
-from improver.utilities.load import load_cube
+from improver.ensemble_calibration.ensemble_calibration_utilities import (
+    SplitHistoricForecastAndTruth)
+from improver.utilities.load import load_cubelist
+from improver.utilities.cli_utilities import (
+    load_cube_or_none, load_json_or_none)
 from improver.utilities.save import save_netcdf
 
 
@@ -69,12 +74,25 @@ def main(argv=None):
                              'This cycletime is in the format '
                              'YYYYMMDDTHHMMZ.')
     # Filepaths for historic and truth data.
-    parser.add_argument('historic_filepath', metavar='HISTORIC_FILEPATH',
+    parser.add_argument('--historic_filepath', metavar='HISTORIC_FILEPATH',
                         help='A path to an input NetCDF file containing the '
                              'historic forecast(s) used for calibration.')
-    parser.add_argument('truth_filepath', metavar='TRUTH_FILEPATH',
+    parser.add_argument('--truth_filepath', metavar='TRUTH_FILEPATH',
                         help='A path to an input NetCDF file containing the '
                              'historic truth analyses used for calibration.')
+    # Input filepaths
+    parser.add_argument('--combined_filepath', metavar='COMBINED_FILEPATH',
+                        help='The path to the input NetCDF files containing '
+                             'both the historic forecast(s) and truth '
+                             'analyses used for calibration.')
+    parser.add_argument("--historic_forecast_identifier",
+                        metavar='HISTORIC_FORECAST_IDENTIFIER',
+                        help='The path to a json file containing metadata '
+                             'information that defines the historic forecast.')
+    parser.add_argument("--truth_identifier", metavar='TRUTH_IDENTIFIER',
+                        help='The path to a json file containing metadata '
+                             'information that defines the truth.')
+    # Output filepath
     parser.add_argument('output_filepath', metavar='OUTPUT_FILEPATH',
                         help='The output path for the processed NetCDF')
     # Optional arguments.
@@ -107,18 +125,39 @@ def main(argv=None):
     args = parser.parse_args(args=argv)
 
     # Load Cubes
-    historic_forecast = load_cube(args.historic_filepath)
-    truth = load_cube(args.truth_filepath)
+    historic_forecast = load_cube_or_none(args.historic_filepath)
+    truth = load_cube_or_none(args.truth_filepath)
+
+    combined = (load_cubelist(args.combined_filepath)
+                if args.combined_filepath else None)
+    historic_forecast_dict = (
+        load_json_or_none(args.historic_forecast_identifier))
+    truth_dict = load_json_or_none(args.truth_identifier)
+
+    if not any([historic_forecast, truth, combined]):
+        msg = ("In order to calculate the EMOS coefficients then either "
+               "the historic_filepath {} and the truth_filepath {} "
+               "should be specified, or the combined_filepaths {} should be "
+               "specified alongside the historic_forecast_identifier {} and "
+               "truth_identifier {}. In this case the arguments provided "
+               "were not adequate.".format(
+                    args.historic_filepath, args.truth_filepath,
+                    args.combined_filepath, args.historic_forecast_identifier,
+                    args.truth_identifier))
+        warnings.warn(msg)
+        return
 
     # Process Cube
-    coefficients = process(historic_forecast, truth, args.distribution,
-                           args.cycletime, args.units, args.predictor_of_mean,
-                           args.max_iterations)
+    coefficients = process(historic_forecast, truth, combined,
+                           historic_forecast_dict, truth_dict,
+                           args.distribution, args.cycletime, args.units,
+                           args.predictor_of_mean, args.max_iterations)
     # Save Cube
     save_netcdf(coefficients, args.output_filepath)
 
 
-def process(historic_forecast, truth, distribution, cycletime, units=None,
+def process(historic_forecast, truth, combined, historic_forecast_dict,
+            truth_dict, distribution, cycletime, units=None,
             predictor_of_mean='mean', max_iterations=1000):
     """Module for estimate coefficients for Ensemble Model Output Statistics.
 
@@ -133,6 +172,25 @@ def process(historic_forecast, truth, distribution, cycletime, units=None,
             The cube containing the historical forecasts used for calibration.
         truth (iris.cube.Cube):
             The cube containing the truth used for calibration.
+        combined (iris.cube.CubeList):
+            A cubelist containing a combination of historic forecasts and
+            associated truths.
+        historic_forecast_dict (dict):
+            Dictionary specifying the metadata that defines the historic
+            forecast. For example:
+                {
+                    "attributes": {
+                        "mosg__model_configuration": "uk_ens"
+                    }
+                }
+        truth_dict (dict):
+            Dictionary specifying the metadata that defines the truth.
+            For example:
+                {
+                    "attributes": {
+                        "mosg__model_configuration": "uk_det"
+                    }
+                }
         distribution (str):
             The distribution that will be used for calibration. This will be
             dependant upon the input phenomenon.
@@ -169,6 +227,10 @@ def process(historic_forecast, truth, distribution, cycletime, units=None,
             contains a coefficient_index dimension coordinate and a
             coefficient_name auxiliary coordinate.
     """
+    if combined is not None:
+        historic_forecast, truth = SplitHistoricForecastAndTruth(
+            historic_forecast_dict, truth_dict).process(combined)
+
     result = EstimateCoefficientsForEnsembleCalibration(
         distribution, cycletime, desired_units=units,
         predictor_of_mean_flag=predictor_of_mean,

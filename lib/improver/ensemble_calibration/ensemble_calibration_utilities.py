@@ -36,6 +36,7 @@ specific for ensemble calibration.
 import numpy as np
 
 import iris
+from improver.utilities.temporal import iris_time_to_datetime
 
 
 def convert_cube_data_to_2d(
@@ -95,3 +96,145 @@ def check_predictor_of_mean_flag(predictor_of_mean_flag):
                "Accepted values are 'mean' or 'realizations'").format(
                    predictor_of_mean_flag.lower())
         raise ValueError(msg)
+
+
+class SplitHistoricForecastAndTruth():
+
+    """Split the historic forecasts and truth datasets based on the
+    metadata identifiers provided."""
+
+    def __init__(self, historic_forecast_dict, truth_dict):
+        """Initialise the plugin.
+
+        Args:
+            historic_forecast_dict (dict):
+                Dictionary specifying the metadata that defines the historic
+                forecast. For example:
+                    {
+                        "attributes": {
+                            "mosg__model_configuration": "uk_ens"
+                        }
+                    }
+            truth_dict (dict):
+                Dictionary specifying the metadata that defines the truth.
+                For example:
+                    {
+                        "attributes": {
+                            "mosg__model_configuration": "uk_det"
+                        }
+                    }
+        """
+        self.historic_forecast_dict = historic_forecast_dict
+        self.truth_dict = truth_dict
+
+    def __repr__(self):
+        """Represent the plugin instance as a string."""
+        result = ('<SplitHistoricForecastsAndTruth: '
+                  'historic_forecast_dict={}, truth_dict={}>')
+        return result.format(self.historic_forecast_dict, self.truth_dict)
+
+    @staticmethod
+    def _find_required_cubes_using_metadata(cubes, input_dict):
+        """
+        Extract the cube that matches the information within the input
+        dictionary.
+
+        Args:
+            cubes (iris.cube.CubeList):
+                The cube that will be checked to see whether the metadata
+                within this cube matches the input dictionary.
+            input_dict (dict):
+                A dictionary containing the metadata that will be used to
+                identify the desired cube.
+
+        Returns:
+            iris.cube.CubeList:
+                CubeList containing cubes that matches the metadata supplied
+                within the input dictionary.
+
+        Raises:
+            NotImplementedError:
+                Only constraining on attributes is supported.
+            ValueError:
+                The metadata supplied resulted in no matching cubes.
+
+        """
+        for key in input_dict.keys():
+            if key == "attributes":
+                constr = iris.AttributeConstraint(**input_dict[key])
+            else:
+                msg = ("At present, only constraining on attributes is "
+                       "supported. Support for constraining on other metadata "
+                       "can be added if required.")
+                raise NotImplementedError(msg)
+        cubelist = cubes.extract(constr)
+        if not cubelist:
+            msg = ("The metadata to identify the desired historic forecast or "
+                   "truth has found nothing matching the metadata information "
+                   "supplied: {}".format(input_dict))
+            raise ValueError(msg)
+        return cubelist
+
+    @staticmethod
+    def _filter_non_matching_cubes(historic_forecasts, truths):
+        """
+        Provide filtering for the historic forecast and truth to make sure
+        that these contain matching validity times. This ensures that any
+        mistmatch between the historic forecasts and truth is dealt with.
+
+        Args:
+            historic_forecasts (iris.cube.CubeList):
+                CubeList of historic forecasts that potentially contains
+                a mismatch compared to the truth.
+            truths (iris.cube.CubeList):
+                CubeList of truth that potentially contains a mismatch
+                compared to the historic forecasts.
+
+        Returns:
+            (tuple): tuple containing
+                matching_historic_forecasts (iris.cube.CubeList):
+                    CubeList of historic forecasts where any mismatches with
+                    the truth cubelist has been removed.
+                matching_truths (iris.cube.CubeList):
+                    CubeList of historic forecasts where any mismatches with
+                    the historic_forecasts cubelist has been removed.
+
+        """
+        matching_historic_forecasts = iris.cube.CubeList([])
+        matching_truths = iris.cube.CubeList([])
+        for cube in historic_forecasts:
+            coord_values = {"time": iris_time_to_datetime(cube.coord("time"))}
+            constr = iris.Constraint(coord_values=coord_values)
+            truth = truths.extract(constr)
+            if truth:
+                matching_historic_forecasts.append(cube)
+                matching_truths.extend(truth)
+        return matching_historic_forecasts, matching_truths
+
+    def process(self, cubes):
+        """
+        Separate the input cubes into the historic_forecasts and truth based
+        on the metadata information supplied within the input dictionaries.
+
+        Args:
+             cubes (iris.cube.CubeList):
+                CubeList of input cubes that are expected to contain a mixture
+                of historic forecasts and truth.
+
+        Returns:
+            (tuple): tuple containing
+
+                iris.cube.Cube:
+                    A cube containing the historic forecasts.
+                iris.cube.Cube:
+                    A cube containing the truth datasets.
+        """
+        historic_forecasts = self._find_required_cubes_using_metadata(
+            cubes, self.historic_forecast_dict)
+        truths = self._find_required_cubes_using_metadata(
+            cubes, self.truth_dict)
+
+        if len(historic_forecasts) != len(truths):
+            historic_forecasts, truths = (
+                self._filter_non_matching_cubes(historic_forecasts, truths))
+        return historic_forecasts.merge_cube(), truths.merge_cube()

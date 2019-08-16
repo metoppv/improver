@@ -35,6 +35,11 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver ensemble-calibration [-h] [--profile]
                                      [--profile_file PROFILE_FILE]
+                                     [--historic_filepath HISTORIC_DATA_FILE]
+                                     [--truth_filepath TRUTH_DATA_FILE]
+                                     [--combined_filepath COMBINED_FILEPATH]
+                                     [--historic_forecast_identifier HISTORIC_FORECAST_IDENTIFIER]
+                                     [--truth_identifier TRUTH_IDENTIFIER]
                                      [--predictor_of_mean CALIBRATE_MEAN_FLAG]
                                      [--save_mean MEAN_FILE]
                                      [--save_variance VARIANCE_FILE]
@@ -44,8 +49,7 @@ usage: improver ensemble-calibration [-h] [--profile]
                                      [--ecc_bounds_warning]
                                      [--max_iterations MAX_ITERATIONS]
                                      UNITS_TO_CALIBRATE_IN DISTRIBUTION
-                                     INPUT_FILE HISTORIC_DATA_FILE
-                                     TRUTH_DATA_FILE OUTPUT_FILE
+                                     INPUT_FILE OUTPUT_FILE
 
 Apply the requested ensemble calibration method using the current forecast (to
 be calibrated) in the form of realizations, probabilities, or percentiles,
@@ -73,11 +77,6 @@ positional arguments:
                         forecast to be processed. The file provided could be
                         in the form of realizations, probabilities or
                         percentiles.
-  HISTORIC_DATA_FILE    A path to an input NetCDF file containing the historic
-                        forecast(s) used for calibration. The file provided
-                        must be in the form of realizations.
-  TRUTH_DATA_FILE       A path to an input NetCDF file containing the historic
-                        truth analyses used for calibration.
   OUTPUT_FILE           The output path for the processed NetCDF
 
 optional arguments:
@@ -85,6 +84,23 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
+  --historic_filepath HISTORIC_DATA_FILE
+                        A path to an input NetCDF file containing the historic
+                        forecast(s) used for calibration. The file provided
+                        must be in the form of realizations.
+  --truth_filepath TRUTH_DATA_FILE
+                        A path to an input NetCDF file containing the historic
+                        truth analyses used for calibration.
+  --combined_filepath COMBINED_FILEPATH
+                        The path to the input NetCDF files containing both the
+                        historic forecast(s) and truth analyses used for
+                        calibration.
+  --historic_forecast_identifier HISTORIC_FORECAST_IDENTIFIER
+                        The path to a json file containing metadata
+                        information that defines the historic forecast.
+  --truth_identifier TRUTH_IDENTIFIER
+                        The path to a json file containing metadata
+                        information that defines the truth.
   --predictor_of_mean CALIBRATE_MEAN_FLAG
                         String to specify the input to calculate the
                         calibrated mean. Currently the ensemble mean ("mean")

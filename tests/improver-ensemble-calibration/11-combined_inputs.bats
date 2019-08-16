@@ -31,15 +31,17 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "estimate-emos-coefficients for diagnostic with assumed truncated gaussian distribution" {
+@test "ensemble-calibration for combined historic forecasts and truths" {
   improver_check_skip_acceptance
-  KGO="estimate-emos-coefficients/truncated_gaussian/kgo.nc"
+  KGO="ensemble-calibration/gaussian/kgo.nc"
 
-  # Estimate the EMOS coefficients and check that they match the kgo.
-  run improver estimate-emos-coefficients 'truncated gaussian' '20170605T0300Z' \
-      --historic_filepath "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/truncated_gaussian/history/*.nc" \
-      --truth_filepath "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/truncated_gaussian/truth/*.nc" \
-      "$TEST_DIR/output.nc"
+  # Run ensemble calibration and check it passes.
+  run improver ensemble-calibration 'K' 'gaussian' \
+      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/input.nc" \
+      --combined_filepath "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/*/*.nc" \
+      --historic_forecast_identifier "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/combined_input/historic_forecast.json" \
+      --truth_identifier "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/combined_input/truth.json" \
+      "$TEST_DIR/output.nc" --random_seed 0
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

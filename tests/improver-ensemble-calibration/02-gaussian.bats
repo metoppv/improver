@@ -38,8 +38,8 @@
   # Run ensemble calibration and check it passes.
   run improver ensemble-calibration 'K' 'gaussian' \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/input.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
+      --historic_filepath "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
+      --truth_filepath "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc" \
       "$TEST_DIR/output.nc" --random_seed 0
   [[ "$status" -eq 0 ]]
 
