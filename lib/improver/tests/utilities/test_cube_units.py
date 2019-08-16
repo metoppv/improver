@@ -229,7 +229,7 @@ class Test__find_dict_key(IrisTest):
             cube_units._find_dict_key("rainfall_rate", "")
 
 
-class Test_enforce_coordinate_units_and_dtypes(IrisTest):
+class Test__enforce_coordinate_units_and_dtypes(IrisTest):
 
     """Test the enforcement of coordinate units and data types."""
 
@@ -251,7 +251,7 @@ class Test_enforce_coordinate_units_and_dtypes(IrisTest):
         }
 
         cube_units.DEFAULT_UNITS = original_units
-        self.plugin = cube_units.enforce_coordinate_units_and_dtypes
+        self.plugin = cube_units._enforce_coordinate_units_and_dtypes
         self.cube = set_up_variable_cube(np.ones((5, 5), dtype=np.float32),
                                          spatial_grid='equalarea')
 
@@ -417,7 +417,7 @@ class Test_enforce_coordinate_units_and_dtypes(IrisTest):
                                       np.float64)
 
 
-class Test_enforce_diagnostic_units_and_dtypes(IrisTest):
+class Test__enforce_diagnostic_units_and_dtypes(IrisTest):
 
     """Test the enforcement of diagnostic units and data types."""
 
@@ -430,7 +430,7 @@ class Test_enforce_diagnostic_units_and_dtypes(IrisTest):
         }
 
         cube_units.DEFAULT_UNITS = original_units
-        self.plugin = cube_units.enforce_diagnostic_units_and_dtypes
+        self.plugin = cube_units._enforce_diagnostic_units_and_dtypes
         self.cube = set_up_variable_cube(np.ones((5, 5), dtype=np.float32),
                                          spatial_grid='equalarea')
 

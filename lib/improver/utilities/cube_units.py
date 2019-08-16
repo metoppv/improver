@@ -70,7 +70,7 @@ def enforce_units_and_dtypes(cubes, coords=None, enforce=True):
 
     # return a new cube list from the inputs in which data units and datatypes
     # have been enforced
-    new_cubes = enforce_diagnostic_units_and_dtypes(cubes, inplace=False)
+    new_cubes = _enforce_diagnostic_units_and_dtypes(cubes, inplace=False)
     # set up coordinates to check
     if coords is not None:
         all_coords = list(set(coords))
@@ -81,7 +81,7 @@ def enforce_units_and_dtypes(cubes, coords=None, enforce=True):
                 [coord.name() for coord in cube.coords()])
         all_coords = list(set(all_coords))
     # modify the copied cubes in place
-    enforce_coordinate_units_and_dtypes(new_cubes, all_coords)
+    _enforce_coordinate_units_and_dtypes(new_cubes, all_coords)
 
     if not enforce:
         # check each cube against its counterpart and fail if changed
@@ -148,7 +148,7 @@ def _find_dict_key(input_key, error_msg):
     return matching_keys[0]
 
 
-def enforce_coordinate_units_and_dtypes(cubes, coordinates, inplace=True):
+def _enforce_coordinate_units_and_dtypes(cubes, coordinates, inplace=True):
     """
     Function to enforce standard units and data types as defined in units.py.
     If undefined, the expected datatype is np.float32.
@@ -216,7 +216,7 @@ def enforce_coordinate_units_and_dtypes(cubes, coordinates, inplace=True):
         return cubes
 
 
-def enforce_diagnostic_units_and_dtypes(cubes, inplace=True):
+def _enforce_diagnostic_units_and_dtypes(cubes, inplace=True):
     """
     Function to enforce diagnostic units and data types as defined in units.py.
     If undefined, the expected datatype is np.float32.
