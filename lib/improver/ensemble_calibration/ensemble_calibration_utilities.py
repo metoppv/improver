@@ -180,7 +180,7 @@ class SplitHistoricForecastAndTruth():
         """
         Provide filtering for the historic forecast and truth to make sure
         that these contain matching validity times. This ensures that any
-        mistmatch between the historic forecasts and truth is dealt with.
+        mismatch between the historic forecasts and truth is dealt with.
 
         Args:
             historic_forecasts (iris.cube.CubeList):
@@ -194,10 +194,10 @@ class SplitHistoricForecastAndTruth():
             (tuple): tuple containing
                 matching_historic_forecasts (iris.cube.CubeList):
                     CubeList of historic forecasts where any mismatches with
-                    the truth cubelist has been removed.
+                    the truth cubelist have been removed.
                 matching_truths (iris.cube.CubeList):
-                    CubeList of historic forecasts where any mismatches with
-                    the historic_forecasts cubelist has been removed.
+                    CubeList of truths where any mismatches with
+                    the historic_forecasts cubelist have been removed.
 
         """
         matching_historic_forecasts = iris.cube.CubeList([])

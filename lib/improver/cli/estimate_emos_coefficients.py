@@ -137,10 +137,10 @@ def main(argv=None):
     if not any([historic_forecast, truth, combined]):
         msg = ("In order to calculate the EMOS coefficients then either "
                "the historic_filepath {} and the truth_filepath {} "
-               "should be specified, or the combined_filepaths {} should be "
+               "should be specified, or the combined_filepath {} should be "
                "specified alongside the historic_forecast_identifier {} and "
                "truth_identifier {}. In this case the arguments provided "
-               "were not adequate.".format(
+               "were not sufficient.".format(
                     args.historic_filepath, args.truth_filepath,
                     args.combined_filepath, args.historic_forecast_identifier,
                     args.truth_identifier))

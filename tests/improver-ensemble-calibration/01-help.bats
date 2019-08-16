@@ -35,8 +35,8 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver ensemble-calibration [-h] [--profile]
                                      [--profile_file PROFILE_FILE]
-                                     [--historic_filepath HISTORIC_DATA_FILE]
-                                     [--truth_filepath TRUTH_DATA_FILE]
+                                     [--historic_filepath HISTORIC_FILEPATH]
+                                     [--truth_filepath TRUTH_FILEPATH]
                                      [--combined_filepath COMBINED_FILEPATH]
                                      [--historic_forecast_identifier HISTORIC_FORECAST_IDENTIFIER]
                                      [--truth_identifier TRUTH_IDENTIFIER]
@@ -84,11 +84,11 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
-  --historic_filepath HISTORIC_DATA_FILE
+  --historic_filepath HISTORIC_FILEPATH
                         A path to an input NetCDF file containing the historic
                         forecast(s) used for calibration. The file provided
                         must be in the form of realizations.
-  --truth_filepath TRUTH_DATA_FILE
+  --truth_filepath TRUTH_FILEPATH
                         A path to an input NetCDF file containing the historic
                         truth analyses used for calibration.
   --combined_filepath COMBINED_FILEPATH

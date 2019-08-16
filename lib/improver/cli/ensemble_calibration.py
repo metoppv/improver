@@ -93,12 +93,12 @@ def main(argv=None):
              'to be processed. The file provided could be in the form of '
              'realizations, probabilities or percentiles.')
     parser.add_argument(
-        '--historic_filepath', metavar='HISTORIC_DATA_FILE',
+        '--historic_filepath', metavar='HISTORIC_FILEPATH',
         help='A path to an input NetCDF file containing the historic '
              'forecast(s) used for calibration. The file provided must be in '
              'the form of realizations.')
     parser.add_argument(
-        '--truth_filepath', metavar='TRUTH_DATA_FILE',
+        '--truth_filepath', metavar='TRUTH_FILEPATH',
         help='A path to an input NetCDF file containing the historic truth '
              'analyses used for calibration.')
     parser.add_argument(
@@ -203,10 +203,10 @@ def main(argv=None):
     if not any([historic_forecast, truth, combined]):
         msg = ("In order to calculate the EMOS coefficients then either "
                "the historic_filepath {} and the truth_filepath {} "
-               "should be specified, or the input_filepaths {} should be "
+               "should be specified, or the combined_filepath {} should be "
                "specified alongside the historic_forecast_identifier {} and "
                "truth_identifier {}. In this case the arguments provided "
-               "were not adequate.".format(
+               "were not sufficient.".format(
                     args.historic_filepath, args.truth_filepath,
                     args.input_filepath, args.historic_forecast_identifier,
                     args.truth_identifier))
