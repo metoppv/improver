@@ -141,9 +141,44 @@ def _find_dict_key(input_key, error_msg):
         if key in input_key:
             matching_keys.append(key)
     if len(matching_keys) != 1:
-        raise KeyError(error_msg, 'matching keys:', matching_keys)
+        msg = '{}, matching keys: {}'.format(error_msg, matching_keys)
+        raise KeyError(msg)
 
     return matching_keys[0]
+
+
+def _get_required_units_and_dtype(key):
+    """
+    Read DEFAULT_UNITS dict and return the required units and datatypes
+    for the given coordinate / diagnostic name.
+
+    Args:
+        key (str):
+            String name of coordinate or diagnostic to be checked
+
+    Returns:
+        units, dtype (tuple):
+            Tuple of strings identifying the required units and datatype
+
+    Raises:
+        KeyError:
+            If the input_key (or suitable substring) is not present in
+            DEFAULT_UNITS.
+    """
+    try:
+        unit = DEFAULT_UNITS[key]["unit"]
+    except KeyError:
+        msg = "Name '{}' not defined in units.py"
+        # hold the error and check for valid substrings
+        key = _find_dict_key(key, msg.format(key))
+        unit = DEFAULT_UNITS[key]["unit"]
+
+    try:
+        dtype = DEFAULT_UNITS[key]["dtype"]
+    except KeyError:
+        dtype = np.float32
+
+    return unit, dtype
 
 
 def _enforce_coordinate_units_and_dtypes(cubes, coordinates, inplace=True):
@@ -180,19 +215,7 @@ def _enforce_coordinate_units_and_dtypes(cubes, coordinates, inplace=True):
 
     for cube in cubes:
         for coord_name in coordinates:
-            coord_key = coord_name
-            try:
-                unit = DEFAULT_UNITS[coord_key]["unit"]
-            except KeyError:
-                msg = "Coordinate {} not defined in units.py"
-                # hold the error and check for valid substrings
-                coord_key = _find_dict_key(coord_key, msg.format(coord_key))
-                unit = DEFAULT_UNITS[coord_key]["unit"]
-
-            try:
-                dtype = DEFAULT_UNITS[coord_key]["dtype"]
-            except KeyError:
-                dtype = np.float32
+            unit, dtype = _get_required_units_and_dtype(coord_name)
 
             try:
                 coordinate = cube.coord(coord_name)
@@ -244,33 +267,20 @@ def _enforce_diagnostic_units_and_dtypes(cubes, inplace=True):
         cubes = [cube.copy() for cube in cubes]
 
     for cube in cubes:
-        diagnostic = cube.name()
-
-        try:
-            unit = DEFAULT_UNITS[diagnostic]["unit"]
-        except KeyError:
-            msg = "Diagnostic {} not defined in units.py"
-            # hold the error and check for valid substrings
-            diagnostic = _find_dict_key(diagnostic, msg.format(diagnostic))
-            unit = DEFAULT_UNITS[diagnostic]["unit"]
-
-        try:
-            dtype = DEFAULT_UNITS[diagnostic]["dtype"]
-        except KeyError:
-            dtype = np.float32
+        unit, dtype = _get_required_units_and_dtype(cube.name())
 
         try:
             cube.convert_units(unit)
         except ValueError:
             msg = '{} units cannot be converted to "{}"'
-            raise ValueError(msg.format(diagnostic, unit))
+            raise ValueError(msg.format(cube.name(), unit))
         else:
             if check_precision_loss(dtype, cube.data):
                 cube.data = cube.data.astype(dtype)
             else:
                 msg = ('Data type of diagnostic "{}" could not be'
                        ' enforced without losing significant precision.')
-                raise ValueError(msg.format(diagnostic))
+                raise ValueError(msg.format(cube.name()))
 
     if not inplace:
         return cubes

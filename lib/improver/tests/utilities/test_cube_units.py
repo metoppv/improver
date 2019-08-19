@@ -367,7 +367,7 @@ class Test__enforce_coordinate_units_and_dtypes(IrisTest):
         coord = 'number_of_fish'
         cube = self.cube
 
-        msg = 'Coordinate number_of_fish not defined in units.py'
+        msg = "'number_of_fish' not defined in units.py"
         with self.assertRaisesRegex(KeyError, msg):
             self.plugin([cube], [coord])
 
@@ -496,7 +496,7 @@ class Test__enforce_diagnostic_units_and_dtypes(IrisTest):
         cube = self.cube
         cube.rename('number_of_fish')
 
-        msg = 'Diagnostic number_of_fish not defined in units.py'
+        msg = "'number_of_fish' not defined in units.py"
         with self.assertRaisesRegex(KeyError, msg):
             self.plugin([cube])
 
