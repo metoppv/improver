@@ -108,7 +108,7 @@ class Test_enforce_units_and_dtypes(IrisTest):
     def test_data_units_fail(self):
         """Test error is raised when enforce=False"""
         self.data_cube.convert_units('Fahrenheit')
-        msg = "Units Fahrenheit of air_temperature cube do not conform"
+        msg = "does not conform"
         with self.assertRaisesRegex(ValueError, msg):
             cube_units.enforce_units_and_dtypes(self.data_cube, enforce=False)
 
@@ -116,7 +116,7 @@ class Test_enforce_units_and_dtypes(IrisTest):
         """Test error is raised when enforce=False"""
         self.probability_cube.coord(
             'air_temperature').convert_units('Fahrenheit')
-        msg = "Units Fahrenheit of coordinate air_temperature on probability_"
+        msg = "does not conform"
         with self.assertRaisesRegex(ValueError, msg):
             cube_units.enforce_units_and_dtypes(
                 self.probability_cube, enforce=False)
@@ -140,7 +140,7 @@ class Test_enforce_units_and_dtypes(IrisTest):
         """Test error is raised when enforce=False"""
         self.percentile_cube.data = (
             self.percentile_cube.data.astype(np.float64))
-        msg = "of air_temperature cube does not conform"
+        msg = "does not conform"
         with self.assertRaisesRegex(ValueError, msg):
             cube_units.enforce_units_and_dtypes(
                 self.percentile_cube, enforce=False)
@@ -149,7 +149,7 @@ class Test_enforce_units_and_dtypes(IrisTest):
         """Test error is raised when enforce=False"""
         self.percentile_cube.coord('percentile').points = (
             self.percentile_cube.coord('percentile').points.astype(np.int32))
-        msg = "of coordinate percentile on air_temperature cube"
+        msg = "does not conform"
         with self.assertRaisesRegex(ValueError, msg):
             cube_units.enforce_units_and_dtypes(
                 self.percentile_cube, enforce=False)
@@ -399,6 +399,7 @@ class Test__enforce_coordinate_units_and_dtypes(IrisTest):
 
         coord = 'number_of_fish'
         cube = self.cube
+        cube.coord('projection_x_coordinate').rename(coord)
 
         msg = "'number_of_fish' not defined in units.py"
         with self.assertRaisesRegex(KeyError, msg):

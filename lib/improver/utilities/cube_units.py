@@ -69,46 +69,47 @@ def enforce_units_and_dtypes(cubes, coords=None, enforce=True):
     if isinstance(cubes, iris.cube.Cube):
         cubes = [cubes]
 
-    # return a new cube list from the inputs in which data units and datatypes
-    # have been enforced
-    new_cubes = _enforce_diagnostic_units_and_dtypes(cubes, inplace=False)
-    # set up coordinates to check
-    if coords is not None:
-        all_coords = list(set(coords))
-    else:
-        all_coords = [
-            coord.name() for cube in cubes for coord in cube.coords()]
-        all_coords = list(set(all_coords))
-    # modify the copied cubes in place
-    _enforce_coordinate_units_and_dtypes(new_cubes, all_coords)
+    # create a list of copied cubes to modify
+    new_cubes = [cube.copy() for cube in cubes]
 
-    if not enforce:
-        # check each cube against its counterpart and fail if changed
-        for cube, ref in zip(new_cubes, cubes):
-            if cube.units != ref.units:
-                msg = ('Units {} of {} cube do not conform to '
-                       'expected standard {}')
-                raise ValueError(msg.format(ref.units, ref.name(), cube.units))
-            if cube.dtype != ref.dtype:
-                msg = ('Datatype {} of {} cube does not conform to '
-                       'expected standard {}')
-                raise ValueError(msg.format(ref.dtype, ref.name(), cube.dtype))
-            for coord in all_coords:
+    # construct a list of objects (cubes and coordinates) to be checked
+    object_list = []
+    for cube in new_cubes:
+        object_list.append(cube)
+        if coords is not None:
+            for coord in coords:
                 try:
-                    if cube.coord(coord).units != ref.coord(coord).units:
-                        msg = ('Units {} of coordinate {} on {} cube do not '
-                               'conform to expected standard {}')
-                        raise ValueError(msg.format(
-                            ref.coord(coord).units, ref.coord(coord).name(),
-                            ref.name(), cube.coord(coord).units))
-                    if cube.coord(coord).dtype != ref.coord(coord).dtype:
-                        msg = ('Datatype {} of coordinate {} on {} cube does '
-                               'not conform to expected standard {}')
-                        raise ValueError(msg.format(
-                            ref.coord(coord).dtype, ref.coord(coord).name(),
-                            ref.name(), cube.coord(coord).dtype))
+                    object_list.append(cube.coord(coord))
                 except CoordinateNotFoundError:
                     pass
+        else:
+            object_list.extend(cube.coords())
+
+    for object in object_list:
+        units, dtype = _get_required_units_and_dtype(object.name())
+
+        if not enforce:
+            # if not enforcing, throw an error if non-compliant
+            conforms = _check_units_and_dtype(object, units, dtype)
+            if not conforms:
+                msg = ('{} with units {} and datatype {} does not conform'
+                       ' to expected standard (units {}, datatype {})')
+                msg = msg.format(object.name(), object.units, object.dtype,
+                                 units, dtype)
+                raise ValueError(msg)
+
+        # convert units
+        try:
+            object.convert_units(units)
+        except ValueError:
+            msg = '{} units cannot be converted to "{}"'
+            raise ValueError(msg.format(object.name(), units))
+
+        # convert datatype
+        if isinstance(object, iris.cube.Cube):
+            _convert_diagnostic_dtype(object, dtype)
+        else:
+            _convert_coordinate_dtype(object, dtype)
 
     return iris.cube.CubeList(new_cubes)
 
@@ -209,109 +210,41 @@ def _check_units_and_dtype(object, units, dtype):
     return True
 
 
-def _enforce_coordinate_units_and_dtypes(cubes, coordinates, inplace=True):
+def _convert_coordinate_dtype(coord, dtype):
     """
-    Function to enforce standard units and data types as defined in units.py.
-    If undefined, the expected datatype is np.float32.
-
-    By default the cube units are changed in place, but setting inplace to
-    False will return a copy of the cubes, leaving the originals unchanged.
+    Convert a coordinate to the required units and datatype.
 
     Args:
-        cubes (iris.cube.CubeList):
-            List of cubes on which to enforce coordinate units and data types.
-        coordinates (list):
-            List of coordinates for which units and dtypes should be enforced.
-            This is a list of coordinate names.
-    Keyword Args:
-        inplace (bool):
-            If True (default) the cubes are modified in place, if False this
-            function returns a modified copy of the cubes.
-    Returns:
-        cubes (iris.cube.CubeList or insitu):
-            The input cubes with units and data types of the chosen coordinates
-            set to match the definitions in units.py.
-    Raises:
-        KeyError: If coordinate to enforce is not defined in units.py
-        ValueError: If requested unit conversion is not possible.
-        ValueError: If a unit data type could not be converted without losing
-                    significant information (e.g. rounding time to the nearest
-                    hour when there are sub-hourly components).
+        coord (iris.coords.Coord):
+            Coordinate instance to be modified in place
+        dtype (type):
+            Required datatype
     """
-    if not inplace:
-        cubes = [cube.copy() for cube in cubes]
-
-    for cube in cubes:
-        for coord_name in coordinates:
-            unit, dtype = _get_required_units_and_dtype(coord_name)
-
-            try:
-                coordinate = cube.coord(coord_name)
-                coordinate.convert_units(unit)
-            except ValueError:
-                msg = '{} units cannot be converted to "{}"'
-                raise ValueError(msg.format(coord_name, unit))
-            except CoordinateNotFoundError:
-                pass
-            else:
-                if check_precision_loss(dtype, coordinate.points):
-                    coordinate.points = coordinate.points.astype(dtype)
-                else:
-                    msg = ('Data type of coordinate "{}" could not be'
-                           ' enforced without losing significant precision.')
-                    raise ValueError(msg.format(coord_name))
-
-    if not inplace:
-        return cubes
+    if check_precision_loss(dtype, coord.points):
+        coord.points = coord.points.astype(dtype)
+    else:
+        msg = ('Data type of coordinate "{}" could not be'
+               ' enforced without losing significant precision.')
+        raise ValueError(msg.format(coord.name()))
 
 
-def _enforce_diagnostic_units_and_dtypes(cubes, inplace=True):
+def _convert_diagnostic_dtype(cube, dtype):
     """
-    Function to enforce diagnostic units and data types as defined in units.py.
-    If undefined, the expected datatype is np.float32.
-
-    By default the diagnostic units are changed in place, but setting inplace
-    to False will return a copy of the cubes, leaving the originals unchanged.
+    Convert cube data to the required units and datatype.
 
     Args:
-        cubes (iris.cube.CubeList):
-            List of cubes on which to enforce diagnostic units and data types.
-    Keyword Args:
-        inplace (bool):
-            If True (default) the cubes are modified in place, if False this
-            function returns a modified copy of the cubes.
-    Returns:
-        cubes (iris.cube.CubeList or insitu):
-            The input cubes with units and data types of the diagnostic
-            set to match the definitions in units.py.
-    Raises:
-        KeyError: If coordinate to enforce is not defined in units.py
-        ValueError: If requested unit conversion is not possible.
-        ValueError: If a unit data type could not be converted without losing
-                    significant information (e.g. removing significant
-                    fractional components when converting to integers).
+        cube (iris.cube.Cube):
+            Cube to be modified in place
+        dtype (type):
+            Required datatype
     """
-    if not inplace:
-        cubes = [cube.copy() for cube in cubes]
-
-    for cube in cubes:
-        unit, dtype = _get_required_units_and_dtype(cube.name())
-
-        try:
-            cube.convert_units(unit)
-        except ValueError:
-            msg = '{} units cannot be converted to "{}"'
-            raise ValueError(msg.format(cube.name(), unit))
-        else:
-            if check_precision_loss(dtype, cube.data):
-                cube.data = cube.data.astype(dtype)
-            else:
-                msg = ('Data type of diagnostic "{}" could not be'
-                       ' enforced without losing significant precision.')
-                raise ValueError(msg.format(cube.name()))
-
-    if not inplace:
-        return cubes
+    # if units conversion succeeded, convert datatype
+    if check_precision_loss(dtype, cube.data):
+        cube.data = cube.data.astype(dtype)
+    else:
+        msg = ('Data type of diagnostic "{}" could not be'
+               ' enforced without losing significant precision.')
+        raise ValueError(msg.format(cube.name()))
 
 
 def check_precision_loss(dtype, data, precision=5):
