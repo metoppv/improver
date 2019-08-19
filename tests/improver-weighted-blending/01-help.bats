@@ -135,7 +135,6 @@ nonlinear weights options:
   --cval NON_LINEAR_FACTOR
                         Factor used to determine how skewed the non linear
                         weights will be. A value of 1 implies equal weighting.
-                        If not set, a default value of cval=0.85 is set.
 
 dict weights options:
   Options for linear weights to be calculated based on parameters read from
