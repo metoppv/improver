@@ -39,6 +39,7 @@
   run improver weighted-blending 'model_configuration' \
       --spatial_weights_from_mask --wts_calc_method 'dict' \
       --weighting_coord forecast_period --cycletime 20190101T0300Z \
+      --model_id_attr mosg__model_configuration \
       --wts_dict $IMPROVER_ACC_TEST_DIR/weighted_blending/three_models/blending-weights-preciprate.json \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/three_models/enukxhrly/20190101T0400Z-PT0004H00M-precip_rate.nc" \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/three_models/nc/20190101T0400Z-PT0001H00M-precip_rate.nc" \

@@ -40,6 +40,7 @@
   run improver weighted-blending --wts_calc_method 'dict' \
       --wts_dict "$IMPROVER_ACC_TEST_DIR/weighted_blending/weights_from_dict/input_dict.json" \
       --weighting_coord 'forecast_period' 'model_configuration' \
+      --model_id_attr mosg__model_configuration \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/model/ukv_input.nc" \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/model/enuk_input.nc" \
       "$TEST_DIR/output.nc"
