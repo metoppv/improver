@@ -75,7 +75,6 @@ def load_json_or_none(file_path):
 def radius_or_radii_and_lead(radius=None, radii_by_lead_time=None):
     """Takes either argument and returns radius/radii and lead time.
 
-
     Args:
         radius (float or None):
             If it exists it returns it as a radius
@@ -92,13 +91,18 @@ def radius_or_radii_and_lead(radius=None, radii_by_lead_time=None):
 
     Raises:
         TypeError:
-            When both radius and radii_by_lead_time are null.
+            When both radius and radii_by_lead_time are None.
+        TypeError:
+            When both radius and radii_by_lead_time are not None.
     """
-    msg = "Expecting 1 argument not {}."
     if radius is None and radii_by_lead_time is None:
-        raise TypeError(msg.format(0))
+        msg = ("Neither radius or radii_by_lead_time have been set. "
+               "One option should be specified.")
+        raise TypeError(msg)
     elif radius is not None and radii_by_lead_time is not None:
-        raise TypeError(msg.format(2))
+        msg = ("Both radius and radii_by_lead_time have been set. "
+               "Only one option should be specified.")
+        raise TypeError(msg)
     if radius:
         radius_or_radii = radius
         lead_times = None

@@ -58,8 +58,9 @@ class Test_radius_or_radii_and_lead(unittest.TestCase):
         self.assertIsNone(lead)
 
     def test_both_None(self):
-        """ Tests if both are None then both are returned None."""
-        msg = "Expecting 1 argument not 0."
+        """ Tests if both are None and raises a TypeError"""
+        msg = ("Neither radius or radii_by_lead_time have been set. "
+               "One option should be specified.")
         with self.assertRaisesRegex(TypeError, msg):
             radius_or_radii_and_lead(None, None)
 
@@ -74,12 +75,12 @@ class Test_radius_or_radii_and_lead(unittest.TestCase):
         self.assertEqual(lead, ['18000', '54000', '90000', '162000'])
 
     def test_both_used(self):
-        """Tests if both arguments are used.
-        The output is the same as if the second argument is None."""
+        """Tests if both arguments are used and raises a TypeError"""
         radius = 3.3
         radii_lead = ["0,36,72,144", "18000,54000,90000,162000"]
 
-        msg = "Expecting 1 argument not 2."
+        msg = ("Both radius and radii_by_lead_time have been set. "
+               "Only one option should be specified.")
         with self.assertRaisesRegex(TypeError, msg):
             radius_or_radii_and_lead(radius, radii_lead)
 
