@@ -229,6 +229,39 @@ class Test__find_dict_key(IrisTest):
             cube_units._find_dict_key("rainfall_rate", "")
 
 
+class Test__check_units_and_dtypes(IrisTest):
+    """Test method to check object conformance"""
+
+    def setUp(self):
+        """Set up test cube"""
+        self.cube = set_up_variable_cube(
+            data=275.*np.ones((3, 3), dtype=np.float32),
+            spatial_grid='equalarea')
+        self.coord = self.cube.coord('projection_x_coordinate')
+
+    def test_pass_cube(self):
+        """Test return value for compliant cube"""
+        result = cube_units._check_units_and_dtype(self.cube, 'K', np.float32)
+        self.assertTrue(result)
+
+    def test_fail_cube(self):
+        """Test return value for non-compliant cube"""
+        result = cube_units._check_units_and_dtype(
+            self.cube, 'degC', np.float32)
+        self.assertFalse(result)
+
+    def test_pass_coord(self):
+        """Test return value for compliant coordinate"""
+        result = cube_units._check_units_and_dtype(
+            self.coord, 'm', np.float32)
+        self.assertTrue(result)
+
+    def test_fail_coord(self):
+        """Test return value for non-compliant coordinate"""
+        result = cube_units._check_units_and_dtype(self.coord, 'm', np.int32)
+        self.assertFalse(result)
+
+
 class Test__enforce_coordinate_units_and_dtypes(IrisTest):
 
     """Test the enforcement of coordinate units and data types."""

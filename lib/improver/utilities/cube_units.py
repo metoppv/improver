@@ -31,6 +31,7 @@
 """ Provides support utilities for manipulating cube units."""
 
 import numpy as np
+from cf_units import Unit
 
 import iris
 from iris.exceptions import CoordinateNotFoundError
@@ -158,7 +159,8 @@ def _get_required_units_and_dtype(key):
 
     Returns:
         units, dtype (tuple):
-            Tuple of strings identifying the required units and datatype
+            Tuple with string and type objectt identifying the required units
+            and datatype
 
     Raises:
         KeyError:
@@ -179,6 +181,32 @@ def _get_required_units_and_dtype(key):
         dtype = np.float32
 
     return unit, dtype
+
+
+def _check_units_and_dtype(object, units, dtype):
+    """
+    Check whether the units and datatype of the input object conform
+    to the standard given.
+
+    Args:
+        object (iris.cube.Cube or iris.coords.Coord):
+            Cube or coordinate to be checked
+        units (str):
+            Required units
+        dtype (type):
+            Required datatype
+
+    Returns:
+        bool:
+            True if object conforms; False if not
+    """
+    if Unit(object.units) != Unit(units):
+        return False
+
+    if object.dtype != dtype:
+        return False
+
+    return True
 
 
 def _enforce_coordinate_units_and_dtypes(cubes, coordinates, inplace=True):
