@@ -94,9 +94,11 @@ def radius_or_radii_and_lead(radius=None, radii_by_lead_time=None):
         TypeError:
             When both radius and radii_by_lead_time are null.
     """
+    msg = "Expecting 1 argument not {}."
     if radius is None and radii_by_lead_time is None:
-        raise TypeError("Need either a radius or a Radii_by_lead_time.")
-
+        raise TypeError(msg.format(0))
+    elif radius is not None and radii_by_lead_time is not None:
+        raise TypeError(msg.format(2))
     if radius:
         radius_or_radii = radius
         lead_times = None

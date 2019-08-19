@@ -29,6 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for utilities.cli_utilities."""
+
 import json
 import os
 import unittest
@@ -58,13 +59,14 @@ class Test_radius_or_radii_and_lead(unittest.TestCase):
 
     def test_both_None(self):
         """ Tests if both are None then both are returned None."""
-        with self.assertRaises(TypeError):
+        msg = "Expecting 1 argument not 0."
+        with self.assertRaisesRegex(TypeError, msg):
             radius_or_radii_and_lead(None, None)
 
     def test_radii_and_lead(self):
         """Tests if radius is None and radii/lead is a list of csv.
-        radius_or_radii is the [0] of the second index separated on the commas
-        lead is the [1] of the second index separated on the commas."""
+        radius_or_radii is the [0] of the second argument separated by
+        commas lead is the [1] of the second argument separated by commas."""
         radii, lead = radius_or_radii_and_lead(
             None, ["0,36,72,144", "18000,54000,90000,162000"])
 
@@ -74,11 +76,12 @@ class Test_radius_or_radii_and_lead(unittest.TestCase):
     def test_both_used(self):
         """Tests if both arguments are used.
         The output is the same as if the second argument is None."""
-        radius, lead = radius_or_radii_and_lead(
-            3.3, ["0,36,72,144", "18000,54000,90000,162000"])
+        radius = 3.3
+        radii_lead = ["0,36,72,144", "18000,54000,90000,162000"]
 
-        self.assertEqual(radius, 3.3)
-        self.assertIsNone(lead)
+        msg = "Expecting 1 argument not 2."
+        with self.assertRaisesRegex(TypeError, msg):
+            radius_or_radii_and_lead(radius, radii_lead)
 
 
 class Test_load_json_or_none(unittest.TestCase):
