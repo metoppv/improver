@@ -75,10 +75,8 @@ def enforce_units_and_dtypes(cubes, coords=None, enforce=True):
     if coords is not None:
         all_coords = list(set(coords))
     else:
-        all_coords = []
-        for cube in cubes:
-            all_coords.extend(
-                [coord.name() for coord in cube.coords()])
+        all_coords = [
+            coord.name() for cube in cubes for coord in cube.coords()]
         all_coords = list(set(all_coords))
     # modify the copied cubes in place
     _enforce_coordinate_units_and_dtypes(new_cubes, all_coords)
