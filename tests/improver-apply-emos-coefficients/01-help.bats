@@ -56,7 +56,8 @@ positional arguments:
                         realizations, probabilities or percentiles.
   COEFFICIENTS_FILEPATH
                         (Optional) A path to an input NetCDF file containing
-                        the coefficients used for calibration.
+                        the coefficients used for calibration. If this file is
+                        not provided the input forecast is returned unchanged.
   OUTPUT_FILEPATH       The output path for the processed NetCDF
 
 optional arguments:

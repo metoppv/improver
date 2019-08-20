@@ -31,28 +31,22 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "apply-emos-coefficients when no coefficients provided"  {
+@test "apply-emos-coefficients when coefficients cube is wrong" {
   improver_check_skip_acceptance
-  KGO="ensemble-calibration/gaussian/input.nc"
 
-  # Apply EMOS coefficients to calibrate the input forecast
-  # and check that the calibrated forecast matches the kgo.
+  # Check value error raised when coefficients filepath does not contain
+  # a coefficients cube.
   run improver apply-emos-coefficients \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/input.nc" \
+      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/input.nc" \
       "$TEST_DIR/output.nc" --random_seed 0
-  [[ "$status" -eq 0 ]]
-
-  # Check for warning
+  [[ "$status" -eq 1 ]]
+  # Check for error
   read -d '' expected <<'__TEXT__' || true
-UserWarning: There are no coefficients provided for calibration
+ValueError: The current coefficients cube does not have the name 'emos_coefficients'
 __TEXT__
 
   [[ "$output" =~ "$expected" ]]
 
-  improver_check_recreate_kgo "output.nc" $KGO
-
-  # Run nccmp to compare the output and kgo realizations and check it passes.
-  improver_compare_output_lower_precision "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
 
 }

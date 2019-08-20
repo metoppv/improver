@@ -60,7 +60,8 @@ def main(argv=None):
        Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
        Regression (NGR). The coefficients are applied to the forecast
        that is supplied, so as to calibrate the forecast. The calibrated
-       forecast is written to a netCDF file.
+       forecast is written to a netCDF file. If no coefficients are supplied
+       the input forecast is returned unchanged.
     """
     parser = ArgParser(
         description='Apply coefficients for Ensemble Model Output '
@@ -80,7 +81,8 @@ def main(argv=None):
         'coefficients_filepath',
         metavar='COEFFICIENTS_FILEPATH', nargs='?',
         help='(Optional) A path to an input NetCDF file containing the '
-             'coefficients used for calibration.')
+             'coefficients used for calibration. If this file is not '
+             'provided the input forecast is returned unchanged.')
     parser.add_argument(
         'output_filepath', metavar='OUTPUT_FILEPATH',
         help='The output path for the processed NetCDF')
@@ -153,7 +155,8 @@ def process(current_forecast, coeffs, num_realizations=None,
     Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
     Regression (NGR). The coefficients are applied to the forecast
     that is supplied, so as to calibrate the forecast. The calibrated
-    forecast is written to a cube.
+    forecast is written to a cube. If no coefficients are provided the input
+    forecast is returned unchanged.
 
     Args:
         current_forecast (iris.cube.Cube):
@@ -161,6 +164,7 @@ def process(current_forecast, coeffs, num_realizations=None,
             could be either realizations, probabilities or percentiles.
         coeffs (iris.cube.Cube or None):
             A cube containing the coefficients used for calibration or None.
+            If none then then current_forecast is returned unchanged.
 
     Keyword Args:
         num_realizations (numpy.int32):
@@ -205,6 +209,11 @@ def process(current_forecast, coeffs, num_realizations=None,
 
     Raises:
         ValueError:
+            If the current forecast is a coefficients cube.
+        ValueError:
+            If the coefficients cube does not have the right name of
+            "emos_coefficients".
+        ValueError:
             If the forecast type is 'percentiles' or 'probabilities' while no
             num_realizations are given.
 
@@ -214,6 +223,15 @@ def process(current_forecast, coeffs, num_realizations=None,
                "uncalibrated forecast will be returned.")
         warnings.warn(msg)
         return current_forecast
+
+    elif coeffs.name() != 'emos_coefficients':
+        msg = ("The current coefficients cube does not have the "
+               "name 'emos_coefficients'")
+        raise ValueError(msg)
+
+    if current_forecast.name() == 'emos_coefficients':
+        msg = "The current forecast cube has the name 'emos_coefficients'"
+        raise ValueError(msg)
 
     original_current_forecast = current_forecast.copy()
     try:
