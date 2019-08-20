@@ -187,6 +187,15 @@ class Test_enforce_units_and_dtypes(IrisTest):
             result[1].coord('air_temperature').units, 'Fahrenheit')
         self.assertEqual(result[1].coord('forecast_period').units, 's')
 
+    def test_quantity_available(self):
+        """Test error raised if the named quantity is not listed in the
+        dictionary standard"""
+        self.data_cube.rename("number_of_fish")
+        self.data_cube.units = "1"
+        msg = "Name 'number_of_fish' not defined in units.py"
+        with self.assertRaisesRegex(KeyError, msg):
+            cube_units.enforce_units_and_dtypes(self.data_cube)
+
 
 # limited item dictionary to point to in smaller tests
 TEST_DICT = {
