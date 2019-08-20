@@ -43,23 +43,6 @@ from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, set_up_probability_cube, set_up_percentile_cube)
 
 
-# limited item dictionary to point to in smaller tests
-TEST_DICT = {
-    "time": {
-        "unit": "seconds since 1970-01-01 00:00:00",
-        "dtype": np.int64},
-    "forecast_period": {
-        "unit": "seconds",
-        "dtype": np.int32},
-    "projection_x_coordinate": {"unit", "m"},
-    "percentile": {"unit": "%"},
-    "probability": {"unit": "1"},
-    "temperature": {"unit": "K"},
-    "rainfall": {"unit": "m s-1"},
-    "rate": {"unit": "m s-1"}
-}
-
-
 class Test_enforce_units_and_dtypes(IrisTest):
     """Test checking with option of enforcement or failure"""
 
@@ -203,6 +186,18 @@ class Test_enforce_units_and_dtypes(IrisTest):
         self.assertEqual(
             result[1].coord('air_temperature').units, 'Fahrenheit')
         self.assertEqual(result[1].coord('forecast_period').units, 's')
+
+
+# limited item dictionary to point to in smaller tests
+TEST_DICT = {
+    "time": {
+        "unit": "seconds since 1970-01-01 00:00:00",
+        "dtype": np.int64},
+    "probability": {"unit": "1"},
+    "temperature": {"unit": "K"},
+    "rainfall": {"unit": "m s-1"},
+    "rate": {"unit": "m s-1"}
+}
 
 
 class Test__find_dict_key(IrisTest):
