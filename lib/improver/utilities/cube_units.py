@@ -85,31 +85,31 @@ def enforce_units_and_dtypes(cubes, coords=None, enforce=True):
         else:
             object_list.extend(cube.coords())
 
-    for object in object_list:
-        units, dtype = _get_required_units_and_dtype(object.name())
+    for obj in object_list:
+        units, dtype = _get_required_units_and_dtype(obj.name())
 
         if not enforce:
             # if not enforcing, throw an error if non-compliant
-            conforms = _check_units_and_dtype(object, units, dtype)
+            conforms = _check_units_and_dtype(obj, units, dtype)
             if not conforms:
                 msg = ('{} with units {} and datatype {} does not conform'
                        ' to expected standard (units {}, datatype {})')
-                msg = msg.format(object.name(), object.units, object.dtype,
+                msg = msg.format(obj.name(), obj.units, obj.dtype,
                                  units, dtype)
                 raise ValueError(msg)
 
         # convert units
         try:
-            object.convert_units(units)
+            obj.convert_units(units)
         except ValueError:
             msg = '{} units cannot be converted to "{}"'
-            raise ValueError(msg.format(object.name(), units))
+            raise ValueError(msg.format(obj.name(), units))
 
         # convert datatype
-        if isinstance(object, iris.cube.Cube):
-            _convert_diagnostic_dtype(object, dtype)
+        if isinstance(obj, iris.cube.Cube):
+            _convert_diagnostic_dtype(obj, dtype)
         else:
-            _convert_coordinate_dtype(object, dtype)
+            _convert_coordinate_dtype(obj, dtype)
 
     return iris.cube.CubeList(new_cubes)
 
@@ -160,7 +160,7 @@ def _get_required_units_and_dtype(key):
 
     Returns:
         units, dtype (tuple):
-            Tuple with string and type objectt identifying the required units
+            Tuple with string and type object identifying the required units
             and datatype
 
     Raises:
@@ -184,13 +184,13 @@ def _get_required_units_and_dtype(key):
     return unit, dtype
 
 
-def _check_units_and_dtype(object, units, dtype):
+def _check_units_and_dtype(obj, units, dtype):
     """
     Check whether the units and datatype of the input object conform
     to the standard given.
 
     Args:
-        object (iris.cube.Cube or iris.coords.Coord):
+        obj (iris.cube.Cube or iris.coords.Coord):
             Cube or coordinate to be checked
         units (str):
             Required units
@@ -201,10 +201,10 @@ def _check_units_and_dtype(object, units, dtype):
         bool:
             True if object conforms; False if not
     """
-    if Unit(object.units) != Unit(units):
+    if Unit(obj.units) != Unit(units):
         return False
 
-    if object.dtype != dtype:
+    if obj.dtype != dtype:
         return False
 
     return True
