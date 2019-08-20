@@ -43,6 +43,23 @@ from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, set_up_probability_cube, set_up_percentile_cube)
 
 
+# limited item dictionary to point to in smaller tests
+TEST_DICT = {
+    "time": {
+        "unit": "seconds since 1970-01-01 00:00:00",
+        "dtype": np.int64},
+    "forecast_period": {
+        "unit": "seconds",
+        "dtype": np.int32},
+    "projection_x_coordinate": {"unit", "m"},
+    "percentile": {"unit": "%"},
+    "probability": {"unit": "1"},
+    "temperature": {"unit": "K"},
+    "rainfall": {"unit": "m s-1"},
+    "rate": {"unit": "m s-1"}
+}
+
+
 class Test_enforce_units_and_dtypes(IrisTest):
     """Test checking with option of enforcement or failure"""
 
@@ -194,16 +211,7 @@ class Test__find_dict_key(IrisTest):
     @staticmethod
     def setUp():
         """Redirect to dummy dictionary"""
-        cube_units.DEFAULT_UNITS = {
-            "time": {
-                "unit": "seconds since 1970-01-01 00:00:00",
-                "dtype": np.int64},
-            "percentile": {"unit": "%"},
-            "probability": {"unit": "1"},
-            "temperature": {"unit": "K"},
-            "rainfall": {"unit": "m s-1"},
-            "rate": {"unit": "m s-1"}
-        }
+        cube_units.DEFAULT_UNITS = TEST_DICT
 
     def test_match(self):
         """Test correct identification of single substring match"""
@@ -229,7 +237,29 @@ class Test__find_dict_key(IrisTest):
             cube_units._find_dict_key("rainfall_rate", "")
 
 
-class Test__check_units_and_dtypes(IrisTest):
+class Test__get_required_units_and_dtype(IrisTest):
+    """Test method to read requirements from dictionary"""
+
+    @staticmethod
+    def setUp():
+        """Redirect to dummy dictionary"""
+        cube_units.DEFAULT_UNITS = TEST_DICT
+
+    def test_match(self):
+        """Test correct requirements identified"""
+        result = cube_units._get_required_units_and_dtype("air_temperature")
+        self.assertEqual(result[0], "K")
+        self.assertEqual(result[1], np.float32)
+
+    def test_probability_match(self):
+        """Test correct requirements for probability (substring) diagnostic"""
+        result = cube_units._get_required_units_and_dtype(
+            "probability_of_air_temperature_above_threshold")
+        self.assertEqual(result[0], "1")
+        self.assertEqual(result[1], np.float32)
+
+
+class Test__check_units_and_dtype(IrisTest):
     """Test method to check object conformance"""
 
     def setUp(self):
@@ -262,32 +292,13 @@ class Test__check_units_and_dtypes(IrisTest):
         self.assertFalse(result)
 
 
-class Test__enforce_coordinate_units_and_dtypes(IrisTest):
-
-    """Test the enforcement of coordinate units and data types."""
+class Test__convert_coordinate_dtype(IrisTest):
+    """Test method to convert coordinate datatypes"""
 
     def setUp(self):
-        """Set up a cube to test."""
-        original_units = {
-            "time": {
-                "unit": "seconds since 1970-01-01 00:00:00",
-                "dtype": np.int64},
-            "forecast_reference_time": {
-                "unit": "seconds since 1970-01-01 00:00:00",
-                "dtype": np.int64},
-            "forecast_period": {
-                "unit": "seconds",
-                "dtype": np.int32},
-            "projection_x_coordinate": {
-                "unit": "m",
-                "dtype": np.float32}
-        }
-
-        cube_units.DEFAULT_UNITS = original_units
-        self.plugin = cube_units._enforce_coordinate_units_and_dtypes
+        """Set up cubes for testing"""
         self.cube = set_up_variable_cube(np.ones((5, 5), dtype=np.float32),
                                          spatial_grid='equalarea')
-
         self.cube_non_integer_intervals = set_up_variable_cube(
             np.ones((5, 5), dtype=np.float32), spatial_grid='equalarea',
             time=datetime(2017, 11, 10, 4, 30))
@@ -297,303 +308,71 @@ class Test__enforce_coordinate_units_and_dtypes(IrisTest):
     def test_time_coordinate_to_hours_valid(self):
         """Test that a cube with a validity time on the hour can be converted
         to integer hours."""
-
         target_units = "hours since 1970-01-01 00:00:00"
-        coord = 'time'
-        cube = self.cube
-        cube_units.DEFAULT_UNITS[coord]['unit'] = target_units
+        coord = self.cube.coord('time')
         expected = 419524
 
-        self.plugin([cube], [coord])
+        coord.convert_units(target_units)
+        cube_units._convert_coordinate_dtype(coord, np.int64)
 
-        self.assertEqual(cube.coord(coord).points[0], expected)
-        self.assertEqual(cube.coord(coord).units, target_units)
-        self.assertIsInstance(cube.coord(coord).points[0], np.int64)
+        self.assertEqual(coord.points[0], expected)
+        self.assertEqual(coord.units, target_units)
+        self.assertIsInstance(coord.points[0], np.int64)
 
     def test_time_coordinate_to_hours_invalid(self):
         """Test that a cube with a validity time on the half hour cannot be
         converted to integer hours."""
-
         target_units = "hours since 1970-01-01 00:00:00"
-        coord = 'time'
-        cube = self.cube_non_integer_intervals
-        cube_units.DEFAULT_UNITS[coord]['unit'] = target_units
+        coord = self.cube_non_integer_intervals.coord('time')
+        coord.convert_units(target_units)
 
         msg = ('Data type of coordinate "time" could not be'
                ' enforced without losing significant precision.')
         with self.assertRaisesRegex(ValueError, msg):
-            self.plugin([cube], [coord])
-
-    def test_time_coordinate_to_invalid_units(self):
-        """Test that a cube with time coordinate cannot be converted to an
-        incompatible units, e.g. metres."""
-
-        target_units = "m"
-        coord = 'time'
-        cube = self.cube
-        cube_units.DEFAULT_UNITS[coord]['unit'] = target_units
-
-        msg = 'time units cannot be converted to "m"'
-        with self.assertRaisesRegex(ValueError, msg):
-            self.plugin([cube], [coord])
+            cube_units._convert_coordinate_dtype(coord, np.int64)
 
     def test_time_coordinate_to_hours_float(self):
         """Test that a cube with a validity time on the half hour can be
         converted to float hours."""
-
         target_units = "hours since 1970-01-01 00:00:00"
-        coord = 'time'
-        cube = self.cube_non_integer_intervals
-        cube_units.DEFAULT_UNITS[coord]['unit'] = target_units
-        cube_units.DEFAULT_UNITS[coord]['dtype'] = np.float64
+        coord = self.cube_non_integer_intervals.coord('time')
         expected = 419524.5
 
-        self.plugin([cube], [coord])
+        coord.convert_units(target_units)
+        cube_units._convert_coordinate_dtype(coord, np.float64)
 
-        self.assertEqual(cube.coord(coord).points[0], expected)
-        self.assertEqual(cube.coord(coord).units, target_units)
-        self.assertIsInstance(cube.coord(coord).points[0], np.float64)
-
-    def test_time_coordinate_hours_to_seconds_integer(self):
-        """Test that a cube with a validity time in units of hours can be
-        converted to integer seconds."""
-
-        target_units = "seconds since 1970-01-01 00:00:00"
-        coord = 'time'
-        cube = self.cube.copy()
-        cube.coord('time').convert_units("hours since 1970-01-01 00:00:00")
-        cube.coord('forecast_reference_time').convert_units(
-            "hours since 1970-01-01 00:00:00")
-        cube.coord('forecast_period').convert_units("hours")
-
-        cube_units.DEFAULT_UNITS[coord]['unit'] = target_units
-        expected = 1510286400
-
-        self.plugin([cube], [coord])
-
-        self.assertEqual(cube.coord(coord).points[0], expected)
-        self.assertEqual(cube.coord(coord).units, target_units)
-        self.assertIsInstance(cube.coord(coord).points[0], np.int64)
-
-    def test_basic_non_time_coordinate(self):
-        """Test that a cube with a grid at km intervals expressed in metres can
-        be converted to integer kilometres."""
-
-        target_units = "km"
-        coord = 'projection_x_coordinate'
-        cube = self.cube
-        cube_units.DEFAULT_UNITS[coord]['unit'] = target_units
-        cube_units.DEFAULT_UNITS[coord]['dtype'] = np.int32
-        expected = [-400, -200, 0, 200, 400]
-
-        self.plugin([self.cube], [coord])
-
-        self.assertArrayEqual(cube.coord(coord).points, expected)
-        self.assertEqual(cube.coord(coord).units, target_units)
-        self.assertIsInstance(cube.coord(coord).points[0], np.int32)
-
-    def test_unavailable_coordinate(self):
-        """Test application of the function to a coordinate for which the
-        default units and data type are not defined, resulting in an
-        exception."""
-
-        coord = 'number_of_fish'
-        cube = self.cube
-        cube.coord('projection_x_coordinate').rename(coord)
-
-        msg = "'number_of_fish' not defined in units.py"
-        with self.assertRaisesRegex(KeyError, msg):
-            self.plugin([cube], [coord])
-
-    def test_return_changes_as_copy(self):
-        """Test that using the inplace=False keyword arg results in the input
-        cube remaining unchanged, and a new modified cube being returned."""
-
-        target_units = "hours since 1970-01-01 00:00:00"
-        coord = 'time'
-        cube = self.cube.copy()
-        cube_units.DEFAULT_UNITS[coord]['unit'] = target_units
-        expected = 419524
-
-        result, = self.plugin([cube], [coord], inplace=False)
-
-        self.assertEqual(cube.coord(coord).points[0],
-                         self.cube.coord(coord).points[0],)
-        self.assertEqual(cube.coord(coord).units, self.cube.coord(coord).units)
-
-        self.assertEqual(result.coord(coord).points[0], expected)
-        self.assertEqual(result.coord(coord).units, target_units)
-        self.assertIsInstance(result.coord(coord).points[0], np.int64)
-
-    def test_multiple_cubes(self):
-        """Test that when a cube list is provided, all the cubes are modified
-        as expected."""
-
-        target_units = "hours since 1970-01-01 00:00:00"
-        coords = ['time', 'forecast_reference_time']
-        cubes = [self.cube, self.cube_non_integer_intervals]
-
-        for coord in coords:
-            cube_units.DEFAULT_UNITS[coord]['unit'] = target_units
-            cube_units.DEFAULT_UNITS[coord]['dtype'] = np.float64
-
-        expected = {'time': [419524, 419524.5],
-                    'forecast_reference_time': [419520, 419520]}
-
-        self.plugin(cubes, coords)
-
-        for coord in coords:
-            for index in range(2):
-                self.assertEqual(cubes[index].coord(coord).points[0],
-                                 expected[coord][index])
-                self.assertEqual(cubes[index].coord(coord).units, target_units)
-                self.assertIsInstance(cubes[index].coord(coord).points[0],
-                                      np.float64)
+        self.assertEqual(coord.points[0], expected)
+        self.assertEqual(coord.units, target_units)
+        self.assertIsInstance(coord.points[0], np.float64)
 
 
-class Test__enforce_diagnostic_units_and_dtypes(IrisTest):
-
-    """Test the enforcement of diagnostic units and data types."""
+class Test__convert_diagnostic_dtype(IrisTest):
+    """Test method to convert diagnostic (cube.data) datatypes"""
 
     def setUp(self):
-        """Set up a cube to test."""
-        original_units = {
-            "air_temperature": {
-                "unit": "K",
-                "dtype": np.float32},
-        }
-
-        cube_units.DEFAULT_UNITS = original_units
-        self.plugin = cube_units._enforce_diagnostic_units_and_dtypes
+        """Set up cubes for testing"""
         self.cube = set_up_variable_cube(np.ones((5, 5), dtype=np.float32),
                                          spatial_grid='equalarea')
-
         self.cube_non_integer_intervals = set_up_variable_cube(
             np.ones((5, 5), dtype=np.float32), spatial_grid='equalarea')
         self.cube_non_integer_intervals.data *= 1.5
 
     def test_temperature_to_integer_kelvin_valid(self):
         """Test that a cube with temperatures at whole kelvin intervals can
-        be converted to integer kelvin. Precision checking is invoked here to
-        ensure the change of data type does not result in a loss of
-        information."""
-
-        target_units = "kelvin"
-        diagnostic = "air_temperature"
-        cube = self.cube
-        cube_units.DEFAULT_UNITS[diagnostic]['unit'] = target_units
-        cube_units.DEFAULT_UNITS[diagnostic]['dtype'] = np.int32
+        be converted to integer kelvin"""
         expected = np.ones((5, 5), dtype=np.int32)
-
-        self.plugin([cube])
-
-        self.assertArrayEqual(cube.data, expected)
-        self.assertEqual(cube.units, target_units)
-        self.assertEqual(cube.data.dtype, np.int32)
+        cube_units._convert_diagnostic_dtype(self.cube, np.int32)
+        self.assertArrayEqual(self.cube.data, expected)
+        self.assertEqual(self.cube.data.dtype, np.int32)
 
     def test_temperature_to_integer_kelvin_invalid(self):
         """Test that a cube with temperatures not at whole kelvin intervals
-        cannot be converted to integer kelvin. Precision checking is invoked
-        here to ensure the change of data type does not result in a loss of
-        information; in this case it does and raises an exception."""
-
-        target_units = "kelvin"
-        diagnostic = "air_temperature"
-        cube = self.cube_non_integer_intervals
-        cube_units.DEFAULT_UNITS[diagnostic]['unit'] = target_units
-        cube_units.DEFAULT_UNITS[diagnostic]['dtype'] = np.int32
-
+        cannot be converted to integer kelvin"""
         msg = ('Data type of diagnostic "air_temperature" could not be'
                ' enforced without losing significant precision.')
         with self.assertRaisesRegex(ValueError, msg):
-            self.plugin([cube])
-
-    def test_temperature_to_invalid_units(self):
-        """Test that a cube with temperatures in kelvin cannot be converted
-        so incompatible units, e.g. metres."""
-
-        target_units = "m"
-        diagnostic = "air_temperature"
-        cube = self.cube
-        cube_units.DEFAULT_UNITS[diagnostic]['unit'] = target_units
-
-        msg = ('Data type of diagnostic "air_temperature" could not be'
-               ' enforced without losing significant precision.')
-        msg = 'air_temperature units cannot be converted to "m"'
-        with self.assertRaisesRegex(ValueError, msg):
-            self.plugin([cube])
-
-    def test_unavailable_diagnostic(self):
-        """Test application of the function to a cube for which the default
-        units and data type are not defined, resulting in an exception."""
-
-        cube = self.cube
-        cube.rename('number_of_fish')
-
-        msg = "'number_of_fish' not defined in units.py"
-        with self.assertRaisesRegex(KeyError, msg):
-            self.plugin([cube])
-
-    def test_return_changes_as_copy(self):
-        """Test that using the inplace=False keyword arg results in the input
-        cube remaining unchanged, and a new modified cube being returned. In
-        this test the temperature are converted to Celsius to make the change
-        clear."""
-
-        target_units = "celsius"
-        diagnostic = "air_temperature"
-        cube = self.cube.copy()
-        cube_units.DEFAULT_UNITS[diagnostic]['unit'] = target_units
-        cube_units.DEFAULT_UNITS[diagnostic]['dtype'] = np.float32
-        expected = np.full((5, 5), -272.15, dtype=np.float32)
-
-        result, = self.plugin([cube], inplace=False)
-
-        self.assertArrayEqual(cube.data, self.cube.data)
-        self.assertEqual(cube.units, self.cube.units)
-
-        self.assertArrayEqual(result.data, expected)
-        self.assertEqual(result.units, target_units)
-        self.assertEqual(result.data.dtype, np.float32)
-
-    def test_temperature_to_float_celsius_valid(self):
-        """Test that a cube with temperatures at whole kelvin intervals stored
-        as integers can be converted to float Celsius, changing units and data
-        type, whilst checking precision is not lost."""
-
-        target_units = "celsius"
-        diagnostic = "air_temperature"
-        cube = self.cube.copy(data=self.cube.data.astype(np.int))
-        cube_units.DEFAULT_UNITS[diagnostic]['unit'] = target_units
-        cube_units.DEFAULT_UNITS[diagnostic]['dtype'] = np.float32
-        expected = np.full((5, 5), -272.15, dtype=np.float32)
-
-        self.plugin([cube])
-
-        self.assertArrayEqual(cube.data, expected)
-        self.assertEqual(cube.units, target_units)
-        self.assertEqual(cube.data.dtype, np.float32)
-
-    def test_multiple_cubes(self):
-        """Test that when a cube list is provided, all the cubes are modified
-        as expected."""
-
-        target_units = "kelvin"
-        diagnostic = "air_temperature"
-        cubes = [self.cube, self.cube_non_integer_intervals]
-
-        cube_units.DEFAULT_UNITS[diagnostic]['unit'] = target_units
-        cube_units.DEFAULT_UNITS[diagnostic]['dtype'] = np.float64
-
-        expected = [np.ones((5, 5), dtype=np.float64),
-                    np.full((5, 5), 1.5, dtype=np.float64)]
-
-        self.plugin(cubes)
-
-        for index in range(2):
-            self.assertArrayEqual(cubes[index].data, expected[index])
-            self.assertEqual(cubes[index].units, target_units)
-            self.assertEqual(cubes[index].data.dtype, np.float64)
+            cube_units._convert_diagnostic_dtype(
+                self.cube_non_integer_intervals, np.int32)
 
 
 class Test_check_precision_loss(IrisTest):
