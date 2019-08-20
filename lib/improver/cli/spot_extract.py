@@ -114,7 +114,7 @@ def main(argv=None):
         "provided a warning is raised and all leading dimensions are included "
         "in the returned spot-data cube.")
     percentile_group.add_argument(
-        "--extract_percentiles", default=None, nargs='+', type=int,
+        "--extract_percentiles", default=None, nargs='+', type=float,
         help="If set to a percentile value or a list of percentile values, "
         "data corresponding to those percentiles will be returned. For "
         "example setting '--extract_percentiles 25 50 75' will result in the "
