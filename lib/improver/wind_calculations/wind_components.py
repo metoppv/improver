@@ -112,9 +112,10 @@ class ResolveWindComponents(object):
             ucube_truenorth, vcube_truenorth, reference_cube.coord_system())
 
         # unmask and regrid rotated winds onto reference_cube grid
-        for cube in [ucube, vcube]:
-            cube.data = cube.data.data
-            cube = cube.regrid(reference_cube, Linear())
+        ucube.data = ucube.data.data
+        ucube = ucube.regrid(reference_cube, Linear())
+        vcube.data = vcube.data.data
+        vcube = vcube.regrid(reference_cube, Linear())
 
         # ratio of u to v winds is the tangent of the angle which is the
         # true North to grid North rotation
