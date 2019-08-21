@@ -56,7 +56,7 @@ def load_cube(filepath, constraints=None, no_lazy_load=False,
             cube into memory. This can increase performance at the cost of
             memory. If False (default) then lazy load.
         return_none (bool):
-            If True, when the filepath is None returns None.
+            If True, when the filepath is None, returns None.
             If False, normal error handling applies.
             Default is False.
 
