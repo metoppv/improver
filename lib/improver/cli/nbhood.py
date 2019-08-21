@@ -36,8 +36,7 @@ from improver.constants import DEFAULT_PERCENTILES
 from improver.nbhood.nbhood import (
     GeneratePercentilesFromANeighbourhood, NeighbourhoodProcessing)
 from improver.nbhood.recursive_filter import RecursiveFilter
-from improver.utilities.cli_utilities import (load_cube_or_none,
-                                              radius_or_radii_and_lead)
+from improver.utilities.cli_utilities import radius_or_radii_and_lead
 from improver.utilities.pad_spatial import remove_cube_halo
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
@@ -211,9 +210,11 @@ def main(argv=None):
 
     # Load Cube
     cube = load_cube(args.input_filepath)
-    mask_cube = load_cube_or_none(args.input_mask_filepath)
-    alphas_x_cube = load_cube_or_none(args.input_filepath_alphas_x_cube)
-    alphas_y_cube = load_cube_or_none(args.input_filepath_alphas_y_cube)
+    mask_cube = load_cube(args.input_mask_filepath, return_none=True)
+    alphas_x_cube = load_cube(args.input_filepath_alphas_x_cube,
+                              return_none=True)
+    alphas_y_cube = load_cube(args.input_filepath_alphas_y_cube,
+                              return_none=True)
 
     # Process Cube
     result = process(cube, args.neighbourhood_output,
