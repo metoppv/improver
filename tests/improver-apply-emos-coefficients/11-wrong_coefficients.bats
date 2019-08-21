@@ -31,28 +31,22 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "apply-emos-coefficients using non-default predictor 'realizations'" {
+@test "apply-emos-coefficients when coefficients cube is wrong" {
   improver_check_skip_acceptance
-  if python -c "import statsmodels" &> /dev/null; then
-      COEFFS="estimate-emos-coefficients/realizations/with_statsmodels_kgo.nc"
-      KGO="ensemble-calibration/realizations/with_statsmodels_kgo.nc"
-  else
-      COEFFS="estimate-emos-coefficients/realizations/without_statsmodels_kgo.nc"
-      KGO="ensemble-calibration/realizations/without_statsmodels_kgo.nc"
-  fi
 
-  # Apply EMOS coefficients to calibrate the input forecast
-  # and check that the calibrated forecast matches the kgo.
+  # Check value error raised when coefficients filepath does not contain
+  # a coefficients cube.
   run improver apply-emos-coefficients \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/input.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$COEFFS" \
-      "$TEST_DIR/output.nc" \
-      --predictor_of_mean 'realizations' --random_seed 0
-  [[ "$status" -eq 0 ]]
+      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/input.nc" \
+      "$TEST_DIR/output.nc" --random_seed 0
+  [[ "$status" -eq 1 ]]
+  # Check for error
+  read -d '' expected <<'__TEXT__' || true
+ValueError: The current coefficients cube does not have the name 'emos_coefficients'
+__TEXT__
 
-  improver_check_recreate_kgo "output.nc" $KGO
+  [[ "$output" =~ "$expected" ]]
 
-  # Run nccmp to compare the output and kgo realizations and check it passes.
-  improver_compare_output_lower_precision "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
+
 }

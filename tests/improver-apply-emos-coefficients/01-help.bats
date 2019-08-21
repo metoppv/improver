@@ -41,7 +41,8 @@ usage: improver apply-emos-coefficients [-h] [--profile]
                                         [--ecc_bounds_warning]
                                         [--predictor_of_mean PREDICTOR_OF_MEAN]
                                         FORECAST_FILEPATH
-                                        COEFFICIENTS_FILEPATH OUTPUT_FILEPATH
+                                        [COEFFICIENTS_FILEPATH]
+                                        OUTPUT_FILEPATH
 
 Apply coefficients for Ensemble Model Output Statistics (EMOS), otherwise
 known as Non-homogeneous Gaussian Regression (NGR). The supported input
@@ -54,8 +55,9 @@ positional arguments:
                         to be calibrated. The input format could be either
                         realizations, probabilities or percentiles.
   COEFFICIENTS_FILEPATH
-                        A path to an input NetCDF file containing the
-                        coefficients used for calibration.
+                        (Optional) A path to an input NetCDF file containing
+                        the coefficients used for calibration. If this file is
+                        not provided the input forecast is returned unchanged.
   OUTPUT_FILEPATH       The output path for the processed NetCDF
 
 optional arguments:
