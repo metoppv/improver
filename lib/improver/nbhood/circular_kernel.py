@@ -170,10 +170,11 @@ class CircularNeighbourhood(object):
         self.kernel = circular_kernel(fullranges, ranges,
                                       self.weighted_mode)
         # Smooth the data by applying the kernel.
-        if self.sum_or_fraction is "fraction":
-            total_area = np.sum(self.kernel)
-        elif self.sum_or_fraction is "sum":
+        if self.sum_or_fraction == "sum":
             total_area = 1.0
+        else:
+            # sum_or_fraction is in fraction mode
+            total_area = np.sum(self.kernel)
 
         cube.data = scipy.ndimage.filters.correlate(
             data, self.kernel, mode='nearest') / total_area
