@@ -106,7 +106,8 @@ def main(argv=None):
     # Load Cubes and JSON.
     metadata_dict = load_json_or_none(args.json_file)
     original_cube_list = load_cubelist(args.input_filepaths)
-    oe_cube = load_cube(args.orographic_enhancement_filepaths, return_none=True)
+    oe_cube = load_cube(args.orographic_enhancement_filepaths,
+                        return_none=True)
 
     # Process
     forecast_cubes, u_and_v_mean = process(
