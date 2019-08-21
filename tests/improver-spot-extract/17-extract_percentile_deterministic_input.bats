@@ -43,7 +43,7 @@
   echo "status = ${status}"
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__TEXT__' || true
-UserWarning: Diagnostic cube is not a known probabilistic type. The [50] percentile could not be extracted. Extracting data from the cube including any leading dimensions.
+UserWarning: Diagnostic cube is not a known probabilistic type. The [50.0] percentile could not be extracted. Extracting data from the cube including any leading dimensions.
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 

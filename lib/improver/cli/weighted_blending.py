@@ -144,9 +144,8 @@ def main(argv=None):
                                           'ChooseDefaultWeightsNonLinear')
     nonlinear.add_argument('--cval', metavar='NON_LINEAR_FACTOR', type=float,
                            help='Factor used to determine how skewed the '
-                                'non linear weights will be. '
-                                'A value of 1 implies equal weighting. If not '
-                                'set, a default value of cval=0.85 is set.')
+                                'non linear weights will be. A value of 1 '
+                                'implies equal weighting.')
 
     wts_dict = parser.add_argument_group('dict weights options',
                                          'Options for linear weights to be '
@@ -236,7 +235,7 @@ def process(cubelist, wts_calc_method, coordinate, cycletime, weighting_coord,
             recent forecast).
         cval (float):
             Factor used to determine how skewed the non-linear weights will be.
-            A value of 2 implies equal weighting.
+            A value of 1 implies equal weighting.
         model_id_attr (str):
             The name of the cube attribute to be used to identify the source
             model for multi-model blends. Default assume Met Office model
