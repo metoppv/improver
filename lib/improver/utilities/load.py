@@ -58,6 +58,7 @@ def load_cube(filepath, constraints=None, no_lazy_load=False,
         return_none (bool):
             If True, when the filepath is None returns None.
             If False, normal error handling applies.
+            Default is False.
 
     Returns:
         cube (iris.cube.Cube):
