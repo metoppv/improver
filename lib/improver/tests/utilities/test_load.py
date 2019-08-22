@@ -220,6 +220,15 @@ class Test_load_cube(IrisTest):
         result = load_cube(self.filepath)
         self.assertTrue(result.has_lazy_data())
 
+    def test_return_none(self):
+        """Test that return none works with None as filepath."""
+        self.assertIsNone(load_cube(None, return_none=True))
+
+    def test_return_none(self):
+        """Test that return none works with None as filepath."""
+        with self.assertRaises(TypeError):
+            load_cube(None)
+
 
 class Test_load_cubelist(IrisTest):
 
