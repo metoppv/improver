@@ -98,7 +98,7 @@ def enforce_units_and_dtypes(cubes, coords=None, enforce=True):
                 msg = msg.format(item.name(), item.units, item.dtype,
                                  units, dtype)
                 error_string += msg
-                continue
+            continue
 
         # attempt to convert units and record any errors
         try:

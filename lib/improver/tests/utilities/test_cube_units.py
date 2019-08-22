@@ -204,9 +204,14 @@ class Test_enforce_units_and_dtypes(IrisTest):
         """Test a list of errors is correctly caught and re-raised"""
         self.data_cube.convert_units('Fahrenheit')
         self.probability_cube.coord(
-            'air_temperature').convert_units('Fahrenheit')
+            'air_temperature').convert_units('degC')
         msg = ("The following errors were raised during processing:\n"
-               "air_temperature with units Fahrenheit and datatype ")
+               "air_temperature with units Fahrenheit and datatype float32 "
+               "does not conform to expected standard \\(units K, datatype "
+               "\\<class 'numpy.float32'\\>\\)\n"
+               "air_temperature with units degC and datatype float32 "
+               "does not conform to expected standard \\(units K, datatype "
+               "\\<class 'numpy.float32'\\>\\)\n")
         with self.assertRaisesRegex(ValueError, msg):
             cube_units.enforce_units_and_dtypes(
                 [self.data_cube, self.probability_cube], enforce=False)
