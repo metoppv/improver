@@ -225,7 +225,7 @@ class Test_load_cube(IrisTest):
         self.assertIsNone(load_cube(None, allow_none=True))
 
     def test_none_file_without_allow_none(self):
-        """Test that without allow_none it raises an with None as filepath."""
+        """Test that without allow_none it raises an TypeError with None as filepath."""
         with self.assertRaises(TypeError):
             load_cube(None)
 
