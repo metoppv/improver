@@ -30,20 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for utilities.cli_utilities."""
 
-import os
 import unittest
-from subprocess import call as Call
-from tempfile import mkdtemp
 from unittest.mock import patch, mock_open
 
-import iris
-import numpy as np
-
-from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cli_utilities import (radius_or_radii_and_lead,
-                                              load_json_or_none,
-                                              load_cube_or_none)
-from improver.utilities.save import save_netcdf
+                                              load_json_or_none)
 
 
 class Test_radius_or_radii_and_lead(unittest.TestCase):
@@ -103,30 +94,6 @@ class Test_load_json_or_none(unittest.TestCase):
         dict_read = load_json_or_none(file_path)
         self.assertIsNone(dict_read)
         m.assert_not_called()
-
-
-class Test_load_cube_or_none(unittest.TestCase):
-    """Tests load_cube_or_none to call loading json or return None."""
-
-    def setUp(self):
-        """Set up variables for use in testing."""
-        self.directory = mkdtemp()
-        self.filepath = os.path.join(self.directory, "temp.nc")
-        self.cube = set_up_variable_cube(np.ones((3, 3, 3), dtype=np.float32))
-        save_netcdf(self.cube, self.filepath)
-
-    def tearDown(self):
-        """Remove temporary directories created for testing."""
-        Call(['rm', '-f', self.filepath])
-        Call(['rmdir', self.directory])
-
-    def test_if_none(self):
-        """Tests if input is None it returns None"""
-        self.assertIsNone(load_cube_or_none(None))
-
-    def test_if_file(self):
-        """Tests if the file exists and it loads it as a cube."""
-        self.assertIsInstance(load_cube_or_none(self.filepath), iris.cube.Cube)
 
 
 if __name__ == '__main__':
