@@ -114,7 +114,7 @@ def enforce_units_and_dtypes(cubes, coords=None, enforce=True):
     return iris.cube.CubeList(new_cubes)
 
 
-def _find_dict_key(input_key, error_msg):
+def _find_dict_key(input_key):
     """
     If input_key is not in the DEFAULT_UNITS dict, test for substrings of
     input_key that are available.  This allows, for example, use of
@@ -124,8 +124,6 @@ def _find_dict_key(input_key, error_msg):
     Args:
         input_key (str):
             Key that didn't return an entry in DEFAULT_UNITS
-        error_msg (str):
-            Error to raise if no unique match is found
 
     Returns:
         str: New key to identify required entry
@@ -143,8 +141,9 @@ def _find_dict_key(input_key, error_msg):
         if key in input_key:
             matching_keys.append(key)
     if len(matching_keys) != 1:
-        msg = '{}, matching keys: {}'.format(error_msg, matching_keys)
-        raise KeyError(msg)
+        msg = ("Name '{}' is not uniquely defined in units.py; "
+               "matching keys: {}")
+        raise KeyError(msg.format(input_key, matching_keys))
 
     return matching_keys[0]
 
@@ -171,9 +170,8 @@ def _get_required_units_and_dtype(key):
     try:
         unit = DEFAULT_UNITS[key]["unit"]
     except KeyError:
-        msg = "Name '{}' not defined in units.py"
         # hold the error and check for valid substrings
-        key = _find_dict_key(key, msg.format(key))
+        key = _find_dict_key(key)
         unit = DEFAULT_UNITS[key]["unit"]
 
     try:

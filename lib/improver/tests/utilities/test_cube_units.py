@@ -126,6 +126,8 @@ class Test_enforce_units_and_dtypes(IrisTest):
         self.data_cube.data = self.data_cube.data.astype(np.float64)
         result, = cube_units.enforce_units_and_dtypes(self.data_cube)
         self.assertEqual(result.dtype, np.float32)
+        # check input is unchanged
+        self.assertEqual(self.data_cube.dtype, np.float64)
 
     def test_coord_datatype_enforce(self):
         """Test coordinate datatypes are enforced (using substring processing)
@@ -135,6 +137,8 @@ class Test_enforce_units_and_dtypes(IrisTest):
              self.data_cube.coord(test_coord).points.astype(np.float64))
         result, = cube_units.enforce_units_and_dtypes(self.data_cube)
         self.assertEqual(result.coord(test_coord).dtype, np.int64)
+        # check input is unchanged
+        self.assertEqual(self.data_cube.coord(test_coord).dtype, np.float64)
 
     def test_data_datatype_fail(self):
         """Test error is raised when enforce=False"""
@@ -192,7 +196,7 @@ class Test_enforce_units_and_dtypes(IrisTest):
         dictionary standard"""
         self.data_cube.rename("number_of_fish")
         self.data_cube.units = "1"
-        msg = "Name 'number_of_fish' not defined in units.py"
+        msg = "Name 'number_of_fish' is not uniquely defined in units.py"
         with self.assertRaisesRegex(KeyError, msg):
             cube_units.enforce_units_and_dtypes(self.data_cube)
 
@@ -223,26 +227,28 @@ class Test__find_dict_key(LimitedDictTest):
 
     def test_match(self):
         """Test correct identification of single substring match"""
-        result = cube_units._find_dict_key("air_temperature", "")
+        result = cube_units._find_dict_key("air_temperature")
         self.assertEqual(result, "temperature")
 
     def test_probability_match(self):
         """Test the correct substring is returned for an IMPROVER-style
         probability cube name that matches multiple substrings"""
         result = cube_units._find_dict_key(
-            "probability_of_air_temperature_above_threshold", "")
+            "probability_of_air_temperature_above_threshold")
         self.assertEqual(result, "probability")
 
     def test_no_matches_error(self):
         """Test a KeyError is raised if there is no matching substring"""
+        msg = "Name 'kittens' is not uniquely defined in units.py"
         with self.assertRaises(KeyError):
-            cube_units._find_dict_key("kittens", "")
+            cube_units._find_dict_key("kittens")
 
     def test_multiple_matches_error(self):
         """Test a KeyError is raised if there are multiple matching substrings
         """
+        msg = "Name 'rainfall_rate' is not uniquely defined in units.py"
         with self.assertRaises(KeyError):
-            cube_units._find_dict_key("rainfall_rate", "")
+            cube_units._find_dict_key("rainfall_rate")
 
 
 class Test__get_required_units_and_dtype(LimitedDictTest):
