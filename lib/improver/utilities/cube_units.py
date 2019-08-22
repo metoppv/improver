@@ -85,6 +85,7 @@ def enforce_units_and_dtypes(cubes, coords=None, enforce=True):
         else:
             object_list.extend(cube.coords())
 
+    error_string = ''
     for item in object_list:
         units, dtype = _get_required_units_and_dtype(item.name())
 
@@ -96,20 +97,29 @@ def enforce_units_and_dtypes(cubes, coords=None, enforce=True):
                        ' to expected standard (units {}, datatype {})\n')
                 msg = msg.format(item.name(), item.units, item.dtype,
                                  units, dtype)
-                raise ValueError(msg)
+                error_string += msg
+                continue
 
-        # convert units
+        # attempt to convert units and record any errors
         try:
             item.convert_units(units)
         except ValueError:
-            msg = '{} units cannot be converted to "{}"'
-            raise ValueError(msg.format(item.name(), units))
+            msg = '{} units cannot be converted to "{}"\n'
+            error_string += msg
 
-        # convert datatype
-        if isinstance(item, iris.cube.Cube):
-            _convert_diagnostic_dtype(item, dtype)
-        else:
-            _convert_coordinate_dtype(item, dtype)
+        # attempt to convert datatype and record any errors
+        try:
+            if isinstance(item, iris.cube.Cube):
+                _convert_diagnostic_dtype(item, dtype)
+            else:
+                _convert_coordinate_dtype(item, dtype)
+        except ValueError as cause:
+            error_string += cause + '\n'
+
+    # if any errors were raised, re-raise with all messages here
+    if error_string:
+        msg = 'The following errors were raised during processing:\n'
+        raise ValueError(msg+error_string)
 
     return iris.cube.CubeList(new_cubes)
 

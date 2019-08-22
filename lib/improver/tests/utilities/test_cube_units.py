@@ -191,7 +191,7 @@ class Test_enforce_units_and_dtypes(IrisTest):
             result[1].coord('air_temperature').units, 'Fahrenheit')
         self.assertEqual(result[1].coord('forecast_period').units, 's')
 
-    def test_quantity_available(self):
+    def test_quantity_unavailable(self):
         """Test error raised if the named quantity is not listed in the
         dictionary standard"""
         self.data_cube.rename("number_of_fish")
@@ -199,6 +199,17 @@ class Test_enforce_units_and_dtypes(IrisTest):
         msg = "Name 'number_of_fish' is not uniquely defined in units.py"
         with self.assertRaisesRegex(KeyError, msg):
             cube_units.enforce_units_and_dtypes(self.data_cube)
+
+    def test_multiple_errors(self):
+        """Test a list of errors is correctly caught and re-raised"""
+        self.data_cube.convert_units('Fahrenheit')
+        self.probability_cube.coord(
+            'air_temperature').convert_units('Fahrenheit')
+        msg = ("The following errors were raised during processing:\n"
+               "air_temperature with units Fahrenheit and datatype ")
+        with self.assertRaisesRegex(ValueError, msg):
+            cube_units.enforce_units_and_dtypes(
+                [self.data_cube, self.probability_cube], enforce=False)
 
 
 class LimitedDictTest(IrisTest):
