@@ -136,7 +136,7 @@ def main(argv=None):
 
     # Load Cubes
     current_forecast = load_cube(args.forecast_filepath)
-    coeffs = load_cube(args.coefficients_filepath, return_none=True)
+    coeffs = load_cube(args.coefficients_filepath, allow_none=True)
     # Process Cube
     result = process(current_forecast, coeffs, args.num_realizations,
                      args.random_ordering, args.random_seed,

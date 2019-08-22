@@ -119,7 +119,7 @@ def main(argv=None):
     cube = load_cube(args.input_filepath)
     raw_forecast = None
     if args.reordering:
-        raw_forecast = load_cube(args.raw_forecast_filepath, return_none=True)
+        raw_forecast = load_cube(args.raw_forecast_filepath, allow_none=True)
         if raw_forecast is None:
             message = ("You must supply a raw forecast filepath if using the "
                        "reordering option.")

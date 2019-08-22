@@ -151,8 +151,7 @@ def main(argv=None):
                 [int(num) for num in args.realization_numbers])
 
     cube = load_cube(args.input_filepath)
-    raw_forecast = load_cube(args.raw_forecast_filepath,
-                             return_none=True)
+    raw_forecast = load_cube(args.raw_forecast_filepath, allow_none=True)
 
     # Process Cube
     result_cube = process(cube, raw_forecast, args.no_of_percentiles,

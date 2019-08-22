@@ -154,7 +154,7 @@ def main(argv=None):
     neighbour_cube = load_cube(args.neighbour_filepath)
     diagnostic_cube = load_cube(args.diagnostic_filepath)
     lapse_rate_cube = load_cube(args.temperature_lapse_rate_filepath,
-                                return_none=True)
+                                allow_none=True)
     metadata_dict = load_json_or_none(args.metadata_json)
 
     # Process Cube

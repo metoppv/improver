@@ -136,7 +136,7 @@ def main(argv=None):
     # load files and initialise advection plugin
     input_cube = load_cube(args.input_filepath)
     orographic_enhancement_cube = load_cube(
-        args.orographic_enhancement_filepaths, return_none=True)
+        args.orographic_enhancement_filepaths, allow_none=True)
 
     speed_cube = direction_cube = ucube = vcube = None
     if (upath and vpath) and not (spath or dpath):

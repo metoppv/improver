@@ -39,7 +39,7 @@ from improver.utilities.cube_manipulation import (
 
 
 def load_cube(filepath, constraints=None, no_lazy_load=False,
-              return_none=False):
+              allow_none=False):
     """Load the filepath provided using Iris into a cube.
 
     Args:
@@ -55,7 +55,7 @@ def load_cube(filepath, constraints=None, no_lazy_load=False,
             If True, bypass cube deferred (lazy) loading and load the whole
             cube into memory. This can increase performance at the cost of
             memory. If False (default) then lazy load.
-        return_none (bool):
+        allow_none (bool):
             If True, when the filepath is None, returns None.
             If False, normal error handling applies.
             Default is False.
@@ -65,7 +65,7 @@ def load_cube(filepath, constraints=None, no_lazy_load=False,
             Cube that has been loaded from the input filepath given the
             constraints provided.
     """
-    if filepath is None and return_none:
+    if filepath is None and allow_none:
         return None
     # Remove metadata prefix cube if present
     constraints = iris.Constraint(

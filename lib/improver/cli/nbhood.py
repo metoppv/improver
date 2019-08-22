@@ -210,11 +210,11 @@ def main(argv=None):
 
     # Load Cube
     cube = load_cube(args.input_filepath)
-    mask_cube = load_cube(args.input_mask_filepath, return_none=True)
+    mask_cube = load_cube(args.input_mask_filepath, allow_none=True)
     alphas_x_cube = load_cube(args.input_filepath_alphas_x_cube,
-                              return_none=True)
+                              allow_none=True)
     alphas_y_cube = load_cube(args.input_filepath_alphas_y_cube,
-                              return_none=True)
+                              allow_none=True)
 
     # Process Cube
     result = process(cube, args.neighbourhood_output,

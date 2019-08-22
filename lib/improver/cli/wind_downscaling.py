@@ -117,9 +117,9 @@ def main(argv=None):
     sigma = load_cube(args.sigma_filepath)
     target_orog = load_cube(args.target_orog_filepath)
     standard_orog = load_cube(args.standard_orog_filepath)
-    height_levels = load_cube(args.height_levels_filepath, return_none=True)
+    height_levels = load_cube(args.height_levels_filepath, allow_none=True)
     veg_roughness_cube = load_cube(args.veg_roughness_filepath,
-                                   return_none=True)
+                                   allow_none=True)
 
     # Process Cube
     wind_speed = process(wind_speed, silhouette_roughness, sigma, target_orog,
