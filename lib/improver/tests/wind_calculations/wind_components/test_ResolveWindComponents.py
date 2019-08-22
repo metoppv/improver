@@ -100,9 +100,9 @@ class Test_calc_true_north_offset(IrisTest):
         """Test that for UK National Grid coordinates the angle adjustments
         are sensible"""
         expected_result = np.array([
-            [3.012338, 2.635347, 2.258535, 1.881877, 1.505348],
-            [3.167531, 2.771182, 2.374997, 1.978951, 1.583021],
-            [3.310965, 2.896735, 2.482648, 2.068685, 1.654825]],
+            [2.651483, 2.386892, 2.122119, 1.857182, 1.592121],
+            [2.921058, 2.629620, 2.337963, 2.046132, 1.754138],
+            [3.223816, 2.902300, 2.580523, 2.258494, 1.936247]],
             dtype=np.float32)
         result = self.plugin.calc_true_north_offset(self.directions)
         self.assertArrayAlmostEqual(RAD_TO_DEG*result, expected_result)
@@ -169,14 +169,14 @@ class Test_process(IrisTest):
             wind_direction_data, "wind_to_direction", "degrees")
 
         self.expected_u = np.array([
-            [3.774919, 2.902824, 2.406847, 1.826062],
-            [4.683339, 3.386423, 2.456537, 2.374629],
-            [6.829466, 4.149148, 3.593584, 2.963243]], dtype=np.float32)
+            [3.804214, 2.917800, 2.410297, 1.822455],
+            [4.711193, 3.395639, 2.454748, 2.365005],
+            [6.844465, 4.144803, 3.580219, 2.943424]], dtype=np.float32)
 
         self.expected_v = np.array([
-            [-4.663688, -4.071071, -3.194854, -2.380230],
-            [-6.485857, -4.952993, -3.156806, -3.218872],
-            [-9.867035, -6.839924, -4.804805, -4.027306]], dtype=np.float32)
+            [-4.639823, -4.060351, -3.1922507, -2.382994],
+            [-6.465651, -4.946681, -3.1581972, -3.225949],
+            [-9.856638, -6.842559, -4.8147717, -4.041813]], dtype=np.float32)
 
     def test_basic(self):
         """Test plugin creates two output cubes with the correct metadata"""
