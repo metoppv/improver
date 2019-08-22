@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env bats
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,44 +28,25 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""
-Module to contain the default units for use within IMPROVER.
 
-The DEFAULT_UNITS dictionary has the following form.
+. $IMPROVER_DIR/tests/lib/utils
 
-<str>:
-    The principle key is the name of a coordinate or diagnostic.
+@test "apply-emos-coefficients when input forecast cube is a coefficients cube" {
+  improver_check_skip_acceptance
+  KGO="ensemble-calibration/gaussian/input.nc"
 
-"unit": <str>
-    The standard/default units for the coordinate or diagnostic
-    described by the key.  This is mandatory.
-"dtype": <dtype>
-    The standard/default data type in which the coordinate points
-    or diagnostic values should be stored.  This is optional; if
-    not set, float32 is assumed.
-"""
+  # Check it raises an error when there input forecast cube is a
+  # coefficients cube.
+  run improver apply-emos-coefficients \
+  "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/kgo.nc" \
+  "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/kgo.nc" \
+      "$TEST_DIR/output.nc" --random_seed 0
+  [[ "$status" -eq 1 ]]
+  # Check for error
+  read -d '' expected <<'__TEXT__' || true
+ValueError: The current forecast cube has the name 'emos_coefficients'
+__TEXT__
 
-import numpy as np
+  [[ "$output" =~ "$expected" ]]
 
-DEFAULT_UNITS = {
-    # time coordinates and suitable substrings
-    "time": {
-        "unit": "seconds since 1970-01-01 00:00:00",
-        "dtype": np.int64},
-    "forecast_period": {
-        "unit": "seconds",
-        "dtype": np.int32},
-    # other standard coordinates and substrings
-    "longitude": {"unit": "degrees"},
-    "latitude": {"unit": "degrees"},
-    "projection_x_coordinate": {"unit": "m"},
-    "projection_y_coordinate": {"unit": "m"},
-    "percentile": {"unit": "%"},
-    "probability": {"unit": "1"},
-    # standard diagnostics and suitable substrings (alphabetised for clarity)
-    "fall_rate": {"unit": "m s-1"},
-    "lapse_rate": {"unit": "K m-1"},
-    "precipitation_rate": {"unit": "m s-1"},
-    "temperature": {"unit": "K"},
-    "thickness": {"unit": "m"}
 }

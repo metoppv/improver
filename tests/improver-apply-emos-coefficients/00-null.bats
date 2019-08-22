@@ -40,7 +40,8 @@
                                         [--ecc_bounds_warning]
                                         [--predictor_of_mean PREDICTOR_OF_MEAN]
                                         FORECAST_FILEPATH
-                                        COEFFICIENTS_FILEPATH OUTPUT_FILEPATH
+                                        [COEFFICIENTS_FILEPATH]
+                                        OUTPUT_FILEPATH
 "
   [[ "$output" =~ "$expected" ]]
 }
