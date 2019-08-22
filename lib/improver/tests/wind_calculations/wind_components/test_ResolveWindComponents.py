@@ -238,8 +238,8 @@ class Test_process(IrisTest):
         self.wind_direction_cube.rename("wind_from_direction")
         ucube, vcube = self.plugin.process(
             self.wind_speed_cube, self.wind_direction_cube)
-        self.assertTrue(np.allclose(ucube.data, expected_u, atol=1e-6))
-        self.assertTrue(np.allclose(vcube.data, expected_v, atol=1e-6))
+        self.assertArrayAllClose(ucube.data, expected_u, atol=1e-5)
+        self.assertArrayAllClose(vcube.data, expected_v, atol=1e-5)
 
 
 if __name__ == '__main__':
