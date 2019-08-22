@@ -197,25 +197,29 @@ class Test_enforce_units_and_dtypes(IrisTest):
             cube_units.enforce_units_and_dtypes(self.data_cube)
 
 
-# limited item dictionary to point to in smaller tests
-TEST_DICT = {
-    "time": {
-        "unit": "seconds since 1970-01-01 00:00:00",
-        "dtype": np.int64},
-    "probability": {"unit": "1"},
-    "temperature": {"unit": "K"},
-    "rainfall": {"unit": "m s-1"},
-    "rate": {"unit": "m s-1"}
-}
+class LimitedDictTest(IrisTest):
+    """Set up limited item dictionary to point to in smaller tests"""
+
+    def setUp(self):
+        """Define dictionary"""
+        self.units_dict = {
+            "time": {
+                "unit": "seconds since 1970-01-01 00:00:00",
+                "dtype": np.int64},
+            "probability": {"unit": "1"},
+            "temperature": {"unit": "K"},
+            "rainfall": {"unit": "m s-1"},
+            "rate": {"unit": "m s-1"}
+        }
 
 
-class Test__find_dict_key(IrisTest):
+class Test__find_dict_key(LimitedDictTest):
     """Test method to find suitable substring keys in dictionary"""
 
-    @staticmethod
-    def setUp():
+    def setUp(self):
         """Redirect to dummy dictionary"""
-        cube_units.DEFAULT_UNITS = TEST_DICT
+        super().setUp()
+        cube_units.DEFAULT_UNITS = self.units_dict
 
     def test_match(self):
         """Test correct identification of single substring match"""
@@ -232,7 +236,7 @@ class Test__find_dict_key(IrisTest):
     def test_no_matches_error(self):
         """Test a KeyError is raised if there is no matching substring"""
         with self.assertRaises(KeyError):
-            cube_units._find_dict_key("snowfall", "")
+            cube_units._find_dict_key("kittens", "")
 
     def test_multiple_matches_error(self):
         """Test a KeyError is raised if there are multiple matching substrings
@@ -241,13 +245,13 @@ class Test__find_dict_key(IrisTest):
             cube_units._find_dict_key("rainfall_rate", "")
 
 
-class Test__get_required_units_and_dtype(IrisTest):
+class Test__get_required_units_and_dtype(LimitedDictTest):
     """Test method to read requirements from dictionary"""
 
-    @staticmethod
-    def setUp():
+    def setUp(self):
         """Redirect to dummy dictionary"""
-        cube_units.DEFAULT_UNITS = TEST_DICT
+        super().setUp()
+        cube_units.DEFAULT_UNITS = self.units_dict
 
     def test_match(self):
         """Test correct requirements identified"""
