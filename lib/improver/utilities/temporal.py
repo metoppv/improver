@@ -32,10 +32,8 @@
 
 import re
 import warnings
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from datetime import time as dt_time
-from datetime import timedelta
-from datetime import timezone
 
 import cf_units as unit
 import iris
