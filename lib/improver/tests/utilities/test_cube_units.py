@@ -240,14 +240,14 @@ class Test__find_dict_key(LimitedDictTest):
     def test_no_matches_error(self):
         """Test a KeyError is raised if there is no matching substring"""
         msg = "Name 'kittens' is not uniquely defined in units.py"
-        with self.assertRaises(KeyError):
+        with self.assertRaisesRegex(KeyError, msg):
             cube_units._find_dict_key("kittens")
 
     def test_multiple_matches_error(self):
         """Test a KeyError is raised if there are multiple matching substrings
         """
         msg = "Name 'rainfall_rate' is not uniquely defined in units.py"
-        with self.assertRaises(KeyError):
+        with self.assertRaisesRegex(KeyError, msg):
             cube_units._find_dict_key("rainfall_rate")
 
 

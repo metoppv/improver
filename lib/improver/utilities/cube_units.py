@@ -93,7 +93,7 @@ def enforce_units_and_dtypes(cubes, coords=None, enforce=True):
             conforms = _check_units_and_dtype(item, units, dtype)
             if not conforms:
                 msg = ('{} with units {} and datatype {} does not conform'
-                       ' to expected standard (units {}, datatype {})')
+                       ' to expected standard (units {}, datatype {})\n')
                 msg = msg.format(item.name(), item.units, item.dtype,
                                  units, dtype)
                 raise ValueError(msg)
