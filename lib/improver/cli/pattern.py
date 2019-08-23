@@ -35,7 +35,8 @@ from improver.utilities.save import save_netcdf
 from improver.utilities.load import load_cube, load_cubelist
 
 
-def call_all(cube_args, cubelist_args, option_cube_args, json_args, args, process_function, save_name):
+def call_all(args, process_function, save_name, cube_args=[],
+             cubelist_args=[], option_cube_args=[], json_args=[]):
     """A function to load cubes, run function and save the cubes.
 
     It starts by copying the ArgParser dictionary and removing the 'profile'
@@ -71,10 +72,10 @@ def call_all(cube_args, cubelist_args, option_cube_args, json_args, args, proces
     """
     d = args.__dict__.copy()
     [d.pop(x) for x in ['profile', 'profile_file']]
-    save = [d.pop(x) for x in save_name]
     for i in cube_args + cubelist_args + option_cube_args + save_name:
         if i not in d.keys():
-            raise ValueError('Argument given not in argParser args.')
+            raise ValueError('Argument {} given not in argParser args. {}'.format(i, d))
+    save = [d.pop(x) for x in save_name]
 
     for i in json_args:
         d[i] = load_json_or_none(d[i])

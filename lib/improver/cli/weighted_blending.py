@@ -174,22 +174,11 @@ def main(argv=None):
         parser.error('Dictionary is required if --wts_calc_method="dict"')
 
     # Load cubes to be blended.
-    cube_args = []
     cubelist_args = ['input_filepaths']
-    option_cube_args = []
     json_args = ['wts_dict']
     save = ['output_filepath']
-    call_all(cube_args, cubelist_args, option_cube_args,
-             json_args, args, process, save)
-
-    # cubelist = load_cubelist(args.input_filepaths)
-    #
-    # result = process(cubelist, args.wts_calc_method, args.coordinate,
-    #                  args.cycletime, args.weighting_coord, weights_dict,
-    #                  args.y0val, args.ynval, args.cval, args.model_id_attr,
-    #                  args.spatial_weights_from_mask, args.fuzzy_length)
-    #
-    # save_netcdf(result, args.output_filepath)
+    call_all(args, process, save, cubelist_args=cubelist_args,
+             json_args=json_args)
 
 
 def process(wts_calc_method, coordinate, cycletime,

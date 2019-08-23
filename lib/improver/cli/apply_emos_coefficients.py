@@ -135,7 +135,8 @@ def main(argv=None):
     cube_args = ['forecast_filepath']
     option_cube_args = ['coefficients_filepath']
     save = ['output_filepath']
-    call_all(cube_args, option_cube_args, args, process, save)
+    call_all(args, process, save, cube_args=cube_args,
+             option_cube_args=option_cube_args)
 
 
 def process(current_forecast, coeffs, num_realizations=None,
