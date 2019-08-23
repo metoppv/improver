@@ -74,7 +74,8 @@ def call_all(args, process_function, save_name, cube_args=[],
     [d.pop(x) for x in ['profile', 'profile_file']]
     for i in cube_args + cubelist_args + option_cube_args + save_name:
         if i not in d.keys():
-            raise ValueError('Argument {} given not in argParser args. {}'.format(i, d))
+            raise ValueError(
+                'Argument {} given not in argParser args. {}'.format(i, d))
     save = [d.pop(x) for x in save_name]
 
     for i in json_args:
@@ -89,4 +90,3 @@ def call_all(args, process_function, save_name, cube_args=[],
     result = process_function(*d.values())
     for file in save:
         save_netcdf(result, file)
-
