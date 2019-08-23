@@ -34,12 +34,12 @@ Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
 Regression (NGR)."""
 
 import warnings
-from typing import List
 
 import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.argparser import ArgParser
+from improver.cli.pattern import call_all
 from improver.ensemble_calibration.ensemble_calibration import (
     ApplyCoefficientsFromEnsembleCalibration)
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
@@ -50,8 +50,6 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsRealizations,
     ResamplePercentiles)
 from improver.utilities.cube_checker import find_percentile_coordinate
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
 
 
 def main(argv=None):
@@ -133,39 +131,11 @@ def main(argv=None):
              'Default: "mean".')
 
     args = parser.parse_args(args=argv)
-    d = args.__dict__.copy()
 
     cube_args = ['forecast_filepath']
     option_cube_args = ['coefficients_filepath']
-    save = d['output_filepath']
-
-    positional_cubes = {i: d[i] for i in cube_args}
-    optional_cube = {i: d[i] for i in option_cube_args}
-    d.pop('output_filepath')
-    call_all(positional_cubes, optional_cube, d, process, save)
-    # # Load Cubes
-    # current_forecast = load_cube(args.forecast_filepath)
-    # coeffs = load_cube(args.coefficients_filepath, allow_none=True)
-    # # Process Cube
-    # result = process(current_forecast, coeffs, args.num_realizations,
-    #                  args.random_ordering, args.random_seed,
-    #                  args.ecc_bounds_warning, args.predictor_of_mean)
-    # # Save Cube
-    # save_netcdf(result, args.output_filepath)
-
-
-def call_all(cubes, opt_cube, d, process_function, save):
-    d.pop('profile')
-    d.pop('profile_file')
-    for k, v in cubes.items():
-        d[k] = load_cube(v)
-    for k, v in opt_cube.items():
-        d[k] = load_cube(v, allow_none=True)
-    result = process_function(*d.values())
-    save_netcdf(result, save)
-
-
-
+    save = ['output_filepath']
+    call_all(cube_args, option_cube_args, args, process, save)
 
 
 def process(current_forecast, coeffs, num_realizations=None,
@@ -326,8 +296,6 @@ def process(current_forecast, coeffs, num_realizations=None,
             random_ordering=random_ordering, random_seed=random_seed)
     return result
 
-def stars():
-    print('*' * 80)
 
 if __name__ == "__main__":
     main()

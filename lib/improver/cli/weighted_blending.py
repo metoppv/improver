@@ -32,13 +32,10 @@
 
 """Script to run weighted blending."""
 
-import json
 import numpy as np
 
 from improver.argparser import ArgParser
-from improver.utilities.cli_utilities import load_json_or_none
-from improver.utilities.load import load_cubelist
-from improver.utilities.save import save_netcdf
+from improver.cli.pattern import call_all
 
 from improver.blending.calculate_weights_and_blend import WeightAndBlend
 
@@ -176,23 +173,31 @@ def main(argv=None):
     if (args.wts_calc_method == "dict") and not args.wts_dict:
         parser.error('Dictionary is required if --wts_calc_method="dict"')
 
-    weights_dict = load_json_or_none(args.wts_dict)
-
     # Load cubes to be blended.
-    cubelist = load_cubelist(args.input_filepaths)
+    cube_args = []
+    cubelist_args = ['input_filepaths']
+    option_cube_args = []
+    json_args = ['wts_dict']
+    save = ['output_filepath']
+    call_all(cube_args, cubelist_args, option_cube_args,
+             json_args, args, process, save)
 
-    result = process(cubelist, args.wts_calc_method, args.coordinate,
-                     args.cycletime, args.weighting_coord, weights_dict,
-                     args.y0val, args.ynval, args.cval, args.model_id_attr,
-                     args.spatial_weights_from_mask, args.fuzzy_length)
+    # cubelist = load_cubelist(args.input_filepaths)
+    #
+    # result = process(cubelist, args.wts_calc_method, args.coordinate,
+    #                  args.cycletime, args.weighting_coord, weights_dict,
+    #                  args.y0val, args.ynval, args.cval, args.model_id_attr,
+    #                  args.spatial_weights_from_mask, args.fuzzy_length)
+    #
+    # save_netcdf(result, args.output_filepath)
 
-    save_netcdf(result, args.output_filepath)
 
-
-def process(cubelist, wts_calc_method, coordinate, cycletime, weighting_coord,
-            weights_dict=None, y0val=None, ynval=None, cval=None,
+def process(wts_calc_method, coordinate, cycletime,
             model_id_attr='mosg__model_configuration',
-            spatial_weights_from_mask=False, fuzzy_length=20000.0):
+            spatial_weights_from_mask=False,
+            cubelist=None, fuzzy_length=20000.0,
+            y0val=None, ynval=None, cval=None, weights_dict=None,
+            weighting_coord='forecast_period',):
     """Module to run weighted blending.
 
     Load in arguments and ensure they are set correctly.
