@@ -98,7 +98,7 @@ def call_all(args, process_function, save_name, cube_args=[],
         (None)
 
     """
-    d = args.__dict__.copy()
+    d = vars(args)
     [d.pop(x) for x in ['profile', 'profile_file']]
     for i in cube_args + cubelist_args + option_cube_args + save_name:
         if i not in d.keys():
