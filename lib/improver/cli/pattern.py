@@ -63,12 +63,13 @@ def dict_update(func, arg_list, arg_dict, **kwargs):
             As the dictionary is mutable.
 
     """
-    for i in arg_list:
-        arg_dict[i] = func(arg_dict[i], **kwargs)
+    if arg_list is not None:
+        for i in arg_list:
+            arg_dict[i] = func(arg_dict[i], **kwargs)
 
 
-def call_all(args, process_function, save_name, cube_args=[],
-             cubelist_args=[], option_cube_args=[], json_args=[]):
+def call_all(args, process_function, save_name, cube_args=None,
+             cubelist_args=None, option_cube_args=None, json_args=None):
     """A function to load cubes, run function and save the cubes.
 
     It starts by copying the ArgParser dictionary and removing the 'profile'
@@ -99,11 +100,7 @@ def call_all(args, process_function, save_name, cube_args=[],
 
     """
     d = vars(args)
-    [d.pop(x) for x in ['profile', 'profile_file']]
-    for i in cube_args + cubelist_args + option_cube_args + save_name:
-        if i not in d.keys():
-            raise ValueError(
-                'Argument {} given not in argParser args. {}'.format(i, d))
+    _ = [d.pop(x) for x in ['profile', 'profile_file']]
     save = [d.pop(x) for x in save_name]
 
     dict_update(load_json_or_none, json_args, d)
@@ -112,6 +109,8 @@ def call_all(args, process_function, save_name, cube_args=[],
     dict_update(load_cube, option_cube_args, d, allow_none=True)
 
     result = process_function(*d.values())
-    # TODO this won't work with tuples being returned... ZIP()?
-    for file in save:
-        save_netcdf(result, file)
+    # TODO test this works with a tuple returning cli.
+    if isinstance(result, tuple):
+        for res, fpath in zip(result, save):
+            save_netcdf(res, fpath)
+    save_netcdf(result, save[0])
