@@ -32,8 +32,6 @@
 
 import json
 
-from improver.utilities.load import load_cube
-
 
 def load_json_or_none(file_path):
     """If there is a path, runs json.load and returns it. Else returns None.

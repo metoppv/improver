@@ -32,15 +32,15 @@
 
 import unittest
 from datetime import datetime
-import numpy as np
 
 import iris
+import numpy as np
 from iris.tests import IrisTest
 
 import improver.units
-from improver.utilities import cube_units
 from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, set_up_probability_cube, set_up_percentile_cube)
+from improver.utilities import cube_units
 
 
 class Test_enforce_units_and_dtypes(IrisTest):

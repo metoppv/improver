@@ -36,8 +36,8 @@ import warnings
 
 import iris
 import numpy as np
-from scipy import ndimage, signal
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
+from scipy import ndimage, signal
 
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.cube_metadata import amend_metadata
