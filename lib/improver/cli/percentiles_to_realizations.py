@@ -32,10 +32,9 @@
 
 """Script to run Ensemble Copula Coupling processing."""
 
-from improver.argparser import ArgParser
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsRealizations, ResamplePercentiles, EnsembleReordering)
-from improver.utilities.cli_utilities import load_cube_or_none
+from improver.argparser import ArgParser
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
@@ -152,7 +151,7 @@ def main(argv=None):
                 [int(num) for num in args.realization_numbers])
 
     cube = load_cube(args.input_filepath)
-    raw_forecast = load_cube_or_none(args.raw_forecast_filepath)
+    raw_forecast = load_cube(args.raw_forecast_filepath, allow_none=True)
 
     # Process Cube
     result_cube = process(cube, raw_forecast, args.no_of_percentiles,

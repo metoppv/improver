@@ -37,7 +37,6 @@ from improver.argparser import ArgParser
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     GeneratePercentilesFromProbabilities, RebadgePercentilesAsRealizations,
     EnsembleReordering)
-from improver.utilities.cli_utilities import load_cube_or_none
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
@@ -121,7 +120,7 @@ def main(argv=None):
     cube = load_cube(args.input_filepath)
     raw_forecast = None
     if args.reordering:
-        raw_forecast = load_cube_or_none(args.raw_forecast_filepath)
+        raw_forecast = load_cube(args.raw_forecast_filepath, allow_none=True)
         if raw_forecast is None:
             message = ("You must supply a raw forecast filepath if using the "
                        "reordering option.")

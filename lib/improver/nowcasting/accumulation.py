@@ -37,8 +37,7 @@ import iris
 import numpy as np
 
 from improver.utilities.cube_manipulation import expand_bounds
-from improver.utilities.cube_units import (enforce_coordinate_units_and_dtypes,
-                                           enforce_diagnostic_units_and_dtypes)
+from improver.utilities.cube_units import enforce_units_and_dtypes
 
 
 class Accumulation:
@@ -134,12 +133,10 @@ class Accumulation:
                 divisible by the time interval.
 
         """
-        # Standardise inputs to expected units.
-        cubes = enforce_coordinate_units_and_dtypes(
-            cubes, ['time', 'forecast_reference_time', 'forecast_period'],
-            inplace=False)
-
-        enforce_diagnostic_units_and_dtypes(cubes)
+        # Standardise inputs to expected units
+        cubes = enforce_units_and_dtypes(
+            cubes, coords=['time', 'forecast_reference_time',
+                           'forecast_period'])
 
         # Sort cubes into time order and calculate intervals.
         cubes, times = self.sort_cubes_by_time(cubes)

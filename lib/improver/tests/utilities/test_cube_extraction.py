@@ -236,7 +236,7 @@ class Test_apply_extraction(IrisTest):
         with self.assertRaises(CoordinateNotFoundError):
             apply_extraction(self.precip_cube, constraint_dict, units_dict)
 
-    def test_return_none(self):
+    def test_allow_none(self):
         """ Test function returns None rather than raising an error where
         no subcubes match the required constraints, when unit conversion is
         required """

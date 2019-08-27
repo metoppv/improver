@@ -33,7 +33,6 @@
 extrapolate."""
 
 import os
-
 import iris
 import numpy as np
 
@@ -41,10 +40,9 @@ from improver.argparser import ArgParser
 from improver.nowcasting.forecasting import CreateExtrapolationForecast
 from improver.nowcasting.optical_flow import OpticalFlow
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
-from improver.utilities.cli_utilities import (load_cube_or_none,
-                                              load_json_or_none)
 from improver.utilities.filename import generate_file_name
-from improver.utilities.load import load_cubelist
+from improver.utilities.load import load_cubelist, load_cube
+from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.save import save_netcdf
 
 
@@ -108,7 +106,8 @@ def main(argv=None):
     # Load Cubes and JSON.
     metadata_dict = load_json_or_none(args.json_file)
     original_cube_list = load_cubelist(args.input_filepaths)
-    oe_cube = load_cube_or_none(args.orographic_enhancement_filepaths)
+    oe_cube = load_cube(args.orographic_enhancement_filepaths,
+                        allow_none=True)
 
     # Process
     forecast_cubes, u_and_v_mean = process(

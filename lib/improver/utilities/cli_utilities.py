@@ -35,22 +35,6 @@ import json
 from improver.utilities.load import load_cube
 
 
-def load_cube_or_none(file_path):
-    """If there is a filepath, loads a cube and returns it, else returns None.
-
-    Args:
-        file_path (str):
-            File path to the file to load as a cube.
-
-    Returns:
-        (iris.cube.Cube):
-            A loaded cube.
-            or
-            None
-    """
-    return load_cube(file_path) if file_path else None
-
-
 def load_json_or_none(file_path):
     """If there is a path, runs json.load and returns it. Else returns None.
 
