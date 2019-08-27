@@ -37,6 +37,26 @@ from improver.utilities.cli_utilities import (radius_or_radii_and_lead,
                                               load_json_or_none)
 
 
+class Test_load_json_or_none(unittest.TestCase):
+    """Tests load_json_or_none to call loading json or return None."""
+
+    @patch('builtins.open', new_callable=mock_open, read_data='{"k": "v"}')
+    def test_loading_file(self, m):
+        """Tests if called with a filepath, loads a dict."""
+        file_path = 'filename'
+        dict_read = load_json_or_none(file_path)
+        self.assertEqual(dict_read, {"k": "v"})
+        m.assert_called_with('filename', 'r')
+
+    @patch('builtins.open', new_callable=mock_open, read_data='{"k": "v"}')
+    def test_none(self, m):
+        """Tests if called with None returns None."""
+        file_path = None
+        dict_read = load_json_or_none(file_path)
+        self.assertIsNone(dict_read)
+        m.assert_not_called()
+
+
 class Test_radius_or_radii_and_lead(unittest.TestCase):
     """Tests radius_or_radii_and_lead to split the data correctly."""
 
@@ -74,26 +94,6 @@ class Test_radius_or_radii_and_lead(unittest.TestCase):
                "Only one option should be specified.")
         with self.assertRaisesRegex(TypeError, msg):
             radius_or_radii_and_lead(radius, radii_lead)
-
-
-class Test_load_json_or_none(unittest.TestCase):
-    """Tests load_json_or_none to call loading json or return None."""
-
-    @patch('builtins.open', new_callable=mock_open, read_data='{"k": "v"}')
-    def test_loading_file(self, m):
-        """Tests if called with a filepath, loads a dict."""
-        file_path = 'filename'
-        dict_read = load_json_or_none(file_path)
-        self.assertEqual(dict_read, {"k": "v"})
-        m.assert_called_with('filename', 'r')
-
-    @patch('builtins.open', new_callable=mock_open, read_data='{"k": "v"}')
-    def test_none(self, m):
-        """Tests if called with None returns None."""
-        file_path = None
-        dict_read = load_json_or_none(file_path)
-        self.assertIsNone(dict_read)
-        m.assert_not_called()
 
 
 if __name__ == '__main__':
