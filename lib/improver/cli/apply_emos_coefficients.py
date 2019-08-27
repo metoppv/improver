@@ -60,6 +60,10 @@ def main(argv=None):
        forecast is written to a netCDF file. If no coefficients are supplied
        the input forecast is returned unchanged.
     """
+
+    forecast = 'forecast_filepath'
+    coeff = 'coefficients_filepath'
+    output = 'output_filepath'
     parser = ArgParser(
         description='Apply coefficients for Ensemble Model Output '
                     'Statistics (EMOS), otherwise known as Non-homogeneous '
@@ -70,18 +74,17 @@ def main(argv=None):
                     'match the input format.')
     # Filepaths for the forecast, EMOS coefficients and the output.
     parser.add_argument(
-        'forecast_filepath', metavar='FORECAST_FILEPATH',
+        forecast, metavar='FORECAST_FILEPATH',
         help='A path to an input NetCDF file containing the forecast to be '
              'calibrated. The input format could be either realizations, '
              'probabilities or percentiles.')
     parser.add_argument(
-        'coefficients_filepath',
-        metavar='COEFFICIENTS_FILEPATH', nargs='?',
+        coeff, metavar='COEFFICIENTS_FILEPATH', nargs='?',
         help='(Optional) A path to an input NetCDF file containing the '
              'coefficients used for calibration. If this file is not '
              'provided the input forecast is returned unchanged.')
     parser.add_argument(
-        'output_filepath', metavar='OUTPUT_FILEPATH',
+        output, metavar='OUTPUT_FILEPATH',
         help='The output path for the processed NetCDF')
     # Optional arguments.
     parser.add_argument(
@@ -132,9 +135,9 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
-    cube_args = ['forecast_filepath']
-    option_cube_args = ['coefficients_filepath']
-    save = ['output_filepath']
+    cube_args = [forecast]
+    option_cube_args = [coeff]
+    save = [output]
     call_all(args, process, save, cube_args=cube_args,
              option_cube_args=option_cube_args)
 

@@ -30,6 +30,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Pattern for calling clis"""
+from os import path
+
 from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.save import save_netcdf
 from improver.utilities.load import load_cube, load_cubelist
@@ -101,6 +103,8 @@ def call_all(args, process_function, save_name, cube_args=None,
     """
     d = vars(args)
     _ = [d.pop(x) for x in ['profile', 'profile_file']]
+    # TODO does this make codacy happy?
+    del _
     save = [d.pop(x) for x in save_name]
 
     dict_update(load_json_or_none, json_args, d)
