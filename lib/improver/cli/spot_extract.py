@@ -44,8 +44,7 @@ from improver.percentile import PercentileConverter
 from improver.spotdata.apply_lapse_rate import SpotLapseRateAdjust
 from improver.spotdata.neighbour_finding import NeighbourSelection
 from improver.spotdata.spot_extraction import SpotExtraction
-from improver.utilities.cli_utilities import (load_json_or_none,
-                                              load_cube_or_none)
+from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.cube_checker import find_percentile_coordinate
 from improver.utilities.cube_extraction import extract_subcube
 from improver.utilities.cube_metadata import amend_metadata
@@ -114,7 +113,7 @@ def main(argv=None):
         "provided a warning is raised and all leading dimensions are included "
         "in the returned spot-data cube.")
     percentile_group.add_argument(
-        "--extract_percentiles", default=None, nargs='+', type=int,
+        "--extract_percentiles", default=None, nargs='+', type=float,
         help="If set to a percentile value or a list of percentile values, "
         "data corresponding to those percentiles will be returned. For "
         "example setting '--extract_percentiles 25 50 75' will result in the "
@@ -154,7 +153,8 @@ def main(argv=None):
     # Load Cube and JSON.
     neighbour_cube = load_cube(args.neighbour_filepath)
     diagnostic_cube = load_cube(args.diagnostic_filepath)
-    lapse_rate_cube = load_cube_or_none(args.temperature_lapse_rate_filepath)
+    lapse_rate_cube = load_cube(args.temperature_lapse_rate_filepath,
+                                allow_none=True)
     metadata_dict = load_json_or_none(args.metadata_json)
 
     # Process Cube

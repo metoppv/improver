@@ -78,11 +78,11 @@ def main(argv=None):
                         'will take the latest available forecast reference '
                         'time from the input cubes supplied.')
     parser.add_argument('--model_id_attr', metavar='MODEL_ID_ATTR', type=str,
-                        default="mosg__model_configuration",
+                        default=None,
                         help='The name of the netCDF file attribute to be '
                              'used to identify the source model for '
-                             'multi-model blends. Default assumes Met Office '
-                             'model metadata. Must be present on all input '
+                             'multi-model blends. Default is None. '
+                             'Must be present on all input '
                              'files if blending over models.')
     parser.add_argument('--spatial_weights_from_mask',
                         action='store_true', default=False,
@@ -146,9 +146,8 @@ def main(argv=None):
                                           'ChooseDefaultWeightsNonLinear')
     nonlinear.add_argument('--cval', metavar='NON_LINEAR_FACTOR', type=float,
                            help='Factor used to determine how skewed the '
-                                'non linear weights will be. '
-                                'A value of 1 implies equal weighting. If not '
-                                'set, a default value of cval=0.85 is set.')
+                                'non linear weights will be. A value of 1 '
+                                'implies equal weighting.')
 
     wts_dict = parser.add_argument_group('dict weights options',
                                          'Options for linear weights to be '
@@ -238,7 +237,7 @@ def process(cubelist, wts_calc_method, coordinate, cycletime, weighting_coord,
             recent forecast).
         cval (float):
             Factor used to determine how skewed the non-linear weights will be.
-            A value of 2 implies equal weighting.
+            A value of 1 implies equal weighting.
         model_id_attr (str):
             The name of the cube attribute to be used to identify the source
             model for multi-model blends. Default assume Met Office model

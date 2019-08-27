@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env bats
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,44 +28,31 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""
-Module to contain the default units for use within IMPROVER.
 
-The DEFAULT_UNITS dictionary has the following form.
+. $IMPROVER_DIR/tests/lib/utils
 
-<str>:
-    The principle key is the name of a coordinate or diagnostic.
+@test "apply-emos-coefficients when no coefficients provided"  {
+  improver_check_skip_acceptance
+  KGO="ensemble-calibration/gaussian/input.nc"
 
-"unit": <str>
-    The standard/default units for the coordinate or diagnostic
-    described by the key.  This is mandatory.
-"dtype": <dtype>
-    The standard/default data type in which the coordinate points
-    or diagnostic values should be stored.  This is optional; if
-    not set, float32 is assumed.
-"""
+  # Apply EMOS coefficients to calibrate the input forecast
+  # and check that the calibrated forecast matches the kgo.
+  run improver apply-emos-coefficients \
+      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/input.nc" \
+      "$TEST_DIR/output.nc" --random_seed 0
+  [[ "$status" -eq 0 ]]
 
-import numpy as np
+  # Check for warning
+  read -d '' expected <<'__TEXT__' || true
+UserWarning: There are no coefficients provided for calibration
+__TEXT__
 
-DEFAULT_UNITS = {
-    # time coordinates and suitable substrings
-    "time": {
-        "unit": "seconds since 1970-01-01 00:00:00",
-        "dtype": np.int64},
-    "forecast_period": {
-        "unit": "seconds",
-        "dtype": np.int32},
-    # other standard coordinates and substrings
-    "longitude": {"unit": "degrees"},
-    "latitude": {"unit": "degrees"},
-    "projection_x_coordinate": {"unit": "m"},
-    "projection_y_coordinate": {"unit": "m"},
-    "percentile": {"unit": "%"},
-    "probability": {"unit": "1"},
-    # standard diagnostics and suitable substrings (alphabetised for clarity)
-    "fall_rate": {"unit": "m s-1"},
-    "lapse_rate": {"unit": "K m-1"},
-    "precipitation_rate": {"unit": "m s-1"},
-    "temperature": {"unit": "K"},
-    "thickness": {"unit": "m"}
+  [[ "$output" =~ "$expected" ]]
+
+  improver_check_recreate_kgo "output.nc" $KGO
+
+  # Run nccmp to compare the output and kgo realizations and check it passes.
+  improver_compare_output_lower_precision "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+
 }

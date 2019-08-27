@@ -46,8 +46,8 @@
   run improver apply-emos-coefficients \
       "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/input.nc" \
       "$IMPROVER_ACC_TEST_DIR/$COEFFS" \
-      --predictor_of_mean 'realizations' \
-      "$TEST_DIR/output.nc" --random_seed 0
+      "$TEST_DIR/output.nc" \
+      --predictor_of_mean 'realizations' --random_seed 0
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
