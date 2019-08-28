@@ -74,42 +74,28 @@ def main(argv=None):
                              'This cycletime is in the format '
                              'YYYYMMDDTHHMMZ.')
 
-    subparsers = parser.add_subparsers(
-        help='Define whether the historic forecasts and truth will be '
-             'supplied separately or as a single argument, where the '
-             'historic forecasts and truth will be separated based on the '
-             'metadata.')
-
-    # Filepaths for historic and truth data.
-    historic_forecast_and_truth_parser = subparsers.add_parser(
-        'historic_forecast_and_truth', help='Define whether the options '
-        'for providing the historic forecasts and truth as separate arguments '
-        'will be used.')
-    historic_forecast_and_truth_parser.add_argument(
+    # Historic forecast and truth filepaths
+    parser.add_argument(
         '--historic_filepath', metavar='HISTORIC_FILEPATH', nargs='+',
         help='A path to an input NetCDF file containing the '
              'historic forecast(s) used for calibration.')
-    historic_forecast_and_truth_parser.add_argument(
+    parser.add_argument(
         '--truth_filepath', metavar='TRUTH_FILEPATH', nargs='+',
         help='A path to an input NetCDF file containing the '
              'historic truth analyses used for calibration.')
 
-    combined_parser = subparsers.add_parser(
-        'combined', help='Define whether the options for providing the '
-        'historic forecasts and truth as a combined string of filepaths will '
-        'be used.')
     # Input filepaths
-    combined_parser.add_argument(
+    parser.add_argument(
         '--combined_filepath', metavar='COMBINED_FILEPATH', nargs='+',
         help='The path to the input NetCDF files containing '
              'both the historic forecast(s) and truth '
              'analyses used for calibration.')
-    combined_parser.add_argument(
+    parser.add_argument(
         "--historic_forecast_identifier",
         metavar='HISTORIC_FORECAST_IDENTIFIER',
         help='The path to a json file containing metadata '
              'information that defines the historic forecast.')
-    combined_parser.add_argument(
+    parser.add_argument(
         "--truth_identifier", metavar='TRUTH_IDENTIFIER',
         help='The path to a json file containing metadata '
              'information that defines the truth.')
@@ -146,6 +132,54 @@ def main(argv=None):
                              'to solve for.')
     args = parser.parse_args(args=argv)
 
+    # Support the initial cycles when using a training dataset, where there
+    # might not yet be any available historic forecasts and truth to calibrate
+    # with. In this instance, only a warning is raised, as this would be
+    # expected behaviour when no training dataset exists.
+    if not any([args.historic_filepath, args.truth_filepath,
+                args.combined_filepath]):
+        msg = ("In order to calculate the EMOS coefficients then either "
+               "the historic_filepath {} and the truth_filepath {} "
+               "should be specified, or the combined_filepath {} should be "
+               "specified alongside the historic_forecast_identifier {} and "
+               "truth_identifier {}. In this case the arguments provided "
+               "were not sufficient.".format(
+            args.historic_filepath, args.truth_filepath,
+            args.combined_filepath, args.historic_forecast_identifier,
+            args.truth_identifier))
+        warnings.warn(msg)
+        return
+
+    if any([args.historic_filepath, args.truth_filepath]):
+        if all([args.historic_filepath, args.truth_filepath]):
+            if any([args.combined_filepath,
+                    args.historic_forecast_identifier,
+                    args.truth_identifier]):
+                msg = ("If the historic_filepath and truth_filepath arguments "
+                       "are specified then none of the the combined_filepath, "
+                       "historic_forecast_identifier and truth_identifier "
+                       "arguments should be specified.")
+                raise ValueError(msg)
+            else:
+                pass
+        else:
+            msg = ("Both the historic_filepath and truth_filepath arguments "
+                   "should be specified if one of these arguments are "
+                   "specified.")
+            raise ValueError(msg)
+
+    if any([args.combined_filepath, args.historic_forecast_identifier,
+            args.truth_identifier]):
+        if all([args.combined_filepath, args.historic_forecast_identifier,
+                args.truth_identifier]):
+            pass
+        else:
+            msg = ("All of the combined_filepath, "
+                   "historic_forecast_identifier and truth_identifier "
+                   "arguments should be specified if one of the arguments are "
+                   "specified.")
+            raise ValueError(msg)
+
     # Load Cubes
     historic_forecast = load_cube(args.historic_filepath, allow_none=True)
     truth = load_cube(args.truth_filepath, allow_none=True)
@@ -155,19 +189,6 @@ def main(argv=None):
     historic_forecast_dict = (
         load_json_or_none(args.historic_forecast_identifier))
     truth_dict = load_json_or_none(args.truth_identifier)
-
-    if not any([historic_forecast, truth, combined]):
-        msg = ("In order to calculate the EMOS coefficients then either "
-               "the historic_filepath {} and the truth_filepath {} "
-               "should be specified, or the combined_filepath {} should be "
-               "specified alongside the historic_forecast_identifier {} and "
-               "truth_identifier {}. In this case the arguments provided "
-               "were not sufficient.".format(
-                    args.historic_filepath, args.truth_filepath,
-                    args.combined_filepath, args.historic_forecast_identifier,
-                    args.truth_identifier))
-        warnings.warn(msg)
-        return
 
     # Process Cube
     coefficients = process(historic_forecast, truth, combined,

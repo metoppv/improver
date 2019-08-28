@@ -35,9 +35,9 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver estimate-emos-coefficients [-h] [--profile]
                                            [--profile_file PROFILE_FILE]
-                                           [--historic_filepath HISTORIC_FILEPATH]
-                                           [--truth_filepath TRUTH_FILEPATH]
-                                           [--combined_filepath COMBINED_FILEPATH]
+                                           [--historic_filepath HISTORIC_FILEPATH [HISTORIC_FILEPATH ...]]
+                                           [--truth_filepath TRUTH_FILEPATH [TRUTH_FILEPATH ...]]
+                                           [--combined_filepath COMBINED_FILEPATH [COMBINED_FILEPATH ...]]
                                            [--historic_forecast_identifier HISTORIC_FORECAST_IDENTIFIER]
                                            [--truth_identifier TRUTH_IDENTIFIER]
                                            [--units UNITS]
@@ -66,13 +66,13 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
-  --historic_filepath HISTORIC_FILEPATH
+  --historic_filepath HISTORIC_FILEPATH [HISTORIC_FILEPATH ...]
                         A path to an input NetCDF file containing the historic
                         forecast(s) used for calibration.
-  --truth_filepath TRUTH_FILEPATH
+  --truth_filepath TRUTH_FILEPATH [TRUTH_FILEPATH ...]
                         A path to an input NetCDF file containing the historic
                         truth analyses used for calibration.
-  --combined_filepath COMBINED_FILEPATH
+  --combined_filepath COMBINED_FILEPATH [COMBINED_FILEPATH ...]
                         The path to the input NetCDF files containing both the
                         historic forecast(s) and truth analyses used for
                         calibration.
