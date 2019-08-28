@@ -37,8 +37,8 @@
   # Check value error raised when coefficients filepath does not contain
   # a coefficients cube.
   run improver apply-emos-coefficients \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/input.nc" \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/input.nc" \
+      "$IMPROVER_ACC_TEST_DIR/apply-emos-coefficients/gaussian/input.nc" \
+      "$IMPROVER_ACC_TEST_DIR/apply-emos-coefficients/gaussian/input.nc" \
       "$TEST_DIR/output.nc" --random_seed 0
   [[ "$status" -eq 1 ]]
   # Check for error

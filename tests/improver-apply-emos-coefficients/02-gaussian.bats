@@ -33,12 +33,12 @@
 
 @test "apply-emos-coefficients for diagnostic with assumed gaussian distribution" {
   improver_check_skip_acceptance
-  KGO="ensemble-calibration/gaussian/kgo.nc"
+  KGO="apply-emos-coefficients/gaussian/kgo.nc"
 
   # Apply EMOS coefficients to calibrate the input forecast
   # and check that the calibrated forecast matches the kgo.
   run improver apply-emos-coefficients \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/input.nc" \
+      "$IMPROVER_ACC_TEST_DIR/apply-emos-coefficients/gaussian/input.nc" \
       "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/kgo.nc" \
       "$TEST_DIR/output.nc" --random_seed 0
   [[ "$status" -eq 0 ]]

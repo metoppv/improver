@@ -36,9 +36,16 @@
   KGO="estimate-emos-coefficients/gaussian/kgo.nc"
 
   # Estimate the EMOS coefficients and check that they match the kgo.
+<<<<<<< HEAD
   run improver estimate-emos-coefficients 'gaussian' '20170605T0300Z' "$TEST_DIR/output.nc" \
       --historic_filepath "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/history/*.nc" \
       --truth_filepath "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/gaussian/truth/*.nc"
+=======
+  run improver estimate-emos-coefficients 'gaussian' '20170605T0300Z' \
+      "$IMPROVER_ACC_TEST_DIR/apply-emos-coefficients/gaussian/history/*.nc" \
+      "$IMPROVER_ACC_TEST_DIR/apply-emos-coefficients/gaussian/truth/*.nc" \
+      "$TEST_DIR/output.nc"
+>>>>>>> impro_1340_remove_ensemble_calibration_cli
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
