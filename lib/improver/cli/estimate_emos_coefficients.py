@@ -132,54 +132,6 @@ def main(argv=None):
                              'to solve for.')
     args = parser.parse_args(args=argv)
 
-    # Support the initial cycles when using a training dataset, where there
-    # might not yet be any available historic forecasts and truth to calibrate
-    # with. In this instance, only a warning is raised, as this would be
-    # expected behaviour when no training dataset exists.
-    if not any([args.historic_filepath, args.truth_filepath,
-                args.combined_filepath]):
-        msg = ("In order to calculate the EMOS coefficients then either "
-               "the historic_filepath {} and the truth_filepath {} "
-               "should be specified, or the combined_filepath {} should be "
-               "specified alongside the historic_forecast_identifier {} and "
-               "truth_identifier {}. In this case the arguments provided "
-               "were not sufficient.".format(
-            args.historic_filepath, args.truth_filepath,
-            args.combined_filepath, args.historic_forecast_identifier,
-            args.truth_identifier))
-        warnings.warn(msg)
-        return
-
-    if any([args.historic_filepath, args.truth_filepath]):
-        if all([args.historic_filepath, args.truth_filepath]):
-            if any([args.combined_filepath,
-                    args.historic_forecast_identifier,
-                    args.truth_identifier]):
-                msg = ("If the historic_filepath and truth_filepath arguments "
-                       "are specified then none of the the combined_filepath, "
-                       "historic_forecast_identifier and truth_identifier "
-                       "arguments should be specified.")
-                raise ValueError(msg)
-            else:
-                pass
-        else:
-            msg = ("Both the historic_filepath and truth_filepath arguments "
-                   "should be specified if one of these arguments are "
-                   "specified.")
-            raise ValueError(msg)
-
-    if any([args.combined_filepath, args.historic_forecast_identifier,
-            args.truth_identifier]):
-        if all([args.combined_filepath, args.historic_forecast_identifier,
-                args.truth_identifier]):
-            pass
-        else:
-            msg = ("All of the combined_filepath, "
-                   "historic_forecast_identifier and truth_identifier "
-                   "arguments should be specified if one of the arguments are "
-                   "specified.")
-            raise ValueError(msg)
-
     # Load Cubes
     historic_forecast = load_cube(args.historic_filepath, allow_none=True)
     truth = load_cube(args.truth_filepath, allow_none=True)
@@ -196,7 +148,8 @@ def main(argv=None):
                            args.distribution, args.cycletime, args.units,
                            args.predictor_of_mean, args.max_iterations)
     # Save Cube
-    save_netcdf(coefficients, args.output_filepath)
+    if coefficients:
+        save_netcdf(coefficients, args.output_filepath)
 
 
 def process(historic_forecast, truth, combined, historic_forecast_dict,
@@ -270,6 +223,48 @@ def process(historic_forecast, truth, combined, historic_forecast_dict,
             contains a coefficient_index dimension coordinate and a
             coefficient_name auxiliary coordinate.
     """
+    # Support the initial cycles when using a training dataset, where there
+    # might not yet be any available historic forecasts and truth to calibrate
+    # with. In this instance, only a warning is raised, as this would be
+    # expected behaviour when no training dataset exists.
+    if not any([historic_forecast, truth, combined]):
+        msg = ("In order to calculate the EMOS coefficients then either "
+               "the historic_forecast {} and the truth_filepath {} "
+               "should be specified, or the combined_filepath {} should be "
+               "specified alongside the historic_forecast_identifier {} and "
+               "truth_identifier {}. In this case the arguments provided "
+               "were not sufficient.".format(
+                    historic_forecast, truth, combined,
+                    historic_forecast_dict, truth_dict))
+        warnings.warn(msg)
+        return
+
+    if any([historic_forecast, truth]):
+        if all([historic_forecast, truth]):
+            if any([combined, historic_forecast_dict, truth_dict]):
+                msg = ("If the historic_filepath and truth_filepath arguments "
+                       "are specified then none of the the combined_filepath, "
+                       "historic_forecast_identifier and truth_identifier "
+                       "arguments should be specified.")
+                raise ValueError(msg)
+            else:
+                pass
+        else:
+            msg = ("Both the historic_filepath and truth_filepath arguments "
+                   "should be specified if one of these arguments are "
+                   "specified.")
+            raise ValueError(msg)
+
+    if any([combined, historic_forecast_dict, truth_dict]):
+        if all([combined, historic_forecast_dict, truth_dict]):
+            pass
+        else:
+            msg = ("All of the combined_filepath, "
+                   "historic_forecast_identifier and truth_identifier "
+                   "arguments should be specified if one of the arguments are "
+                   "specified.")
+            raise ValueError(msg)
+
     if combined is not None:
         historic_forecast, truth = SplitHistoricForecastAndTruth(
             historic_forecast_dict, truth_dict).process(combined)
