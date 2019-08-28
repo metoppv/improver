@@ -36,7 +36,6 @@ specific for ensemble calibration.
 import numpy as np
 
 import iris
-from improver.utilities.temporal import iris_time_to_datetime
 
 
 def convert_cube_data_to_2d(
