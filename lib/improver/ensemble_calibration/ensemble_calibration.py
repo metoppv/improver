@@ -702,6 +702,44 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                                   no_of_realizations).tolist())
         return np.array(initial_guess, dtype=np.float32)
 
+    @staticmethod
+    def _filter_non_matching_cubes(historic_forecast, truth):
+        """
+        Provide filtering for the historic forecast and truth to make sure
+        that these contain matching validity times. This ensures that any
+        mismatch between the historic forecasts and truth is dealt with.
+
+        Args:
+            historic_forecast (iris.cube.Cube):
+                Cube of historic forecasts that potentially contains
+                a mismatch compared to the truth.
+            truth (iris.cube.Cube):
+                Cube of truth that potentially contains a mismatch
+                compared to the historic forecasts.
+
+        Returns:
+            (tuple): tuple containing
+                matching_historic_forecasts (iris.cube.Cube):
+                    Cube of historic forecasts where any mismatches with
+                    the truth cube have been removed.
+                matching_truths (iris.cube.Cube):
+                    Cube of truths where any mismatches with
+                    the historic_forecasts cube have been removed.
+
+        """
+        matching_historic_forecasts = iris.cube.CubeList([])
+        matching_truths = iris.cube.CubeList([])
+        for hf_slice in historic_forecast.slices_over("time"):
+            coord_values = (
+                {"time": iris_time_to_datetime(hf_slice.coord("time"))})
+            constr = iris.Constraint(coord_values=coord_values)
+            truth_slice = truth.extract(constr)
+            if truth_slice:
+                matching_historic_forecasts.append(hf_slice)
+                matching_truths.append(truth_slice)
+        return (matching_historic_forecasts.merge_cube(),
+                matching_truths.merge_cube())
+
     def process(self, historic_forecast, truth):
         """
         Using Nonhomogeneous Gaussian Regression/Ensemble Model Output
@@ -710,21 +748,16 @@ class EstimateCoefficientsForEnsembleCalibration(object):
 
         The main contents of this method is:
 
-        1. Metadata checks to ensure that the current forecast, historic
-           forecast and truth exist in a form that can be processed.
-        2. Loop through times within the concatenated current forecast cube:
-
-           1. Extract the desired forecast period from the historic forecasts
-              to match the current forecasts. Apply unit conversion to ensure
-              that historic forecasts have the desired units for calibration.
-           2. Extract the relevant truth to co-incide with the time within
-              the historic forecasts. Apply unit conversion to ensure
-              that the truth has the desired units for calibration.
-           3. Calculate mean and variance.
-           4. Calculate initial guess at coefficient values by performing a
-              linear regression, if requested, otherwise default values are
-              used.
-           5. Perform minimisation.
+        1. Check that the predictor_of_mean_flag is valid.
+        2. Filter the historic forecasts and truth to ensure that these
+           inputs match in validity time.
+        3. Apply unit conversion to ensure that the historic forecasts and
+           truth have the desired units for calibration.
+        4. Calculate mean and variance.
+        5. Calculate initial guess at coefficient values by performing a
+           linear regression, if requested, otherwise default values are
+           used.
+        6. Perform minimisation.
 
         Args:
             historic_forecast (iris.cube.Cube):
@@ -750,6 +783,9 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         # Set default values for whether there are NaN values within the
         # initial guess.
         nan_in_initial_guess = False
+
+        historic_forecast, truth = (
+            self._filter_non_matching_cubes(historic_forecast, truth))
 
         # Make sure inputs have the same units.
         if self.desired_units:

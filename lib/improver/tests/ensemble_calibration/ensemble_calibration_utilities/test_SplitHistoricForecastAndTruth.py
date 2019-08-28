@@ -32,56 +32,24 @@
 Unit tests for the `SplitHistoricForecastAndTruth` plugin.
 
 """
-import datetime
 import unittest
 
-import iris
 from iris.tests import IrisTest
-import numpy as np
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     SplitHistoricForecastAndTruth)
-from improver.tests.set_up_test_cubes import set_up_variable_cube
+from improver.tests.ensemble_calibration.ensemble_calibration.\
+    helper_functions import SetupCubes
 
 
-class SetupCubesAndDicts(IrisTest):
+class SetupDicts(IrisTest):
     """Set up historical forecast and truth cubes and associated dictionaries
     for use in testing."""
 
     def setUp(self):
         """Set up dictionaries for testing."""
-        # Create historic forecasts and truth cubelists
-        data = np.array([[1., 2.],
-                         [3., 4.]], dtype=np.float32)
-        frt_dt = datetime.datetime(2017, 11, 10, 0, 0)
-        time_dt = datetime.datetime(2017, 11, 10, 4, 0)
-        self.historic_forecasts = iris.cube.CubeList([])
-        self.truth = iris.cube.CubeList([])
-        for day in range(6):
-            new_frt_dt = frt_dt + datetime.timedelta(days=day)
-            new_time_dt = time_dt + datetime.timedelta(days=day)
-            self.historic_forecasts.append(
-                set_up_variable_cube(data, time=new_time_dt, frt=new_frt_dt,
-                                     standard_grid_metadata="uk_ens"))
-            self.truth.append(
-                set_up_variable_cube(data, time=new_time_dt, frt=new_time_dt,
-                                     standard_grid_metadata="uk_det"))
-
-        self.combined = self.historic_forecasts + self.truth
-
-        # Create the historic and truth cubes
-        self.historic_forecasts_cube = self.historic_forecasts.merge_cube()
-        self.truth_cube = self.truth.merge_cube()
-
-        # Create historical forecasts and truth cubes and cubelists where
-        # some items are missing.
-        self.partial_historic_forecasts = (
-            self.historic_forecasts[:2] + self.historic_forecasts[3:])
-        self.partial_historic_forecasts_cube = (
-            self.partial_historic_forecasts.merge_cube())
-        self.partial_truth = self.truth[:2] + self.truth[3:]
-        self.partial_truth_cube = self.partial_truth.merge_cube()
-
+        if hasattr(super(), "setUp"):
+            super().setUp()
         # Set up dictionaries specifying the metadata to identify the
         # historical forecasts and truth
         self.historic_forecast_dict = {
@@ -100,7 +68,7 @@ class SetupCubesAndDicts(IrisTest):
             self.historic_forecast_dict, self.truth_dict)
 
 
-class Test__init__(SetupCubesAndDicts):
+class Test__init__(SetupCubes, SetupDicts):
     """Test class initialisation"""
 
     def test_basic(self):
@@ -110,8 +78,18 @@ class Test__init__(SetupCubesAndDicts):
             self.plugin.historic_forecast_dict, self.historic_forecast_dict)
         self.assertEqual(self.plugin.truth_dict, self.truth_dict)
 
+    def test_non_attributes(self):
+        """Test that the if metadata other than attributes are specified then
+        a NotImplementedError is raised."""
+        input_dict = {
+            "coord": "forecast_period==0"
+        }
+        msg = "'attributes' is the only supported"
+        with self.assertRaisesRegex(NotImplementedError, msg):
+            SplitHistoricForecastAndTruth(input_dict, input_dict)
 
-class Test__repr__(SetupCubesAndDicts):
+
+class Test__repr__(SetupCubes, SetupDicts):
     """Test class representation"""
 
     def test_basic(self):
@@ -126,7 +104,7 @@ class Test__repr__(SetupCubesAndDicts):
         self.assertEqual(result, expected_result)
 
 
-class Test__find_required_cubes_using_metadata(SetupCubesAndDicts):
+class Test__find_required_cubes_using_metadata(SetupCubes, SetupDicts):
     """Test the _find_required_cubes_using_metadata method."""
 
     def test_attributes(self):
@@ -135,17 +113,6 @@ class Test__find_required_cubes_using_metadata(SetupCubesAndDicts):
         result = self.plugin._find_required_cubes_using_metadata(
             self.combined, self.historic_forecast_dict)
         self.assertEqual(result, self.historic_forecasts)
-
-    def test_non_attributes(self):
-        """Test that the if metadata other than attributes are specified then
-        a NotImplementedError is raised."""
-        input_dict = {
-            "coord": "forecast_period==0"
-        }
-        msg = "only constraining on attributes is supported"
-        with self.assertRaisesRegex(NotImplementedError, msg):
-            self.plugin._find_required_cubes_using_metadata(
-                self.combined, input_dict)
 
     def test_non_matching_attributes(self):
         """Test that the if attributes are specified but these do not match
@@ -161,34 +128,7 @@ class Test__find_required_cubes_using_metadata(SetupCubesAndDicts):
                 self.combined, input_dict)
 
 
-class Test__filter_non_matching_cubes(SetupCubesAndDicts):
-    """Test the _filter_non_matching_cubes method."""
-
-    def test_all_matching(self):
-        """Test for when the historic forecast and truth cubes all match."""
-        hf_result, truth_result = self.plugin._filter_non_matching_cubes(
-            self.historic_forecasts, self.truth)
-        self.assertEqual(hf_result, self.historic_forecasts)
-        self.assertEqual(truth_result, self.truth)
-
-    def test_fewer_historic_forecasts(self):
-        """Test for when there are fewer historic forecasts than truths,
-        for example, if there is a missing forecast cycle."""
-        hf_result, truth_result = self.plugin._filter_non_matching_cubes(
-            self.partial_historic_forecasts, self.truth)
-        self.assertEqual(hf_result, self.partial_historic_forecasts)
-        self.assertEqual(truth_result, self.partial_truth)
-
-    def test_fewer_truths(self):
-        """Test for when there are fewer truths than historic forecasts,
-        for example, if there is a missing analysis."""
-        hf_result, truth_result = self.plugin._filter_non_matching_cubes(
-            self.historic_forecasts, self.partial_truth)
-        self.assertEqual(hf_result, self.partial_historic_forecasts)
-        self.assertEqual(truth_result, self.partial_truth)
-
-
-class Test_process(SetupCubesAndDicts):
+class Test_process(SetupCubes, SetupDicts):
     """Test the process method."""
 
     def test_basic(self):
@@ -197,26 +137,6 @@ class Test_process(SetupCubesAndDicts):
         hf_result, truth_result = self.plugin.process(self.combined)
         self.assertEqual(hf_result, self.historic_forecasts_cube)
         self.assertEqual(truth_result, self.truth_cube)
-
-    def test_fewer_historic_forecasts(self):
-        """Test that the input cubelist combining historic forecasts and truth
-        can be split using the metadata dictionaries provided, when there are
-        fewer historic forecasts than truths."""
-        combined = self.partial_historic_forecasts + self.truth
-
-        hf_result, truth_result = self.plugin.process(combined)
-        self.assertEqual(hf_result, self.partial_historic_forecasts_cube)
-        self.assertEqual(truth_result, self.partial_truth_cube)
-
-    def test_fewer_truths(self):
-        """Test that the input cubelist combining historic forecasts and truth
-        can be split using the metadata dictionaries provided, when there are
-        fewer truths than historic forecasts."""
-        combined = self.historic_forecasts + self.partial_truth
-
-        hf_result, truth_result = self.plugin.process(combined)
-        self.assertEqual(hf_result, self.partial_historic_forecasts_cube)
-        self.assertEqual(truth_result, self.partial_truth_cube)
 
 
 if __name__ == '__main__':

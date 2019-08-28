@@ -41,9 +41,9 @@ from improver.ensemble_calibration.ensemble_calibration import (
     EstimateCoefficientsForEnsembleCalibration)
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     SplitHistoricForecastAndTruth)
-from improver.utilities.load import load_cubelist
+from improver.utilities.load import load_cube, load_cubelist
 from improver.utilities.cli_utilities import (
-    load_cube_or_none, load_json_or_none)
+    load_json_or_none)
 from improver.utilities.save import save_netcdf
 
 
@@ -73,25 +73,47 @@ def main(argv=None):
                              'relative to this cycletime. '
                              'This cycletime is in the format '
                              'YYYYMMDDTHHMMZ.')
+
+    subparsers = parser.add_subparsers(
+        help='Define whether the historic forecasts and truth will be '
+             'supplied separately or as a single argument, where the '
+             'historic forecasts and truth will be separated based on the '
+             'metadata.')
+
     # Filepaths for historic and truth data.
-    parser.add_argument('--historic_filepath', metavar='HISTORIC_FILEPATH',
-                        help='A path to an input NetCDF file containing the '
-                             'historic forecast(s) used for calibration.')
-    parser.add_argument('--truth_filepath', metavar='TRUTH_FILEPATH',
-                        help='A path to an input NetCDF file containing the '
-                             'historic truth analyses used for calibration.')
+    historic_forecast_and_truth_parser = subparsers.add_parser(
+        'historic_forecast_and_truth', help='Define whether the options '
+        'for providing the historic forecasts and truth as separate arguments '
+        'will be used.')
+    historic_forecast_and_truth_parser.add_argument(
+        '--historic_filepath', metavar='HISTORIC_FILEPATH', nargs='+',
+        help='A path to an input NetCDF file containing the '
+             'historic forecast(s) used for calibration.')
+    historic_forecast_and_truth_parser.add_argument(
+        '--truth_filepath', metavar='TRUTH_FILEPATH', nargs='+',
+        help='A path to an input NetCDF file containing the '
+             'historic truth analyses used for calibration.')
+
+    combined_parser = subparsers.add_parser(
+        'combined', help='Define whether the options for providing the '
+        'historic forecasts and truth as a combined string of filepaths will '
+        'be used.')
     # Input filepaths
-    parser.add_argument('--combined_filepath', metavar='COMBINED_FILEPATH',
-                        help='The path to the input NetCDF files containing '
-                             'both the historic forecast(s) and truth '
-                             'analyses used for calibration.')
-    parser.add_argument("--historic_forecast_identifier",
-                        metavar='HISTORIC_FORECAST_IDENTIFIER',
-                        help='The path to a json file containing metadata '
-                             'information that defines the historic forecast.')
-    parser.add_argument("--truth_identifier", metavar='TRUTH_IDENTIFIER',
-                        help='The path to a json file containing metadata '
-                             'information that defines the truth.')
+    combined_parser.add_argument(
+        '--combined_filepath', metavar='COMBINED_FILEPATH', nargs='+',
+        help='The path to the input NetCDF files containing '
+             'both the historic forecast(s) and truth '
+             'analyses used for calibration.')
+    combined_parser.add_argument(
+        "--historic_forecast_identifier",
+        metavar='HISTORIC_FORECAST_IDENTIFIER',
+        help='The path to a json file containing metadata '
+             'information that defines the historic forecast.')
+    combined_parser.add_argument(
+        "--truth_identifier", metavar='TRUTH_IDENTIFIER',
+        help='The path to a json file containing metadata '
+             'information that defines the truth.')
+
     # Output filepath
     parser.add_argument('output_filepath', metavar='OUTPUT_FILEPATH',
                         help='The output path for the processed NetCDF')
@@ -125,8 +147,8 @@ def main(argv=None):
     args = parser.parse_args(args=argv)
 
     # Load Cubes
-    historic_forecast = load_cube_or_none(args.historic_filepath)
-    truth = load_cube_or_none(args.truth_filepath)
+    historic_forecast = load_cube(args.historic_filepath, allow_none=True)
+    truth = load_cube(args.truth_filepath, allow_none=True)
 
     combined = (load_cubelist(args.combined_filepath)
                 if args.combined_filepath else None)

@@ -35,7 +35,6 @@ Unit tests for the `ensemble_calibration.EnsembleCalibration` class.
 import imp
 import unittest
 
-import iris
 from iris.tests import IrisTest
 import numpy as np
 

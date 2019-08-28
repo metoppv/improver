@@ -47,8 +47,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     GenerateProbabilitiesFromMeanAndVariance,
     RebadgePercentilesAsRealizations,
     ResamplePercentiles)
-from improver.utilities.cli_utilities import (
-    load_cube_or_none, load_json_or_none)
+from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.cube_checker import find_percentile_coordinate
 from improver.utilities.load import load_cube, load_cubelist
 from improver.utilities.save import save_netcdf
@@ -191,8 +190,8 @@ def main(argv=None):
 
     # Load cubes
     current_forecast = load_cube(args.input_filepath)
-    historic_forecast = load_cube_or_none(args.historic_filepath)
-    truth = load_cube_or_none(args.truth_filepath)
+    historic_forecast = load_cube(args.historic_filepath, allow_none=True)
+    truth = load_cube(args.truth_filepath, allow_none=True)
 
     combined = (load_cubelist(args.combined_filepath)
                 if args.combined_filepath else None)
