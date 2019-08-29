@@ -68,20 +68,39 @@ optional arguments:
                         Dump profiling info to a file. Implies --profile.
   --historic_filepath HISTORIC_FILEPATH [HISTORIC_FILEPATH ...]
                         A path to an input NetCDF file containing the historic
-                        forecast(s) used for calibration.
+                        forecast(s) used for calibration. This must be
+                        supplied with an associated truth filepath.
+                        Specification of either the combined_filepath,
+                        historic_forecast_identifier or the truth_identifier
+                        is invalid with this argument.
   --truth_filepath TRUTH_FILEPATH [TRUTH_FILEPATH ...]
                         A path to an input NetCDF file containing the historic
-                        truth analyses used for calibration.
+                        truth analyses used for calibration. This must be
+                        supplied with an associated historic filepath.
+                        Specification of either the combined_filepath,
+                        historic_forecast_identifier or the truth_identifier
+                        is invalid with this argument.
   --combined_filepath COMBINED_FILEPATH [COMBINED_FILEPATH ...]
                         The path to the input NetCDF files containing both the
                         historic forecast(s) and truth analyses used for
-                        calibration.
+                        calibration. This must be supplied with both the
+                        historic_forecast_identifier and the truth_identifier.
+                        Specification of either the historic_filepath or the
+                        truth_filepath is invalid with this argument.
   --historic_forecast_identifier HISTORIC_FORECAST_IDENTIFIER
                         The path to a json file containing metadata
-                        information that defines the historic forecast.
+                        information that defines the historic forecast. This
+                        must be supplied with both the combined_filepath and
+                        the truth_identifier. Specification of either the
+                        historic_filepathor the truth_filepath is invalid with
+                        this argument.
   --truth_identifier TRUTH_IDENTIFIER
                         The path to a json file containing metadata
-                        information that defines the truth.
+                        information that defines the truth.This must be
+                        supplied with both the combined_filepath and the
+                        historic_forecast_identifier. Specification of either
+                        the historic_filepath or the truth_filepath is invalid
+                        with this argument.
   --units UNITS         The units that calibration should be undertaken in.
                         The historical forecast and truth will be converted as
                         required.

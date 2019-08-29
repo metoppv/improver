@@ -78,27 +78,46 @@ def main(argv=None):
     parser.add_argument(
         '--historic_filepath', metavar='HISTORIC_FILEPATH', nargs='+',
         help='A path to an input NetCDF file containing the '
-             'historic forecast(s) used for calibration.')
+             'historic forecast(s) used for calibration. '
+             'This must be supplied with an associated truth filepath. '
+             'Specification of either the combined_filepath, '
+             'historic_forecast_identifier or the truth_identifier is '
+             'invalid with this argument.')
     parser.add_argument(
         '--truth_filepath', metavar='TRUTH_FILEPATH', nargs='+',
         help='A path to an input NetCDF file containing the '
-             'historic truth analyses used for calibration.')
+             'historic truth analyses used for calibration. '
+             'This must be supplied with an associated historic filepath. '
+             'Specification of either the combined_filepath, '
+             'historic_forecast_identifier or the truth_identifier is '
+             'invalid with this argument.')
 
     # Input filepaths
     parser.add_argument(
         '--combined_filepath', metavar='COMBINED_FILEPATH', nargs='+',
         help='The path to the input NetCDF files containing '
              'both the historic forecast(s) and truth '
-             'analyses used for calibration.')
+             'analyses used for calibration. '
+             'This must be supplied with both the '
+             'historic_forecast_identifier and the truth_identifier. '
+             'Specification of either the historic_filepath or the '
+             'truth_filepath is invalid with this argument.')
     parser.add_argument(
         "--historic_forecast_identifier",
         metavar='HISTORIC_FORECAST_IDENTIFIER',
         help='The path to a json file containing metadata '
-             'information that defines the historic forecast.')
+             'information that defines the historic forecast. '
+             'This must be supplied with both the combined_filepath and the '
+             'truth_identifier. Specification of either the historic_filepath'
+             'or the truth_filepath is invalid with this argument.')
     parser.add_argument(
         "--truth_identifier", metavar='TRUTH_IDENTIFIER',
         help='The path to a json file containing metadata '
-             'information that defines the truth.')
+             'information that defines the truth.'
+             'This must be supplied with both the combined_filepath and the '
+             'historic_forecast_identifier. Specification of either the '
+             'historic_filepath or the truth_filepath is invalid with this '
+             'argument.')
 
     # Output filepath
     parser.add_argument('output_filepath', metavar='OUTPUT_FILEPATH',
