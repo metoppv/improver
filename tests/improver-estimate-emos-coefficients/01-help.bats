@@ -47,7 +47,11 @@ usage: improver estimate-emos-coefficients [-h] [--profile]
                                            OUTPUT_FILEPATH
 
 Estimate coefficients for Ensemble Model Output Statistics (EMOS), otherwise
-known as Non-homogeneous Gaussian Regression (NGR)
+known as Non-homogeneous Gaussian Regression (NGR). There are two methods for
+inputting data into this CLI, either by providing the historic forecasts and
+truth separately, or by providing a combined list of historic forecasts and
+truths along with historic_forecast_identifier and truth_identifier arguments
+to provide metadata that distinguishes between them.
 
 positional arguments:
   DISTRIBUTION          The distribution that will be used for calibration.
@@ -67,21 +71,21 @@ optional arguments:
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
   --historic_filepath HISTORIC_FILEPATH [HISTORIC_FILEPATH ...]
-                        A path to an input NetCDF file containing the historic
-                        forecast(s) used for calibration. This must be
-                        supplied with an associated truth filepath.
+                        Paths to the input NetCDF files containing the
+                        historic forecast(s) used for calibration. This must
+                        be supplied with an associated truth filepath.
                         Specification of either the combined_filepath,
                         historic_forecast_identifier or the truth_identifier
                         is invalid with this argument.
   --truth_filepath TRUTH_FILEPATH [TRUTH_FILEPATH ...]
-                        A path to an input NetCDF file containing the historic
-                        truth analyses used for calibration. This must be
-                        supplied with an associated historic filepath.
+                        Paths to the input NetCDF files containing the
+                        historic truth analyses used for calibration. This
+                        must be supplied with an associated historic filepath.
                         Specification of either the combined_filepath,
                         historic_forecast_identifier or the truth_identifier
                         is invalid with this argument.
   --combined_filepath COMBINED_FILEPATH [COMBINED_FILEPATH ...]
-                        The path to the input NetCDF files containing both the
+                        Paths to the input NetCDF files containing both the
                         historic forecast(s) and truth analyses used for
                         calibration. This must be supplied with both the
                         historic_forecast_identifier and the truth_identifier.
@@ -93,14 +97,18 @@ optional arguments:
                         must be supplied with both the combined_filepath and
                         the truth_identifier. Specification of either the
                         historic_filepathor the truth_filepath is invalid with
-                        this argument.
+                        this argument. The intended contents is described in i
+                        mprover.ensemble_calibration.ensemble_calibration_util
+                        ities.SplitHistoricForecastAndTruth.
   --truth_identifier TRUTH_IDENTIFIER
                         The path to a json file containing metadata
                         information that defines the truth.This must be
                         supplied with both the combined_filepath and the
                         historic_forecast_identifier. Specification of either
                         the historic_filepath or the truth_filepath is invalid
-                        with this argument.
+                        with this argument. The intended contents is described
+                        in improver.ensemble_calibration.ensemble_calibration_
+                        utilities.SplitHistoricForecastAndTruth.
   --units UNITS         The units that calibration should be undertaken in.
                         The historical forecast and truth will be converted as
                         required.

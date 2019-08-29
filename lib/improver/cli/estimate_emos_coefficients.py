@@ -34,7 +34,6 @@ Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
 Regression (NGR)."""
 
 import numpy as np
-import warnings
 
 from improver.argparser import ArgParser
 from improver.ensemble_calibration.ensemble_calibration import (
@@ -57,7 +56,13 @@ def main(argv=None):
     parser = ArgParser(
         description='Estimate coefficients for Ensemble Model Output '
                     'Statistics (EMOS), otherwise known as Non-homogeneous '
-                    'Gaussian Regression (NGR)')
+                    'Gaussian Regression (NGR). There are two methods for '
+                    'inputting data into this CLI, either by providing the '
+                    'historic forecasts and truth separately, or by providing '
+                    'a combined list of historic forecasts and truths along '
+                    'with historic_forecast_identifier and truth_identifier '
+                    'arguments to provide metadata that distinguishes between '
+                    'them.')
     parser.add_argument('distribution', metavar='DISTRIBUTION',
                         choices=['gaussian', 'truncated gaussian'],
                         help='The distribution that will be used for '
@@ -77,7 +82,7 @@ def main(argv=None):
     # Historic forecast and truth filepaths
     parser.add_argument(
         '--historic_filepath', metavar='HISTORIC_FILEPATH', nargs='+',
-        help='A path to an input NetCDF file containing the '
+        help='Paths to the input NetCDF files containing the '
              'historic forecast(s) used for calibration. '
              'This must be supplied with an associated truth filepath. '
              'Specification of either the combined_filepath, '
@@ -85,7 +90,7 @@ def main(argv=None):
              'invalid with this argument.')
     parser.add_argument(
         '--truth_filepath', metavar='TRUTH_FILEPATH', nargs='+',
-        help='A path to an input NetCDF file containing the '
+        help='Paths to the input NetCDF files containing the '
              'historic truth analyses used for calibration. '
              'This must be supplied with an associated historic filepath. '
              'Specification of either the combined_filepath, '
@@ -95,7 +100,7 @@ def main(argv=None):
     # Input filepaths
     parser.add_argument(
         '--combined_filepath', metavar='COMBINED_FILEPATH', nargs='+',
-        help='The path to the input NetCDF files containing '
+        help='Paths to the input NetCDF files containing '
              'both the historic forecast(s) and truth '
              'analyses used for calibration. '
              'This must be supplied with both the '
@@ -109,7 +114,10 @@ def main(argv=None):
              'information that defines the historic forecast. '
              'This must be supplied with both the combined_filepath and the '
              'truth_identifier. Specification of either the historic_filepath'
-             'or the truth_filepath is invalid with this argument.')
+             'or the truth_filepath is invalid with this argument. '
+             'The intended contents is described in improver.'
+             'ensemble_calibration.ensemble_calibration_utilities.'
+             'SplitHistoricForecastAndTruth.')
     parser.add_argument(
         "--truth_identifier", metavar='TRUTH_IDENTIFIER',
         help='The path to a json file containing metadata '
@@ -117,7 +125,9 @@ def main(argv=None):
              'This must be supplied with both the combined_filepath and the '
              'historic_forecast_identifier. Specification of either the '
              'historic_filepath or the truth_filepath is invalid with this '
-             'argument.')
+             'argument. The intended contents is described in improver.'
+             'ensemble_calibration.ensemble_calibration_utilities.'
+             'SplitHistoricForecastAndTruth.')
 
     # Output filepath
     parser.add_argument('output_filepath', metavar='OUTPUT_FILEPATH',
@@ -167,8 +177,7 @@ def main(argv=None):
                            args.distribution, args.cycletime, args.units,
                            args.predictor_of_mean, args.max_iterations)
     # Save Cube
-    if coefficients:
-        save_netcdf(coefficients, args.output_filepath)
+    save_netcdf(coefficients, args.output_filepath)
 
 
 def process(historic_forecast, truth, combined, historic_forecast_dict,
@@ -245,23 +254,25 @@ def process(historic_forecast, truth, combined, historic_forecast_dict,
             Cube containing the coefficients estimated using EMOS. The cube
             contains a coefficient_index dimension coordinate and a
             coefficient_name auxiliary coordinate.
-    """
-    # Support the initial cycles when using a training dataset, where there
-    # might not yet be any available historic forecasts and truth to calibrate
-    # with. In this instance, only a warning is raised, as this would be
-    # expected behaviour when no training dataset exists.
-    if not any([historic_forecast, truth, combined]):
-        msg = ("In order to calculate the EMOS coefficients then either "
-               "the historic_forecast {} and the truth_filepath {} "
-               "should be specified, or the combined_filepath {} should be "
-               "specified alongside the historic_forecast_identifier {} and "
-               "truth_identifier {}. In this case the arguments provided "
-               "were not sufficient.".format(
-                    historic_forecast, truth, combined,
-                    historic_forecast_dict, truth_dict))
-        warnings.warn(msg)
-        return
 
+    Raises:
+        ValueError: If the historic forecast and truth inputs are specified,
+            then the combined input, historic forecast dictionary and truth
+            dictionary should not be specified.
+        ValueError: If one of the historic forecast or truth inputs are
+            specified, then they should both be specified.
+        ValueError: All of the combined_filepath, historic_forecast_identifier
+            and truth_identifier arguments should be specified if one of the
+            arguments are specified.
+
+    """
+    # The logic for the if statements below is:
+    # 1. Check whether either the historic_forecast or the truth exists.
+    # 2. Check that both the historic forecast or the truth exists, otherwise,
+    #    raise an error.
+    # 3. Check that none of the combined, historic forecast dictionary or
+    #    truth dictionary inputs have been provided, as these arguments are
+    #    invalid, if the historic forecast and truth inputs have been provided.
     if any([historic_forecast, truth]):
         if all([historic_forecast, truth]):
             if any([combined, historic_forecast_dict, truth_dict]):
@@ -270,18 +281,20 @@ def process(historic_forecast, truth, combined, historic_forecast_dict,
                        "historic_forecast_identifier and truth_identifier "
                        "arguments should be specified.")
                 raise ValueError(msg)
-            else:
-                pass
         else:
             msg = ("Both the historic_filepath and truth_filepath arguments "
                    "should be specified if one of these arguments are "
                    "specified.")
             raise ValueError(msg)
 
+    # This if block follows the logic:
+    # 1. Check whether any of the combined, historic forecast dictionary or
+    #    truth dictionary inputs have been provided.
+    # 2. If not all of these inputs have been provided then raise an error,
+    #    as all of these inputs are required to separate the combined input
+    #    into the historic forecasts and truths.
     if any([combined, historic_forecast_dict, truth_dict]):
-        if all([combined, historic_forecast_dict, truth_dict]):
-            pass
-        else:
+        if not all([combined, historic_forecast_dict, truth_dict]):
             msg = ("All of the combined_filepath, "
                    "historic_forecast_identifier and truth_identifier "
                    "arguments should be specified if one of the arguments are "
