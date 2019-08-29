@@ -35,7 +35,7 @@
   improver_check_skip_acceptance
   # Run apply-emos-coefficients when probabilities are input as the current forecast.
   run improver apply-emos-coefficients \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/probabilities/input.nc" \
+      "$IMPROVER_ACC_TEST_DIR/apply-emos-coefficients/probabilities/input.nc" \
       "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/kgo.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 1 ]]

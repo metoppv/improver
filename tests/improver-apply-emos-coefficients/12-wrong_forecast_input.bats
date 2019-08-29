@@ -33,7 +33,7 @@
 
 @test "apply-emos-coefficients when input forecast cube is a coefficients cube" {
   improver_check_skip_acceptance
-  KGO="ensemble-calibration/gaussian/input.nc"
+  KGO="apply-emos-coefficients/gaussian/input.nc"
 
   # Check it raises an error when there input forecast cube is a
   # coefficients cube.

@@ -33,12 +33,12 @@
 
 @test "apply-emos-coefficients for diagnostic with assumed truncated gaussian distribution" {
   improver_check_skip_acceptance
-  KGO="ensemble-calibration/truncated_gaussian/kgo.nc"
+  KGO="apply-emos-coefficients/truncated_gaussian/kgo.nc"
 
   # Apply EMOS coefficients to calibrate the input forecast
   # and check that the calibrated forecast matches the kgo.
   run improver apply-emos-coefficients \
-      "$IMPROVER_ACC_TEST_DIR/ensemble-calibration/truncated_gaussian/input.nc" \
+      "$IMPROVER_ACC_TEST_DIR/apply-emos-coefficients/truncated_gaussian/input.nc" \
       "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/truncated_gaussian/kgo.nc" \
       "$TEST_DIR/output.nc" --random_seed 0
   [[ "$status" -eq 0 ]]
