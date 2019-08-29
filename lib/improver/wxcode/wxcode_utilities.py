@@ -31,9 +31,9 @@
 """This module defines the utilities required for wxcode plugin """
 
 from collections import OrderedDict
-import numpy as np
 
 import iris
+import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 
 import improver.utilities.solar as solar

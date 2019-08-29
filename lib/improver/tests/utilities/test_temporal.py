@@ -31,18 +31,19 @@
 """Unit tests for temporal utilities."""
 
 import datetime
+import unittest
 from datetime import time
 from datetime import timedelta
-from cf_units import Unit
-import unittest
-import numpy as np
 
 import iris
+import numpy as np
+from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
-from iris.cube import Cube, CubeList
 from iris.time import PartialDateTime
 
+from improver.tests.set_up_test_cubes import (
+    set_up_variable_cube, add_coordinate)
 from improver.utilities.temporal import (
     cycletime_to_datetime, cycletime_to_number, datetime_to_cycletime,
     forecast_period_coord,
@@ -50,9 +51,6 @@ from improver.utilities.temporal import (
     extract_cube_at_time, set_utc_offset, get_forecast_times,
     unify_forecast_reference_time, find_latest_cycletime,
     extract_nearest_time_point, datetime_to_iris_time)
-
-from improver.tests.set_up_test_cubes import (
-    set_up_variable_cube, add_coordinate)
 from improver.utilities.warnings_handler import ManageWarnings
 
 

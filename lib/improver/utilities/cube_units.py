@@ -30,10 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """ Provides support utilities for manipulating cube units."""
 
+import iris
 import numpy as np
 from cf_units import Unit
-
-import iris
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.units import DEFAULT_UNITS

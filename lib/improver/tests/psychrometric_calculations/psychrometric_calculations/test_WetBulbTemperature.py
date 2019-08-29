@@ -31,19 +31,17 @@
 """Unit tests for psychrometric_calculations WetBulbTemperature"""
 
 import unittest
-import numpy as np
 
 import iris
+import numpy as np
+from cf_units import Unit
 from iris.cube import Cube
 from iris.tests import IrisTest
-from iris.coords import DimCoord
-from cf_units import Unit
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
     WetBulbTemperature)
-from improver.utilities.warnings_handler import ManageWarnings
-
 from improver.tests.set_up_test_cubes import set_up_variable_cube
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_WetBulbTemperature(IrisTest):

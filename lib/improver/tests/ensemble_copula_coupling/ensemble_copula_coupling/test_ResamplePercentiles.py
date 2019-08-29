@@ -32,8 +32,8 @@
 Unit tests for the `ensemble_copula_coupling.ResamplePercentiles` class.
 """
 import unittest
-import numpy as np
 
+import numpy as np
 from iris.cube import Cube
 from iris.tests import IrisTest
 

@@ -30,17 +30,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Utilities for spatial padding of iris cubes."""
 
-import numpy as np
-import iris
 from copy import deepcopy
+
+import iris
+import numpy as np
 from cf_units import Unit
 
 from improver.utilities.cube_checker import (
     check_for_x_and_y_axes)
-from improver.utilities.spatial import (
-    convert_distance_into_number_of_grid_cells)
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering)
+from improver.utilities.spatial import (
+    convert_distance_into_number_of_grid_cells)
 
 
 def pad_coord(coord, width, method):

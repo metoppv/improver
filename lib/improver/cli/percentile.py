@@ -32,15 +32,15 @@
 """Script to collapse cube coordinates and calculate percentiled data."""
 
 import warnings
+
 import numpy as np
 
 from improver.argparser import ArgParser
-
-from improver.percentile import PercentileConverter
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
     GeneratePercentilesFromProbabilities
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
     import choose_set_of_percentiles
+from improver.percentile import PercentileConverter
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 

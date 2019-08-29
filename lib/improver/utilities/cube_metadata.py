@@ -30,17 +30,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing utilities for modifying cube metadata."""
 
-from datetime import datetime
-from dateutil import tz
-import warnings
-import pickle
 import hashlib
-import numpy as np
+import pickle
+import warnings
+from datetime import datetime
 
 import iris
+import numpy as np
+from dateutil import tz
 
 from improver.utilities.cube_manipulation import compare_coords
-
 
 GRID_TYPE = 'standard'
 STAGE_VERSION = '1.3.0'

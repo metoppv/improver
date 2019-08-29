@@ -32,9 +32,9 @@
 
 """Script to run Ensemble Copula Coupling processing."""
 
+from improver.argparser import ArgParser
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsRealizations, ResamplePercentiles, EnsembleReordering)
-from improver.argparser import ArgParser
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 

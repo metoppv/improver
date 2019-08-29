@@ -30,9 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain mathematical operations."""
 
-import numpy as np
-
 import iris
+import numpy as np
 
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 

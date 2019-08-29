@@ -32,10 +32,9 @@
 """Script to calculate mean wind direction from ensemble realizations."""
 
 from improver.argparser import ArgParser
-
-from improver.wind_calculations.wind_direction import WindDirection
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
+from improver.wind_calculations.wind_direction import WindDirection
 
 
 def main(argv=None):

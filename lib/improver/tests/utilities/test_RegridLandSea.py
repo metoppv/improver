@@ -31,20 +31,20 @@
 """Unit tests for the RegridLandSea class from spatial.py."""
 
 import unittest
-import numpy as np
 
 import iris
-from iris.tests import IrisTest
+import numpy as np
 from iris.coords import DimCoord
 from iris.cube import Cube
+from iris.tests import IrisTest
 from iris.util import squeeze
 
+from improver.grids import ELLIPSOID
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube)
 from improver.utilities.spatial import (
     RegridLandSea, OccurrenceWithinVicinity)
 from improver.utilities.warnings_handler import ManageWarnings
-from improver.grids import ELLIPSOID
 
 
 class Test__init__(IrisTest):

@@ -30,13 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing plugin for CubeCombiner."""
 
+import iris
 import numpy as np
 
-import iris
-
+from improver.utilities.cube_manipulation import expand_bounds
 from improver.utilities.cube_metadata import (
     resolve_metadata_diff, amend_metadata)
-from improver.utilities.cube_manipulation import expand_bounds
 
 
 class CubeCombiner(object):

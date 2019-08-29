@@ -31,8 +31,8 @@
 """Unit tests for the solar calculations in solar.py """
 
 import unittest
-import numpy as np
 
+import numpy as np
 from iris.tests import IrisTest
 
 from improver.utilities.solar import (

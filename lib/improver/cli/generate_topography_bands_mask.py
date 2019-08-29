@@ -31,14 +31,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run topographic bands mask generation."""
 
-from improver.argparser import ArgParser
 import os
 
+from improver.argparser import ArgParser
 from improver.generate_ancillaries.generate_ancillary import (
     GenerateOrographyBandAncils)
+from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
-from improver.utilities.cli_utilities import load_json_or_none
 
 # The following dictionary defines the orography altitude bands in metres
 # above/below sea level for which masks are required.

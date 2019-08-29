@@ -31,9 +31,10 @@
 """Unit tests for the plugins and functions within indexing_operations.py"""
 
 import unittest
-import numpy as np
 
+import numpy as np
 from iris.tests import IrisTest
+
 from improver.utilities.indexing_operations import choose
 
 

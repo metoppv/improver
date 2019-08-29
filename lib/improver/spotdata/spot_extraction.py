@@ -31,13 +31,12 @@
 
 """Spot data extraction from diagnostic fields using neighbour cubes."""
 
+import iris
 import numpy as np
 
-import iris
-from improver.utilities.cube_manipulation import (enforce_coordinate_ordering,
-                                                  compare_attributes)
-from improver.utilities.cube_metadata import create_coordinate_hash
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+from improver.utilities.cube_metadata import create_coordinate_hash
 
 
 class SpotExtraction():

@@ -31,9 +31,9 @@
 """Module to adjust weights spatially based on missing data in input cubes."""
 
 import warnings
+
 import iris
 import numpy as np
-
 from scipy.ndimage.morphology import distance_transform_edt
 
 from improver.utilities.rescale import rescale

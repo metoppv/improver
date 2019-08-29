@@ -32,8 +32,8 @@
 """Script to extract a subset of input file data, given constraints."""
 
 from improver.argparser import ArgParser
-from improver.utilities.load import load_cube
 from improver.utilities.cube_extraction import extract_subcube
+from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
 

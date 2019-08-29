@@ -32,11 +32,10 @@
 
 import unittest
 
+import numpy as np
 from cf_units import Unit
 from iris.cube import Cube
 from iris.tests import IrisTest
-import numpy as np
-
 
 from improver.generate_ancillaries.generate_ancillary import (
     GenerateOrographyBandAncils as GenOrogMasks)

@@ -33,9 +33,9 @@
 
 import unittest
 
+import numpy as np
 from iris.cube import Cube
 from iris.tests import IrisTest
-import numpy as np
 
 from improver.nbhood.circular_kernel import CircularNeighbourhood
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (

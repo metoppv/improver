@@ -32,19 +32,17 @@
 
 import unittest
 
-import numpy as np
-
-
 import iris
-from iris.tests import IrisTest
-from iris.coords import AuxCoord
+import numpy as np
 from cf_units import Unit
+from iris.coords import AuxCoord
+from iris.tests import IrisTest
 
+from improver.tests.ensemble_calibration.ensemble_calibration. \
+    helper_functions import set_up_probability_threshold_cube
 from improver.utilities.cube_checker import find_threshold_coordinate
 from improver.wxcode.weather_symbols import WeatherSymbols
 from improver.wxcode.wxcode_utilities import WX_DICT
-from improver.tests.ensemble_calibration.ensemble_calibration. \
-    helper_functions import set_up_probability_threshold_cube
 
 
 def set_up_wxcubes():

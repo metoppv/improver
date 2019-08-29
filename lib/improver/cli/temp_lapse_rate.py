@@ -35,8 +35,8 @@ orogrophy datasets."""
 import numpy as np
 
 from improver.argparser import ArgParser
-from improver.lapse_rate import LapseRate
 from improver.constants import DALR, U_DALR
+from improver.lapse_rate import LapseRate
 from improver.utilities.cube_metadata import amend_metadata
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf

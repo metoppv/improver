@@ -32,17 +32,15 @@
 
 import unittest
 
-import numpy as np
-
-from cf_units import Unit
 import iris
+import numpy as np
+from cf_units import Unit
 from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
     WetBulbTemperatureIntegral)
-from improver.tests.psychrometric_calculations.psychrometric_calculations.\
+from improver.tests.psychrometric_calculations.psychrometric_calculations. \
     test_WetBulbTemperature import Test_WetBulbTemperature
-
 from improver.tests.set_up_test_cubes import add_coordinate
 
 
