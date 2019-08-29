@@ -193,6 +193,8 @@ def process(historic_forecast, truth, combined, historic_forecast_dict,
         historic_forecast_dict (dict):
             Dictionary specifying the metadata that defines the historic
             forecast. For example:
+            ::
+
                 {
                     "attributes": {
                         "mosg__model_configuration": "uk_ens"
@@ -201,6 +203,8 @@ def process(historic_forecast, truth, combined, historic_forecast_dict,
         truth_dict (dict):
             Dictionary specifying the metadata that defines the truth.
             For example:
+            ::
+
                 {
                     "attributes": {
                         "mosg__model_configuration": "uk_det"

@@ -109,6 +109,8 @@ class SplitHistoricForecastAndTruth():
             historic_forecast_dict (dict):
                 Dictionary specifying the metadata that defines the historic
                 forecast. For example:
+                ::
+
                     {
                         "attributes": {
                             "mosg__model_configuration": "uk_ens"
@@ -117,6 +119,8 @@ class SplitHistoricForecastAndTruth():
             truth_dict (dict):
                 Dictionary specifying the metadata that defines the truth.
                 For example:
+                ::
+
                     {
                         "attributes": {
                             "mosg__model_configuration": "uk_det"
