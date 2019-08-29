@@ -31,17 +31,16 @@
 """Unit tests for the OrographicEnhancement plugin."""
 
 import unittest
-import numpy as np
-from cf_units import Unit
 
 import iris
-from iris.coords import DimCoord, AuxCoord
+import numpy as np
+from cf_units import Unit
 from iris.coord_systems import GeogCS, TransverseMercator
+from iris.coords import DimCoord, AuxCoord
 from iris.tests import IrisTest
 
-from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.orographic_enhancement import OrographicEnhancement
-
+from improver.utilities.cube_manipulation import sort_coord_in_cube
 
 # UKPP projection
 TMercCS = TransverseMercator(

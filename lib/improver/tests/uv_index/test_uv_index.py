@@ -31,8 +31,8 @@
 """Unit tests for the uv_index function."""
 
 import unittest
-import numpy as np
 
+import numpy as np
 from cf_units import Unit
 from iris.tests import IrisTest
 

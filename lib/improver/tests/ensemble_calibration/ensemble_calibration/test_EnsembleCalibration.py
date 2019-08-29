@@ -35,12 +35,12 @@ Unit tests for the `ensemble_calibration.EnsembleCalibration` class.
 import imp
 import unittest
 
-from iris.tests import IrisTest
 import numpy as np
+from iris.tests import IrisTest
 
 from improver.ensemble_calibration.ensemble_calibration import (
     EnsembleCalibration as Plugin)
-from improver.tests.ensemble_calibration.ensemble_calibration.\
+from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import SetupCubes, EnsembleCalibrationAssertions
 from improver.utilities.warnings_handler import ManageWarnings
 

@@ -31,11 +31,11 @@
 """Module containing Blending classes that blend over adjacent points, as
 opposed to collapsing the whole dimension."""
 
-from cf_units import Unit
 import iris
+from cf_units import Unit
 
-from improver.blending.weights import ChooseDefaultWeightsTriangular
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
+from improver.blending.weights import ChooseDefaultWeightsTriangular
 from improver.utilities.cube_checker import check_cube_coordinates
 
 

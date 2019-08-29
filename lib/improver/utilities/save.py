@@ -30,8 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for saving netcdf cubes with desired attribute types."""
 
-import cf_units
 import warnings
+
+import cf_units
 import iris
 
 from improver.utilities.cube_checker import check_cube_not_float64

@@ -31,19 +31,18 @@
 """Unit tests for the ChooseWeightsLinear plugin."""
 
 import unittest
-
-import iris
-from iris.coords import AuxCoord
-from iris.tests import IrisTest
-import numpy as np
 from copy import deepcopy
 from datetime import datetime as dt
 
+import iris
+import numpy as np
+from iris.coords import AuxCoord
+from iris.tests import IrisTest
+
 from improver.blending.weights import ChooseWeightsLinear
-from improver.utilities.temporal import forecast_period_coord
 from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, set_up_probability_cube, add_coordinate)
-
+from improver.utilities.temporal import forecast_period_coord
 
 CONFIG_DICT_UKV = {"uk_det": {"forecast_period": [7, 12, 48, 54],
                               "weights": [0, 1, 1, 0],

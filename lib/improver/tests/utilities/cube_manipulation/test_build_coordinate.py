@@ -34,17 +34,16 @@ Unit tests for the function "cube_manipulation.build_coordinate".
 
 import unittest
 
-from cf_units import Unit
 import iris
-from iris.coords import AuxCoord, DimCoord
-from iris.coord_systems import TransverseMercator
-from iris.tests import IrisTest
 import numpy as np
+from cf_units import Unit
+from iris.coord_systems import TransverseMercator
+from iris.coords import AuxCoord, DimCoord
+from iris.tests import IrisTest
 
-from improver.utilities.cube_manipulation import build_coordinate
-
-from improver.tests.ensemble_calibration.ensemble_calibration.\
+from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_temperature_cube
+from improver.utilities.cube_manipulation import build_coordinate
 
 
 class Test_build_coordinate(IrisTest):

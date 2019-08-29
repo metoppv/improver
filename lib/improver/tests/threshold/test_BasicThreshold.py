@@ -39,8 +39,8 @@ from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
 
-from improver.threshold import BasicThreshold as Threshold
 from improver.tests.set_up_test_cubes import set_up_variable_cube
+from improver.threshold import BasicThreshold as Threshold
 
 
 class Test__repr__(IrisTest):

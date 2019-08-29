@@ -31,20 +31,17 @@
 """Unit tests for temporal utilities."""
 
 import datetime
-from datetime import timedelta
 import unittest
-import numpy as np
-from cf_units import Unit
+from datetime import timedelta
 
 import iris
-from iris.coords import DimCoord
+import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
-from iris.cube import Cube
 
-from improver.utilities.temporal_interpolation import TemporalInterpolation
 from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, add_coordinate)
+from improver.utilities.temporal_interpolation import TemporalInterpolation
 
 
 class Test__init__(IrisTest):

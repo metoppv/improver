@@ -30,19 +30,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the LapseRate plugin."""
 
-import numpy as np
 import unittest
 
 import cf_units
+import numpy as np
+from iris.coords import AuxCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
-from iris.coords import (DimCoord,
-                         AuxCoord)
 
-from improver.grids import STANDARD_GRID_CCRS
 from improver.constants import DALR
 from improver.lapse_rate import LapseRate
-
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 

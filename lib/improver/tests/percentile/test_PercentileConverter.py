@@ -30,22 +30,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the percentile.PercentileConverter plugin."""
 
-from datetime import datetime
-import numpy as np
 import unittest
+from datetime import datetime
 
-from cf_units import Unit
 import iris
-from iris.cube import Cube
-from iris.coords import DimCoord
-from iris.tests import IrisTest
-from iris.exceptions import CoordinateNotFoundError
 import numpy as np
+from iris.exceptions import CoordinateNotFoundError
+from iris.tests import IrisTest
 
 from improver.percentile import PercentileConverter
-from improver.utilities.warnings_handler import ManageWarnings
-
 from improver.tests.set_up_test_cubes import set_up_variable_cube
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_process(IrisTest):

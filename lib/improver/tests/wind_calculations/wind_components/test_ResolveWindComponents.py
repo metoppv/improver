@@ -31,13 +31,13 @@
 """Unit tests for the wind_components.ResolveWindComponents plugin."""
 
 import unittest
-import numpy as np
-from cf_units import Unit
 
 import iris
-from iris.tests import IrisTest
-from iris.coords import DimCoord
+import numpy as np
+from cf_units import Unit
 from iris.coord_systems import OSGB
+from iris.coords import DimCoord
+from iris.tests import IrisTest
 
 from improver.wind_calculations.wind_components import ResolveWindComponents
 

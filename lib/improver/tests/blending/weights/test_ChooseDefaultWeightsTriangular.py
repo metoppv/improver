@@ -32,10 +32,10 @@
 
 
 import unittest
-import numpy as np
-from cf_units import Unit
 from datetime import datetime as dt
 
+import numpy as np
+from cf_units import Unit
 from iris.tests import IrisTest
 
 from improver.blending.weights import ChooseDefaultWeightsTriangular

@@ -32,8 +32,8 @@
 
 import unittest
 
-from iris.tests import IrisTest
 import numpy as np
+from iris.tests import IrisTest
 
 from improver.nbhood.circular_kernel import circular_kernel
 

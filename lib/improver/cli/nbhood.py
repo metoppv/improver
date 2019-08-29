@@ -37,8 +37,8 @@ from improver.nbhood.nbhood import (
     GeneratePercentilesFromANeighbourhood, NeighbourhoodProcessing)
 from improver.nbhood.recursive_filter import RecursiveFilter
 from improver.utilities.cli_utilities import radius_or_radii_and_lead
-from improver.utilities.pad_spatial import remove_cube_halo
 from improver.utilities.load import load_cube
+from improver.utilities.pad_spatial import remove_cube_halo
 from improver.utilities.save import save_netcdf
 from improver.wind_calculations.wind_direction import WindDirection
 

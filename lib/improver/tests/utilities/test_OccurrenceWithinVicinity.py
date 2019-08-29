@@ -32,13 +32,12 @@
 
 import unittest
 
-from cf_units import Unit
 import iris
+import numpy as np
+from cf_units import Unit
 from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
-
-import numpy as np
 
 from improver.utilities.spatial import OccurrenceWithinVicinity
 

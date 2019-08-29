@@ -31,9 +31,10 @@
 """Module containing thresholding classes."""
 
 
-import numpy as np
 import iris
+import numpy as np
 from cf_units import Unit
+
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.rescale import rescale
 

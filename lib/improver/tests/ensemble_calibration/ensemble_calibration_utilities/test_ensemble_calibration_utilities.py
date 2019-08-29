@@ -36,12 +36,12 @@ module.
 import unittest
 
 import iris
-from iris.tests import IrisTest
 import numpy as np
+from iris.tests import IrisTest
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     convert_cube_data_to_2d, check_predictor_of_mean_flag)
-from improver.tests.ensemble_calibration.ensemble_calibration.\
+from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_temperature_cube
 
 

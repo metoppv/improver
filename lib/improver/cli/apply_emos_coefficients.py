@@ -36,7 +36,6 @@ Regression (NGR)."""
 import warnings
 
 import numpy as np
-
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.argparser import ArgParser

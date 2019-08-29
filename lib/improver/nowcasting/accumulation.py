@@ -33,10 +33,9 @@ This module defines the Accumulation class for calculating precipitation
 accumulations from advected radar fields. It is also possible to create longer
 accumulations from shorter intervals.
 """
-import warnings
+import iris
 import numpy as np
 
-import iris
 from improver.utilities.cube_manipulation import expand_bounds
 from improver.utilities.cube_units import enforce_units_and_dtypes
 

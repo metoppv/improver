@@ -33,19 +33,19 @@
 
 import unittest
 
-from cf_units import Unit
 import iris
+import numpy as np
+from cf_units import Unit
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
-import numpy as np
 
+from improver.grids import STANDARD_GRID_CCRS, ELLIPSOID
 from improver.nbhood.circular_kernel import CircularNeighbourhood
 from improver.nbhood.nbhood import BaseNeighbourhoodProcessing as NBHood
 from improver.nbhood.nbhood import SquareNeighbourhood
-from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
-    import add_forecast_reference_time_and_forecast_period
-from improver.grids import STANDARD_GRID_CCRS, ELLIPSOID
+from improver.tests.ensemble_calibration.ensemble_calibration.\
+    helper_functions import add_forecast_reference_time_and_forecast_period
 
 SINGLE_POINT_RANGE_3_CENTROID = np.array([
     [0.992, 0.968, 0.96, 0.968, 0.992],

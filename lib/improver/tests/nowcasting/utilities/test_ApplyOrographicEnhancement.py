@@ -32,11 +32,11 @@
 """Module with tests for the ApplyOrographicEnhancement plugin."""
 
 import unittest
-import numpy as np
-from cf_units import Unit
 from datetime import datetime
 
 import iris
+import numpy as np
+from cf_units import Unit
 from iris.tests import IrisTest
 
 from improver.nowcasting.utilities import ApplyOrographicEnhancement

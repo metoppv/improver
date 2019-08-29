@@ -31,16 +31,16 @@
 """ Provides support utilities for cube manipulation."""
 
 import operator
-import six
 import warnings
-import numpy as np
 
 import iris
+import numpy as np
+import six
 from iris.coords import AuxCoord, DimCoord
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.cube_checker import (
-    check_cube_coordinates, check_cube_not_float64, find_threshold_coordinate)
+    check_cube_coordinates, find_threshold_coordinate)
 
 
 def equalise_cube_attributes(cubes, silent=None):

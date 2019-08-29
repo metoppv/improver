@@ -31,10 +31,9 @@
 """Unit tests for psychrometric_calculations FallingSnowLevel."""
 import unittest
 
-import numpy as np
-
-from cf_units import Unit
 import iris
+import numpy as np
+from cf_units import Unit
 from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (

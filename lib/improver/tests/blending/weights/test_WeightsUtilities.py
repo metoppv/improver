@@ -33,18 +33,14 @@
 
 import unittest
 
-import numpy as np
-from datetime import datetime as dt
-
 import iris
+import numpy as np
 from iris.tests import IrisTest
 
 from improver.blending.weights import WeightsUtilities
-from improver.utilities.cube_checker import find_threshold_coordinate
-from improver.tests.set_up_test_cubes import (
-    set_up_variable_cube, add_coordinate)
 from improver.tests.utilities.test_cube_metadata import (
     create_cube_with_threshold)
+from improver.utilities.cube_checker import find_threshold_coordinate
 
 
 class Test__repr__(IrisTest):

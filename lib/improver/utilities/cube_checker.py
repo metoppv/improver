@@ -31,8 +31,8 @@
 """ Provides support utilities for checking cubes."""
 
 import iris
-from iris.exceptions import CoordinateNotFoundError
 import numpy as np
+from iris.exceptions import CoordinateNotFoundError
 
 
 def check_cube_not_float64(cube, fix=False):

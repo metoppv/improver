@@ -34,12 +34,13 @@ import unittest
 from copy import copy, deepcopy
 from datetime import datetime as dt
 
-import numpy as np
-
 import iris
+import numpy as np
 from iris.cube import Cube
 from iris.tests import IrisTest
 
+from improver.tests.set_up_test_cubes import (
+    set_up_variable_cube, set_up_probability_cube, add_coordinate)
 from improver.utilities.cube_checker import find_threshold_coordinate
 from improver.utilities.cube_metadata import (
     add_coord,
@@ -56,9 +57,6 @@ from improver.utilities.cube_metadata import (
     generate_hash,
     create_coordinate_hash)
 from improver.utilities.warnings_handler import ManageWarnings
-
-from improver.tests.set_up_test_cubes import (
-    set_up_variable_cube, set_up_probability_cube, add_coordinate)
 
 
 def create_cube_with_threshold(data=None, threshold_values=None):

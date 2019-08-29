@@ -32,9 +32,10 @@
 
 
 import unittest
+
+import numpy as np
 from iris.cube import Cube
 from iris.tests import IrisTest
-import numpy as np
 
 from improver.generate_ancillaries.generate_ancillary import (
     CorrectLandSeaMask as CorrectLand)

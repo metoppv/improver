@@ -33,6 +33,7 @@ Unit tests for the SaturatedVapourPressureTable utility.
 
 """
 import unittest
+
 import numpy as np
 from cf_units import Unit
 from iris.tests import IrisTest

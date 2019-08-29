@@ -30,9 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Common option utilities for improver CLIs."""
 
-from argparse import ArgumentParser
 import pathlib
 import sys
+from argparse import ArgumentParser
 
 from improver.profile import profile_hook_enable
 

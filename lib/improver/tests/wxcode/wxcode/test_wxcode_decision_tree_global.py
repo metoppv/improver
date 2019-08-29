@@ -38,7 +38,6 @@ from improver.wxcode.wxcode_decision_tree_global \
     import wxcode_decision_tree_global
 from improver.wxcode.wxcode_utilities import expand_nested_lists
 
-
 REQUIRED_KEY_WORDS = ['succeed',
                       'fail',
                       'probability_thresholds',

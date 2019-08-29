@@ -31,15 +31,13 @@
 """Unit tests for psychrometric_calculations utilities"""
 
 import unittest
+
 import numpy as np
-from iris.cube import Cube
-from iris.tests import IrisTest
-from iris.coords import DimCoord
 from cf_units import Unit
+from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
     Utilities)
-
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 

@@ -31,16 +31,17 @@
 """Unit tests for spatial padding utilities"""
 
 import unittest
-import numpy as np
+
 import iris
+import numpy as np
 from iris.coords import DimCoord
 from iris.tests import IrisTest
 
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.pad_spatial import (
     pad_coord, create_cube_with_halo, remove_cube_halo,
     _create_cube_with_padded_data,
     pad_cube_with_halo, remove_halo_from_cube)
-from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
 class Test_pad_coord(IrisTest):

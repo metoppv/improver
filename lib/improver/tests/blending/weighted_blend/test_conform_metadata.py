@@ -31,17 +31,16 @@
 """Module to test the conform_metadata function."""
 
 import unittest
-
-import numpy as np
 from datetime import datetime as dt
 
 import iris
-from iris.tests import IrisTest
+import numpy as np
 from iris.coords import AuxCoord
+from iris.tests import IrisTest
 
 from improver.blending.weighted_blend import conform_metadata
-from improver.utilities.warnings_handler import ManageWarnings
 from improver.tests.set_up_test_cubes import set_up_variable_cube
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_conform_metadata(IrisTest):

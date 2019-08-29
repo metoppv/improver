@@ -34,9 +34,9 @@
 
 from cf_units import Unit
 
+from improver.argparser import ArgParser
 from improver.blending.blend_across_adjacent_points import \
     TriangularWeightedBlendAcrossAdjacentPoints
-from improver.argparser import ArgParser
 from improver.utilities.cube_manipulation import MergeCubes
 from improver.utilities.load import load_cubelist
 from improver.utilities.save import save_netcdf

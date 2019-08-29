@@ -33,14 +33,14 @@ This module defines all the "plugins" specific for ensemble calibration.
 
 """
 import datetime
-import numpy as np
-from scipy import stats
-from scipy.optimize import minimize
-from scipy.stats import norm
 import warnings
 
 import iris
+import numpy as np
 from iris.exceptions import CoordinateNotFoundError
+from scipy import stats
+from scipy.optimize import minimize
+from scipy.stats import norm
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     convert_cube_data_to_2d, check_predictor_of_mean_flag)

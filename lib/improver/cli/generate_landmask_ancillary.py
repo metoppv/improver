@@ -31,9 +31,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run landmask ancillary generation."""
 
-from improver.argparser import ArgParser
 import os
 
+from improver.argparser import ArgParser
 from improver.generate_ancillaries.generate_ancillary import (
     CorrectLandSeaMask)
 from improver.utilities.load import load_cube

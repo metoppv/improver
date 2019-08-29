@@ -35,11 +35,11 @@ Unit tests for the
 """
 import unittest
 
+import numpy as np
 from iris.coords import DimCoord, AuxCoord
 from iris.cube import Cube
-from iris.tests import IrisTest
 from iris.exceptions import InvalidCubeError
-import numpy as np
+from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsRealizations as Plugin)

@@ -31,6 +31,7 @@
 """Unit tests for the feels_like_temperature.FeelsLikeTemperature plugin."""
 
 import unittest
+
 import numpy as np
 from iris.tests import IrisTest
 

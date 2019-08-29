@@ -30,9 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Functions to create spotdata cubes."""
 
-import numpy as np
-
 import iris
+import numpy as np
 from iris.coords import DimCoord, AuxCoord
 
 

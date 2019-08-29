@@ -32,10 +32,10 @@
 
 import warnings
 
-from cf_units import Unit
 import iris
-from iris.exceptions import InvalidCubeError
 import numpy as np
+from cf_units import Unit
+from iris.exceptions import InvalidCubeError
 
 from improver.generate_ancillaries.generate_ancillary import (
     GenerateOrographyBandAncils, _make_mask_cube)

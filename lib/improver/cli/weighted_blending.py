@@ -32,15 +32,13 @@
 
 """Script to run weighted blending."""
 
-import json
 import numpy as np
 
 from improver.argparser import ArgParser
+from improver.blending.calculate_weights_and_blend import WeightAndBlend
 from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.load import load_cubelist
 from improver.utilities.save import save_netcdf
-
-from improver.blending.calculate_weights_and_blend import WeightAndBlend
 
 
 def main(argv=None):

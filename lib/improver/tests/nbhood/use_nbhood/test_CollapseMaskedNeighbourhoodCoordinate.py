@@ -34,11 +34,10 @@
 import unittest
 
 import iris
-from iris.tests import IrisTest
-from iris.exceptions import CoordinateNotFoundError
-from iris.coords import AuxCoord
-
 import numpy as np
+from iris.coords import AuxCoord
+from iris.exceptions import CoordinateNotFoundError
+from iris.tests import IrisTest
 
 from improver.nbhood.use_nbhood import CollapseMaskedNeighbourhoodCoordinate
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (

@@ -33,6 +33,7 @@
 extrapolate."""
 
 import os
+
 import iris
 import numpy as np
 
@@ -40,9 +41,9 @@ from improver.argparser import ArgParser
 from improver.nowcasting.forecasting import CreateExtrapolationForecast
 from improver.nowcasting.optical_flow import OpticalFlow
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
+from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.filename import generate_file_name
 from improver.utilities.load import load_cubelist, load_cube
-from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.save import save_netcdf
 
 

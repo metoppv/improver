@@ -30,15 +30,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for NowcastLightning class and associated functions."""
 from math import isclose
-import numpy as np
+
 import iris
+import numpy as np
 from iris.exceptions import ConstraintMismatchError
+
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.cube_checker import (
     check_cube_coordinates, find_threshold_coordinate)
+from improver.utilities.rescale import apply_double_scaling, rescale
 from improver.utilities.temporal import (
     extract_nearest_time_point, iris_time_to_datetime)
-from improver.utilities.rescale import apply_double_scaling, rescale
 
 
 class NowcastLightning(object):

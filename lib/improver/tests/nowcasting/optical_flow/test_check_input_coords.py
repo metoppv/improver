@@ -37,9 +37,9 @@ from iris.coords import DimCoord
 from iris.exceptions import InvalidCubeError
 from iris.tests import IrisTest
 
+from improver.nowcasting.optical_flow import check_input_coords
 from improver.tests.nowcasting.forecasting.test_AdvectField \
     import set_up_xy_velocity_cube
-from improver.nowcasting.optical_flow import check_input_coords
 
 
 class Test_check_input_coords(IrisTest):

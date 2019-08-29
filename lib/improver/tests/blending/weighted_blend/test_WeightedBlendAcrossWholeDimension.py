@@ -33,24 +33,23 @@
 
 
 import unittest
-
-from cf_units import date2num
 from datetime import datetime
 
 import iris
+import numpy as np
+from cf_units import date2num
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
-from iris.tests import IrisTest
 from iris.exceptions import CoordinateNotFoundError
-import numpy as np
+from iris.tests import IrisTest
 
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
 from improver.tests.blending.weighted_blend.test_PercentileBlendingAggregator \
     import (PERCENTILE_DATA, BLENDED_PERCENTILE_DATA,
             BLENDED_PERCENTILE_DATA_EQUAL_WEIGHTS,
             BLENDED_PERCENTILE_DATA_SPATIAL_WEIGHTS)
-from improver.utilities.warnings_handler import ManageWarnings
 from improver.utilities.cube_manipulation import merge_cubes
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 def time_coords_for_test_cubes():
