@@ -40,7 +40,7 @@ from scipy.spatial.qhull import QhullError
 from scipy.stats import linregress
 from stratify import interpolate
 
-import improver.constants as cc
+import improver.constants as consts
 from improver.psychrometric_calculations import svp_table
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.mathematical_operations import Integration
@@ -78,8 +78,8 @@ class Utilities(object):
             iris.cube.Cube:
                 Specific heat capacity of moist air (J kg-1 K-1).
         """
-        specific_heat = ((-1.*mixing_ratio + 1.) * cc.U_CP_DRY_AIR +
-                         mixing_ratio * cc.U_CP_WATER_VAPOUR)
+        specific_heat = ((-1.*mixing_ratio + 1.) * consts.U_CP_DRY_AIR +
+                         mixing_ratio * consts.U_CP_WATER_VAPOUR)
         specific_heat.rename('specific_heat_capacity_of_moist_air')
         return specific_heat
 
@@ -98,9 +98,9 @@ class Utilities(object):
         """
         temperature = temperature_input.copy()
         temperature.convert_units('celsius')
-        latent_heat = (-1. * cc.U_LATENT_HEAT_T_DEPENDENCE * temperature +
-                       cc.U_LH_CONDENSATION_WATER)
-        latent_heat.units = cc.U_LH_CONDENSATION_WATER.units
+        latent_heat = (-1. * consts.U_LATENT_HEAT_T_DEPENDENCE * temperature +
+                       consts.U_LH_CONDENSATION_WATER)
+        latent_heat.units = consts.U_LH_CONDENSATION_WATER.units
         latent_heat.rename('latent_heat_of_condensation')
         return latent_heat
 
@@ -165,7 +165,7 @@ class Utilities(object):
         temperature = temperature_input.copy()
         temperature.convert_units('K')
         numerator = (mixing_ratio * latent_heat ** 2)
-        denominator = cc.U_R_WATER_VAPOUR * temperature ** 2
+        denominator = consts.U_R_WATER_VAPOUR * temperature ** 2
         return numerator/denominator + specific_heat
 
     @staticmethod
@@ -202,7 +202,7 @@ class Utilities(object):
                      9: 3.56654,
                      10: 0.87682,
                      11: 0.78614}
-        triple_pt = cc.TRIPLE_PT_WATER
+        triple_pt = consts.TRIPLE_PT_WATER
 
         # Values for which method is considered valid (see reference).
         WetBulbTemperature.check_range(temperature, 173., 373.)
@@ -385,9 +385,9 @@ class WetBulbTemperature(object):
         svp = self.pressure_correct_svp(svp, temperature, pressure)
 
         # Calculation
-        result_numer = (cc.EARTH_REPSILON * svp.data)
+        result_numer = (consts.EARTH_REPSILON * svp.data)
         max_pressure_term = np.maximum(svp.data, pressure.data)
-        result_denom = (max_pressure_term - ((1. - cc.EARTH_REPSILON) *
+        result_denom = (max_pressure_term - ((1. - consts.EARTH_REPSILON) *
                                              svp.data))
         mixing_ratio = temperature.copy(data=result_numer / result_denom)
 
