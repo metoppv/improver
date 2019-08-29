@@ -36,9 +36,9 @@
 
   # Estimate the EMOS coefficients and check the expected warning is raised.
   run improver estimate-emos-coefficients 'gaussian' '20170605T0300Z' "$TEST_DIR/output.nc" \
-      --historic_filepath "$IMPROVER_ACC_TEST_DIR/apply-emos-coefficients/gaussian/history/*.nc" \
-      --truth_filepath "$IMPROVER_ACC_TEST_DIR/apply-emos-coefficients/gaussian/truth/*.nc" \
-      --combined_filepath "$IMPROVER_ACC_TEST_DIR/apply-emos-coefficients/gaussian/*/*.nc"
+      --historic_filepath "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/history/*.nc" \
+      --truth_filepath "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/truth/*.nc" \
+      --combined_filepath "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/*/*.nc"
   [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
 ValueError: If the historic_filepath and truth_filepath arguments
