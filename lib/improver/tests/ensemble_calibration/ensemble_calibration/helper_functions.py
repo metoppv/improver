@@ -124,13 +124,9 @@ class SetupCubes(IrisTest):
         self.combined = self.historic_forecasts + self.truth
 
         # Create the historic and truth cubes
-        self.historic_forecasts_cube = self.historic_forecasts.merge_cube()
-        self.truth_cube = self.truth.merge_cube()
-
-        # Create cubes with alternative names
         self.historic_temperature_forecast_cube = (
-            self.historic_forecasts_cube.copy())
-        self.temperature_truth_cube = self.truth_cube.copy()
+            self.historic_forecasts.merge_cube())
+        self.temperature_truth_cube = self.truth.merge_cube()
 
         # Create a cube for testing wind speed.
         self.current_wind_speed_forecast_cube = set_up_variable_cube(
@@ -380,6 +376,33 @@ def _create_historic_forecasts(data, time_dt, frt_dt,
     Function to create a set of pseudo historic forecast cubes, based on the
     input cube, and assuming that there will be one forecast per day at the
     same hour of the day.
+
+    Args:
+        data (numpy.ndarray):
+            Numpy array to define the data that will be used to fill the cube.
+            This will be subtracted by 2 with the aim of giving a difference
+            between the current forecast and the historic forecasts.
+            Therefore, the current forecast would contain the unadjusted data.
+        time_dt (datetime.datetime):
+            Datetime to define the initial validity time. This will be
+            incremented in days up to the defined number_of_days.
+        frt_dt (datetime.datetime):
+            Datetime to define the initial forecast reference time. This will
+            be incremented in days up to the defined number_of_days.
+
+    Keyword Args:
+        standard_grid_metadata (str):
+            Please see improver.tests.set_up_test_cubes.set_up_variable_cube.
+        number_of_days(int):
+            Number of days to increment when constructing a cubelist of the
+            historic forecasts.
+        **kwargs:
+            Please see improver.tests.set_up_test_cubes.set_up_variable_cube
+            for the other supported keyword arguments.
+
+    Return:
+        historic_forecasts (iris.cube.CubeList):
+            Cubelist of historic forecasts in one day increments.
     """
     historic_forecasts = iris.cube.CubeList([])
     for day in range(number_of_days):
@@ -396,6 +419,27 @@ def _create_truth(data, time_dt, number_of_days=5, **kwargs):
     """
     Function to create truth cubes, based on the input cube, and assuming that
     there will be one forecast per day at the same hour of the day.
+
+    Args:
+        data (numpy.ndarray):
+            Numpy array to define the data that will be used to fill the cube.
+            This will be subtracted by 3 with the aim of giving a difference
+            between the current forecast and the truths.
+            Therefore, the current forecast would contain the unadjusted data.
+        time_dt (datetime.datetime):
+            Datetime to define the initial validity time. This will be
+            incremented in days up to the defined number_of_days.
+
+    Keyword Args:
+        standard_grid_metadata (str):
+            Please see improver.tests.set_up_test_cubes.set_up_variable_cube.
+        number_of_days(int):
+            Number of days to increment when constructing a cubelist of the
+            historic forecasts.
+        **kwargs:
+            Please see improver.tests.set_up_test_cubes.set_up_variable_cube
+            for the other supported keyword arguments.
+
     """
     truth = iris.cube.CubeList([])
     for day in range(number_of_days):

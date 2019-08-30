@@ -135,8 +135,8 @@ class Test_process(SetupCubes, SetupDicts):
         """Test that the input cubelist combining historic forecasts and truth
         can be split using the metadata dictionaries provided."""
         hf_result, truth_result = self.plugin.process(self.combined)
-        self.assertEqual(hf_result, self.historic_forecasts_cube)
-        self.assertEqual(truth_result, self.truth_cube)
+        self.assertEqual(hf_result, self.historic_temperature_forecast_cube)
+        self.assertEqual(truth_result, self.temperature_truth_cube)
 
 
 if __name__ == '__main__':

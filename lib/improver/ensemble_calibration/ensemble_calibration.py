@@ -726,6 +726,10 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                     Cube of truths where any mismatches with
                     the historic_forecasts cube have been removed.
 
+        Raises:
+            ValueError: The filtering has found no matches in validity time
+                between the historic forecasts and the truths.
+
         """
         matching_historic_forecasts = iris.cube.CubeList([])
         matching_truths = iris.cube.CubeList([])
@@ -737,6 +741,10 @@ class EstimateCoefficientsForEnsembleCalibration(object):
             if truth_slice:
                 matching_historic_forecasts.append(hf_slice)
                 matching_truths.append(truth_slice)
+        if not matching_historic_forecasts and not matching_truths:
+            msg = ("The filtering has found no matches in validity time "
+                   "between the historic forecasts and the truths.")
+            raise ValueError(msg)
         return (matching_historic_forecasts.merge_cube(),
                 matching_truths.merge_cube())
 

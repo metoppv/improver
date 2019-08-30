@@ -34,6 +34,7 @@ Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
 Regression (NGR)."""
 
 import numpy as np
+import warnings
 
 from improver.argparser import ArgParser
 from improver.ensemble_calibration.ensemble_calibration import (
@@ -177,7 +178,11 @@ def main(argv=None):
                            args.distribution, args.cycletime, args.units,
                            args.predictor_of_mean, args.max_iterations)
     # Save Cube
-    save_netcdf(coefficients, args.output_filepath)
+    # Check whether a coefficients cube has been created. If the historic
+    # forecasts and truths provided did not match in validity time, then
+    # no coefficients would have been calculated.
+    if coefficients:
+        save_netcdf(coefficients, args.output_filepath)
 
 
 def process(historic_forecast, truth, combined, historic_forecast_dict,
@@ -301,14 +306,21 @@ def process(historic_forecast, truth, combined, historic_forecast_dict,
                    "specified.")
             raise ValueError(msg)
 
-    if combined is not None:
-        historic_forecast, truth = SplitHistoricForecastAndTruth(
-            historic_forecast_dict, truth_dict).process(combined)
-
-    result = EstimateCoefficientsForEnsembleCalibration(
-        distribution, cycletime, desired_units=units,
-        predictor_of_mean_flag=predictor_of_mean,
-        max_iterations=max_iterations).process(historic_forecast, truth)
+    try:
+        if combined is not None:
+            historic_forecast, truth = SplitHistoricForecastAndTruth(
+                historic_forecast_dict, truth_dict).process(combined)
+    except ValueError as err:
+        if str(err).startswith("The metadata to identify the desired"):
+            warnings.warn(str(err))
+            return
+        else:
+            raise
+    else:
+        result = EstimateCoefficientsForEnsembleCalibration(
+            distribution, cycletime, desired_units=units,
+            predictor_of_mean_flag=predictor_of_mean,
+            max_iterations=max_iterations).process(historic_forecast, truth)
 
     return result
 

@@ -633,15 +633,16 @@ class Test__filter_non_matching_cubes(SetupCubes):
     def test_all_matching(self):
         """Test for when the historic forecast and truth cubes all match."""
         hf_result, truth_result = Plugin._filter_non_matching_cubes(
-            self.historic_forecasts_cube, self.truth_cube)
-        self.assertEqual(hf_result, self.historic_forecasts_cube)
-        self.assertEqual(truth_result, self.truth_cube)
+            self.historic_temperature_forecast_cube,
+            self.temperature_truth_cube)
+        self.assertEqual(hf_result, self.historic_temperature_forecast_cube)
+        self.assertEqual(truth_result, self.temperature_truth_cube)
 
     def test_fewer_historic_forecasts(self):
         """Test for when there are fewer historic forecasts than truths,
         for example, if there is a missing forecast cycle."""
         hf_result, truth_result = Plugin._filter_non_matching_cubes(
-            self.partial_historic_forecasts, self.truth_cube)
+            self.partial_historic_forecasts, self.temperature_truth_cube)
         self.assertEqual(hf_result, self.partial_historic_forecasts)
         self.assertEqual(truth_result, self.partial_truth)
 
@@ -649,7 +650,7 @@ class Test__filter_non_matching_cubes(SetupCubes):
         """Test for when there are fewer truths than historic forecasts,
         for example, if there is a missing analysis."""
         hf_result, truth_result = Plugin._filter_non_matching_cubes(
-            self.historic_forecasts_cube, self.partial_truth)
+            self.historic_temperature_forecast_cube, self.partial_truth)
         self.assertEqual(hf_result, self.partial_historic_forecasts)
         self.assertEqual(truth_result, self.partial_truth)
 
@@ -668,6 +669,17 @@ class Test__filter_non_matching_cubes(SetupCubes):
             self.partial_historic_forecasts, partial_truth)
         self.assertEqual(hf_result, expected_historical_forecasts)
         self.assertEqual(truth_result, expected_truth)
+
+    def test_no_matches_exception(self):
+        """Test for when there is both a missing historic forecasts and a
+        missing truth at different validity times. This results in the
+        expected historic forecasts and the expected truths containing cubes
+        at three matching validity times."""
+        partial_truth = self.truth[2]
+        msg = "The filtering has found no matches in validity time "
+        with self.assertRaisesRegex(ValueError, msg):
+            Plugin._filter_non_matching_cubes(
+                self.partial_historic_forecasts, partial_truth)
 
 
 class Test_process(SetupCubes, EnsembleCalibrationAssertions):
