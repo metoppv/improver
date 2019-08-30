@@ -78,12 +78,14 @@ def call_all(args, process_function, save_name, files):
             print('*' * 80)
             print("k: {}, v: {}".format(k, v))
             d[k] = load_cube(d[k])
-        if v == FileType.OPTIONAL_CUBE:
+        elif v == FileType.OPTIONAL_CUBE:
             d[k] = load_cube(d[k], allow_none=True)
-        if v == FileType.CUBELIST:
+        elif v == FileType.CUBELIST:
             d[k] = load_cubelist(d[k])
-        if v == FileType.JSON:
+        elif v == FileType.JSON:
             d[k] = load_json_or_none(d[k])
+        else:
+            raise TypeError("The dict value needs a FileType value.")
 
     result = process_function(*d.values())
     # TODO test this works with a tuple returning cli.

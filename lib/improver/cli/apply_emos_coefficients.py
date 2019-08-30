@@ -136,7 +136,6 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
-
     files = {forecast: FileType.CUBE, coeff: FileType.OPTIONAL_CUBE}
     save = [output]
     call_all(args, process, save, files)
