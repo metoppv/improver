@@ -39,7 +39,8 @@ import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.argparser import ArgParser
-from improver.cli.pattern import call_all
+from improver.cli.pattern import (call_all,
+                                  FileType)
 from improver.ensemble_calibration.ensemble_calibration import (
     ApplyCoefficientsFromEnsembleCalibration)
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
@@ -134,12 +135,11 @@ def main(argv=None):
              'Default: "mean".')
 
     args = parser.parse_args(args=argv)
-
+    files = {forecast: FileType.CUBE, coeff: FileType.OPTIONAL_CUBE}
     cube_args = [forecast]
     option_cube_args = [coeff]
     save = [output]
-    call_all(args, process, save, cube_args=cube_args,
-             option_cube_args=option_cube_args)
+    call_all(args, process, save, files)
 
 
 def process(current_forecast, coeffs, num_realizations=None,

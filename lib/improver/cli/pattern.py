@@ -30,7 +30,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Pattern for calling clis"""
-from os import path
+from enum import Enum
 
 from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.save import save_netcdf
@@ -65,13 +65,10 @@ def dict_update(func, arg_list, arg_dict, **kwargs):
             As the dictionary is mutable.
 
     """
-    if arg_list is not None:
-        for i in arg_list:
-            arg_dict[i] = func(arg_dict[i], **kwargs)
+    arg_dict[i] = func(arg_dict[i], **kwargs)
 
 
-def call_all(args, process_function, save_name, cube_args=None,
-             cubelist_args=None, option_cube_args=None, json_args=None):
+def call_all(args, process_function, save_name, files):
     """A function to load cubes, run function and save the cubes.
 
     It starts by copying the ArgParser dictionary and removing the 'profile'
@@ -107,10 +104,22 @@ def call_all(args, process_function, save_name, cube_args=None,
     del _
     save = [d.pop(x) for x in save_name]
 
-    dict_update(load_json_or_none, json_args, d)
-    dict_update(load_cube, cube_args, d)
-    dict_update(load_cubelist, cubelist_args, d)
-    dict_update(load_cube, option_cube_args, d, allow_none=True)
+    for k, v in files.items():
+        if v == FileType.CUBE:
+            print('*' * 80)
+            print("k: {}, v: {}".format(k, v))
+            d[k] = load_cube(d[k])
+        if v == FileType.OPTIONAL_CUBE:
+            d[k] = load_cube(d[k], allow_none=True)
+        if v == FileType.CUBELIST:
+            d[k] = load_cubelist(d[k])
+        if v == FileType.JSON:
+            d[k] = load_json_or_none(d[k])
+
+    # dict_update(load_json_or_none, json_args, d)
+    # dict_update(load_cube, cube_args, d)
+    # dict_update(load_cubelist, cubelist_args, d)
+    # dict_update(load_cube, option_cube_args, d, allow_none=True)
 
     result = process_function(*d.values())
     # TODO test this works with a tuple returning cli.
@@ -118,3 +127,9 @@ def call_all(args, process_function, save_name, cube_args=None,
         for res, fpath in zip(result, save):
             save_netcdf(res, fpath)
     save_netcdf(result, save[0])
+
+class FileType(Enum):
+    CUBE = 1
+    OPTIONAL_CUBE = 2
+    CUBELIST = 3
+    JSON = 4
