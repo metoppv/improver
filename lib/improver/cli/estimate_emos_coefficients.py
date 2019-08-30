@@ -270,6 +270,10 @@ def process(historic_forecast, truth, combined, historic_forecast_dict,
             and truth_identifier arguments should be specified if one of the
             arguments are specified.
 
+    Warns:
+        UserWarning: The metadata to identify the desired historic forecast or
+            truth has found nothing matching the metadata information supplied.
+
     """
     # The logic for the if statements below is:
     # 1. Check whether either the historic_forecast or the truth exists.
@@ -311,6 +315,9 @@ def process(historic_forecast, truth, combined, historic_forecast_dict,
             historic_forecast, truth = SplitHistoricForecastAndTruth(
                 historic_forecast_dict, truth_dict).process(combined)
     except ValueError as err:
+        # This error arises if the metadata to identify the desired historic
+        # forecast or truth has found nothing matching the metadata
+        # information supplied.
         if str(err).startswith("The metadata to identify the desired"):
             warnings.warn(str(err))
             return
