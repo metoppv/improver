@@ -37,9 +37,9 @@ version 1.1.0 to StaGE version 1.2.0.
 import os
 
 from improver.argparser import ArgParser
+from improver.utilities.cube_metadata import update_stage_v110_metadata
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
-from improver.utilities.cube_metadata import update_stage_v110_metadata
 
 
 def main(argv=None):

@@ -31,10 +31,10 @@
 """Unit tests for the build_spotdata_cube function"""
 
 import unittest
-import numpy as np
-from cf_units import Unit
 
 import iris
+import numpy as np
+from cf_units import Unit
 from iris.coords import AuxCoord
 from iris.tests import IrisTest
 

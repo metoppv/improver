@@ -31,10 +31,10 @@
 """Module containing classes for doing weighted blending by collapsing a
    whole dimension."""
 
-import numpy as np
 import warnings
 
 import iris
+import numpy as np
 from iris.analysis import Aggregator
 from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError

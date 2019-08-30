@@ -33,14 +33,11 @@ This module defines the optical flow velocity calculation and extrapolation
 classes for advection nowcasting.
 """
 import warnings
-import numpy as np
-
-import scipy.linalg
-import scipy.ndimage
-import scipy.signal
 
 import iris
+import numpy as np
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
+from scipy import ndimage, signal
 
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.cube_metadata import amend_metadata
@@ -347,10 +344,10 @@ class OpticalFlow(object):
         """
         if method == 'kernel':
             kernel = self.makekernel(radius)
-            smoothed_field = scipy.signal.convolve2d(
+            smoothed_field = signal.convolve2d(
                 field, kernel, mode='same', boundary="symm")
         elif method == 'box':
-            smoothed_field = scipy.ndimage.filters.uniform_filter(
+            smoothed_field = ndimage.filters.uniform_filter(
                 field, size=radius*2+1, mode='nearest')
         # Ensure the dtype does not change.
         smoothed_field = smoothed_field.astype(field.dtype)
@@ -382,12 +379,11 @@ class OpticalFlow(object):
                                       [0.5, 1, 0.5]])/6.).astype(np.float32)
 
         # smooth input data and weights fields
-        vel_neighbour = scipy.ndimage.convolve(weights*vel_iter,
-                                               neighbour_kernel)
-        neighbour_weights = scipy.ndimage.convolve(weights, neighbour_kernel)
+        vel_neighbour = ndimage.convolve(weights*vel_iter, neighbour_kernel)
+        neighbour_weights = ndimage.convolve(weights, neighbour_kernel)
 
         # initialise output data from latest iteration
-        vel = scipy.ndimage.convolve(vel_iter, neighbour_kernel)
+        vel = ndimage.convolve(vel_iter, neighbour_kernel)
 
         # create "point" and "neighbour" validity masks using original and
         # kernel-smoothed weights

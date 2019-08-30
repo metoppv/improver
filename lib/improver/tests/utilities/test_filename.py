@@ -30,10 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for file name generation."""
 
-from datetime import datetime
 import unittest
-import numpy as np
+from datetime import datetime
 
+import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 

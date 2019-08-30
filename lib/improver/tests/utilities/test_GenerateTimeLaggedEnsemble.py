@@ -31,18 +31,18 @@
 """Unit tests for GenerateTimeLaggedEnsemble plugin."""
 
 import unittest
-import numpy as np
 from datetime import datetime as dt
 
 import iris
+import numpy as np
 from iris.tests import IrisTest
 
-from improver.utilities.time_lagging import GenerateTimeLaggedEnsemble
 from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
     import add_forecast_reference_time_and_forecast_period
 from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
     set_up_cube)
 from improver.tests.set_up_test_cubes import set_up_variable_cube
+from improver.utilities.time_lagging import GenerateTimeLaggedEnsemble
 
 
 class Test__repr__(IrisTest):

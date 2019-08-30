@@ -31,14 +31,16 @@
 """Unit tests for the nbhood.RecursiveFilter plugin."""
 
 import unittest
+
 import iris
+import numpy as np
 from iris.cube import Cube
 from iris.tests import IrisTest
-import numpy as np
+
 from improver.nbhood.recursive_filter import RecursiveFilter
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.pad_spatial import pad_cube_with_halo
-from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
 class Test__repr__(IrisTest):

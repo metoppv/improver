@@ -32,8 +32,8 @@
 
 
 import unittest
-import numpy as np
 
+import numpy as np
 from iris.tests import IrisTest
 
 from improver.blending.weighted_blend import PercentileBlendingAggregator

@@ -33,19 +33,17 @@ Unit tests for the function "cube_manipulation.merge_cubes".
 """
 
 import unittest
-import numpy as np
 from datetime import datetime as dt
 
 import iris
+import numpy as np
 from iris.cube import Cube
-from iris.exceptions import DuplicateDataError, MergeError
+from iris.exceptions import DuplicateDataError
 from iris.tests import IrisTest
 
-from improver.utilities.cube_checker import find_threshold_coordinate
-from improver.utilities.cube_manipulation import merge_cubes
-from improver.utilities.warnings_handler import ManageWarnings
 from improver.tests.set_up_test_cubes import (
-    set_up_variable_cube, set_up_probability_cube)
+    set_up_variable_cube)
+from improver.utilities.cube_manipulation import merge_cubes
 
 
 class Test_merge_cubes(IrisTest):

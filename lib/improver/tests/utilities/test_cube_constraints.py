@@ -35,10 +35,10 @@ import unittest
 import iris
 from iris.tests import IrisTest
 
-from improver.utilities.cube_checker import find_threshold_coordinate
-from improver.utilities.cube_constraints import create_sorted_lambda_constraint
 from improver.tests.utilities.test_cube_extraction import (
     set_up_precip_probability_cube)
+from improver.utilities.cube_checker import find_threshold_coordinate
+from improver.utilities.cube_constraints import create_sorted_lambda_constraint
 
 
 class Test_create_sorted_lambda_constraint(IrisTest):

@@ -31,13 +31,13 @@
 """Unit tests for plugin wind_downscaling.FrictionVelocity"""
 
 import unittest
-import numpy as np
 
+import numpy as np
 from iris.tests import IrisTest
 
 from improver.constants import RMDI
-from improver.wind_calculations.wind_downscaling import FrictionVelocity
 from improver.utilities.warnings_handler import ManageWarnings
+from improver.wind_calculations.wind_downscaling import FrictionVelocity
 
 
 class Test_process(IrisTest):

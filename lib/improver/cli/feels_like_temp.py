@@ -32,9 +32,9 @@
 """Script to run the feels like temperature plugin."""
 
 from improver.argparser import ArgParser
+from improver.feels_like_temperature import calculate_feels_like_temperature
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
-from improver.feels_like_temperature import calculate_feels_like_temperature
 
 
 def main(argv=None):

@@ -30,13 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the cube_combiner.CubeCombiner plugin."""
 import unittest
-
-import numpy as np
 from datetime import datetime
 
 import iris
-from iris.tests import IrisTest
+import numpy as np
 from iris.cube import Cube
+from iris.tests import IrisTest
 
 from improver.cube_combiner import CubeCombiner
 from improver.tests.set_up_test_cubes import set_up_probability_cube

@@ -30,17 +30,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the windgust_diagnostic.WindGustDiagnostic plugin."""
 import unittest
-import numpy as np
 
 import iris
-from iris.tests import IrisTest
-from iris.cube import Cube
-from iris.coords import DimCoord
-from iris.exceptions import CoordinateNotFoundError
+import numpy as np
 from cf_units import Unit
+from iris.coords import DimCoord
+from iris.cube import Cube
+from iris.exceptions import CoordinateNotFoundError
+from iris.tests import IrisTest
 
-from improver.wind_calculations.wind_gust_diagnostic import WindGustDiagnostic
 from improver.utilities.warnings_handler import ManageWarnings
+from improver.wind_calculations.wind_gust_diagnostic import WindGustDiagnostic
 
 
 def create_cube_with_percentile_coord(

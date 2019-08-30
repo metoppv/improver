@@ -31,13 +31,13 @@
 """Unit tests for SpotExtraction class"""
 
 import unittest
-import numpy as np
 
 import iris
+import numpy as np
 from iris.tests import IrisTest
 
-from improver.spotdata.spot_extraction import SpotExtraction
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
+from improver.spotdata.spot_extraction import SpotExtraction
 from improver.utilities.cube_metadata import create_coordinate_hash
 
 

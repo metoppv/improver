@@ -32,10 +32,9 @@
 """Script to create wind-gust data."""
 
 from improver.argparser import ArgParser
-
-from improver.wind_calculations.wind_gust_diagnostic import WindGustDiagnostic
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
+from improver.wind_calculations.wind_gust_diagnostic import WindGustDiagnostic
 
 
 def main(argv=None):

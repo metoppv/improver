@@ -33,15 +33,14 @@
 
 
 import unittest
-
-from iris.tests import IrisTest
-from iris.cube import CubeList
-from iris.coords import AuxCoord
-from iris.util import squeeze
-from iris.exceptions import CoordinateNotFoundError
+from datetime import datetime
 
 import numpy as np
-from datetime import datetime
+from iris.coords import AuxCoord
+from iris.cube import CubeList
+from iris.exceptions import CoordinateNotFoundError
+from iris.tests import IrisTest
+from iris.util import squeeze
 
 from improver.blending.spatial_weights import SpatiallyVaryingWeightsFromMask
 from improver.tests.set_up_test_cubes import set_up_probability_cube

@@ -37,37 +37,6 @@ from improver.utilities.save import save_netcdf
 from improver.utilities.load import load_cube, load_cubelist
 
 
-def dict_update(func, arg_list, arg_dict, **kwargs):
-    """Runs a function and to it in place in the value in the supplied dict.
-
-    For loading cubes, it works through the list of cubes to load, gets the
-    file path from the dictionary then replaces the filepath with the cube
-    or json.
-
-    arg_list = ['input']
-    arg_dict {'input': 'file/path'}
-    the loads
-    arg_dict['input'] = func(arg_dict['input'])
-    resulting in
-    arg_dict {'input': 'An iris.cube.Cube'}
-
-    Args:
-        func:
-            The function to run.
-        arg_list (list of str):
-            A list of the strings to access from the dictionary.
-        arg_dict (dict):
-            dicts of all the arguments.
-        **kwargs:
-
-    Returns:
-        (None)
-            As the dictionary is mutable.
-
-    """
-    arg_dict[i] = func(arg_dict[i], **kwargs)
-
-
 def call_all(args, process_function, save_name, files):
     """A function to load cubes, run function and save the cubes.
 
@@ -116,17 +85,15 @@ def call_all(args, process_function, save_name, files):
         if v == FileType.JSON:
             d[k] = load_json_or_none(d[k])
 
-    # dict_update(load_json_or_none, json_args, d)
-    # dict_update(load_cube, cube_args, d)
-    # dict_update(load_cubelist, cubelist_args, d)
-    # dict_update(load_cube, option_cube_args, d, allow_none=True)
-
     result = process_function(*d.values())
     # TODO test this works with a tuple returning cli.
     if isinstance(result, tuple):
         for res, fpath in zip(result, save):
             save_netcdf(res, fpath)
-    save_netcdf(result, save[0])
+    else:
+        save_netcdf(result, save[0])
+    return result
+
 
 class FileType(Enum):
     CUBE = 1

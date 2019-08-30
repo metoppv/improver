@@ -31,12 +31,13 @@
 """ Utilities to find the relative position of the sun."""
 
 import datetime as dt
-import numpy as np
-import cf_units as unit
 
-from improver.utilities.temporal import iris_time_to_datetime
+import cf_units as unit
+import numpy as np
+
 from improver.utilities.spatial import (
     lat_lon_determine, transform_grid_to_lat_lon)
+from improver.utilities.temporal import iris_time_to_datetime
 
 
 def calc_solar_declination(day_of_year):

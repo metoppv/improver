@@ -34,16 +34,16 @@ Unit tests for the
 
 """
 import unittest
-import numpy as np
 
 import cf_units as unit
-from iris.cube import Cube
+import numpy as np
 from iris.coords import DimCoord
+from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     GeneratePercentilesFromProbabilities as Plugin)
-from improver.tests.ensemble_calibration.ensemble_calibration. \
+from improver.tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import (
         add_forecast_reference_time_and_forecast_period,
         set_up_probability_threshold_cube,

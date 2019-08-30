@@ -135,9 +135,9 @@ def main(argv=None):
              'Default: "mean".')
 
     args = parser.parse_args(args=argv)
+
+
     files = {forecast: FileType.CUBE, coeff: FileType.OPTIONAL_CUBE}
-    cube_args = [forecast]
-    option_cube_args = [coeff]
     save = [output]
     call_all(args, process, save, files)
 

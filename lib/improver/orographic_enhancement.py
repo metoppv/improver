@@ -33,11 +33,10 @@ This module contains a plugin to calculate the enhancement of precipitation
 over orography.
 """
 
-import numpy as np
-from scipy.ndimage import uniform_filter1d
-
 import iris
+import numpy as np
 from iris.analysis.cartography import rotate_winds
+from scipy.ndimage import uniform_filter1d
 
 from improver.constants import R_WATER_VAPOUR
 from improver.nbhood.nbhood import NeighbourhoodProcessing

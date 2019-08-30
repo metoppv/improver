@@ -30,8 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Classes and functions for managing warnings in the IMPROVER code."""
 
-import warnings
 import sys
+import warnings
 
 
 class ManageWarnings(object):

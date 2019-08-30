@@ -30,9 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing ancillary generation utilities for Improver"""
 
-from cf_units import Unit
 import iris
 import numpy as np
+from cf_units import Unit
 
 
 def _make_mask_cube(

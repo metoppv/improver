@@ -30,15 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Utilities for using neighbourhood processing."""
 
+import iris
 import numpy as np
 import numpy.ma as ma
 
-import iris
-
+from improver.blending.weights import WeightsUtilities
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.cube_checker import (
     check_cube_coordinates, find_dimension_coordinate_mismatch)
-from improver.blending.weights import WeightsUtilities
 
 
 class ApplyNeighbourhoodProcessingWithAMask(object):

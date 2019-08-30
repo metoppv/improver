@@ -33,17 +33,17 @@
 separately before combining them to return unified fields. Topographic zones
 may also be employed, with the sea area being treated as a distinct zone."""
 
-import numpy as np
 import warnings
 
+import numpy as np
+
 from improver.argparser import ArgParser
+from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.nbhood.use_nbhood import (
     ApplyNeighbourhoodProcessingWithAMask,
     CollapseMaskedNeighbourhoodCoordinate)
-from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.cli_utilities import radius_or_radii_and_lead
 from improver.utilities.load import load_cube
-
 from improver.utilities.save import save_netcdf
 
 

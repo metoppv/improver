@@ -36,9 +36,9 @@ plugin."""
 import unittest
 
 import iris
+import numpy as np
 from iris.cube import Cube
 from iris.tests import IrisTest
-import numpy as np
 
 from improver.constants import DEFAULT_PERCENTILES
 from improver.nbhood.circular_kernel import (

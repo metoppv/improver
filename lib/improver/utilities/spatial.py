@@ -31,19 +31,19 @@
 """ Provides support utilities."""
 
 import copy
+
+import cartopy.crs as ccrs
 import iris
+import numpy as np
+import scipy.ndimage
 from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
-import numpy as np
-import scipy.ndimage
 from scipy.interpolate import griddata
-import cartopy.crs as ccrs
 
+from improver.threshold import BasicThreshold
 from improver.utilities.cube_checker import (
     check_cube_coordinates, spatial_coords_match)
-from improver.threshold import BasicThreshold
-
 
 # Maximum radius of the neighbourhood width in grid cells.
 MAX_DISTANCE_IN_GRID_CELLS = 500

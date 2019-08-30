@@ -32,9 +32,9 @@
 """Module with tests for the ExtendRadarMask plugin."""
 
 import unittest
-import numpy as np
 
 import iris
+import numpy as np
 from iris.tests import IrisTest
 
 from improver.nowcasting.utilities import ExtendRadarMask

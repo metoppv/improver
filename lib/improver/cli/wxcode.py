@@ -31,18 +31,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """CLI to generate weather symbols."""
 
-from improver.argparser import ArgParser
 import argparse
-import numpy as np
 from argparse import RawTextHelpFormatter
 
+import numpy as np
+
+from improver.argparser import ArgParser
+from improver.utilities.load import load_cubelist
+from improver.utilities.save import save_netcdf
 from improver.wxcode.weather_symbols import WeatherSymbols
-from improver.wxcode.wxcode_utilities import expand_nested_lists
 from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
 from improver.wxcode.wxcode_decision_tree_global import (
     wxcode_decision_tree_global)
-from improver.utilities.load import load_cubelist
-from improver.utilities.save import save_netcdf
+from improver.wxcode.wxcode_utilities import expand_nested_lists
 
 
 def interrogate_decision_tree(wxtree):

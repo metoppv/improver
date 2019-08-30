@@ -32,11 +32,10 @@
 
 import datetime
 import unittest
-import numpy as np
-
-from cf_units import Unit
 
 import iris
+import numpy as np
+from cf_units import Unit
 from iris.tests import IrisTest
 
 from improver.nowcasting.accumulation import Accumulation

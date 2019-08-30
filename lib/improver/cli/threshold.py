@@ -31,18 +31,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to apply thresholding to a parameter dataset."""
 
-from improver.argparser import ArgParser
-
-import numpy as np
 import json
 import warnings
 
+import numpy as np
+
+from improver.argparser import ArgParser
+from improver.blending.calculate_weights_and_blend import WeightAndBlend
 from improver.threshold import BasicThreshold
+from improver.utilities.cube_metadata import in_vicinity_name_format
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
-from improver.utilities.cube_metadata import in_vicinity_name_format
 from improver.utilities.spatial import OccurrenceWithinVicinity
-from improver.blending.calculate_weights_and_blend import WeightAndBlend
 
 
 def main(argv=None):

@@ -32,9 +32,9 @@
 
 import datetime
 import unittest
-import numpy as np
 
 import iris
+import numpy as np
 from iris.coords import DimCoord
 from iris.exceptions import InvalidCubeError
 from iris.tests import IrisTest

@@ -31,11 +31,33 @@
 """Unit tests for utilities.cli_utilities."""
 
 import unittest
+from unittest.mock import patch, mock_open
 
-from improver.utilities.cli_utilities import radius_or_radii_and_lead
+from improver.utilities.cli_utilities import (radius_or_radii_and_lead,
+                                              load_json_or_none)
 
 
-class TestRadiusOrRadiiAndLead(unittest.TestCase):
+class Test_load_json_or_none(unittest.TestCase):
+    """Tests load_json_or_none to call loading json or return None."""
+
+    @patch('builtins.open', new_callable=mock_open, read_data='{"k": "v"}')
+    def test_loading_file(self, m):
+        """Tests if called with a filepath, loads a dict."""
+        file_path = 'filename'
+        dict_read = load_json_or_none(file_path)
+        self.assertEqual(dict_read, {"k": "v"})
+        m.assert_called_with('filename', 'r')
+
+    @patch('builtins.open', new_callable=mock_open, read_data='{"k": "v"}')
+    def test_none(self, m):
+        """Tests if called with None returns None."""
+        file_path = None
+        dict_read = load_json_or_none(file_path)
+        self.assertIsNone(dict_read)
+        m.assert_not_called()
+
+
+class Test_radius_or_radii_and_lead(unittest.TestCase):
     """Tests radius_or_radii_and_lead to split the data correctly."""
 
     def test_radius(self):
@@ -47,14 +69,16 @@ class TestRadiusOrRadiiAndLead(unittest.TestCase):
         self.assertIsNone(lead)
 
     def test_both_None(self):
-        """ Tests if both are None then both are returned None."""
-        with self.assertRaises(TypeError):
+        """ Tests if both are None and raises a TypeError"""
+        msg = ("Neither radius or radii_by_lead_time have been set. "
+               "One option should be specified.")
+        with self.assertRaisesRegex(TypeError, msg):
             radius_or_radii_and_lead(None, None)
 
     def test_radii_and_lead(self):
         """Tests if radius is None and radii/lead is a list of csv.
-        radius_or_radii is the [0] of the second index separated on the commas
-        lead is the [1] of the second index separated on the commas."""
+        radius_or_radii is the [0] of the second argument separated by
+        commas lead is the [1] of the second argument separated by commas."""
         radii, lead = radius_or_radii_and_lead(
             None, ["0,36,72,144", "18000,54000,90000,162000"])
 
@@ -62,13 +86,14 @@ class TestRadiusOrRadiiAndLead(unittest.TestCase):
         self.assertEqual(lead, ['18000', '54000', '90000', '162000'])
 
     def test_both_used(self):
-        """Tests if both arguments are used.
-        The output is the same as if the second argument is None."""
-        radius, lead = radius_or_radii_and_lead(
-            3.3, ["0,36,72,144", "18000,54000,90000,162000"])
+        """Tests if both arguments are used and raises a TypeError"""
+        radius = 3.3
+        radii_lead = ["0,36,72,144", "18000,54000,90000,162000"]
 
-        self.assertEqual(radius, 3.3)
-        self.assertIsNone(lead)
+        msg = ("Both radius and radii_by_lead_time have been set. "
+               "Only one option should be specified.")
+        with self.assertRaisesRegex(TypeError, msg):
+            radius_or_radii_and_lead(radius, radii_lead)
 
 
 if __name__ == '__main__':

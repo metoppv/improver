@@ -31,8 +31,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run time-lagged ensembles."""
 
-import iris
 import warnings
+
+import iris
 
 from improver.argparser import ArgParser
 from improver.utilities.load import load_cube

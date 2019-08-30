@@ -35,9 +35,8 @@
 import numpy as np
 
 from improver.argparser import ArgParser
-from improver.cli.pattern import call_all
-
 from improver.blending.calculate_weights_and_blend import WeightAndBlend
+from improver.cli.pattern import call_all, FileType
 
 
 def main(argv=None):
@@ -163,22 +162,10 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
-    # reject incorrect argument combinations
-    if (args.wts_calc_method == "linear") and args.cval:
-        parser.wrong_args_error('cval', 'linear')
-    if ((args.wts_calc_method == "nonlinear") and np.any([args.y0val,
-                                                          args.ynval])):
-        parser.wrong_args_error('y0val, ynval', 'non-linear')
-
-    if (args.wts_calc_method == "dict") and not args.wts_dict:
-        parser.error('Dictionary is required if --wts_calc_method="dict"')
-
     # Load cubes to be blended.
-    cubelist_args = ['input_filepaths']
-    json_args = ['wts_dict']
+    files = {'input_filepaths': FileType.CUBELIST, 'wts_dict': FileType.JSON}
     save = ['output_filepath']
-    call_all(args, process, save, cubelist_args=cubelist_args,
-             json_args=json_args)
+    call_all(args, process, save, files)
 
 
 def process(wts_calc_method, coordinate, cycletime,

@@ -32,6 +32,7 @@
 """Script to convert from probabilities to ensemble realization data."""
 
 from iris.exceptions import CoordinateNotFoundError
+
 from improver.argparser import ArgParser
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     GeneratePercentilesFromProbabilities, RebadgePercentilesAsRealizations,

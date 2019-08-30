@@ -34,12 +34,12 @@
 import os
 
 from improver.argparser import ArgParser
-from improver.wind_calculations.wind_components import ResolveWindComponents
 from improver.orographic_enhancement import OrographicEnhancement
+from improver.utilities.cube_extraction import extract_subcube
+from improver.utilities.filename import generate_file_name
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
-from improver.utilities.filename import generate_file_name
-from improver.utilities.cube_extraction import extract_subcube
+from improver.wind_calculations.wind_components import ResolveWindComponents
 
 
 def load_and_extract(cube_filepath, height_value, units):

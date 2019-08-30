@@ -33,9 +33,8 @@ This module defines all the utilities used by the "plugins"
 specific for ensemble calibration.
 
 """
-import numpy as np
-
 import iris
+import numpy as np
 
 
 def convert_cube_data_to_2d(

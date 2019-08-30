@@ -33,10 +33,10 @@
 import copy
 import itertools
 
-from cf_units import Unit
 import iris
-from iris.exceptions import CoordinateNotFoundError
 import numpy as np
+from cf_units import Unit
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.constants import RMDI
 from improver.utilities.cube_checker import check_cube_not_float64
