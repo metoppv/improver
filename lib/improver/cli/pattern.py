@@ -98,6 +98,10 @@ def call_all(args, process_function, save_name, files):
 
 
 class FileType(Enum):
+    """
+    Enum for file types, covering loading of regular cubes, optional cubes
+    where it can return None, cubelists and json files.
+    """
     CUBE = 1
     OPTIONAL_CUBE = 2
     CUBELIST = 3
