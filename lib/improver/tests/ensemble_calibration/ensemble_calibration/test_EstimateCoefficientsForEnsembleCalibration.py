@@ -34,12 +34,13 @@ Unit tests for the
 class.
 
 """
+import datetime
 import imp
 import unittest
 
 import iris
-import numpy as np
 from iris.tests import IrisTest
+import numpy as np
 
 from improver.ensemble_calibration.ensemble_calibration import (
     ContinuousRankedProbabilityScoreMinimisers)
@@ -75,8 +76,7 @@ WARNING_TYPES = [
 ]
 
 
-def create_coefficients_cube(
-        template_cube, coeff_names, coeff_values, time_offset=0):
+def create_coefficients_cube(template_cube, coeff_names, coeff_values):
     """Create a cube containing EMOS coefficients.
 
     Args:
@@ -90,12 +90,6 @@ def create_coefficients_cube(
         coeff_values (list):
             The values of the coefficients. These values will be used as the
             cube data.
-
-    Kwargs:
-        time_offset (int):
-            The time_offset represents any adjustment that is required to
-            the maximum of the time points or the forecast_reference_time
-            points within the template cube.
 
     Returns:
         (tuple): tuple containing
@@ -118,13 +112,12 @@ def create_coefficients_cube(
     coefficient_name = iris.coords.AuxCoord(
         coeff_names, long_name="coefficient_name", units="no_unit")
 
-    time_point = (
-            np.max(template_cube.coord("time").points) + time_offset)
+    time_point = np.min(template_cube.coord("time").points)
     time_coord = template_cube.coord("time").copy(time_point)
 
     frt_orig_coord = (
         template_cube.coord("forecast_reference_time"))
-    frt_point = np.max(frt_orig_coord.points) + time_offset
+    frt_point = np.min(frt_orig_coord.points)
     frt_coord = frt_orig_coord.copy(frt_point)
 
     x_point = np.median(template_cube.coord(axis="x").points)
@@ -288,21 +281,24 @@ class Test_create_coefficients_cube(IrisTest):
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def setUp(self):
         """Set up the plugin and cubes for testing."""
+        frt_dt = datetime.datetime(2017, 11, 10, 0, 0)
+        time_dt = datetime.datetime(2017, 11, 10, 4, 0)
         data = np.ones((3, 3), dtype=np.float32)
         self.historic_forecast = (
-            _create_historic_forecasts(set_up_variable_cube(
-                data, standard_grid_metadata="uk_det")))
+            _create_historic_forecasts(
+                data, time_dt, frt_dt, standard_grid_metadata="uk_det"
+            ).merge_cube())
         data_with_realizations = np.ones((3, 3, 3), dtype=np.float32)
         self.historic_forecast_with_realizations = (
-            _create_historic_forecasts(set_up_variable_cube(
-                data_with_realizations, realizations=[0, 1, 2],
-                standard_grid_metadata="uk_det")))
+            _create_historic_forecasts(
+                data_with_realizations, time_dt, frt_dt,
+                standard_grid_metadata="uk_det",
+                realizations=[0, 1, 2]).merge_cube())
         self.optimised_coeffs = np.array([0, 1, 2, 3], np.int32)
 
         coeff_names = ["gamma", "delta", "alpha", "beta"]
         self.expected, self.x_coord, self.y_coord = create_coefficients_cube(
-            self.historic_forecast, coeff_names, self.optimised_coeffs,
-            time_offset=60*60*24)
+            self.historic_forecast, coeff_names, self.optimised_coeffs)
 
         self.distribution = "gaussian"
         self.current_cycle = "20171110T0000Z"
@@ -346,12 +342,12 @@ class Test_create_coefficients_cube(IrisTest):
             units="no_unit")
 
         time_point = (
-            np.max(self.historic_forecast.coord("time").points) + 60*60*24)
+            np.min(self.historic_forecast.coord("time").points))
         time_coord = self.historic_forecast.coord("time").copy(time_point)
 
         frt_orig_coord = (
             self.historic_forecast.coord("forecast_reference_time"))
-        frt_point = np.max(frt_orig_coord.points) + 60*60*24
+        frt_point = np.min(frt_orig_coord.points)
         frt_coord = frt_orig_coord.copy(frt_point)
 
         aux_coords_and_dims = [
@@ -622,8 +618,70 @@ class Test_compute_initial_guess(IrisTest):
         self.assertArrayAlmostEqual(result, data)
 
 
-class Test_process(
-        SetupCubes, EnsembleCalibrationAssertions):
+class Test__filter_non_matching_cubes(SetupCubes):
+    """Test the _filter_non_matching_cubes method."""
+
+    def setUp(self):
+        super().setUp()
+        # Create historical forecasts and truth cubes where some items
+        # are missing.
+        self.partial_historic_forecasts = (
+            self.historic_forecasts[:2] +
+            self.historic_forecasts[3:]).merge_cube()
+        self.partial_truth = (self.truth[:2] + self.truth[3:]).merge_cube()
+
+    def test_all_matching(self):
+        """Test for when the historic forecast and truth cubes all match."""
+        hf_result, truth_result = Plugin._filter_non_matching_cubes(
+            self.historic_temperature_forecast_cube,
+            self.temperature_truth_cube)
+        self.assertEqual(hf_result, self.historic_temperature_forecast_cube)
+        self.assertEqual(truth_result, self.temperature_truth_cube)
+
+    def test_fewer_historic_forecasts(self):
+        """Test for when there are fewer historic forecasts than truths,
+        for example, if there is a missing forecast cycle."""
+        hf_result, truth_result = Plugin._filter_non_matching_cubes(
+            self.partial_historic_forecasts, self.temperature_truth_cube)
+        self.assertEqual(hf_result, self.partial_historic_forecasts)
+        self.assertEqual(truth_result, self.partial_truth)
+
+    def test_fewer_truths(self):
+        """Test for when there are fewer truths than historic forecasts,
+        for example, if there is a missing analysis."""
+        hf_result, truth_result = Plugin._filter_non_matching_cubes(
+            self.historic_temperature_forecast_cube, self.partial_truth)
+        self.assertEqual(hf_result, self.partial_historic_forecasts)
+        self.assertEqual(truth_result, self.partial_truth)
+
+    def test_mismatching(self):
+        """Test for when there is both a missing historic forecasts and a
+        missing truth at different validity times. This results in the
+        expected historic forecasts and the expected truths containing cubes
+        at three matching validity times."""
+        partial_truth = self.truth[1:].merge_cube()
+        expected_historical_forecasts = iris.cube.CubeList(
+            [self.historic_forecasts[index]
+             for index in (1, 3, 4)]).merge_cube()
+        expected_truth = iris.cube.CubeList(
+            [self.truth[index] for index in (1, 3, 4)]).merge_cube()
+        hf_result, truth_result = Plugin._filter_non_matching_cubes(
+            self.partial_historic_forecasts, partial_truth)
+        self.assertEqual(hf_result, expected_historical_forecasts)
+        self.assertEqual(truth_result, expected_truth)
+
+    def test_no_matches_exception(self):
+        """Test for when no matches in validity time are found between the
+        historic forecasts and the truths. In this case, an exception is
+        raised."""
+        partial_truth = self.truth[2]
+        msg = "The filtering has found no matches in validity time "
+        with self.assertRaisesRegex(ValueError, msg):
+            Plugin._filter_non_matching_cubes(
+                self.partial_historic_forecasts, partial_truth)
+
+
+class Test_process(SetupCubes, EnsembleCalibrationAssertions):
 
     """Test the process method"""
 
@@ -679,6 +737,25 @@ class Test_process(
         result = plugin.process(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
+
+        self.assertEMOSCoefficientsAlmostEqual(
+            result.data, self.expected_mean_predictor_gaussian)
+        self.assertArrayEqual(
+            result.coord("coefficient_name").points, self.coeff_names)
+
+    def test_coefficient_values_for_gaussian_distribution_mismatching_inputs(
+            self):
+        """Test that the values for the optimised coefficients match the
+        expected values, and the coefficient names also match
+        expected values for a Gaussian distribution for when the historic
+        forecasts and truths input having some mismatches in validity time.
+        """
+        partial_historic_forecasts = (
+            self.historic_forecasts[:2] +
+            self.historic_forecasts[3:]).merge_cube()
+        partial_truth = self.truth[1:].merge_cube()
+        plugin = Plugin(self.distribution, self.current_cycle)
+        result = plugin.process(partial_historic_forecasts, partial_truth)
 
         self.assertEMOSCoefficientsAlmostEqual(
             result.data, self.expected_mean_predictor_gaussian)

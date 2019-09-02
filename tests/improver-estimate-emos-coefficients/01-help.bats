@@ -35,15 +35,23 @@
   read -d '' expected <<'__HELP__' || true
 usage: improver estimate-emos-coefficients [-h] [--profile]
                                            [--profile_file PROFILE_FILE]
+                                           [--historic_filepath HISTORIC_FILEPATH [HISTORIC_FILEPATH ...]]
+                                           [--truth_filepath TRUTH_FILEPATH [TRUTH_FILEPATH ...]]
+                                           [--combined_filepath COMBINED_FILEPATH [COMBINED_FILEPATH ...]]
+                                           [--historic_forecast_identifier HISTORIC_FORECAST_IDENTIFIER]
+                                           [--truth_identifier TRUTH_IDENTIFIER]
                                            [--units UNITS]
                                            [--predictor_of_mean PREDICTOR_OF_MEAN]
                                            [--max_iterations MAX_ITERATIONS]
                                            DISTRIBUTION CYCLETIME
-                                           HISTORIC_FILEPATH TRUTH_FILEPATH
                                            OUTPUT_FILEPATH
 
 Estimate coefficients for Ensemble Model Output Statistics (EMOS), otherwise
-known as Non-homogeneous Gaussian Regression (NGR)
+known as Non-homogeneous Gaussian Regression (NGR). There are two methods for
+inputting data into this CLI, either by providing the historic forecasts and
+truth separately, or by providing a combined list of historic forecasts and
+truths along with historic_forecast_identifier and truth_identifier arguments
+to provide metadata that distinguishes between them.
 
 positional arguments:
   DISTRIBUTION          The distribution that will be used for calibration.
@@ -55,10 +63,6 @@ positional arguments:
                         validity time in the output coefficients cube will be
                         calculated relative to this cycletime. This cycletime
                         is in the format YYYYMMDDTHHMMZ.
-  HISTORIC_FILEPATH     A path to an input NetCDF file containing the historic
-                        forecast(s) used for calibration.
-  TRUTH_FILEPATH        A path to an input NetCDF file containing the historic
-                        truth analyses used for calibration.
   OUTPUT_FILEPATH       The output path for the processed NetCDF
 
 optional arguments:
@@ -66,6 +70,45 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
+  --historic_filepath HISTORIC_FILEPATH [HISTORIC_FILEPATH ...]
+                        Paths to the input NetCDF files containing the
+                        historic forecast(s) used for calibration. This must
+                        be supplied with an associated truth filepath.
+                        Specification of either the combined_filepath,
+                        historic_forecast_identifier or the truth_identifier
+                        is invalid with this argument.
+  --truth_filepath TRUTH_FILEPATH [TRUTH_FILEPATH ...]
+                        Paths to the input NetCDF files containing the
+                        historic truth analyses used for calibration. This
+                        must be supplied with an associated historic filepath.
+                        Specification of either the combined_filepath,
+                        historic_forecast_identifier or the truth_identifier
+                        is invalid with this argument.
+  --combined_filepath COMBINED_FILEPATH [COMBINED_FILEPATH ...]
+                        Paths to the input NetCDF files containing both the
+                        historic forecast(s) and truth analyses used for
+                        calibration. This must be supplied with both the
+                        historic_forecast_identifier and the truth_identifier.
+                        Specification of either the historic_filepath or the
+                        truth_filepath is invalid with this argument.
+  --historic_forecast_identifier HISTORIC_FORECAST_IDENTIFIER
+                        The path to a json file containing metadata
+                        information that defines the historic forecast. This
+                        must be supplied with both the combined_filepath and
+                        the truth_identifier. Specification of either the
+                        historic_filepathor the truth_filepath is invalid with
+                        this argument. The intended contents is described in i
+                        mprover.ensemble_calibration.ensemble_calibration_util
+                        ities.SplitHistoricForecastAndTruth.
+  --truth_identifier TRUTH_IDENTIFIER
+                        The path to a json file containing metadata
+                        information that defines the truth.This must be
+                        supplied with both the combined_filepath and the
+                        historic_forecast_identifier. Specification of either
+                        the historic_filepath or the truth_filepath is invalid
+                        with this argument. The intended contents is described
+                        in improver.ensemble_calibration.ensemble_calibration_
+                        utilities.SplitHistoricForecastAndTruth.
   --units UNITS         The units that calibration should be undertaken in.
                         The historical forecast and truth will be converted as
                         required.

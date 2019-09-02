@@ -36,8 +36,8 @@ import datetime
 import warnings
 
 import iris
-import numpy as np
 from iris.exceptions import CoordinateNotFoundError
+import numpy as np
 from scipy import stats
 from scipy.optimize import minimize
 from scipy.stats import norm
@@ -50,7 +50,7 @@ from improver.utilities.temporal import (
     iris_time_to_datetime)
 
 
-class ContinuousRankedProbabilityScoreMinimisers(object):
+class ContinuousRankedProbabilityScoreMinimisers():
     """
     Minimise the Continuous Ranked Probability Score (CRPS)
 
@@ -366,7 +366,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         return result
 
 
-class EstimateCoefficientsForEnsembleCalibration(object):
+class EstimateCoefficientsForEnsembleCalibration():
     """
     Class focussing on estimating the optimised coefficients for ensemble
     calibration.
@@ -506,7 +506,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         if len(optimised_coeffs) != len(coeff_names):
             msg = ("The number of coefficients in {} must equal the "
                    "number of coefficient names {}.".format(
-                        optimised_coeffs, coeff_names))
+                       optimised_coeffs, coeff_names))
             raise ValueError(msg)
 
         coefficient_index = iris.coords.DimCoord(
@@ -702,6 +702,52 @@ class EstimateCoefficientsForEnsembleCalibration(object):
                                   no_of_realizations).tolist())
         return np.array(initial_guess, dtype=np.float32)
 
+    @staticmethod
+    def _filter_non_matching_cubes(historic_forecast, truth):
+        """
+        Provide filtering for the historic forecast and truth to make sure
+        that these contain matching validity times. This ensures that any
+        mismatch between the historic forecasts and truth is dealt with.
+
+        Args:
+            historic_forecast (iris.cube.Cube):
+                Cube of historic forecasts that potentially contains
+                a mismatch compared to the truth.
+            truth (iris.cube.Cube):
+                Cube of truth that potentially contains a mismatch
+                compared to the historic forecasts.
+
+        Returns:
+            (tuple): tuple containing
+                matching_historic_forecasts (iris.cube.Cube):
+                    Cube of historic forecasts where any mismatches with
+                    the truth cube have been removed.
+                matching_truths (iris.cube.Cube):
+                    Cube of truths where any mismatches with
+                    the historic_forecasts cube have been removed.
+
+        Raises:
+            ValueError: The filtering has found no matches in validity time
+                between the historic forecasts and the truths.
+
+        """
+        matching_historic_forecasts = iris.cube.CubeList([])
+        matching_truths = iris.cube.CubeList([])
+        for hf_slice in historic_forecast.slices_over("time"):
+            coord_values = (
+                {"time": iris_time_to_datetime(hf_slice.coord("time"))})
+            constr = iris.Constraint(coord_values=coord_values)
+            truth_slice = truth.extract(constr)
+            if truth_slice:
+                matching_historic_forecasts.append(hf_slice)
+                matching_truths.append(truth_slice)
+        if not matching_historic_forecasts and not matching_truths:
+            msg = ("The filtering has found no matches in validity time "
+                   "between the historic forecasts and the truths.")
+            raise ValueError(msg)
+        return (matching_historic_forecasts.merge_cube(),
+                matching_truths.merge_cube())
+
     def process(self, historic_forecast, truth):
         """
         Using Nonhomogeneous Gaussian Regression/Ensemble Model Output
@@ -710,21 +756,16 @@ class EstimateCoefficientsForEnsembleCalibration(object):
 
         The main contents of this method is:
 
-        1. Metadata checks to ensure that the current forecast, historic
-           forecast and truth exist in a form that can be processed.
-        2. Loop through times within the concatenated current forecast cube:
-
-           1. Extract the desired forecast period from the historic forecasts
-              to match the current forecasts. Apply unit conversion to ensure
-              that historic forecasts have the desired units for calibration.
-           2. Extract the relevant truth to co-incide with the time within
-              the historic forecasts. Apply unit conversion to ensure
-              that the truth has the desired units for calibration.
-           3. Calculate mean and variance.
-           4. Calculate initial guess at coefficient values by performing a
-              linear regression, if requested, otherwise default values are
-              used.
-           5. Perform minimisation.
+        1. Check that the predictor_of_mean_flag is valid.
+        2. Filter the historic forecasts and truth to ensure that these
+           inputs match in validity time.
+        3. Apply unit conversion to ensure that the historic forecasts and
+           truth have the desired units for calibration.
+        4. Calculate mean and variance.
+        5. Calculate initial guess at coefficient values by performing a
+           linear regression, if requested, otherwise default values are
+           used.
+        6. Perform minimisation.
 
         Args:
             historic_forecast (iris.cube.Cube):
@@ -750,6 +791,9 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         # Set default values for whether there are NaN values within the
         # initial guess.
         nan_in_initial_guess = False
+
+        historic_forecast, truth = (
+            self._filter_non_matching_cubes(historic_forecast, truth))
 
         # Make sure inputs have the same units.
         if self.desired_units:
@@ -803,7 +847,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         return coefficients_cube
 
 
-class ApplyCoefficientsFromEnsembleCalibration(object):
+class ApplyCoefficientsFromEnsembleCalibration():
     """
     Class to apply the optimised EMOS coefficients to future dates.
 
@@ -849,9 +893,9 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                            "and coefficients cube differs. "
                            "current forecast: {}, "
                            "coefficients cube: {}").format(
-                                coord_name,
-                                self.current_forecast.coord(coord_name),
-                                self.coefficients_cube.coord(coord_name))
+                               coord_name,
+                               self.current_forecast.coord(coord_name),
+                               self.coefficients_cube.coord(coord_name))
                     raise ValueError(msg)
             except CoordinateNotFoundError:
                 pass
@@ -867,8 +911,8 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                 msg = ("The domain along the {} axis given by the "
                        "current forecast {} does not match the domain given "
                        "by the coefficients cube {}.".format(
-                        axis, current_forecast_points,
-                        coefficients_cube.coord(axis=axis).bounds))
+                           axis, current_forecast_points,
+                           coefficients_cube.coord(axis=axis).bounds))
                 raise ValueError(msg)
 
         # Ensure predictor_of_mean_flag is valid.
@@ -993,7 +1037,7 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
         return calibrated_forecast_predictor, calibrated_forecast_var
 
 
-class EnsembleCalibration(object):
+class EnsembleCalibration():
     """
     Plugin to wrap the core EMOS processes:
     1. Estimate optimised EMOS coefficients from training period.
@@ -1105,7 +1149,6 @@ class EnsembleCalibration(object):
         (calibrated_forecast_predictor,
          calibrated_forecast_variance) = ac.process()
 
-        # TODO: track down where np.float64 promotion takes place.
         calibrated_forecast_predictor.data = (
             calibrated_forecast_predictor.data.astype(np.float32))
         calibrated_forecast_variance.data = (

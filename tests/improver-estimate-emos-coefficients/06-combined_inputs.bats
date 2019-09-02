@@ -31,15 +31,15 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "estimate-emos-coefficients in prescribed units that may not match inputs" {
+@test "estimate-emos-coefficients for combined historic forecasts and truths" {
   improver_check_skip_acceptance
   KGO="estimate-emos-coefficients/gaussian/kgo.nc"
 
   # Estimate the EMOS coefficients and check that they match the kgo.
   run improver estimate-emos-coefficients 'gaussian' '20170605T0300Z' "$TEST_DIR/output.nc" \
-      --historic_filepath "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/history/*.nc" \
-      --truth_filepath "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/truth/*.nc" \
-      --units 'K' --max_iterations 600
+      --combined_filepath "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/*/*.nc" \
+      --historic_forecast_identifier "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/combined_input/historic_forecast.json" \
+      --truth_identifier "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/combined_input/truth.json"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

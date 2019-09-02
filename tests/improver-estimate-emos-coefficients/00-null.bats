@@ -34,11 +34,15 @@
   [[ "$status" -eq 2 ]]
   expected="usage: improver estimate-emos-coefficients [-h] [--profile]
                                            [--profile_file PROFILE_FILE]
+                                           [--historic_filepath HISTORIC_FILEPATH [HISTORIC_FILEPATH ...]]
+                                           [--truth_filepath TRUTH_FILEPATH [TRUTH_FILEPATH ...]]
+                                           [--combined_filepath COMBINED_FILEPATH [COMBINED_FILEPATH ...]]
+                                           [--historic_forecast_identifier HISTORIC_FORECAST_IDENTIFIER]
+                                           [--truth_identifier TRUTH_IDENTIFIER]
                                            [--units UNITS]
                                            [--predictor_of_mean PREDICTOR_OF_MEAN]
                                            [--max_iterations MAX_ITERATIONS]
                                            DISTRIBUTION CYCLETIME
-                                           HISTORIC_FILEPATH TRUTH_FILEPATH
                                            OUTPUT_FILEPATH
 "
   [[ "$output" =~ "$expected" ]]

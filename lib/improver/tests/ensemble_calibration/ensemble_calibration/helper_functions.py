@@ -34,15 +34,14 @@ Functions for use within unit tests for `ensemble_calibration` plugins.
 import datetime
 
 import cf_units
-import iris
-import numpy as np
 from cf_units import Unit
+import iris
 from iris.coords import AuxCoord, DimCoord
-from iris.cube import Cube, CubeList
+from iris.cube import Cube
 from iris.tests import IrisTest
+import numpy as np
 
 from improver.tests.set_up_test_cubes import set_up_variable_cube
-from improver.utilities.cube_manipulation import concatenate_cubes
 from improver.utilities.cube_metadata import extract_diagnostic_name
 from improver.utilities.warnings_handler import ManageWarnings
 
@@ -98,6 +97,9 @@ class SetupCubes(IrisTest):
     def setUp(self):
         """Set up temperature and wind speed cubes for testing."""
         super().setUp()
+        frt_dt = datetime.datetime(2017, 11, 10, 0, 0)
+        time_dt = datetime.datetime(2017, 11, 10, 4, 0)
+
         base_data = np.array([[[0.3, 1.1, 2.6],
                                [4.2, 5.3, 6.],
                                [7.1, 8.2, 9.]],
@@ -109,24 +111,33 @@ class SetupCubes(IrisTest):
                                [7.9, 8., 8.9]]], dtype=np.float32)
         temperature_data = base_data + 273.15
         self.current_temperature_forecast_cube = set_up_variable_cube(
-            temperature_data, units="Kelvin", realizations=[0, 1, 2])
+            temperature_data, units="Kelvin", realizations=[0, 1, 2],
+            time=time_dt, frt=frt_dt)
 
+        # Create historic forecasts and truth
+        self.historic_forecasts = _create_historic_forecasts(
+            temperature_data, time_dt, frt_dt, realizations=[0, 1, 2])
+        self.truth = _create_truth(temperature_data, time_dt)
+
+        # Create a combined list of historic forecasts and truth
+        self.combined = self.historic_forecasts + self.truth
+
+        # Create the historic and truth cubes
         self.historic_temperature_forecast_cube = (
-            _create_historic_forecasts(self.current_temperature_forecast_cube))
-
-        self.temperature_truth_cube = (
-            _create_truth(self.current_temperature_forecast_cube))
+            self.historic_forecasts.merge_cube())
+        self.temperature_truth_cube = self.truth.merge_cube()
 
         # Create a cube for testing wind speed.
         self.current_wind_speed_forecast_cube = set_up_variable_cube(
             base_data, name="wind_speed", units="m s-1",
             realizations=[0, 1, 2])
 
-        self.historic_wind_speed_forecast_cube = (
-            _create_historic_forecasts(self.current_wind_speed_forecast_cube))
+        self.historic_wind_speed_forecast_cube = _create_historic_forecasts(
+            base_data, time_dt, frt_dt, realizations=[0, 1, 2],
+            name="wind_speed", units="m s-1").merge_cube()
 
-        self.wind_speed_truth_cube = (
-            _create_truth(self.current_wind_speed_forecast_cube))
+        self.wind_speed_truth_cube = _create_truth(
+            base_data, time_dt, name="wind_speed", units="m s-1").merge_cube()
 
 
 def set_up_probability_threshold_cube(
@@ -357,59 +368,84 @@ def add_forecast_reference_time_and_forecast_period(
     return cube
 
 
-def _create_historic_forecasts(cube, number_of_days=5):
+def _create_historic_forecasts(data, time_dt, frt_dt,
+                               standard_grid_metadata="uk_ens",
+                               number_of_days=5, **kwargs):
     """
     Function to create a set of pseudo historic forecast cubes, based on the
     input cube, and assuming that there will be one forecast per day at the
     same hour of the day.
+
+    Args:
+        data (numpy.ndarray):
+            Numpy array to define the data that will be used to fill the cube.
+            This will be subtracted by 2 with the aim of giving a difference
+            between the current forecast and the historic forecasts.
+            Therefore, the current forecast would contain the unadjusted data.
+        time_dt (datetime.datetime):
+            Datetime to define the initial validity time. This will be
+            incremented in days up to the defined number_of_days.
+        frt_dt (datetime.datetime):
+            Datetime to define the initial forecast reference time. This will
+            be incremented in days up to the defined number_of_days.
+
+    Keyword Args:
+        standard_grid_metadata (str):
+            Please see improver.tests.set_up_test_cubes.set_up_variable_cube.
+        number_of_days(int):
+            Number of days to increment when constructing a cubelist of the
+            historic forecasts.
+        **kwargs:
+            Please see improver.tests.set_up_test_cubes.set_up_variable_cube
+            for the other supported keyword arguments.
+
+    Return:
+        historic_forecasts (iris.cube.CubeList):
+            Cubelist of historic forecasts in one day increments.
     """
-    historic_forecasts = CubeList([])
-    no_of_hours_in_day = 24
-    time_range = np.linspace(
-        no_of_hours_in_day, no_of_hours_in_day*number_of_days,
-        num=number_of_days, endpoint=True)
-    for index in time_range:
-        temp_cube = cube.copy()
-        # TODO: Remove conversion to hours, once all ensemble calibration
-        # unit tests have been upgraded to use set_up_variable_cube.
-        for coord_name in ["forecast_reference_time", "time"]:
-            orig_units = temp_cube.coord(coord_name).units
-            temp_cube.coord(coord_name).convert_units(
-                "hours since 1970-01-01 00:00:00")
-            temp_cube.coord(coord_name).points = (
-                temp_cube.coord(coord_name).points - index)
-            temp_cube.coord(coord_name).convert_units(orig_units)
-        temp_cube.data -= 2
-        historic_forecasts.append(temp_cube)
-
-    historic_forecast = concatenate_cubes(
-        historic_forecasts, coords_to_slice_over=["time"],
-        coordinates_for_association=["forecast_reference_time"])
-    return historic_forecast
+    historic_forecasts = iris.cube.CubeList([])
+    for day in range(number_of_days):
+        new_frt_dt = frt_dt + datetime.timedelta(days=day)
+        new_time_dt = time_dt + datetime.timedelta(days=day)
+        historic_forecasts.append(
+            set_up_variable_cube(
+                data - 2, time=new_time_dt, frt=new_frt_dt,
+                standard_grid_metadata=standard_grid_metadata, **kwargs))
+    return historic_forecasts
 
 
-def _create_truth(cube):
+def _create_truth(data, time_dt, number_of_days=5, **kwargs):
     """
     Function to create truth cubes, based on the input cube, and assuming that
     there will be one forecast per day at the same hour of the day.
+
+    Args:
+        data (numpy.ndarray):
+            Numpy array to define the data that will be used to fill the cube.
+            This will be subtracted by 3 with the aim of giving a difference
+            between the current forecast and the truths.
+            Therefore, the current forecast would contain the unadjusted data.
+        time_dt (datetime.datetime):
+            Datetime to define the initial validity time. This will be
+            incremented in days up to the defined number_of_days.
+
+    Keyword Args:
+        standard_grid_metadata (str):
+            Please see improver.tests.set_up_test_cubes.set_up_variable_cube.
+        number_of_days(int):
+            Number of days to increment when constructing a cubelist of the
+            historic forecasts.
+        **kwargs:
+            Please see improver.tests.set_up_test_cubes.set_up_variable_cube
+            for the other supported keyword arguments.
+
     """
-    truth = CubeList([])
-    time_range = np.array([24.0, 48.0, 72.0, 96.0, 120.0], dtype=np.float32)
-    for index in time_range:
-        temp_cube = cube.copy()
-        index -= temp_cube.coord("forecast_period").points[0]
-        temp_cube.coord("forecast_reference_time").points = (
-            temp_cube.coord("forecast_reference_time").points - index)
-        temp_cube.coord("time").points = temp_cube.coord("time").points - index
-        temp_cube.coord("forecast_period").points = 0
-        temp_cube.data -= 3
-        temp_cube = temp_cube.collapsed("realization", iris.analysis.MAX)
-        temp_cube.remove_coord("realization")
-        temp_cube.cell_methods = {}
-        truth.append(temp_cube)
-    truth = concatenate_cubes(
-        truth, coords_to_slice_over=["time"],
-        coordinates_for_association=["forecast_reference_time"])
+    truth = iris.cube.CubeList([])
+    for day in range(number_of_days):
+        new_time_dt = time_dt + datetime.timedelta(days=day)
+        truth.append(set_up_variable_cube(
+            np.amax(data - 3, axis=0), time=new_time_dt,
+            frt=new_time_dt, standard_grid_metadata="uk_det", **kwargs))
     return truth
 
 
