@@ -36,8 +36,8 @@ import datetime
 import warnings
 
 import iris
-import numpy as np
 from iris.exceptions import CoordinateNotFoundError
+import numpy as np
 from scipy import stats
 from scipy.optimize import minimize
 from scipy.stats import norm
@@ -50,7 +50,7 @@ from improver.utilities.temporal import (
     iris_time_to_datetime)
 
 
-class ContinuousRankedProbabilityScoreMinimisers(object):
+class ContinuousRankedProbabilityScoreMinimisers():
     """
     Minimise the Continuous Ranked Probability Score (CRPS)
 
@@ -366,7 +366,7 @@ class ContinuousRankedProbabilityScoreMinimisers(object):
         return result
 
 
-class EstimateCoefficientsForEnsembleCalibration(object):
+class EstimateCoefficientsForEnsembleCalibration():
     """
     Class focussing on estimating the optimised coefficients for ensemble
     calibration.
@@ -506,7 +506,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         if len(optimised_coeffs) != len(coeff_names):
             msg = ("The number of coefficients in {} must equal the "
                    "number of coefficient names {}.".format(
-                        optimised_coeffs, coeff_names))
+                       optimised_coeffs, coeff_names))
             raise ValueError(msg)
 
         coefficient_index = iris.coords.DimCoord(
@@ -847,7 +847,7 @@ class EstimateCoefficientsForEnsembleCalibration(object):
         return coefficients_cube
 
 
-class ApplyCoefficientsFromEnsembleCalibration(object):
+class ApplyCoefficientsFromEnsembleCalibration():
     """
     Class to apply the optimised EMOS coefficients to future dates.
 
@@ -893,9 +893,9 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                            "and coefficients cube differs. "
                            "current forecast: {}, "
                            "coefficients cube: {}").format(
-                                coord_name,
-                                self.current_forecast.coord(coord_name),
-                                self.coefficients_cube.coord(coord_name))
+                               coord_name,
+                               self.current_forecast.coord(coord_name),
+                               self.coefficients_cube.coord(coord_name))
                     raise ValueError(msg)
             except CoordinateNotFoundError:
                 pass
@@ -911,8 +911,8 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
                 msg = ("The domain along the {} axis given by the "
                        "current forecast {} does not match the domain given "
                        "by the coefficients cube {}.".format(
-                        axis, current_forecast_points,
-                        coefficients_cube.coord(axis=axis).bounds))
+                           axis, current_forecast_points,
+                           coefficients_cube.coord(axis=axis).bounds))
                 raise ValueError(msg)
 
         # Ensure predictor_of_mean_flag is valid.
@@ -1037,7 +1037,7 @@ class ApplyCoefficientsFromEnsembleCalibration(object):
         return calibrated_forecast_predictor, calibrated_forecast_var
 
 
-class EnsembleCalibration(object):
+class EnsembleCalibration():
     """
     Plugin to wrap the core EMOS processes:
     1. Estimate optimised EMOS coefficients from training period.
@@ -1149,7 +1149,6 @@ class EnsembleCalibration(object):
         (calibrated_forecast_predictor,
          calibrated_forecast_variance) = ac.process()
 
-        # TODO: track down where np.float64 promotion takes place.
         calibrated_forecast_predictor.data = (
             calibrated_forecast_predictor.data.astype(np.float32))
         calibrated_forecast_variance.data = (

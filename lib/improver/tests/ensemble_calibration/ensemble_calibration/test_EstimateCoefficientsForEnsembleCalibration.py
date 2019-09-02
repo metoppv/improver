@@ -39,8 +39,8 @@ import imp
 import unittest
 
 import iris
-import numpy as np
 from iris.tests import IrisTest
+import numpy as np
 
 from improver.ensemble_calibration.ensemble_calibration import (
     ContinuousRankedProbabilityScoreMinimisers)
@@ -671,10 +671,9 @@ class Test__filter_non_matching_cubes(SetupCubes):
         self.assertEqual(truth_result, expected_truth)
 
     def test_no_matches_exception(self):
-        """Test for when there is both a missing historic forecasts and a
-        missing truth at different validity times. This results in the
-        expected historic forecasts and the expected truths containing cubes
-        at three matching validity times."""
+        """Test for when no matches in validity time are found between the
+        historic forecasts and the truths. In this case, an exception is
+        raised."""
         partial_truth = self.truth[2]
         msg = "The filtering has found no matches in validity time "
         with self.assertRaisesRegex(ValueError, msg):
@@ -746,10 +745,11 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions):
 
     def test_coefficient_values_for_gaussian_distribution_mismatching_inputs(
             self):
-        """Test for when there is both a missing historic forecasts and a
-        missing truth at different validity times. This results in the
-        expected historic forecasts and the expected truths containing cubes
-        at three matching validity times."""
+        """Test that the values for the optimised coefficients match the
+        expected values, and the coefficient names also match
+        expected values for a Gaussian distribution for when the historic
+        forecasts and truths input having some mismatches in validity time.
+        """
         partial_historic_forecasts = (
             self.historic_forecasts[:2] +
             self.historic_forecasts[3:]).merge_cube()

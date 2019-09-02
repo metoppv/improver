@@ -33,8 +33,9 @@
 Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
 Regression (NGR)."""
 
-import numpy as np
 import warnings
+
+import numpy as np
 
 from improver.argparser import ArgParser
 from improver.ensemble_calibration.ensemble_calibration import (
@@ -255,10 +256,11 @@ def process(historic_forecast, truth, combined, historic_forecast_dict,
             Default is 1000.
 
     Returns:
-        result (iris.cube.Cube):
+        result (iris.cube.Cube or None):
             Cube containing the coefficients estimated using EMOS. The cube
             contains a coefficient_index dimension coordinate and a
-            coefficient_name auxiliary coordinate.
+            coefficient_name auxiliary coordinate. If no historic forecasts or
+            truths are found then None is returned.
 
     Raises:
         ValueError: If the historic forecast and truth inputs are specified,
@@ -277,7 +279,7 @@ def process(historic_forecast, truth, combined, historic_forecast_dict,
     """
     # The logic for the if statements below is:
     # 1. Check whether either the historic_forecast or the truth exists.
-    # 2. Check that both the historic forecast or the truth exists, otherwise,
+    # 2. Check that both the historic forecast and the truth exists, otherwise,
     #    raise an error.
     # 3. Check that none of the combined, historic forecast dictionary or
     #    truth dictionary inputs have been provided, as these arguments are
@@ -320,7 +322,7 @@ def process(historic_forecast, truth, combined, historic_forecast_dict,
         # information supplied.
         if str(err).startswith("The metadata to identify the desired"):
             warnings.warn(str(err))
-            return
+            result = None
         else:
             raise
     else:

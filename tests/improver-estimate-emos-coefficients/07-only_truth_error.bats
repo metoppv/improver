@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "estimate-emos-coefficients for no valid inputs" {
+@test "estimate-emos-coefficients when only the truth is provided" {
   improver_check_skip_acceptance
 
   # Estimate the EMOS coefficients and check the expected warning is raised.
