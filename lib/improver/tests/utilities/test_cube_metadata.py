@@ -849,6 +849,14 @@ class Test_in_vicinity_name_format(IrisTest):
         self.assertEqual(new_name_above, correct_name_above)
         self.assertEqual(new_name_below, correct_name_below)
 
+    def test_between_thresholds(self):
+        """Test for "between_thresholds" suffix"""
+        self.cube.rename('probability_of_visibility_between_thresholds')
+        correct_name = (
+            'probability_of_visibility_in_vicinity_between_thresholds')
+        new_name = in_vicinity_name_format(self.cube.name())
+        self.assertEqual(new_name, correct_name)
+
     def test_no_above_below_threshold(self):
         """Test the case of name without above/below_threshold is handled
         correctly"""
@@ -881,6 +889,13 @@ class Test_extract_diagnostic_name(IrisTest):
         result = extract_diagnostic_name(
             'probability_of_air_temperature_below_threshold')
         self.assertEqual(result, 'air_temperature')
+
+    def test_between_thresholds(self):
+        """Test correct name is returned from a probability between thresholds
+        """
+        result = extract_diagnostic_name(
+            'probability_of_visibility_in_air_between_thresholds')
+        self.assertEqual(result, 'visibility_in_air')
 
     def test_in_vicinity(self):
         """Test correct name is returned from an "in vicinity" probability.

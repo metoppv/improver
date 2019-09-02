@@ -654,8 +654,8 @@ def add_history_attribute(cube, value, append=False):
 
 def in_vicinity_name_format(cube_name):
     """Generate the correct name format for an 'in_vicinity' probability
-    cube, taking into account the _'above/below_threshold' suffix required
-    by convention.
+    cube, taking into account the 'above/below_threshold' or
+    'between_thresholds' suffix required by convention.
 
     Args:
         cube_name (str):
@@ -671,7 +671,8 @@ def in_vicinity_name_format(cube_name):
     """
     relative_to_threshold_index = max(
         cube_name.find('_above_threshold'),
-        cube_name.find('_below_threshold'))
+        cube_name.find('_below_threshold'),
+        cube_name.find('_between_thresholds'))
 
     if 'in_vicinity' in cube_name:
         msg = "Cube name already contains 'in_vicinity'"
@@ -690,7 +691,8 @@ def in_vicinity_name_format(cube_name):
 def extract_diagnostic_name(cube_name):
     """
     Extract the standard or long name X of the diagnostic from a probability
-    cube name of the form 'probability_of_X_above/below_threshold', or
+    cube name of the form 'probability_of_X_above/below_threshold',
+    'probability_of_X_between_thresholds', or
     'probability_of_X_in_vicinity_above/below_threshold'.
 
     Args:
@@ -710,7 +712,8 @@ def extract_diagnostic_name(cube_name):
 
     relative_to_threshold_index = max(
         cube_name.find('_above_threshold'),
-        cube_name.find('_below_threshold'))
+        cube_name.find('_below_threshold'),
+        cube_name.find('_between_thresholds'))
 
     # 'probability_of_' is a 15-character string
     diagnostic_name = cube_name[15:relative_to_threshold_index]
