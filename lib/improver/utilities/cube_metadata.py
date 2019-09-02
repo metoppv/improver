@@ -31,7 +31,9 @@
 """Module containing utilities for modifying cube metadata."""
 
 import hashlib
-import pickle
+# Usage of pickle in this module is only for creation of pickles and hashing
+# the contents. There is no loading pickles which would create security risks.
+import pickle  # nosec
 import re
 import warnings
 from datetime import datetime
@@ -720,7 +722,9 @@ def generate_hash(data_in):
             A hexidecimal hash representing the data.
     """
     hashable_type = pickle.dumps(data_in)
-    hash_result = hashlib.md5(hashable_type).hexdigest()
+    # Marked as 'nosec' as the usage of MD5 hash is to produce a good checksum,
+    # rather than for cryptographic hashing purposes
+    hash_result = hashlib.md5(hashable_type).hexdigest()  # nosec
     return hash_result
 
 

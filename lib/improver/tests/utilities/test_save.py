@@ -31,14 +31,14 @@
 """Unit tests for saving functionality."""
 
 import os
+import shutil
 import unittest
-from subprocess import call
 from tempfile import mkdtemp
 
 import iris
-import numpy as np
 from iris.coords import CellMethod
 from iris.tests import IrisTest
+import numpy as np
 from netCDF4 import Dataset
 
 from improver.tests.set_up_test_cubes import set_up_variable_cube
@@ -85,8 +85,7 @@ class Test_save_netcdf(IrisTest):
 
     def tearDown(self):
         """ Remove temporary directories created for testing. """
-        call(['rm', '-f', self.filepath])
-        call(['rmdir', self.directory])
+        shutil.rmtree(self.directory, ignore_errors=True)
 
     def test_basic_cube(self):
         """ Test saves file in required location """
@@ -227,8 +226,7 @@ class Test__append_metadata_cube(IrisTest):
 
     def tearDown(self):
         """ Remove temporary directories created for testing. """
-        call(['rm', '-f', self.filepath])
-        call(['rmdir', self.directory])
+        shutil.rmtree(self.directory, ignore_errors=True)
 
     def test_bald_attribute_added(self):
         """Test that the bald__isPrefixedBy attribute is added to each cube

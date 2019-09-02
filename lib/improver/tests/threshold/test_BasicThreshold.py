@@ -562,7 +562,7 @@ class Test_process(IrisTest):
         # Regexp matches .* with any string.
         msg = ("Invalid bounds for one threshold: .*. "
                "Expected 2 floats.")
-        with self.assertRaisesRegex(AssertionError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             Threshold(threshold,
                       fuzzy_bounds=fuzzy_bounds)
 
@@ -573,7 +573,7 @@ class Test_process(IrisTest):
         # Regexp matches .* with any string.
         msg = ("Invalid bounds for one threshold: .*. "
                "Expected 2 floats.")
-        with self.assertRaisesRegex(AssertionError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             Threshold(threshold,
                       fuzzy_bounds=fuzzy_bounds)
 
@@ -585,7 +585,7 @@ class Test_process(IrisTest):
         msg = ("Threshold must be within bounds: "
                r"\!\( {} <= {} <= {} \)".format(
                    fuzzy_bounds[0], threshold, fuzzy_bounds[1]))
-        with self.assertRaisesRegex(AssertionError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             Threshold(threshold,
                       fuzzy_bounds=fuzzy_bounds)
 
@@ -597,7 +597,7 @@ class Test_process(IrisTest):
         msg = ("Threshold must be within bounds: "
                r"\!\( {} <= {} <= {} \)".format(
                    fuzzy_bounds[0], threshold, fuzzy_bounds[1]))
-        with self.assertRaisesRegex(AssertionError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             Threshold(threshold,
                       fuzzy_bounds=fuzzy_bounds)
 
