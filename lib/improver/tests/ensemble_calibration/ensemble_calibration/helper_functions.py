@@ -376,6 +376,9 @@ def _create_historic_forecasts(data, time_dt, frt_dt,
     input cube, and assuming that there will be one forecast per day at the
     same hour of the day.
 
+    Please see improver.tests.set_up_test_cubes.set_up_variable_cube for the
+    supported keyword arguments.
+
     Args:
         data (numpy.ndarray):
             Numpy array to define the data that will be used to fill the cube.
@@ -388,16 +391,11 @@ def _create_historic_forecasts(data, time_dt, frt_dt,
         frt_dt (datetime.datetime):
             Datetime to define the initial forecast reference time. This will
             be incremented in days up to the defined number_of_days.
-
-    Keyword Args:
         standard_grid_metadata (str):
             Please see improver.tests.set_up_test_cubes.set_up_variable_cube.
         number_of_days(int):
             Number of days to increment when constructing a cubelist of the
             historic forecasts.
-        **kwargs:
-            Please see improver.tests.set_up_test_cubes.set_up_variable_cube
-            for the other supported keyword arguments.
 
     Return:
         historic_forecasts (iris.cube.CubeList):
@@ -419,6 +417,9 @@ def _create_truth(data, time_dt, number_of_days=5, **kwargs):
     Function to create truth cubes, based on the input cube, and assuming that
     there will be one forecast per day at the same hour of the day.
 
+    Please see improver.tests.set_up_test_cubes.set_up_variable_cube for the
+    other supported keyword arguments.
+
     Args:
         data (numpy.ndarray):
             Numpy array to define the data that will be used to fill the cube.
@@ -428,17 +429,11 @@ def _create_truth(data, time_dt, number_of_days=5, **kwargs):
         time_dt (datetime.datetime):
             Datetime to define the initial validity time. This will be
             incremented in days up to the defined number_of_days.
-
-    Keyword Args:
         standard_grid_metadata (str):
             Please see improver.tests.set_up_test_cubes.set_up_variable_cube.
         number_of_days(int):
             Number of days to increment when constructing a cubelist of the
             historic forecasts.
-        **kwargs:
-            Please see improver.tests.set_up_test_cubes.set_up_variable_cube
-            for the other supported keyword arguments.
-
     """
     truth = iris.cube.CubeList([])
     for day in range(number_of_days):
