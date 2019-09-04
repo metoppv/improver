@@ -869,9 +869,8 @@ class Test_in_vicinity_name_format(IrisTest):
     def test_in_vicinity_already_exists(self):
         """Test the case of 'in_vicinity' already existing in the cube name"""
         self.cube.rename('probability_of_X_in_vicinity')
-        msg = "Cube name already contains 'in_vicinity'"
-        with self.assertRaisesRegex(ValueError, msg):
-            in_vicinity_name_format(self.cube.name())
+        result = in_vicinity_name_format(self.cube.name())
+        self.assertEqual(result, 'probability_of_X_in_vicinity')
 
 
 class Test_extract_diagnostic_name(IrisTest):
