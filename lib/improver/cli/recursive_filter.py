@@ -115,8 +115,6 @@ def process(cube, mask_cube=None, alphas_x_cube=None, alphas_y_cube=None,
     Args:
         cube (iris.cube.Cube):
             Cube to be processed.
-
-    Keyword Args:
         mask_cube (iris.cube.Cube):
             Cube to mask the processed cube.
             Default is None.

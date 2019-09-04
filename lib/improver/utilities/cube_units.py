@@ -47,19 +47,15 @@ def enforce_units_and_dtypes(cubes, coords=None, enforce=True):
     Args:
         cubes (iris.cube.Cube or iris.cube.CubeList):
             Cube or list of cubes to be checked
-
-    Kwargs:
         coords (list or None):
             List of coordinate names to check.  If None, checks all
             coordinates present on the input cubes.
         enforce (bool):
             If True, this function returns a list of conformant cubes.
             If False, a ValueError is thrown if the cubes do not conform.
-
     Raises:
         ValueError: if "enforce=False" and the input cubes do not conform
             to the datatypes and units standard.
-
     Returns:
         new_cubes (iris.cube.CubeList):
             New cubelist with conformant datatypes and units
@@ -165,12 +161,10 @@ def _get_required_units_and_dtype(key):
     Args:
         key (str):
             String name of coordinate or diagnostic to be checked
-
     Returns:
         units, dtype (tuple):
             Tuple with string and type object identifying the required units
             and datatype
-
     Raises:
         KeyError:
             If the input_key (or suitable substring) is not present in
@@ -275,7 +269,6 @@ def check_precision_loss(dtype, data, precision=5):
         data (numpy.ndarray):
             The data that is to be checked for precision loss under data type
             conversion.
-    Keyword Args:
         precision (int):
             The number of decimal places beyond which differences are ignored.
     Returns:

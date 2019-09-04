@@ -185,8 +185,6 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube=None,
             Cube of spot-data neighbours and the spot site information.
         diagnostic_cube (iris.cube.Cube):
             Cube containing the diagnostic data to be extracted.
-
-    Keyword Args:
         lapse_rate_cube (iris.cube.Cube):
             Cube containing temperature lapse rates. If this cube is provided
             and a screen temperature cube is being processed, the lapse rates

@@ -163,8 +163,6 @@ def process(current_forecast, coeffs, num_realizations=None,
         coeffs (iris.cube.Cube or None):
             A cube containing the coefficients used for calibration or None.
             If none then then current_forecast is returned unchanged.
-
-    Keyword Args:
         num_realizations (numpy.int32):
             Optional argument to specify the number of ensemble realizations
             to produce. If the current forecast is input as probabilities or

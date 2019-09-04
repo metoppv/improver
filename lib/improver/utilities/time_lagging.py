@@ -49,7 +49,7 @@ class GenerateTimeLaggedEnsemble(object):
         """
         Initialise class.
 
-        Keyword Args:
+        Args:
             cycletime (str):
                 A string of form YYYYMMDDTHHMMZ describing the
                 forecast_reference_time we want the resulting cube to be

@@ -51,8 +51,6 @@ def equalise_cube_attributes(cubes, silent=None):
     Args:
         cubes (iris.cube.CubeList):
             List of cubes to check the attributes and revise.
-
-    Kwargs:
         silent (list or None):
             List of attributes to remove silently if unmatched.
 
@@ -126,8 +124,6 @@ class ConcatenateCubes():
         Args:
             master_coord (str):
                 Coordinate to concatenate over.
-
-        Kwargs:
             coords_to_associate (list):
                 List of coordinates to be associated with the master_coord.  If
                 master_coord is "time" this should be "forecast_reference_time"
@@ -405,10 +401,8 @@ class MergeCubes():
         result of premature iris merging on load).
 
         Args:
-            cubes (iris.cube.CubeList or iris.cube.Cube):
+            cubes_in (iris.cube.CubeList or iris.cube.Cube):
                 Cubes to be merged.
-
-        Kwargs:
             check_time_bounds_ranges (bool):
                 Flag to check whether scalar time bounds ranges match.
                 This is for when we are expecting to create a new "time" axis
@@ -476,7 +470,6 @@ def get_filtered_attributes(cube, attribute_filter=None):
         cube (iris.cube.Cube):
             A cube from which attributes partially matching the
             attribute_filter will be returned.
-    Keyword Args:
         attribute_filter (str or None):
             A string to match, or partially match, against attributes to build
             a filtered attribute dictionary. If None, all attributes are
@@ -500,7 +493,6 @@ def compare_attributes(cubes, attribute_filter=None):
     Args:
         cubes (iris.cube.CubeList):
             List of cubes to compare (must be more than 1)
-    Keyword Args:
         attribute_filter (str or None):
             A string to filter which attributes are actually compared. If None
             all attributes are compared.
@@ -605,8 +597,6 @@ def build_coordinate(data, long_name=None,
     Args:
         data (int or list of numpy.ndarray):
             List or array of values to populate the coordinate points.
-
-    Keyword Args:
         long_name (str):
             Name of the coordinate to be built.
         standard_name (str):
@@ -918,7 +908,7 @@ def expand_bounds(result_cube, cubelist, expanded_coords):
             A cube with metadata for the results.
         cubelist (iris.cube.CubeList):
             The list of cubes with coordinates to be combined
-        expanded_coord (dict or None):
+        expanded_coords (dict or None):
             Coordinates over which bounds should be expanded as a key, with the
             value indicating whether the upper or mid point of the coordinate
             should be used as the point value, e.g. {'time': 'upper'}.

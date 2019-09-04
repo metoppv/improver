@@ -117,8 +117,6 @@ def process(cube, coordinates=None, ecc_bounds_warning=False,
     Args:
         cube (iris.cube.Cube):
             A Cube for processing.
-
-    Keyword Args:
         coordinates (str or list):
             Coordinate or coordinates over which to collapse data and
             calculate percentiles; e.g. 'realization' or 'latitude longitude'.

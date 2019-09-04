@@ -84,7 +84,7 @@ class OrographicAlphas(object):
         minimum and maximum alpha values.
 
         Args:
-            raw_alphas (iris.cube.CubeList):
+            cubes (iris.cube.CubeList):
                 A list of alpha cubes that we need to take the cube_max and
                 cube_min from.
             min_output (float):

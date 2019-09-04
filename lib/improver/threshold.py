@@ -85,8 +85,6 @@ class BasicThreshold(object):
         Args:
             thresholds (list of float or float):
                 The threshold points for 'significant' datapoints.
-
-        Keyword Args:
             fuzzy_factor (float):
                 Specifies lower bound for fuzzy membership value when
                 multiplied by each threshold. Upper bound is equivalent linear

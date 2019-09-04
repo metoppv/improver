@@ -147,8 +147,6 @@ def process(cube, raw_forecast=None, no_of_realizations=None, reordering=False,
     Args:
         cube (iris.cube.Cube):
             Cube to be processed.
-
-    Keyword Args:
         raw_forecast (iris.cube.Cube):
             Cube of raw (not post processed) weather data.
             This option is compulsory, if the reordering option is selected.

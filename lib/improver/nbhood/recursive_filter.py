@@ -50,7 +50,7 @@ class RecursiveFilter(object):
         """
         Initialise the class.
 
-        Keyword Args:
+        Args:
             alpha_x (float or None):
                 Filter parameter: A constant used to weight the
                 recursive filter along the x-axis. Defined such
@@ -305,8 +305,6 @@ class RecursiveFilter(object):
             cube (iris.cube.Cube):
                 Cube containing the input data to which the recursive filter
                 will be applied.
-
-        Keyword Args:
             alphas_x (iris.cube.Cube or None):
                 Cube containing array of alpha values that will be used when
                 applying the recursive filter along the x-axis.

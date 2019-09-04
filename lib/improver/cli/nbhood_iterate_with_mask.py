@@ -180,8 +180,6 @@ def process(cube, mask_cube, weights, coord_for_masking, radius=None,
         coord_for_masking (str):
             String matching the name of the coordinate that will be used
             for masking.
-
-    Keyword Args:
         radius (float):
             The radius in metres of the neighbourhood to apply.
             Rounded up to convert into integer number of grid points east and

@@ -53,8 +53,6 @@ class Integration(object):
         Args:
             coord_name_to_integrate (str):
                 Name of the coordinate to be integrated.
-
-        Keyword Args:
             start_point (float or None):
                 Point at which to start the integration.
                 Default is None. If start_point is None, integration starts

@@ -216,8 +216,6 @@ def process(cubelist, wts_calc_method, coordinate, cycletime, weighting_coord,
         weighting_coord (str):
             Name of coordinate over which linear weights should be scaled.
             This coordinate must be available in the weights dictionary.
-
-    Keyword Args:
         weights_dict (dict):
             Dictionary from which to calculate blending weights. Dictionary
             format is as specified in the

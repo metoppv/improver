@@ -161,8 +161,6 @@ def process(cube, threshold_values=None, threshold_dict=None,
     Args:
         cube (iris.cube.Cube):
              A cube to be processed.
-
-    Keyword Args:
         threshold_values (float):
             Threshold value or values about which to calculate the truth
             values; e.g. 270 300. Must be omitted if 'threshold_config'

@@ -111,8 +111,6 @@ def add_coord(cube, coord_name, changes, warnings_on=False):
             'var_name'. Any other key strings in the dictionary are ignored.
             More detail is available in
             :func:`improver.utilities.cube_metadata.amend_metadata`
-
-    Keyword Args:
         warnings_on (bool):
             If True output warnings for mismatching metadata.
 
@@ -202,8 +200,6 @@ def update_coord(cube, coord_name, changes, warnings_on=False):
             If changes = 'delete' the coordinate is deleted.
             More detail is available in
             :func:`improver.utilities.cube_metadata.amend_metadata`
-
-    Keyword Args:
         warnings_on (bool):
             If True output warnings for mismatching metadata.
 
@@ -302,8 +298,6 @@ def update_attribute(cube, attribute_name, changes, warnings_on=False):
             If changes = 'delete' the coordinate is deleted.
             More detail is available in
             :func:`improver.utilities.cube_metadata.amend_metadata`
-
-    Keyword Args:
         warnings_on (bool):
             If True output warnings for mismatching metadata.
 
@@ -426,8 +420,6 @@ def amend_metadata(cube,
     Args:
         cube (iris.cube.Cube):
             Input cube.
-
-    Keyword Args:
         name (str):
             New name for the diagnostic.
         data_type (numpy.dtype):
@@ -547,8 +539,6 @@ def resolve_metadata_diff(cube1, cube2, warnings_on=False):
             Cube containing data to be combined.
         cube2 (iris.cube.Cube):
             Cube containing data to be combined.
-
-    Keyword Args:
         warnings_on (bool):
             If True output warnings for mismatching metadata.
 
@@ -637,8 +627,6 @@ def add_history_attribute(cube, value, append=False):
             The cube to which the history attribute will be added.
         value (str):
             String defining details to be included in the history attribute.
-
-    Kwargs:
         append (bool):
             If True, add to the existing history rather than replacing the
             existing attribute.  Default is False.

@@ -152,8 +152,6 @@ def process(original_cube_list, orographic_enhancement_cube=None,
             Cubelist from which to calculate optical flow velocities.
             The cubes require a 'time' coordinate on which they are sorted,
             so the order of cubes does not matter.
-
-    Keyword Args:
         orographic_enhancement_cube (iris.cube.Cube):
             Cube containing the orographic enhancement fields.
             Default is None.

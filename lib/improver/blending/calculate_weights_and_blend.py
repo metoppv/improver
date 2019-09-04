@@ -58,8 +58,6 @@ class WeightAndBlend():
                 for grid blending)
             wts_calc_method (str):
                 Weights calculation method ("linear", "nonlinear" or "dict")
-
-        Kwargs:
             weighting_coord (str):
                 Coordinate over which linear weights should be calculated (from
                 dictionary)
@@ -162,8 +160,6 @@ class WeightAndBlend():
         Args:
             cubelist (iris.cube.CubeList):
                 List of cubes to be merged and blended
-
-        Kwargs:
             cycletime (str):
                 Forecast reference time to use for output cubes, in the format
                 YYYYMMDDTHHMMZ.  If not set, the latest of the input cube

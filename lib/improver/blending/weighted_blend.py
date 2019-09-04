@@ -62,8 +62,6 @@ class MergeCubesForWeightedBlending():
                 "model".  For all other coordinates this is prescriptive:
                 cube.coord(blend_coord) must return an iris.coords.Coord
                 instance for all cubes passed into the "process" method.
-
-        Kwargs:
             weighting_coord (str or None):
                 The coordinate across which weights will be scaled in a
                 multi-model blend.  Required for
@@ -105,8 +103,6 @@ class MergeCubesForWeightedBlending():
         Args:
             cubelist (iris.cube.CubeList):
                 List of cubes containing data to be blended
-
-        Kwargs:
             cycletime (str or None):
                 The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z
 
@@ -180,10 +176,8 @@ class MergeCubesForWeightedBlending():
         Prepares merged input cube for cycle and grid blending
 
         Args:
-            cubes (iris.cube.CubeList or iris.cube.Cube):
+            cubes_in (iris.cube.CubeList or iris.cube.Cube):
                 Cubes to be merged.
-
-        Kwargs:
             cycletime (str or None):
                 The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
                 Can be used in rationalise_blend_time_coordinates.
@@ -262,8 +256,6 @@ def conform_metadata(
         coord (str):
             Coordinate that has been blended. This allows specific metadata
             changes to be limited to whichever coordinate is being blended.
-
-    Keyword Args:
         cycletime (str):
             The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
 
@@ -501,8 +493,6 @@ class WeightedBlendAcrossWholeDimension:
             coord (str):
                 The name of the coordinate dimension over which the cube will
                 be blended.
-
-        Keyword Args:
             cycletime (str):
                 The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
             timeblending (bool):
@@ -719,6 +709,9 @@ class WeightedBlendAcrossWholeDimension:
                 The data cube on which a coordinate is being blended.
             weights (iris.cube.Cube or None):
                 Cube of blending weights or None.
+            perc_coord (iris.coords.Coord):
+                Percentile coordinate
+
         Returns:
             weights_array (numpy.ndarray):
                 An array of weights that matches the cube data shape.
@@ -845,7 +838,6 @@ class WeightedBlendAcrossWholeDimension:
         Args:
             cube (iris.cube.Cube):
                 Cube to blend across the coord.
-        Keyword Args:
             weights (iris.cube.Cube):
                 Cube of blending weights. If None, the diagnostic cube is
                 blended with equal weights across the blending dimension.

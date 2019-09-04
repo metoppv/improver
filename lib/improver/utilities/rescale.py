@@ -43,8 +43,6 @@ def rescale(data, data_range=None, scale_range=(0., 1.),
     Args:
         data (numpy.ndarray):
             Source values
-
-    Keyword Args:
         data_range (list):
             List containing two floats
             Lowest and highest source value to rescale.
@@ -103,9 +101,8 @@ def apply_double_scaling(data_cube, scaled_cube,
             Lower, mid and upper points to rescale data_cube from
         scaling_vals (tuple of three values):
             Lower, mid and upper points to rescale data_cube to
-
-    Keyword Args:
-        combine_function (callable):
+        combine_function (Callable[[numpy.ndarray, numpy.ndarray],
+        numpy.ndarray]):
             Function that takes two arrays of the same shape and returns
             one array of the same shape.
             Expected to be numpy.minimum (default) or numpy.maximum.

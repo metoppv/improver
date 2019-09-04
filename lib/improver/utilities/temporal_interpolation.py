@@ -57,7 +57,7 @@ class TemporalInterpolation(object):
         """
         Initialise class.
 
-        Keyword Args:
+        Args:
             interval_in_minutes (int):
                 Specifies the interval in minutes at which to interpolate
                 between the two input cubes. A number of minutes which does not

@@ -173,8 +173,6 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
         data (numpy.ndarray):
             2D (y-x ordered) or 3D (realization-y-x ordered) array of data
             to put into the cube.
-
-    Kwargs:
         name (str):
             Variable name (standard / long)
         units (str):
@@ -275,9 +273,7 @@ def set_up_percentile_cube(data, percentiles, name='air_temperature',
         percentiles (list):
             List of int / float percentile values whose length must match the
             first dimension on the input data cube
-
-    Kwargs:
-        standard_name (str):
+        name (str):
             Variable standard name
         units (str):
             Variable units
@@ -286,7 +282,7 @@ def set_up_percentile_cube(data, percentiles, name='air_temperature',
             otherwise uses "projection_[x|y]_coordinate".
         time (datetime.datetime):
             Single cube validity time
-        time_bounds (tuple or list of datetime.datetime instances):
+        time_bounds (Iterable[datetime.datetime]):
             Lower and upper bound on time point, if required
         frt (datetime.datetime):
             Single cube forecast reference time
@@ -335,8 +331,6 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
         thresholds (list):
             List of int / float threshold values whose length must match the
             first dimension on the input data cube
-
-    Kwargs:
         variable_name (str):
             Name of the underlying variable to which the probability field
             applies, eg "air_temperature".  NOT name of probability field.
@@ -404,8 +398,6 @@ def add_coordinate(incube, coord_points, coord_name, coord_units=None,
             Values for the coordinate.
         coord_name (str):
             Long name of the coordinate to be added.
-
-    Kwargs:
         coord_units (str):
             Coordinate unit required.
         dtype (type):

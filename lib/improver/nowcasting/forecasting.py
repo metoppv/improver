@@ -63,8 +63,6 @@ class AdvectField():
             vel_y (iris.cube.Cube):
                 Cube containing a 2D array of velocities along the y
                 coordinate axis
-
-        Keyword Args:
             metadata_dict (dict):
                 Dictionary containing information for amending the metadata
                 of the output cube. Please see the
@@ -354,8 +352,6 @@ class CreateExtrapolationForecast():
             vel_y (iris.cube.Cube):
                 Cube containing a 2D array of velocities along the y
                 coordinate axis
-
-        Keyword Args:
             orographic_enhancement_cube (iris.cube.Cube):
                 Cube containing the orographic enhancement fields. May have
                 data for multiple times in the cube. The orographic enhancement

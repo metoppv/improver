@@ -108,7 +108,7 @@ class NowcastLightning(object):
         """
         Initialise class for Nowcast of lightning probability.
 
-        Keyword Args:
+        Args:
             radius (float):
                 Radius (metres) over which to neighbourhood process the output
                 lightning probability.  The value supplied applies at T+0
@@ -223,7 +223,6 @@ class NowcastLightning(object):
             cube (iris.cube.Cube):
                 Provides the meta-data for the Nowcast lightning probability
                 output cube.
-
             first_guess_lightning_cube (iris.cube.Cube):
                 First-guess lightning probability.
                 Must have same x & y dimensions as cube.
@@ -231,16 +230,12 @@ class NowcastLightning(object):
                 time is used with a maximum time mismatch of 2 hours).
                 This is included to allow this cube to come from a different
                 modelling system, such as the UM.
-
             lightning_rate_cube (iris.cube.Cube):
                 Nowcast lightning rate.
                 Must have same dimensions as cube.
-
             prob_precip_cube (iris.cube.Cube):
                 Nowcast precipitation probability (threshold > 0.5, 7, 35).
                 Must have same other dimensions as cube.
-
-        Keyword Args:
             prob_vii_cube (iris.cube.Cube):
                 Radar-derived vertically integrated ice content (VII).
                 Must have same x and y dimensions as cube.

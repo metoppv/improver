@@ -82,7 +82,7 @@ class WindDirection(object):
     Step 6 still needs more development so it is only included in the code
     as a placeholder.
 
-    Keyword Args:
+    Args:
         backup_method (str):
             Backup method to use if the complex numbers approach has low
             confidence.
@@ -142,8 +142,6 @@ class WindDirection(object):
         Args:
             angle_deg (numpy.ndarray or float):
                 3D array or float - wind direction angles in degrees.
-
-        Keyword Args:
             radius (numpy.ndarray):
                 3D array or float - radius value for each point, default=1.
 

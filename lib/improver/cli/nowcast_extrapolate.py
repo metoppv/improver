@@ -211,8 +211,6 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
             vertical levels.
             Must be used with d_cube.
             u_cube and v_cube must be None.
-
-    Keyword Args:
         orographic_enhancement_cube (iris.cube.Cube):
             Cube containing the orographic enhancement fields. May have data
             for multiple times in the cube.

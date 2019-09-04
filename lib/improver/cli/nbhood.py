@@ -257,8 +257,6 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius=None,
             neighbourhood shape is applicable for calculating "percentiles"
             output.
             Options: "circular", "square".
-
-    Keyword Args:
         radius (float):
             The radius in metres of the neighbourhood to apply
         radii_by_lead_time (list):

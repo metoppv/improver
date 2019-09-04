@@ -72,8 +72,6 @@ class BaseNeighbourhoodProcessing(object):
                 Rounded up to convert into integer number of grid
                 points east and north, based on the characteristic spacing
                 at the zero indices of the cube projection-x and y coords.
-
-        Keyword Args:
             lead_times (list):
                 List of lead times or forecast periods, at which the radii
                 within 'radii' are defined. The lead times are expected
@@ -100,7 +98,7 @@ class BaseNeighbourhoodProcessing(object):
         Otherwise it will interpolate to find the radius at
         each cube lead time as required.
 
-        Keyword Args:
+        Args:
             cube_lead_times (numpy.ndarray):
                 Array of forecast times found in cube.
 
@@ -133,8 +131,6 @@ class BaseNeighbourhoodProcessing(object):
             cube (iris.cube.Cube):
                 Cube to apply a neighbourhood processing method to, in order to
                 generate a smoother field.
-
-        Keyword Args:
             mask_cube (iris.cube.Cube):
                 Cube containing the array to be used as a mask.
 
@@ -226,8 +222,6 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
                 Rounded up to convert into integer number of grid
                 points east and north, based on the characteristic spacing
                 at the zero indices of the cube projection-x and y coords.
-
-        Keyword Args:
             lead_times (list, optional):
                 List of lead times or forecast periods, at which the radii
                 within 'radii' are defined. The lead times are expected
@@ -273,8 +267,6 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
                 Rounded up to convert into integer number of grid
                 points east and north, based on the characteristic spacing
                 at the zero indices of the cube projection-x and y coords.
-
-        Keyword Args:
             lead_times (list):
                 List of lead times or forecast periods, at which the radii
                 within 'radii' are defined. The lead times are expected
