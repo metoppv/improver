@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for temporal utilities."""
 
-import os
 import datetime
 import unittest
 from datetime import timedelta
