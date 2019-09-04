@@ -30,7 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for temporal utilities."""
 
+import os
 import datetime
+import time
 import unittest
 from datetime import timedelta
 
@@ -42,6 +44,12 @@ from iris.tests import IrisTest
 from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, add_coordinate)
 from improver.utilities.temporal_interpolation import TemporalInterpolation
+
+
+def set_utc():
+    """Enforce time zone to UTC regardless of local time zone"""
+    os.environ['TZ'] = 'UTC'
+    time.tzset()
 
 
 class Test__init__(IrisTest):
@@ -455,6 +463,7 @@ class Test_daynight_interpolation(IrisTest):
 
     def setUp(self):
         """Set up the test inputs spanning sunrise."""
+        set_utc()
         self.time_0 = datetime.datetime(2017, 11, 1, 6)
         self.time_mid = datetime.datetime(2017, 11, 1, 8)
         self.npoints = 10
