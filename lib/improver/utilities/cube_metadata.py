@@ -32,6 +32,7 @@
 
 import hashlib
 import pickle
+import re
 import warnings
 from datetime import datetime
 
@@ -652,6 +653,16 @@ def add_history_attribute(cube, value, append=False):
         cube.attributes["history"] = new_history
 
 
+def cube_name_regex():
+    """Regular expression to match IMPROVER probability cube name"""
+    regex = re.compile(
+        '(probability_of_)'  # always starts this way
+        '(?P<diag>.*?)'      # named group for the diagnostic name
+        '(_in_vicinity|)'    # optional group, may be empty
+        '(?P<thresh>_above_threshold|_below_threshold|_between_thresholds|$)')
+    return regex
+
+
 def in_vicinity_name_format(cube_name):
     """Generate the correct name format for an 'in_vicinity' probability
     cube, taking into account the 'above/below_threshold' or
@@ -659,7 +670,7 @@ def in_vicinity_name_format(cube_name):
 
     Args:
         cube_name (str):
-            The 'in_vicinity' probability cube name to be formatted.
+            The non-vicinity probability cube name to be formatted.
 
     Returns:
         new_cube_name (str):
@@ -669,22 +680,13 @@ def in_vicinity_name_format(cube_name):
     Raises:
         ValueError: If the input cube name already contains 'in_vicinity'.
     """
-    relative_to_threshold_index = max(
-        cube_name.find('_above_threshold'),
-        cube_name.find('_below_threshold'),
-        cube_name.find('_between_thresholds'))
-
     if 'in_vicinity' in cube_name:
         msg = "Cube name already contains 'in_vicinity'"
         raise ValueError(msg)
 
-    elif relative_to_threshold_index == -1:
-        new_cube_name = cube_name + '_in_vicinity'
-    else:
-        new_cube_name = (cube_name[:relative_to_threshold_index] +
-                         '_in_vicinity' +
-                         cube_name[relative_to_threshold_index:])
-
+    new_cube_suffix = '_in_vicinity'.join(
+        cube_name_regex().match(cube_name).group('diag', 'thresh'))
+    new_cube_name = 'probability_of_{}'.format(new_cube_suffix)
     return new_cube_name
 
 
@@ -710,21 +712,7 @@ def extract_diagnostic_name(cube_name):
         raise ValueError(
             'Input {} is not a valid probability cube name'.format(cube_name))
 
-    relative_to_threshold_index = max(
-        cube_name.find('_above_threshold'),
-        cube_name.find('_below_threshold'),
-        cube_name.find('_between_thresholds'))
-
-    # 'probability_of_' is a 15-character string
-    diagnostic_name = cube_name[15:relative_to_threshold_index]
-
-    # check for and remove '_in_vicinity' suffix if present
-    suffix_len = 12
-    if len(diagnostic_name) > suffix_len:
-        suffix = diagnostic_name[-suffix_len:]
-        if suffix == '_in_vicinity':
-            diagnostic_name = diagnostic_name[:-suffix_len]
-
+    diagnostic_name = cube_name_regex().match(cube_name).group('diag')
     return diagnostic_name
 
 
