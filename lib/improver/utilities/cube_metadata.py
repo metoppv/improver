@@ -653,14 +653,14 @@ def add_history_attribute(cube, value, append=False):
         cube.attributes["history"] = new_history
 
 
-def cube_name_regex():
+def cube_name_regex(cube_name):
     """Regular expression to match IMPROVER probability cube name"""
     regex = re.compile(
         '(probability_of_)'  # always starts this way
         '(?P<diag>.*?)'      # named group for the diagnostic name
         '(_in_vicinity|)'    # optional group, may be empty
         '(?P<thresh>_above_threshold|_below_threshold|_between_thresholds|$)')
-    return regex
+    return regex.match(cube_name)
 
 
 def in_vicinity_name_format(cube_name):
@@ -684,9 +684,9 @@ def in_vicinity_name_format(cube_name):
         msg = "Cube name already contains 'in_vicinity'"
         raise ValueError(msg)
 
-    new_cube_suffix = '_in_vicinity'.join(
-        cube_name_regex().match(cube_name).group('diag', 'thresh'))
-    new_cube_name = 'probability_of_{}'.format(new_cube_suffix)
+    regex = cube_name_regex(cube_name)
+    start_string = 'probability_of_{}'.format(regex.group('diag'))
+    new_cube_name = '_in_vicinity'.join([start_string, regex.group('thresh')])
     return new_cube_name
 
 
@@ -711,8 +711,7 @@ def extract_diagnostic_name(cube_name):
     if not cube_name.startswith('probability_of_'):
         raise ValueError(
             'Input {} is not a valid probability cube name'.format(cube_name))
-
-    diagnostic_name = cube_name_regex().match(cube_name).group('diag')
+    diagnostic_name = cube_name_regex(cube_name).group('diag')
     return diagnostic_name
 
 
