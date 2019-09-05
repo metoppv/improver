@@ -418,7 +418,7 @@ class Test_solar_interpolation(IrisTest):
     def test_solar_interpolation(self):
         """Test interpolating using solar method works correctly."""
 
-        expected_time = (self.time_0 + timedelta(hours=2)).timestamp()
+        expected_time = [1509523200]
         expected_fp = 2 * 3600
         plugin = TemporalInterpolation(interpolation_method='solar',
                                        times=[self.time_mid])
@@ -434,7 +434,7 @@ class Test_solar_interpolation(IrisTest):
         """Test interpolating using solar method with len(shape) >= 3
          works correctly."""
 
-        expected_time = (self.time_0 + timedelta(hours=2)).timestamp()
+        expected_time = [1509523200]
         expected_fp = 2 * 3600
         plugin = TemporalInterpolation(interpolation_method='solar',
                                        times=[self.time_mid])
@@ -501,7 +501,7 @@ class Test_daynight_interpolation(IrisTest):
         expected_data = np.ones((self.npoints, self.npoints))*4
         index = np.where(self.daynight_mask == 0)
         expected_data[index] = 0.0
-        expected_time = (self.time_0 + timedelta(hours=2)).timestamp()
+        expected_time = [1509523200]
         expected_fp = 2 * 3600
         plugin = TemporalInterpolation(interpolation_method='daynight',
                                        times=[self.time_mid])
@@ -521,7 +521,7 @@ class Test_daynight_interpolation(IrisTest):
         expected_data_grid[index] = 0.0
         expected_data = np.repeat(expected_data_grid[np.newaxis, :, :],
                                   3, axis=0)
-        expected_time = (self.time_0 + timedelta(hours=2)).timestamp()
+        expected_time = [1509523200]
         expected_fp = 2 * 3600
         plugin = TemporalInterpolation(interpolation_method='daynight',
                                        times=[self.time_mid])
@@ -566,7 +566,7 @@ class Test_process(IrisTest):
         06Z November 11th 2017."""
 
         expected_data = np.ones((self.npoints, self.npoints)) * 4
-        expected_time = (self.time_0 + timedelta(hours=3)).timestamp()
+        expected_time = [1509516000]
         expected_fp = 3 * 3600
         result, = TemporalInterpolation(interval_in_minutes=180).process(
             self.cube_time_0, self.cube_time_1)
@@ -588,7 +588,7 @@ class Test_process(IrisTest):
             self.cube_time_0, self.cube_time_1)
         for i, cube in enumerate(result):
             expected_data = np.ones((self.npoints, self.npoints)) * i + 2
-            expected_time = (self.time_0 + timedelta(hours=(i+1))).timestamp()
+            expected_time = [1509508800 + i * 3600]
 
             self.assertArrayAlmostEqual(expected_data, cube.data)
             self.assertArrayAlmostEqual(
@@ -607,7 +607,7 @@ class Test_process(IrisTest):
         result, = TemporalInterpolation(times=[self.time_extra]).process(
             self.cube_time_0, self.cube_time_1)
         expected_data = np.ones((self.npoints, self.npoints)) * 4
-        expected_time = self.time_extra.timestamp()
+        expected_time = [1509516000]
         expected_fp = 3 * 3600
 
         self.assertArrayAlmostEqual(expected_data, result.data)
@@ -630,7 +630,7 @@ class Test_process(IrisTest):
                                        interpolation_method='solar')
         result, = plugin.process(self.cube_time_0,
                                  self.cube_time_1)
-        expected_time = self.time_extra.timestamp()
+        expected_time = [1509516000]
         expected_fp = 3 * 3600
 
         self.assertArrayAlmostEqual(
@@ -655,7 +655,7 @@ class Test_process(IrisTest):
         expected_data[:2, 7:] = 4.
         expected_data[2, 8:] = 4.
         expected_data[3, 9] = 4.
-        expected_time = self.time_extra.timestamp()
+        expected_time = [1509516000]
         expected_fp = 3 * 3600
 
         self.assertArrayAlmostEqual(expected_data, result.data)
