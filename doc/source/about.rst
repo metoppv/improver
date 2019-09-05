@@ -72,23 +72,27 @@ Publications & Presentations
 
 Below are links to publicly accessible publications & presentations that relate to IMPROVER.
 
-1. `Generating probabilistic forecasts from convection permitting ensembles`_
++---------------------------------------------------------------------------------------------+-----------------------------------+
+| Title                                                                                       | Authors                           |
++=============================================================================================+===================================+
+|`A post-processing and verification strategy for the future (MOSAC 2015)`_                   | Nigel Roberts & Marion Mittermaier|
++---------------------------------------------------------------------------------------------+-----------------------------------+
+|`IMPROVER - the new post processing and verification system (MOSAC 2019)`_                   | Nigel Roberts et al.              |
++---------------------------------------------------------------------------------------------+-----------------------------------+
+|`Generating probabilistic forecasts from convection permitting ensembles`_                   | Nigel Roberts                     |
++---------------------------------------------------------------------------------------------+-----------------------------------+
+|`Creating a probabilistic, multi-model post-processing system (IMPROVER) at the Met Office`_ | Gavin Evans                       |
++---------------------------------------------------------------------------------------------+-----------------------------------+
+|`Topographic neighbourhood processing`_                                                      | Fiona Rust                        |
++---------------------------------------------------------------------------------------------+-----------------------------------+
 
-   - Nigel Roberts
-
-2. `Creating a probabilistic, multi-model post-processing system (IMPROVER) at the Met Office`_
-
-   - Gavin Evans
-
-3. `Topographic neighbourhood processing`_
-
-   - Fiona Rust
-
+.. _A post-processing and verification strategy for the future (MOSAC 2015): https://github.com/metoppv/improver/tree/master/doc/files/MOSAC_2015_20.19_Post-processing-verification.pdf
+.. _IMPROVER - the new post processing and verification system (MOSAC 2019): https://github.com/metoppv/improver/tree/master/doc/files/MOSAC_23.9_Roberts_Paper_171218.pdf
 .. _Generating probabilistic forecasts from convection permitting ensembles: https://presentations.copernicus.org/EMS2017-277_presentation.pdf
 .. _Creating a probabilistic, multi-model post-processing system (IMPROVER) at the Met Office: https://presentations.copernicus.org/EMS2018-20_presentation.pdf
 .. _Topographic neighbourhood processing: https://presentations.copernicus.org/EMS2018-70_presentation.pdf
 
-
+|
 
 Contributing
 ------------

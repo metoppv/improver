@@ -8,6 +8,6 @@
 
 .. toctree::
    :caption: The Code
-   :maxdepth: 4
+   :maxdepth: 2
 
    The Code <improver>
