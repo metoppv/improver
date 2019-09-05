@@ -28,8 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""
-Plugin to calculate probabilities of occurrence between specified thresholds
+"""Plugin to calculate probabilities of occurrence between specified thresholds
 """
 
 import iris
@@ -103,9 +102,9 @@ class OccurrenceBetweenThresholds(object):
         for t_range in self.threshold_ranges:
             t_range.sort()
             lower_constraint = iris.Constraint(coord_values={
-                thresh_coord: lambda t: isclose(t.point, t_range[0])}))
+                thresh_coord: lambda t: isclose(t.point, t_range[0])})
             upper_constraint = iris.Constraint(coord_values={
-                thresh_coord: lambda t: isclose(t.point, t_range[1])}))
+                thresh_coord: lambda t: isclose(t.point, t_range[1])})
             constraints.append([lower_constraint, upper_constraint])
         return constraints
 
@@ -145,7 +144,7 @@ class OccurrenceBetweenThresholds(object):
             between_thresholds_data = (
                 upper_cube.data-lower_cube.data)*multiplier
             between_thresholds_cube = upper_cube.copy(between_thresholds_data)
-            
+
             # add threshold coordinate bounds
             lower_threshold = lower_cube.coord(thresh_coord.name()).points[0]
             upper_threshold = upper_cube.coord(thresh_coord.name()).points[0]
@@ -157,6 +156,6 @@ class OccurrenceBetweenThresholds(object):
         output_cube = cubelist.merge()
         output_cube.rename(
             'probability_of_{}_between_thresholds'.format(
-            extract_diagnostic_name(cube)))
+                extract_diagnostic_name(cube)))
 
         return output_cube
