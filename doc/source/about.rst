@@ -7,6 +7,12 @@ The Met Office in the UK is leading a project to create a probabilistic post-pro
 
 Using IMPROVER with weather forecasts from a range of forecasting centres, it is possible to generate a consolidated blend of information that better captures the range of potential weather outcomes. Additional techniques, such as spatial and temporal neighbourhooding, are available within IMPROVER to further increase the spread of forecasts, capturing more of this range. Functionality also exists to include older forecasts into the final blend, weighting them appropriately to capture the fall off in forecast skill at longer lead times. The end result is the consolidation of tens or hundreds of representations of a weather situation into an interrogable probabilistic output.
 
+Key principles of the post processing strategy that are being built into IMPROVER are:
+1. A separate processing chain for each variable (e.g. temperature, rain rate) which operates on a  grid with location-specific information extracted at the end.
+2. A fully probabilistic system that allows for time-lagging and blending between models/ensembles and provides seamless probabilistic forecasts that exploits the benefits of each of the models used.
+3. The ability to provide outputs to enable automated forecasts of “ordinary” weather for any required location as well as more granular information about the possibility of high-impact weather for constructing warnings and risk estimation.
+4. A modular software framework following modern professional software development practices.
+
 Within the Met Office IMPROVER is being used to provide a new probabilistic approach to post-processing forecasts. Gridded forecasts taken from multiple configurations of the Met Office's Unified Model (UM) first undergo physical corrections if necessary, before being converted into probabilities. The resulting probabilistic forecasts from each UM configuration are then blended to create seamless probabilistic outputs. These gridded probabilities aim to deliver both improved forecast information at each grid square and at geographical (“spot”) locations.
 
 An example IMPROVER forecast product is shown below, here for wind speed. Four fields are plotted at different wind speed thresholds that may be of interest to the user, each field shows the probability of exceeding the relevant threshold.
@@ -92,7 +98,6 @@ Below are links to publicly accessible publications & presentations that relate 
 .. _Creating a probabilistic, multi-model post-processing system (IMPROVER) at the Met Office: https://presentations.copernicus.org/EMS2018-20_presentation.pdf
 .. _Topographic neighbourhood processing: https://presentations.copernicus.org/EMS2018-70_presentation.pdf
 
-|
 
 Contributing
 ------------
