@@ -201,7 +201,17 @@ html_logo = "../files/improver_logo_small.png"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-# html_static_path = ['_static']
+html_static_path = ['../_static']
+
+
+# Added to apply correction css from _static that ensures text in tables
+# wraps. This prevents tables from becoming very wide which necessitates
+# scroll bars.
+html_context = {
+    'css_files': [
+        '_static/theme_overrides.css',  # override wide tables in RTD theme
+        ],
+     }
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
