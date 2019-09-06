@@ -85,28 +85,32 @@ class OccurrenceBetweenThresholds(object):
                              'occurrence above or below threshold')
         return multiplier
 
-    def _construct_constraints(self, thresh_coord):
+    def _slice_cube(self, cube):
         """
-        Construct iris constraints to extract from the input cube
+        Extract required slices from input cube
 
         Args:
-            thresh_coord (iris.coords.DimCoord):
-                Threshold coordinate from the input cube
+            cube (iris.cube.Cube):
+                Input cube
 
         Returns:
-            constraints (list):
-                List of 2-item iterables containing iris constraints for
-                the lower and upper thresholds to be extracted
+            cubes (list):
+                List of 2-item lists containing lower and upper
+                threshold cubes
         """
-        constraints = []
+        thresh_coord = find_threshold_coordinate(cube)
+        cubes = []
         for t_range in self.threshold_ranges:
             t_range.sort()
             lower_constraint = iris.Constraint(coord_values={
-                thresh_coord: lambda t: isclose(t.point, t_range[0])})
+                thresh_coord: lambda t: np.isclose(t.point, t_range[0])})
+            lower_cube = cube.extract(lower_constraint)
             upper_constraint = iris.Constraint(coord_values={
-                thresh_coord: lambda t: isclose(t.point, t_range[1])})
-            constraints.append([lower_constraint, upper_constraint])
-        return constraints
+                thresh_coord: lambda t: np.isclose(t.point, t_range[1])})
+            upper_cube = cube.extract(upper_constraint)
+            cubes.append([lower_cube, upper_cube])
+
+        return cubes
 
     def process(self, cube):
         """
@@ -130,16 +134,12 @@ class OccurrenceBetweenThresholds(object):
         # difference by -1
         multiplier = self._get_multiplier(thresh_coord)
 
-        # generate constraints from threshold-type coordinate
-        constraints = self._construct_constraints(thresh_coord)
+        # extract suitable cube slices
+        cube_slices = self._slice_cube(cube)
 
         # generate "between thresholds" fields
         cubelist = iris.cube.CubeList([])
-        for constraint in constraints:
-            # extract cube slices
-            lower_cube = cube.extract(constraint[0])
-            upper_cube = cube.extract(constraint[1])
-
+        for (lower_cube, upper_cube) in cube_slices:
             # construct difference cube
             between_thresholds_data = (
                 upper_cube.data-lower_cube.data)*multiplier
@@ -148,12 +148,12 @@ class OccurrenceBetweenThresholds(object):
             # add threshold coordinate bounds
             lower_threshold = lower_cube.coord(thresh_coord.name()).points[0]
             upper_threshold = upper_cube.coord(thresh_coord.name()).points[0]
-            between_thresholds.coord(thresh_coord.name()).bounds = (
+            between_thresholds_cube.coord(thresh_coord.name()).bounds = (
                 [lower_threshold, upper_threshold])
 
             cubelist.append(between_thresholds_cube)
 
-        output_cube = cubelist.merge()
+        output_cube = cubelist.merge_cube()
         output_cube.rename(
             'probability_of_{}_between_thresholds'.format(
                 extract_diagnostic_name(cube)))
