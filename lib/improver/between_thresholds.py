@@ -59,9 +59,9 @@ class OccurrenceBetweenThresholds(object):
         """
         Check whether the cube contains "above" or "below" threshold
         probabilities.  For "above", the probability of occurrence between
-        thresholds is the difference between probabilities at the higher
-        and lower thresholds: P(higher) - P(lower).  For "below" it is the
-        inverse of this: P(lower) - P(higher), which is implemented by
+        thresholds is the difference between probabilities at the lower
+        and higher thresholds: P(lower) - P(higher).  For "below" it is the
+        inverse of this: P(higher) - P(lower), which is implemented by
         multiplying the difference by -1.
 
         Args:
@@ -97,18 +97,33 @@ class OccurrenceBetweenThresholds(object):
             cubes (list):
                 List of 2-item lists containing lower and upper
                 threshold cubes
+
+        Raises:
+            ValueError:
+                If any of the required constraints returns None
         """
         thresh_coord = find_threshold_coordinate(cube)
+        error_string = thresh_coord.name() + ' threshold {} is not available\n'
+        error_msg = ''
+
         cubes = []
         for t_range in self.threshold_ranges:
             t_range.sort()
             lower_constraint = iris.Constraint(coord_values={
                 thresh_coord: lambda t: np.isclose(t.point, t_range[0])})
             lower_cube = cube.extract(lower_constraint)
+            if lower_cube is None:
+                error_msg += error_string.format(t_range[0])
             upper_constraint = iris.Constraint(coord_values={
                 thresh_coord: lambda t: np.isclose(t.point, t_range[1])})
             upper_cube = cube.extract(upper_constraint)
+            if upper_cube is None:
+                error_msg += error_string.format(t_range[1])
             cubes.append([lower_cube, upper_cube])
+
+        if error_msg:
+            # if any thresholds were unavailable, raise errors together here
+            raise ValueError(error_msg)
 
         return cubes
 
@@ -128,7 +143,8 @@ class OccurrenceBetweenThresholds(object):
         try:
             thresh_coord = find_threshold_coordinate(cube)
         except CoordinateNotFoundError:
-            raise ValueError('Input cube has no threshold-type coordinate')
+            raise ValueError('Input is not a probability cube '
+                             '(has no threshold-type coordinate)')
 
         # if cube contains below threshold probabilities, need to multiply
         # difference by -1
@@ -142,7 +158,7 @@ class OccurrenceBetweenThresholds(object):
         for (lower_cube, upper_cube) in cube_slices:
             # construct difference cube
             between_thresholds_data = (
-                upper_cube.data-lower_cube.data)*multiplier
+                lower_cube.data-upper_cube.data)*multiplier
             between_thresholds_cube = upper_cube.copy(between_thresholds_data)
 
             # add threshold coordinate bounds
@@ -156,6 +172,9 @@ class OccurrenceBetweenThresholds(object):
         output_cube = cubelist.merge_cube()
         output_cube.rename(
             'probability_of_{}_between_thresholds'.format(
-                extract_diagnostic_name(cube)))
+                extract_diagnostic_name(cube.name())))
+        output_coord = find_threshold_coordinate(output_cube)
+        output_coord.attributes['spp__relative_to_threshold'] = (
+            'between_thresholds')
 
         return output_cube

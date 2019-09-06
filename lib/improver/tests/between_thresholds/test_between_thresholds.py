@@ -36,7 +36,8 @@ import numpy as np
 import iris
 from iris.tests import IrisTest
 
-from improver.tests.set_up_test_cubes import set_up_probability_cube
+from improver.tests.set_up_test_cubes import (
+    set_up_probability_cube, set_up_percentile_cube)
 from improver.between_thresholds import OccurrenceBetweenThresholds
 
 
@@ -51,10 +52,10 @@ class Test_process(IrisTest):
             [[0.1, 0.2, 0.3], [0.1, 0.2, 0.3], [0.1, 0.2, 0.3]],
             [[0.0, 0.0, 0.0], [0.1, 0.1, 0.1], [0.1, 0.2, 0.2]]],
             dtype=np.float32)
-        thresholds = np.array([279, 280, 281, 282], dtype=np.float32)
-        self.temp_cube = set_up_probability_cube(data, thresholds)
-
+        temp_thresholds = np.array([279, 280, 281, 282], dtype=np.float32)
         vis_thresholds = np.array([100, 1000, 5000, 10000], dtype=np.float32)
+
+        self.temp_cube = set_up_probability_cube(data, temp_thresholds)
         self.vis_cube = set_up_probability_cube(
             np.flip(data, axis=0), vis_thresholds, variable_name='visibility',
             threshold_units='m', spp__relative_to_threshold='below')
@@ -62,20 +63,76 @@ class Test_process(IrisTest):
     def test_above_threshold(self):
         """Test values from an "above threshold" cube"""
         threshold_ranges = [[280, 281], [281, 282]]
+        expected_data = np.array([
+            [[0.8, 0.7, 0.6], [0.7, 0.6, 0.5], [0.6, 0.5, 0.4]],
+            [[0.1, 0.2, 0.3], [0.0, 0.1, 0.2], [0.0, 0.0, 0.1]]],
+            dtype=np.float32)
         plugin = OccurrenceBetweenThresholds(threshold_ranges)
         result = plugin.process(self.temp_cube)
-        print(result)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertEqual(
+            result.name(), 'probability_of_air_temperature_between_thresholds')
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        thresh_coord = result.coord('air_temperature')
+        self.assertArrayAlmostEqual(thresh_coord.points, [281., 282.])
+        self.assertArrayAlmostEqual(thresh_coord.bounds, threshold_ranges)
+        self.assertEqual(thresh_coord.attributes['spp__relative_to_threshold'],
+                         'between_thresholds')
 
+    def test_below_threshold(self):
+        """Test values from a "below threshold" cube"""
+        threshold_ranges = [[1000, 5000]]
+        expected_data = np.array(
+            [[0.8, 0.7, 0.6], [0.7, 0.6, 0.5], [0.6, 0.5, 0.4]],
+            dtype=np.float32)
+        plugin = OccurrenceBetweenThresholds(threshold_ranges)
+        result = plugin.process(self.vis_cube)
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertArrayAlmostEqual(
+            result.coord('visibility').points, [5000.])
+        self.assertArrayAlmostEqual(
+            result.coord('visibility').bounds, threshold_ranges)
 
+    def test_skip_threshold(self):
+        """Test calculation works for non-adjacent thresholds"""
+        threshold_ranges = [[100, 1000], [1000, 10000]]
+        expected_data = np.array([
+            [[0.1, 0.2, 0.3], [0.0, 0.1, 0.2], [0.0, 0.0, 0.1]],
+            [[0.9, 0.8, 0.7], [0.9, 0.8, 0.7], [0.9, 0.8, 0.7]]],
+            dtype=np.float32)
+        plugin = OccurrenceBetweenThresholds(threshold_ranges)
+        result = plugin.process(self.vis_cube)
+        self.assertArrayAlmostEqual(result.data, expected_data)
 
+    def test_error_non_probability_cube(self):
+        """Test failure if cube doesn't contain probabilities"""
+        perc_cube = set_up_percentile_cube(
+            np.ones((3, 3, 3), dtype=np.float32),
+            np.array((25, 50, 75), dtype=np.float32))
+        plugin = OccurrenceBetweenThresholds([[25, 50]])
+        msg = 'Input is not a probability cube'
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.process(perc_cube)
 
+    def test_error_between_thresholds_cube(self):
+        """Test failure if cube isn't above or below threshold"""
+        # use plugin to generate a "between_thresholds" cube...
+        between_thresholds_cube = (
+            OccurrenceBetweenThresholds([[280, 281], [281, 282]]).process(
+                self.temp_cube))
+        plugin = OccurrenceBetweenThresholds([[281, 282]])
+        msg = 'Input cube must contain'
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.process(between_thresholds_cube)
 
-
-
-
-
-
-
+    def test_error_thresholds_unavailable(self):
+        """Test error if cube doesn't contain the required thresholds"""
+        threshold_ranges = [[10, 100], [1000, 30000]]
+        plugin = OccurrenceBetweenThresholds(threshold_ranges)
+        msg = ('visibility threshold 10 is not available\n'
+               'visibility threshold 30000 is not available')
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.process(self.vis_cube)
 
 
 if __name__ == '__main__':
