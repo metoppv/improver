@@ -32,6 +32,7 @@
 
 import hashlib
 import pickle
+import re
 import warnings
 from datetime import datetime
 
@@ -640,45 +641,49 @@ def add_history_attribute(cube, value, append=False):
         cube.attributes["history"] = new_history
 
 
-def in_vicinity_name_format(cube_name):
-    """Generate the correct name format for an 'in_vicinity' probability
-    cube, taking into account the _'above/below_threshold' suffix required
-    by convention.
+def probability_cube_name_regex(cube_name):
+    """
+    Regular expression matching IMPROVER probability cube name.  Returns
+    None if the cube_name does not match the regular expression (ie does
+    not start with 'probability_of').
 
     Args:
         cube_name (str):
-            The 'in_vicinity' probability cube name to be formatted.
+            Probability cube name
+    """
+    regex = re.compile(
+        '(probability_of_)'  # always starts this way
+        '(?P<diag>.*?)'      # named group for the diagnostic name
+        '(_in_vicinity|)'    # optional group, may be empty
+        '(?P<thresh>_above_threshold|_below_threshold|_between_thresholds|$)')
+    return regex.match(cube_name)
+
+
+def in_vicinity_name_format(cube_name):
+    """Generate the correct name format for an 'in_vicinity' probability
+    cube, taking into account the 'above/below_threshold' or
+    'between_thresholds' suffix required by convention.
+
+    Args:
+        cube_name (str):
+            The non-vicinity probability cube name to be formatted.
 
     Returns:
         new_cube_name (str):
             Correctly formatted name following the accepted convention e.g.
             'probability_of_X_in_vicinity_above_threshold'.
-
-    Raises:
-        ValueError: If the input cube name already contains 'in_vicinity'.
     """
-    relative_to_threshold_index = max(
-        cube_name.find('_above_threshold'),
-        cube_name.find('_below_threshold'))
-
-    if 'in_vicinity' in cube_name:
-        msg = "Cube name already contains 'in_vicinity'"
-        raise ValueError(msg)
-
-    elif relative_to_threshold_index == -1:
-        new_cube_name = cube_name + '_in_vicinity'
-    else:
-        new_cube_name = (cube_name[:relative_to_threshold_index] +
-                         '_in_vicinity' +
-                         cube_name[relative_to_threshold_index:])
-
+    regex = probability_cube_name_regex(cube_name)
+    new_cube_name = 'probability_of_{diag}_in_vicinity{thresh}'.format(
+        **regex.groupdict())
     return new_cube_name
 
 
 def extract_diagnostic_name(cube_name):
     """
     Extract the standard or long name X of the diagnostic from a probability
-    cube name of the form 'probability_of_X_above/below_threshold', or
+    cube name of the form 'probability_of_X_above/below_threshold',
+    'probability_of_X_between_thresholds', or
     'probability_of_X_in_vicinity_above/below_threshold'.
 
     Args:
@@ -690,26 +695,14 @@ def extract_diagnostic_name(cube_name):
             The name of the diagnostic underlying this probability
 
     Raises:
-        ValueError: If the input name does not contain 'probability_of'
+        ValueError: If the input name does not match the expected regular
+            expression (ie if cube_name_regex(cube_name) returns None).
     """
-    if not cube_name.startswith('probability_of_'):
+    try:
+        diagnostic_name = probability_cube_name_regex(cube_name).group('diag')
+    except AttributeError:
         raise ValueError(
             'Input {} is not a valid probability cube name'.format(cube_name))
-
-    relative_to_threshold_index = max(
-        cube_name.find('_above_threshold'),
-        cube_name.find('_below_threshold'))
-
-    # 'probability_of_' is a 15-character string
-    diagnostic_name = cube_name[15:relative_to_threshold_index]
-
-    # check for and remove '_in_vicinity' suffix if present
-    suffix_len = 12
-    if len(diagnostic_name) > suffix_len:
-        suffix = diagnostic_name[-suffix_len:]
-        if suffix == '_in_vicinity':
-            diagnostic_name = diagnostic_name[:-suffix_len]
-
     return diagnostic_name
 
 
