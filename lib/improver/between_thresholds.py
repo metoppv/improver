@@ -43,7 +43,7 @@ from improver.utilities.cube_metadata import extract_diagnostic_name
 class OccurrenceBetweenThresholds(object):
     """Calculate the probability of occurrence between thresholds"""
 
-    def __init__(self, threshold_ranges):
+    def __init__(self, threshold_ranges, threshold_units):
         """
         Initialise the class
 
@@ -51,8 +51,11 @@ class OccurrenceBetweenThresholds(object):
             threshold_ranges (list):
                 List of 2-item iterables specifying thresholds between which
                 probabilities should be calculated
+            threshold_units (str):
+                Units in which the thresholds are specified
         """
         self.threshold_ranges = threshold_ranges
+        self.threshold_units = threshold_units
 
     @staticmethod
     def _get_multiplier(thresh_coord):
@@ -127,6 +130,36 @@ class OccurrenceBetweenThresholds(object):
 
         return cubes
 
+    def _calculate_probabilities(self, thresh_name):
+        """
+        Calculate between_threshold probabilities cube
+
+        Args:
+            thresh_name (str):
+                Name of threshold-type coordinate
+
+        Returns:
+            output_cube (iris.cube.Cube):
+                Merged cube containing recalculated probabilities
+        """
+        cubelist = iris.cube.CubeList([])
+        for (lower_cube, upper_cube) in self.cube_slices:
+            # construct difference cube
+            between_thresholds_data = (
+                lower_cube.data-upper_cube.data)*self.multiplier
+            between_thresholds_cube = upper_cube.copy(between_thresholds_data)
+
+            # add threshold coordinate bounds
+            lower_threshold = lower_cube.coord(thresh_name).points[0]
+            upper_threshold = upper_cube.coord(thresh_name).points[0]
+            between_thresholds_cube.coord(thresh_name).bounds = (
+                [lower_threshold, upper_threshold])
+
+            cubelist.append(between_thresholds_cube)
+
+        output_cube = cubelist.merge_cube()
+        return output_cube
+
     def process(self, cube):
         """
         Calculate probabilities between thresholds for the input cube
@@ -146,30 +179,23 @@ class OccurrenceBetweenThresholds(object):
             raise ValueError('Input is not a probability cube '
                              '(has no threshold-type coordinate)')
 
-        # if cube contains below threshold probabilities, need to multiply
-        # difference by -1
-        multiplier = self._get_multiplier(thresh_coord)
+        # check input cube units and convert if needed
+        original_units = thresh_coord.units
+        if original_units != self.threshold_units:
+            cube = cube.copy()
+            find_threshold_coordinate(cube).convert_units(self.threshold_units)
 
         # extract suitable cube slices
-        cube_slices = self._slice_cube(cube)
+        self.cube_slices = self._slice_cube(cube)
 
-        # generate "between thresholds" fields
-        cubelist = iris.cube.CubeList([])
-        for (lower_cube, upper_cube) in cube_slices:
-            # construct difference cube
-            between_thresholds_data = (
-                lower_cube.data-upper_cube.data)*multiplier
-            between_thresholds_cube = upper_cube.copy(between_thresholds_data)
+        # generate "between thresholds" probability cube
+        self.multiplier = self._get_multiplier(thresh_coord)
+        output_cube = self._calculate_probabilities(thresh_coord.name())
 
-            # add threshold coordinate bounds
-            lower_threshold = lower_cube.coord(thresh_coord.name()).points[0]
-            upper_threshold = upper_cube.coord(thresh_coord.name()).points[0]
-            between_thresholds_cube.coord(thresh_coord.name()).bounds = (
-                [lower_threshold, upper_threshold])
+        # re-convert units
+        find_threshold_coordinate(output_cube).convert_units(original_units)
 
-            cubelist.append(between_thresholds_cube)
-
-        output_cube = cubelist.merge_cube()
+        # update metadata
         output_cube.rename(
             'probability_of_{}_between_thresholds'.format(
                 extract_diagnostic_name(cube.name())))

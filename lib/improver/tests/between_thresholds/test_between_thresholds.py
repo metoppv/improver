@@ -67,7 +67,7 @@ class Test_process(IrisTest):
             [[0.8, 0.7, 0.6], [0.7, 0.6, 0.5], [0.6, 0.5, 0.4]],
             [[0.1, 0.2, 0.3], [0.0, 0.1, 0.2], [0.0, 0.0, 0.1]]],
             dtype=np.float32)
-        plugin = OccurrenceBetweenThresholds(threshold_ranges)
+        plugin = OccurrenceBetweenThresholds(threshold_ranges, 'K')
         result = plugin.process(self.temp_cube)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(
@@ -85,7 +85,7 @@ class Test_process(IrisTest):
         expected_data = np.array(
             [[0.8, 0.7, 0.6], [0.7, 0.6, 0.5], [0.6, 0.5, 0.4]],
             dtype=np.float32)
-        plugin = OccurrenceBetweenThresholds(threshold_ranges)
+        plugin = OccurrenceBetweenThresholds(threshold_ranges, 'm')
         result = plugin.process(self.vis_cube)
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertArrayAlmostEqual(
@@ -100,16 +100,34 @@ class Test_process(IrisTest):
             [[0.1, 0.2, 0.3], [0.0, 0.1, 0.2], [0.0, 0.0, 0.1]],
             [[0.9, 0.8, 0.7], [0.9, 0.8, 0.7], [0.9, 0.8, 0.7]]],
             dtype=np.float32)
-        plugin = OccurrenceBetweenThresholds(threshold_ranges)
+        plugin = OccurrenceBetweenThresholds(threshold_ranges, 'm')
         result = plugin.process(self.vis_cube)
         self.assertArrayAlmostEqual(result.data, expected_data)
+
+    def test_threshold_units(self):
+        """Test calculation works for thresholds specified in different units
+        from the cube data"""
+        threshold_ranges = [[0.1, 1], [1, 10]]
+        expected_data = np.array([
+            [[0.1, 0.2, 0.3], [0.0, 0.1, 0.2], [0.0, 0.0, 0.1]],
+            [[0.9, 0.8, 0.7], [0.9, 0.8, 0.7], [0.9, 0.8, 0.7]]],
+            dtype=np.float32)
+        plugin = OccurrenceBetweenThresholds(threshold_ranges, 'km')
+        result = plugin.process(self.vis_cube)
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        # check original cube units are not modified
+        self.assertEqual(self.vis_cube.coord('visibility').units, 'm')
+        # check output cube units match original cube
+        self.assertEqual(result.coord('visibility').units, 'm')
+        self.assertArrayAlmostEqual(
+            result.coord('visibility').points, [1000, 10000])
 
     def test_error_non_probability_cube(self):
         """Test failure if cube doesn't contain probabilities"""
         perc_cube = set_up_percentile_cube(
             np.ones((3, 3, 3), dtype=np.float32),
             np.array((25, 50, 75), dtype=np.float32))
-        plugin = OccurrenceBetweenThresholds([[25, 50]])
+        plugin = OccurrenceBetweenThresholds([[25, 50]], 'K')
         msg = 'Input is not a probability cube'
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(perc_cube)
@@ -118,9 +136,9 @@ class Test_process(IrisTest):
         """Test failure if cube isn't above or below threshold"""
         # use plugin to generate a "between_thresholds" cube...
         between_thresholds_cube = (
-            OccurrenceBetweenThresholds([[280, 281], [281, 282]]).process(
+            OccurrenceBetweenThresholds([[280, 281], [281, 282]], 'K').process(
                 self.temp_cube))
-        plugin = OccurrenceBetweenThresholds([[281, 282]])
+        plugin = OccurrenceBetweenThresholds([[281, 282]], 'K')
         msg = 'Input cube must contain'
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(between_thresholds_cube)
@@ -128,7 +146,7 @@ class Test_process(IrisTest):
     def test_error_thresholds_unavailable(self):
         """Test error if cube doesn't contain the required thresholds"""
         threshold_ranges = [[10, 100], [1000, 30000]]
-        plugin = OccurrenceBetweenThresholds(threshold_ranges)
+        plugin = OccurrenceBetweenThresholds(threshold_ranges, 'm')
         msg = ('visibility threshold 10 is not available\n'
                'visibility threshold 30000 is not available')
         with self.assertRaisesRegex(ValueError, msg):
