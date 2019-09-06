@@ -3,11 +3,15 @@ What is IMPROVER?
 
 IMPROVER: Integrated Model post-PROcessing and VERification
 
-The Met Office in the UK is leading a project to create a probabilistic post-processing system for use with ensemble weather prediction models. The system is designed to extract the wealth of information provided by ensemble forecasts and present it in a format that is suitable for the production of automated weather forecasts, and for use by forecasters and the public.
+The `Met Office`_ in the UK is leading a project to create a probabilistic post-processing system for use with ensemble weather prediction models. The system is designed to extract the wealth of information provided by ensemble forecasts and present it in a format that is suitable for the production of automated weather forecasts, and for use by forecasters and the public.
+
+.. _Met Office: http://www.metoffice.gov.uk/
 
 Using IMPROVER with weather forecasts from a range of forecasting centres, it is possible to generate a consolidated blend of information that better captures the range of potential weather outcomes. Additional techniques, such as spatial and temporal neighbourhooding, are available within IMPROVER to further increase the spread of forecasts, capturing more of this range. Functionality also exists to include older forecasts into the final blend, weighting them appropriately to capture the fall off in forecast skill at longer lead times. The end result is the consolidation of tens or hundreds of representations of a weather situation into an interrogable probabilistic output.
 
-Within the Met Office IMPROVER is being used to provide a new probabilistic approach to post-processing forecasts. Gridded forecasts taken from multiple configurations of the Met Office's Unified Model (UM) first undergo physical corrections if necessary, before being converted into probabilities. The resulting probabilistic forecasts from each UM configuration are then blended to create seamless probabilistic outputs. These gridded probabilities aim to deliver both improved forecast information at each grid square and at geographical (“spot”) locations.
+Within the Met Office, IMPROVER is being used to provide a new probabilistic approach to post-processing forecasts. Gridded forecasts taken from multiple configurations of the Met Office's `Unified Model (UM)`_ first undergo physical corrections if necessary, before being converted into probabilities. The resulting probabilistic forecasts from each UM configuration are then blended to create seamless probabilistic outputs. These gridded probabilities aim to deliver both improved forecast information at each grid square and at geographical (“spot”) locations.
+
+.. _Unified Model (UM): https://www.metoffice.gov.uk/research/approach/modelling-systems/unified-model/index
 
 Key principles of the Met Office's post processing strategy that are being built into IMPROVER are:
 
@@ -30,13 +34,16 @@ Structure of IMPROVER
 
 IMPROVER is designed as a modular post-processing system. The final product is created through the application of a sequence of processing steps, where the sequence can be readily modified to achieve different outcomes. The output of each step in the chain can be written out, allowing for verification against observations at each stage (using a suitable verification package, which is not part of IMPROVER). This enables the user to determine whether a given step in the chain is improving or harming the forecast quality.
 
-Any given step in the processing can be applied using the included command line interfaces (CLIs). A complex system is built by calling the CLIs in sequence. The simple schematic below gives an example processing chain.
+Any given step in the processing can be applied using the included :ref:`command line interfaces (CLIs)<using ref>`. A complex system is built by calling the CLIs in sequence. The simple schematic below gives an example processing chain.
+
+.. _command line interfaces (CLIs): :ref:`using_improver`
 
 .. figure:: ../files/processing_chain.jpg
    :align: center
 
    An example processing chain with IMPROVER
 
+.. _using ref:
 
 Using IMPROVER
 --------------
@@ -67,11 +74,15 @@ Here we give a simple example of using an IMPROVER CLI to threshold data, moving
 * for each threshold specified (5, 10, 15, 20 m/s) a new x-y grid of data will be created. Each point in the grid will contain a 0 if the input wind speed at that point was below the threshold, or 1 if it was above the threshold.
 * output_file.nc will be a new netCDF file containing the resulting data cube with an additional leading dimension that corresponds to the given thresholds (5, 10, 15, 20 m/s).
 
-This simple example covers one step in a processing chain. Additional information about using any CLI can be found on the command line using `-h`, e.g.:
+This simple example covers one step in a processing chain. Additional information about using any CLI can be found on the command line using `\\-\\-help` (or `-h`), e.g.:
 
 .. code:: console
 
-    bin/improver nbhood -h
+    bin/improver nbhood --help
+
+The current list of CLIs can be `found here`_.
+
+.. _found here: improver.cli.html
 
 
 Publications & Presentations
