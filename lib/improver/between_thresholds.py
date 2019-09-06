@@ -57,37 +57,6 @@ class OccurrenceBetweenThresholds(object):
         self.threshold_ranges = threshold_ranges
         self.threshold_units = threshold_units
 
-    @staticmethod
-    def _get_multiplier(thresh_coord):
-        """
-        Check whether the cube contains "above" or "below" threshold
-        probabilities.  For "above", the probability of occurrence between
-        thresholds is the difference between probabilities at the lower
-        and higher thresholds: P(lower) - P(higher).  For "below" it is the
-        inverse of this: P(higher) - P(lower), which is implemented by
-        multiplying the difference by -1.
-
-        Args:
-            thresh_coord (iris.coords.DimCoord):
-                Threshold-type coordinate from the input cube
-
-        Returns:
-            multiplier (float):
-                1. or -1.
-
-        Raises:
-            ValueError: If the spp__relative_to_threshold attribute is
-                not recognised
-        """
-        if thresh_coord.attributes['spp__relative_to_threshold'] == 'above':
-            multiplier = 1.
-        elif thresh_coord.attributes['spp__relative_to_threshold'] == 'below':
-            multiplier = -1.
-        else:
-            raise ValueError('Input cube must contain probabilities of '
-                             'occurrence above or below threshold')
-        return multiplier
-
     def _slice_cube(self, cube):
         """
         Extract required slices from input cube
@@ -130,23 +99,57 @@ class OccurrenceBetweenThresholds(object):
 
         return cubes
 
-    def _calculate_probabilities(self, thresh_name):
+    @staticmethod
+    def _get_multiplier(thresh_coord):
+        """
+        Check whether the cube contains "above" or "below" threshold
+        probabilities.  For "above", the probability of occurrence between
+        thresholds is the difference between probabilities at the lower
+        and higher thresholds: P(lower) - P(higher).  For "below" it is the
+        inverse of this: P(higher) - P(lower), which is implemented by
+        multiplying the difference by -1.
+
+        Args:
+            thresh_coord (iris.coords.DimCoord):
+                Threshold-type coordinate from the input cube
+
+        Returns:
+            multiplier (float):
+                1. or -1.
+
+        Raises:
+            ValueError: If the spp__relative_to_threshold attribute is
+                not recognised
+        """
+        if thresh_coord.attributes['spp__relative_to_threshold'] == 'above':
+            multiplier = 1.
+        elif thresh_coord.attributes['spp__relative_to_threshold'] == 'below':
+            multiplier = -1.
+        else:
+            raise ValueError('Input cube must contain probabilities of '
+                             'occurrence above or below threshold')
+        return multiplier
+
+    def _calculate_probabilities(self, thresh_coord):
         """
         Calculate between_threshold probabilities cube
 
         Args:
-            thresh_name (str):
-                Name of threshold-type coordinate
+            thresh_coord (iris.coords.DimCoord):
+                Threshold-type coordinate from the input cube
 
         Returns:
-            output_cube (iris.cube.Cube):
+            (iris.cube.Cube):
                 Merged cube containing recalculated probabilities
         """
+        multiplier = self._get_multiplier(thresh_coord)
+        thresh_name = thresh_coord.name()
+
         cubelist = iris.cube.CubeList([])
         for (lower_cube, upper_cube) in self.cube_slices:
             # construct difference cube
             between_thresholds_data = (
-                lower_cube.data-upper_cube.data)*self.multiplier
+                lower_cube.data-upper_cube.data)*multiplier
             between_thresholds_cube = upper_cube.copy(between_thresholds_data)
 
             # add threshold coordinate bounds
@@ -157,8 +160,7 @@ class OccurrenceBetweenThresholds(object):
 
             cubelist.append(between_thresholds_cube)
 
-        output_cube = cubelist.merge_cube()
-        return output_cube
+        return cubelist.merge_cube()
 
     def process(self, cube):
         """
@@ -179,7 +181,7 @@ class OccurrenceBetweenThresholds(object):
             raise ValueError('Input is not a probability cube '
                              '(has no threshold-type coordinate)')
 
-        # check input cube units and convert if needed
+        # check input cube units, copy and convert if needed
         original_units = thresh_coord.units
         if original_units != self.threshold_units:
             cube = cube.copy()
@@ -188,19 +190,16 @@ class OccurrenceBetweenThresholds(object):
         # extract suitable cube slices
         self.cube_slices = self._slice_cube(cube)
 
-        # generate "between thresholds" probability cube
-        self.multiplier = self._get_multiplier(thresh_coord)
-        output_cube = self._calculate_probabilities(thresh_coord.name())
+        # generate "between thresholds" probabilities
+        output_cube = self._calculate_probabilities(thresh_coord)
 
-        # re-convert units
-        find_threshold_coordinate(output_cube).convert_units(original_units)
-
-        # update metadata
+        # update output cube metadata
         output_cube.rename(
             'probability_of_{}_between_thresholds'.format(
                 extract_diagnostic_name(cube.name())))
-        output_coord = find_threshold_coordinate(output_cube)
-        output_coord.attributes['spp__relative_to_threshold'] = (
+        new_thresh_coord = find_threshold_coordinate(output_cube)
+        new_thresh_coord.convert_units(original_units)
+        new_thresh_coord.attributes['spp__relative_to_threshold'] = (
             'between_thresholds')
 
         return output_cube
