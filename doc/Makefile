@@ -28,6 +28,7 @@ help:
 .PHONY: clean
 clean:
 	rm -rf $(BUILDDIR)/*
+	rm source/improver.*.rst
 
 .PHONY: apidoc
 apidoc:
