@@ -148,9 +148,15 @@ class ApplyOrographicEnhancement(object):
                 Cube containing the orographic enhancement fields at the
                 required time.
 
+        Raises:
+            ValueError: If required time step is not available within tolerance
+                (currently set to None - ie will fail with hourly orographic
+                enhancement and 15 minute cycling)
+
         """
         time_point, = iris_time_to_datetime(precip_cube.coord("time").copy())
-        oe_cube = extract_nearest_time_point(oe_cubes, time_point)
+        oe_cube = extract_nearest_time_point(oe_cubes, time_point,
+                                             allowed_dt_difference=None)
         return oe_cube
 
     def _apply_orographic_enhancement(self, precip_cube, oe_cube):
