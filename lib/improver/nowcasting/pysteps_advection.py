@@ -36,9 +36,6 @@ from datetime import timedelta
 
 from iris.coords import AuxCoord
 
-#from improver.nowcasting.pysteps_interfacing import (
- #   PystepsImporter, PystepsExporter)
-
 # path to temporary pysteps installation
 sys.path.append("/home/h02/bayliffe/.local/lib/python3.6/site-packages/")
 from pysteps.extrapolation.semilagrangian import extrapolate
@@ -170,6 +167,6 @@ class PystepsExtrapolate(object):
         for cube in forecast_cubes:
             cube.convert_units(initial_cube.units)
             cube, = ApplyOrographicEnhancement("add").process(
-                cube, orographic_enhancement)            
+                cube, orographic_enhancement)
 
         return forecast_cubes

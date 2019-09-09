@@ -150,13 +150,15 @@ class ApplyOrographicEnhancement(object):
 
         Raises:
             ValueError: If required time step is not available within tolerance
-                (currently set to None - ie will fail with hourly orographic
-                enhancement and 15 minute cycling)
+                (in theory.  In practise, the tolerance is left as the default
+                None, which matches ANY available field regardless of time
+                offset.  So this error will never be thrown.)
 
         """
         time_point, = iris_time_to_datetime(precip_cube.coord("time").copy())
-        oe_cube = extract_nearest_time_point(oe_cubes, time_point,
-                                             allowed_dt_difference=None)
+        oe_cube = extract_nearest_time_point(oe_cubes, time_point)
+        # TODO set sensible tolerance and / or raise warnings if match is out
+        # by more than a certain amount.  And unit test for this.
         return oe_cube
 
     def _apply_orographic_enhancement(self, precip_cube, oe_cube):
