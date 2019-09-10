@@ -161,9 +161,12 @@ def main(argv=None):
                              'then the number of iterations may require '
                              'increasing, as there will be more coefficients '
                              'to solve for.')
+    parser.add_argument('--landsea_mask', metavar="LANDSEA_MASK", default=None,
+                        help="Add something")
     args = parser.parse_args(args=argv)
 
     # Load Cubes
+    landsea_mask = load_cube(args.landsea_mask, allow_none=True)
     historic_forecast = load_cube(args.historic_filepath, allow_none=True)
     truth = load_cube(args.truth_filepath, allow_none=True)
 
@@ -176,7 +179,7 @@ def main(argv=None):
     # Process Cube
     coefficients = process(historic_forecast, truth, combined,
                            historic_forecast_dict, truth_dict,
-                           args.distribution, args.cycletime, args.units,
+                           args.distribution, args.cycletime, landsea_mask, args.units,
                            args.predictor_of_mean, args.max_iterations)
     # Save Cube
     # Check whether a coefficients cube has been created. If the historic
@@ -187,7 +190,7 @@ def main(argv=None):
 
 
 def process(historic_forecast, truth, combined, historic_forecast_dict,
-            truth_dict, distribution, cycletime, units=None,
+            truth_dict, distribution, cycletime, landsea_mask, units=None,
             predictor_of_mean='mean', max_iterations=1000):
     """Module for estimate coefficients for Ensemble Model Output Statistics.
 
@@ -233,6 +236,9 @@ def process(historic_forecast, truth, combined, historic_forecast_dict,
             the calculated EMOS coefficients. The validity time in the output
             coefficients cube will be calculated relative to this cycletime.
             This cycletime is in the format YYYYMMDDTHHMMZ.
+        landsea_mask(iris.cube.Cube):
+            stuff
+            Default is None.
         units (str):
             The units that calibration should be undertaken in. The historical
             forecast and truth will be converted as required.
@@ -327,7 +333,8 @@ def process(historic_forecast, truth, combined, historic_forecast_dict,
         result = EstimateCoefficientsForEnsembleCalibration(
             distribution, cycletime, desired_units=units,
             predictor_of_mean_flag=predictor_of_mean,
-            max_iterations=max_iterations).process(historic_forecast, truth)
+            max_iterations=max_iterations).process(
+                historic_forecast, truth, landsea_mask=landsea_mask)
 
     return result
 
