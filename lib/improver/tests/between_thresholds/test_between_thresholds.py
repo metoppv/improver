@@ -147,16 +147,17 @@ class Test_process(IrisTest):
         """Test error if cube doesn't contain the required thresholds"""
         threshold_ranges = [[10, 100], [1000, 30000]]
         plugin = OccurrenceBetweenThresholds(threshold_ranges, 'm')
-        msg = ('visibility threshold 10 is not available\n'
-               'visibility threshold 30000 is not available')
+        msg = ('visibility threshold 10 m is not available\n'
+               'visibility threshold 30000 m is not available')
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(self.vis_cube)
 
     def test_threshold_matching_tolerance(self):
         """Test threshold matching succeeds for absolute values close to
         zero"""
-        self.temp_cube.coord('air_temperature').points = [
-            272.15, 273.15, 274.15, 275.15]
+        new_thresholds = np.array(
+            [272.15, 273.15, 274.15, 275.15], dtype=np.float32)
+        self.temp_cube.coord('air_temperature').points = new_thresholds
         threshold_ranges = [[-1, 0], [0, 2]]
         expected_data = np.array([
             [[0.1, 0.1, 0.1], [0.2, 0.2, 0.2], [0.3, 0.3, 0.3]],

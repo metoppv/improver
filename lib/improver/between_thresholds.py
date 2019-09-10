@@ -74,20 +74,23 @@ class OccurrenceBetweenThresholds(object):
             ValueError:
                 If any of the required constraints returns None
         """
-        thresh_coord = find_threshold_coordinate(cube)
-        error_string = thresh_coord.name() + ' threshold {} is not available\n'
+        thresh_coord = cube.coord(self.thresh_coord.name())
+        error_string = (thresh_coord.name() + ' threshold {} ' +
+                        self.threshold_units + ' is not available\n')
         error_msg = ''
 
         cubes = []
         for t_range in self.threshold_ranges:
             t_range.sort()
             lower_constraint = iris.Constraint(coord_values={
-                thresh_coord: lambda t: np.isclose(t.point, t_range[0])})
+                thresh_coord: lambda t: np.isclose(
+                    t.point, t_range[0], atol=1e-5)})
             lower_cube = cube.extract(lower_constraint)
             if lower_cube is None:
                 error_msg += error_string.format(t_range[0])
             upper_constraint = iris.Constraint(coord_values={
-                thresh_coord: lambda t: np.isclose(t.point, t_range[1])})
+                thresh_coord: lambda t: np.isclose(
+                    t.point, t_range[1], atol=1e-5)})
             upper_cube = cube.extract(upper_constraint)
             if upper_cube is None:
                 error_msg += error_string.format(t_range[1])
@@ -157,7 +160,11 @@ class OccurrenceBetweenThresholds(object):
 
     def process(self, cube):
         """
-        Calculate probabilities between thresholds for the input cube
+        Calculate probabilities between thresholds for the input cube.  Note
+        that thresholds must be specified in a unit that is NOT sensitive to
+        differences at the 1e-5 (float32) precision level.  Notably,
+        precipitation rate threshold values in m/s (values of order 1e-9) will
+        result in unpredictable behaviour from this plugin.
 
         Args:
             cube (iris.cube.Cube):
