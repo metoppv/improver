@@ -37,9 +37,42 @@ import iris
 import numpy as np
 from iris.tests import IrisTest
 
+from improver.tests.set_up_test_cubes import set_up_variable_cube
+
 
 class Test_process(IrisTest):
-    pass
+    """Test wrapper for pysteps semi-Lagrangian extrapolation"""
+
+    def setUp(self):
+        """Set up test velocity and rainfall cubes"""
+        time_now = datetime.datetime(2019, 9, 10, 15)
+        wind_data = np.ones((8, 8), dtype=np.float32)
+        self.ucube = set_up_variable_cube(
+            wind_data, name='precipitation_advection_x_velocity',
+            units='m/s', spatial_grid='equalarea', time=time_now,
+            frt=time_now)
+        self.vcube = set_up_variable_cube(
+            wind_data, name='precipitation_advection_y_velocity',
+            units='m/s', spatial_grid='equalarea', time=time_now,
+            frt=time_now)
+
+        rain_data = np.array(
+            [[0.0, 0.0, 0.1, 0.1, 0.1, 0.0, 0.0, 0.0],
+             [0.0, 0.1, 0.2, 0.3, 0.2, 0.1, 0.0, 0.0],
+             [0.1, 0.3, 0.5, 0.6, 0.4, 0.2, 0.1, 0.0],
+             [0.2, 0.6, 1.0, 1.3, 1.1, 0.5, 0.3, 0.1],
+             [0.1, 0.2, 0.6, 1.0, 0.7, 0.4, 0.1, 0.0],
+             [0.0, 0.1, 0.2, 0.5, 0.4, 0.1, 0.0, 0.0],
+             [0.0, 0.0, 0.1, 0.2, 0.1, 0.0, 0.0, 0.0],
+             [0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0]], dtype=np.float32)
+
+        self.rain_cube = set_up_variable_cube(
+            rain_data, name='rainfall_rate', units='mm/h',
+            spatial_grid='equalarea', time=time_now, frt=time_now)
+        self.rain_cube.remove_coord('forecast_period')
+        self.rain_cube.remove_coord('forecast_reference_time')
+
+
 
 
 
