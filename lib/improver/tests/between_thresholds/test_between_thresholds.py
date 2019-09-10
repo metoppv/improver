@@ -152,6 +152,20 @@ class Test_process(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(self.vis_cube)
 
+    def test_threshold_matching_tolerance(self):
+        """Test threshold matching succeeds for absolute values close to
+        zero"""
+        self.temp_cube.coord('air_temperature').points = [
+            272.15, 273.15, 274.15, 275.15]
+        threshold_ranges = [[-1, 0], [0, 2]]
+        expected_data = np.array([
+            [[0.1, 0.1, 0.1], [0.2, 0.2, 0.2], [0.3, 0.3, 0.3]],
+            [[0.9, 0.9, 0.9], [0.7, 0.7, 0.7], [0.6, 0.5, 0.5]]],
+            dtype=np.float32)
+        plugin = OccurrenceBetweenThresholds(threshold_ranges, 'degC')
+        result = plugin.process(self.temp_cube)
+        self.assertArrayAlmostEqual(result.data, expected_data)
+
 
 if __name__ == '__main__':
     unittest.main()
