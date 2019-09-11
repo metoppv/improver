@@ -606,9 +606,11 @@ class Test_compute_initial_guess(IrisTest):
         data = np.array([0., 1., 1., 1.], dtype=np.float32)
         estimate_coefficients_from_linear_model_flag = True
 
-        self.current_forecast_predictor_mean.data = (
-            self.current_forecast_predictor_mean.data.filled())
-        self.current_forecast_predictor_mean.data[0][0] = np.nan
+        self.current_forecast_predictor_mean.data[0] = np.nan
+        self.current_forecast_predictor_mean.data = np.ma.masked_invalid(
+            self.current_forecast_predictor_mean.data)
+        self.truth.data[0] = np.nan
+        self.truth.data = np.ma.masked_invalid(self.truth.data)
 
         plugin = Plugin(self.distribution, self.desired_units)
         result = plugin.compute_initial_guess(

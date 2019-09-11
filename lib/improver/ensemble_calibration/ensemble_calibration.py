@@ -34,7 +34,7 @@ This module defines all the "plugins" specific for ensemble calibration.
 """
 import datetime
 import warnings
-
+import pdb
 import iris
 from iris.exceptions import CoordinateNotFoundError
 import numpy as np
@@ -43,7 +43,8 @@ from scipy.optimize import minimize
 from scipy.stats import norm
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
-    convert_cube_data_to_2d, check_predictor_of_mean_flag)
+    convert_cube_data_to_2d, check_predictor_of_mean_flag,
+    flatten_ignoring_masked_data)
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.temporal import (
     cycletime_to_datetime, datetime_to_cycletime, datetime_to_iris_time,
@@ -207,18 +208,20 @@ class ContinuousRankedProbabilityScoreMinimisers():
         # Ensure predictor_of_mean_flag is valid.
         check_predictor_of_mean_flag(predictor_of_mean_flag)
 
+        # Flatten the data arrays and removing any missing data.
+        truth_data = flatten_ignoring_masked_data(truth.data)
+        forecast_var_data = flatten_ignoring_masked_data(forecast_var.data)
         if predictor_of_mean_flag.lower() == "mean":
-            forecast_predictor_data = forecast_predictor.data.flatten()
-            truth_data = truth.data.flatten()
-            forecast_var_data = forecast_var.data.flatten()
+            forecast_predictor_data = flatten_ignoring_masked_data(
+                forecast_predictor.data)
         elif predictor_of_mean_flag.lower() == "realizations":
-            truth_data = truth.data.flatten()
             forecast_predictor = (
                 enforce_coordinate_ordering(
                     forecast_predictor, "realization"))
-            forecast_predictor_data = convert_cube_data_to_2d(
-                forecast_predictor)
-            forecast_var_data = forecast_var.data.flatten()
+            # Need to transpose this array so there are columns for each
+            # ensemble member rather than rows.
+            forecast_predictor_data = flatten_ignoring_masked_data(
+                forecast_predictor.data, preserve_leading_dimension=True).T
 
         # Increased precision is needed for stable coefficient calculation.
         # The resulting coefficients are cast to float32 prior to output.
@@ -227,7 +230,6 @@ class ContinuousRankedProbabilityScoreMinimisers():
         forecast_var_data = forecast_var_data.astype(np.float64)
         truth_data = truth_data.astype(np.float64)
         sqrt_pi = np.sqrt(np.pi).astype(np.float64)
-
         optimised_coeffs = minimize(
             minimisation_function, initial_guess,
             args=(forecast_predictor_data, truth_data,
@@ -641,7 +643,6 @@ class EstimateCoefficientsForEnsembleCalibration():
                 Order of coefficients is [gamma, delta, alpha, beta].
 
         """
-
         if (predictor_of_mean_flag.lower() == "mean" and
                 not estimate_coefficients_from_linear_model_flag):
             initial_guess = [0, 1, 0, 1]
@@ -650,44 +651,28 @@ class EstimateCoefficientsForEnsembleCalibration():
             initial_guess = [0, 1, 0] + np.repeat(
                 np.sqrt(1. / no_of_realizations), no_of_realizations).tolist()
         elif estimate_coefficients_from_linear_model_flag:
+            truth_flattened = flatten_ignoring_masked_data(truth.data)
             if predictor_of_mean_flag.lower() == "mean":
-                # Find all values that are not NaN.
-                truth_not_nan = ~np.isnan(truth.data.flatten())
-                forecast_not_nan = ~np.isnan(forecast_predictor.data.flatten())
-                combined_not_nan = (
-                    np.all(
-                        np.row_stack([truth_not_nan, forecast_not_nan]),
-                        axis=0))
-                if not any(combined_not_nan):
+                forecast_predictor_flattened = flatten_ignoring_masked_data(
+                    forecast_predictor.data)
+                if (truth_flattened.size == 0) or (
+                        forecast_predictor_flattened.size == 0):
                     gradient, intercept = ([np.nan, np.nan])
                 else:
                     gradient, intercept, _, _, _ = (
                         stats.linregress(
-                            forecast_predictor.data.flatten()[
-                                combined_not_nan],
-                            truth.data.flatten()[combined_not_nan]))
+                            forecast_predictor_flattened, truth_flattened))
                 initial_guess = [0, 1, intercept, gradient]
             elif predictor_of_mean_flag.lower() == "realizations":
                 if self.statsmodels_found:
-                    truth_data = truth.data.flatten()
-                    forecast_predictor = (
-                        enforce_coordinate_ordering(
-                            forecast_predictor, "realization"))
-                    forecast_data = np.array(
-                        convert_cube_data_to_2d(
-                            forecast_predictor, transpose=False),
-                        dtype=np.float32
-                    )
-                    # Find all values that are not NaN.
-                    truth_not_nan = ~np.isnan(truth_data)
-                    forecast_not_nan = ~np.isnan(forecast_data)
-                    combined_not_nan = (
-                        np.all(
-                            np.row_stack([truth_not_nan, forecast_not_nan]),
-                            axis=0))
-                    val = self.sm.add_constant(
-                        forecast_data[:, combined_not_nan].T)
-                    est = self.sm.OLS(truth_data[combined_not_nan], val).fit()
+                    forecast_predictor = enforce_coordinate_ordering(
+                        forecast_predictor, "realization")
+                    forecast_predictor_flattened = (
+                        flatten_ignoring_masked_data(
+                            forecast_predictor.data,
+                            preserve_leading_dimension=True))
+                    val = self.sm.add_constant(forecast_predictor_flattened.T)
+                    est = self.sm.OLS(truth_flattened, val).fit()
                     intercept = est.params[0]
                     gradient = est.params[1:]
                     initial_guess = [0, 1, intercept]+gradient.tolist()
