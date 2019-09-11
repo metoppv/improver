@@ -63,13 +63,13 @@ class PystepsExtrapolate(object):
             cube (iris.cube.Cube):
                 Cube of velocities in the x or y direction
             interval (int):
-                Lead time interval, in minutes     
-      
+                Lead time interval, in minutes
+
         Returns:
             displacement (np.ndarray):
                 2D array of displacements to be applied to each time step
         """
-        cube_ms = ucube.copy()
+        cube_ms = cube.copy()
         cube_ms.convert_units('m s-1')
         displacement = cube_ms.data*interval*60.
         return np.ma.filled(displacement, np.nan)
@@ -89,8 +89,7 @@ class PystepsExtrapolate(object):
             forecast_cubes (iris.cube.CubeList):
                 List of extrapolated cubes with correct time coordinates
         """
-        current_datetime = iris_time_to_datetime(
-            self.cube.coord('time').points[0])
+        current_datetime = iris_time_to_datetime(self.cube.coord('time'))[0]
         frt_coord = self.cube.coord('time').copy()
         frt_coord.rename('forecast_reference_time')
         self.cube.add_aux_coord(frt_coord)
@@ -98,17 +97,15 @@ class PystepsExtrapolate(object):
             AuxCoord([0], 'forecast_period', 'seconds'))
 
         forecast_cubes = [self.cube.copy()]
-        for i in len(all_forecasts):
+        for i in range(len(all_forecasts)):
             # copy forecast data into template cube
-            new_cube = self.cube.copy(forecast[i, :, :])
+            new_cube = self.cube.copy(all_forecasts[i, :, :])
             # calculate new validity time
             current_datetime += timedelta(seconds=interval*60)
             current_time = datetime_to_iris_time(
                 current_datetime, time_units='seconds')
             new_cube.coord('time').points = [current_time]
-            # add a forecast period
-            new_cube.add_aux_coord(
-                AuxCoord([interval*60], 'forecast_period', 'seconds'))
+            new_cube.coord('forecast_period').points = [interval*60]
             forecast_cubes.append(new_cube)
         return forecast_cubes
 
@@ -144,29 +141,30 @@ class PystepsExtrapolate(object):
             self.cube, orographic_enhancement)
 
         # get precipitation rate data in pysteps-acceptable format
+        # TODO algorithm requires finite data, but will need to advect mask...
         self.cube.convert_units('mm h-1')
-        precip_rate = np.ma.filled(self.cube.data, np.nan)
+        precip_rate = np.ma.filled(self.cube.data, 0)  # np.nan)
 
-        # establish timesteps required TODO excludes T+0 for now - check
+        # establish timesteps required
         num_timesteps = max_lead_time // interval
 
         # generate displacement array in metres for each time step
         udisp = self._get_displacement(ucube, interval)
         vdisp = self._get_displacement(vcube, interval)
-        displacement = np.concatenate(udisp, vdisp)
-        
+        displacement = np.array([udisp, vdisp])
+
         # call pysteps extrapolation method
         all_forecasts = extrapolate(precip_rate, displacement, num_timesteps)
-        # TODO does this include T+0 field, or must that be appended?  Assume
-        # no T+0 field for now
 
         # repackage data as IMPROVER cubes
         forecast_cubes = self._generate_forecast_cubes(all_forecasts, interval)
 
         # re-convert units and re-add orographic enhancement
+        final_forecasts = []
         for cube in forecast_cubes:
             cube.convert_units(initial_cube.units)
             cube, = ApplyOrographicEnhancement("add").process(
                 cube, orographic_enhancement)
+            final_forecasts.append(cube)
 
-        return forecast_cubes
+        return final_forecasts

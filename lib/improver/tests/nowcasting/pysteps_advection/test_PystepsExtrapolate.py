@@ -37,7 +37,64 @@ import iris
 import numpy as np
 from iris.tests import IrisTest
 
-from improver.tests.set_up_test_cubes import set_up_variable_cube
+from improver.nowcasting.pysteps_advection import PystepsExtrapolate
+from improver.tests.set_up_test_cubes import (
+    set_up_variable_cube, add_coordinate)
+
+
+def _make_initial_rain_cube(time_now):
+    """Construct an 8x8 masked cube of rainfall rate for testing"""
+
+    rain_data = np.array(
+        [[0.0, 0.0, 0.1, 0.1, 0.1, 0.0, 0.0, 0.0],
+         [0.0, 0.1, 0.2, 0.3, 0.2, 0.1, 0.0, 0.0],
+         [0.1, 0.3, 0.5, 0.6, 0.4, 0.2, 0.1, 0.0],
+         [0.2, 0.6, 1.0, 1.3, 1.1, 0.5, 0.3, 0.1],
+         [0.1, 0.2, 0.6, 1.0, 0.7, 0.4, 0.1, 0.0],
+         [0.0, 0.1, 0.2, 0.5, 0.4, 0.1, 0.0, 0.0],
+         [0.0, 0.0, 0.1, 0.2, 0.1, 0.0, 0.0, 0.0],
+         [0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0]], dtype=np.float32)
+
+    # create an irregular mask
+    rain_mask = np.array(
+        [[True, True, False, False, False, True, True, True],
+         [True, False, False, False, False, False, True, True],
+         [False, False, False, False, False, False, False, True],
+         [False, False, False, False, False, False, False, False],
+         [False, False, False, False, False, False, False, False],
+         [False, False, False, False, False, False, False, True],
+         [True, False, False, False, False, False, True, True],
+         [True, True, False, False, False, True, True, True]])
+
+    rain_data = np.ma.MaskedArray(rain_data, mask=rain_mask)
+    rain_cube = set_up_variable_cube(
+        rain_data, name='rainfall_rate', units='mm/h',
+        spatial_grid='equalarea', time=time_now, frt=time_now)
+    rain_cube.remove_coord('forecast_period')
+    rain_cube.remove_coord('forecast_reference_time')
+
+    return rain_cube
+
+
+def _make_orogenh_cube(time_now, interval, max_lead_time):
+    """Construct an orographic enhancement cube with data valid for
+    every lead time"""
+    orogenh_data = 0.05*np.ones((8, 8), dtype=np.float32)
+    orogenh_cube = set_up_variable_cube(
+        orogenh_data, name='orographic_enhancement', units='mm/h',
+        spatial_grid='equalarea', time=time_now, frt=time_now)
+
+    time_points = [time_now]
+    lead_time = 0
+    while lead_time <= max_lead_time:
+        lead_time += interval
+        new_point = (
+            time_points[-1] + datetime.timedelta(seconds=60*interval))
+        time_points.append(new_point)
+
+    orogenh_cube = add_coordinate(
+        orogenh_cube, time_points, "time", is_datetime=True)
+    return orogenh_cube
 
 
 class Test_process(IrisTest):
@@ -55,22 +112,39 @@ class Test_process(IrisTest):
             wind_data, name='precipitation_advection_y_velocity',
             units='m/s', spatial_grid='equalarea', time=time_now,
             frt=time_now)
+        self.rain_cube = _make_initial_rain_cube(time_now)
 
-        rain_data = np.array(
-            [[0.0, 0.0, 0.1, 0.1, 0.1, 0.0, 0.0, 0.0],
-             [0.0, 0.1, 0.2, 0.3, 0.2, 0.1, 0.0, 0.0],
-             [0.1, 0.3, 0.5, 0.6, 0.4, 0.2, 0.1, 0.0],
-             [0.2, 0.6, 1.0, 1.3, 1.1, 0.5, 0.3, 0.1],
-             [0.1, 0.2, 0.6, 1.0, 0.7, 0.4, 0.1, 0.0],
-             [0.0, 0.1, 0.2, 0.5, 0.4, 0.1, 0.0, 0.0],
-             [0.0, 0.0, 0.1, 0.2, 0.1, 0.0, 0.0, 0.0],
-             [0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0]], dtype=np.float32)
+        self.interval = 15
+        self.max_lead_time = 120
+        self.orogenh_cube = _make_orogenh_cube(
+            time_now, self.interval, self.max_lead_time)
 
-        self.rain_cube = set_up_variable_cube(
-            rain_data, name='rainfall_rate', units='mm/h',
-            spatial_grid='equalarea', time=time_now, frt=time_now)
-        self.rain_cube.remove_coord('forecast_period')
-        self.rain_cube.remove_coord('forecast_reference_time')
+        # set up all grids with 3.6 km spacing (1 m/s = 3.6 km/h)
+        xmin = 0
+        ymin = 200000
+        step = 3600
+        xpoints = np.arange(xmin, xmin+8*step, step).astype(np.float32)
+        ypoints = np.arange(ymin, ymin+8*step, step).astype(np.float32)
+        for cube in [
+                self.ucube, self.vcube, self.rain_cube, self.orogenh_cube]:
+            cube.coord(axis='x').points = xpoints
+            cube.coord(axis='y').points = ypoints
+
+    def test_basic(self):
+        """Test output is a list of cubes with expected contents"""
+        result = PystepsExtrapolate().process(
+            self.rain_cube, self.ucube, self.vcube, self.interval,
+            self.max_lead_time, self.orogenh_cube)
+        self.assertIsInstance(result, list)
+        # check result is a list including a cube at the analysis time
+        self.assertEqual(len(result), 9)
+        self.assertIsInstance(result[0], iris.cube.Cube)
+
+        # now we have some problems with this data...
+        print(result[1])
+        print(result[1].data)
+        # TODO all data points are nans
+        # TODO data are not re-masked (extrapolation can't handle the mask)
 
 
 

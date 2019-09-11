@@ -97,7 +97,8 @@ class PystepsImporter(object):
         Return projection and coordinate information from IMPROVER cube
         """
         projdef = ""
-        for k,v in self.cube.coord_system().as_cartopy_crs().proj4_params.items():
+        crd_sys = self.cube.coord_system()
+        for k, v in crd_sys.as_cartopy_crs().proj4_params.items():
             try:
                 projdef += "+{}={:.3f} ".format(k, float(v))
             except ValueError:
