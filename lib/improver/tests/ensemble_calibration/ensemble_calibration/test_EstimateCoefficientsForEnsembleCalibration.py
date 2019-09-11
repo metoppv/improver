@@ -437,10 +437,14 @@ class Test_compute_initial_guess(IrisTest):
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def setUp(self):
-        """Use temperature cube to test with."""
+        """
+        Use temperature cube to test with. Also set up versions with a masked
+        halo surrounding the original data.
+        """
         self.distribution = "gaussian"
         self.desired_units = "degreesC"
         self.predictor_of_mean_flag = "mean"
+        self.no_of_realizations = 3
         data = np.array([[[0., 1., 2.],
                           [3., 4., 5.],
                           [6., 7., 8.]],
@@ -459,7 +463,41 @@ class Test_compute_initial_guess(IrisTest):
             "realization", iris.analysis.MEAN)
         self.current_forecast_predictor_realizations = cube.copy()
         self.truth = cube.collapsed("realization", iris.analysis.MAX)
-        self.no_of_realizations = 3
+        # Set up a version of the same cube but with a masked halo surrounding
+        # the original data.
+        data = np.array([[[np.nan, np.nan, np.nan, np.nan, np.nan],
+                          [np.nan, 0., 1., 2., np.nan],
+                          [np.nan, 3., 4., 5., np.nan],
+                          [np.nan, 6., 7., 8., np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan]],
+                         [[np.nan, np.nan, np.nan, np.nan, np.nan],
+                          [np.nan, 1., 2., 3, np.nan],
+                          [np.nan, 4., 5., 6., np.nan],
+                          [np.nan, 7., 8., 9., np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan]],
+                         [[np.nan, np.nan, np.nan, np.nan, np.nan],
+                          [np.nan, 2., 3., 4., np.nan],
+                          [np.nan, 5., 6., 7., np.nan],
+                          [np.nan, 8., 9., 10., np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan]]])
+        data = data + 273.15
+        data = data.astype(np.float32)
+        data = np.ma.masked_invalid(data)
+        cube = set_up_variable_cube(
+            data, units="Kelvin", realizations=[0, 1, 2])
+
+        # Note that when numpy collapses masked arrays it modifies the data
+        # type so we convert it back to float32.
+        self.current_forecast_predictor_mean_masked_halo = cube.collapsed(
+            "realization", iris.analysis.MEAN)
+        self.current_forecast_predictor_mean_masked_halo.data = (
+            self.current_forecast_predictor_mean_masked_halo.data.astype(
+                np.float32))
+        self.current_forecast_predictor_realizations_masked_halo = cube.copy()
+        self.truth_masked_halo = cube.collapsed(
+            "realization", iris.analysis.MAX)
+        self.truth_masked_halo.data = self.truth_masked_halo.data.astype(
+            np.float32)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -586,6 +624,59 @@ class Test_compute_initial_guess(IrisTest):
         plugin = Plugin(self.distribution, self.desired_units)
         result = plugin.compute_initial_guess(
             self.truth, self.current_forecast_predictor_realizations,
+            predictor_of_mean_flag,
+            estimate_coefficients_from_linear_model_flag,
+            no_of_realizations=self.no_of_realizations)
+        self.assertArrayAlmostEqual(result, data)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_mean_predictor_estimate_coefficients_masked_halo(self):
+        """
+        Test that the plugin returns the expected values for the initial guess
+        for the calibration coefficients, when the ensemble mean is used
+        as the predictor. The coefficients are estimated using a linear model,
+        where there is an offset of one between the truth and the forecast
+        during the training period. Therefore, in this case the result of the
+        linear regression is a gradient of 1 and an intercept of 1. In this
+        case the original data has been surrounded by a halo of masked nans,
+        which gives the same coefficients as the original data.
+        """
+        data = np.array([0., 1., 1., 1.], dtype=np.float32)
+        estimate_coefficients_from_linear_model_flag = True
+
+        plugin = Plugin(self.distribution, self.desired_units)
+        result = plugin.compute_initial_guess(
+            self.truth_masked_halo,
+            self.current_forecast_predictor_mean_masked_halo,
+            self.predictor_of_mean_flag,
+            estimate_coefficients_from_linear_model_flag)
+
+        self.assertArrayAlmostEqual(result, data)
+
+    @unittest.skipIf(
+        STATSMODELS_FOUND is False, "statsmodels module not available.")
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_realizations_predictor_estimate_coefficients_masked_halo(self):
+        """
+        Test that the plugin returns the expected values for the initial guess
+        for the calibration coefficients, when the ensemble mean is used
+        as the predictor. The coefficients are estimated using a linear model.
+        In this case, the result of the linear regression is for an intercept
+        of 0.333333 with different weights for the realizations because
+        some of the realizations are closer to the truth, in this instance. In
+        this case the original data has been surrounded by a halo of masked
+        nans, which gives the same coefficients as the original data.
+        """
+        data = [0., 1., 0.333333, 0., 0.333333, 0.666667]
+        predictor_of_mean_flag = "realizations"
+        estimate_coefficients_from_linear_model_flag = True
+
+        plugin = Plugin(self.distribution, self.desired_units)
+        result = plugin.compute_initial_guess(
+            self.truth_masked_halo,
+            self.current_forecast_predictor_realizations_masked_halo,
             predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag,
             no_of_realizations=self.no_of_realizations)
