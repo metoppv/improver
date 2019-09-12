@@ -144,7 +144,6 @@ class Test_process(IrisTest):
         print(result[1])
         print(result[1].data)
         # TODO all data points are nans
-        # TODO data are not re-masked (extrapolation can't handle the mask)
 
 
 

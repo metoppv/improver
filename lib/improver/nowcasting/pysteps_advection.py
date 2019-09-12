@@ -140,10 +140,9 @@ class PystepsExtrapolate(object):
         self.cube, = ApplyOrographicEnhancement("subtract").process(
             self.cube, orographic_enhancement)
 
-        # get precipitation rate data in pysteps-acceptable format
-        # TODO algorithm requires finite data, but will need to advect mask...
+        # unmask and convert precipitation rates into pysteps-acceptable units
         self.cube.convert_units('mm h-1')
-        precip_rate = np.ma.filled(self.cube.data, 0)  # np.nan)
+        precip_rate = np.ma.filled(self.cube.data, np.nan)
 
         # establish timesteps required
         num_timesteps = max_lead_time // interval
@@ -154,7 +153,12 @@ class PystepsExtrapolate(object):
         displacement = np.array([udisp, vdisp])
 
         # call pysteps extrapolation method
-        all_forecasts = extrapolate(precip_rate, displacement, num_timesteps)
+        all_forecasts = extrapolate(precip_rate, displacement, num_timesteps,
+                                    allow_nonfinite_values=True)
+
+        # remask forecast data TODO uncomment when values are sensible!
+        # mask = np.where(np.isfinite(all_forecasts), False, True)
+        # all_forecasts = np.ma.MaskedArray(all_forecasts, mask=mask)
 
         # repackage data as IMPROVER cubes
         forecast_cubes = self._generate_forecast_cubes(all_forecasts, interval)
