@@ -46,27 +46,18 @@ def _make_initial_rain_cube(time_now):
     """Construct an 8x8 masked cube of rainfall rate for testing"""
 
     rain_data = np.array(
-        [[0.0, 0.0, 0.1, 0.1, 0.1, 0.0, 0.0, 0.0],
-         [0.0, 0.1, 0.2, 0.3, 0.2, 0.1, 0.0, 0.0],
-         [0.1, 0.3, 0.5, 0.6, 0.4, 0.2, 0.1, 0.0],
+        [[np.nan, np.nan, 0.1, 0.1, 0.1, np.nan, np.nan, np.nan],
+         [np.nan, 0.1, 0.2, 0.3, 0.2, 0.1, np.nan, np.nan],
+         [0.1, 0.3, 0.5, 0.6, 0.4, 0.2, 0.1, np.nan],
          [0.2, 0.6, 1.0, 1.3, 1.1, 0.5, 0.3, 0.1],
          [0.1, 0.2, 0.6, 1.0, 0.7, 0.4, 0.1, 0.0],
-         [0.0, 0.1, 0.2, 0.5, 0.4, 0.1, 0.0, 0.0],
-         [0.0, 0.0, 0.1, 0.2, 0.1, 0.0, 0.0, 0.0],
-         [0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0]], dtype=np.float32)
-
-    # create an irregular mask
-    rain_mask = np.array(
-        [[True, True, False, False, False, True, True, True],
-         [True, False, False, False, False, False, True, True],
-         [False, False, False, False, False, False, False, True],
-         [False, False, False, False, False, False, False, False],
-         [False, False, False, False, False, False, False, False],
-         [False, False, False, False, False, False, False, True],
-         [True, False, False, False, False, False, True, True],
-         [True, True, False, False, False, True, True, True]])
-
+         [0.0, 0.1, 0.2, 0.5, 0.4, 0.1, 0.0, np.nan],
+         [np.nan, 0.0, 0.1, 0.2, 0.1, 0.0, np.nan, np.nan],
+         [np.nan, np.nan, 0.0, 0.1, 0.0, np.nan, np.nan, np.nan]],
+        dtype=np.float32)
+    rain_mask = np.where(np.isfinite(rain_data), False, True)
     rain_data = np.ma.MaskedArray(rain_data, mask=rain_mask)
+
     rain_cube = set_up_variable_cube(
         rain_data, name='rainfall_rate', units='mm/h',
         spatial_grid='equalarea', time=time_now, frt=time_now)
@@ -103,7 +94,7 @@ class Test_process(IrisTest):
     def setUp(self):
         """Set up test velocity and rainfall cubes"""
         time_now = datetime.datetime(2019, 9, 10, 15)
-        wind_data = np.ones((8, 8), dtype=np.float32)
+        wind_data = 4*np.ones((8, 8), dtype=np.float32)
         self.ucube = set_up_variable_cube(
             wind_data, name='precipitation_advection_x_velocity',
             units='m/s', spatial_grid='equalarea', time=time_now,
@@ -119,7 +110,8 @@ class Test_process(IrisTest):
         self.orogenh_cube = _make_orogenh_cube(
             time_now, self.interval, self.max_lead_time)
 
-        # set up all grids with 3.6 km spacing (1 m/s = 3.6 km/h)
+        # set up all grids with 3.6 km spacing (1 m/s = 3.6 km/h,
+        # using a 15 minute time step this is one grid square per step)
         xmin = 0
         ymin = 200000
         step = 3600
@@ -139,12 +131,61 @@ class Test_process(IrisTest):
         # check result is a list including a cube at the analysis time
         self.assertEqual(len(result), 9)
         self.assertIsInstance(result[0], iris.cube.Cube)
+        self.assertIsInstance(result[0].data, np.ma.MaskedArray)
 
-        # now we have some problems with this data...
-        print(result[1])
-        print(result[1].data)
-        # TODO all data points are nans
+    def test_time_coordinates(self):
+        """Test cubelist has correct time metadata"""
+        result = PystepsExtrapolate().process(
+            self.rain_cube, self.ucube, self.vcube, self.interval,
+            self.max_lead_time, self.orogenh_cube)
+        for i, cube in enumerate(result):
+            # check values (and implicitly units - all seconds)
+            tdiff_seconds = i*self.interval*60
+            self.assertEqual(cube.coord('forecast_reference_time').points[0],
+                             self.rain_cube.coord('time').points[0])
+            self.assertEqual(
+                cube.coord('forecast_period').points[0], tdiff_seconds)
+            self.assertEqual(
+                cube.coord('time').points[0],
+                self.rain_cube.coord('time').points[0] + tdiff_seconds)
 
+            # check datatypes
+            self.assertEqual(cube.coord('time').dtype, np.int64)
+            self.assertEqual(
+                cube.coord('forecast_reference_time').dtype, np.int64)
+            self.assertEqual(cube.coord('forecast_period').dtype, np.int32)
+
+    def test_values_integer_step(self):
+        """Test values for an advection speed of one grid square per time step
+        """
+        result = PystepsExtrapolate().process(
+            self.rain_cube, self.ucube, self.vcube, self.interval,
+            self.max_lead_time, self.orogenh_cube)
+        for i, cube in enumerate(result):
+            expected_data = np.full((8, 8), np.nan)
+            if i == 0:
+                expected_data = self.rain_cube.data
+            elif i < 8:
+                expected_data[i:, i:] = self.rain_cube.data[:-i, :-i]
+            self.assertTrue(np.allclose(
+                cube.data.data, expected_data, equal_nan=True))
+
+    def test_values_noninteger_step(self):
+        """Test values for an advection speed of half a grid square per time
+        step"""
+        self.ucube.data = 0.5*self.ucube.data
+        self.vcube.data = 0.5*self.vcube.data
+        result = PystepsExtrapolate().process(
+            self.rain_cube, self.ucube, self.vcube, self.interval,
+            self.max_lead_time, self.orogenh_cube)
+
+        print(result[0].data - result[1].data)
+        print(result[1].data - result[2].data)
+        # NOTE pysteps method uses nearest-neighbour interpolation to shift
+        # grid points.  This means it rounds up or down non-integer grid shifts
+        # with no interpolation between points.  This is hard-coded into the
+        # algorithm.
+        # TODO not 100% happy with this - discuss with interested parties
 
 
 

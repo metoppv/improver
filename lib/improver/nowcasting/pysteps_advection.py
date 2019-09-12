@@ -54,7 +54,7 @@ class PystepsExtrapolate(object):
     """
 
     @staticmethod
-    def _get_displacement(cube, interval):
+    def _get_displacement(cube, interval, gridlength):
         """
         Generate displacement field for each time step using velocity cube
         and interval
@@ -64,6 +64,8 @@ class PystepsExtrapolate(object):
                 Cube of velocities in the x or y direction
             interval (int):
                 Lead time interval, in minutes
+            gridlength (float32):
+                Size of grid square, in metres
 
         Returns:
             displacement (np.ndarray):
@@ -71,7 +73,7 @@ class PystepsExtrapolate(object):
         """
         cube_ms = cube.copy()
         cube_ms.convert_units('m s-1')
-        displacement = cube_ms.data*interval*60.
+        displacement = cube_ms.data*interval*60. / gridlength
         return np.ma.filled(displacement, np.nan)
 
     def _generate_forecast_cubes(self, all_forecasts, interval):
@@ -93,8 +95,8 @@ class PystepsExtrapolate(object):
         frt_coord = self.cube.coord('time').copy()
         frt_coord.rename('forecast_reference_time')
         self.cube.add_aux_coord(frt_coord)
-        self.cube.add_aux_coord(
-            AuxCoord([0], 'forecast_period', 'seconds'))
+        self.cube.add_aux_coord(AuxCoord(np.array([0], dtype=np.int32),
+                                'forecast_period', 'seconds'))
 
         forecast_cubes = [self.cube.copy()]
         for i in range(len(all_forecasts)):
@@ -104,8 +106,10 @@ class PystepsExtrapolate(object):
             current_datetime += timedelta(seconds=interval*60)
             current_time = datetime_to_iris_time(
                 current_datetime, time_units='seconds')
-            new_cube.coord('time').points = [current_time]
-            new_cube.coord('forecast_period').points = [interval*60]
+            new_cube.coord('time').points = np.array(
+                [current_time], dtype=np.int64)
+            new_cube.coord('forecast_period').points = np.array(
+                [(i+1)*interval*60], dtype=np.int32)
             forecast_cubes.append(new_cube)
         return forecast_cubes
 
@@ -148,17 +152,20 @@ class PystepsExtrapolate(object):
         num_timesteps = max_lead_time // interval
 
         # generate displacement array in metres for each time step
-        udisp = self._get_displacement(ucube, interval)
-        vdisp = self._get_displacement(vcube, interval)
+        axis = self.cube.coord(axis='x').copy()
+        axis.convert_units('m')
+        gridlength = np.diff(axis.points)[0]
+        udisp = self._get_displacement(ucube, interval, gridlength)
+        vdisp = self._get_displacement(vcube, interval, gridlength)
         displacement = np.array([udisp, vdisp])
 
         # call pysteps extrapolation method
         all_forecasts = extrapolate(precip_rate, displacement, num_timesteps,
                                     allow_nonfinite_values=True)
 
-        # remask forecast data TODO uncomment when values are sensible!
-        # mask = np.where(np.isfinite(all_forecasts), False, True)
-        # all_forecasts = np.ma.MaskedArray(all_forecasts, mask=mask)
+        # remask forecast data
+        mask = np.where(np.isfinite(all_forecasts), False, True)
+        all_forecasts = np.ma.MaskedArray(all_forecasts, mask=mask)
 
         # repackage data as IMPROVER cubes
         forecast_cubes = self._generate_forecast_cubes(all_forecasts, interval)
