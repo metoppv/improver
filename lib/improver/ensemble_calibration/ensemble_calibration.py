@@ -839,9 +839,9 @@ class EstimateCoefficientsForEnsembleCalibration():
 
         # If a landsea_mask is provided mask out the sea points
         if landsea_mask:
-            forecast_predictor = self.mask_cube(
-                forecast_predictor, landsea_mask)
-            forecast_var = self.mask_cube(forecast_var, landsea_mask)
+            self.mask_cube(forecast_predictor, landsea_mask)
+            self.mask_cube(forecast_var, landsea_mask)
+            self.mask_cube(truth, landsea_mask)
 
         # Computing initial guess for EMOS coefficients
         initial_guess = self.compute_initial_guess(

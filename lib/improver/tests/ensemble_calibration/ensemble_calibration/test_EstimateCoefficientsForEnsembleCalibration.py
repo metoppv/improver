@@ -877,6 +877,14 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions):
         self.expected_realizations_truncated_gaussian_no_statsmodels = (
             [0.0810, 1.3406, -0.0310, 0.7003, -0.0036, 0.6083])
 
+        landsea_data = np.array([[0, 0, 0, 0, 0],
+                                 [0, 1, 1, 1, 0],
+                                 [0, 1, 1, 1, 0],
+                                 [0, 1, 1, 1, 0],
+                                 [0, 0, 0, 0, 0]], dtype=np.int32)
+        self.landsea_cube = set_up_variable_cube(
+            landsea_data, name="land_binary_mask", units="1")
+
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_basic(self):
@@ -901,6 +909,27 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions):
         result = plugin.process(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
+
+        self.assertEMOSCoefficientsAlmostEqual(
+            result.data, self.expected_mean_predictor_gaussian)
+        self.assertArrayEqual(
+            result.coord("coefficient_name").points, self.coeff_names)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_coefficient_values_for_gaussian_distribution_landsea_mask(self):
+        """Ensure that the values for the optimised_coefficients match the
+        expected values, and the coefficient names also match
+        expected values for a Gaussian distribution. In this case,
+        a linear least-squares regression is used to construct the initial
+        guess. The original data is surrounded by a halo that is masked
+        out by the landsea mask, giving the same results as the original data.
+        """
+        plugin = Plugin(self.distribution, self.current_cycle)
+        result = plugin.process(
+            self.historic_temperature_forecast_cube_halo,
+            self.temperature_truth_cube_halo,
+            landsea_mask = self.landsea_cube)
 
         self.assertEMOSCoefficientsAlmostEqual(
             result.data, self.expected_mean_predictor_gaussian)
@@ -981,6 +1010,29 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions):
         result = plugin.process(
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
+
+        self.assertEMOSCoefficientsAlmostEqual(
+            result.data, self.expected_mean_predictor_truncated_gaussian)
+        self.assertArrayEqual(
+            result.coord("coefficient_name").points, self.coeff_names)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_coefficient_values_for_truncated_gaussian_distribution_mask(self):
+        """Ensure that the values for the optimised_coefficients match the
+        expected values, and the coefficient names also match
+        expected values for a truncated Gaussian distribution. In this case,
+        a linear least-squares regression is used to construct the initial
+        guess.The original data is surrounded by a halo that is masked
+        out by the landsea mask, giving the same results as the original data.
+        """
+        distribution = "truncated gaussian"
+
+        plugin = Plugin(distribution, self.current_cycle)
+        result = plugin.process(
+            self.historic_wind_speed_forecast_cube_halo,
+            self.wind_speed_truth_cube_halo,
+            landsea_mask=self.landsea_cube)
 
         self.assertEMOSCoefficientsAlmostEqual(
             result.data, self.expected_mean_predictor_truncated_gaussian)
