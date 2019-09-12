@@ -145,7 +145,7 @@ class OccurrenceBetweenThresholds(object):
         for (lower_cube, upper_cube) in self.cube_slices:
             # construct difference cube
             between_thresholds_data = (
-                lower_cube.data-upper_cube.data)*multiplier
+                lower_cube.data - upper_cube.data) * multiplier
             between_thresholds_cube = upper_cube.copy(between_thresholds_data)
 
             # add threshold coordinate bounds
