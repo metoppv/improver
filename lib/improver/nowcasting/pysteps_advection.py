@@ -53,28 +53,50 @@ class PystepsExtrapolate(object):
         pysteps.extrapolation.semilagrangian.extrapolate.html
     """
 
-    @staticmethod
-    def _get_displacement(cube, interval, gridlength):
+    def _generate_displacement_array(self, ucube, vcube, interval):
         """
-        Generate displacement field for each time step using velocity cube
-        and interval
+        Create displacement array of shape (2 x m x n) required by pysteps
+        algorithm
 
         Args:
-            cube (iris.cube.Cube):
-                Cube of velocities in the x or y direction
+            ucube (iris.cube.Cube):
+                Cube of x-advection velocities
+            vcube (iris.cube.Cube):
+                Cube of y-advection velocities
             interval (int):
-                Lead time interval, in minutes
-            gridlength (float32):
-                Size of grid square, in metres
+                Interval between required lead times, in minutes
 
         Returns:
             displacement (np.ndarray):
-                2D array of displacements to be applied to each time step
+                Array of shape (2, m, n) containing the x- and y-components
+                of the m*n displacement field (format required for pysteps
+                extrapolation algorithm)
         """
-        cube_ms = cube.copy()
-        cube_ms.convert_units('m s-1')
-        displacement = cube_ms.data*interval*60. / gridlength
-        return np.ma.filled(displacement, np.nan)
+        def _calculate_displacement(cube, interval, gridlength):
+            """
+            Generate displacement field for each time step using velocity cube
+            and interval
+
+            Args:
+                cube (iris.cube.Cube):
+                    Cube of velocities in the x or y direction
+                interval (int):
+                    Lead time interval, in minutes
+                gridlength (float):
+                    Size of grid square, in metres
+            """
+            cube_ms = cube.copy()
+            cube_ms.convert_units('m s-1')
+            displacement = cube_ms.data*interval*60. / gridlength
+            return np.ma.filled(displacement, np.nan)
+
+        axis = self.cube.coord(axis='x').copy()
+        axis.convert_units('m')
+        gridlength = np.diff(axis.points)[0]
+        udisp = _calculate_displacement(ucube, interval, gridlength)
+        vdisp = _calculate_displacement(vcube, interval, gridlength)
+        displacement = np.array([udisp, vdisp])
+        return displacement
 
     def _generate_forecast_cubes(self, all_forecasts, interval):
         """
@@ -102,7 +124,7 @@ class PystepsExtrapolate(object):
         for i in range(len(all_forecasts)):
             # copy forecast data into template cube
             new_cube = self.cube.copy(all_forecasts[i, :, :])
-            # calculate new validity time
+            # update time and forecast period coordinates
             current_datetime += timedelta(seconds=interval*60)
             current_time = datetime_to_iris_time(
                 current_datetime, time_units='seconds')
@@ -148,16 +170,11 @@ class PystepsExtrapolate(object):
         self.cube.convert_units('mm h-1')
         precip_rate = np.ma.filled(self.cube.data, np.nan)
 
-        # establish timesteps required
+        # establish number of timesteps required
         num_timesteps = max_lead_time // interval
 
-        # generate displacement array in metres for each time step
-        axis = self.cube.coord(axis='x').copy()
-        axis.convert_units('m')
-        gridlength = np.diff(axis.points)[0]
-        udisp = self._get_displacement(ucube, interval, gridlength)
-        vdisp = self._get_displacement(vcube, interval, gridlength)
-        displacement = np.array([udisp, vdisp])
+        # calculate displacement in grid squares per time step
+        displacement = self._generate_displacement_array(ucube, vcube, interval)
 
         # call pysteps extrapolation method
         all_forecasts = extrapolate(precip_rate, displacement, num_timesteps,
