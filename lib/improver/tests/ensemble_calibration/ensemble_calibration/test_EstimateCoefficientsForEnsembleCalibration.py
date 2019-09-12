@@ -936,6 +936,8 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions):
         self.assertArrayEqual(
             result.coord("coefficient_name").points, self.coeff_names)
 
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_gaussian_distribution_mismatching_inputs(
             self):
         """Test that the values for the optimised coefficients match the
