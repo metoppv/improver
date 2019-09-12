@@ -162,7 +162,10 @@ def main(argv=None):
                              'increasing, as there will be more coefficients '
                              'to solve for.')
     parser.add_argument('--landsea_mask', metavar="LANDSEA_MASK", default=None,
-                        help="Add something")
+                        help="The netCDF file containing a landsea mask on "
+                             "the same domain as the historic forecast and "
+                             "truth data. Land points are specified by ones "
+                             "and sea points are specified by zeros.")
     args = parser.parse_args(args=argv)
 
     # Load Cubes
@@ -179,8 +182,9 @@ def main(argv=None):
     # Process Cube
     coefficients = process(historic_forecast, truth, combined,
                            historic_forecast_dict, truth_dict,
-                           args.distribution, args.cycletime, landsea_mask, args.units,
-                           args.predictor_of_mean, args.max_iterations)
+                           args.distribution, args.cycletime, landsea_mask,
+                           args.units, args.predictor_of_mean,
+                           args.max_iterations)
     # Save Cube
     # Check whether a coefficients cube has been created. If the historic
     # forecasts and truths provided did not match in validity time, then
@@ -237,8 +241,9 @@ def process(historic_forecast, truth, combined, historic_forecast_dict,
             coefficients cube will be calculated relative to this cycletime.
             This cycletime is in the format YYYYMMDDTHHMMZ.
         landsea_mask(iris.cube.Cube):
-            stuff
-            Default is None.
+            A cube containing the landsea mask on the same domain as the
+            historic forecasts and truth. Land points are set to one and sea
+            poitns are set to one.
         units (str):
             The units that calibration should be undertaken in. The historical
             forecast and truth will be converted as required.

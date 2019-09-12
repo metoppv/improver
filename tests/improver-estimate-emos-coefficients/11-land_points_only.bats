@@ -31,20 +31,14 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "estimate-emos-coefficients using non-default predictor 'realizations'" {
+@test "estimate-emos-coefficients for diagnostic with assumed gaussian distribution using a landsea mask" {
   improver_check_skip_acceptance
-  if python -c "import statsmodels" &> /dev/null; then
-      KGO="estimate-emos-coefficients/realizations/with_statsmodels_kgo.nc"
-  else
-      KGO="estimate-emos-coefficients/realizations/without_statsmodels_kgo.nc"
-  fi
+  KGO="estimate-emos-coefficients/gaussian/land_only_kgo.nc"
 
   # Estimate the EMOS coefficients and check that they match the kgo.
   run improver estimate-emos-coefficients 'gaussian' '20170605T0300Z' "$TEST_DIR/output.nc" \
-      --predictor_of_mean 'realizations' \
       --historic_filepath "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/history/*.nc" \
       --truth_filepath "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/truth/*.nc" \
-      --max_iterations 150 \
       --landsea_mask "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/landmask.nc"
   [[ "$status" -eq 0 ]]
 

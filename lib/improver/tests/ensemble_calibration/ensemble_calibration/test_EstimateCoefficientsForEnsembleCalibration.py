@@ -929,7 +929,7 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions):
         result = plugin.process(
             self.historic_temperature_forecast_cube_halo,
             self.temperature_truth_cube_halo,
-            landsea_mask = self.landsea_cube)
+            landsea_mask=self.landsea_cube)
 
         self.assertEMOSCoefficientsAlmostEqual(
             result.data, self.expected_mean_predictor_gaussian)
