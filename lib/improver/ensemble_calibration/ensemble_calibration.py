@@ -729,7 +729,36 @@ class EstimateCoefficientsForEnsembleCalibration():
         return (matching_historic_forecasts.merge_cube(),
                 matching_truths.merge_cube())
 
-    def process(self, historic_forecast, truth):
+    @staticmethod
+    def mask_cube(cube, landsea_mask):
+        """
+        Mask the input cube using the given landsea_mask. Sea points are
+        filled with nans and masked.
+
+        Args:
+            cube (iris.cube.Cube):
+                A cube to be masked, on the same grid as the landsea_mask.
+                The last two dimensions on this cube must match the dimensions
+                in teh landsea_mask cube.
+            landsea_mask(iris.cube.Cube):
+                A cube containing a land sea mask. Within the
+                land sea mask cube land points should be specified as ones,
+                and sea points as zeros.
+
+        Raises:
+            IndexError: if the cube and landsea_mask shapes are not compatible.
+        """
+        try:
+            cube.data[..., ~landsea_mask.data.astype(np.bool)] = np.nan
+        except IndexError as err:
+            msg = (
+                "Cube and landsea_mask shapes are not compatible. {}".format(
+                    err))
+            raise IndexError(msg)
+        else:
+            cube.data = np.ma.masked_invalid(cube.data)
+
+    def process(self, historic_forecast, truth, landsea_mask=None):
         """
         Using Nonhomogeneous Gaussian Regression/Ensemble Model Output
         Statistics, estimate the required coefficients from historical
@@ -742,7 +771,11 @@ class EstimateCoefficientsForEnsembleCalibration():
            inputs match in validity time.
         3. Apply unit conversion to ensure that the historic forecasts and
            truth have the desired units for calibration.
-        4. Calculate mean and variance.
+        4. Calculate the variance of the historic forecasts. If the chosen
+           predictor is the mean, also calculate the mean of the historic
+           forecasts.
+        5. If a land sea mask is provided then mask out sea points in the truth
+           and predictor from the historic forecasts.
         5. Calculate initial guess at coefficient values by performing a
            linear regression, if requested, otherwise default values are
            used.
@@ -754,6 +787,11 @@ class EstimateCoefficientsForEnsembleCalibration():
                 for calibration.
             truth (iris.cube.Cube):
                 The cube containing the truth used for calibration.
+            landsea_mask (iris.cube.Cube):
+                The optional cube containing a land sea mask. If provided only
+                land points are used to calculate the coefficients. Within the
+                land sea mask cube land points should be specified as ones,
+                and sea points as zeros.
 
         Returns:
             coefficients_cube (iris.cube.Cube):
@@ -799,21 +837,20 @@ class EstimateCoefficientsForEnsembleCalibration():
         forecast_var = historic_forecast.collapsed(
             "realization", iris.analysis.VARIANCE)
 
+        # If a landsea_mask is provided mask out the sea points
+        if landsea_mask:
+            forecast_predictor = self.mask_cube(
+                forecast_predictor, landsea_mask)
+            forecast_var = self.mask_cube(forecast_var, landsea_mask)
+
         # Computing initial guess for EMOS coefficients
-        # If no initial guess from a previous iteration, or if there
-        # are NaNs in the initial guess, calculate an initial guess.
-        if "initial_guess" not in locals() or nan_in_initial_guess:
-            initial_guess = self.compute_initial_guess(
-                truth, forecast_predictor, self.predictor_of_mean_flag,
-                self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
-                no_of_realizations=no_of_realizations)
+        initial_guess = self.compute_initial_guess(
+            truth, forecast_predictor, self.predictor_of_mean_flag,
+            self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
+            no_of_realizations=no_of_realizations)
 
-        if np.any(np.isnan(initial_guess)):
-            nan_in_initial_guess = True
-
-        if not nan_in_initial_guess:
-            # Need to access the x attribute returned by the
-            # minimisation function.
+        # Calculate coefficients if there are no nans in the inital guess.
+        if not np.any(np.isnan(initial_guess)):
             optimised_coeffs = (
                 self.minimiser.process(
                     initial_guess, forecast_predictor,

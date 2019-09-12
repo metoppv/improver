@@ -774,6 +774,77 @@ class Test__filter_non_matching_cubes(SetupCubes):
                 self.partial_historic_forecasts, partial_truth)
 
 
+class Test_mask_cube(SetupCubes):
+    """Test the mask_cube method"""
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def setUp(self):
+        """Set up addtional cube for land sea mask."""
+        super().setUp()
+        mask_data = np.array([[0, 1, 0],
+                              [0, 1, 1],
+                              [1, 1, 0]],
+                             dtype=np.int32)
+        self.mask_cube = set_up_variable_cube(
+            mask_data, name="land_binary_mask", units="1")
+        self.plugin = Plugin("guassian", "20171110T0000Z")
+        # Copy a few slices of the temperature truth cube to test on.
+        self.cube3D = self.temperature_truth_cube[0:2, ...].copy()
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_basic(self):
+        """Test that a simple cube is masked in the correct way."""
+        expected_result = np.array(
+            [[[np.nan, 273.15, np.nan],
+              [np.nan, 275.75, 276.55],
+              [278.05, 278.35, np.nan]],
+             [[np.nan, 273.15, np.nan],
+              [np.nan, 275.75, 276.55],
+              [278.05, 278.35, np.nan]]], dtype=np.float32)
+        expected_result = np.ma.masked_invalid(expected_result)
+        self.plugin.mask_cube(self.cube3D, self.mask_cube)
+        self.assertArrayAlmostEqual(
+            expected_result.data, self.cube3D.data.data)
+        self.assertArrayEqual(
+            expected_result.mask, self.cube3D.data.mask)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_basic_2D_input_cube(self):
+        """Test that a simple  2D cube is masked in the correct way."""
+        cube2D = self.cube3D[0].copy()
+        expected_result = np.array(
+            [[np.nan, 273.15, np.nan],
+             [np.nan, 275.75, 276.55],
+             [278.05, 278.35, np.nan]], dtype=np.float32)
+        expected_result = np.ma.masked_invalid(expected_result)
+        self.plugin.mask_cube(cube2D, self.mask_cube)
+        self.assertArrayAlmostEqual(
+            expected_result.data, cube2D.data.data)
+        self.assertArrayEqual(
+            expected_result.mask, cube2D.data.mask)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_fail_mismatched_arrays(self):
+        """Test that an error is raised when input have incompatible shapes."""
+        cube_mismatched = self.cube3D[..., 0].copy()
+        msg = "Cube and landsea_mask shapes are not compatible."
+        with self.assertRaisesRegex(IndexError, msg):
+            self.plugin.mask_cube(cube_mismatched, self.mask_cube)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_fail_transposed_input(self):
+        """Test that an error is raised input cube is transposed"""
+        self.cube3D.transpose((2, 0, 1))
+        msg = "Cube and landsea_mask shapes are not compatible."
+        with self.assertRaisesRegex(IndexError, msg):
+            self.plugin.mask_cube(self.cube3D, self.mask_cube)
+
+
 class Test_process(SetupCubes, EnsembleCalibrationAssertions):
 
     """Test the process method"""
