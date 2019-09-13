@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "estimate-emos-coefficients for diagnostic with assumed gaussian distribution using a landsea mask" {
+@test "estimate-emos-coefficients for diagnostic with assumed gaussian distribution using a land-sea mask" {
   improver_check_skip_acceptance
   KGO="estimate-emos-coefficients/gaussian/land_only_kgo.nc"
 

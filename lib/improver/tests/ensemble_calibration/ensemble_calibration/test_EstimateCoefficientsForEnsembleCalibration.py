@@ -1012,7 +1012,7 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions):
         expected values for a truncated Gaussian distribution. In this case,
         a linear least-squares regression is used to construct the initial
         guess.The original data is surrounded by a halo that is masked
-        out by the landsea mask, giving the same results as the original data.
+        out by the land-sea mask, giving the same results as the original data.
         """
         distribution = "truncated gaussian"
 
