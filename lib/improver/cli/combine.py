@@ -36,6 +36,7 @@ import warnings
 import iris
 
 from improver.argparser import ArgParser
+from improver.cli.clize_routines import clizefy, inputcube, inputjson, outputcube
 from improver.cube_combiner import CubeCombiner
 from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.load import load_cube
@@ -45,70 +46,71 @@ from improver.utilities.save import save_netcdf
 def main(argv=None):
     """Load in arguments for the cube combiner plugin.
     """
-    parser = ArgParser(
-        description="Combine the input files into a single file using "
-                    "the requested operation e.g. + - min max etc.")
-    parser.add_argument("input_filenames", metavar="INPUT_FILENAMES",
-                        nargs="+", type=str,
-                        help="Paths to the input NetCDF files. Each input"
-                        " file should be able to be loaded as a single "
-                        " iris.cube.Cube instance. The resulting file"
-                        " metadata will be based on the first file but"
-                        " its metadata can be overwritten via"
-                        " the metadata_jsonfile option.")
-    parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
-                        help="The output path for the processed NetCDF.")
-    parser.add_argument("--operation", metavar="OPERATION",
-                        default="+",
-                        choices=["+", "-", "*",
-                                 "add", "subtract", "multiply",
-                                 "min", "max", "mean"],
-                        help="Operation to use in combining NetCDF datasets"
-                        " Default=+ i.e. add ", type=str)
-    parser.add_argument("--new-name", metavar="NEW_NAME",
-                        default=None,
-                        help="New name for the resulting dataset. Will"
-                        " default to the name of the first dataset if "
-                        "not set.", type=str)
-    parser.add_argument("--metadata_jsonfile", metavar="METADATA_JSONFILE",
-                        default=None,
-                        help="Filename for the json file containing "
-                        "required changes to the metadata. "
-                        " default=None", type=str)
-    parser.add_argument('--warnings_on', action='store_true',
-                        help="If warnings_on is set (i.e. True), "
-                        "Warning messages where metadata do not match "
-                        "will be given. Default=False", default=False)
+    # parser = ArgParser(
+    #     description="Combine the input files into a single file using "
+    #                 "the requested operation e.g. + - min max etc.")
+    # parser.add_argument("input_filenames", metavar="INPUT_FILENAMES",
+    #                     nargs="+", type=str,
+    #                     help="Paths to the input NetCDF files. Each input"
+    #                     " file should be able to be loaded as a single "
+    #                     " iris.cube.Cube instance. The resulting file"
+    #                     " metadata will be based on the first file but"
+    #                     " its metadata can be overwritten via"
+    #                     " the metadata_jsonfile option.")
+    # parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
+    #                     help="The output path for the processed NetCDF.")
+    # parser.add_argument("--operation", metavar="OPERATION",
+    #                     default="+",
+    #                     choices=["+", "-", "*",
+    #                              "add", "subtract", "multiply",
+    #                              "min", "max", "mean"],
+    #                     help="Operation to use in combining NetCDF datasets"
+    #                     " Default=+ i.e. add ", type=str)
+    # parser.add_argument("--new-name", metavar="NEW_NAME",
+    #                     default=None,
+    #                     help="New name for the resulting dataset. Will"
+    #                     " default to the name of the first dataset if "
+    #                     "not set.", type=str)
+    # parser.add_argument("--metadata_jsonfile", metavar="METADATA_JSONFILE",
+    #                     default=None,
+    #                     help="Filename for the json file containing "
+    #                     "required changes to the metadata. "
+    #                     " default=None", type=str)
+    # parser.add_argument('--warnings_on', action='store_true',
+    #                     help="If warnings_on is set (i.e. True), "
+    #                     "Warning messages where metadata do not match "
+    #                     "will be given. Default=False", default=False)
+    #
+    # args = parser.parse_args(args=argv)
+    #
+    # new_metadata = load_json_or_none(args.metadata_jsonfile)
+    # # Load cubes
+    # cubelist = iris.cube.CubeList([])
+    # new_cube_name = args.new_name
+    # for filename in args.input_filenames:
+    #     new_cube = load_cube(filename)
+    #     cubelist.append(new_cube)
+    #     if new_cube_name is None:
+    #         new_cube_name = new_cube.name()
+    #     if args.warnings_on:
+    #         if (args.new_name is None and
+    #                 new_cube_name != new_cube.name()):
+    #             msg = ("Defaulting to first cube name, {} but combining with"
+    #                    "a cube with name, {}.".format(
+    #                         new_cube_name, new_cube.name()))
+    #             warnings.warn(msg)
+    #
+    # # Process Cube
+    # result = process(cubelist, args.operation, new_cube_name,
+    #                  new_metadata, args.warnings_on)
+    #
+    # # Save Cube
+    # save_netcdf(result, args.output_filepath)
 
-    args = parser.parse_args(args=argv)
 
-    new_metadata = load_json_or_none(args.metadata_jsonfile)
-    # Load cubes
-    cubelist = iris.cube.CubeList([])
-    new_cube_name = args.new_name
-    for filename in args.input_filenames:
-        new_cube = load_cube(filename)
-        cubelist.append(new_cube)
-        if new_cube_name is None:
-            new_cube_name = new_cube.name()
-        if args.warnings_on:
-            if (args.new_name is None and
-                    new_cube_name != new_cube.name()):
-                msg = ("Defaulting to first cube name, {} but combining with"
-                       "a cube with name, {}.".format(
-                            new_cube_name, new_cube.name()))
-                warnings.warn(msg)
-
-    # Process Cube
-    result = process(cubelist, args.operation, new_cube_name,
-                     new_metadata, args.warnings_on)
-
-    # Save Cube
-    save_netcdf(result, args.output_filepath)
-
-
-def process(cubelist, operation, new_cube_name,
-            new_metadata=None, warnings_on=False):
+@clizefy
+def process(*cubelist:inputcube, operation, new_cube_name="combined",
+            new_metadata:inputjson=None, warnings_on=False) -> outputcube:
     """Module for combining Cubes.
 
     Combine the input cubes into a single cube using the requested operation.
@@ -155,6 +157,8 @@ def process(cubelist, operation, new_cube_name,
             expanded_coord=expanded_coord))
     return result
 
+
+combine_process = process
 
 if __name__ == "__main__":
     main()
