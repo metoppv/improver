@@ -162,16 +162,16 @@ def main(argv=None):
                              'increasing, as there will be more coefficients '
                              'to solve for.')
     parser.add_argument('--landsea_mask', metavar="LANDSEA_MASK", default=None,
-                        help="The netCDF file containing a landsea mask on "
+                        help="The netCDF file containing a land-sea mask on "
                              "the same domain as the historic forecast and "
                              "truth data. Land points are specified by ones "
                              "and sea points are specified by zeros.")
     args = parser.parse_args(args=argv)
 
     # Load Cubes
-    landsea_mask = load_cube(args.landsea_mask, allow_none=True)
     historic_forecast = load_cube(args.historic_filepath, allow_none=True)
     truth = load_cube(args.truth_filepath, allow_none=True)
+    landsea_mask = load_cube(args.landsea_mask, allow_none=True)
 
     combined = (load_cubelist(args.combined_filepath)
                 if args.combined_filepath else None)
@@ -240,10 +240,10 @@ def process(historic_forecast, truth, combined, historic_forecast_dict,
             the calculated EMOS coefficients. The validity time in the output
             coefficients cube will be calculated relative to this cycletime.
             This cycletime is in the format YYYYMMDDTHHMMZ.
-        landsea_mask(iris.cube.Cube):
-            A cube containing the landsea mask on the same domain as the
+        landsea_mask (iris.cube.Cube):
+            A cube containing the land-sea mask on the same domain as the
             historic forecasts and truth. Land points are set to one and sea
-            poitns are set to one.
+            points are set to one.
         units (str):
             The units that calibration should be undertaken in. The historical
             forecast and truth will be converted as required.

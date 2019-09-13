@@ -739,10 +739,10 @@ class EstimateCoefficientsForEnsembleCalibration():
             cube (iris.cube.Cube):
                 A cube to be masked, on the same grid as the landsea_mask.
                 The last two dimensions on this cube must match the dimensions
-                in teh landsea_mask cube.
+                in the landsea_mask cube.
             landsea_mask(iris.cube.Cube):
-                A cube containing a land sea mask. Within the
-                land sea mask cube land points should be specified as ones,
+                A cube containing a land-sea mask. Within the
+                land-sea mask cube land points should be specified as ones,
                 and sea points as zeros.
 
         Raises:
@@ -774,12 +774,12 @@ class EstimateCoefficientsForEnsembleCalibration():
         4. Calculate the variance of the historic forecasts. If the chosen
            predictor is the mean, also calculate the mean of the historic
            forecasts.
-        5. If a land sea mask is provided then mask out sea points in the truth
+        5. If a land-sea mask is provided then mask out sea points in the truth
            and predictor from the historic forecasts.
-        5. Calculate initial guess at coefficient values by performing a
+        6. Calculate initial guess at coefficient values by performing a
            linear regression, if requested, otherwise default values are
            used.
-        6. Perform minimisation.
+        7. Perform minimisation.
 
         Args:
             historic_forecast (iris.cube.Cube):
@@ -788,9 +788,9 @@ class EstimateCoefficientsForEnsembleCalibration():
             truth (iris.cube.Cube):
                 The cube containing the truth used for calibration.
             landsea_mask (iris.cube.Cube):
-                The optional cube containing a land sea mask. If provided only
+                The optional cube containing a land-sea mask. If provided, only
                 land points are used to calculate the coefficients. Within the
-                land sea mask cube land points should be specified as ones,
+                land-sea mask cube land points should be specified as ones,
                 and sea points as zeros.
 
         Returns:
@@ -806,10 +806,6 @@ class EstimateCoefficientsForEnsembleCalibration():
         """
         # Ensure predictor_of_mean_flag is valid.
         check_predictor_of_mean_flag(self.predictor_of_mean_flag)
-
-        # Set default values for whether there are NaN values within the
-        # initial guess.
-        nan_in_initial_guess = False
 
         historic_forecast, truth = (
             self._filter_non_matching_cubes(historic_forecast, truth))
@@ -849,17 +845,16 @@ class EstimateCoefficientsForEnsembleCalibration():
             self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
             no_of_realizations=no_of_realizations)
 
-        # Calculate coefficients if there are no nans in the inital guess.
-        if not np.any(np.isnan(initial_guess)):
+        # Calculate coefficients if there are no nans in the initial guess.
+        if np.any(np.isnan(initial_guess)):
+            optimised_coeffs = initial_guess
+        else:
             optimised_coeffs = (
                 self.minimiser.process(
                     initial_guess, forecast_predictor,
                     truth, forecast_var,
                     self.predictor_of_mean_flag,
                     self.distribution.lower()))
-            initial_guess = optimised_coeffs
-        else:
-            optimised_coeffs = initial_guess
         coefficients_cube = (
             self.create_coefficients_cube(optimised_coeffs, historic_forecast))
         return coefficients_cube

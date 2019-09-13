@@ -82,17 +82,21 @@ def flatten_ignoring_masked_data(data_array, preserve_leading_dimension=False):
     are used as predictors.
 
     Args:
-        data_array(numpy.ndarray or numpy.ma.MaskedArray):
+        data_array (numpy.ndarray or numpy.ma.MaskedArray):
             An array or masked array to be flattened. If it is masked, the
-            mask much be the same for every slice along the leading dimension.
-        preserve_leading_dimension(bool):
+            mask must be the same for every slice along the leading dimension.
+        preserve_leading_dimension (bool):
             Default False.
             If True the flattened array is reshaped so it has the same leading
             dimension as the input array. If False the returned array is 1D.
     Returns:
-        result(numpy.ndarray):
+        result (numpy.ndarray):
             A flattened array containing only valid data, either 1D or 2D
             where the leading dimension is the same as the input data_array.
+    Raises:
+        ValueError: If preserving the leading dimension and the mask on the
+                    input array is not the same for every slice along the
+                    leading dimension.
     """
     if np.ma.is_masked(data_array):
         if preserve_leading_dimension:
@@ -110,7 +114,8 @@ def flatten_ignoring_masked_data(data_array, preserve_leading_dimension=False):
     else:
         result = data_array.flatten()
     if preserve_leading_dimension:
-        # Reshape back to give the same leading dimsension in the array.
+        # Reshape back to give the same leading dimension in the array. The 2nd
+        # dimension is inferred through the use of -1.
         final_shape = (data_array.shape[0], -1)
         result = result.reshape(final_shape)
     return result

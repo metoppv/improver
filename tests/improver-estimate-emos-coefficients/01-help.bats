@@ -130,7 +130,7 @@ optional arguments:
                         of iterations may require increasing, as there will be
                         more coefficients to solve for.
   --landsea_mask LANDSEA_MASK
-                        The netCDF file containing a landsea mask on the same
+                        The netCDF file containing a land-sea mask on the same
                         domain as the historic forecast and truth data. Land
                         points are specified by ones and sea points are
                         specified by zeros.
