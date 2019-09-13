@@ -96,7 +96,7 @@ class ContinuousRankedProbabilityScoreMinimisers():
         # depending upon the distribution requested.
         self.minimisation_dict = {
             "gaussian": self.calculate_normal_crps,
-            "truncated gaussian": self.calculate_truncated_normal_crps}
+            "truncated_gaussian": self.calculate_truncated_normal_crps}
         # Maximum iterations for minimisation using Nelder-Mead.
         self.max_iterations = max_iterations
 
@@ -411,9 +411,19 @@ class EstimateCoefficientsForEnsembleCalibration():
                 iterations may require increasing, as there will be
                 more coefficients to solve for.
 
+        Raises:
+            ValueError: If the given distribution is not valid.
+
         Warns:
             ImportWarning: If the statsmodels module can't be imported.
         """
+        valid_distributions = (ContinuousRankedProbabilityScoreMinimisers().
+                               minimisation_dict.keys())
+        if distribution not in valid_distributions:
+            msg = ("Given distribution {} not available. Available "
+                   "distributions are {}".format(
+                       distribution, valid_distributions))
+            raise ValueError(msg)
         self.distribution = distribution
         self.current_cycle = current_cycle
         self.desired_units = desired_units

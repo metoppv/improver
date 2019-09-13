@@ -44,11 +44,54 @@ from improver.ensemble_calibration.ensemble_calibration import (
     ApplyCoefficientsFromEnsembleCalibration as Plugin)
 from improver.ensemble_calibration.ensemble_calibration import (
     EstimateCoefficientsForEnsembleCalibration)
+from improver.tests.ensemble_calibration.ensemble_calibration. \
+    helper_functions import SetupCubes, EnsembleCalibrationAssertions
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     test_EstimateCoefficientsForEnsembleCalibration import (
-        create_coefficients_cube)
+        create_coefficients_cube, SetupExpectedCoefficients)
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
+
+
+class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
+
+    """Set up coefficients cubes for testing."""
+
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate.",
+                          "invalid escape sequence",
+                          "can't resolve package from",
+                          "The statsmodels can not be imported"],
+        warning_types=[UserWarning, DeprecationWarning, ImportWarning,
+                       ImportWarning])
+    def setUp(self):
+        """Set up coefficients cubes for when either the ensemble mean or the
+        ensemble realizations have been used as the predictor. The coefficients
+        have been constructed from the same underlying set of ensemble
+        realizations, so application of these coefficients would be expected
+        to give similar results."""
+        super().setUp()
+        # Set up a coefficients cube when using the ensemble mean as the
+        # predictor.
+        current_cycle = "20171110T0000Z"
+        estimator = (
+            EstimateCoefficientsForEnsembleCalibration(
+                "gaussian", current_cycle, desired_units="Celsius"))
+        self.coeffs_from_mean = (
+            estimator.create_coefficients_cube(
+                self.expected_mean_predictor_gaussian,
+                self.current_temperature_forecast_cube))
+
+        # Set up a coefficients cube when using the ensemble realization as the
+        # predictor.
+        estimator = (
+            EstimateCoefficientsForEnsembleCalibration(
+                "gaussian", current_cycle, desired_units="Celsius",
+                predictor_of_mean_flag="realizations"))
+        self.coeffs_from_realizations = (
+            estimator.create_coefficients_cube(
+                self.expected_realizations_gaussian_statsmodels,
+                self.current_temperature_forecast_cube))
 
 
 class Test__init__(IrisTest):
@@ -127,39 +170,9 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test_process(IrisTest):
+class Test_process(SetupCoefficientsCubes):
 
     """Test the process plugin."""
-
-    @ManageWarnings(
-        ignored_messages=["The statsmodels can not be imported"],
-        warning_types=[ImportWarning])
-    def setUp(self):
-        """Use temperature cube to test with."""
-        data = np.ones((3, 3, 3), dtype=np.float32)
-        self.current_temperature_forecast_cube = set_up_variable_cube(
-            data, realizations=[0, 1, 2])
-
-        optimised_coeffs = [4.55819380e-06, -8.02401974e-09,
-                            1.66667055e+00, 1.00000011e+00]
-        current_cycle = "20171110T0000Z"
-        estimator = (
-            EstimateCoefficientsForEnsembleCalibration(
-                "gaussian", current_cycle, desired_units="Celsius"))
-        self.coeffs_from_mean = (
-            estimator.create_coefficients_cube(
-                optimised_coeffs, self.current_temperature_forecast_cube))
-
-        optimised_coeffs = np.array([
-            4.55819380e-06, -8.02401974e-09, 1.66667055e+00, 1.00000011e+00,
-            1.00000011e+00, 1.00000011e+00])
-        estimator = (
-            EstimateCoefficientsForEnsembleCalibration(
-                "gaussian", current_cycle, desired_units="Celsius",
-                predictor_of_mean_flag="realizations"))
-        self.coeffs_from_realizations = (
-            estimator.create_coefficients_cube(
-                optimised_coeffs, self.current_temperature_forecast_cube))
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -212,7 +225,8 @@ class Test_process(IrisTest):
             self.assertEqual(cell_method.method, "variance")
 
 
-class Test__apply_params(IrisTest):
+class Test__apply_params(
+        SetupCoefficientsCubes, EnsembleCalibrationAssertions):
 
     """Test the _apply_params plugin."""
 
@@ -224,34 +238,26 @@ class Test__apply_params(IrisTest):
         warning_types=[UserWarning, DeprecationWarning, ImportWarning,
                        ImportWarning])
     def setUp(self):
-        """Use temperature cube to test with."""
-        data = (np.tile(np.linspace(-45.0, 45.0, 9), 3).reshape(3, 3, 3) +
-                273.15)
-        data[0] -= 2
-        data[1] += 2
-        data[2] += 4
-        data = data.astype(np.float32)
-        self.current_temperature_forecast_cube = set_up_variable_cube(
-            data, units="Kelvin", realizations=[0, 1, 2])
-
-        optimised_coeffs = [4.55819380e-06, -8.02401974e-09,
-                            1.66667055e+00, 1.00000011e+00]
-        current_cycle = "20171110T0000Z"
-        estimator = (
-            EstimateCoefficientsForEnsembleCalibration(
-                "gaussian", current_cycle, desired_units="Celsius"))
-        self.coeffs_from_mean = (
-            estimator.create_coefficients_cube(
-                optimised_coeffs, self.current_temperature_forecast_cube))
-
-        optimised_coeffs = np.array([5, 1, 0, 0.57, 0.6, 0.6])
-        estimator = (
-            EstimateCoefficientsForEnsembleCalibration(
-                "gaussian", current_cycle, desired_units="Celsius",
-                predictor_of_mean_flag="realizations"))
-        self.coeffs_from_realizations = (
-            estimator.create_coefficients_cube(
-                optimised_coeffs, self.current_temperature_forecast_cube))
+        """Set up expected arrays for the calibrated ensemble mean and variance
+        depending upon whether the ensemble mean or ensemble realizations have
+        been used."""
+        super().setUp()
+        self.expected_calibrated_predictor_mean = (
+            np.array([[273.7371, 274.6500, 275.4107],
+                      [276.8409, 277.6321, 278.3928],
+                      [279.4884, 280.1578, 280.9794]]))
+        self.expected_calibrated_variance_mean = (
+            np.array([[0.2134, 0.2158, 0.0127],
+                      [0.0247, 0.0215, 0.0127],
+                      [0.0581, 0.0032, 0.0008]]))
+        self.expected_calibrated_predictor_realizations = (
+            np.array([[274.2120, 275.1703, 275.3308],
+                      [277.0504, 277.4221, 278.3881],
+                      [280.0826, 280.3248, 281.2376]]))
+        self.expected_calibrated_variance_realizations = (
+            np.array([[0.8975, 0.9075, 0.0536],
+                      [0.1038, 0.0904, 0.0536],
+                      [0.2444, 0.0134, 0.0033]]))
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -275,14 +281,11 @@ class Test__apply_params(IrisTest):
         warning_types=[UserWarning, DeprecationWarning])
     def test_calibrated_predictor(self):
         """
-        Test that the plugin returns values for the calibrated predictor (the
-        calibrated mean), which match the expected values.
+        Test that the plugin returns the expected values for the calibrated
+        ensemble mean when the ensemble mean is used as the predictor. Check
+        that the calibrated mean is similar to when the ensemble realizations
+        are used as the predictor.
         """
-        data = np.array(
-            [[231.15001794, 242.40001917, 253.65002041],
-             [264.90000639, 276.15000763, 287.40000887],
-             [298.6500101, 309.90001134, 321.15001258]]
-        )
         cube = self.current_temperature_forecast_cube
         predictor_cube = cube.collapsed("realization", iris.analysis.MEAN)
         variance_cube = cube.collapsed("realization", iris.analysis.VARIANCE)
@@ -290,7 +293,11 @@ class Test__apply_params(IrisTest):
         plugin = Plugin(cube, self.coeffs_from_mean)
         forecast_predictor, _ = (
             plugin._apply_params(predictor_cube, variance_cube))
-        self.assertArrayAlmostEqual(forecast_predictor.data, data)
+        self.assertCalibratedVariablesAlmostEqual(
+            forecast_predictor.data, self.expected_calibrated_predictor_mean)
+        self.assertArrayAlmostEqual(
+            forecast_predictor.data,
+            self.expected_calibrated_predictor_realizations, decimal=0)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -298,13 +305,11 @@ class Test__apply_params(IrisTest):
         warning_types=[UserWarning, DeprecationWarning])
     def test_calibrated_variance(self):
         """
-        Test that the plugin returns values for the calibrated variance,
-        which match the expected values.
+        Test that the plugin returns the expected values for the calibrated
+        ensemble variance when the ensemble mean is used as the predictor.
+        Check that the calibrated variance is similar to when the ensemble
+        realizations are used as the predictor.
         """
-        data = np.array([[2.07777316e-11, 2.07777316e-11, 2.07777316e-11],
-                         [2.07777316e-11, 2.07777316e-11, 2.07777316e-11],
-                         [2.07777316e-11, 2.07777316e-11, 2.07777316e-11]])
-
         cube = self.current_temperature_forecast_cube
 
         predictor_cube = cube.collapsed("realization", iris.analysis.MEAN)
@@ -313,7 +318,11 @@ class Test__apply_params(IrisTest):
         plugin = Plugin(cube, self.coeffs_from_mean)
         _, forecast_variance = (
             plugin._apply_params(predictor_cube, variance_cube))
-        self.assertArrayAlmostEqual(forecast_variance.data, data)
+        self.assertCalibratedVariablesAlmostEqual(
+            forecast_variance.data, self.expected_calibrated_variance_mean)
+        self.assertArrayAlmostEqual(
+            forecast_variance.data,
+            self.expected_calibrated_variance_realizations, decimal=0)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -321,15 +330,11 @@ class Test__apply_params(IrisTest):
         warning_types=[UserWarning, DeprecationWarning])
     def test_calibrated_predictor_realizations(self):
         """
-        Test that the plugin returns values for the calibrated forecasts,
-        which match the expected values when the individual ensemble
-        realizations are used as the predictor.
+        Test that the plugin returns the expected values for the calibrated
+        ensemble mean when the ensemble realizations are used as the predictor.
+        Check that the calibrated mean is similar to when the ensemble mean
+        is used as the predictor.
         """
-        data = np.array([[239.904142, 251.659267, 263.414393],
-                         [275.169518, 286.92465, 298.67975],
-                         [310.43488, 322.19, 333.94516]],
-                        dtype=np.float32)
-
         cube = self.current_temperature_forecast_cube
 
         predictor_cube = cube.copy()
@@ -339,8 +344,12 @@ class Test__apply_params(IrisTest):
                         predictor_of_mean_flag="realizations")
         forecast_predictor, _ = plugin._apply_params(
             predictor_cube, variance_cube)
-        self.assertArrayAlmostEqual(forecast_predictor.data, data,
-                                    decimal=4)
+        self.assertCalibratedVariablesAlmostEqual(
+            forecast_predictor.data,
+            self.expected_calibrated_predictor_realizations)
+        self.assertArrayAlmostEqual(
+            forecast_predictor.data,
+            self.expected_calibrated_predictor_mean, decimal=0)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -348,14 +357,11 @@ class Test__apply_params(IrisTest):
         warning_types=[UserWarning, DeprecationWarning])
     def test_calibrated_variance_realizations(self):
         """
-        Test that the plugin returns values for the calibrated forecasts,
-        which match the expected values when the individual ensemble
-        realizations are used as the predictor.
+        Test that the plugin returns the expected values for the calibrated
+        ensemble variance when the ensemble realizations are used as the
+        predictor. Check that the calibrated variance is similar to when the
+        ensemble mean is used as the predictor.
         """
-        data = np.array([[34.333333, 34.333333, 34.333333],
-                         [34.333333, 34.333333, 34.333333],
-                         [34.333333, 34.333333, 34.333333]])
-
         cube = self.current_temperature_forecast_cube
 
         predictor_cube = cube.copy()
@@ -365,8 +371,12 @@ class Test__apply_params(IrisTest):
                         predictor_of_mean_flag="realizations")
         _, forecast_variance = plugin._apply_params(
             predictor_cube, variance_cube)
-        self.assertArrayAlmostEqual(forecast_variance.data, data,
-                                    decimal=4)
+        self.assertCalibratedVariablesAlmostEqual(
+            forecast_variance.data,
+            self.expected_calibrated_variance_realizations)
+        self.assertArrayAlmostEqual(
+            forecast_variance.data,
+            self.expected_calibrated_variance_mean, decimal=0)
 
 
 if __name__ == '__main__':
