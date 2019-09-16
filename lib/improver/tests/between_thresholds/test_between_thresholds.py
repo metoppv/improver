@@ -67,7 +67,7 @@ class Test_process(IrisTest):
             [[0.8, 0.7, 0.6], [0.7, 0.6, 0.5], [0.6, 0.5, 0.4]],
             [[0.1, 0.2, 0.3], [0.0, 0.1, 0.2], [0.0, 0.0, 0.1]]],
             dtype=np.float32)
-        plugin = OccurrenceBetweenThresholds(threshold_ranges, 'K')
+        plugin = OccurrenceBetweenThresholds(threshold_ranges.copy(), 'K')
         result = plugin.process(self.temp_cube)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(
@@ -85,7 +85,7 @@ class Test_process(IrisTest):
         expected_data = np.array(
             [[0.8, 0.7, 0.6], [0.7, 0.6, 0.5], [0.6, 0.5, 0.4]],
             dtype=np.float32)
-        plugin = OccurrenceBetweenThresholds(threshold_ranges, 'm')
+        plugin = OccurrenceBetweenThresholds(threshold_ranges.copy(), 'm')
         result = plugin.process(self.vis_cube)
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertArrayAlmostEqual(
