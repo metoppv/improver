@@ -125,6 +125,7 @@ def process(*cubelist: inputcube, operation='+', new_name=None,
         operation (str):
             "+", "-", "*", "add", "subtract", "multiply", "min", "max", "mean"
             An operation to use in combining Cubes.
+            Default is '+'.
         new_name (str):
             New name for the resulting dataset.
         new_metadata (dict):

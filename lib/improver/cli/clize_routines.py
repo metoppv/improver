@@ -47,8 +47,6 @@ def maybe_coerce_with(conv, obj):
 @clize.parser.value_converter
 def inputcube(input):
     from improver.utilities.load import load_cube
-    import sys
-    sys.stdout.write("\ninput = %s\n\n" % input)
     return maybe_coerce_with(load_cube, input)
 
 
