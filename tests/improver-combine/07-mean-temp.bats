@@ -36,11 +36,11 @@
   KGO="combine/bounds/kgo_mean.nc"
 
   # Run cube-combiner processing and check it passes.
-  run improver combine \
-      --operation='mean' \
-      --metadata_jsonfile="$IMPROVER_ACC_TEST_DIR/combine/bounds/time_bound.json" \
+    PYTHONPATH=$PWD/lib python3 -m improver.cli combine \
       $IMPROVER_ACC_TEST_DIR/combine/bounds/20180101T0?00Z-PT000?H-temperature_at_screen_level.nc \
-      "$TEST_DIR/output.nc"
+      --operation='mean' \
+      --new-metadata="$IMPROVER_ACC_TEST_DIR/combine/bounds/time_bound.json" \
+      --output="$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
