@@ -104,7 +104,7 @@ def main(argv=None):
                 warnings.warn(msg)
 
     # Process Cube
-    result = process(cubelist, operation=args.operation, new_cube_name=new_cube_name,
+    result = process(*cubelist, operation=args.operation, new_cube_name=new_cube_name,
                      new_metadata=new_metadata, warnings_on=args.warnings_on)
 
     # Save Cube
@@ -112,7 +112,7 @@ def main(argv=None):
 
 
 @clizefy
-def process(*cubelist: inputcube, operation, new_name="combined",
+def process(*cubelist: inputcube, operation, new_name=None,
             new_metadata: inputjson=None, warnings_on=False) -> outputcube:
     """Module for combining Cubes.
 
@@ -150,7 +150,8 @@ def process(*cubelist: inputcube, operation, new_name="combined",
             new_attr = new_metadata['attributes']
         if 'expanded_coord' in new_metadata:
             expanded_coord = new_metadata['expanded_coord']
-
+    if new_name is None:
+        new_name = cubelist[0].name()
     result = (
         CubeCombiner(operation, warnings_on=warnings_on).process(
             CubeList(cubelist), new_name, revised_coords=new_coords,

@@ -1,16 +1,12 @@
 import clize
 import clize.help
-from iris.cube import CubeList
 import sigtools.wrappers
-
-# dirty hack to fix terminal width in a notebook
-# (not needed in an actual terminal)
 
 # help helpers
 
 
 def docutilize(obj):
-    from  inspect import cleandoc
+    from inspect import cleandoc
     from sphinx.ext.napoleon.docstring import GoogleDocstring, NumpyDocstring
     if type(obj) == str:
         doc = obj
@@ -51,6 +47,8 @@ def maybe_coerce_with(conv, obj):
 @clize.parser.value_converter
 def inputcube(input):
     from improver.utilities.load import load_cube
+    import sys
+    sys.stdout.write("\ninput = %s\n\n" % input)
     return maybe_coerce_with(load_cube, input)
 
 
