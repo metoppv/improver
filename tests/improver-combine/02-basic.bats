@@ -36,12 +36,12 @@
   KGO="combine/basic/kgo_cloud.nc"
 
   # Run cube-combiner processing and check it passes.
-  run improver combine \
-      --operation='max' \
-      --new-name='total_cloud_cover_excluding_high_cloud' \
+  PYTHONPATH=$PWD/lib python3 -m improver.cli combine  \
       "$IMPROVER_ACC_TEST_DIR/combine/basic/low_cloud.nc" \
       "$IMPROVER_ACC_TEST_DIR/combine/basic/medium_cloud.nc" \
-      "$TEST_DIR/output.nc"
+      --operation='max' \
+      --new-name='total_cloud_cover_excluding_high_cloud' \
+      --output="$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

@@ -1,13 +1,13 @@
-import io
 import clize
 import clize.help
+from iris.cube import CubeList
 import sigtools.wrappers
 
 # dirty hack to fix terminal width in a notebook
 # (not needed in an actual terminal)
-clize.util.get_terminal_width = lambda: 78
 
 # help helpers
+
 
 def docutilize(obj):
     from  inspect import cleandoc
@@ -28,10 +28,12 @@ def docutilize(obj):
     obj.__doc__ = doc
     return obj
 
+
 class HelpForNapoleonDocstring(clize.help.HelpForAutodetectedDocstring):
     def add_docstring(self, docstring, *args, **kwargs):
         docstring = docutilize(docstring)
         super().add_docstring(docstring, *args, **kwargs)
+
 
 class DocutilizeClizeHelp(clize.help.ClizeHelp):
     def __init__(self, subject, owner,
@@ -40,14 +42,17 @@ class DocutilizeClizeHelp(clize.help.ClizeHelp):
 
 # converters
 
+
 def maybe_coerce_with(conv, obj):
     """Apply converter if str, pass through otherwise."""
     return conv(obj) if isinstance(obj, str) else obj
+
 
 @clize.parser.value_converter
 def inputcube(input):
     from improver.utilities.load import load_cube
     return maybe_coerce_with(load_cube, input)
+
 
 @clize.parser.value_converter
 def inputjson(input):
@@ -56,12 +61,14 @@ def inputjson(input):
 
 # output handling
 
+
 def outputcube(cube, output):
     """Save Cube. Used as annotation of return values."""
     from improver.utilities.save import save_netcdf
     if output:
         save_netcdf(cube, output)
     return cube
+
 
 def save_at_index(index, outfile, func, *args, **kwargs):
     """Helper function to save one value out of multiple returned."""
@@ -82,6 +89,7 @@ def save_at_index(index, outfile, func, *args, **kwargs):
         saver(res, out)
     return result
 
+
 @sigtools.wrappers.decorator
 def with_output(wrapped, *args, output=None, **kwargs):
     """
@@ -90,6 +98,7 @@ def with_output(wrapped, *args, output=None, **kwargs):
     return save_at_index(0, output, wrapped, *args, **kwargs)
 
 # cli object creation and handling
+
 
 def clizefy(func=None, with_output=with_output,
             helper_class=DocutilizeClizeHelp, **kwargs):
