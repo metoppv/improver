@@ -37,7 +37,6 @@
 
   # Run cube-combiner processing and check it passes.
     PYTHONPATH=$PWD/lib python3 -m improver.cli combine \
-      $IMPROVER_ACC_TEST_DIR/combine/bounds/*H-temperature_at_screen_level_min.nc \
       $IMPROVER_ACC_TEST_DIR/combine/bounds/*H-temperature_at_screen_level_max.nc \
       --operation='max' \
       --new-metadata="$IMPROVER_ACC_TEST_DIR/combine/bounds/time_bound.json" \
