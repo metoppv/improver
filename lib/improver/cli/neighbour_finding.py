@@ -34,6 +34,7 @@
 from argparse import RawDescriptionHelpFormatter
 from textwrap import wrap
 
+import numpy as np
 import cartopy.crs as ccrs
 import iris
 
@@ -292,7 +293,7 @@ def process(orography, landmask, site_list, metadata_dict=None,
 
         squeezed_cubes = iris.cube.CubeList([])
         for index, cube in enumerate(all_methods):
-            cube.coord('neighbour_selection_method').points = index
+            cube.coord('neighbour_selection_method').points = np.int32(index)
             squeezed_cubes.append(iris.util.squeeze(cube))
 
         result = merge_cubes(squeezed_cubes)

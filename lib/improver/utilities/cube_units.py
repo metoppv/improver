@@ -100,6 +100,7 @@ def enforce_units_and_dtypes(cubes, coords=None, enforce=True):
             item.convert_units(units)
         except ValueError:
             msg = '{} units cannot be converted to "{}"\n'
+            msg = msg.format(item.units, units)
             error_string += msg
 
         # attempt to convert datatype and record any errors
@@ -109,7 +110,7 @@ def enforce_units_and_dtypes(cubes, coords=None, enforce=True):
             else:
                 _convert_coordinate_dtype(item, dtype)
         except ValueError as cause:
-            error_string += cause + '\n'
+            error_string += str(cause) + '\n'
 
     # if any errors were raised, re-raise with all messages here
     if error_string:
@@ -140,6 +141,11 @@ def _find_dict_key(input_key):
     if "probability" in input_key:
         # this avoids duplicate results from key matching below
         return "probability"
+
+    exact_match = set([input_key]).intersection(DEFAULT_UNITS.keys())
+    if exact_match:
+        # returns the exact match if available
+        return list(exact_match)[0]
 
     matching_keys = []
     for key in DEFAULT_UNITS.keys():
@@ -205,7 +211,7 @@ def _check_units_and_dtype(obj, units, dtype):
     if Unit(obj.units) != Unit(units):
         return False
 
-    if obj.dtype != dtype:
+    if obj.dtype.type != dtype:
         return False
 
     return True

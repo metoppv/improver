@@ -36,6 +36,7 @@ import cf_units
 import iris
 
 from improver.utilities.cube_checker import check_cube_not_float64
+from improver.utilities.cube_units import enforce_units_and_dtypes
 
 
 def _append_metadata_cube(cubelist, global_keys):
@@ -102,31 +103,6 @@ def _order_cell_methods(cube):
     cube.cell_methods = cell_methods
 
 
-def _check_for_units(cube):
-    """
-    Check whether the cube data or coordinates have "unknown" units.
-
-    Args:
-        cube (iris.cube.Cube):
-            Cube to check data and coordinate units
-
-    Raises:
-        ValueError:
-            If units are "unknown"
-    """
-    data_unit = cf_units.Unit(cube.units)
-    if data_unit.is_unknown():
-        raise ValueError(
-            "Cannot save '{}' cube with unknown units".format(cube.name()))
-
-    for coord in cube.coords():
-        coord_unit = cf_units.Unit(coord.units)
-        if coord_unit.is_unknown():
-            raise ValueError(
-                "Cannot save '{}' cube with coordinate '{}' in unknown units"
-                .format(cube.name(), coord.name()))
-
-
 def save_netcdf(cubelist, filename):
     """Save the input Cube or CubeList as a NetCDF file.
 
@@ -151,7 +127,7 @@ def save_netcdf(cubelist, filename):
     for cube in cubelist:
         check_cube_not_float64(cube)
         _order_cell_methods(cube)
-        _check_for_units(cube)
+        enforce_units_and_dtypes(cube, enforce=False)
     # If all xy slices are the same shape, use this to determine
     # the chunksize for the netCDF (eg. 1, 1, 970, 1042)
     chunksizes = None

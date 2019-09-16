@@ -485,10 +485,10 @@ class OrographicEnhancement:
         Returns:
             (tuple): tuple containing:
                 **orogenh** (iris.cube.Cube):
-                    Orographic enhancement cube on 1 km UKPP grid
+                    Orographic enhancement cube on 1 km UKPP grid (m s-1)
                 **orogenh_standard_grid** (iris.cube.Cube):
                     Orographic enhancement cube on the UK standard grid, padded
-                    with masked np.nans where outside the UKPP domain
+                    with masked np.nans where outside the UKPP domain (m s-1)
         """
         # create cube containing high resolution data in mm/h
         x_coord = self.topography.coord(axis='x')
@@ -514,6 +514,7 @@ class OrographicEnhancement:
             units="mm h-1", attributes=attributes,
             dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)],
             aux_coords_and_dims=aux_coords)
+        orogenh.convert_units("m s-1")
 
         # regrid the orographic enhancement cube onto the standard grid and
         # mask extrapolated points

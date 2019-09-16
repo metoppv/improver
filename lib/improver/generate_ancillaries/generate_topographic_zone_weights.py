@@ -205,6 +205,8 @@ class GenerateTopographicZoneWeights(object):
                     threshold_units, sea_points_included=sea_points_included))
             topographic_zone_cubes.append(topographic_zone_cube)
         topographic_zone_weights = topographic_zone_cubes.concatenate_cube()
+        topographic_zone_weights.data = (
+            topographic_zone_weights.data.astype(np.float32))
 
         # Ensure topographic_zone coordinate units is equal to orography units.
         topographic_zone_weights.coord("topographic_zone").convert_units(

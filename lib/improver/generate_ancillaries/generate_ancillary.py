@@ -61,7 +61,8 @@ def _make_mask_cube(
             Cube containing the mask_data array, with appropriate coordinate
             and attribute information.
     """
-    mask_cube = iris.cube.Cube(mask_data, long_name='Topography mask')
+    mask_data = mask_data.astype(np.int32)
+    mask_cube = iris.cube.Cube(mask_data, long_name='topography_mask')
     if any([item is None for item in topographic_bounds]):
         msg = ("The topographic bounds variable should have both an "
                "upper and lower limit: "
@@ -126,6 +127,7 @@ class CorrectLandSeaMask(object):
         standard_landmask.data[mask_sea] = False
         mask_land = np.ma.masked_greater(standard_landmask.data, 0.).mask
         standard_landmask.data[mask_land] = True
+        standard_landmask.data = standard_landmask.data.astype(np.int32)
         return standard_landmask
 
 
