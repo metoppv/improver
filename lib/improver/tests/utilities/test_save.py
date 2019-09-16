@@ -177,9 +177,10 @@ class Test_save_netcdf(IrisTest):
                             for key in global_keys_in_file))
 
     def test_error_unknown_units(self):
-        """Test value error when trying to save a cube with no units"""
+        """Test key error when trying to save a cube with no units"""
         no_units_cube = iris.cube.Cube([1])
-        with self.assertRaisesRegex(ValueError, "Cannot save 'unknown' cube"):
+        with self.assertRaisesRegex(
+                KeyError, "Name 'unknown' is not uniquely defined in units"):
             save_netcdf(no_units_cube, self.filepath)
 
 
