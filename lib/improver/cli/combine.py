@@ -112,7 +112,7 @@ def main(argv=None):
 
 
 @clizefy
-def process(*cubelist: inputcube, operation, new_name=None,
+def process(*cubelist: inputcube, operation='+', new_name=None,
             new_metadata: inputjson=None, warnings_on=False) -> outputcube:
     """Module for combining Cubes.
 
