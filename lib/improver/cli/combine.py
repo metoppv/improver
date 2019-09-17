@@ -48,7 +48,7 @@ def process(*cubelist: inputcube, operation='+', new_name=None,
     e.g. '+', '-', '*', 'add', 'subtract', 'multiply', 'min', 'max', 'mean'
 
     Args:
-        cubelist (iris.cube.CubeList):
+        cubelist (iris.cube.CubeList or list of iris.cube.Cube):
             An iris CubeList to be combined.
         operation (str):
             "+", "-", "*", "add", "subtract", "multiply", "min", "max", "mean"
@@ -79,7 +79,7 @@ def process(*cubelist: inputcube, operation='+', new_name=None,
             new_attr = new_metadata['attributes']
         if 'expanded_coord' in new_metadata:
             expanded_coord = new_metadata['expanded_coord']
-    if cubelist is None:
+    if not cubelist:
         raise TypeError("A cube is needed to be combined.")
     if new_name is None:
         new_name = cubelist[0].name()

@@ -72,7 +72,7 @@ def process_command(progname, command, *args, verbose=False):
 def postprocess_command(progname, result, *post_args):
     """Postprocess result from command execution."""
     try:
-        output = post_args[post_args.index('--output') + 1]
+        post_args[post_args.index('--output') + 1]
     except (ValueError, IndexError):
         return result  # we could reraise here to require output
     return

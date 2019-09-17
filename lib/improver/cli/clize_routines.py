@@ -38,6 +38,17 @@ import sigtools.wrappers
 
 
 def docutilize(obj):
+    """
+
+    Args:
+        obj (str or obj):
+            Takes an object and changes it's docstrings to a suitable format
+            for clize.
+    Returns:
+        (str or obj):
+            A string with replaced docstrings. or an altered string depending
+            on the format of the input.
+    """
     from inspect import cleandoc
     from sphinx.ext.napoleon.docstring import GoogleDocstring, NumpyDocstring
     if type(obj) == str:
@@ -51,19 +62,22 @@ def docutilize(obj):
     doc = doc.replace(':exc:', '')
     doc = doc.replace(':keyword', ':param')
     doc = doc.replace(':kwtype', ':type')
-    if type(obj) == str:
+    if isinstance(obj, str):
         return doc
     obj.__doc__ = doc
     return obj
 
 
 class HelpForNapoleonDocstring(clize.help.HelpForAutodetectedDocstring):
+    """Help for Napolean Docstrings."""
     def add_docstring(self, docstring, *args, **kwargs):
+        """Adds the updated docstring."""
         docstring = docutilize(docstring)
         super().add_docstring(docstring, *args, **kwargs)
 
 
 class DocutilizeClizeHelp(clize.help.ClizeHelp):
+
     def __init__(self, subject, owner,
                  builder=HelpForNapoleonDocstring.from_subject):
         super().__init__(subject, owner, builder)
@@ -71,21 +85,44 @@ class DocutilizeClizeHelp(clize.help.ClizeHelp):
 # converters
 
 
-def maybe_coerce_with(conv, obj):
+def maybe_coerce_with(convert, obj):
     """Apply converter if str, pass through otherwise."""
-    return conv(obj) if isinstance(obj, str) else obj
+    return convert(obj) if isinstance(obj, str) else obj
 
 
 @clize.parser.value_converter
-def inputcube(input):
+def inputcube(to_convert):
+    """
+
+    Args:
+        to_convert (string or obj):
+            calls maybe_coerce_with function with the input and load_cube.
+
+    Returns:
+        (obj):
+            The result of maybe_coerce_with.
+
+    """
     from improver.utilities.load import load_cube
-    return maybe_coerce_with(load_cube, input)
+    return maybe_coerce_with(load_cube, to_convert)
 
 
 @clize.parser.value_converter
-def inputjson(input):
+def inputjson(to_convert):
+    """
+
+    Args:
+        to_convert (string or obj):
+            calls maybe_coerce_with function with the input and
+            load_json_or_none.
+
+    Returns:
+        (obj):
+            The result of maybe_coerce_with.
+
+    """
     from improver.utilities.cli_utilities import load_json_or_none
-    return maybe_coerce_with(load_json_or_none, input)
+    return maybe_coerce_with(load_json_or_none, to_convert)
 
 # output handling
 
@@ -104,7 +141,7 @@ def save_at_index(index, outfile, func, *args, **kwargs):
     saver = func.__annotations__.get('return')
     if not outfile or not saver:
         return result
-    if type(saver) == tuple:
+    if isinstance(saver, tuple):
         saver = saver[index]
         result_selection = result[index]
     elif index:
