@@ -121,7 +121,7 @@ def optionalcube(to_convert):
 
     """
     from improver.utilities.load import load_cube
-    return maybe_coerce_with(load_cube, to_convert, {'None': True})
+    return maybe_coerce_with(load_cube, to_convert, **{'allow_none': True})
 
 
 @clize.parser.value_converter

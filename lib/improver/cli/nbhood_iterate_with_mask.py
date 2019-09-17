@@ -33,10 +33,13 @@
 defining a series of masks."""
 
 from improver.argparser import ArgParser
-from improver.cli.clize_routines import inputcube, clizefy, with_intermediate_output, outputcube, optionalcube
-from improver.nbhood.use_nbhood import (
-    ApplyNeighbourhoodProcessingWithAMask,
-    CollapseMaskedNeighbourhoodCoordinate)
+from improver.cli.clize_routines import (inputcube,
+                                         clizefy,
+                                         with_intermediate_output,
+                                         outputcube,
+                                         optionalcube)
+from improver.nbhood.use_nbhood import (ApplyNeighbourhoodProcessingWithAMask,
+                                        CollapseMaskedNeighbourhoodCoordinate)
 from improver.utilities.cli_utilities import radius_or_radii_and_lead
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
