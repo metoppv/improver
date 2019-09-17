@@ -60,7 +60,7 @@ def radius_or_radii_and_lead(radius=None, radii_by_lead_time=None):
     Args:
         radius (float or None):
             If it exists it returns it as a radius
-        radii_by_lead_time (list of str or None):
+        radii_by_lead_time (list of float or None):
             If radius doesn't exist and this does, it splits by a comma
             and gives radius_or_radii [0] and lead_times [1].
 

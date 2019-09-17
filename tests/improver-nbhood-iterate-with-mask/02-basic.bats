@@ -36,8 +36,11 @@
   KGO="nbhood-iterate-with-mask/basic/kgo_basic.nc"
 
   # Run neighbourhood processing and check it passes.
-  run improver nbhood-iterate-with-mask 'topographic_zone' "$IMPROVER_ACC_TEST_DIR/nbhood-iterate-with-mask/basic/input.nc"\
-      "$IMPROVER_ACC_TEST_DIR/nbhood-iterate-with-mask/basic/mask.nc" "$TEST_DIR/output.nc" --radius=20000
+  PYTHONPATH=$PWD/lib python3 -m improver.cli nb-mask \
+      --coord-for-masking='topographic_zone' \
+      "$IMPROVER_ACC_TEST_DIR/nbhood-iterate-with-mask/basic/input.nc" \
+      "$IMPROVER_ACC_TEST_DIR/nbhood-iterate-with-mask/basic/mask.nc" \
+      --output="$TEST_DIR/output.nc" --radius=20000
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

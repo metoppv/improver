@@ -85,9 +85,9 @@ class DocutilizeClizeHelp(clize.help.ClizeHelp):
 # converters
 
 
-def maybe_coerce_with(convert, obj):
+def maybe_coerce_with(convert, obj, **kwargs):
     """Apply converter if str, pass through otherwise."""
-    return convert(obj) if isinstance(obj, str) else obj
+    return convert(obj, **kwargs) if isinstance(obj, str) else obj
 
 
 @clize.parser.value_converter
@@ -105,6 +105,23 @@ def inputcube(to_convert):
     """
     from improver.utilities.load import load_cube
     return maybe_coerce_with(load_cube, to_convert)
+
+
+@clize.parser.value_converter
+def optionalcube(to_convert):
+    """
+
+    Args:
+        to_convert (string or obj):
+            calls maybe_coerce_with function with the input and load_cube.
+
+    Returns:
+        (obj):
+            The result of maybe_coerce_with.
+
+    """
+    from improver.utilities.load import load_cube
+    return maybe_coerce_with(load_cube, to_convert, {'None': True})
 
 
 @clize.parser.value_converter
@@ -163,6 +180,15 @@ def with_output(wrapped, *args, output=None, **kwargs):
     :param output: Output file name
     """
     return save_at_index(0, output, wrapped, *args, **kwargs)
+
+
+@sigtools.wrappers.decorator
+def with_intermediate_output(wrapped, *args, intermediate_output=None,
+                             **kwargs):
+    """
+    :param intermediate_output: Output file name for intermediate result
+    """
+    return save_at_index(1, intermediate_output, wrapped, *args, **kwargs)
 
 # cli object creation and handling
 

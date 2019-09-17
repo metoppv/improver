@@ -33,6 +33,7 @@ import clize
 
 from improver.cli.clize_routines import clizefy
 from improver.cli.combine import combine_process
+from improver.cli.nbhood_iterate_with_mask import nbmask_process
 
 
 def preprocess_command(progname, command, *args):
@@ -126,10 +127,12 @@ def improver_help(progname: clize.parameters.pass_name,
 
 # mapping of command names to CLI objects
 # 'combine': combine_process = improver.cli.combine.process
+# 'nb_mask': nbmask_process = improver.cli.nbhood_iterate_with_mask.process
 
 cli_table = {
     'help': improver_help,
-    'combine': combine_process
+    'combine': combine_process,
+    'nb_mask': nbmask_process
 }
 
 # main CLI object with subcommands

@@ -33,6 +33,7 @@
 defining a series of masks."""
 
 from improver.argparser import ArgParser
+from improver.cli.clize_routines import inputcube, clizefy, with_intermediate_output, outputcube, optionalcube
 from improver.nbhood.use_nbhood import (
     ApplyNeighbourhoodProcessingWithAMask,
     CollapseMaskedNeighbourhoodCoordinate)
@@ -149,9 +150,13 @@ def main(argv=None):
         save_netcdf(intermediate_cube, args.intermediate_filepath)
 
 
-def process(cube, mask_cube, weights, coord_for_masking, radius=None,
-            radii_by_lead_time=None, sum_or_fraction="fraction", re_mask=False,
-            collapse_dimension=False):
+@clizefy
+@with_intermediate_output
+def process(cube: inputcube, mask_cube: inputcube, *,
+            weights: optionalcube = None,
+            coord_for_masking, radius: float = None, radii_by_lead_time=None,
+            sum_or_fraction="fraction", re_mask=False,
+            collapse_dimension=False) -> (outputcube, outputcube):
     """Runs neighbourhooding processing iterating over a coordinate by mask.
 
     Apply the requested neighbourhood method via the
@@ -174,7 +179,7 @@ def process(cube, mask_cube, weights, coord_for_masking, radius=None,
             Cube to be processed.
         mask_cube (iris.cube.Cube):
             Cube to act as a mask.
-        weights (iris.cube.Cube):
+        weights (iris.cube.Cube, Optional):
             Cube containing the weights which are used for collapsing the
             dimension gained through masking.
         coord_for_masking (str):
@@ -238,5 +243,7 @@ def process(cube, mask_cube, weights, coord_for_masking, radius=None,
     return result, intermediate_cube
 
 
+nbmask_process = process
+
 if __name__ == "__main__":
-    main()
+    process()
