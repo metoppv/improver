@@ -58,7 +58,7 @@ class Test__repr__(IrisTest):
         result = str(Plugin())
         msg = ("<ContinuousRankedProbabilityScoreMinimisers: "
                "minimisation_dict: {'gaussian': 'calculate_normal_crps', "
-               "'truncated gaussian': 'calculate_truncated_normal_crps'}; "
+               "'truncated_gaussian': 'calculate_truncated_normal_crps'}; "
                "max_iterations: 1000>")
         self.assertEqual(result, msg)
 
@@ -68,7 +68,7 @@ class Test__repr__(IrisTest):
         result = str(Plugin(max_iterations=10))
         msg = ("<ContinuousRankedProbabilityScoreMinimisers: "
                "minimisation_dict: {'gaussian': 'calculate_normal_crps', "
-               "'truncated gaussian': 'calculate_truncated_normal_crps'}; "
+               "'truncated_gaussian': 'calculate_truncated_normal_crps'}; "
                "max_iterations: 10>")
         self.assertEqual(result, msg)
 
@@ -517,7 +517,7 @@ class Test_process_truncated_gaussian_distribution(
         is the predictor.
         """
         predictor_of_mean_flag = "mean"
-        distribution = "truncated gaussian"
+        distribution = "truncated_gaussian"
 
         plugin = Plugin()
         result = plugin.process(
@@ -541,7 +541,7 @@ class Test_process_truncated_gaussian_distribution(
         coefficients. The ensemble realizations are the predictor.
         """
         predictor_of_mean_flag = "realizations"
-        distribution = "truncated gaussian"
+        distribution = "truncated_gaussian"
 
         plugin = Plugin()
         result = plugin.process(
@@ -609,7 +609,7 @@ class Test_process_truncated_gaussian_distribution(
         """
         predictor_of_mean_flag = "mean"
         max_iterations = 400
-        distribution = "truncated gaussian"
+        distribution = "truncated_gaussian"
 
         plugin = Plugin(max_iterations=max_iterations)
         result = plugin.process(
@@ -637,7 +637,7 @@ class Test_process_truncated_gaussian_distribution(
         """
         predictor_of_mean_flag = "realizations"
         max_iterations = 1000
-        distribution = "truncated gaussian"
+        distribution = "truncated_gaussian"
 
         plugin = Plugin(max_iterations=max_iterations)
         result = plugin.process(
@@ -656,7 +656,7 @@ class Test_process_truncated_gaussian_distribution(
         does not result in a convergence. The ensemble mean is the predictor.
         """
         predictor_of_mean_flag = "mean"
-        distribution = "truncated gaussian"
+        distribution = "truncated_gaussian"
 
         plugin = Plugin(max_iterations=10)
         plugin.process(
@@ -686,7 +686,7 @@ class Test_process_truncated_gaussian_distribution(
         initial_guess = np.array([5000, 1, 0, 1], dtype=np.float64)
 
         predictor_of_mean_flag = "mean"
-        distribution = "truncated gaussian"
+        distribution = "truncated_gaussian"
 
         plugin = Plugin(max_iterations=5)
 

@@ -36,7 +36,7 @@
   KGO="estimate-emos-coefficients/truncated_gaussian/kgo.nc"
 
   # Estimate the EMOS coefficients and check that they match the kgo.
-  run improver estimate-emos-coefficients 'truncated gaussian' '20170605T0300Z' "$TEST_DIR/output.nc" \
+  run improver estimate-emos-coefficients 'truncated_gaussian' '20170605T0300Z' "$TEST_DIR/output.nc" \
       --historic_filepath "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/truncated_gaussian/history/*.nc" \
       --truth_filepath "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/truncated_gaussian/truth/*.nc"
   [[ "$status" -eq 0 ]]
