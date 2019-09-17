@@ -208,7 +208,7 @@ class ContinuousRankedProbabilityScoreMinimisers():
         # Ensure predictor_of_mean_flag is valid.
         check_predictor_of_mean_flag(predictor_of_mean_flag)
 
-        # Flatten the data arrays and removing any missing data.
+        # Flatten the data arrays and remove any missing data.
         truth_data = flatten_ignoring_masked_data(truth.data)
         forecast_var_data = flatten_ignoring_masked_data(forecast_var.data)
         if predictor_of_mean_flag.lower() == "mean":

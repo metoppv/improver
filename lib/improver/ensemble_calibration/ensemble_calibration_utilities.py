@@ -83,26 +83,29 @@ def flatten_ignoring_masked_data(data_array, preserve_leading_dimension=False):
 
     Args:
         data_array (numpy.ndarray or numpy.ma.MaskedArray):
-            An array or masked array to be flattened. If it is masked, the
-            mask must be the same for every slice along the leading dimension.
+            An array or masked array to be flattened. If it is masked and the
+            leading dimension is preserved the mask must be the same for every
+            slice along the leading dimension.
         preserve_leading_dimension (bool):
             Default False.
             If True the flattened array is reshaped so it has the same leading
             dimension as the input array. If False the returned array is 1D.
     Returns:
         result (numpy.ndarray):
-            A flattened array containing only valid data, either 1D or 2D
-            where the leading dimension is the same as the input data_array.
+            A flattened array containing only valid data. Either 1D or, if
+            preserving the leading dimension 2D. In the latter case the
+            leading dimension is the same as the input data_array.
     Raises:
         ValueError: If preserving the leading dimension and the mask on the
                     input array is not the same for every slice along the
                     leading dimension.
     """
     if np.ma.is_masked(data_array):
-        if preserve_leading_dimension:
+        # If we have multiple 2D x-y slices check that the mask is the same for
+        # each slice along the leading dimension.
+        if data_array.ndim > 2:
             first_slice_mask = data_array[0].mask
-            # Check that the mask is the same for each slice along the leading
-            # dimension
+
             for i in range(1, data_array.shape[0]):
                 if not np.all(first_slice_mask == data_array[i].mask):
                     msg = ("The mask on the input array is not the same for "
