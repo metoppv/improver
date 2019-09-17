@@ -60,6 +60,15 @@ class Test_process(IrisTest):
             np.flip(data, axis=0), vis_thresholds, variable_name='visibility',
             threshold_units='m', spp__relative_to_threshold='below')
 
+        # set up a cube of rainfall rates in m s-1 (~1e-8 values)
+        self.precip_cube = self.temp_cube.copy()
+        self.precip_cube.coord('air_temperature').rename('rainfall_rate')
+        self.precip_cube.coord('rainfall_rate').var_name = 'threshold'
+        self.precip_cube.coord('rainfall_rate').points = np.array(
+            [0, 0.25, 0.5, 1], dtype=np.float32)
+        self.precip_cube.coord('rainfall_rate').units = 'mm h-1'
+        self.precip_cube.coord('rainfall_rate').convert_units('m s-1')
+
     def test_above_threshold(self):
         """Test values from an "above threshold" cube"""
         threshold_ranges = [[280, 281], [281, 282]]
@@ -166,6 +175,28 @@ class Test_process(IrisTest):
         plugin = OccurrenceBetweenThresholds(threshold_ranges, 'degC')
         result = plugin.process(self.temp_cube)
         self.assertArrayAlmostEqual(result.data, expected_data)
+
+    def test_thresholds_indistinguishable(self):
+        """Test behaviour in a case where cube extraction cannot work within a
+        tolerance of 1e-5"""
+        # set threshold ranges in m s-1
+        points = self.precip_cube.coord('rainfall_rate').points.copy()
+        threshold_ranges = [[points[1], points[2]]]
+        msg = 'Plugin cannot distinguish between thresholds at'
+        with self.assertRaisesRegex(ValueError, msg):
+            OccurrenceBetweenThresholds(threshold_ranges, 'm s-1')
+
+    def test_original_units_indistinguishable(self):
+        """Test cubes where thresholds are indistinguisable in SI units can be
+        correctly processed using threshold ranges specified in a unit with
+        more than 1e-5 discrimination"""
+        expected_data = np.array(
+            [[0.8, 0.7, 0.6], [0.7, 0.6, 0.5], [0.6, 0.5, 0.4]],
+            dtype=np.float32)
+        threshold_ranges = [[0.25, 0.5]]
+        plugin = OccurrenceBetweenThresholds(threshold_ranges, 'mm h-1')
+        result = plugin.process(self.precip_cube)
+        self.assertArrayAlmostEqual(result.data, expected_data)        
 
 
 if __name__ == '__main__':

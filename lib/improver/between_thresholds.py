@@ -45,7 +45,9 @@ class OccurrenceBetweenThresholds(object):
 
     def __init__(self, threshold_ranges, threshold_units):
         """
-        Initialise the class
+        Initialise the class.  Threshold ranges must be specified in a unit
+        that is NOT sensitive to differences at the 1e-5 (float32) precision
+        level.
 
         Args:
             threshold_ranges (list):
@@ -53,7 +55,16 @@ class OccurrenceBetweenThresholds(object):
                 probabilities should be calculated
             threshold_units (str):
                 Units in which the thresholds are specified
+
+        Raises:
+            ValueError:
+                If any of the specified thresholds are indistinguishable at the
+                1e-5 (float32) precision level
         """
+        threshold_diffs = np.diff(threshold_ranges)
+        if any([diff < 1e-5 for diff in threshold_diffs]):
+            raise ValueError('Plugin cannot distinguish between thresholds at '
+                             '{} {}'.format(threshold_ranges, threshold_units))
         self.threshold_ranges = threshold_ranges
         self.threshold_units = threshold_units
 
@@ -174,11 +185,7 @@ class OccurrenceBetweenThresholds(object):
 
     def process(self, cube):
         """
-        Calculate probabilities between thresholds for the input cube.  Note
-        that thresholds must be specified in a unit that is NOT sensitive to
-        differences at the 1e-5 (float32) precision level.  Notably,
-        precipitation rate threshold values in m/s (values of order 1e-9) will
-        result in unpredictable behaviour from this plugin.
+        Calculate probabilities between thresholds for the input cube
 
         Args:
             cube (iris.cube.Cube):
@@ -196,7 +203,7 @@ class OccurrenceBetweenThresholds(object):
                              '(has no threshold-type coordinate)')
         self.cube = cube.copy()
 
-        # check input cube units, copy and convert if needed
+        # check input cube units and convert if needed
         original_units = self.thresh_coord.units
         if original_units != self.threshold_units:
             self.cube.coord(self.thresh_coord).convert_units(
