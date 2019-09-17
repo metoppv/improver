@@ -57,13 +57,9 @@ class OccurrenceBetweenThresholds(object):
         self.threshold_ranges = threshold_ranges
         self.threshold_units = threshold_units
 
-    def _slice_cube(self, cube):
+    def _slice_cube(self):
         """
         Extract required slices from input cube
-
-        Args:
-            cube (iris.cube.Cube):
-                Input cube
 
         Returns:
             cubes (list):
@@ -74,7 +70,7 @@ class OccurrenceBetweenThresholds(object):
             ValueError:
                 If any of the required constraints returns None
         """
-        thresh_coord = cube.coord(self.thresh_coord.name())
+        thresh_coord = self.cube.coord(self.thresh_coord.name())
         error_string = (thresh_coord.name() + ' threshold {} ' +
                         self.threshold_units + ' is not available\n')
         error_msg = ''
@@ -85,13 +81,13 @@ class OccurrenceBetweenThresholds(object):
             lower_constraint = iris.Constraint(coord_values={
                 thresh_coord: lambda t: np.isclose(
                     t.point, t_range[0], atol=1e-5)})
-            lower_cube = cube.extract(lower_constraint)
+            lower_cube = self.cube.extract(lower_constraint)
             if lower_cube is None:
                 error_msg += error_string.format(t_range[0])
             upper_constraint = iris.Constraint(coord_values={
                 thresh_coord: lambda t: np.isclose(
                     t.point, t_range[1], atol=1e-5)})
-            upper_cube = cube.extract(upper_constraint)
+            upper_cube = self.cube.extract(upper_constraint)
             if upper_cube is None:
                 error_msg += error_string.format(t_range[1])
             cubes.append([lower_cube, upper_cube])
@@ -158,6 +154,24 @@ class OccurrenceBetweenThresholds(object):
 
         return cubelist.merge_cube()
 
+    def _update_metadata(self, output_cube, original_units):
+        """
+        Update output cube name and threshold coordinate
+
+        Args:
+            output_cube (iris.cube.Cube):
+                Cube containing new "between_thresholds" probabilities
+            original_units (str):
+                Required threshold-type coordinate units
+        """
+        output_cube.rename(
+            'probability_of_{}_between_thresholds'.format(
+                extract_diagnostic_name(self.cube.name())))
+        new_thresh_coord = output_cube.coord(self.thresh_coord.name())
+        new_thresh_coord.convert_units(original_units)
+        new_thresh_coord.attributes['spp__relative_to_threshold'] = (
+            'between_thresholds')
+
     def process(self, cube):
         """
         Calculate probabilities between thresholds for the input cube.  Note
@@ -180,26 +194,19 @@ class OccurrenceBetweenThresholds(object):
         except CoordinateNotFoundError:
             raise ValueError('Input is not a probability cube '
                              '(has no threshold-type coordinate)')
+        self.cube = cube.copy()
 
         # check input cube units, copy and convert if needed
         original_units = self.thresh_coord.units
         if original_units != self.threshold_units:
-            cube = cube.copy()
-            cube.coord(self.thresh_coord).convert_units(self.threshold_units)
+            self.cube.coord(self.thresh_coord).convert_units(
+                self.threshold_units)
 
         # extract suitable cube slices
-        self.cube_slices = self._slice_cube(cube)
+        self.cube_slices = self._slice_cube()
 
         # generate "between thresholds" probabilities
         output_cube = self._calculate_probabilities()
-
-        # update output cube metadata
-        output_cube.rename(
-            'probability_of_{}_between_thresholds'.format(
-                extract_diagnostic_name(cube.name())))
-        new_thresh_coord = output_cube.coord(self.thresh_coord.name())
-        new_thresh_coord.convert_units(original_units)
-        new_thresh_coord.attributes['spp__relative_to_threshold'] = (
-            'between_thresholds')
+        self._update_metadata(output_cube, original_units)
 
         return output_cube
