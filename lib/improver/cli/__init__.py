@@ -1,9 +1,34 @@
-# Clize prints return values by default unless None is returned.
-# We want this for help messages or if we don't save the output,
-
-# check for and copy --output option (to decide if it's saved)
-# (this is a bit kludgy - partial signature binding would be nicer,
-# but clize doesn't support it easily)
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# (C) British Crown Copyright 2017-2019 Met Office.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+# * Neither the name of the copyright holder nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+"init for cli and clize"
 import clize
 
 from improver.cli.clize_routines import clizefy
@@ -100,11 +125,11 @@ def improver_help(progname: clize.parameters.pass_name,
 
 
 # mapping of command names to CLI objects
+# 'combine': combine_process = improver.cli.combine.process
 
 cli_table = {
     'help': improver_help,
-    'combine': combine_process,  # improver.cli.combine.process
-    # 'nb_mask': nbmask_process,  # improver.cli.nbhood_iterate_with_mask.process
+    'combine': combine_process
 }
 
 # main CLI object with subcommands
@@ -112,6 +137,3 @@ cli_table = {
 CLI = clize.Clize.get_cli(
     cli_table, description=main.cli.helper.description,
     footnotes="""See also improver --help for more information.""")
-
-# NOTE: improver/cli/__main__.py could simply call `clize.run(main)`
-# Then bin/improver can be almost as simple as: python -m improver.cli
