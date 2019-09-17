@@ -189,7 +189,6 @@ class Test_flatten_ignoring_masked_data(IrisTest):
                                [True, False, True, True]],
                               [[True, False, True, True],
                                [True, False, True, True]]])
-        data_array = self.data_array.reshape(3, 2, 2, 2)
         self.expected_result_preserve_leading_dim = np.array(
             [[0.,  1.,  2.,  3.,  4.,  5.,  6.,  7.],
              [8.,  9., 10., 11., 12., 13., 14., 15.],
