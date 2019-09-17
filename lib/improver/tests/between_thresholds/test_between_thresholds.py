@@ -196,7 +196,7 @@ class Test_process(IrisTest):
         threshold_ranges = [[0.25, 0.5]]
         plugin = OccurrenceBetweenThresholds(threshold_ranges, 'mm h-1')
         result = plugin.process(self.precip_cube)
-        self.assertArrayAlmostEqual(result.data, expected_data)        
+        self.assertArrayAlmostEqual(result.data, expected_data)
 
 
 if __name__ == '__main__':
