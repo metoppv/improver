@@ -66,7 +66,7 @@ def main(argv=None):
                     'arguments to provide metadata that distinguishes between '
                     'them.')
     parser.add_argument('distribution', metavar='DISTRIBUTION',
-                        choices=['gaussian', 'truncated gaussian'],
+                        choices=['gaussian', 'truncated_gaussian'],
                         help='The distribution that will be used for '
                              'calibration. This will be dependent upon the '
                              'input phenomenon. This has to be supported by '

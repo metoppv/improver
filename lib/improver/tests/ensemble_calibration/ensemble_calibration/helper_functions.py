@@ -78,7 +78,6 @@ class EnsembleCalibrationAssertions(IrisTest):
         based on the default tolerance of the minimisation using the
         Nelder-Mead algorithm of 0.0001, so that minimisations on different
         machines would only be aiming to match to 4 decimal places.
-
         Args:
             first (numpy.ndarray):
                 First array to compare.
