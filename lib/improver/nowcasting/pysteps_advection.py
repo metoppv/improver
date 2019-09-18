@@ -36,8 +36,6 @@ from datetime import timedelta
 
 from iris.coords import AuxCoord
 
-# path to temporary pysteps installation
-sys.path.append("/home/h02/bayliffe/.local/lib/python3.6/site-packages/")
 from pysteps.extrapolation.semilagrangian import extrapolate
 
 from improver.utilities.spatial import check_if_grid_is_equal_area
