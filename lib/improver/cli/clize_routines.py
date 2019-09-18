@@ -51,7 +51,7 @@ def docutilize(obj):
     """
     from inspect import cleandoc
     from sphinx.ext.napoleon.docstring import GoogleDocstring, NumpyDocstring
-    if type(obj) == str:
+    if isinstance(obj, str):
         doc = obj
     else:
         doc = obj.__doc__
@@ -77,7 +77,7 @@ class HelpForNapoleonDocstring(clize.help.HelpForAutodetectedDocstring):
 
 
 class DocutilizeClizeHelp(clize.help.ClizeHelp):
-
+    """Subclass to build Napoleon docstring from subject."""
     def __init__(self, subject, owner,
                  builder=HelpForNapoleonDocstring.from_subject):
         super().__init__(subject, owner, builder)

@@ -247,6 +247,3 @@ def process(cube: inputcube, mask_cube: inputcube, *,
 
 
 nbmask_process = process
-
-if __name__ == "__main__":
-    process()
