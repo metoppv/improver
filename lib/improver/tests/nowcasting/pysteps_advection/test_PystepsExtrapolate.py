@@ -123,7 +123,8 @@ class Test_process(IrisTest):
             cube.coord(axis='y').points = ypoints
 
     def test_basic(self):
-        """Test output is a list of cubes with expected contents"""
+        """Test output is a list of cubes with expected contents and
+        global attributes"""
         result = PystepsExtrapolate().process(
             self.rain_cube, self.ucube, self.vcube, self.interval,
             self.max_lead_time, self.orogenh_cube)
@@ -132,6 +133,12 @@ class Test_process(IrisTest):
         self.assertEqual(len(result), 9)
         self.assertIsInstance(result[0], iris.cube.Cube)
         self.assertIsInstance(result[0].data, np.ma.MaskedArray)
+        self.assertEqual(result[0].data.dtype, np.float32)
+        # check for expected attributes
+        self.assertEqual(result[0].attributes['source'], 'MONOW')
+        self.assertEqual(
+            result[0].attributes['title'],
+            'MONOW Extrapolation Nowcast on UK 2 km Standard Grid')
 
     def test_time_coordinates(self):
         """Test cubelist has correct time metadata"""
@@ -171,22 +178,33 @@ class Test_process(IrisTest):
                 cube.data.data, expected_data, equal_nan=True))
 
     def test_values_noninteger_step(self):
-        """Test values for an advection speed of half a grid square per time
+        """Test values for an advection speed of 0.6 grid squares per time
         step"""
-        self.ucube.data = 0.5*self.ucube.data
-        self.vcube.data = 0.5*self.vcube.data
+        nanmatrix = np.full((8, 8), np.nan).astype(np.float32)
+        # displacement at T+1 is 0.6, rounded up to 1
+        expected_data_1 = nanmatrix.copy()
+        expected_data_1[1:, 1:] = self.rain_cube.data[:-1, :-1]
+        # displacement at T+2 is 1.2, rounded down to 1, BUT nans are advected
+        # in at trailing edge
+        expected_data_2 = expected_data_1.copy()
+        expected_data_2[:2, :] = np.nan
+        expected_data_2[:, :2] = np.nan
+        # displacement at T+3 is 1.8, rounded up to 2
+        expected_data_3 = nanmatrix.copy()
+        expected_data_3[2:, 2:] = self.rain_cube.data[:-2, :-2]
+
+        self.ucube.data = 0.6*self.ucube.data
+        self.vcube.data = 0.6*self.vcube.data
         result = PystepsExtrapolate().process(
             self.rain_cube, self.ucube, self.vcube, self.interval,
             self.max_lead_time, self.orogenh_cube)
 
-        print(result[0].data - result[1].data)
-        print(result[1].data - result[2].data)
-        # NOTE pysteps method uses nearest-neighbour interpolation to shift
-        # grid points.  This means it rounds up or down non-integer grid shifts
-        # with no interpolation between points.  This is hard-coded into the
-        # algorithm.
-        # TODO not 100% happy with this - discuss with interested parties
-
+        self.assertTrue(
+            np.allclose(result[1].data.data, expected_data_1, equal_nan=True))
+        self.assertTrue(
+            np.allclose(result[2].data.data, expected_data_2, equal_nan=True))
+        self.assertTrue(
+            np.allclose(result[3].data.data, expected_data_3, equal_nan=True))
 
 
 

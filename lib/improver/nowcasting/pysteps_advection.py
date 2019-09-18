@@ -52,8 +52,21 @@ class PystepsExtrapolate(object):
         https://pysteps.readthedocs.io/en/latest/generated/
         pysteps.extrapolation.semilagrangian.extrapolate.html
     """
+    def _get_precip_rate(self):
+        """
+        From the initial cube, generate a precipitation rate array in mm h-1
+        with orographic enhancement subtracted, as required for advection
 
-    def _generate_displacement_array(self, ucube, vcube, interval):
+        Returns:
+            np.ndarray:
+                2D precipitation rate array in mm h-1
+        """
+        self.analysis_cube, = ApplyOrographicEnhancement("subtract").process(
+            self.analysis_cube, self.orogenh)
+        self.analysis_cube.convert_units('mm h-1')
+        return np.ma.filled(self.analysis_cube.data, np.nan)
+
+    def _generate_displacement_array(self, ucube, vcube):
         """
         Create displacement array of shape (2 x m x n) required by pysteps
         algorithm
@@ -63,8 +76,6 @@ class PystepsExtrapolate(object):
                 Cube of x-advection velocities
             vcube (iris.cube.Cube):
                 Cube of y-advection velocities
-            interval (int):
-                Interval between required lead times, in minutes
 
         Returns:
             displacement (np.ndarray):
@@ -74,8 +85,8 @@ class PystepsExtrapolate(object):
         """
         def _calculate_displacement(cube, interval, gridlength):
             """
-            Generate displacement field for each time step using velocity cube
-            and interval
+            Calculate displacement for each time step using velocity cube and
+            time interval
 
             Args:
                 cube (iris.cube.Cube):
@@ -84,62 +95,107 @@ class PystepsExtrapolate(object):
                     Lead time interval, in minutes
                 gridlength (float):
                     Size of grid square, in metres
+
+            Returns:
+                np.ndarray:
+                    Array of displacements in grid squares per time step
             """
             cube_ms = cube.copy()
             cube_ms.convert_units('m s-1')
             displacement = cube_ms.data*interval*60. / gridlength
             return np.ma.filled(displacement, np.nan)
 
-        axis = self.cube.coord(axis='x').copy()
+        axis = self.analysis_cube.coord(axis='x').copy()
         axis.convert_units('m')
         gridlength = np.diff(axis.points)[0]
-        udisp = _calculate_displacement(ucube, interval, gridlength)
-        vdisp = _calculate_displacement(vcube, interval, gridlength)
+        udisp = _calculate_displacement(ucube, self.interval, gridlength)
+        vdisp = _calculate_displacement(vcube, self.interval, gridlength)
         displacement = np.array([udisp, vdisp])
         return displacement
 
-    def _generate_forecast_cubes(self, all_forecasts, interval):
+    def _reformat_analysis_cube(self):
         """
-        Convert numpy array into list of IMPROVER cubes.  Assumes forecast cube
-        output starts at T+1.
+        Add forecast reference time and forecast period coordinates and nowcast
+        attributes to analysis cube
+        """
+        frt_coord = self.analysis_cube.coord('time').copy()
+        frt_coord.rename('forecast_reference_time')
+        self.analysis_cube.add_aux_coord(frt_coord)
+        self.analysis_cube.add_aux_coord(
+            AuxCoord(np.array([0], dtype=np.int32),
+                     'forecast_period', 'seconds'))
+        # set nowcast attributes
+        self.analysis_cube.attributes['source'] = 'MONOW'
+        self.analysis_cube.attributes['title'] = (
+                'MONOW Extrapolation Nowcast on UK 2 km Standard Grid')
+
+    def _set_up_output_cubes(self, all_forecasts):
+        """
+        Convert 3D numpy array into list of cubes with correct time metadata.
 
         Args:
             all_forecasts (np.ndarray):
                 Array of 2D forecast fields returned by extrapolation function
-            interval (int):
-                Time interval between forecasts, in minutes
 
         Returns:
             forecast_cubes (iris.cube.CubeList):
                 List of extrapolated cubes with correct time coordinates
         """
-        current_datetime = iris_time_to_datetime(self.cube.coord('time'))[0]
-        frt_coord = self.cube.coord('time').copy()
-        frt_coord.rename('forecast_reference_time')
-        self.cube.add_aux_coord(frt_coord)
-        self.cube.add_aux_coord(AuxCoord(np.array([0], dtype=np.int32),
-                                'forecast_period', 'seconds'))
-
-        forecast_cubes = [self.cube.copy()]
+        current_datetime = iris_time_to_datetime(
+            self.analysis_cube.coord('time'))[0]
+        forecast_cubes = [self.analysis_cube.copy()]
         for i in range(len(all_forecasts)):
             # copy forecast data into template cube
-            new_cube = self.cube.copy(all_forecasts[i, :, :])
+            new_cube = self.analysis_cube.copy(
+                all_forecasts[i, :, :].astype(np.float32))
             # update time and forecast period coordinates
-            current_datetime += timedelta(seconds=interval*60)
+            current_datetime += timedelta(seconds=self.interval*60)
             current_time = datetime_to_iris_time(
                 current_datetime, time_units='seconds')
             new_cube.coord('time').points = np.array(
                 [current_time], dtype=np.int64)
             new_cube.coord('forecast_period').points = np.array(
-                [(i+1)*interval*60], dtype=np.int32)
+                [(i+1)*self.interval*60], dtype=np.int32)
             forecast_cubes.append(new_cube)
+        return forecast_cubes
+
+    def _generate_forecast_cubes(self, all_forecasts):
+        """
+        Convert forecast arrays into IMPROVER output cubes with re-added
+        orographic enhancement
+
+        Args:
+            all_forecasts (np.ndarray):
+                Array of 2D forecast fields returned by extrapolation function
+
+        Returns:
+            forecast_cubes (list):
+                List of iris.cube.Cube instances containing forecasts at all
+                required lead times, and conforming to the IMPROVER metadata
+                standard.
+        """
+        # re-mask forecast data
+        mask = np.where(np.isfinite(all_forecasts), False, True)
+        all_forecasts = np.ma.MaskedArray(all_forecasts, mask=mask)
+
+        # generate list of forecast cubes
+        self._reformat_analysis_cube()
+        timestamped_cubes = self._set_up_output_cubes(all_forecasts)
+
+        # re-convert units and re-add orographic enhancement
+        forecast_cubes = []
+        for cube in timestamped_cubes:
+            cube.convert_units(self.required_units)
+            cube, = ApplyOrographicEnhancement("add").process(
+                cube, self.orogenh)
+            forecast_cubes.append(cube)
         return forecast_cubes
 
     def process(self, initial_cube, ucube, vcube, interval, max_lead_time,
                 orographic_enhancement):
         """
         Extrapolate the initial precipitation field using the velocities
-        provided to
+        provided to the required forecast lead times
 
         Args:
             initial_cube (iris.cube.Cube):
@@ -157,42 +213,29 @@ class PystepsExtrapolate(object):
                 lead times
 
         Returns:
-            forecast_cubes (iris.cube.CubeList):
-                List of extrapolated cubes at the required lead times
-                (including analysis)
+            forecast_cubes (list):
+                List of extrapolated iris.cube.Cube instances at the required
+                lead times (including T+0 / analysis time)
         """
-        # subtract orographic enhancement
-        self.cube = initial_cube.copy()
-        self.cube, = ApplyOrographicEnhancement("subtract").process(
-            self.cube, orographic_enhancement)
+        self.analysis_cube = initial_cube.copy()
+        self.required_units = initial_cube.units
+        self.interval = interval
+        self.orogenh = orographic_enhancement
 
-        # unmask and convert precipitation rates into pysteps-acceptable units
-        self.cube.convert_units('mm h-1')
-        precip_rate = np.ma.filled(self.cube.data, np.nan)
+        # get unmasked precipitation rate array to input into advection
+        precip_rate = self._get_precip_rate()
+
+        # calculate displacement in grid squares per time step
+        displacement = self._generate_displacement_array(ucube, vcube)
 
         # establish number of timesteps required
         num_timesteps = max_lead_time // interval
-
-        # calculate displacement in grid squares per time step
-        displacement = self._generate_displacement_array(ucube, vcube, interval)
 
         # call pysteps extrapolation method
         all_forecasts = extrapolate(precip_rate, displacement, num_timesteps,
                                     allow_nonfinite_values=True)
 
-        # remask forecast data
-        mask = np.where(np.isfinite(all_forecasts), False, True)
-        all_forecasts = np.ma.MaskedArray(all_forecasts, mask=mask)
+        # repackage data as IMPROVER masked cubes
+        forecast_cubes = self._generate_forecast_cubes(all_forecasts)
 
-        # repackage data as IMPROVER cubes
-        forecast_cubes = self._generate_forecast_cubes(all_forecasts, interval)
-
-        # re-convert units and re-add orographic enhancement
-        final_forecasts = []
-        for cube in forecast_cubes:
-            cube.convert_units(initial_cube.units)
-            cube, = ApplyOrographicEnhancement("add").process(
-                cube, orographic_enhancement)
-            final_forecasts.append(cube)
-
-        return final_forecasts
+        return forecast_cubes
