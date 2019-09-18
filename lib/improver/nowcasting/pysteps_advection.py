@@ -30,12 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Semi-Lagrangian backward advection plugin"""
 
-import sys
 import numpy as np
 from datetime import timedelta
 
 from iris.coords import AuxCoord
-
 from pysteps.extrapolation.semilagrangian import extrapolate
 
 from improver.utilities.spatial import check_if_grid_is_equal_area

@@ -33,9 +33,7 @@ Functions to assist with interface to pysteps library
 """
 
 import numpy as np
-from numpy.ma import MaskedArray
 
-import iris
 from improver.utilities.load import load_cube
 from improver.utilities.spatial import check_if_grid_is_equal_area
 
