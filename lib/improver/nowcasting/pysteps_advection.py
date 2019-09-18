@@ -40,6 +40,7 @@ from iris.coords import AuxCoord
 sys.path.append("/home/h02/bayliffe/.local/lib/python3.6/site-packages/")
 from pysteps.extrapolation.semilagrangian import extrapolate
 
+from improver.utilities.spatial import check_if_grid_is_equal_area
 from improver.utilities.temporal import (
     iris_time_to_datetime, datetime_to_iris_time)
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
@@ -127,7 +128,7 @@ class PystepsExtrapolate(object):
         # set nowcast attributes
         self.analysis_cube.attributes['source'] = 'MONOW'
         self.analysis_cube.attributes['title'] = (
-                'MONOW Extrapolation Nowcast on UK 2 km Standard Grid')
+            'MONOW Extrapolation Nowcast on UK 2 km Standard Grid')
 
     def _set_up_output_cubes(self, all_forecasts):
         """
@@ -217,6 +218,12 @@ class PystepsExtrapolate(object):
                 List of extrapolated iris.cube.Cube instances at the required
                 lead times (including T+0 / analysis time)
         """
+        # ensure input cube is suitable for advection
+        if 'rate' not in initial_cube.name():
+            msg = '{} is not a precipitation rate cube'
+            raise ValueError(msg.format(initial_cube.name()))
+        check_if_grid_is_equal_area(initial_cube)
+
         self.analysis_cube = initial_cube.copy()
         self.required_units = initial_cube.units
         self.interval = interval

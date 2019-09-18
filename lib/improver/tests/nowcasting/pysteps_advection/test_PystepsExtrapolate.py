@@ -206,6 +206,25 @@ class Test_process(IrisTest):
         self.assertTrue(
             np.allclose(result[3].data.data, expected_data_3, equal_nan=True))
 
+    def test_error_non_rate_cube(self):
+        """Test plugin rejects cube of non-rate data"""
+        invalid_cube = set_up_variable_cube(
+            275*np.ones((5, 5), dtype=np.float32), spatial_grid='equalarea')
+        msg = 'air_temperature is not a precipitation rate cube'
+        with self.assertRaisesRegex(ValueError, msg):
+            PystepsExtrapolate().process(
+                invalid_cube, self.ucube, self.vcube, self.interval,
+                self.max_lead_time, self.orogenh_cube)
+
+    def test_error_unsuitable_grid(self):
+        """Test plugin rejects a precipitation cube on a non-equal-area grid"""
+        invalid_cube = set_up_variable_cube(
+            np.ones((5, 5), dtype=np.float32),
+            name='rainfall_rate', units='mm/h')
+        with self.assertRaises(ValueError):
+            PystepsExtrapolate().process(
+                invalid_cube, self.ucube, self.vcube, self.interval,
+                self.max_lead_time, self.orogenh_cube)
 
 
 if __name__ == '__main__':

@@ -37,12 +37,15 @@ from numpy.ma import MaskedArray
 
 import iris
 from improver.utilities.load import load_cube
+from improver.utilities.spatial import check_if_grid_is_equal_area
 
 
 class PystepsImporter(object):
     """
     Class containing methods to import from IMPROVER NetCDF file or cube
-    and return data and metadata as required by the pysteps plotting functions.
+    and return data and metadata.  This is to allow use of the pysteps
+    plotting functions in investigations only, and should not be required for
+    any of the pysteps processing routines.
 
     Reference:
         https://pysteps.readthedocs.io/en/latest/pysteps_reference/
@@ -53,48 +56,34 @@ class PystepsImporter(object):
         Set up some universally required metadata
         """
         self.metadata = {}
-        self.metadata['unit'] = 'mm/h'      # define pysteps-acceptable units
-        self.metadata['accutime'] = 0       # TODO required?
-        self.metadata['transform'] = None   # TODO required?
+        self.metadata['unit'] = 'mm/h'     # pysteps-acceptable units
+        self.metadata['accutime'] = 0      # accumulation period (0 for rates)
+        self.metadata['transform'] = None  # data transform
 
     @staticmethod
     def _extract_coord_properties(coord):
-        """Get grid spacing and coordinate extremes
-        Assumes points in ascending order"""
+        """Get grid spacing and coordinate extremes"""
         coord.convert_units('m')
         spacing = np.diff(coord.points)[0]
-        min_point = coord.points[0] - 0.5*spacing   # TODO points or bounds?
-        max_point = coord.points[-1] + 0.5*spacing  # TODO points or bounds?
-        return spacing, min_point, max_point
+        return spacing, min(coord.points), max(coord.points)
 
-    def _get_x_metadata(self):
-        """Get metadata from x-coordinate"""
-        xspacing, min_x, max_x = self.extract_coord_properties(
+    def _set_coord_metadata(self):
+        """Extract metadata from x- and y-coordinates and set in dict"""
+        xspacing, min_x, max_x = self._extract_coord_properties(
             self.cube.coord(axis='x'))
         self.metadata['xpixelsize'] = xspacing
         self.metadata['x1'] = min_x
         self.metadata['x2'] = max_x
-
-    def _get_y_metadata(self):
-        """Get metadata from y-coordinate"""
-        yspacing, min_y, max_y = self.extract_coord_properties(
+        yspacing, min_y, max_y = self._extract_coord_properties(
             self.cube.coord(axis='y'))
-        if yspacing < 0:
-            # y-data indexed from top
-            self.metadata['ypixelsize'] = -1*yspacing
-            self.metadata['y1'] = max_y
-            self.metadata['y2'] = min_y
-            self.metadata['yorigin'] = 'upper'
-        else:
-            # y-data indexed from bottom
-            self.metadata['ypixelsize'] = yspacing
-            self.metadata['y1'] = min_y
-            self.metadata['y2'] = max_y
-            self.metadata['yorigin'] = 'lower'
+        self.metadata['ypixelsize'] = yspacing
+        self.metadata['y1'] = min_y
+        self.metadata['y2'] = max_y
+        self.metadata['yorigin'] = 'lower'
 
-    def _import_geodata(self):
+    def _set_geodata(self):
         """
-        Return projection and coordinate information from IMPROVER cube
+        Set projection and coordinate information in metadata dictionary
         """
         projdef = ""
         crd_sys = self.cube.coord_system()
@@ -106,8 +95,7 @@ class PystepsImporter(object):
         ellps = "WGS84"
         projdef += "+ellps={}".format(ellps)
         self.metadata["projection"] = projdef
-        self._get_x_metadata()
-        self._get_y_metadata()
+        self._set_coord_metadata()
 
     def process_cube(self, precip_cube):
         """
@@ -123,10 +111,10 @@ class PystepsImporter(object):
             metadata (dict):
                 Dictionary of metadata required by pysteps algorithms
         """
-        # check cube contains rates
         if 'rate' not in precip_cube.name():
             msg = '{} is not a precipitation rate cube'
             raise ValueError(msg.format(precip_cube.name()))
+        check_if_grid_is_equal_area(precip_cube)
 
         # extract unmasked data in required units
         self.cube = precip_cube.copy()
@@ -134,9 +122,11 @@ class PystepsImporter(object):
         precip_rate = np.ma.filled(self.cube.data, np.nan)
 
         # populate metadata dictionary
-        self.metadata['institution'] = self.cube.attributes['institution']
-        self._import_geodata()
-
+        try:
+            self.metadata['institution'] = self.cube.attributes['institution']
+        except KeyError:
+            self.metadata['institution'] = 'unknown'
+        self._set_geodata()
         return precip_rate, self.metadata
 
     def process_netcdf(self, filepath):
