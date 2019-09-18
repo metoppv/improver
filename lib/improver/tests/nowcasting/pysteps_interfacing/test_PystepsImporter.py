@@ -33,7 +33,6 @@
 import unittest
 import numpy as np
 
-import iris
 from iris.tests import IrisTest
 
 from improver.nowcasting.pysteps_interfacing import PystepsImporter
