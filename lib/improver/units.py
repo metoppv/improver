@@ -67,7 +67,8 @@ DEFAULT_UNITS = {
     # standard diagnostics and suitable substrings (alphabetised for clarity)
     "air_temperature_lapse_rate": {"unit": "K m-1"},
     "cloud": {"unit": "1"},
-    "cloud_base": {"unit": "m"},
+    "cloud_base_altitude_assuming_only_consider_cloud_area_fraction_greater_"\
+    "than_2p5_oktas": {"unit": "m"},
     "fall_rate": {"unit": "m s-1"},
     "falling_snow_level": {"unit": "m"},
     "humidity": {"unit": "1"},
