@@ -67,10 +67,12 @@ DEFAULT_UNITS = {
     # standard diagnostics and suitable substrings (alphabetised for clarity)
     "air_temperature_lapse_rate": {"unit": "K m-1"},
     "cloud": {"unit": "1"},
+    "cloud_base": {"unit": "1"},
     "fall_rate": {"unit": "m s-1"},
     "falling_snow_level": {"unit": "m"},
     "humidity": {"unit": "1"},
     "lapse_rate": {"unit": "K m-1"},
+    "number_of_lightning_flashes_per_unit_area": {"unit": "m-2"},
     "orographic_enhancement": {"unit": "m s-1"},
     "precipitation_rate": {"unit": "m s-1"},
     "pressure": {"unit": "Pa"},
