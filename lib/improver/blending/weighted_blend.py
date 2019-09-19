@@ -520,7 +520,8 @@ class WeightedBlendAcrossWholeDimension:
         return description.format(
             self.coord, self.cycletime, self.timeblending)
 
-    def check_percentile_coord(self, cube):
+    @staticmethod
+    def check_percentile_coord(cube):
         """
         Determines if the cube to be blended has a percentile dimension
         coordinate.
@@ -581,7 +582,8 @@ class WeightedBlendAcrossWholeDimension:
                     time_points))
             raise ValueError(msg)
 
-    def shape_weights(self, cube, weights):
+    @staticmethod
+    def shape_weights(cube, weights):
         """
         The function shapes weights to match the diagnostic cube. A 1D cube of
         weights that vary across the blending coordinate will be broadcast to
