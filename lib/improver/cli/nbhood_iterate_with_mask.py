@@ -41,6 +41,7 @@ from improver.nbhood.use_nbhood import (ApplyNeighbourhoodProcessingWithAMask,
                                         CollapseMaskedNeighbourhoodCoordinate)
 from improver.utilities.cli_utilities import radius_or_radii_and_lead
 
+
 @clizefy
 @with_intermediate_output
 def process(cube: inputcube, mask_cube: inputcube, *,
