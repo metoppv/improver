@@ -241,7 +241,7 @@ def process(original_cube_list, orographic_enhancement_cube=None,
             orographic_enhancement_cube=orographic_enhancement_cube,
             metadata_dict=metadata_dict)
         # extrapolate input data to required lead times
-        for i, lead_time in enumerate(lead_times):
+        for lead_time in lead_times:
             forecast_cubes.append(forecast_plugin.extrapolate(
                 leadtime_minutes=lead_time))
 
