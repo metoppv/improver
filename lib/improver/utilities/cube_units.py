@@ -142,11 +142,6 @@ def _find_dict_key(input_key):
         # this avoids duplicate results from key matching below
         return "probability"
 
-    exact_match = set([input_key]).intersection(DEFAULT_UNITS.keys())
-    if exact_match:
-        # returns the exact match if available
-        return list(exact_match)[0]
-
     matching_keys = []
     for key in DEFAULT_UNITS.keys():
         if key in input_key:

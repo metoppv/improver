@@ -128,6 +128,7 @@ class CorrectLandSeaMask(object):
         mask_land = np.ma.masked_greater(standard_landmask.data, 0.).mask
         standard_landmask.data[mask_land] = True
         standard_landmask.data = standard_landmask.data.astype(np.int32)
+        standard_landmask.rename('land_binary_mask')
         return standard_landmask
 
 

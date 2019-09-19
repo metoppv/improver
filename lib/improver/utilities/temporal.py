@@ -234,22 +234,20 @@ def iris_time_to_datetime(time_coord):
     return [value.point for value in coord.cells()]
 
 
-def datetime_to_iris_time(dt_in, dtype=np.int64):
+def datetime_to_iris_time(dt_in):
     """
     Convert python datetime.datetime into seconds since 1970-01-01 00Z.
 
     Args:
         dt_in (datetime.datetime object):
             Time to be converted into seconds since 1970-01-01 00Z.
-        dtype (numpy.dtype):
-            The desired data type of the return value. Defaults to int64.
 
     Returns:
         result (float):
             Time since epoch in the seconds as desired dtype.
     """
     result = dt_in.replace(tzinfo=timezone.utc).timestamp()
-    return dtype(result)
+    return np.int64(result)
 
 
 def datetime_constraint(time_in, time_max=None):
