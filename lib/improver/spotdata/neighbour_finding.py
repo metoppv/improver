@@ -373,7 +373,6 @@ class NeighbourSelection:
                        self.node_limit, self.search_radius))
             warnings.warn(msg)
 
-        distance = distance[valid_indices]
         indices = indices[valid_indices]
 
         # Calculate the difference in height between the spot site

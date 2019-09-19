@@ -256,7 +256,6 @@ class NowcastLightning(object):
         new_cube_list = iris.cube.CubeList([])
         # Loop over required forecast validity times
         for cube_slice in cube.slices_over('time'):
-            this_point = cube_slice.coord('time').points[0]
             this_time = iris_time_to_datetime(
                 cube_slice.coord('time').copy())[0]
             lightning_rate_slice = lightning_rate_cube.extract(
