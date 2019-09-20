@@ -70,7 +70,7 @@ def main(argv=None):
         cube, threshold_ranges, threshold_units=args.threshold_units)
 
     # Save Cube
-    save_netcdf(result, args.output_filepath)
+    save_netcdf(result, args.output_file)
 
 
 def process(cube, threshold_ranges, threshold_units=None):
@@ -93,10 +93,11 @@ def process(cube, threshold_ranges, threshold_units=None):
             specified
     """
     if threshold_units is None:
-        threshold_units = find_threshold_coordinate(cube).units
+        threshold_units = str(find_threshold_coordinate(cube).units)
 
     plugin = OccurrenceBetweenThresholds(threshold_ranges, threshold_units)
     return plugin.process(cube)
+
 
 if __name__ == "__main__":
     main()
