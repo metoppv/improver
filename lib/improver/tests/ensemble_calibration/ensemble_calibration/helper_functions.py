@@ -138,6 +138,45 @@ class SetupCubes(IrisTest):
         self.wind_speed_truth_cube = _create_truth(
             base_data, time_dt, name="wind_speed", units="m s-1").merge_cube()
 
+        # Set up another set of cubes which have a halo of zeros round the
+        # original data. This data will be masked out in tests using a
+        # landsea_mask
+        base_data = np.array([[[0.0, 0.0, 0.0, 0.0, 0.0],
+                               [0.0, 0.3, 1.1, 2.6, 0.0],
+                               [0.0, 4.2, 5.3, 6., 0.0],
+                               [0.0, 7.1, 8.2, 9., 0.0],
+                               [0.0, 0.0, 0.0, 0.0, 0.0]],
+                              [[0.0, 0.0, 0.0, 0.0, 0.0],
+                               [0.0, 0.7, 2., 3, 0.0],
+                               [0.0, 4.3, 5.6, 6.4, 0.0],
+                               [0.0, 7., 8., 9., 0.0],
+                               [0.0, 0.0, 0.0, 0.0, 0.0]],
+                              [[0.0, 0.0, 0.0, 0.0, 0.0],
+                               [0.0, 2.1, 3., 3., 0.0],
+                               [0.0, 4.8, 5., 6., 0.0],
+                               [0.0, 7.9, 8., 8.9, 0.0],
+                               [0.0, 0.0, 0.0, 0.0, 0.0]]],
+                             dtype=np.float32)
+        temperature_data = base_data + 273.15
+        # Create historic forecasts and truth
+        self.historic_forecasts_halo = _create_historic_forecasts(
+            temperature_data, time_dt, frt_dt, realizations=[0, 1, 2])
+        self.truth_halo = _create_truth(temperature_data, time_dt)
+
+        # Create the historic and truth cubes
+        self.historic_temperature_forecast_cube_halo = (
+            self.historic_forecasts_halo.merge_cube())
+        self.temperature_truth_cube_halo = self.truth_halo.merge_cube()
+
+        # Create a cube for testing wind speed.
+        self.historic_wind_speed_forecast_cube_halo = (
+            _create_historic_forecasts(
+                base_data, time_dt, frt_dt, realizations=[0, 1, 2],
+                name="wind_speed", units="m s-1").merge_cube())
+
+        self.wind_speed_truth_cube_halo = _create_truth(
+            base_data, time_dt, name="wind_speed", units="m s-1").merge_cube()
+
 
 def set_up_probability_threshold_cube(
         data, phenomenon_standard_name, phenomenon_units,

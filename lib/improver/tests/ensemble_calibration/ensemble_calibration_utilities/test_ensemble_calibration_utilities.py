@@ -40,7 +40,8 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
-    convert_cube_data_to_2d, check_predictor_of_mean_flag)
+    convert_cube_data_to_2d, flatten_ignoring_masked_data,
+    check_predictor_of_mean_flag)
 from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_temperature_cube
 
@@ -169,6 +170,108 @@ class Test_convert_cube_data_to_2d(IrisTest):
 
         result = convert_cube_data_to_2d(cube)
         self.assertArrayAlmostEqual(result, data, decimal=5)
+
+
+class Test_flatten_ignoring_masked_data(IrisTest):
+
+    """Test the flatten_ignoring_masked_data utility."""
+    def setUp(self):
+        """Set up a basic 3D data array to use in the tests."""
+        self.data_array = np.array([[[0., 1., 2., 3.],
+                                     [4., 5., 6., 7.]],
+                                    [[8., 9., 10., 11.],
+                                     [12., 13., 14., 15.]],
+                                    [[16., 17., 18., 19.],
+                                     [20., 21., 22., 23.]]], dtype=np.float32)
+        self.mask = np.array([[[True, False, True, True],
+                               [True, False, True, True]],
+                              [[True, False, True, True],
+                               [True, False, True, True]],
+                              [[True, False, True, True],
+                               [True, False, True, True]]])
+        self.expected_result_preserve_leading_dim = np.array(
+            [[0.,  1.,  2.,  3.,  4.,  5.,  6.,  7.],
+             [8.,  9., 10., 11., 12., 13., 14., 15.],
+             [16., 17., 18., 19., 20., 21., 22., 23.]],
+            dtype=np.float32)
+
+    def test_basic_not_masked(self):
+        """Test a basic unmasked array"""
+        expected_result = np.arange(0, 24, 1, dtype=np.float32)
+        result = flatten_ignoring_masked_data(self.data_array)
+        self.assertArrayAlmostEqual(result, expected_result)
+        self.assertEqual(result.dtype, np.float32)
+
+    def test_basic_masked(self):
+        """Test a basic masked array"""
+        masked_data_array = np.ma.MaskedArray(self.data_array, self.mask)
+        expected_result = np.array([1., 5., 9., 13., 17., 21.],
+                                   dtype=np.float32)
+        result = flatten_ignoring_masked_data(masked_data_array)
+        self.assertArrayAlmostEqual(result, expected_result)
+        self.assertEqual(result.dtype, np.float32)
+
+    def test_basic_not_masked_preserver_leading_dim(self):
+        """Test a basic unmasked array, with preserve_leading_dimension"""
+        result = flatten_ignoring_masked_data(
+            self.data_array, preserve_leading_dimension=True)
+        self.assertArrayAlmostEqual(
+            result, self.expected_result_preserve_leading_dim)
+        self.assertEqual(result.dtype, np.float32)
+
+    def test_basic_masked_preserver_leading_dim(self):
+        """Test a basic masked array, with preserve_leading_dimension"""
+
+        masked_data_array = np.ma.MaskedArray(self.data_array, self.mask)
+        expected_result = np.array([[1., 5.],
+                                    [9., 13.],
+                                    [17., 21.]],
+                                   dtype=np.float32)
+        result = flatten_ignoring_masked_data(
+            masked_data_array, preserve_leading_dimension=True)
+        self.assertArrayAlmostEqual(result, expected_result)
+        self.assertEqual(result.dtype, np.float32)
+
+    def test_all_masked(self):
+        """Test empty array is returned when all points are masked."""
+        mask = np.ones((3, 2, 4)) * True
+        masked_data_array = np.ma.MaskedArray(self.data_array, mask)
+        expected_result = np.array([], dtype=np.float32)
+        result = flatten_ignoring_masked_data(masked_data_array)
+        self.assertArrayAlmostEqual(result, expected_result)
+        self.assertEqual(result.dtype, np.float32)
+
+    def test_1D_input(self):
+        """Test input array is unchanged when input in 1D"""
+        data_array = self.data_array.flatten()
+        expected_result = data_array.copy()
+        result = flatten_ignoring_masked_data(data_array)
+        self.assertArrayAlmostEqual(result, expected_result)
+        self.assertEqual(result.dtype, np.float32)
+
+    def test_4D_input_not_masked_preserve_leading_dim(self):
+        """Test input array is unchanged when input in 4D.
+           This should give the same answer as the corresponding 3D array."""
+        data_array = self.data_array.reshape(3, 2, 2, 2)
+        result = flatten_ignoring_masked_data(
+            data_array, preserve_leading_dimension=True)
+        self.assertArrayAlmostEqual(
+            result, self.expected_result_preserve_leading_dim)
+        self.assertEqual(result.dtype, np.float32)
+
+    def test_inconsistent_mask_along_leading_dim(self):
+        """Test an inconsistently masked array raises an error."""
+        mask = np.array([[[True, False, False, True],
+                          [True, False, True, True]],
+                         [[True, False, True, True],
+                          [True, False, True, True]],
+                         [[True, False, True, True],
+                          [True, False, True, False]]])
+        masked_data_array = np.ma.MaskedArray(self.data_array, mask)
+        expected_message = "The mask on the input array is not the same"
+        with self.assertRaisesRegex(ValueError, expected_message):
+            flatten_ignoring_masked_data(
+                masked_data_array, preserve_leading_dimension=True)
 
 
 class Test_check_predictor_of_mean_flag(IrisTest):

@@ -29,22 +29,22 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "estimate-emos-coefficients no arguments" {
-  run improver estimate-emos-coefficients
-  [[ "$status" -eq 2 ]]
-  expected="usage: improver estimate-emos-coefficients [-h] [--profile]
-                                           [--profile_file PROFILE_FILE]
-                                           [--historic_filepath HISTORIC_FILEPATH [HISTORIC_FILEPATH ...]]
-                                           [--truth_filepath TRUTH_FILEPATH [TRUTH_FILEPATH ...]]
-                                           [--combined_filepath COMBINED_FILEPATH [COMBINED_FILEPATH ...]]
-                                           [--historic_forecast_identifier HISTORIC_FORECAST_IDENTIFIER]
-                                           [--truth_identifier TRUTH_IDENTIFIER]
-                                           [--units UNITS]
-                                           [--predictor_of_mean PREDICTOR_OF_MEAN]
-                                           [--max_iterations MAX_ITERATIONS]
-                                           [--landsea_mask LANDSEA_MASK]
-                                           DISTRIBUTION CYCLETIME
-                                           OUTPUT_FILEPATH
-"
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "estimate-emos-coefficients for diagnostic with assumed gaussian distribution using a land-sea mask" {
+  improver_check_skip_acceptance
+  KGO="estimate-emos-coefficients/gaussian/land_only_kgo.nc"
+
+  # Estimate the EMOS coefficients and check that they match the kgo.
+  run improver estimate-emos-coefficients 'gaussian' '20170605T0300Z' "$TEST_DIR/output.nc" \
+      --historic_filepath "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/history/*.nc" \
+      --truth_filepath "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/truth/*.nc" \
+      --landsea_mask "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/landmask.nc"
+  [[ "$status" -eq 0 ]]
+
+  improver_check_recreate_kgo "output.nc" $KGO
+
+  # Run nccmp to compare the output and kgo realizations and check it passes.
+  improver_compare_output_lower_precision "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

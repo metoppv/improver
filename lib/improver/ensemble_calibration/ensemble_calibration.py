@@ -43,7 +43,8 @@ from scipy.optimize import minimize
 from scipy.stats import norm
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
-    convert_cube_data_to_2d, check_predictor_of_mean_flag)
+    convert_cube_data_to_2d, check_predictor_of_mean_flag,
+    flatten_ignoring_masked_data)
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.temporal import (
     cycletime_to_datetime, datetime_to_cycletime, datetime_to_iris_time,
@@ -207,18 +208,20 @@ class ContinuousRankedProbabilityScoreMinimisers():
         # Ensure predictor_of_mean_flag is valid.
         check_predictor_of_mean_flag(predictor_of_mean_flag)
 
+        # Flatten the data arrays and remove any missing data.
+        truth_data = flatten_ignoring_masked_data(truth.data)
+        forecast_var_data = flatten_ignoring_masked_data(forecast_var.data)
         if predictor_of_mean_flag.lower() == "mean":
-            forecast_predictor_data = forecast_predictor.data.flatten()
-            truth_data = truth.data.flatten()
-            forecast_var_data = forecast_var.data.flatten()
+            forecast_predictor_data = flatten_ignoring_masked_data(
+                forecast_predictor.data)
         elif predictor_of_mean_flag.lower() == "realizations":
-            truth_data = truth.data.flatten()
             forecast_predictor = (
                 enforce_coordinate_ordering(
                     forecast_predictor, "realization"))
-            forecast_predictor_data = convert_cube_data_to_2d(
-                forecast_predictor)
-            forecast_var_data = forecast_var.data.flatten()
+            # Need to transpose this array so there are columns for each
+            # ensemble member rather than rows.
+            forecast_predictor_data = flatten_ignoring_masked_data(
+                forecast_predictor.data, preserve_leading_dimension=True).T
 
         # Increased precision is needed for stable coefficient calculation.
         # The resulting coefficients are cast to float32 prior to output.
@@ -227,7 +230,6 @@ class ContinuousRankedProbabilityScoreMinimisers():
         forecast_var_data = forecast_var_data.astype(np.float64)
         truth_data = truth_data.astype(np.float64)
         sqrt_pi = np.sqrt(np.pi).astype(np.float64)
-
         optimised_coeffs = minimize(
             minimisation_function, initial_guess,
             args=(forecast_predictor_data, truth_data,
@@ -651,7 +653,6 @@ class EstimateCoefficientsForEnsembleCalibration():
                 Order of coefficients is [gamma, delta, alpha, beta].
 
         """
-
         if (predictor_of_mean_flag.lower() == "mean" and
                 not estimate_coefficients_from_linear_model_flag):
             initial_guess = [0, 1, 0, 1]
@@ -660,44 +661,28 @@ class EstimateCoefficientsForEnsembleCalibration():
             initial_guess = [0, 1, 0] + np.repeat(
                 np.sqrt(1. / no_of_realizations), no_of_realizations).tolist()
         elif estimate_coefficients_from_linear_model_flag:
+            truth_flattened = flatten_ignoring_masked_data(truth.data)
             if predictor_of_mean_flag.lower() == "mean":
-                # Find all values that are not NaN.
-                truth_not_nan = ~np.isnan(truth.data.flatten())
-                forecast_not_nan = ~np.isnan(forecast_predictor.data.flatten())
-                combined_not_nan = (
-                    np.all(
-                        np.row_stack([truth_not_nan, forecast_not_nan]),
-                        axis=0))
-                if not any(combined_not_nan):
+                forecast_predictor_flattened = flatten_ignoring_masked_data(
+                    forecast_predictor.data)
+                if (truth_flattened.size == 0) or (
+                        forecast_predictor_flattened.size == 0):
                     gradient, intercept = ([np.nan, np.nan])
                 else:
                     gradient, intercept, _, _, _ = (
                         stats.linregress(
-                            forecast_predictor.data.flatten()[
-                                combined_not_nan],
-                            truth.data.flatten()[combined_not_nan]))
+                            forecast_predictor_flattened, truth_flattened))
                 initial_guess = [0, 1, intercept, gradient]
             elif predictor_of_mean_flag.lower() == "realizations":
                 if self.statsmodels_found:
-                    truth_data = truth.data.flatten()
-                    forecast_predictor = (
-                        enforce_coordinate_ordering(
-                            forecast_predictor, "realization"))
-                    forecast_data = np.array(
-                        convert_cube_data_to_2d(
-                            forecast_predictor, transpose=False),
-                        dtype=np.float32
-                    )
-                    # Find all values that are not NaN.
-                    truth_not_nan = ~np.isnan(truth_data)
-                    forecast_not_nan = ~np.isnan(forecast_data)
-                    combined_not_nan = (
-                        np.all(
-                            np.row_stack([truth_not_nan, forecast_not_nan]),
-                            axis=0))
-                    val = self.sm.add_constant(
-                        forecast_data[:, combined_not_nan].T)
-                    est = self.sm.OLS(truth_data[combined_not_nan], val).fit()
+                    forecast_predictor = enforce_coordinate_ordering(
+                        forecast_predictor, "realization")
+                    forecast_predictor_flattened = (
+                        flatten_ignoring_masked_data(
+                            forecast_predictor.data,
+                            preserve_leading_dimension=True))
+                    val = self.sm.add_constant(forecast_predictor_flattened.T)
+                    est = self.sm.OLS(truth_flattened, val).fit()
                     intercept = est.params[0]
                     gradient = est.params[1:]
                     initial_guess = [0, 1, intercept]+gradient.tolist()
@@ -754,7 +739,36 @@ class EstimateCoefficientsForEnsembleCalibration():
         return (matching_historic_forecasts.merge_cube(),
                 matching_truths.merge_cube())
 
-    def process(self, historic_forecast, truth):
+    @staticmethod
+    def mask_cube(cube, landsea_mask):
+        """
+        Mask the input cube using the given landsea_mask. Sea points are
+        filled with nans and masked.
+
+        Args:
+            cube (iris.cube.Cube):
+                A cube to be masked, on the same grid as the landsea_mask.
+                The last two dimensions on this cube must match the dimensions
+                in the landsea_mask cube.
+            landsea_mask(iris.cube.Cube):
+                A cube containing a land-sea mask. Within the
+                land-sea mask cube land points should be specified as ones,
+                and sea points as zeros.
+
+        Raises:
+            IndexError: if the cube and landsea_mask shapes are not compatible.
+        """
+        try:
+            cube.data[..., ~landsea_mask.data.astype(np.bool)] = np.nan
+        except IndexError as err:
+            msg = (
+                "Cube and landsea_mask shapes are not compatible. {}".format(
+                    err))
+            raise IndexError(msg)
+        else:
+            cube.data = np.ma.masked_invalid(cube.data)
+
+    def process(self, historic_forecast, truth, landsea_mask=None):
         """
         Using Nonhomogeneous Gaussian Regression/Ensemble Model Output
         Statistics, estimate the required coefficients from historical
@@ -767,11 +781,15 @@ class EstimateCoefficientsForEnsembleCalibration():
            inputs match in validity time.
         3. Apply unit conversion to ensure that the historic forecasts and
            truth have the desired units for calibration.
-        4. Calculate mean and variance.
-        5. Calculate initial guess at coefficient values by performing a
+        4. Calculate the variance of the historic forecasts. If the chosen
+           predictor is the mean, also calculate the mean of the historic
+           forecasts.
+        5. If a land-sea mask is provided then mask out sea points in the truth
+           and predictor from the historic forecasts.
+        6. Calculate initial guess at coefficient values by performing a
            linear regression, if requested, otherwise default values are
            used.
-        6. Perform minimisation.
+        7. Perform minimisation.
 
         Args:
             historic_forecast (iris.cube.Cube):
@@ -779,6 +797,11 @@ class EstimateCoefficientsForEnsembleCalibration():
                 for calibration.
             truth (iris.cube.Cube):
                 The cube containing the truth used for calibration.
+            landsea_mask (iris.cube.Cube):
+                The optional cube containing a land-sea mask. If provided, only
+                land points are used to calculate the coefficients. Within the
+                land-sea mask cube land points should be specified as ones,
+                and sea points as zeros.
 
         Returns:
             coefficients_cube (iris.cube.Cube):
@@ -793,10 +816,6 @@ class EstimateCoefficientsForEnsembleCalibration():
         """
         # Ensure predictor_of_mean_flag is valid.
         check_predictor_of_mean_flag(self.predictor_of_mean_flag)
-
-        # Set default values for whether there are NaN values within the
-        # initial guess.
-        nan_in_initial_guess = False
 
         historic_forecast, truth = (
             self._filter_non_matching_cubes(historic_forecast, truth))
@@ -824,30 +843,28 @@ class EstimateCoefficientsForEnsembleCalibration():
         forecast_var = historic_forecast.collapsed(
             "realization", iris.analysis.VARIANCE)
 
+        # If a landsea_mask is provided mask out the sea points
+        if landsea_mask:
+            self.mask_cube(forecast_predictor, landsea_mask)
+            self.mask_cube(forecast_var, landsea_mask)
+            self.mask_cube(truth, landsea_mask)
+
         # Computing initial guess for EMOS coefficients
-        # If no initial guess from a previous iteration, or if there
-        # are NaNs in the initial guess, calculate an initial guess.
-        if "initial_guess" not in locals() or nan_in_initial_guess:
-            initial_guess = self.compute_initial_guess(
-                truth, forecast_predictor, self.predictor_of_mean_flag,
-                self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
-                no_of_realizations=no_of_realizations)
+        initial_guess = self.compute_initial_guess(
+            truth, forecast_predictor, self.predictor_of_mean_flag,
+            self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
+            no_of_realizations=no_of_realizations)
 
+        # Calculate coefficients if there are no nans in the initial guess.
         if np.any(np.isnan(initial_guess)):
-            nan_in_initial_guess = True
-
-        if not nan_in_initial_guess:
-            # Need to access the x attribute returned by the
-            # minimisation function.
+            optimised_coeffs = initial_guess
+        else:
             optimised_coeffs = (
                 self.minimiser.process(
                     initial_guess, forecast_predictor,
                     truth, forecast_var,
                     self.predictor_of_mean_flag,
                     self.distribution.lower()))
-            initial_guess = optimised_coeffs
-        else:
-            optimised_coeffs = initial_guess
         coefficients_cube = (
             self.create_coefficients_cube(optimised_coeffs, historic_forecast))
         return coefficients_cube

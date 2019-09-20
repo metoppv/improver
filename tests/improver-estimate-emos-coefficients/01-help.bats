@@ -43,6 +43,7 @@ usage: improver estimate-emos-coefficients [-h] [--profile]
                                            [--units UNITS]
                                            [--predictor_of_mean PREDICTOR_OF_MEAN]
                                            [--max_iterations MAX_ITERATIONS]
+                                           [--landsea_mask LANDSEA_MASK]
                                            DISTRIBUTION CYCLETIME
                                            OUTPUT_FILEPATH
 
@@ -128,6 +129,12 @@ optional arguments:
                         predictor_of_mean is "realizations", then the number
                         of iterations may require increasing, as there will be
                         more coefficients to solve for.
+  --landsea_mask LANDSEA_MASK
+                        The netCDF file containing a land-sea mask on the same
+                        domain as the historic forecast and truth data. Land
+                        points are specified by ones and sea points are
+                        specified by zeros.
+
 __HELP__
   [[ "$output" == "$expected" ]]
 }

@@ -468,10 +468,15 @@ class Test_compute_initial_guess(IrisTest):
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def setUp(self):
-        """Use temperature cube to test with."""
+        """
+        Use temperature cube to test with. Also set up versions with a masked
+        halo surrounding the original data.
+        Set up expected results for different situations.
+        """
         self.distribution = "gaussian"
         self.desired_units = "degreesC"
         self.predictor_of_mean_flag = "mean"
+        self.no_of_realizations = 3
         data = np.array([[[0., 1., 2.],
                           [3., 4., 5.],
                           [6., 7., 8.]],
@@ -490,7 +495,58 @@ class Test_compute_initial_guess(IrisTest):
             "realization", iris.analysis.MEAN)
         self.current_forecast_predictor_realizations = cube.copy()
         self.truth = cube.collapsed("realization", iris.analysis.MAX)
-        self.no_of_realizations = 3
+        # Set up a version of the same cube but with a masked halo surrounding
+        # the original data.
+        data = np.array([[[np.nan, np.nan, np.nan, np.nan, np.nan],
+                          [np.nan, 0., 1., 2., np.nan],
+                          [np.nan, 3., 4., 5., np.nan],
+                          [np.nan, 6., 7., 8., np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan]],
+                         [[np.nan, np.nan, np.nan, np.nan, np.nan],
+                          [np.nan, 1., 2., 3, np.nan],
+                          [np.nan, 4., 5., 6., np.nan],
+                          [np.nan, 7., 8., 9., np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan]],
+                         [[np.nan, np.nan, np.nan, np.nan, np.nan],
+                          [np.nan, 2., 3., 4., np.nan],
+                          [np.nan, 5., 6., 7., np.nan],
+                          [np.nan, 8., 9., 10., np.nan],
+                          [np.nan, np.nan, np.nan, np.nan, np.nan]]])
+        data = data + 273.15
+        data = data.astype(np.float32)
+        data = np.ma.masked_invalid(data)
+        cube = set_up_variable_cube(
+            data, units="Kelvin", realizations=[0, 1, 2])
+
+        # Note that when numpy collapses masked arrays it modifies the data
+        # type so we convert it back to float32.
+        self.current_forecast_predictor_mean_masked_halo = cube.collapsed(
+            "realization", iris.analysis.MEAN)
+        self.current_forecast_predictor_mean_masked_halo.data = (
+            self.current_forecast_predictor_mean_masked_halo.data.astype(
+                np.float32))
+        self.current_forecast_predictor_realizations_masked_halo = cube.copy()
+        self.truth_masked_halo = cube.collapsed(
+            "realization", iris.analysis.MAX)
+        self.truth_masked_halo.data = self.truth_masked_halo.data.astype(
+            np.float32)
+
+        # Set up expected results:
+        # Set up results for the case where the
+        # estimate_coefficients_from_linear_model_flag is False
+        self.expected_mean_predictor_no_linear_model = np.array(
+            [0, 1, 0, 1], dtype=np.float32)
+        self.expected_realizations_predictor_no_linear_model = np.array(
+            [0, 1, 0,
+             np.sqrt(1./self.no_of_realizations),
+             np.sqrt(1./self.no_of_realizations),
+             np.sqrt(1./self.no_of_realizations)], dtype=np.float32)
+        # Set up results for the case where the
+        # estimate_coefficients_from_linear_model_flag is True
+        self.expected_mean_predictor_with_linear_model = np.array(
+            [0., 1., 1., 1.], dtype=np.float32)
+        self.expected_realizations_predictor_with_linear_model = np.array(
+            [0., 1., 0.333333, 0., 0.333333, 0.666667], dtype=np.float32)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -537,7 +593,6 @@ class Test_compute_initial_guess(IrisTest):
         as the predictor. As coefficients are not estimated using a
         linear model, the default values for the initial guess are used.
         """
-        data = [0, 1, 0, 1]
         estimate_coefficients_from_linear_model_flag = False
 
         plugin = Plugin(self.distribution, self.desired_units)
@@ -545,7 +600,8 @@ class Test_compute_initial_guess(IrisTest):
             self.truth, self.current_forecast_predictor_mean,
             self.predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag)
-        self.assertArrayAlmostEqual(result, data)
+        self.assertArrayAlmostEqual(
+            result, self.expected_mean_predictor_no_linear_model)
 
     @unittest.skipIf(
         STATSMODELS_FOUND is True, "statsmodels module is available.")
@@ -559,11 +615,6 @@ class Test_compute_initial_guess(IrisTest):
         using a linear model, the default values for the initial guess
         are used.
         """
-        data = [0, 1, 0,
-                np.sqrt(1./self.no_of_realizations),
-                np.sqrt(1./self.no_of_realizations),
-                np.sqrt(1./self.no_of_realizations)]
-
         predictor_of_mean_flag = "realizations"
         estimate_coefficients_from_linear_model_flag = False
 
@@ -573,7 +624,8 @@ class Test_compute_initial_guess(IrisTest):
             predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag,
             no_of_realizations=self.no_of_realizations)
-        self.assertArrayAlmostEqual(result, data)
+        self.assertArrayAlmostEqual(
+            result, self.expected_realizations_predictor_no_linear_model)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -586,7 +638,6 @@ class Test_compute_initial_guess(IrisTest):
         during the training period. Therefore, in this case the result of the
         linear regression is a gradient of 1 and an intercept of 1.
         """
-        data = np.array([0., 1., 1., 1.], dtype=np.float32)
         estimate_coefficients_from_linear_model_flag = True
 
         plugin = Plugin(self.distribution, self.desired_units)
@@ -595,7 +646,8 @@ class Test_compute_initial_guess(IrisTest):
             self.predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag)
 
-        self.assertArrayAlmostEqual(result, data)
+        self.assertArrayAlmostEqual(
+            self.expected_mean_predictor_with_linear_model, result)
 
     @unittest.skipIf(
         STATSMODELS_FOUND is False, "statsmodels module not available.")
@@ -610,7 +662,6 @@ class Test_compute_initial_guess(IrisTest):
         of 0.333333 with different weights for the realizations because
         some of the realizations are closer to the truth, in this instance.
         """
-        data = [0., 1., 0.333333, 0., 0.333333, 0.666667]
         predictor_of_mean_flag = "realizations"
         estimate_coefficients_from_linear_model_flag = True
 
@@ -620,33 +671,61 @@ class Test_compute_initial_guess(IrisTest):
             predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag,
             no_of_realizations=self.no_of_realizations)
-        self.assertArrayAlmostEqual(result, data)
+        self.assertArrayAlmostEqual(
+            self.expected_realizations_predictor_with_linear_model, result)
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_mean_predictor_estimate_coefficients_nans(self):
+    def test_mean_predictor_estimate_coefficients_masked_halo(self):
         """
         Test that the plugin returns the expected values for the initial guess
         for the calibration coefficients, when the ensemble mean is used
-        as the predictor, when one value from the input data is set to NaN.
-        The coefficients are estimated using a linear model,
+        as the predictor. The coefficients are estimated using a linear model,
         where there is an offset of one between the truth and the forecast
         during the training period. Therefore, in this case the result of the
-        linear regression is a gradient of 1 and an intercept of 1.
+        linear regression is a gradient of 1 and an intercept of 1. In this
+        case the original data has been surrounded by a halo of masked nans,
+        which gives the same coefficients as the original data.
         """
-        data = np.array([0., 1., 1., 1.], dtype=np.float32)
         estimate_coefficients_from_linear_model_flag = True
-
-        self.current_forecast_predictor_mean.data = (
-            self.current_forecast_predictor_mean.data.filled())
-        self.current_forecast_predictor_mean.data[0][0] = np.nan
 
         plugin = Plugin(self.distribution, self.desired_units)
         result = plugin.compute_initial_guess(
-            self.truth, self.current_forecast_predictor_mean,
+            self.truth_masked_halo,
+            self.current_forecast_predictor_mean_masked_halo,
             self.predictor_of_mean_flag,
             estimate_coefficients_from_linear_model_flag)
-        self.assertArrayAlmostEqual(result, data)
+
+        self.assertArrayAlmostEqual(
+            self.expected_mean_predictor_with_linear_model, result)
+
+    @unittest.skipIf(
+        STATSMODELS_FOUND is False, "statsmodels module not available.")
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_realizations_predictor_estimate_coefficients_masked_halo(self):
+        """
+        Test that the plugin returns the expected values for the initial guess
+        for the calibration coefficients, when the ensemble mean is used
+        as the predictor. The coefficients are estimated using a linear model.
+        In this case, the result of the linear regression is for an intercept
+        of 0.333333 with different weights for the realizations because
+        some of the realizations are closer to the truth, in this instance. In
+        this case the original data has been surrounded by a halo of masked
+        nans, which gives the same coefficients as the original data.
+        """
+        predictor_of_mean_flag = "realizations"
+        estimate_coefficients_from_linear_model_flag = True
+
+        plugin = Plugin(self.distribution, self.desired_units)
+        result = plugin.compute_initial_guess(
+            self.truth_masked_halo,
+            self.current_forecast_predictor_realizations_masked_halo,
+            predictor_of_mean_flag,
+            estimate_coefficients_from_linear_model_flag,
+            no_of_realizations=self.no_of_realizations)
+        self.assertArrayAlmostEqual(
+            self.expected_realizations_predictor_with_linear_model, result)
 
 
 class Test__filter_non_matching_cubes(SetupCubes):
@@ -712,6 +791,77 @@ class Test__filter_non_matching_cubes(SetupCubes):
                 self.partial_historic_forecasts, partial_truth)
 
 
+class Test_mask_cube(SetupCubes):
+    """Test the mask_cube method"""
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def setUp(self):
+        """Set up additional cube for land-sea mask."""
+        super().setUp()
+        mask_data = np.array([[0, 1, 0],
+                              [0, 1, 1],
+                              [1, 1, 0]],
+                             dtype=np.int32)
+        self.mask_cube = set_up_variable_cube(
+            mask_data, name="land_binary_mask", units="1")
+        self.plugin = Plugin("gaussian", "20171110T0000Z")
+        # Copy a few slices of the temperature truth cube to test on.
+        self.cube3D = self.temperature_truth_cube[0:2, ...].copy()
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_basic(self):
+        """Test that a simple cube is masked in the correct way."""
+        expected_result = np.array(
+            [[[np.nan, 273.15, np.nan],
+              [np.nan, 275.75, 276.55],
+              [278.05, 278.35, np.nan]],
+             [[np.nan, 273.15, np.nan],
+              [np.nan, 275.75, 276.55],
+              [278.05, 278.35, np.nan]]], dtype=np.float32)
+        expected_result = np.ma.masked_invalid(expected_result)
+        self.plugin.mask_cube(self.cube3D, self.mask_cube)
+        self.assertArrayAlmostEqual(
+            expected_result.data, self.cube3D.data.data)
+        self.assertArrayEqual(
+            expected_result.mask, self.cube3D.data.mask)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_basic_2D_input_cube(self):
+        """Test that a simple 2D cube is masked in the correct way."""
+        cube2D = self.cube3D[0].copy()
+        expected_result = np.array(
+            [[np.nan, 273.15, np.nan],
+             [np.nan, 275.75, 276.55],
+             [278.05, 278.35, np.nan]], dtype=np.float32)
+        expected_result = np.ma.masked_invalid(expected_result)
+        self.plugin.mask_cube(cube2D, self.mask_cube)
+        self.assertArrayAlmostEqual(
+            expected_result.data, cube2D.data.data)
+        self.assertArrayEqual(
+            expected_result.mask, cube2D.data.mask)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_fail_mismatched_arrays(self):
+        """Test that an error is raised when input have incompatible shapes."""
+        cube_mismatched = self.cube3D[..., 0].copy()
+        msg = "Cube and landsea_mask shapes are not compatible."
+        with self.assertRaisesRegex(IndexError, msg):
+            self.plugin.mask_cube(cube_mismatched, self.mask_cube)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_fail_transposed_input(self):
+        """Test that an error is raised when the input cube is transposed"""
+        self.cube3D.transpose((2, 0, 1))
+        msg = "Cube and landsea_mask shapes are not compatible."
+        with self.assertRaisesRegex(IndexError, msg):
+            self.plugin.mask_cube(self.cube3D, self.mask_cube)
+
+
 class Test_process(SetupCubes, EnsembleCalibrationAssertions,
                    SetupExpectedCoefficients):
 
@@ -728,6 +878,14 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions,
         self.coeff_names = ["gamma", "delta", "alpha", "beta"]
         self.coeff_names_realizations = (
             ['gamma', 'delta', 'alpha', 'beta0', 'beta1', 'beta2'])
+
+        landsea_data = np.array([[0, 0, 0, 0, 0],
+                                 [0, 1, 1, 1, 0],
+                                 [0, 1, 1, 1, 0],
+                                 [0, 1, 1, 1, 0],
+                                 [0, 0, 0, 0, 0]], dtype=np.int32)
+        self.landsea_cube = set_up_variable_cube(
+            landsea_data, name="land_binary_mask", units="1")
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -759,6 +917,29 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions,
         self.assertArrayEqual(
             result.coord("coefficient_name").points, self.coeff_names)
 
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_coefficient_values_for_gaussian_distribution_landsea_mask(self):
+        """Ensure that the values for the optimised_coefficients match the
+        expected values, and the coefficient names also match
+        expected values for a Gaussian distribution. In this case,
+        a linear least-squares regression is used to construct the initial
+        guess. The original data is surrounded by a halo that is masked
+        out by the landsea_mask, giving the same results as the original data.
+        """
+        plugin = Plugin(self.distribution, self.current_cycle)
+        result = plugin.process(
+            self.historic_temperature_forecast_cube_halo,
+            self.temperature_truth_cube_halo,
+            landsea_mask=self.landsea_cube)
+
+        self.assertEMOSCoefficientsAlmostEqual(
+            result.data, self.expected_mean_predictor_gaussian)
+        self.assertArrayEqual(
+            result.coord("coefficient_name").points, self.coeff_names)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_gaussian_distribution_mismatching_inputs(
             self):
         """Test that the values for the optimised coefficients match the
@@ -833,6 +1014,29 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions,
         result = plugin.process(
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
+
+        self.assertEMOSCoefficientsAlmostEqual(
+            result.data, self.expected_mean_predictor_truncated_gaussian)
+        self.assertArrayEqual(
+            result.coord("coefficient_name").points, self.coeff_names)
+
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_coefficient_values_for_truncated_gaussian_distribution_mask(self):
+        """Ensure that the values for the optimised_coefficients match the
+        expected values, and the coefficient names also match
+        expected values for a truncated Gaussian distribution. In this case,
+        a linear least-squares regression is used to construct the initial
+        guess.The original data is surrounded by a halo that is masked
+        out by the land-sea mask, giving the same results as the original data.
+        """
+        distribution = "truncated_gaussian"
+
+        plugin = Plugin(distribution, self.current_cycle)
+        result = plugin.process(
+            self.historic_wind_speed_forecast_cube_halo,
+            self.wind_speed_truth_cube_halo,
+            landsea_mask=self.landsea_cube)
 
         self.assertEMOSCoefficientsAlmostEqual(
             result.data, self.expected_mean_predictor_truncated_gaussian)
