@@ -38,14 +38,13 @@ import iris
 import numpy as np
 from cf_units import Unit
 from iris.coords import AuxCoord, DimCoord
-from iris.tests import IrisTest
 
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import compare_coords
 from improver.utilities.warnings_handler import ManageWarnings
 
 
-class Test_compare_coords(IrisTest):
+class Test_compare_coords(unittest.TestCase):
     """Test the compare_coords utility."""
 
     def setUp(self):
@@ -75,7 +74,7 @@ class Test_compare_coords(IrisTest):
         warning_msg = "Only a single cube so no differences will be found "
         self.assertTrue(any(warning_msg in str(item)
                             for item in warning_list))
-        self.assertAlmostEqual(result, [])
+        self.assertEqual(result, [])
 
     def test_first_cube_has_extra_dimension_coordinates(self):
         """Test for comparing coordinate between cubes, where the first
@@ -138,6 +137,7 @@ class Test_compare_coords(IrisTest):
         self.assertEqual(result[1]["model"]["coord"], self.extra_aux_coord)
         self.assertEqual(result[1]["model"]["data_dims"], None)
         self.assertEqual(result[1]["model"]["aux_dims"], 0)
+
 
 if __name__ == '__main__':
     unittest.main()
