@@ -36,7 +36,8 @@
 usage: improver threshold [-h] [--profile] [--profile_file PROFILE_FILE]
                           [--threshold_config THRESHOLD_CONFIG]
                           [--threshold_units THRESHOLD_UNITS]
-                          [--below_threshold] [--fuzzy_factor FUZZY_FACTOR]
+                          [--below_threshold] [--equal_threshold]
+                          [--fuzzy_factor FUZZY_FACTOR]
                           [--collapse-coord COLLAPSE-COORD]
                           [--vicinity VICINITY]
                           INPUT_FILE OUTPUT_FILE
@@ -80,6 +81,9 @@ optional arguments:
                         ABOVE the threshold value(s). Using this flag changes
                         this behaviour to return 1 for data below the
                         threshold values.
+  --equal_threshold     By default truth values of 0 are returned for data
+                        EQUAL TO the threshold value(s). Using this flag
+                        changes this behaviour to return 1 for these data.
   --fuzzy_factor FUZZY_FACTOR
                         A decimal fraction defining the factor about the
                         threshold value(s) which should be treated as fuzzy.

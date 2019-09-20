@@ -52,7 +52,7 @@ class BasicThreshold(object):
 
     def __init__(self, thresholds, fuzzy_factor=None,
                  fuzzy_bounds=None, threshold_units=None,
-                 below_thresh_ok=False):
+                 below_thresh_ok=False, equal_thresh_ok=False):
         """
         Set up for processing an in-or-out of threshold field, including the
         generation of fuzzy_bounds which are required to threshold an input
@@ -101,6 +101,11 @@ class BasicThreshold(object):
             below_thresh_ok (bool):
                 True to count points as significant if *below* the threshold,
                 False to count points as significant if *above* the threshold.
+            equal_thresh_ok (bool):
+                True to count points as significant if exactly *equal* the
+                threshold,
+                False to exclude points  if exactly *equal* the threshold.
+                Ignored if either fuzzy option is active.
 
         Raises:
             ValueError: If a threshold of 0.0 is requested when using a fuzzy
@@ -172,15 +177,17 @@ class BasicThreshold(object):
             assert bounds[1] >= thr, bounds_msg
 
         self.below_thresh_ok = below_thresh_ok
+        self.equal_thresh_ok = equal_thresh_ok
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         return (
             '<BasicThreshold: thresholds {}, ' +
             'fuzzy_bounds {}, ' +
-            'below_thresh_ok: {}>'
+            'below_thresh_ok: {}, ' +
+            'equal_thresh_ok: {}>'
         ).format(self.thresholds, self.fuzzy_bounds,
-                 self.below_thresh_ok)
+                 self.below_thresh_ok, self.equal_thresh_ok)
 
     def _add_threshold_coord(self, cube, threshold):
         """
@@ -279,7 +286,10 @@ class BasicThreshold(object):
             # if upper and lower bounds are equal, set a deterministic 0/1
             # probability based on exceedance of the threshold
             if bounds[0] == bounds[1]:
-                truth_value = cube.data > threshold
+                if self.equal_thresh_ok != self.below_thresh_ok:
+                    truth_value = cube.data >= threshold
+                else:
+                    truth_value = cube.data > threshold
             # otherwise, scale exceedance probabilities linearly between 0/1
             # at the min/max fuzzy bounds and 0.5 at the threshold value
             else:
