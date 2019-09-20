@@ -62,7 +62,6 @@ def main(argv=None):
     cube = load_cube(args.input_file)
     with open(args.threshold_ranges) as input_file:
         # read list of thresholds from json file
-        # TODO checked with json.loads; check with json.load
         threshold_ranges = json.load(input_file)
 
     # Process Cube
