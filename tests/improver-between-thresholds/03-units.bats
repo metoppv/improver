@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "between-thresholds" {
+@test "between-thresholds units" {
   improver_check_skip_acceptance
   KGO="between-thresholds/kgo.nc"
 
