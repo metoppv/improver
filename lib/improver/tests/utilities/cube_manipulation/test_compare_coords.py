@@ -40,8 +40,9 @@ from cf_units import Unit
 from iris.coords import AuxCoord, DimCoord
 from iris.tests import IrisTest
 
-from improver.tests.ensemble_calibration.ensemble_calibration. \
-    helper_functions import set_up_temperature_cube
+#from improver.tests.ensemble_calibration.ensemble_calibration. \
+#    helper_functions import set_up_temperature_cube
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import compare_coords
 from improver.utilities.warnings_handler import ManageWarnings
 
@@ -51,7 +52,12 @@ class Test_compare_coords(IrisTest):
 
     def setUp(self):
         """Use temperature cube to test with."""
-        self.cube = set_up_temperature_cube()
+        data = 275*np.ones((3, 3, 3), dtype=np.float32)
+        self.cube = set_up_variable_cube(data)
+        self.extra_dim_coord = DimCoord(
+            [5.0], standard_name="height", units="m")
+        self.extra_aux_coord = AuxCoord(
+            ['uk_det', 'uk_ens', 'gl_ens'], long_name='model', units='no_unit')
 
     def test_basic(self):
         """Test that the utility returns a list."""
@@ -78,17 +84,14 @@ class Test_compare_coords(IrisTest):
         cube in the list has extra dimension coordinates."""
         cube1 = self.cube.copy()
         cube2 = self.cube.copy()
-        height_coord = DimCoord([5.0], standard_name="height", units="m")
-        cube1.add_aux_coord(height_coord)
+        cube1.add_aux_coord(self.extra_dim_coord)
         cube1 = iris.util.new_axis(cube1, "height")
         cubelist = iris.cube.CubeList([cube1, cube2])
         result = compare_coords(cubelist)
         self.assertIsInstance(result, list)
         self.assertEqual(len(result[0]), 1)
         self.assertEqual(len(result[1]), 0)
-        self.assertEqual(result[0]["height"]["coord"].points, np.array([5.]))
-        self.assertEqual(result[0]["height"]["coord"].standard_name, "height")
-        self.assertEqual(result[0]["height"]["coord"].units, Unit("m"))
+        self.assertEqual(result[0]["height"]["coord"], self.extra_dim_coord)
         self.assertEqual(result[0]["height"]["data_dims"], 0)
         self.assertEqual(result[0]["height"]["aux_dims"], None)
 
@@ -97,17 +100,14 @@ class Test_compare_coords(IrisTest):
         cube in the list has extra dimension coordinates."""
         cube1 = self.cube.copy()
         cube2 = self.cube.copy()
-        height_coord = DimCoord([5.0], standard_name="height", units="m")
-        cube2.add_aux_coord(height_coord)
+        cube2.add_aux_coord(self.extra_dim_coord)
         cube2 = iris.util.new_axis(cube2, "height")
         cubelist = iris.cube.CubeList([cube1, cube2])
         result = compare_coords(cubelist)
         self.assertIsInstance(result, list)
         self.assertEqual(len(result[0]), 0)
         self.assertEqual(len(result[1]), 1)
-        self.assertEqual(result[1]["height"]["coord"].points, np.array([5.]))
-        self.assertEqual(result[1]["height"]["coord"].standard_name, "height")
-        self.assertEqual(result[1]["height"]["coord"].units, Unit("m"))
+        self.assertEqual(result[1]["height"]["coord"], self.extra_dim_coord)
         self.assertEqual(result[1]["height"]["data_dims"], 0)
         self.assertEqual(result[1]["height"]["aux_dims"], None)
 
@@ -116,45 +116,30 @@ class Test_compare_coords(IrisTest):
         cube in the list has extra auxiliary coordinates."""
         cube1 = self.cube.copy()
         cube2 = self.cube.copy()
-        fp_coord = AuxCoord(
-            [3.0], standard_name="forecast_period", units="hours")
-        cube1.add_aux_coord(fp_coord, data_dims=1)
+        cube1.add_aux_coord(self.extra_aux_coord, data_dims=0)
         cubelist = iris.cube.CubeList([cube1, cube2])
         result = compare_coords(cubelist)
         self.assertIsInstance(result, list)
         self.assertEqual(len(result[0]), 1)
         self.assertEqual(len(result[1]), 0)
-        self.assertEqual(result[0]["forecast_period"]["coord"].points,
-                         np.array([3.0]))
-        self.assertEqual(result[0]["forecast_period"]["coord"].standard_name,
-                         "forecast_period")
-        self.assertEqual(result[0]["forecast_period"]["coord"].units,
-                         Unit("hours"))
-        self.assertEqual(result[0]["forecast_period"]["data_dims"], None)
-        self.assertEqual(result[0]["forecast_period"]["aux_dims"], 1)
+        self.assertEqual(result[0]["model"]["coord"], self.extra_aux_coord)
+        self.assertEqual(result[0]["model"]["data_dims"], None)
+        self.assertEqual(result[0]["model"]["aux_dims"], 0)
 
     def test_second_cube_has_extra_auxiliary_coordinates(self):
         """Test for comparing coordinate between cubes, where the second
         cube in the list has extra auxiliary coordinates."""
         cube1 = self.cube.copy()
         cube2 = self.cube.copy()
-        fp_coord = AuxCoord(
-            [3.0], standard_name="forecast_period", units="hours")
-        cube2.add_aux_coord(fp_coord, data_dims=1)
+        cube2.add_aux_coord(self.extra_aux_coord, data_dims=0)
         cubelist = iris.cube.CubeList([cube1, cube2])
         result = compare_coords(cubelist)
         self.assertIsInstance(result, list)
         self.assertEqual(len(result[0]), 0)
         self.assertEqual(len(result[1]), 1)
-        self.assertEqual(result[1]["forecast_period"]["coord"].points,
-                         np.array([3.0]))
-        self.assertEqual(result[1]["forecast_period"]["coord"].standard_name,
-                         "forecast_period")
-        self.assertEqual(result[1]["forecast_period"]["coord"].units,
-                         Unit("hours"))
-        self.assertEqual(result[1]["forecast_period"]["data_dims"], None)
-        self.assertEqual(result[1]["forecast_period"]["aux_dims"], 1)
-
+        self.assertEqual(result[1]["model"]["coord"], self.extra_aux_coord)
+        self.assertEqual(result[1]["model"]["data_dims"], None)
+        self.assertEqual(result[1]["model"]["aux_dims"], 0)
 
 if __name__ == '__main__':
     unittest.main()
