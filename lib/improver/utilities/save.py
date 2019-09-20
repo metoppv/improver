@@ -146,8 +146,6 @@ def save_netcdf(cubelist, filename):
     if isinstance(cubelist, iris.cube.Cube):
         cubelist = [cubelist]
 
-    chunksizes = None
-    xy_chunksizes = [None, None]
     for cube in cubelist:
         check_cube_not_float64(cube)
         _order_cell_methods(cube)

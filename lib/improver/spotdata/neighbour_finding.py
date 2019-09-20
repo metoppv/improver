@@ -418,7 +418,6 @@ class NeighbourSelection:
                 the grid point indices of its nearest neighbour as per the
                 imposed constraints.
         """
-        index_nodes = []
         # Check if we are dealing with a global grid.
         self.global_coordinate_system = orography.coord(axis='x').circular
 

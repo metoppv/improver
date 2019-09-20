@@ -138,7 +138,6 @@ class Test__recycle_raw_ensemble_realizations(IrisTest):
         equals the length of the realizations, check that the points of the
         realization coordinate is as expected.
         """
-        data = [0, 1, 2]
         data = np.array([[[[4., 4.625, 5.25],
                            [5.875, 6.5, 7.125],
                            [7.75, 8.375, 9.]]],
