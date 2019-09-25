@@ -317,7 +317,6 @@ class Test_convert_number_of_grid_cells_into_distance(IrisTest):
         """
         Check it raises an error when the input is not an equal areas grid.
         """
-
         self.cube.remove_coord("projection_x_coordinate")
         self.cube.add_dim_coord(
             DimCoord(np.linspace(200.0, 600.0, 3),

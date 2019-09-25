@@ -101,7 +101,7 @@ def calculate_grid_spacing(cube):
     """
     check_if_grid_is_equal_area(cube)
     coord = cube.coord(axis='x').copy()
-    coord.convert_units("m")
+    coord.convert_units('metres')
     return np.diff(coord.points)[0]
 
 
@@ -152,41 +152,52 @@ def convert_distance_into_number_of_grid_cells(
             If max_distance_in_grid_cells is set and the distance in grid cells
             exceeds this value.  Needed for neighbourhood processing.
     """
-    try:
-        x_coord = cube.coord("projection_x_coordinate").copy()
-        y_coord = cube.coord("projection_y_coordinate").copy()
-    except CoordinateNotFoundError:
-        raise ValueError("Invalid grid: projection_x/y coords required")
-    x_coord.convert_units("metres")
-    y_coord.convert_units("metres")
-    max_distance_of_domain = np.sqrt(
-        (x_coord.points.max() - x_coord.points.min())**2 +
-        (y_coord.points.max() - y_coord.points.min())**2)
+    d_error = "Distance of {}m".format(distance)
+    zero_distance_error = ("{} gives zero cell extent".format(d_error))
+    if distance <= 0:
+        raise ValueError(zero_distance_error)
+
+    # calculate grid spacing or raise error if cube is not equal area
+    grid_spacing_metres = calculate_grid_spacing(cube)
+
+    # check required distance isn't greater than the size of the domain
+    def calculate_domain_extent(coord):
+        """Calculates the coordinate extent in metres"""
+        new_coord = coord.copy()
+        new_coord = coord.convert_units('metres')
+        return max(coord.points) - min(coord.points)
+
+    x_extent_metres = calculate_domain_extent(cube.coord(axis='x'))
+    y_extent_metres = calculate_domain_extent(cube.coord(axis='y'))
+    max_distance_of_domain = np.sqrt(x_extent_metres**2 + y_extent_metres**2)
     if distance > max_distance_of_domain:
         raise ValueError(
-            ("Distance of {0}m exceeds max domain"
-             " distance of {1}m".format(distance, max_distance_of_domain)))
-    d_north_metres = y_coord.points[1] - y_coord.points[0]
-    d_east_metres = x_coord.points[1] - x_coord.points[0]
-    grid_cells_y = distance / abs(d_north_metres)
-    grid_cells_x = distance / abs(d_east_metres)
+            "{} exceeds max domain distance of {}m".format(
+                d_error, max_distance_of_domain))
+
+    # calculate distance in grid squares
+    # TODO abs here (as previously configured) means value error below cannot
+    # be reached; but NO abs here causes in failure in square_kernel unit tests
+    grid_cells = distance / abs(grid_spacing_metres)
+
     if int_grid_cells:
-        grid_cells_y = int(grid_cells_y)
-        grid_cells_x = int(grid_cells_x)
-    if grid_cells_x == 0 or grid_cells_y == 0:
+        grid_cells = int(grid_cells)
+        if grid_cells == 0:
+            raise ValueError(zero_distance_error)
+
+    if grid_cells < 0:
+        # TODO this error cannot be reached.  Is this a problem?
         raise ValueError(
-            "Distance of {0}m gives zero cell extent".format(distance))
-    elif grid_cells_x < 0 or grid_cells_y < 0:
-        raise ValueError(
-            "Distance of {0}m gives a negative cell extent - "
-            "check coordinate ordering".format(distance))
+            "{} gives a negative cell extent - check coordinate "
+            "ordering".format(d_error))
+
     if max_distance_in_grid_cells is not None:
-        if (grid_cells_x > max_distance_in_grid_cells or
-                grid_cells_y > max_distance_in_grid_cells):
+        if grid_cells > max_distance_in_grid_cells:
             raise ValueError(
-                "Distance of {0}m exceeds maximum permitted "
-                "grid cell extent".format(distance))
-    return grid_cells_x, grid_cells_y
+                "{} exceeds maximum permitted grid cell extent".format(
+                    d_error))
+
+    return grid_cells, grid_cells
 
 
 def convert_number_of_grid_cells_into_distance(cube, grid_points):
