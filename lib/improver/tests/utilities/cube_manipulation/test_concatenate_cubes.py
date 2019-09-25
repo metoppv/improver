@@ -83,10 +83,10 @@ class Test_concatenate_cubes(IrisTest):
         resulting data, if a CubeList containing non-identical cubes
         (different values for the time coordinate) is passed in as the input.
         """
-        cube3 = self.cube.copy()
-        cube3.transpose([1, 0, 2, 3])
+        cube = self.cube.copy()
+        cube.transpose([1, 0, 2, 3])
         expected_result = (
-            np.vstack([cube3.data, cube3.data]).transpose([1, 0, 2, 3]))
+            np.vstack([cube.data, cube.data]).transpose([1, 0, 2, 3]))
         cubelist = iris.cube.CubeList([self.cube, self.later_cube])
         result = concatenate_cubes(
             cubelist, coords_to_slice_over=["realization"])
