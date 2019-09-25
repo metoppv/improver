@@ -156,8 +156,8 @@ def convert_distance_into_number_of_grid_cells(
     def calculate_domain_extent(coord):
         """Calculates the coordinate extent in metres"""
         new_coord = coord.copy()
-        new_coord = coord.convert_units('metres')
-        return max(coord.points) - min(coord.points)
+        new_coord.convert_units('metres')
+        return max(new_coord.points) - min(new_coord.points)
 
     x_extent_metres = calculate_domain_extent(cube.coord(axis='x'))
     y_extent_metres = calculate_domain_extent(cube.coord(axis='y'))
