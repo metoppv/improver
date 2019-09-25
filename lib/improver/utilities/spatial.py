@@ -56,53 +56,46 @@ def check_if_grid_is_equal_area(cube):
         cube (iris.cube.Cube):
             Cube with coordinates that will be cMAhecked.
     Raises:
-        ValueError : Invalid grid: projection_x/y coords required
-        ValueError : Intervals between points along the x and y axis vary.
-                     Therefore the grid is not an equal area grid.
-        ValueError : The size of the intervals along the x and y axis
-                     should be equal.
+        ValueError: Coordinate points are not equally spaced (from
+            calculate_grid_spacing)
+        ValueError: Point spacing is not equal for the two spatial axes
     """
-    try:
-        for coord_name in ['projection_x_coordinate',
-                           'projection_y_coordinate']:
-            cube.coord(coord_name)
-    except CoordinateNotFoundError:
-        raise ValueError("Invalid grid: projection_x/y coords required")
-    for coord_name in ['projection_x_coordinate',
-                       'projection_y_coordinate']:
-        if np.sum(np.diff(np.diff(cube.coord(coord_name).points))) > 0:
-            msg = ("Intervals between points along the {} axis vary."
-                   "Therefore the grid is not an equal area grid.")
-            msg = msg.format(coord_name)
-            raise ValueError(msg)
-    x_diff = np.diff(cube.coord("projection_x_coordinate").points)[0]
-    y_diff = np.diff(cube.coord("projection_y_coordinate").points)[0]
-    if abs(x_diff) != abs(y_diff):
-        msg = ("The size of the intervals along the x and y axis "
-               "should be equal. x axis interval: {}, y axis interval: {}")
-        msg = msg.format(x_diff, y_diff)
-        raise ValueError(msg)
+    xdiff = calculate_grid_spacing(cube, axis='x')
+    ydiff = calculate_grid_spacing(cube, axis='y')
+    if not np.isclose(xdiff, ydiff):
+        raise ValueError("Grid is not equal area")
 
 
-def calculate_grid_spacing(cube):
+def calculate_grid_spacing(cube, axis='x'):
     """
     Returns the grid spacing of an equal-area cube
 
     Args:
         cube (iris.cube.Cube):
             Cube of data on equal area grid
+        axis (str):
+            Axis ('x' or 'y') to use in determining grid spacing
 
     Returns:
         gridlength (float):
             Grid spacing in metres
 
     Raises:
-        ValueError: If cube is not equal-area
+        ValueError: If points are not equally spaced
     """
-    check_if_grid_is_equal_area(cube)
-    coord = cube.coord(axis='x').copy()
-    coord.convert_units('metres')
-    return np.diff(coord.points)[0]
+    coord = cube.coord(axis=axis).copy()
+    error_msg = (
+        'Coordinate {} points are not equally spaced'.format(coord.name()))
+    try:
+        coord.convert_units('metres')
+    except ValueError:
+        # catch error if unable to convert, eg from degrees (lat / lon)
+        raise ValueError(error_msg)
+
+    diffs = np.unique(np.diff(coord.points))
+    if len(diffs) > 1:
+        raise ValueError(error_msg)
+    return diffs[0]
 
 
 def convert_distance_into_number_of_grid_cells(
@@ -160,6 +153,7 @@ def convert_distance_into_number_of_grid_cells(
         raise ValueError("Please specify a positive distance in metres")
 
     # calculate grid spacing or raise error if cube is not equal area
+    check_if_grid_is_equal_area(cube)
     grid_spacing_metres = calculate_grid_spacing(cube)
 
     # check required distance isn't greater than the size of the domain
@@ -191,7 +185,7 @@ def convert_distance_into_number_of_grid_cells(
                 "{} exceeds maximum permitted grid cell extent".format(
                     d_error))
 
-    return grid_cells, grid_cells
+    return grid_cells
 
 
 def convert_number_of_grid_cells_into_distance(cube, grid_points):
@@ -209,6 +203,7 @@ def convert_number_of_grid_cells_into_distance(cube, grid_points):
         radius_in_metres (float):
             The radius in metres.
     """
+    check_if_grid_is_equal_area(cube)
     x_diff = calculate_grid_spacing(cube)
     radius_in_metres = x_diff*grid_points
     return radius_in_metres
@@ -401,17 +396,15 @@ class OccurrenceWithinVicinity(object):
                 vicinity defined using the specified distance.
 
         """
-        # The number of grid cells returned along the x and y axis will be
-        # the same.
-        _, grid_cell_y = (
+        grid_spacing = (
             convert_distance_into_number_of_grid_cells(
                 cube, self.distance, MAX_DISTANCE_IN_GRID_CELLS))
 
-        # Convert the number of grid points (e.g. grid_cell_y) represented
-        # by self.distance, e.g. where grid_cell_y=1 is an increment to
+        # Convert the number of grid points (i.e. grid_spacing) represented
+        # by self.distance, e.g. where grid_spacing=1 is an increment to
         # a central point, into grid_cells which is the total number of points
         # within the defined vicinity along the y axis e.g grid_cells=3.
-        grid_cells = (2 * grid_cell_y) + 1
+        grid_cells = (2 * grid_spacing) + 1
 
         max_cube = cube.copy()
         unmasked_cube_data = cube.data.copy()

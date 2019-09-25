@@ -207,8 +207,9 @@ class CircularNeighbourhood(object):
 
         # Check that the cube has an equal area grid.
         check_if_grid_is_equal_area(cube)
-        ranges = convert_distance_into_number_of_grid_cells(
+        grid_cells_x = convert_distance_into_number_of_grid_cells(
             cube, radius, max_distance_in_grid_cells=MAX_RADIUS_IN_GRID_CELLS)
+        ranges = (grid_cells_x, grid_cells_x)
         cube = self.apply_circular_kernel(cube, ranges)
         return cube
 
@@ -417,8 +418,9 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
         # Check that the cube has an equal area grid.
         check_if_grid_is_equal_area(cube)
         # Take data array and identify X and Y axes indices
-        ranges_tuple = convert_distance_into_number_of_grid_cells(
+        grid_cells_x = convert_distance_into_number_of_grid_cells(
             cube, radius, max_distance_in_grid_cells=MAX_RADIUS_IN_GRID_CELLS)
+        ranges_tuple = (grid_cells_x, grid_cells_x)
         ranges_xy = np.array(ranges_tuple)
         kernel = circular_kernel(ranges_xy, ranges_tuple, weighted_mode=False)
         # Loop over each 2D slice to reduce memory demand and derive
