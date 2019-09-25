@@ -181,9 +181,11 @@ class Test_load_cube(IrisTest):
             np.zeros((3, 4, 5), dtype=np.float32),
             np.array([273., 274., 275.], dtype=np.float32))
         cube = add_coordinate(
-            cube, [0, 1, 2], "realization", coord_units="no_unit")
+            cube, [0, 1, 2], "realization", dtype=np.int32,
+            coord_units="1")
         cube = add_coordinate(
-            cube, [10, 50, 90], "percentile", coord_units="%")
+            cube, [10, 50, 90], "percentile", dtype=np.float32,
+            coord_units="%")
         cube.transpose([4, 3, 2, 1, 0])
         save_netcdf(cube, self.filepath)
         result = load_cube(self.filepath)
@@ -304,9 +306,11 @@ class Test_load_cubelist(IrisTest):
         of the available files."""
         low_cloud_cube = self.cube.copy()
         low_cloud_cube.rename("low_type_cloud_area_fraction")
+        low_cloud_cube.units = 1
         save_netcdf(low_cloud_cube, self.low_cloud_filepath)
         medium_cloud_cube = self.cube.copy()
         medium_cloud_cube.rename("medium_type_cloud_area_fraction")
+        medium_cloud_cube.units = 1
         save_netcdf(medium_cloud_cube, self.med_cloud_filepath)
         constr = iris.Constraint("low_type_cloud_area_fraction")
         result = load_cubelist([self.low_cloud_filepath,
@@ -326,6 +330,7 @@ class Test_load_cubelist(IrisTest):
         filepath is provided, even if two of the cubes could be merged"""
         low_cloud_cube = self.cube.copy()
         low_cloud_cube.rename("low_type_cloud_area_fraction")
+        low_cloud_cube.units = 1
         low_cloud_cube.coord("time").points = (
             low_cloud_cube.coord("time").points + 3600)
         low_cloud_cube.coord("forecast_period").points = (
@@ -333,6 +338,7 @@ class Test_load_cubelist(IrisTest):
         save_netcdf(low_cloud_cube, self.low_cloud_filepath)
         medium_cloud_cube = self.cube.copy()
         medium_cloud_cube.rename("medium_type_cloud_area_fraction")
+        medium_cloud_cube.units = 1
         save_netcdf(medium_cloud_cube, self.med_cloud_filepath)
         fileglob = os.path.join(self.directory, "*.nc")
         result = load_cubelist(fileglob)
@@ -345,6 +351,7 @@ class Test_load_cubelist(IrisTest):
         loading CLIs."""
         low_cloud_cube = self.cube.copy()
         low_cloud_cube.rename("low_type_cloud_area_fraction")
+        low_cloud_cube.units = 1
         low_cloud_cube.coord("time").points = (
             low_cloud_cube.coord("time").points + 3600)
         low_cloud_cube.coord("forecast_period").points = (
@@ -352,6 +359,7 @@ class Test_load_cubelist(IrisTest):
         save_netcdf(low_cloud_cube, self.low_cloud_filepath)
         medium_cloud_cube = self.cube.copy()
         medium_cloud_cube.rename("medium_type_cloud_area_fraction")
+        medium_cloud_cube.units = 1
         save_netcdf(medium_cloud_cube, self.med_cloud_filepath)
         fileglob = os.path.join(self.directory, "*.nc")
         result = load_cubelist([fileglob])

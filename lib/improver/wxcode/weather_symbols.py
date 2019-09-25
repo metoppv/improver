@@ -441,7 +441,7 @@ class WeatherSymbols(object):
         threshold_coord = find_threshold_coordinate(cube)
         cube_format = next(cube.slices_over([threshold_coord]))
         symbols = cube_format.copy(data=np.full(cube_format.data.shape, -1,
-                                                dtype=np.int))
+                                                dtype=np.int32))
 
         symbols.remove_coord(threshold_coord)
         symbols = add_wxcode_metadata(symbols)

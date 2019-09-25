@@ -44,7 +44,7 @@ from netCDF4 import Dataset
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.load import load_cube
 from improver.utilities.save import (
-    save_netcdf, _append_metadata_cube, _order_cell_methods, _check_for_units)
+    save_netcdf, _append_metadata_cube, _order_cell_methods)
 
 
 def set_up_test_cube():
@@ -177,31 +177,11 @@ class Test_save_netcdf(IrisTest):
                             for key in global_keys_in_file))
 
     def test_error_unknown_units(self):
-        """Test value error when trying to save a cube with no units"""
+        """Test key error when trying to save a cube with no units"""
         no_units_cube = iris.cube.Cube([1])
-        with self.assertRaisesRegex(ValueError, "Cannot save 'unknown' cube"):
+        with self.assertRaisesRegex(
+                KeyError, "Name 'unknown' is not uniquely defined in units"):
             save_netcdf(no_units_cube, self.filepath)
-
-
-class Test__check_for_units(IrisTest):
-    """Test function that checks for valid units"""
-
-    def test_cube_units(self):
-        """Test fails if cube units are unknown"""
-        no_units_cube = iris.cube.Cube([1])
-        with self.assertRaisesRegex(ValueError, "Cannot save 'unknown' cube"):
-            _check_for_units(no_units_cube)
-
-    def test_coord_units(self):
-        """Test fails if cube coordinate units are unknown"""
-        dim_coord = iris.coords.DimCoord(
-            [1], long_name="dimension", units="unknown")
-        no_units_coord_cube = iris.cube.Cube(
-            [1], long_name="data", units="no_unit",
-            dim_coords_and_dims=[(dim_coord, 0)])
-        msg = "Cannot save 'data' cube with coordinate 'dimension'"
-        with self.assertRaisesRegex(ValueError, msg):
-            _check_for_units(no_units_coord_cube)
 
 
 class Test__order_cell_methods(IrisTest):

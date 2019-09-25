@@ -38,7 +38,7 @@
   # Run cube-combiner processing and check it passes.
   run improver combine \
       --operation='max' \
-      --new-name='total_cloud_cover_excluding_high_cloud' \
+      --new-name='cloud_area_fraction' \
       "$IMPROVER_ACC_TEST_DIR/combine/basic/low_cloud.nc" \
       "$IMPROVER_ACC_TEST_DIR/combine/basic/medium_cloud.nc" \
       "$TEST_DIR/output.nc"

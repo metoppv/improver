@@ -557,14 +557,14 @@ class Test_amend_metadata(IrisTest):
     def test_coords_updated(self):
         """Test amend_metadata returns a Cube and updates coord correctly. """
         updated_coords = {self.threshold_coord: {'points': [2.0]},
-                          'time': {'points': [402193.5, 402194.5]}}
+                          'time': {'points': [1447896600, 1447900200]}}
         result = amend_metadata(
             self.cube, name='new_cube_name', data_type=np.dtype,
             coordinates=updated_coords)
         self.assertArrayEqual(result.coord(self.threshold_coord).points,
                               np.array([2.0]))
         self.assertArrayEqual(result.coord('time').points,
-                              np.array([402193.5, 402194.5]))
+                              np.array([1447896600, 1447900200]))
 
     def test_coords_deleted_and_adds(self):
         """Test amend metadata deletes and adds coordinate. """

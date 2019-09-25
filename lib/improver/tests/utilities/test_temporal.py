@@ -312,45 +312,13 @@ class Test_datetime_to_iris_time(IrisTest):
         """Define datetime for use in tests."""
         self.dt_in = datetime.datetime(2017, 2, 17, 6, 0)
 
-    def test_hours(self):
-        """Test datetime_to_iris_time returns float with expected value
-        in hours"""
-        result = datetime_to_iris_time(self.dt_in)
-        expected = 413142.0
-        self.assertIsInstance(result, float)
-        self.assertEqual(result, expected)
-
-    def test_minutes(self):
-        """Test datetime_to_iris_time returns float with expected value
-        in minutes"""
-        result = datetime_to_iris_time(self.dt_in, time_units="minutes")
-        expected = 24788520.0
-        self.assertIsInstance(result, float)
-        self.assertEqual(result, expected)
-
     def test_seconds(self):
         """Test datetime_to_iris_time returns float with expected value
         in seconds"""
-        result = datetime_to_iris_time(self.dt_in, time_units="seconds")
+        result = datetime_to_iris_time(self.dt_in)
         expected = 1487311200.0
-        self.assertIsInstance(result, float)
+        self.assertIsInstance(result, np.int64)
         self.assertEqual(result, expected)
-
-    def test_seconds_from_origin(self):
-        """Test datetime_to_iris_time returns float with expected value
-        in seconds when an origin is supplied."""
-        result = datetime_to_iris_time(
-            self.dt_in, time_units="seconds since 1970-01-01 00:00:00")
-        expected = 1487311200.0
-        self.assertIsInstance(result, float)
-        self.assertEqual(result, expected)
-
-    def test_exception_raised(self):
-        """Test an exception is raised if the if the time unit does not
-        contain hours, minutes or seconds."""
-        msg = "The time unit must contain 'hours', 'minutes' or 'seconds'"
-        with self.assertRaisesRegex(ValueError, msg):
-            datetime_to_iris_time(self.dt_in, time_units="days")
 
 
 class Test_datetime_constraint(IrisTest):

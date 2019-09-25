@@ -654,14 +654,16 @@ class Test__create_output_cubes(IrisTest):
                 self.assertEqual(coord.points.dtype, 'float32')
 
     def test_values(self):
-        """Test first cube is unchanged and regridded output cube is masked
-        as expected"""
-        expected_data = np.array([[np.nan, 1.0, 1.4, np.nan],
-                                  [np.nan, np.nan, np.nan, np.nan]])
+        """Test first cube is changed only in units (to m s-1) and regridded
+        output cube is masked as expected"""
+        expected_data = np.array(
+            [[np.nan, 2.777778e-07, 3.8888888e-07, np.nan],
+             [np.nan, np.nan, np.nan, np.nan]], dtype=np.float32)
+        original_converted = 2.7777778e-07 * self.orogenh
         expected_mask = np.where(np.isfinite(expected_data), False, True)
         output, regridded_output = self.plugin._create_output_cubes(
             self.orogenh, self.temperature)
-        self.assertArrayAlmostEqual(output.data, self.orogenh)
+        self.assertArrayAlmostEqual(output.data, original_converted)
         self.assertTrue(np.allclose(regridded_output.data.data,
                                     expected_data, equal_nan=True))
         self.assertArrayEqual(regridded_output.data.mask, expected_mask)
@@ -685,7 +687,7 @@ class Test__create_output_cubes(IrisTest):
 
         for cube in [output, regridded_output]:
             self.assertEqual(cube.name(), 'orographic_enhancement')
-            self.assertEqual(cube.units, 'mm h-1')
+            self.assertEqual(cube.units, 'm s-1')
             for t_coord in ['time', 'forecast_period',
                             'forecast_reference_time']:
                 self.assertEqual(
@@ -767,14 +769,18 @@ class Test_process(DataCubeTest):
 
     def test_values(self):
         """Test values of outputs"""
-        expected_data = np.array([
-            [0.9548712, 1.2267057, 0.9035998, 0.3308798, 0.0629348, 0.0056434],
-            [0.6047199, 0.8771427, 0.6350170, 0.3308798, 0.0629348, 0.0056434],
-            [0.1495147, 0.1495147, 0.3225299, 0.1034328, 0.0192389, 0.0056434],
-            [0.0030856, 0.0030856, 0.0030856, 0.0030856, 0.0076650,
-             0.0008837]])
-        expected_data_regridded = np.array([[0.6047199, 0.6350170, 0.0629348],
-                                            [0.0030856, 0.0030856, 0.0076650]])
+        expected_data = np.array(
+            [[2.6524199e-07, 3.4075157e-07, 2.5099993e-07, 9.1911055e-08,
+              1.7481890e-08, 1.5676112e-09],
+             [1.6797775e-07, 2.4365076e-07, 1.7639361e-07, 9.1911055e-08,
+              1.7481890e-08, 1.5676112e-09],
+             [4.1531862e-08, 4.1531862e-08, 8.9591637e-08, 2.8731334e-08,
+              5.3441389e-09, 1.5676112e-09],
+             [8.5711110e-10, 8.5711110e-10, 8.5711110e-10, 8.5711110e-10,
+              2.1291666e-09, 2.4547223e-10]], dtype=np.float32)
+        expected_data_regridded = np.array(
+            [[1.679777e-07, 1.763937e-07, 1.748190e-08],
+             [8.571141e-10, 8.571141e-10, 2.129176e-09]], dtype=np.float32)
 
         orogenh, orogenh_standard_grid = self.plugin.process(
             self.temperature, self.humidity, self.pressure,

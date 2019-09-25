@@ -304,7 +304,7 @@ def set_up_probability_above_threshold_spot_temperature_cube():
 
 
 def set_up_cube(data, name, units,
-                realizations=np.array([0, 1, 2], dtype=np.float32),
+                realizations=np.array([0, 1, 2], dtype=np.int32),
                 timesteps=1, y_dimension_length=3, x_dimension_length=3):
     """Create a cube containing multiple realizations."""
     try:
@@ -314,7 +314,7 @@ def set_up_cube(data, name, units,
 
     cube.add_dim_coord(DimCoord(realizations, 'realization',
                                 units='1'), 0)
-    time_origin = "hours since 1970-01-01 00:00:00"
+    time_origin = "seconds since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
     dt1 = datetime.datetime(2017, 1, 10, 3, 0)
@@ -322,7 +322,7 @@ def set_up_cube(data, name, units,
     num1 = cf_units.date2num(dt1, time_origin, calendar)
     num2 = cf_units.date2num(dt2, time_origin, calendar)
     cube.add_dim_coord(DimCoord(np.linspace(num1, num2, timesteps,
-                                            dtype=np.float64),
+                                            dtype=np.int64),
                                 "time", units=tunit), 1)
     cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, y_dimension_length,
                                             dtype=np.float32),

@@ -532,7 +532,7 @@ class EstimateCoefficientsForEnsembleCalibration():
         try:
             frt_coord = (
                 historic_forecast.coord("forecast_reference_time").copy(
-                    datetime_to_iris_time(frt_point, time_units="seconds")))
+                    datetime_to_iris_time(frt_point)))
         except CoordinateNotFoundError:
             pass
         else:
@@ -557,9 +557,7 @@ class EstimateCoefficientsForEnsembleCalibration():
                 fp_point, = np.unique(copy_of_fp_coord.points)
                 time_point = (
                     frt_point + datetime.timedelta(seconds=float(fp_point)))
-                time_point = datetime_to_iris_time(
-                    time_point,
-                    time_units=str(historic_forecast.coord("time").units))
+                time_point = datetime_to_iris_time(time_point)
                 time_coord = historic_forecast.coord("time").copy(time_point)
                 aux_coords_and_dims.append((time_coord, None))
 
