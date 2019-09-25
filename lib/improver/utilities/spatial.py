@@ -56,9 +56,9 @@ def check_if_grid_is_equal_area(cube):
         cube (iris.cube.Cube):
             Cube with coordinates that will be cMAhecked.
     Raises:
-        ValueError: Coordinate points are not equally spaced (from
-            calculate_grid_spacing)
-        ValueError: Point spacing is not equal for the two spatial axes
+        ValueError: If coordinate points are not equally spaced along either
+            axis (from calculate_grid_spacing)
+        ValueError: If point spacing is not equal for the two spatial axes
     """
     xdiff = calculate_grid_spacing(cube, axis='x')
     ydiff = calculate_grid_spacing(cube, axis='y')
@@ -77,7 +77,7 @@ def calculate_grid_spacing(cube, axis='x'):
             Axis ('x' or 'y') to use in determining grid spacing
 
     Returns:
-        gridlength (float):
+        (float):
             Grid spacing in metres
 
     Raises:
@@ -102,7 +102,8 @@ def convert_distance_into_number_of_grid_cells(
         cube, distance, max_distance_in_grid_cells=None, int_grid_cells=True):
     """
     Return the number of grid cells in the x and y direction based on the
-    input distance in metres.
+    input distance in metres.  Requires an equal-area grid on which the spacing
+    is equal in the x- and y- directions.
 
     Args:
         cube (iris.cube.Cube):
@@ -110,7 +111,7 @@ def convert_distance_into_number_of_grid_cells(
             calculating the number of grid cells in the x and y direction,
             which equates to the requested distance in the x and y direction.
         distance (float):
-            Distance in metres.
+            Distance in metres.  Must be positive.
         max_distance_in_grid_cells (int or None):
             Maximum distance in grid cells.  Defaults to None, which bypasses
             the check.
@@ -128,19 +129,13 @@ def convert_distance_into_number_of_grid_cells(
                 distance in metres.
 
     Raises:
-        ValueError:
-            If the projection is not "equal area" (proxied by projection_x/y
-            spatial coordinate names).
+        ValueError: If a negative distance is provided
+        ValueError: If the projection is not equal-area
         ValueError:
             If the distance in grid cells is larger than the maximum dimension
             of the rectangular domain (measured across the diagonal).  Needed
             for neighbourhood processing.
-        ValueError:
-            If the distance in grid cells is zero.
-        ValueError:
-            If the distance in grid cells is negative.  (Assuming the distance
-            argument is positive, this indicates one or more spatial axes are
-            not correctly ordered.)
+        ValueError: If the distance in grid cells is zero.
         Value Error:
             If max_distance_in_grid_cells is set and the distance in grid cells
             exceeds this value.  Needed for neighbourhood processing.
@@ -157,6 +152,7 @@ def convert_distance_into_number_of_grid_cells(
     grid_spacing_metres = calculate_grid_spacing(cube)
 
     # check required distance isn't greater than the size of the domain
+    # (note: this implicitly assumes equal x- and y-spacing)
     def calculate_domain_extent(coord):
         """Calculates the coordinate extent in metres"""
         new_coord = coord.copy()
@@ -198,14 +194,14 @@ def convert_number_of_grid_cells_into_distance(cube, grid_points):
             The iris cube that the number of grid points for the radius
             refers to.
         grid_points (int):
-            The number of grid points you want to convert.
+            The number of grid points to convert.
     Returns:
         radius_in_metres (float):
             The radius in metres.
     """
     check_if_grid_is_equal_area(cube)
-    x_diff = calculate_grid_spacing(cube)
-    radius_in_metres = x_diff*grid_points
+    spacing = calculate_grid_spacing(cube)
+    radius_in_metres = spacing*grid_points
     return radius_in_metres
 
 
