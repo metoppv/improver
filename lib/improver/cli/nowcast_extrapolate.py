@@ -294,7 +294,7 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
 
     # extrapolate input data to required lead times
     forecast_cubes = iris.cube.CubeList()
-    for i, lead_time in enumerate(lead_times):
+    for lead_time in lead_times:
         forecast_cubes.append(
             forecast_plugin.extrapolate(leadtime_minutes=lead_time))
 

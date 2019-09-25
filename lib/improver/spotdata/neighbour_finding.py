@@ -373,7 +373,6 @@ class NeighbourSelection:
                        self.node_limit, self.search_radius))
             warnings.warn(msg)
 
-        distance = distance[valid_indices]
         indices = indices[valid_indices]
 
         # Calculate the difference in height between the spot site
@@ -419,7 +418,6 @@ class NeighbourSelection:
                 the grid point indices of its nearest neighbour as per the
                 imposed constraints.
         """
-        index_nodes = []
         # Check if we are dealing with a global grid.
         self.global_coordinate_system = orography.coord(axis='x').circular
 

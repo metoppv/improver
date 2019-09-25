@@ -121,11 +121,9 @@ class MergeCubesForWeightedBlending():
         if ("model" in self.blend_coord and
                 self.weighting_coord is not None and
                 "forecast_period" in self.weighting_coord):
-            if cycletime is None:
-                cycletime = find_latest_cycletime(cubelist)
-            else:
-                cycletime = cycletime_to_datetime(cycletime)
-            cubelist = unify_forecast_reference_time(cubelist, cycletime)
+            cycletime = (find_latest_cycletime(cubelist) if cycletime is None
+                         else cycletime_to_datetime(cycletime))
+            unify_forecast_reference_time(cubelist, cycletime)
 
     def _create_model_coordinates(self, cubelist):
         """
@@ -860,7 +858,7 @@ class WeightedBlendAcrossWholeDimension:
             raise TypeError(msg)
 
         if not cube.coords(self.coord):
-            msg = ('Coordinate to be collapsed not found in cube.')
+            msg = 'Coordinate to be collapsed not found in cube.'
             raise CoordinateNotFoundError(msg)
 
         coord_dim = cube.coord_dims(self.coord)
@@ -873,7 +871,7 @@ class WeightedBlendAcrossWholeDimension:
         cube = sort_coord_in_cube(cube, self.coord, order="ascending")
         if weights is not None:
             if not weights.coords(self.coord):
-                msg = ('Coordinate to be collapsed not found in weights cube.')
+                msg = 'Coordinate to be collapsed not found in weights cube.'
                 raise CoordinateNotFoundError(msg)
             weights = sort_coord_in_cube(weights, self.coord,
                                          order="ascending")
