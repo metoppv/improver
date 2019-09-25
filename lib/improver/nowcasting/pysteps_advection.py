@@ -49,6 +49,19 @@ class PystepsExtrapolate(object):
         https://pysteps.readthedocs.io/en/latest/generated/
         pysteps.extrapolation.semilagrangian.extrapolate.html
     """
+    def __init__(self, interval, max_lead_time):
+        """
+        Initialise the plugin
+
+        Args:
+            interval (int):
+                Lead time interval, in minutes
+            max_lead_time (int):
+                Maximum lead time required, in minutes
+        """
+        self.interval = interval
+        self.num_timesteps = max_lead_time // interval
+
     def _get_precip_rate(self):
         """
         From the initial cube, generate a precipitation rate array in mm h-1
@@ -187,8 +200,7 @@ class PystepsExtrapolate(object):
             forecast_cubes.append(cube)
         return forecast_cubes
 
-    def process(self, initial_cube, ucube, vcube, interval, max_lead_time,
-                orographic_enhancement):
+    def process(self, initial_cube, ucube, vcube, orographic_enhancement):
         """
         Extrapolate the initial precipitation field using the velocities
         provided to the required forecast lead times
@@ -200,10 +212,6 @@ class PystepsExtrapolate(object):
                 x-advection velocities
             vcube (iris.cube.Cube):
                 y-advection velocities
-            interval (int):
-                Lead time interval, in minutes
-            max_lead_time (int):
-                Maximum lead time required, in minutes
             orographic_enhancement (iris.cube.Cube):
                 Cube containing orographic enhancement fields at all required
                 lead times
@@ -221,7 +229,6 @@ class PystepsExtrapolate(object):
 
         self.analysis_cube = initial_cube.copy()
         self.required_units = initial_cube.units
-        self.interval = interval
         self.orogenh = orographic_enhancement
 
         # get unmasked precipitation rate array to input into advection
@@ -230,12 +237,10 @@ class PystepsExtrapolate(object):
         # calculate displacement in grid squares per time step
         displacement = self._generate_displacement_array(ucube, vcube)
 
-        # establish number of timesteps required
-        num_timesteps = max_lead_time // interval
-
         # call pysteps extrapolation method
-        all_forecasts = extrapolate(precip_rate, displacement, num_timesteps,
-                                    allow_nonfinite_values=True)
+        all_forecasts = extrapolate(
+            precip_rate, displacement, self.num_timesteps,
+            allow_nonfinite_values=True)
 
         # repackage data as IMPROVER masked cubes
         forecast_cubes = self._generate_forecast_cubes(all_forecasts)

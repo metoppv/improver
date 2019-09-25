@@ -103,9 +103,10 @@ class Test_process(IrisTest):
         self.rain_cube = _make_initial_rain_cube(time_now)
 
         self.interval = 15
-        self.max_lead_time = 120
+        max_lead_time = 120
         self.orogenh_cube = _make_orogenh_cube(
-            time_now, self.interval, self.max_lead_time)
+            time_now, self.interval, max_lead_time)
+        self.plugin = PystepsExtrapolate(self.interval, max_lead_time)
 
         # set up all grids with 3.6 km spacing (1 m/s = 3.6 km/h,
         # using a 15 minute time step this is one grid square per step)
@@ -123,9 +124,8 @@ class Test_process(IrisTest):
         """Test output is a list of cubes with expected contents and
         global attributes"""
         expected_analysis = self.rain_cube.data.copy()
-        result = PystepsExtrapolate().process(
-            self.rain_cube, self.ucube, self.vcube, self.interval,
-            self.max_lead_time, self.orogenh_cube)
+        result = self.plugin.process(
+            self.rain_cube, self.ucube, self.vcube, self.orogenh_cube)
         self.assertIsInstance(result, list)
         # check result is a list including a cube at the analysis time
         self.assertEqual(len(result), 9)
@@ -141,9 +141,8 @@ class Test_process(IrisTest):
 
     def test_time_coordinates(self):
         """Test cubelist has correct time metadata"""
-        result = PystepsExtrapolate().process(
-            self.rain_cube, self.ucube, self.vcube, self.interval,
-            self.max_lead_time, self.orogenh_cube)
+        result = self.plugin.process(
+            self.rain_cube, self.ucube, self.vcube, self.orogenh_cube)
         for i, cube in enumerate(result):
             # check values (and implicitly units - all seconds)
             tdiff_seconds = i*self.interval*60
@@ -164,9 +163,8 @@ class Test_process(IrisTest):
     def test_values_integer_step(self):
         """Test values for an advection speed of one grid square per time step
         """
-        result = PystepsExtrapolate().process(
-            self.rain_cube, self.ucube, self.vcube, self.interval,
-            self.max_lead_time, self.orogenh_cube)
+        result = self.plugin.process(
+            self.rain_cube, self.ucube, self.vcube, self.orogenh_cube)
         for i, cube in enumerate(result):
             expected_data = np.full((8, 8), np.nan)
             if i == 0:
@@ -194,9 +192,8 @@ class Test_process(IrisTest):
 
         self.ucube.data = 0.6*self.ucube.data
         self.vcube.data = 0.6*self.vcube.data
-        result = PystepsExtrapolate().process(
-            self.rain_cube, self.ucube, self.vcube, self.interval,
-            self.max_lead_time, self.orogenh_cube)
+        result = self.plugin.process(
+            self.rain_cube, self.ucube, self.vcube, self.orogenh_cube)
 
         self.assertTrue(
             np.allclose(result[1].data.data, expected_data_1, equal_nan=True))
@@ -211,9 +208,8 @@ class Test_process(IrisTest):
             275*np.ones((5, 5), dtype=np.float32), spatial_grid='equalarea')
         msg = 'air_temperature is not a precipitation rate cube'
         with self.assertRaisesRegex(ValueError, msg):
-            PystepsExtrapolate().process(
-                invalid_cube, self.ucube, self.vcube, self.interval,
-                self.max_lead_time, self.orogenh_cube)
+            self.plugin.process(
+                invalid_cube, self.ucube, self.vcube, self.orogenh_cube)
 
     def test_error_unsuitable_grid(self):
         """Test plugin rejects a precipitation cube on a non-equal-area grid"""
@@ -221,9 +217,8 @@ class Test_process(IrisTest):
             np.ones((5, 5), dtype=np.float32),
             name='rainfall_rate', units='mm/h')
         with self.assertRaises(ValueError):
-            PystepsExtrapolate().process(
-                invalid_cube, self.ucube, self.vcube, self.interval,
-                self.max_lead_time, self.orogenh_cube)
+            self.plugin.process(
+                invalid_cube, self.ucube, self.vcube, self.orogenh_cube)
 
 
 if __name__ == '__main__':
