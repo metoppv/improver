@@ -47,8 +47,10 @@ from iris.time import PartialDateTime
 
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube, set_up_cube_lat_long)
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.spatial import (
-    check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells,
+    check_if_grid_is_equal_area, calculate_grid_spacing,
+    convert_distance_into_number_of_grid_cells,
     convert_number_of_grid_cells_into_distance,
     lat_lon_determine, lat_lon_transform, transform_grid_to_lat_lon,
     get_nearest_coords)
@@ -149,6 +151,35 @@ class Test_common_functions(IrisTest):
         self.data_indices = data_indices
         self.ancillary_data = ancillary_data
         self.additional_data = additional_data
+
+
+class Test_calculate_grid_spacing(IrisTest):
+    """Test the calculate_grid_spacing function"""
+
+    def setUp(self):
+        """Set up an equal area cube"""
+        self.cube = set_up_variable_cube(
+            np.ones((5, 5), dtype=np.float32), spatial_grid='equalarea')
+
+    def test_basic(self):
+        """Test correct answer is returned from an equal area grid"""
+        result = calculate_grid_spacing(self.cube)
+        self.assertAlmostEqual(result, 200000.0)
+
+    def test_units(self):
+        """Test correct answer is returned for coordinates in km"""
+        for axis in ['x', 'y']:
+            self.cube.coord(axis=axis).convert_units('km')
+        result = calculate_grid_spacing(self.cube)
+        self.assertAlmostEqual(result, 200000.0)
+        for axis in ['x', 'y']:
+            self.assertEqual(self.cube.coord(axis=axis).units, 'km')
+
+    def test_cube_not_equal_area(self):
+        """Test ValueError if cube is not equal area"""
+        cube = set_up_variable_cube(np.ones((5, 5), dtype=np.float32))
+        with self.assertRaises(ValueError):
+            calculate_grid_spacing(cube)
 
 
 class Test_convert_distance_into_number_of_grid_cells(IrisTest):

@@ -84,6 +84,27 @@ def check_if_grid_is_equal_area(cube):
         raise ValueError(msg)
 
 
+def calculate_grid_spacing(cube):
+    """
+    Returns the grid spacing of an equal-area cube
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube of data on equal area grid
+
+    Returns:
+        gridlength (float):
+            Grid spacing in metres
+
+    Raises:
+        ValueError: If cube is not equal-area
+    """
+    check_if_grid_is_equal_area(cube)
+    coord = cube.coord(axis='x').copy()
+    coord.convert_units("m")
+    return np.diff(coord.points)[0]
+
+
 def convert_distance_into_number_of_grid_cells(
         cube, distance, max_distance_in_grid_cells=None, int_grid_cells=True):
     """
@@ -183,10 +204,7 @@ def convert_number_of_grid_cells_into_distance(cube, grid_points):
         radius_in_metres (float):
             The radius in metres.
     """
-    check_if_grid_is_equal_area(cube)
-    cube.coord("projection_x_coordinate").convert_units("m")
-    x_diff = np.diff(cube.coord("projection_x_coordinate").points)[0]
-    # Make sure the radius isn't exactly on a grid box boundary.
+    x_diff = calculate_grid_spacing(cube)
     radius_in_metres = x_diff*grid_points
     return radius_in_metres
 
