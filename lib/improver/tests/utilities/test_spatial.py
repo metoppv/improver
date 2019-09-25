@@ -244,7 +244,7 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
     def test_single_point_range_negative(self):
         """Test behaviour with a non-zero point with negative range."""
         distance = -1.0 * self.DISTANCE
-        msg = "Distance of -6100.0m gives a negative cell extent"
+        msg = "Please specify a positive distance in metres"
         with self.assertRaisesRegex(ValueError, msg):
             convert_distance_into_number_of_grid_cells(
                 self.cube, distance)

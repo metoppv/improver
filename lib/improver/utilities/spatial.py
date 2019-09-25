@@ -154,8 +154,10 @@ def convert_distance_into_number_of_grid_cells(
     """
     d_error = "Distance of {}m".format(distance)
     zero_distance_error = ("{} gives zero cell extent".format(d_error))
-    if distance <= 0:
+    if distance == 0:
         raise ValueError(zero_distance_error)
+    if distance < 0:
+        raise ValueError("Please specify a positive distance in metres")
 
     # calculate grid spacing or raise error if cube is not equal area
     grid_spacing_metres = calculate_grid_spacing(cube)
@@ -176,20 +178,12 @@ def convert_distance_into_number_of_grid_cells(
                 d_error, max_distance_of_domain))
 
     # calculate distance in grid squares
-    # TODO abs here (as previously configured) means value error below cannot
-    # be reached; but NO abs here causes in failure in square_kernel unit tests
     grid_cells = distance / abs(grid_spacing_metres)
 
     if int_grid_cells:
         grid_cells = int(grid_cells)
         if grid_cells == 0:
             raise ValueError(zero_distance_error)
-
-    if grid_cells < 0:
-        # TODO this error cannot be reached.  Is this a problem?
-        raise ValueError(
-            "{} gives a negative cell extent - check coordinate "
-            "ordering".format(d_error))
 
     if max_distance_in_grid_cells is not None:
         if grid_cells > max_distance_in_grid_cells:
