@@ -144,7 +144,7 @@ class PystepsExtrapolate(object):
         for i in range(len(all_forecasts)):
             # copy forecast data into template cube
             new_cube = self.analysis_cube.copy(
-                all_forecasts[i, :, :].astype(np.float32))
+                data=all_forecasts[i, :, :].astype(np.float32))
             # update time and forecast period coordinates
             current_datetime += timedelta(seconds=self.interval*60)
             current_time = datetime_to_iris_time(
@@ -172,8 +172,7 @@ class PystepsExtrapolate(object):
                 standard.
         """
         # re-mask forecast data
-        mask = np.where(np.isfinite(all_forecasts), False, True)
-        all_forecasts = np.ma.MaskedArray(all_forecasts, mask=mask)
+        all_forecasts = np.ma.masked_invalid(all_forecasts)
 
         # generate list of forecast cubes
         self._reformat_analysis_cube()

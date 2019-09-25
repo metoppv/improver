@@ -55,15 +55,12 @@ def _make_initial_rain_cube(time_now):
          [np.nan, 0.0, 0.1, 0.2, 0.1, 0.0, np.nan, np.nan],
          [np.nan, np.nan, 0.0, 0.1, 0.0, np.nan, np.nan, np.nan]],
         dtype=np.float32)
-    rain_mask = np.where(np.isfinite(rain_data), False, True)
-    rain_data = np.ma.MaskedArray(rain_data, mask=rain_mask)
-
+    rain_data = np.ma.masked_invalid(rain_data)
     rain_cube = set_up_variable_cube(
         rain_data, name='rainfall_rate', units='mm/h',
         spatial_grid='equalarea', time=time_now, frt=time_now)
     rain_cube.remove_coord('forecast_period')
     rain_cube.remove_coord('forecast_reference_time')
-
     return rain_cube
 
 
@@ -125,6 +122,7 @@ class Test_process(IrisTest):
     def test_basic(self):
         """Test output is a list of cubes with expected contents and
         global attributes"""
+        expected_analysis = self.rain_cube.data.copy()
         result = PystepsExtrapolate().process(
             self.rain_cube, self.ucube, self.vcube, self.interval,
             self.max_lead_time, self.orogenh_cube)
@@ -134,6 +132,7 @@ class Test_process(IrisTest):
         self.assertIsInstance(result[0], iris.cube.Cube)
         self.assertIsInstance(result[0].data, np.ma.MaskedArray)
         self.assertEqual(result[0].data.dtype, np.float32)
+        self.assertArrayAlmostEqual(result[0].data, expected_analysis)
         # check for expected attributes
         self.assertEqual(result[0].attributes['source'], 'MONOW')
         self.assertEqual(
