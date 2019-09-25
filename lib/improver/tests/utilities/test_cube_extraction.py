@@ -44,6 +44,12 @@ from improver.utilities.cube_extraction import (
     is_complex_parsing_required, parse_constraint_list)
 
 
+def islambda(function):
+    LAMBDA = lambda:0
+    return (isinstance(function, type(LAMBDA)) and
+            function.__name__ == LAMBDA.__name__)
+
+
 def set_up_precip_probability_cube():
     """
     Set up a cube with spatial probabilities of precipitation at three
@@ -136,8 +142,8 @@ class Test_parse_constraint_list(IrisTest):
         self.assertCountEqual(
             list(result._coord_values.keys()), ["threshold", "percentile"])
         cdict = result._coord_values
-        self.assertEqual(cdict["percentile"], 10)
-        self.assertEqual(cdict["threshold"], 0.1)
+        self.assertEqual(cdict["percentile"], [10])
+        self.assertTrue(islambda(cdict["threshold"]))
         self.assertFalse(udict)
 
     def test_whitespace(self):
@@ -145,8 +151,8 @@ class Test_parse_constraint_list(IrisTest):
         constraints = ["percentile = 10", "threshold = 0.1"]
         result, _ = parse_constraint_list(constraints)
         cdict = result._coord_values
-        self.assertEqual(cdict["percentile"], 10)
-        self.assertEqual(cdict["threshold"], 0.1)
+        self.assertEqual(cdict["percentile"], [10])
+        self.assertTrue(islambda(cdict["threshold"]))
 
     def test_some_units(self):
         """ Test units list containing "None" elements is correctly parsed """
@@ -166,7 +172,7 @@ class Test_parse_constraint_list(IrisTest):
         constraints = ["threshold=[0.1,1.0]"]
         result, _ = parse_constraint_list(constraints)
         cdict = result._coord_values
-        self.assertEqual(cdict["threshold"], [0.1, 1.0])
+        self.assertTrue(islambda(cdict["threshold"]))
 
     def test_range_constraint(self):
         """ Test that a constraint passed in as a range is parsed correctly """
