@@ -360,7 +360,7 @@ class SquareNeighbourhood(object):
         Apply neighbourhood processing consisting of the following steps:
 
         1. Pad a halo around the input cube to allow vectorised
-           neighbourhooding at edgepoints.l
+           neighbourhooding at edgepoints.
         2. Cumulate the array along the x and y axes.
         3. Apply neighbourhood processing to the cumulated array.
 

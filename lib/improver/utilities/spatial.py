@@ -49,12 +49,16 @@ from improver.utilities.cube_checker import (
 MAX_DISTANCE_IN_GRID_CELLS = 500
 
 
-def check_if_grid_is_equal_area(cube):
+def check_if_grid_is_equal_area(cube, require_equal_xy_spacing=True):
     """Identify whether the grid is an equal area grid.
     If not, raise an error.
     Args:
         cube (iris.cube.Cube):
-            Cube with coordinates that will be cMAhecked.
+            Cube with coordinates that will be checked.
+        require_equal_spacing (bool):
+            Flag to require the grid is equally spaced in the two spatial
+            dimensions (not strictly required for equal-area criterion)
+
     Raises:
         ValueError: If coordinate points are not equally spaced along either
             axis (from calculate_grid_spacing)
@@ -62,13 +66,14 @@ def check_if_grid_is_equal_area(cube):
     """
     xdiff = calculate_grid_spacing(cube, axis='x')
     ydiff = calculate_grid_spacing(cube, axis='y')
-    if not np.isclose(xdiff, ydiff):
-        raise ValueError("Grid is not equal area")
+    if require_equal_xy_spacing and not np.isclose(xdiff, ydiff):
+        raise ValueError(
+            "Grid does not have equal spacing in x and y dimensions")
 
 
 def calculate_grid_spacing(cube, axis='x'):
     """
-    Returns the grid spacing of an equal-area cube
+    Returns the grid spacing of a given spatial axis
 
     Args:
         cube (iris.cube.Cube):
@@ -99,7 +104,8 @@ def calculate_grid_spacing(cube, axis='x'):
 
 
 def convert_distance_into_number_of_grid_cells(
-        cube, distance, max_distance_in_grid_cells=None, int_grid_cells=True):
+        cube, distance, axis='x', max_distance_in_grid_cells=None,
+        int_grid_cells=True):
     """
     Return the number of grid cells in the x and y direction based on the
     input distance in metres.  Requires an equal-area grid on which the spacing
@@ -112,6 +118,8 @@ def convert_distance_into_number_of_grid_cells(
             which equates to the requested distance in the x and y direction.
         distance (float):
             Distance in metres.  Must be positive.
+        axis (str):
+            Axis ('x' or 'y') to use in determining grid spacing
         max_distance_in_grid_cells (int or None):
             Maximum distance in grid cells.  Defaults to None, which bypasses
             the check.
@@ -120,13 +128,9 @@ def convert_distance_into_number_of_grid_cells(
             down. If false the number of grid_cells returned will be a float.
 
     Returns:
-        (tuple) : tuple containing:
-            **grid_cells_x** (int):
-                Number of grid cells in the x direction based on the requested
-                distance in metres.
-            **grid_cells_y** (int):
-                Number of grid cells in the y direction based on the requested
-                distance in metres.
+        grid_cells (int or float):
+            Number of grid cells along the specified (x or y) axis equal to the
+            requested distance in metres.
 
     Raises:
         ValueError: If a negative distance is provided
@@ -147,9 +151,8 @@ def convert_distance_into_number_of_grid_cells(
     if distance < 0:
         raise ValueError("Please specify a positive distance in metres")
 
-    # calculate grid spacing or raise error if cube is not equal area
-    check_if_grid_is_equal_area(cube)
-    grid_spacing_metres = calculate_grid_spacing(cube)
+    # calculate grid spacing along chosen axis
+    grid_spacing_metres = calculate_grid_spacing(cube, axis=axis)
 
     # check required distance isn't greater than the size of the domain
     # (note: this implicitly assumes equal x- and y-spacing)
@@ -199,7 +202,7 @@ def convert_number_of_grid_cells_into_distance(cube, grid_points):
         radius_in_metres (float):
             The radius in metres.
     """
-    check_if_grid_is_equal_area(cube)
+    check_if_grid_is_equal_area(cube, require_equal_xy_spacing=True)
     spacing = calculate_grid_spacing(cube)
     radius_in_metres = spacing*grid_points
     return radius_in_metres
@@ -394,7 +397,8 @@ class OccurrenceWithinVicinity(object):
         """
         grid_spacing = (
             convert_distance_into_number_of_grid_cells(
-                cube, self.distance, MAX_DISTANCE_IN_GRID_CELLS))
+                cube, self.distance,
+                max_distance_in_grid_cells=MAX_DISTANCE_IN_GRID_CELLS))
 
         # Convert the number of grid points (i.e. grid_spacing) represented
         # by self.distance, e.g. where grid_spacing=1 is an increment to
