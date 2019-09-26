@@ -142,9 +142,9 @@ class Test_create_constraint(IrisTest):
     comparisons."""
 
     def setUp(self):
-        class generic():
-            point = 10
-        self.cell = generic
+        """Set up a coordinate that can be modified and used to test the
+        lambda functions that are created for floating point values."""
+        self.crd = iris.coords.AuxCoord([10], long_name='a_coordinate')
 
     def test_with_string_type(self):
         """Test that an extraction that is to match a string is not changed
@@ -166,26 +166,26 @@ class Test_create_constraint(IrisTest):
         """Test that an extraction that is to match a float results in the
         creation of a lambda function."""
         value = 10.0
-        self.cell.point = value
         result = create_constraint(value)
         self.assertTrue(islambda(result))
-        self.assertTrue(result(self.cell))
-        self.cell.point = 20.
-        self.assertFalse(result(self.cell))
+
+        crd = self.crd.copy(points=value)
+        self.assertTrue(result(crd.cell(0)))
+        crd = self.crd.copy(points=20)
+        self.assertFalse(result(crd.cell(0)))
 
     def test_with_float_type_multiple_values(self):
         """Test that an extraction that is to match a float results in the
         creation of a lambda function."""
         value = [10.0, 20.0]
-        self.cell.point = value
         result = create_constraint(value)
         self.assertTrue(islambda(result))
-        self.cell.point = value[0]
-        self.assertTrue(result(self.cell))
-        self.cell.point = value[1]
-        self.assertTrue(result(self.cell))
-        self.cell.point = 30.
-        self.assertFalse(result(self.cell))
+
+        crd = self.crd.copy(points=value)
+        self.assertTrue(result(crd.cell(0)))
+        self.assertTrue(result(crd.cell(1)))
+        crd = self.crd.copy(points=30.0)
+        self.assertFalse(result(crd.cell(0)))
 
 
 class Test_parse_constraint_list(IrisTest):
