@@ -46,7 +46,7 @@ from iris.tests import IrisTest
 from iris.time import PartialDateTime
 
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
-    set_up_cube, set_up_cube_lat_long)
+    set_up_cube)
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area, calculate_grid_spacing,
@@ -196,40 +196,36 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
     def setUp(self):
         """Set up the cube."""
         self.DISTANCE = 6100
-        self.MAX_DISTANCE_IN_GRID_CELLS = 500
         self.cube = set_up_cube()
 
     def test_basic_distance_to_grid_cells(self):
-        """Test the distance in metres to grid cell conversion."""
-        result = convert_distance_into_number_of_grid_cells(
-            self.cube, self.DISTANCE,
-            max_distance_in_grid_cells=self.MAX_DISTANCE_IN_GRID_CELLS)
-        self.assertEqual(result, 3)
-
-    def test_basic_distance_to_grid_cells_float(self):
-        """Test the distance in metres to grid cell conversion."""
-        result = convert_distance_into_number_of_grid_cells(
-            self.cube, self.DISTANCE,
-            max_distance_in_grid_cells=self.MAX_DISTANCE_IN_GRID_CELLS,
-            int_grid_cells=False)
-        self.assertEqual(result, 3.05)
-
-    def test_basic_no_limit(self):
-        """Test the distance in metres to grid cell conversion still works when
-        the maximum distance limit is not explicitly set."""
+        """Test the distance in metres to grid cell conversion along the
+        x-axis (default)."""
         result = convert_distance_into_number_of_grid_cells(
             self.cube, self.DISTANCE)
         self.assertEqual(result, 3)
 
-    def test_basic_distance_to_grid_cells_different_max_distance(self):
-        """
-        Test the distance in metres to grid cell conversion for an alternative
-        max distance in grid cells.
-        """
-        max_distance_in_grid_cells = 50
+    def test_distance_to_grid_cells_other_axis(self):
+        """Test the distance in metres to grid cell conversion along the
+        y-axis."""
+        self.cube.coord(axis='y').points = 0.5*self.cube.coord(axis='y').points
         result = convert_distance_into_number_of_grid_cells(
-            self.cube, self.DISTANCE,
-            max_distance_in_grid_cells=max_distance_in_grid_cells)
+            self.cube, self.DISTANCE, axis='y')
+        self.assertEqual(result, 6)
+
+    def test_basic_distance_to_grid_cells_float(self):
+        """Test the distance in metres to grid cell conversion."""
+        result = convert_distance_into_number_of_grid_cells(
+            self.cube, self.DISTANCE, int_grid_cells=False)
+        self.assertEqual(result, 3.05)
+
+    def test_max_distance(self):
+        """
+        Test the distance in metres to grid cell conversion within a maximum
+        distance in grid cells.
+        """
+        result = convert_distance_into_number_of_grid_cells(
+            self.cube, self.DISTANCE, max_distance_in_grid_cells=50)
         self.assertEqual(result, 3)
 
     def test_basic_distance_to_grid_cells_km_grid(self):
@@ -240,15 +236,15 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
             self.cube, self.DISTANCE)
         self.assertEqual(result, 3)
 
-    def test_single_point_lat_long(self):
+    def test_error_lat_lon_grid(self):
         """Test behaviour for a single grid cell on lat long grid."""
-        cube = set_up_cube_lat_long()
+        cube = set_up_variable_cube(np.ones((5, 5), dtype=np.float32))
         msg = "points are not equally spaced"
         with self.assertRaisesRegex(ValueError, msg):
             convert_distance_into_number_of_grid_cells(
                 cube, self.DISTANCE)
 
-    def test_single_point_range_negative(self):
+    def test_error_negative_distance(self):
         """Test behaviour with a non-zero point with negative range."""
         distance = -1.0 * self.DISTANCE
         msg = "Please specify a positive distance in metres"
@@ -256,7 +252,7 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
             convert_distance_into_number_of_grid_cells(
                 self.cube, distance)
 
-    def test_single_point_range_0(self):
+    def test_error_zero_grid_cell_range(self):
         """Test behaviour with a non-zero point with zero range."""
         distance = 5
         msg = "Distance of 5m gives zero cell extent"
@@ -264,7 +260,7 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
             convert_distance_into_number_of_grid_cells(
                 self.cube, distance)
 
-    def test_single_point_range_lots(self):
+    def test_error_outside_maximum_distance(self):
         """Test behaviour with a non-zero point with unhandleable range."""
         distance = 40000.0
         max_distance_in_grid_cells = 10
@@ -274,9 +270,9 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
                 self.cube, distance,
                 max_distance_in_grid_cells=max_distance_in_grid_cells)
 
-    def test_single_point_range_greater_than_domain(self):
+    def test_error_range_greater_than_domain_size(self):
         """Test correct exception raised when the distance is larger than the
-           corner-to-corner distance of the domain."""
+        corner-to-corner distance of the domain."""
         distance = 42500.0
         msg = "Distance of 42500.0m exceeds max domain distance of "
         with self.assertRaisesRegex(ValueError, msg):
@@ -344,42 +340,45 @@ class Test_check_if_grid_is_equal_area(IrisTest):
 
     """Test that the grid is an equal area grid."""
 
+    def setUp(self):
+        """Set up an equal area cube"""
+        self.cube = set_up_variable_cube(
+            np.ones((16, 16), dtype=np.float32), spatial_grid='equalarea')
+
     def test_equal_area(self):
         """Test an that no exception is raised if the x and y coordinates
         are on an equal area grid."""
-        cube = set_up_cube()
-        self.assertEqual(check_if_grid_is_equal_area(cube), None)
+        self.assertIsNone(check_if_grid_is_equal_area(self.cube))
 
-    def test_wrong_coordinate(self):
-        """Test an exception is raised if the x and y coordinates are not
-        projection_x_coordinate or projection_y_coordinate."""
-        cube = set_up_cube_lat_long()
+    def test_allow_negative_stride(self):
+        """Test no errors raised if cube has negative stride in x and y axes"""
+        coord_points_x = np.arange(-20000, -52000., -2000)
+        coord_points_y = np.arange(30000., -2000, -2000)
+        self.cube.coord("projection_x_coordinate").points = coord_points_x
+        self.cube.coord("projection_y_coordinate").points = coord_points_y
+        self.assertIsNone(check_if_grid_is_equal_area(self.cube))
+
+    def test_non_equal_intervals_along_axis(self):
+        """Test that the cube has equal intervals along the x or y axis."""
+        cube = set_up_variable_cube(np.ones((5, 5), dtype=np.float32))
         msg = "points are not equally spaced"
         with self.assertRaisesRegex(ValueError, msg):
             check_if_grid_is_equal_area(cube)
 
-    def test_allow_negative_stride(self):
-        """Test no errors raised if cube has negative stride in x and y axes"""
-        cube = set_up_cube()
-        coord_points_x = np.arange(-20000, -52000., -2000)
-        coord_points_y = np.arange(30000., -2000, -2000)
-        cube.coord("projection_x_coordinate").points = coord_points_x
-        cube.coord("projection_y_coordinate").points = coord_points_y
-        self.assertEqual(check_if_grid_is_equal_area(cube), None)
-
-    def non_equal_intervals_along_axis(self):
-        """Test that the cube has equal intervals along the x or y axis."""
-        cube = set_up_cube()
-        msg = "Intervals between points along the "
-        with self.assertRaisesRegex(ValueError, msg):
-            check_if_grid_is_equal_area(cube)
-
-    def non_equal_area_grid(self):
+    def test_non_equal_xy_spacing(self):
         """Test that the cubes have an equal areas grid."""
-        cube = set_up_cube()
-        msg = "The size of the intervals along the x and y axis"
+        self.cube.coord(axis='x').points = 2*self.cube.coord(axis='x').points
+        msg = "Grid does not have equal spacing"
         with self.assertRaisesRegex(ValueError, msg):
-            check_if_grid_is_equal_area(cube)
+            check_if_grid_is_equal_area(self.cube)
+
+    def test_non_equal_xy_spacing_override(self):
+        """Test that the requirement for equal x and y spacing can be
+        overridden."""
+        self.cube.coord(axis='x').points = 2*self.cube.coord(axis='x').points
+        self.assertIsNone(
+            check_if_grid_is_equal_area(
+                self.cube, require_equal_xy_spacing=False))
 
 
 class Test_lat_lon_determine(Test_common_functions):
