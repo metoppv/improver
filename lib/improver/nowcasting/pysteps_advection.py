@@ -160,8 +160,7 @@ class PystepsExtrapolate(object):
                 data=all_forecasts[i, :, :].astype(np.float32))
             # update time and forecast period coordinates
             current_datetime += timedelta(seconds=self.interval*60)
-            current_time = datetime_to_iris_time(
-                current_datetime, time_units='seconds')
+            current_time = datetime_to_iris_time(current_datetime)
             new_cube.coord('time').points = np.array(
                 [current_time], dtype=np.int64)
             new_cube.coord('forecast_period').points = np.array(
