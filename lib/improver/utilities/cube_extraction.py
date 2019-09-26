@@ -100,7 +100,7 @@ def create_constraint(value):
     if not isinstance(value, list):
         value = [value]
 
-    if np.issubdtype(np.array(value).dtype, np.float):
+    if np.issubdtype(np.array(value).dtype, np.floating):
         return lambda cell: any(np.isclose(cell.point, value))
     else:
         return value

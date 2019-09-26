@@ -34,11 +34,15 @@
 import iris
 
 
-def create_sorted_lambda_constraint(coord_name, values):
+def create_sorted_lambda_constraint(coord_name, values, tolerance=1.0E-7):
     """
     Create a lambda constraint for a range. This formulation of specifying
     a lambda constraint has the benefit of not needing to hardcode the name
     for the coordinate, so that this can be determined at runtime.
+
+    The created function uses float values. As a result, a small tolerance is
+    used to spread the ends of the ranges to help with float equality
+    matching.
 
     Args:
         coord_name (str):
@@ -46,6 +50,9 @@ def create_sorted_lambda_constraint(coord_name, values):
         values (list):
             A list of two values that represent the inclusive end points
             of a range.
+        tolerance (float):
+            A relative tolerance value to ensure equivalence matching when
+            using float32 values.
 
     Returns:
         constr (iris.Constraint):
@@ -54,6 +61,8 @@ def create_sorted_lambda_constraint(coord_name, values):
     """
     values = [float(i) for i in values]
     values = sorted(values)
+    values[0] = (1. - tolerance) * values[0]
+    values[1] = (1. + tolerance) * values[1]
     constr = (
         iris.Constraint(
             coord_values={
