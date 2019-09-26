@@ -31,6 +31,7 @@
 """ Unit tests for cube extraction utilities """
 
 import unittest
+import collections
 
 import iris
 import numpy as np
@@ -55,9 +56,8 @@ def islambda(function):
         bool:
             True if the input object is a lambda function, False if not.
     """
-    lambda_type = lambda:0
-    return (isinstance(function, type(lambda_type)) and
-            function.__name__ == lambda_type.__name__)
+    return (isinstance(function, collections.Callable) and
+            function.__name__ == '<lambda>')
 
 
 def set_up_precip_probability_cube():
@@ -141,6 +141,11 @@ class Test_create_constraint(IrisTest):
     """Test the creation of constraints that allow for floating point
     comparisons."""
 
+    def setUp(self):
+        class generic():
+            point = 10
+        self.cell = generic
+
     def test_with_string_type(self):
         """Test that an extraction that is to match a string is not changed
         by passing through this function, other than to make a single entry
@@ -161,8 +166,26 @@ class Test_create_constraint(IrisTest):
         """Test that an extraction that is to match a float results in the
         creation of a lambda function."""
         value = 10.0
+        self.cell.point = value
         result = create_constraint(value)
         self.assertTrue(islambda(result))
+        self.assertTrue(result(self.cell))
+        self.cell.point = 20.
+        self.assertFalse(result(self.cell))
+
+    def test_with_float_type_multiple_values(self):
+        """Test that an extraction that is to match a float results in the
+        creation of a lambda function."""
+        value = [10.0, 20.0]
+        self.cell.point = value
+        result = create_constraint(value)
+        self.assertTrue(islambda(result))
+        self.cell.point = value[0]
+        self.assertTrue(result(self.cell))
+        self.cell.point = value[1]
+        self.assertTrue(result(self.cell))
+        self.cell.point = 30.
+        self.assertFalse(result(self.cell))
 
 
 class Test_parse_constraint_list(IrisTest):
@@ -330,8 +353,8 @@ class Test_extract_subcube(IrisTest):
     def test_single_threshold(self):
         """Test that a single threshold is extracted correctly when using the
         key=value syntax."""
-        constraints = "threshold=0.03"
-        precip_units = "mm h-1"
+        constraints = ["precipitation_rate=0.03"]
+        precip_units = ["mm h-1"]
         expected = self.precip_cube[0]
         result = extract_subcube(self.precip_cube, constraints,
                                  units=precip_units)
@@ -340,8 +363,8 @@ class Test_extract_subcube(IrisTest):
     def test_multiple_thresholds(self):
         """Test that multiple thresholds are extracted correctly when using the
         key=[value1,value2] syntax."""
-        constraints = "threshold=[0.03,0.1]"
-        precip_units = "mm h-1"
+        constraints = ["precipitation_rate=[0.03,0.1]"]
+        precip_units = ["mm h-1"]
         expected = self.precip_cube[:2]
         result = extract_subcube(self.precip_cube, constraints,
                                  units=precip_units)
@@ -350,7 +373,7 @@ class Test_extract_subcube(IrisTest):
     def test_range_constraint(self):
         """Test that multiple thresholds are extracted correctly when using the
         key=[value1:value2] syntax."""
-        constraints = "projection_y_coordinate=[1:2]"
+        constraints = ["projection_y_coordinate=[1:2]"]
         expected = self.precip_cube[:, 1:, :]
         result = extract_subcube(self.precip_cube, constraints)
         self.assertArrayAlmostEqual(result.data, expected.data)
