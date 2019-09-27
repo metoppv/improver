@@ -83,17 +83,13 @@ def main(argv=None):
                         "input dataset. Specifying the units here will allow "
                         "a suitable conversion to match the input units if "
                         "possible.")
-    parser.add_argument("--below_threshold", default=False,
-                        action='store_true',
-                        help="By default truth values of 1 are returned for "
-                        "data ABOVE the threshold value(s). Using this flag "
-                        "changes this behaviour to return 1 for data below "
-                        "the threshold values.")
-    parser.add_argument("--equal_threshold", default=False,
-                        action='store_true',
-                        help="By default truth values of 0 are returned for "
-                        "data EQUAL TO the threshold value(s). Using this flag "
-                        "changes this behaviour to return 1 for these data.")
+    parser.add_argument("--threshold_method", metavar="THRESHOLD_METHOD",
+                        default='>', type=str,
+                        help="Indicates sign and equality of the threshold. "
+                        "e.g. 'ge' to evaluate data >= threshold or '<' to "
+                        "evaluate data < threshold. When fuzzy thresholds are "
+                        "used, the equality of the method is ignored and only "
+                        "the sign (> or <) is used. Default is >")
     parser.add_argument("--fuzzy_factor", metavar="FUZZY_FACTOR",
                         default=None, type=float,
                         help="A decimal fraction defining the factor about "
@@ -260,8 +256,7 @@ def process(cube, threshold_values=None, threshold_dict=None,
     result_no_collapse_coord = BasicThreshold(
         thresholds, fuzzy_factor=fuzzy_factor,
         fuzzy_bounds=fuzzy_bounds, threshold_units=threshold_units,
-        below_thresh_ok=below_threshold,
-        equal_thresh_ok=equal_threshold).process(cube)
+        threshold_method=threshold_method).process(cube)
 
     if vicinity is not None:
         # smooth thresholded occurrences over local vicinity
