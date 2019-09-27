@@ -38,6 +38,7 @@ import numpy as np
 from improver.metadata.attributes import (
     set_product_attributes, update_spot_title_attribute)
 from improver.tests.set_up_test_cubes import set_up_variable_cube
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_set_product_attributes(unittest.TestCase):
@@ -50,8 +51,7 @@ class Test_set_product_attributes(unittest.TestCase):
             "title": "MOGREPS-UK Temperature Forecast "
                      "on UK 2 km Standard Grid"}
         self.cube = set_up_variable_cube(
-            278*np.ones((5, 5), dtype=np.float32),
-            attributes=attributes)
+            278*np.ones((5, 5), dtype=np.float32), attributes=attributes)
 
         self.blend_descriptor = "IMPROVER Post-Processed Multi-Model Blend"
         self.nowcast_descriptor = "MONOW Extrapolation Nowcast"
@@ -88,6 +88,47 @@ class Test_set_product_attributes(unittest.TestCase):
             set_product_attributes(self.cube, "unknown product")
 
 
+class Test_update_spot_title_attribute(unittest.TestCase):
+    """Test the update_spot_title_attribute function"""
+
+    def setUp(self):
+        """Set up a test cube (spot data not required)"""
+        attributes = {
+            "title": "MOGREPS-UK Temperature Forecast "
+                     "on UK 2 km Standard Grid"}
+        self.cube = set_up_variable_cube(
+            278*np.ones((2, 2), dtype=np.float32), attributes=attributes)
+        self.expected_title = "MOGREPS-UK Temperature Forecast UK Spot Values"
+
+    def test_basic(self):
+        """Test title is correctly updated in place"""
+        update_spot_title_attribute(self.cube)
+        self.assertEqual(self.cube.attributes["title"], self.expected_title)
+
+    def test_other_grid(self):
+        """Test function recognises other grid specifications"""
+        self.cube.attributes["title"] = (
+            "MOGREPS-UK Temperature Forecast on Other Grid")
+        update_spot_title_attribute(self.cube)
+        self.assertEqual(self.cube.attributes["title"], self.expected_title)
+
+    def test_no_title(self):
+        """Test no change is made to an input cube with no title"""
+        self.cube.attributes.pop("title")
+        update_spot_title_attribute(self.cube)
+        self.assertNotIn("title", self.cube.attributes.keys())
+
+    @ManageWarnings(record=True)
+    def test_unexpected_title(self, warning_list=None):
+        """Test a warning is raised if we don't recognise the input form"""
+        self.cube.attributes["title"] = "kitten farm"
+        warning_msg = "'title' attribute does not match expected pattern"
+        update_spot_title_attribute(self.cube)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
+        self.assertEqual(self.cube.attributes["title"], "kitten farm")
 
 
 if __name__ == '__main__':

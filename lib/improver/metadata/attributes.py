@@ -101,29 +101,36 @@ def update_spot_title_attribute(cube):
         cube (iris.cube.Cube):
             Spot data cube
     """
-    regex = re.compile(
-        '(?P<desc>)'   # title describing field
-        '( on )'       # expected joining statement
-        '(?P<grid>)')  # eg STANDARD_GRID_TITLE_STRING
     try:
-        title_regex = regex.match(cube.attributes["title"])
+        original_title = cube.attributes["title"]
     except KeyError:
-        # if there is no original title, we cannot update it sensibly
+        # if there is no title on the input cube, we cannot update it sensibly
         return
 
-    if title_regex is None:
-        # try a straight replacement
-        if STANDARD_GRID_TITLE_STRING in cube.attributes["title"]:
-            new_title = cube.attributes["title"].replace(
-                STANDARD_GRID_TITLE_STRING, SPOT_TITLE_STRING)
-            cube.attributes["title"] = new_title
-        else:
+    if SPOT_TITLE_STRING in original_title:
+        # make no changes if title is already suitable
+        return
+
+    if STANDARD_GRID_TITLE_STRING in original_title:
+        # try a direct string replacement
+        new_title = cube.attributes["title"].replace(
+            "on {}".format(STANDARD_GRID_TITLE_STRING), SPOT_TITLE_STRING)
+        cube.attributes["title"] = new_title
+    else:
+        # try regular expression matching
+        regex = re.compile(
+            '(?P<field>.*?)'  # description of field
+            '( on )'       # expected joining statement
+            '(?P<grid>.*?)')  # eg STANDARD_GRID_TITLE_STRING
+        title_regex = regex.match(cube.attributes["title"])
+
+        if title_regex is None:
             # if title does not match expected pattern we cannot update it
             # sensibly - raise a warning here
             warnings.warn(
                 "'title' attribute does not match expected pattern - "
                 "unable to replace grid description")
             return
-    else:
-        cube.attributes["title"] = (
-            title_regex.group(1) + title_regex.group(2) + SPOT_TITLE_STRING)
+        else:
+            cube.attributes["title"] = (
+                title_regex.group('field') + ' ' + SPOT_TITLE_STRING)
