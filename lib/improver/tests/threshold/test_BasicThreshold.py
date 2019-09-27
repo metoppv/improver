@@ -645,6 +645,16 @@ class Test_process(IrisTest):
             Threshold(threshold,
                       fuzzy_bounds=fuzzy_bounds)
 
+    def test_invalid_threshold_method(self):
+        """Test plugin throws a ValueError when threshold_method is bad"""
+        threshold_method = 'invalid'
+        threshold = 0.6
+        msg = ('String "{}" does not match any known threshold method'.format(
+            threshold_method))
+        with self.assertRaisesRegex(ValueError, msg):
+            Threshold(threshold,
+                      threshold_method=threshold_method)
+
 
 if __name__ == '__main__':
     unittest.main()

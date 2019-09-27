@@ -111,6 +111,7 @@ class BasicThreshold(object):
                         than 1.
             ValueError: If both fuzzy_factor and fuzzy_bounds are set
                         as this is ambiguous.
+            ValueError: If self.method_string does not match a defined method.
         """
         # ensure threshold is a list, even if only a single value is provided
         self.thresholds = thresholds
@@ -236,7 +237,7 @@ class BasicThreshold(object):
         less-than method is found or False if a greater-than method is found.
 
         Raises:
-            ValueError if self.method_string does not match a defined method.
+            ValueError: If self.method_string does not match a defined method.
         """
         self.below_thresh_ok = None
         for key, val in self.method_strings.items():
