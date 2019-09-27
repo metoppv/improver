@@ -81,7 +81,7 @@ def is_complex_parsing_required(value):
 
 def create_constraint(value):
     """
-    Constructs an appropriate contraint for matching numerical values is they
+    Constructs an appropriate contraint for matching numerical values if they
     are floating point. If not, the original values are returned as a list
     (even if they were single valued on entry).
 

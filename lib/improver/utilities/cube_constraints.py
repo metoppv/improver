@@ -42,7 +42,10 @@ def create_sorted_lambda_constraint(coord_name, values, tolerance=1.0E-7):
 
     The created function uses float values. As a result, a small tolerance is
     used to spread the ends of the ranges to help with float equality
-    matching.
+    matching. Note that the relative tolerance will not affect values of zero.
+    Adding/subtracting an absolute tolerance is not done due to the
+    difficulty of selecting an appropriate value given the very small values
+    of precipitation rates expressed in m s-1.
 
     Args:
         coord_name (str):
@@ -52,7 +55,7 @@ def create_sorted_lambda_constraint(coord_name, values, tolerance=1.0E-7):
             of a range.
         tolerance (float):
             A relative tolerance value to ensure equivalence matching when
-            using float32 values.
+            using float32 values. Values of zero will be unchanged.
 
     Returns:
         constr (iris.Constraint):
