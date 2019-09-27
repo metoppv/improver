@@ -52,7 +52,7 @@ class BasicThreshold(object):
 
     def __init__(self, thresholds, fuzzy_factor=None,
                  fuzzy_bounds=None, threshold_units=None,
-                 below_thresh_ok=False, equal_thresh_ok=False):
+                 threshold_method='>'):
         """
         Set up for processing an in-or-out of threshold field, including the
         generation of fuzzy_bounds which are required to threshold an input
@@ -98,14 +98,11 @@ class BasicThreshold(object):
             threshold_units (str):
                 Units of the threshold values. If not provided the units are
                 assumed to be the same as those of the input cube.
-            below_thresh_ok (bool):
-                True to count points as significant if *below* the threshold,
-                False to count points as significant if *above* the threshold.
-            equal_thresh_ok (bool):
-                True to count points as significant if exactly *equal* the
-                threshold,
-                False to exclude points  if exactly *equal* the threshold.
-                Ignored if either fuzzy option is active.
+            threshold_method (str):
+                Indicates sign and equality of the threshold. e.g. "ge" to
+                evaluate data >= threshold or "<" to evaluate data < threshold
+                When fuzzy thresholds are used, the equality of the method is
+                ignored and only the sign (> or <) is used.
 
         Raises:
             ValueError: If a threshold of 0.0 is requested when using a fuzzy
@@ -176,18 +173,23 @@ class BasicThreshold(object):
             assert bounds[0] <= thr, bounds_msg
             assert bounds[1] >= thr, bounds_msg
 
-        self.below_thresh_ok = below_thresh_ok
-        self.equal_thresh_ok = equal_thresh_ok
+        # Lists of known logical comparisons. The final entry in each list
+        # must be recognisable by eval()
+        self.method_strings = {'ge_strings': ['ge', 'GE', '>='],
+                               'gt_strings': ['gt', 'GT', '>'],
+                               'le_strings': ['le', 'LE', '<='],
+                               'lt_strings': ['lt', 'LT', '<']}
+        self.method_string = threshold_method
+        self._decode_method_string()
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         return (
             '<BasicThreshold: thresholds {}, ' +
             'fuzzy_bounds {}, ' +
-            'below_thresh_ok: {}, ' +
-            'equal_thresh_ok: {}>'
+            'method: data {} threshold>'
         ).format(self.thresholds, self.fuzzy_bounds,
-                 self.below_thresh_ok, self.equal_thresh_ok)
+                 self.method_string)
 
     def _add_threshold_coord(self, cube, threshold):
         """
@@ -228,6 +230,26 @@ class BasicThreshold(object):
 
         cube.add_aux_coord(coord)
         return iris.util.new_axis(cube, coord)
+
+    def _decode_method_string(self):
+        """Sets self.below_thresh_ok based on self.method_string as True if a
+        less-than method is found or False if a greater-than method is found.
+
+        Raises:
+            ValueError if self.method_string does not match a defined method.
+        """
+        self.below_thresh_ok = None
+        for key, val in self.method_strings.items():
+            if self.method_string in val:
+                self.method_string = val[-1]
+                if '<' in self.method_string:
+                    self.below_thresh_ok = True
+                else:
+                    self.below_thresh_ok = False
+        if self.below_thresh_ok is None:
+            msg = (f'String "{self.method_string}" does not match any known '
+                   'threshold method')
+            raise ValueError(msg)
 
     def process(self, input_cube):
         """Convert each point to a truth value based on provided threshold
@@ -286,10 +308,9 @@ class BasicThreshold(object):
             # if upper and lower bounds are equal, set a deterministic 0/1
             # probability based on exceedance of the threshold
             if bounds[0] == bounds[1]:
-                if self.equal_thresh_ok != self.below_thresh_ok:
-                    truth_value = cube.data >= threshold
-                else:
-                    truth_value = cube.data > threshold
+                # First, check that self.method_strings has not been hacked
+                self._decode_method_string()
+                truth_value = eval(f"cube.data {self.method_string} threshold")
             # otherwise, scale exceedance probabilities linearly between 0/1
             # at the min/max fuzzy bounds and 0.5 at the threshold value
             else:
@@ -304,11 +325,11 @@ class BasicThreshold(object):
                             scale_range=(0.5, 1.),
                             clip=True),
                 )
+                # if requirement is for probabilities below threshold (rather
+                # than above), invert the exceedance probability
+                if self.below_thresh_ok:
+                    truth_value = 1. - truth_value
             truth_value = truth_value.astype(input_cube_dtype)
-            # if requirement is for probabilities below threshold (rather than
-            # above), invert the exceedance probability
-            if self.below_thresh_ok:
-                truth_value = 1. - truth_value
 
             cube.data = truth_value
             # Overwrite masked values that have been thresholded
