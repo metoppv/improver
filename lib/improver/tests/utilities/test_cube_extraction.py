@@ -44,6 +44,9 @@ from improver.utilities.cube_extraction import (
     create_range_constraint, apply_extraction, extract_subcube,
     is_complex_parsing_required, create_constraint, parse_constraint_list)
 
+from improver.tests.set_up_test_cubes import (set_up_probability_cube,
+                                              construct_xy_coords)
+
 
 def islambda(function):
     """
@@ -74,18 +77,15 @@ def set_up_precip_probability_cube():
                      [[0.03, 0.04, 0.01],
                       [0.02, 0.02, 0.00],
                       [0.01, 0.00, 0.00]]], dtype=np.float32)
-
     MMH_TO_MS = 0.001 / 3600.
-    threshold = DimCoord(
-        MMH_TO_MS * np.array([0.03, 0.1, 1.0], dtype=np.float32),
-        long_name="precipitation_rate", units="m s-1", var_name="threshold")
-    ycoord = DimCoord(np.arange(3), "projection_y_coordinate", units="km")
-    xcoord = DimCoord(np.arange(3), "projection_x_coordinate", units="km")
 
-    cube = iris.cube.Cube(
-        data, long_name="probability_of_precipitation_rate_above_threshold",
-        dim_coords_and_dims=[(threshold, 0), (ycoord, 1),
-                             (xcoord, 2)], units="1")
+    cube = set_up_probability_cube(
+        data, MMH_TO_MS * np.array([0.03, 0.1, 1.0], dtype=np.float32),
+        variable_name="precipitation_rate",
+        threshold_units="m s-1", spatial_grid="equalarea")
+    cube.coord(axis='x').points = np.arange(3, dtype=np.float32)
+    cube.coord(axis='y').points = np.arange(3, dtype=np.float32)
+
     return cube
 
 
@@ -410,7 +410,7 @@ class Test_extract_subcube(IrisTest):
         constraints)."""
         constraints = ["precipitation_rate=[0.03,0.1]",
                        "projection_y_coordinate=[1,2]"]
-        precip_units = ["mm h-1", "km"]
+        precip_units = ["mm h-1", "m"]
         expected = self.precip_cube[0:2, 1:, :]
         result = extract_subcube(self.precip_cube, constraints,
                                  units=precip_units)
@@ -422,7 +422,7 @@ class Test_extract_subcube(IrisTest):
         multiple constraints)."""
         constraints = ["precipitation_rate=[0.03:0.1]",
                        "projection_y_coordinate=[1:2]"]
-        precip_units = ["mm h-1", "km"]
+        precip_units = ["mm h-1", "m"]
         expected = self.precip_cube[0:2, 1:, :]
         result = extract_subcube(self.precip_cube, constraints,
                                  units=precip_units)
@@ -434,7 +434,7 @@ class Test_extract_subcube(IrisTest):
         syntax."""
         constraints = ["precipitation_rate=[0.03,0.1]",
                        "projection_y_coordinate=[1:2]"]
-        precip_units = ["mm h-1", "km"]
+        precip_units = ["mm h-1", "m"]
         expected = self.precip_cube[0:2, 1:, :]
         result = extract_subcube(self.precip_cube, constraints,
                                  units=precip_units)
