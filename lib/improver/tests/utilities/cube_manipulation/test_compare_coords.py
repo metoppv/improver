@@ -52,7 +52,8 @@ class Test_compare_coords(unittest.TestCase):
         data = 275*np.ones((3, 3, 3), dtype=np.float32)
         self.cube = set_up_variable_cube(data)
         self.extra_dim_coord = DimCoord(
-            [5.0], standard_name="height", units="m")
+            np.array([5.0], dtype=np.float32),
+            standard_name="height", units="m")
         self.extra_aux_coord = AuxCoord(
             ['uk_det', 'uk_ens', 'gl_ens'], long_name='model', units='no_unit')
 

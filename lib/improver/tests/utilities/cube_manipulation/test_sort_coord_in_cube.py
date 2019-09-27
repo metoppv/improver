@@ -53,10 +53,10 @@ class Test_sort_coord_in_cube(IrisTest):
             [5., 10., 20.], dtype=np.float32)
         self.descending_height_points = np.flip(self.ascending_height_points)
 
-        data = np.array(
+        self.data = np.array(
             [np.ones((3, 3)), 2*np.ones((3, 3)), 3*np.ones((3, 3))],
             dtype=np.float32)
-        self.ascending_cube = set_up_variable_cube(data)
+        self.ascending_cube = set_up_variable_cube(self.data)
         self.ascending_cube.coord("realization").rename("height")
         self.ascending_cube.coord("height").points = (
             self.ascending_height_points)
@@ -70,16 +70,7 @@ class Test_sort_coord_in_cube(IrisTest):
         """Test that the sorting successfully sorts the cube based
         on the points within the given coordinate. The points in the resulting
         cube should now be in ascending order."""
-        expected_data = np.array(
-            [[[1.00, 1.00, 1.00],
-              [1.00, 1.00, 1.00],
-              [1.00, 1.00, 1.00]],
-             [[2.00, 2.00, 2.00],
-              [2.00, 2.00, 2.00],
-              [2.00, 2.00, 2.00]],
-             [[3.00, 3.00, 3.00],
-              [3.00, 3.00, 3.00],
-              [3.00, 3.00, 3.00]]])
+        expected_data = self.data
         coord_name = "height"
         result = sort_coord_in_cube(self.ascending_cube, coord_name)
         self.assertIsInstance(result, iris.cube.Cube)
@@ -96,16 +87,7 @@ class Test_sort_coord_in_cube(IrisTest):
     def test_auxcoord(self):
         """Test that the above sorting is successful when an AuxCoord is
         used."""
-        expected_data = np.array(
-            [[[1.00, 1.00, 1.00],
-              [1.00, 1.00, 1.00],
-              [1.00, 1.00, 1.00]],
-             [[2.00, 2.00, 2.00],
-              [2.00, 2.00, 2.00],
-              [2.00, 2.00, 2.00]],
-             [[3.00, 3.00, 3.00],
-              [3.00, 3.00, 3.00],
-              [3.00, 3.00, 3.00]]])
+        expected_data = self.data
         coord_name = "height_aux"
         height_coord = self.ascending_cube.coord('height')
         height_coord_index, = self.ascending_cube.coord_dims('height')
@@ -124,16 +106,7 @@ class Test_sort_coord_in_cube(IrisTest):
         """Test that the sorting successfully sorts the cube based
         on the points within the given coordinate. The points in the resulting
         cube should now be in descending order."""
-        expected_data = np.array(
-            [[[3.00, 3.00, 3.00],
-              [3.00, 3.00, 3.00],
-              [3.00, 3.00, 3.00]],
-             [[2.00, 2.00, 2.00],
-              [2.00, 2.00, 2.00],
-              [2.00, 2.00, 2.00]],
-             [[1.00, 1.00, 1.00],
-              [1.00, 1.00, 1.00],
-              [1.00, 1.00, 1.00]]])
+        expected_data = np.flip(self.data)
         coord_name = "height"
         result = sort_coord_in_cube(
             self.ascending_cube, coord_name, order="descending")
@@ -150,16 +123,7 @@ class Test_sort_coord_in_cube(IrisTest):
         """Test that the sorting successfully sorts the cube based
         on the points within the given coordinate. The points in the resulting
         cube should now be in ascending order."""
-        expected_data = np.array(
-            [[[3.00, 3.00, 3.00],
-              [3.00, 3.00, 3.00],
-              [3.00, 3.00, 3.00]],
-             [[2.00, 2.00, 2.00],
-              [2.00, 2.00, 2.00],
-              [2.00, 2.00, 2.00]],
-             [[1.00, 1.00, 1.00],
-              [1.00, 1.00, 1.00],
-              [1.00, 1.00, 1.00]]])
+        expected_data = np.flip(self.data)
         coord_name = "height"
         result = sort_coord_in_cube(self.descending_cube, coord_name)
         self.assertIsInstance(result, iris.cube.Cube)
@@ -175,16 +139,7 @@ class Test_sort_coord_in_cube(IrisTest):
         """Test that the sorting successfully sorts the cube based
         on the points within the given coordinate. The points in the resulting
         cube should now be in descending order."""
-        expected_data = np.array(
-            [[[1.00, 1.00, 1.00],
-              [1.00, 1.00, 1.00],
-              [1.00, 1.00, 1.00]],
-             [[2.00, 2.00, 2.00],
-              [2.00, 2.00, 2.00],
-              [2.00, 2.00, 2.00]],
-             [[3.00, 3.00, 3.00],
-              [3.00, 3.00, 3.00],
-              [3.00, 3.00, 3.00]]])
+        expected_data = self.data
         coord_name = "height"
         result = sort_coord_in_cube(
             self.descending_cube, coord_name, order="descending")
