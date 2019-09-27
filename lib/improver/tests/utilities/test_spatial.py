@@ -185,7 +185,8 @@ class Test_calculate_grid_spacing(IrisTest):
     def test_cube_not_equal_area(self):
         """Test ValueError if cube is not equal area"""
         cube = set_up_variable_cube(np.ones((5, 5), dtype=np.float32))
-        with self.assertRaises(ValueError):
+        msg = "points are not equally spaced"
+        with self.assertRaisesRegex(ValueError, msg):
             calculate_grid_spacing(cube)
 
 
@@ -235,14 +236,6 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
         result = convert_distance_into_number_of_grid_cells(
             self.cube, self.DISTANCE)
         self.assertEqual(result, 3)
-
-    def test_error_lat_lon_grid(self):
-        """Test behaviour for a single grid cell on lat long grid."""
-        cube = set_up_variable_cube(np.ones((5, 5), dtype=np.float32))
-        msg = "points are not equally spaced"
-        with self.assertRaisesRegex(ValueError, msg):
-            convert_distance_into_number_of_grid_cells(
-                cube, self.DISTANCE)
 
     def test_error_negative_distance(self):
         """Test behaviour with a non-zero point with negative range."""
@@ -315,17 +308,6 @@ class Test_convert_number_of_grid_cells_into_distance(IrisTest):
         expected_result = 4000.0
         self.assertAlmostEqual(result_radius, expected_result)
         self.assertIs(type(expected_result), float)
-
-    def test_not_equal_areas(self):
-        """
-        Check it raises an error when the input is not an equal areas grid.
-        """
-        self.cube.remove_coord("projection_x_coordinate")
-        self.cube.add_dim_coord(
-            DimCoord(np.linspace(200.0, 600.0, 3),
-                     'projection_x_coordinate', units='m'), 0)
-        with self.assertRaises(ValueError):
-            convert_number_of_grid_cells_into_distance(self.cube, 2)
 
     def test_check_different_input_radius(self):
         """Check it works for different input values."""
