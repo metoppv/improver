@@ -58,10 +58,10 @@ class Test_set_product_attributes(unittest.TestCase):
         self.grid_descriptor = " on UK 2 km Standard Grid"
 
     def test_blend(self):
-        """Test cube is modified in place"""
+        """Test blended attributes"""
         expected_title = self.blend_descriptor + self.grid_descriptor
-        set_product_attributes(self.cube, "multi-model blend")
-        attrs = self.cube.attributes
+        result = set_product_attributes(self.cube, "multi-model blend")
+        attrs = result.attributes
         self.assertEqual(attrs["source"], "IMPROVER")
         self.assertEqual(attrs["title"], expected_title)
         self.assertEqual(attrs["institution"], "Met Office")
@@ -69,17 +69,17 @@ class Test_set_product_attributes(unittest.TestCase):
     def test_nowcast(self):
         """Test nowcast attributes"""
         expected_title = self.nowcast_descriptor + self.grid_descriptor
-        set_product_attributes(self.cube, "nowcast")
-        attrs = self.cube.attributes
+        result = set_product_attributes(self.cube, "nowcast")
+        attrs = result.attributes
         self.assertEqual(attrs["source"], "IMPROVER")
         self.assertEqual(attrs["title"], expected_title)
-        self.assertEqual(attrs["institution"], "Met Office")        
+        self.assertEqual(attrs["institution"], "Met Office")
 
     def test_no_grid_descriptor(self):
         """Test blended cube only has grid descriptor where appropriate"""
         self.cube.attributes["title"] = "MOGREPS-UK Temperature Forecast"
-        set_product_attributes(self.cube, "multi-model blend")
-        self.assertEqual(self.cube.attributes["title"], self.blend_descriptor)
+        result = set_product_attributes(self.cube, "multi-model blend")
+        self.assertEqual(result.attributes["title"], self.blend_descriptor)
 
     def test_error_invalid_product(self):
         """Test error when product is not recognised"""

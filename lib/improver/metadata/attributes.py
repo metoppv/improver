@@ -58,13 +58,17 @@ DATASET_ATTRIBUTES = {
 def set_product_attributes(cube, product):
     """
     Set attributes on an output cube of type matching a key string in the
-    DATASET_ATTRIBUTES dictionary.  Modifies cube in place.
+    DATASET_ATTRIBUTES dictionary.
 
     Args:
         cube (iris.cube.Cube):
             Cube containing product data
         product (str):
             String describing product type
+
+    Returns:
+        updated_cube (iris.cube.Cube):
+            Cube with updated attributes
     """
     try:
         original_title = cube.attributes["title"]
@@ -72,7 +76,8 @@ def set_product_attributes(cube, product):
         original_title = ""
 
     try:
-        amend_metadata(cube, attributes=DATASET_ATTRIBUTES[product])
+        updated_cube = amend_metadata(
+            cube, attributes=DATASET_ATTRIBUTES[product])
     except KeyError:
         options = list(DATASET_ATTRIBUTES.keys())
         raise ValueError(
@@ -80,7 +85,10 @@ def set_product_attributes(cube, product):
                 product, options))
 
     if STANDARD_GRID_TITLE_STRING in original_title:
-        cube.attributes["title"] += " on {}".format(STANDARD_GRID_TITLE_STRING)
+        updated_cube.attributes["title"] += " on {}".format(
+            STANDARD_GRID_TITLE_STRING)
+
+    return updated_cube
 
 
 def update_spot_title_attribute(cube):
