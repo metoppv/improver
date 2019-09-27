@@ -347,10 +347,18 @@ class Test_check_if_grid_is_equal_area(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             check_if_grid_is_equal_area(cube)
 
+    def test_still_fails_with_override(self):
+        """Test that a lat/lon cube still fails when 'require_equal_xy_spacing'
+        is set to False"""
+        cube = set_up_variable_cube(np.ones((5, 5), dtype=np.float32))
+        msg = "points are not equally spaced"
+        with self.assertRaisesRegex(ValueError, msg):
+            check_if_grid_is_equal_area(cube, require_equal_xy_spacing=False)
+
     def test_non_equal_xy_spacing(self):
         """Test that the cubes have an equal areas grid."""
         self.cube.coord(axis='x').points = 2*self.cube.coord(axis='x').points
-        msg = "Grid does not have equal spacing"
+        msg = "Grid does not have equal spacing in x and y"
         with self.assertRaisesRegex(ValueError, msg):
             check_if_grid_is_equal_area(self.cube)
 
