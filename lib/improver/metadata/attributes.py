@@ -120,7 +120,7 @@ def update_spot_title_attribute(cube):
         # try regular expression matching
         regex = re.compile(
             '(?P<field>.*?)'  # description of field
-            '( on )'       # expected joining statement
+            '( on )'          # expected joining statement
             '(?P<grid>.*?)')  # eg STANDARD_GRID_TITLE_STRING
         title_regex = regex.match(cube.attributes["title"])
 
