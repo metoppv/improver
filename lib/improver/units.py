@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Module to contain the default units for use within IMPROVER.
+Module containing the default units and datatypes for use within IMPROVER.
 
 The DEFAULT_UNITS dictionary has the following form.
 
