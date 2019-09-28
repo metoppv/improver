@@ -36,11 +36,11 @@
   KGO="combine/bounds/kgo_max.nc"
 
   # Run cube-combiner processing and check it passes.
-    PYTHONPATH=$PWD/lib python3 -m improver.cli combine \
-      $IMPROVER_ACC_TEST_DIR/combine/bounds/*H-temperature_at_screen_level_max.nc \
+  run improver combine \
       --operation='max' \
-      --new-metadata="$IMPROVER_ACC_TEST_DIR/combine/bounds/time_bound.json" \
-      --output="$TEST_DIR/output.nc"
+      --metadata_jsonfile="$IMPROVER_ACC_TEST_DIR/combine/bounds/time_bound.json" \
+      $IMPROVER_ACC_TEST_DIR/combine/bounds/*H-temperature_at_screen_level_max.nc \
+      "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

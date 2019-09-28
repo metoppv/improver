@@ -56,7 +56,7 @@ get_operations() {
     ( cd "$IMPROVER_DIR/bin/"
       ls improver-*[^~] | sed "s/^improver-//"
       cd "$IMPROVER_DIR/lib/improver/cli"
-      ls *.py | sed "/__init__\.py/d; s/\.py$//; s/_/-/g" ) | sort
+      ls *.py | sed "/^__.*__\.py$/d; s/\.py$//; s/_/-/g" ) | sort
 }
 
 # Print generic or operation specific help.
@@ -85,10 +85,10 @@ if (($# == 0)); then
     print_help
     exit 0
 fi
-if [[ $1 == help ]] || [[ $1 == --help ]]; then
-    print_help ${2:-}
-    exit 0
-fi
+#if [[ $1 == help ]] || [[ $1 == --help ]]; then
+#    print_help ${2:-}
+#    exit 0
+#fi
 if [[ $1 == version ]] || [[ $1 == --version ]]; then
     print_version
     exit 0
@@ -107,7 +107,7 @@ export PATH="$IMPROVER_DIR/bin/:$PATH"
 export PYTHONPATH="$IMPROVER_DIR/lib/:${PYTHONPATH:-}"
 
 if [[ -f "$IMPROVER_DIR/bin/improver-$OPER" ]]; then
-    exec "$IMPROVER_DIR/bin/improver-$OPER" "$@"
+    exec -a "$0 $OPER" "$IMPROVER_DIR/bin/improver-$OPER" "$@"
 else
-    exec python -m improver.cli.${OPER//-/_} "$@"
+    exec -a $0 python -m improver.cli $OPER "$@"
 fi

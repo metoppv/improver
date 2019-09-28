@@ -36,13 +36,11 @@
   KGO="nbhood-iterate-with-mask/basic_collapse_bands/kgo_collapsed.nc"
 
   # Run neighbourhood processing and check it passes.
-  PYTHONPATH=$PWD/lib python3 -m improver.cli nb-mask \
-      --coord-for-masking='topographic_zone' \
+  run improver nbhood-iterate-with-mask 'topographic_zone' \
      "$IMPROVER_ACC_TEST_DIR/nbhood-iterate-with-mask/basic_collapse_bands/thresholded_input.nc" \
      "$IMPROVER_ACC_TEST_DIR/nbhood-iterate-with-mask/basic_collapse_bands/orographic_bands_mask.nc" \
-     --output="$TEST_DIR/output.nc" --radius 10000 --collapse-dimension \
-     --weights \
-     "$IMPROVER_ACC_TEST_DIR/nbhood-iterate-with-mask/basic_collapse_bands/orographic_bands_weights.nc"
+     "$TEST_DIR/output.nc" --radius 10000 --collapse_dimension \
+     --weights_for_collapsing_dim "$IMPROVER_ACC_TEST_DIR/nbhood-iterate-with-mask/basic_collapse_bands/orographic_bands_weights.nc"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
