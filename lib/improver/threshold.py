@@ -240,7 +240,7 @@ class BasicThreshold(object):
             ValueError: If self.method_string does not match a defined method.
         """
         self.below_thresh_ok = None
-        for key, val in self.method_strings.items():
+        for _, val in self.method_strings.items():
             if self.method_string in val:
                 self.method_string = val[-1]
                 if '<' in self.method_string:
