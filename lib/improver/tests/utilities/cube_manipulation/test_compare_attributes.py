@@ -38,8 +38,7 @@ import iris
 import numpy as np
 from iris.tests import IrisTest
 
-from improver.tests.ensemble_calibration.ensemble_calibration. \
-    helper_functions import set_up_temperature_cube
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import compare_attributes
 from improver.utilities.warnings_handler import ManageWarnings
 
@@ -49,17 +48,13 @@ class Test_compare_attributes(IrisTest):
 
     def setUp(self):
         """Use temperature cube to test with."""
-        self.cube = set_up_temperature_cube()
-        self.cube_ukv = self.cube.extract(iris.Constraint(realization=1))
-        self.cube_ukv.remove_coord('realization')
-        self.cube_ukv.attributes['mosg__grid_type'] = 'standard'
-        self.cube_ukv.attributes['mosg__model_configuration'] = 'uk_det'
-        self.cube_ukv.attributes['mosg__grid_domain'] = 'uk_extended'
-        self.cube_ukv.attributes['mosg__grid_version'] = '1.1.0'
-        self.cube.attributes['mosg__grid_type'] = 'standard'
-        self.cube.attributes['mosg__model_configuration'] = 'uk_ens'
-        self.cube.attributes['mosg__grid_domain'] = 'uk_extended'
-        self.cube.attributes['mosg__grid_version'] = '1.2.0'
+        data = 275*np.ones((3, 3, 3), dtype=np.float32)
+        self.cube = set_up_variable_cube(
+            data, standard_grid_metadata='uk_ens',
+            attributes={'mosg__grid_version': '1.2.0'})
+        self.cube_ukv = set_up_variable_cube(
+            data[0], standard_grid_metadata='uk_det',
+            attributes={'mosg__grid_version': '1.1.0'})
 
     def test_basic(self):
         """Test that the utility returns a list and have no differences."""

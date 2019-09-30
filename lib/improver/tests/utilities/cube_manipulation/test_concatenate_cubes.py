@@ -37,13 +37,13 @@ import unittest
 import iris
 import numpy as np
 from cf_units import Unit
+from datetime import datetime
 from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.exceptions import ConcatenateError
 from iris.tests import IrisTest
 
-from improver.tests.ensemble_calibration.ensemble_calibration. \
-    helper_functions import set_up_temperature_cube
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import concatenate_cubes
 
 
@@ -52,8 +52,15 @@ class Test_concatenate_cubes(IrisTest):
     """Test the concatenate_cubes utility."""
 
     def setUp(self):
-        """Use temperature cube to test with."""
-        self.cube = set_up_temperature_cube()
+        """Set up temperature cubes to test with."""
+        data = 275*np.ones((3, 3, 3), dtype=np.float32)
+        cube = set_up_variable_cube(data, time=datetime(2017, 9, 9, 11),
+                                    frt=datetime(2017, 9, 9, 6))
+        self.cube = iris.util.new_axis(cube, "time")
+        self.cube.transpose([1, 0, 2, 3])
+        self.later_cube = self.cube.copy()
+        self.later_cube.coord("time").points = (
+            self.later_cube.coord("time").points + 3600)
 
     def test_basic(self):
         """Test that the utility returns an iris.cube.Cube."""
@@ -76,21 +83,13 @@ class Test_concatenate_cubes(IrisTest):
         resulting data, if a CubeList containing non-identical cubes
         (different values for the time coordinate) is passed in as the input.
         """
-        cube1 = self.cube.copy()
-        cube2 = self.cube.copy()
-
-        cube3 = self.cube.copy()
-        cube3.transpose([1, 0, 2, 3])
+        cube = self.cube.copy()
+        cube.transpose([1, 0, 2, 3])
         expected_result = (
-            np.vstack([cube3.data, cube3.data]).transpose([1, 0, 2, 3]))
-
-        cube2.coord("time").points = np.array([1484028000], dtype=np.int64)
-
-        cubelist = iris.cube.CubeList([cube1, cube2])
-
+            np.vstack([cube.data, cube.data]).transpose([1, 0, 2, 3]))
+        cubelist = iris.cube.CubeList([self.cube, self.later_cube])
         result = concatenate_cubes(
             cubelist, coords_to_slice_over=["realization"])
-
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(expected_result, result.data)
 
@@ -146,18 +145,15 @@ class Test_concatenate_cubes(IrisTest):
         time coordinate, if a CubeList containing cubes with different
         timesteps is passed in as the input.
         """
-        cube1 = self.cube.copy()
-        cube2 = self.cube.copy()
-
-        cube2.coord("time").points = np.array([1484028000], dtype=np.int64)
-
-        cubelist = iris.cube.CubeList([cube1, cube2])
-
+        expected_time_points = [
+            self.cube.coord("time").points[0],
+            self.later_cube.coord("time").points[0]]
+        cubelist = iris.cube.CubeList([self.cube, self.later_cube])
         result = concatenate_cubes(
             cubelist, coords_to_slice_over=["time"])
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(
-            result.coord("time").points, [1484017200, 1484028000])
+            result.coord("time").points, expected_time_points)
 
     def test_cubelist_slice_over_realization_only(self):
         """
@@ -165,13 +161,7 @@ class Test_concatenate_cubes(IrisTest):
         realization coordinate, if a CubeList containing cubes with different
         realizations is passed in as the input.
         """
-        cube1 = self.cube.copy()
-        cube2 = self.cube.copy()
-
-        cube2.coord("time").points = np.int64(1484028000)
-
-        cubelist = iris.cube.CubeList([cube1, cube2])
-
+        cubelist = iris.cube.CubeList([self.cube, self.later_cube])
         result = concatenate_cubes(
             cubelist, coords_to_slice_over=["realization"])
         self.assertIsInstance(result, Cube)
@@ -186,39 +176,26 @@ class Test_concatenate_cubes(IrisTest):
         This makes sure that the forecast_reference_time from the input cubes
         is maintained within the output cube, after concatenation.
         """
-        cube1 = self.cube.copy()
-        cube2 = self.cube.copy()
-
-        cube2.coord("time").points = np.array([1484028000], dtype=np.int64)
-        time_origin = "seconds since 1970-01-01 00:00:00"
-        calendar = "gregorian"
-        tunit = Unit(time_origin, calendar)
-        cube1.add_aux_coord(
-            DimCoord([1484017200], "forecast_reference_time", units=tunit))
-        cube2.add_aux_coord(
-            DimCoord([1484028000], "forecast_reference_time", units=tunit))
-        cubelist = iris.cube.CubeList([cube1, cube2])
-
+        self.later_cube.coord("forecast_reference_time").points = (
+            self.later_cube.coord("forecast_reference_time").points + 3600)
+        expected_frt_points = [
+            self.cube.coord("forecast_reference_time").points[0],
+            self.later_cube.coord("forecast_reference_time").points[0]]
+        cubelist = iris.cube.CubeList([self.cube, self.later_cube])
         result = concatenate_cubes(
             cubelist, coordinates_for_association=["forecast_reference_time"])
         self.assertArrayAlmostEqual(
             result.coord("forecast_reference_time").points,
-            [1484017200, 1484028000])
+            expected_frt_points)
 
     def test_cubelist_different_var_names(self):
         """
         Test that the utility returns an iris.cube.Cube, if a CubeList
         containing non-identical cubes is passed in as the input.
         """
-        cube1 = self.cube.copy()
-        cube2 = self.cube.copy()
-        cube2.coord("time").points = np.int64(1484028000)
-
-        cube1.coord("time").var_name = "time_0"
-        cube2.coord("time").var_name = "time_1"
-
-        cubelist = iris.cube.CubeList([cube1, cube2])
-
+        self.cube.coord("time").var_name = "time_0"
+        self.later_cube.coord("time").var_name = "time_1"
+        cubelist = iris.cube.CubeList([self.cube, self.later_cube])
         result = concatenate_cubes(cubelist)
         self.assertIsInstance(result, Cube)
 
