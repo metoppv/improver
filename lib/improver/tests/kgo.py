@@ -120,11 +120,11 @@ def nccmp(output_path, kgo_path,
     """
     Compare output and KGO using nccmp command line tool.
     Raises assertions to be picked up by test framework.
-    
+
     Args:
         output_path (pathlib.Path): Path to output produced by test
         kgo_path (pathlib.Path): Path to KGO file
-        atol (float): absolute tolerance 
+        atol (float): absolute tolerance
         rtol (float): relative tolerance
 
     Returns:
