@@ -180,7 +180,7 @@ def compare(output_path, kgo_path,
     return
 
 
-"""Pytest decorator to skip tests if KGO is not available for use."""
+# Pytest decorator to skip tests if KGO is not available for use
 # pylint: disable=invalid-name
 skipifmissing = pt.mark.skipif(not exists() and nccmp_available(),
                                reason="KGO files and nccmp tool required")
