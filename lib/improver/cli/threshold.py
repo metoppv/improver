@@ -141,7 +141,7 @@ def main(argv=None):
     # Process Cube
     result = process(cube, args.threshold_values, threshold_dict,
                      args.threshold_units,
-                     args.below_threshold, args.equal_threshold,
+                     args.threshold_method,
                      args.fuzzy_factor,
                      args.collapse_coord, args.vicinity)
     # Save Cube
@@ -149,7 +149,7 @@ def main(argv=None):
 
 
 def process(cube, threshold_values=None, threshold_dict=None,
-            threshold_units=None, below_threshold=False, equal_threshold=False,
+            threshold_units=None, threshold_method='>',
             fuzzy_factor=None,
             collapse_coord="None", vicinity=None):
     """Module to apply thresholding to a parameter dataset.
@@ -186,14 +186,11 @@ def process(cube, threshold_values=None, threshold_dict=None,
             assumed to be the same as those of the input cube. Specifying
             the units here will allow a suitable conversion to match
             the input units if possible.
-        below_threshold (bool):
-            By default truth values of 1 are returned for data ABOVE the
-            threshold value(s). Using this boolean changes this behaviours
-            to return 1 for data below the threshold values.
-        equal_threshold (bool):
-            By default truth values of 0 are returned for data EQUAL TO the
-            threshold value(s). Using this flag changes this behaviour to
-            return 1 for these data.
+        threshold_method (str):
+            Indicates sign and equality of the threshold. e.g. "ge" to
+            evaluate data >= threshold or "<" to evaluate data < threshold
+            When fuzzy thresholds are used, the equality of the method is
+            ignored and only the sign (> or <) is used.
         fuzzy_factor (float):
             A decimal fraction defining the factor about the threshold value(s)
             which should be treated as fuzzy. Data which fail a test against
