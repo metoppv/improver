@@ -241,7 +241,7 @@ class Test_parse_constraint_list(IrisTest):
 
     def test_string_constraint(self):
         """ Test that a string constraint results in a simple iris constraint,
-        not a lamba function. This is created via the literal_eval ValueError.
+        not a lambda function. This is created via the literal_eval ValueError.
         """
         constraints = ["percentile=kittens"]
         result, _ = parse_constraint_list(constraints)
