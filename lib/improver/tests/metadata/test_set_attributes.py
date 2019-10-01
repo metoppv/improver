@@ -35,7 +35,7 @@ Tests for the improver.metadata.attributes module
 import unittest
 import numpy as np
 
-from improver.metadata.attributes import (
+from improver.metadata.set_attributes import (
     set_product_attributes, update_spot_title_attribute)
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
@@ -109,6 +109,14 @@ class Test_update_spot_title_attribute(unittest.TestCase):
         """Test function recognises other grid specifications"""
         self.cube.attributes["title"] = (
             "MOGREPS-UK Temperature Forecast on Other Grid")
+        update_spot_title_attribute(self.cube)
+        self.assertEqual(self.cube.attributes["title"], self.expected_title)
+
+    def test_global_grid(self):
+        """Test function responds correctly to a non-UK grid"""
+        self.cube.attributes["title"] = (
+            "MOGREPS-G Temperature Forecast on Global Grid")
+        expected_title = "MOGREPS-G Temperature Forecast Spot Values"
         update_spot_title_attribute(self.cube)
         self.assertEqual(self.cube.attributes["title"], self.expected_title)
 

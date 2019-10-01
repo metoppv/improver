@@ -29,30 +29,18 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Module defining attributes for IMPROVER blended data and the nowcast
+Module setting attributes for IMPROVER blended data and the nowcast
 """
 
 import re
 import warnings
 
+from improver.metadata.constants.attributes import (
+    STANDARD_GRID_TITLE_STRING,
+    UK_SPOT_TITLE_STRING,
+    GLOBAL_SPOT_TITLE_STRING,
+    DATASET_ATTRIBUTES)
 from improver.utilities.cube_metadata import amend_metadata
-
-
-STANDARD_GRID_TITLE_STRING = "UK 2 km Standard Grid"
-SPOT_TITLE_STRING = "UK Spot Values"
-
-DATASET_ATTRIBUTES = {
-    "nowcast": {
-        "source": "IMPROVER",
-        "title": "MONOW Extrapolation Nowcast",
-        "institution": "Met Office"
-    },
-    "multi-model blend": {
-        "source": "IMPROVER",
-        "title": "IMPROVER Post-Processed Multi-Model Blend",
-        "institution": "Met Office"
-    }
-}
 
 
 def set_product_attributes(cube, product):
@@ -91,6 +79,25 @@ def set_product_attributes(cube, product):
     return updated_cube
 
 
+def _match_title(original_title):
+    """
+    Match a title string to a regular expression
+
+    Args:
+        original_title (str):
+            Value of "title" attribute on an input cube
+
+    Returns:
+        match (str or None):
+            Match to expected regular expression pattern
+    """
+    regex = re.compile(
+        '(?P<field>.*?)'  # description of field
+        '( on )'          # expected joining statement
+        '(?P<grid>.*?)')  # eg STANDARD_GRID_TITLE_STRING
+    return regex.match(original_title)
+
+
 def update_spot_title_attribute(cube):
     """
     Update the "title" attribute on a spot data cube IF there is an existing
@@ -107,23 +114,19 @@ def update_spot_title_attribute(cube):
         # if there is no title on the input cube, we cannot update it sensibly
         return
 
-    if SPOT_TITLE_STRING in original_title:
+    if (UK_SPOT_TITLE_STRING in original_title or
+            GLOBAL_SPOT_TITLE_STRING in original_title):
         # make no changes if title is already suitable
         return
 
     if STANDARD_GRID_TITLE_STRING in original_title:
         # try a direct string replacement
         new_title = cube.attributes["title"].replace(
-            "on {}".format(STANDARD_GRID_TITLE_STRING), SPOT_TITLE_STRING)
+            "on {}".format(STANDARD_GRID_TITLE_STRING), UK_SPOT_TITLE_STRING)
         cube.attributes["title"] = new_title
     else:
         # try regular expression matching
-        regex = re.compile(
-            '(?P<field>.*?)'  # description of field
-            '( on )'          # expected joining statement
-            '(?P<grid>.*?)')  # eg STANDARD_GRID_TITLE_STRING
-        title_regex = regex.match(cube.attributes["title"])
-
+        title_regex = _match_title(original_title)
         if title_regex is None:
             # if title does not match expected pattern we cannot update it
             # sensibly - raise a warning here
@@ -132,5 +135,9 @@ def update_spot_title_attribute(cube):
                 "unable to replace grid description")
             return
         else:
-            cube.attributes["title"] = (
-                title_regex.group('field') + ' ' + SPOT_TITLE_STRING)
+            if "UK" in original_title:
+                cube.attributes["title"] = (
+                    title_regex.group('field') + ' ' + UK_SPOT_TITLE_STRING)
+            else:
+                cube.attributes["title"] = (
+                    title_regex.group('field') + ' ' + GLOBAL_SPOT_TITLE_STRING)
