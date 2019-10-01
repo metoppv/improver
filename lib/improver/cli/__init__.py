@@ -30,111 +30,44 @@
 # POSSIBILITY OF SUCH DAMAGE.
 "init for cli and clize"
 
+from collections import OrderedDict
 from clize import (
     Clize,
-    Parameter,
+    parameters,
     run,
 )
 from clize.help import (
     HelpForAutodetectedDocstring,
     ClizeHelp,
 )
-from clize.parameters import pass_name as pass_program_name
 from clize.parser import value_converter
 from sigtools.wrappers import decorator
 
-_clizefy = Clize.keep
-#get_cli = Clize.get_cli
+# selected clize imports/constants
 
-def get_cli(obj, **kwargs):
-    # TODO: set get_cli = Clize.get_cli after all CLIs are clizefied
-    import os
+import clize
 
-    if callable(obj) and (not os.environ.get('IMPROVER_USE_CLIZE')
-            or not hasattr(obj, 'cli')):
-        import sys
-        impr_main = sys.modules[obj.__module__].main
-        description = obj.__doc__.split('\n')[0].strip()
+IGNORE = clize.Parameter.IGNORE
+LAST_OPTION = clize.Parameter.LAST_OPTION
+REQUIRED = clize.Parameter.REQUIRED
+UNDOCUMENTED = clize.Parameter.UNDOCUMENTED
 
-        def clized_main(prog: pass_program_name, *args):
-            sys.argv[0] = prog.split()[-1]
-            impr_main(args)
-
-        return Clize.as_is(clized_main, description=description, **kwargs)
-
-    return Clize.get_cli(obj, **kwargs)
-
-# def is_using_clize():
-#     #return True
-#     # TODO: remove this function after transition to Clize is completed
-#     try:
-#         import clize
-#         import os
-#         return os.environ.get('IMPROVER_USE_CLIZE', True)
-#     except ImportError:
-#         return False
-#     return False
-#
-#
-# def identity(func, *args, **kwawrgs):
-#     return func
-#
-#
-# if is_using_clize():
-#
-#     from sigtools.wrappers import decorator
-#     from clize import (
-#         Clize,
-#         Parameter,
-#         run,
-#     )
-#     from clize.help import (
-#         HelpForAutodetectedDocstring,
-#         ClizeHelp,
-#     )
-#     from clize.parameters import pass_name as pass_program_name
-#     from clize.parser import value_converter
-#     _clizefy = Clize.keep
-#     get_cli = Clize.get_cli
-#
-# else:
-#
-#     def decorator(outer):
-#         from functools import wraps
-#
-#         @wraps(outer)
-#         def outer_wrapper(inner):
-#
-#             @wraps(inner)
-#             def inner_wrapper(*args, **kwargs):
-#                 return outer(inner, *args, **kwargs)
-#
-#             return inner_wrapper
-#
-#         return outer_wrapper
-#
-#     def run(cli_func):
-#         import sys
-#         return cli_func(*sys.argv)
-#
-#     _clizefy = value_converter = identity
-#     HelpForAutodetectedDocstring = ClizeHelp = object
-
+del clize
 
 # help helpers
 
 
 def docutilize(obj):
-    """
+    """Convert Numpy or Google style docstring into reStructuredText format.
 
     Args:
         obj (str or obj):
-            Takes an object and changes it's docstrings to a suitable format
-            for clize.
+            Takes an object and changes it's docstrings to a reStructuredText
+            format.
     Returns:
         (str or obj):
-            A string with replaced docstrings. or an altered string depending
-            on the format of the input.
+            A converted string or an object with replaced docstring depending
+            on the type of the input.
     """
     from inspect import cleandoc
     from sphinx.ext.napoleon.docstring import GoogleDocstring, NumpyDocstring
@@ -145,10 +78,6 @@ def docutilize(obj):
     doc = cleandoc(doc)
     doc = str(NumpyDocstring(doc))
     doc = str(GoogleDocstring(doc))
-    # exception and keyword markup seems to trip up the docutils parser
-    doc = doc.replace(':exc:', '')
-    doc = doc.replace(':keyword', ':param')
-    doc = doc.replace(':kwtype', ':type')
     if isinstance(obj, str):
         return doc
     obj.__doc__ = doc
@@ -168,6 +97,9 @@ class DocutilizeClizeHelp(ClizeHelp):
     def __init__(self, subject, owner,
                  builder=HelpForNapoleonDocstring.from_subject):
         super().__init__(subject, owner, builder)
+
+
+# input handling
 
 
 class ObjectAsStr(str):
@@ -238,22 +170,6 @@ def inputjson(to_convert):
 # output handling
 
 
-# def save_output(saver, result, outfile, *, index=None):
-#     """Helper function to pop and save one value out of multiple returned."""
-#     if outfile is None:
-#         return result
-#     if index is None:
-#         return saver(result, outfile)
-#     saver(result[index], outfile)
-#     # remove saved value(s) from returned result
-#     idx_slice = (index if isinstance(index, slice) else
-#                  slice(index, index + 1 or None))
-#     idx_range = range(*idx_slice.indices(len(result)))
-#     rtype = type(result)
-#     result = rtype(v for i, v in enumerate(result) if i not in idx_range)
-#     return result[0] if len(result) == 1 else result or None
-
-
 @decorator
 def with_output(wrapped, *args, output=None, **kwargs):
     """
@@ -262,47 +178,99 @@ def with_output(wrapped, *args, output=None, **kwargs):
     from improver.utilities.save import save_netcdf
     result = wrapped(*args, **kwargs)
     if output:
-        return save_netcdf(result, output)
+        save_netcdf(result, output)
+        return
     return result
 
 
 @decorator
-def with_intermediate_output(wrapped, *args, output=None,
-                             intermediate_output=None, **kwargs):
+def with_intermediate_output(wrapped, *args, intermediate_output=None,
+                             **kwargs):
     """
     :param intermediate_output: Output file name for intermediate result
-    :param output: Output file name
     """
+
     from improver.utilities.save import save_netcdf
-    result, intermediate = wrapped(*args, **kwargs)
-    returns = ()
-    if output:
-        save_netcdf(result, output)
-    else:
-        returns += (result,)
+    result, intermediate_result = wrapped(*args, **kwargs)
     if intermediate_output:
-        save_netcdf(intermediate, intermediate_output)
-    else:
-        returns += (intermediate,)
-    returns = tuple(filter(None, returns))
-    returns = returns[0] if len(returns) == 1 else returns or None
-    return returns
+        save_netcdf(intermediate_result, intermediate_output)
+    return result
 
 
-# cli object creation and handling
+# cli object creation
 
 
-def clizefy(func=None, with_output=with_output,
-            helper_class=DocutilizeClizeHelp, **kwargs):
+def _clizefy(obj, use_clize=None, **kwargs):
+    # TODO: _clizefy => Clize.get_cli after all CLIs are clizefied
+    import os
+    import sys
+
+    if callable(obj) and (not os.environ.get('IMPROVER_USE_CLIZE', use_clize)
+            or not getattr(obj, '__annotations__', None)):
+        # use old-style ArgParser-based CLI
+
+        impr_main = sys.modules[obj.__module__].main
+        description = obj.__doc__.split('\n')[0].strip()
+
+        def clized_main(prog: parameters.pass_name, *args):
+            sys.argv[0] = prog.split()[-1]
+            impr_main(args)
+
+        return Clize.as_is(clized_main, description=description)
+
+    return Clize.get_cli(obj, **kwargs)
+
+
+def clizefy(func=None, helper_class=DocutilizeClizeHelp, **kwargs):
     """Decorator for creating CLI objects."""
     from functools import partial
     if func is None:
-        return partial(clizefy, with_output=with_output,
-                       helper_class=helper_class, **kwargs)
-    if with_output:
-        func = with_output(func)
+        return partial(clizefy, helper_class=helper_class, **kwargs)
     func = _clizefy(func, helper_class=helper_class, **kwargs)
     return func
+
+
+# help command
+
+
+def improver_help(progname: parameters.pass_name,
+                  command=None, *, usage=False):
+    """Show command help."""
+    progname = progname.partition(' ')[0]
+    args = [command, '--help', usage and '--usage']
+    return execute_command(SUBCOMMANDS_DISPATCHER,
+                           progname, *filter(None, args))
+
+
+# mapping of command names to CLI objects
+
+
+def _cli_items():
+    """Dynamically discover CLIs."""
+    import importlib
+    import pkgutil
+    from improver.cli import __path__ as improver_cli_pkg_path
+    for minfo in pkgutil.iter_modules(improver_cli_pkg_path):
+        mod_name = minfo.name
+        if mod_name != '__main__':
+            mcli = importlib.import_module('improver.cli.' + mod_name)
+            yield (mod_name, clizefy(mcli.process))
+    yield ('help', clizefy(improver_help, help_names=(), use_clize=True))
+
+
+SUBCOMMANDS_TABLE = OrderedDict(_cli_items())
+
+
+# main CLI object with subcommands
+
+
+SUBCOMMANDS_DISPATCHER = Clize.get_cli(
+    SUBCOMMANDS_TABLE,
+    description="""IMPROVER NWP post-processing toolbox""",
+    footnotes="""See also improver --help for more information.""")
+
+
+# IMPROVER top level main
 
 
 def unbracket(args):
@@ -330,12 +298,12 @@ def unbracket(args):
     return outargs
 
 
-# process nested commands recursively
 def execute_command(dispatcher, progname, *args, verbose=False, dry_run=False):
     """Common entry point for command execution."""
-    args = unbracket(args)
+    args = list(args)
     for i, arg in enumerate(args):
         if isinstance(arg, (list, tuple)):
+            # process nested commands recursively
             arg = execute_command(dispatcher, progname, *arg,
                                   verbose=verbose, dry_run=dry_run)
         if not isinstance(arg, str):
@@ -348,3 +316,40 @@ def execute_command(dispatcher, progname, *args, verbose=False, dry_run=False):
     if verbose:
         print(progname, *args, ' -> ', ObjectAsStr.object2name(result))
     return result
+
+
+def main(progname: parameters.pass_name,
+         command: LAST_OPTION,
+         *args,
+         verbose=False,
+         dry_run=False):
+    """IMPROVER NWP post-processing toolbox
+
+    Results from commands can be passed into file-like arguments
+    of other commands by surrounding them by square brackets::
+
+        improver command [ command ... ] ...
+
+    Spaces around brackets are mandatory.
+
+    Args:
+        command (str):
+            Command to execute
+        args (tuple):
+            Command arguments
+        verbose (bool):
+            Print executed commands
+        dry_run (bool):
+            Print commands to be executed
+
+    See improver help [--usage] [command] for more information
+    on available command(s).
+    """
+    args = unbracket(args)
+    result = execute_command(SUBCOMMANDS_DISPATCHER,
+                             progname, command, *args,
+                             verbose=verbose, dry_run=dry_run)
+    return result
+
+
+main.cli = clizefy(main, use_clize=True)

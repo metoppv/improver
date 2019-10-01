@@ -100,35 +100,31 @@ def main(argv=None):
             output=args.output_filepath)
 
 
-@cli.clizefy
+@cli.with_output
 def process(*cubelist: cli.inputcube,
-            operation,
+            operation='+',
             new_name=None,
             new_metadata: cli.inputjson = None,
             warnings_on=False):
-    """Combine cubes.
+    """Combine input cubes.
 
     Combine the input cubes into a single cube using the requested operation.
-    e.g. '+', '-', '*', 'add', 'subtract', 'multiply', 'min', 'max', 'mean'
 
     Args:
         cubelist (iris.cube.CubeList or list of iris.cube.Cube):
             An iris CubeList to be combined.
         operation (str):
-            "+", "-", "*", "add", "subtract", "multiply", "min", "max", "mean"
-            An operation to use in combining Cubes.
-            Default is '+'.
+            An operation to use in combining input cubes. One of:
+            +, -, \*, add, subtract, multiply, min, max, mean
         new_name (str):
             New name for the resulting dataset.
         new_metadata (dict):
             Dictionary of required changes to the metadata.
-            Default is None.
         warnings_on (bool):
             If True, warning messages where metadata do not match will be
             given.
-            Default is False.
 
-    Returns
+    Returns:
         result (iris.cube.Cube):
             Returns a cube with the combined data.
     """

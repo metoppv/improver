@@ -142,7 +142,8 @@ def main(argv=None):
             intermediate_output=args.intermediate_filepath)
 
 
-@cli.clizefy(with_output=cli.with_intermediate_output)
+@cli.with_output
+@cli.with_intermediate_output
 def process(cube: cli.inputcube,
             mask: cli.inputcube,
             weights: cli.inputcube = None,
@@ -185,20 +186,17 @@ def process(cube: cli.inputcube,
             Rounded up to convert into integer number of grid points east and
             north, based on the characteristic spacing at the zero indices of
             the cube projection-x and y coordinates.
-            Default is None.
         radii_by_lead_time (float or list of float):
             A list with the radius in metres at [0] and the lead_time at [1]
             Lead time is a List of lead times or forecast periods, at which
             the radii within 'radii' are defined. The lead times are expected
             in hours.
-            Default is None.
         sum_or_fraction (str):
             Identifier for whether sum or fraction should be returned from
             neighbourhooding.
             Sum represents the sum of the neighbourhood.
             Fraction represents the sum of the neighbourhood divided by the
             neighbourhood area.
-            Default is fraction.
         re_mask (bool):
             If True, the original un-neighbourhood processed mask
             is applied to mask out the neighbourhood processed cube.
@@ -206,13 +204,11 @@ def process(cube: cli.inputcube,
             applied.
             Therefore, the neighbourhood processing may result in
             values being present in areas that were originally masked.
-            Default is False.
         collapse_dimension (bool):
             Collapse the dimension from the mask, by doing a weighted mean
             using the weights provided.  This is only suitable when the result
             is left unmasked, so there is data to weight between the points
             in the coordinate we are collapsing.
-            Default is False.
 
     Returns:
         (tuple): tuple containing:
@@ -235,10 +231,15 @@ def process(cube: cli.inputcube,
         coord_for_masking, radius_or_radii, lead_times=lead_times,
         sum_or_fraction=sum_or_fraction,
         re_mask=re_mask).process(cube, mask)
-    intermediate_cube = result.copy()
+    intermediate_cube = None
 
     # Collapse with the masking dimension.
     if collapse_dimension:
+        intermediate_cube = result.copy()
         result = CollapseMaskedNeighbourhoodCoordinate(
             coord_for_masking, weights).process(result)
     return result, intermediate_cube
+
+
+if __name__ == "__main__":
+    main()
