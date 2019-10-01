@@ -404,7 +404,7 @@ class Test_run(IrisTest):
     def test_single_point_lat_long(self):
         """Test behaviour for a single grid cell on lat long grid."""
         cube = set_up_cube_lat_long()
-        msg = "points are not equally spaced"
+        msg = "Unable to convert from Unit"
         radius = 6000.
         with self.assertRaisesRegex(ValueError, msg):
             GeneratePercentilesFromACircularNeighbourhood().run(cube, radius)

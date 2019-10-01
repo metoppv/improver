@@ -50,56 +50,56 @@ MAX_DISTANCE_IN_GRID_CELLS = 500
 
 
 def check_if_grid_is_equal_area(cube, require_equal_xy_spacing=True):
-    """Identify whether the grid is an equal area grid.
-    If not, raise an error.
+    """
+    Identify whether the grid is an equal area grid, by checking whether points
+    are equally spaced along each of the x- and y-axes.  By default this
+    function also checks whether the grid spacing is the same in both spatial
+    dimensions.
+
     Args:
         cube (iris.cube.Cube):
             Cube with coordinates that will be checked.
         require_equal_spacing (bool):
             Flag to require the grid is equally spaced in the two spatial
-            dimensions (not strictly required for equal-area criterion)
+            dimensions (not strictly required for equal-area criterion).
 
     Raises:
         ValueError: If coordinate points are not equally spaced along either
             axis (from calculate_grid_spacing)
         ValueError: If point spacing is not equal for the two spatial axes
     """
-    xdiff = calculate_grid_spacing(cube, axis='x')
-    ydiff = calculate_grid_spacing(cube, axis='y')
+    xdiff = calculate_grid_spacing(cube, 'metres', axis='x')
+    ydiff = calculate_grid_spacing(cube, 'metres', axis='y')
     if require_equal_xy_spacing and not np.isclose(xdiff, ydiff):
         raise ValueError(
             "Grid does not have equal spacing in x and y dimensions")
 
 
-def calculate_grid_spacing(cube, axis='x'):
+def calculate_grid_spacing(cube, units, axis='x'):
     """
     Returns the grid spacing of a given spatial axis
 
     Args:
         cube (iris.cube.Cube):
             Cube of data on equal area grid
+        units (str or cf_units.Unit):
+            Unit in which the grid spacing is required
         axis (str):
             Axis ('x' or 'y') to use in determining grid spacing
 
     Returns:
         (float):
-            Grid spacing in metres
+            Grid spacing in required unit
 
     Raises:
         ValueError: If points are not equally spaced
     """
     coord = cube.coord(axis=axis).copy()
-    error_msg = (
-        'Coordinate {} points are not equally spaced'.format(coord.name()))
-    try:
-        coord.convert_units('metres')
-    except ValueError:
-        # catch error if unable to convert, eg from degrees (lat / lon)
-        raise ValueError(error_msg)
-
+    coord.convert_units(units)
     diffs = np.unique(np.diff(coord.points))
     if len(diffs) > 1:
-        raise ValueError(error_msg)
+        raise ValueError(
+            'Coordinate {} points are not equally spaced'.format(coord.name()))
     return diffs[0]
 
 
@@ -152,7 +152,7 @@ def convert_distance_into_number_of_grid_cells(
         raise ValueError("Please specify a positive distance in metres")
 
     # calculate grid spacing along chosen axis
-    grid_spacing_metres = calculate_grid_spacing(cube, axis=axis)
+    grid_spacing_metres = calculate_grid_spacing(cube, 'metres', axis=axis)
 
     # check required distance isn't greater than the size of the domain
     # (note: this implicitly assumes equal x- and y-spacing)
@@ -189,22 +189,21 @@ def convert_distance_into_number_of_grid_cells(
 
 def convert_number_of_grid_cells_into_distance(cube, grid_points):
     """
-    Calculate radius size in metres from the given number of gridpoints
+    Calculate distance in metres equal to the given number of gridpoints
     based on the coordinates on an input cube.
 
     Args:
         cube (iris.cube.Cube):
-            The iris cube that the number of grid points for the radius
-            refers to.
+            Cube for which the distance is to be calculated.
         grid_points (int):
-            The number of grid points to convert.
+            Number of grid points to convert.
     Returns:
         radius_in_metres (float):
             The radius in metres.
     """
     check_if_grid_is_equal_area(cube, require_equal_xy_spacing=True)
-    spacing = calculate_grid_spacing(cube)
-    radius_in_metres = spacing*grid_points
+    spacing = calculate_grid_spacing(cube, 'metres')
+    radius_in_metres = spacing * grid_points
     return radius_in_metres
 
 
