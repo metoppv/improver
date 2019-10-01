@@ -81,13 +81,13 @@ def is_complex_parsing_required(value):
 
 def create_constraint(value):
     """
-    Constructs an appropriate contraint for matching numerical values if they
+    Constructs an appropriate constraint for matching numerical values if they
     are floating point. If not, the original values are returned as a list
     (even if they were single valued on entry).
 
     Args:
         value (float/int or list of float/int):
-            Contraint values that are being used to match against values in a
+            Constraint values that are being used to match against values in a
             cube for the purposes of extracting elements of the cube.
     Returns:
         lambda function or list:

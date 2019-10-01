@@ -159,7 +159,7 @@ class Test_create_constraint(IrisTest):
     def test_with_int_type(self):
         """Test that an extraction that is to match an integer results in the
         creation of a lambda function. This is done in case unit conversion
-        is applied, in which case the cube data may be converted inprecisely,
+        is applied, in which case the cube data may be converted imprecisely,
         e.g. 273.15K might become 1.0E-8C, which will not match a 0C constraint
         unless we use the lambda function to add some tolerance."""
         value = 10
@@ -173,7 +173,7 @@ class Test_create_constraint(IrisTest):
 
     def test_with_float_type(self):
         """Test that an extraction that is to match a float results in the
-        creation of a lambda function."""
+        creation of a lambda function which matches the expected values."""
         value = 10.0
         result = create_constraint(value)
         self.assertTrue(islambda(result))
@@ -186,8 +186,8 @@ class Test_create_constraint(IrisTest):
         self.assertFalse(result(crd.cell(0)))
 
     def test_with_float_type_multiple_values(self):
-        """Test that an extraction that is to match a float results in the
-        creation of a lambda function."""
+        """Test that an extraction that is to match multiple floats results in
+        the creation of a lambda function which matches the expected values."""
         value = [10.0, 20.0]
         result = create_constraint(value)
         self.assertTrue(islambda(result))
@@ -238,6 +238,17 @@ class Test_parse_constraint_list(IrisTest):
         self.assertTrue(cdict["percentile"](self.p_crd.cell(0)))
         self.assertTrue(islambda(cdict["threshold"]))
         self.assertTrue(cdict["threshold"](self.t_crd.cell(0)))
+
+    def test_string_constraint(self):
+        """ Test that a string constraint results in a simple iris constraint,
+        not a lamba function. This is created via the literal_eval ValueError.
+        """
+        constraints = ["percentile=kittens"]
+        result, _ = parse_constraint_list(constraints)
+        cdict = result._coord_values
+        self.assertFalse(islambda(cdict["percentile"]))
+        self.assertEqual(cdict["percentile"], "kittens")
+        self.assertIsInstance(cdict, dict)
 
     def test_some_units(self):
         """ Test units list containing "None" elements is correctly parsed """
