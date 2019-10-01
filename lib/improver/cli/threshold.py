@@ -84,12 +84,14 @@ def main(argv=None):
                         "a suitable conversion to match the input units if "
                         "possible.")
     parser.add_argument("--threshold_method", metavar="THRESHOLD_METHOD",
-                        default='>', type=str,
-                        help="Indicates sign and equality of the threshold. "
-                        "e.g. 'ge' to evaluate data >= threshold or '<' to "
-                        "evaluate data < threshold. When fuzzy thresholds are "
-                        "used, the equality of the method is ignored and only "
-                        "the sign (> or <) is used. Default is >")
+                        default='>', choices=['>', '>=', '<', '<=',
+                                              'gt', 'ge', 'lt', 'le'],
+                        help="Indicates the inequality of the threshold. "
+                        "e.g. 'ge' or '>=' to evaluate data >= threshold or "
+                        "'<' to evaluate data < threshold. When fuzzy "
+                        "thresholds are used, the equality of the method is "
+                        "ignored and only the direction (> or <) is used. "
+                        "Default is >. Valid choices: > >= < <= gt ge lt le.")
     parser.add_argument("--fuzzy_factor", metavar="FUZZY_FACTOR",
                         default=None, type=float,
                         help="A decimal fraction defining the factor about "

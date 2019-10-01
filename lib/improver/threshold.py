@@ -31,6 +31,7 @@
 """Module containing thresholding classes."""
 
 
+import operator
 import iris
 import numpy as np
 from cf_units import Unit
@@ -176,10 +177,23 @@ class BasicThreshold(object):
 
         # Lists of known logical comparisons. The final entry in each list
         # must be recognisable by eval()
-        self.method_strings = {'ge_strings': ['ge', 'GE', '>='],
-                               'gt_strings': ['gt', 'GT', '>'],
-                               'le_strings': ['le', 'LE', '<='],
-                               'lt_strings': ['lt', 'LT', '<']}
+        self.method_strings = {}
+        self.method_strings.update(dict.fromkeys(['ge', 'GE', '>='],
+                                                 {'function': operator.ge,
+                                                  'spp_string': 'above',
+                                                  'valid_for_fuzzy': False}))
+        self.method_strings.update(dict.fromkeys(['gt', 'GT', '>'],
+                                                 {'function': operator.gt,
+                                                  'spp_string': 'above',
+                                                  'valid_for_fuzzy': True}))
+        self.method_strings.update(dict.fromkeys(['le', 'LE', '<='],
+                                                 {'function': operator.le,
+                                                  'spp_string': 'below',
+                                                  'valid_for_fuzzy': False}))
+        self.method_strings.update(dict.fromkeys(['lt', 'LT', '<'],
+                                                 {'function': operator.lt,
+                                                  'spp_string': 'below',
+                                                  'valid_for_fuzzy': True}))
         self.method_string = threshold_method
         self._decode_method_string()
 
@@ -224,32 +238,32 @@ class BasicThreshold(object):
 
         # Use an spp__relative_to_threshold attribute, as an extension to the
         # CF-conventions.
-        if self.below_thresh_ok:
-            coord.attributes.update({'spp__relative_to_threshold': 'below'})
-        else:
-            coord.attributes.update({'spp__relative_to_threshold': 'above'})
+        coord.attributes.update({'spp__relative_to_threshold':
+                                 self.threshold_method['spp_string']})
 
         cube.add_aux_coord(coord)
         return iris.util.new_axis(cube, coord)
 
     def _decode_method_string(self):
-        """Sets self.below_thresh_ok based on self.method_string as True if a
-        less-than method is found or False if a greater-than method is found.
+        """Sets self.threshold_method based on self.method_string. This is a
+        dict containing the keys 'function', 'spp_string', 'valid_for_fuzzy'
+        Raises errors if invalid options are found.
 
         Raises:
             ValueError: If self.method_string does not match a defined method.
+            ValueError: If self.method_string includes "=" and
+                        fuzzy-thresholding is active
         """
-        self.below_thresh_ok = None
-        for _, val in self.method_strings.items():
-            if self.method_string in val:
-                self.method_string = val[-1]
-                if '<' in self.method_string:
-                    self.below_thresh_ok = True
-                else:
-                    self.below_thresh_ok = False
-        if self.below_thresh_ok is None:
+        try:
+            self.threshold_method = self.method_strings[self.method_string]
+        except KeyError:
             msg = (f'String "{self.method_string}" does not match any known '
                    'threshold method')
+            raise ValueError(msg)
+        if (np.any([bounds[0] != bounds[1] for bounds in self.fuzzy_bounds])
+                and not self.threshold_method['valid_for_fuzzy']):
+            msg = (f'Threshold method "{self.method_string}" must exclude '
+                   'equality when using fuzzy thresholds')
             raise ValueError(msg)
 
     def process(self, input_cube):
@@ -309,9 +323,8 @@ class BasicThreshold(object):
             # if upper and lower bounds are equal, set a deterministic 0/1
             # probability based on exceedance of the threshold
             if bounds[0] == bounds[1]:
-                # First, check that self.method_strings has not been hacked
-                self._decode_method_string()
-                truth_value = eval(f"cube.data {self.method_string} threshold")
+                truth_value = self.threshold_method['function'](
+                    cube.data, threshold)
             # otherwise, scale exceedance probabilities linearly between 0/1
             # at the min/max fuzzy bounds and 0.5 at the threshold value
             else:
@@ -328,7 +341,7 @@ class BasicThreshold(object):
                 )
                 # if requirement is for probabilities below threshold (rather
                 # than above), invert the exceedance probability
-                if self.below_thresh_ok:
+                if 'below' in self.threshold_method['spp_string']:
                     truth_value = 1. - truth_value
             truth_value = truth_value.astype(input_cube_dtype)
 
@@ -343,12 +356,10 @@ class BasicThreshold(object):
 
         cube, = thresholded_cubes.concatenate()
 
-        if self.below_thresh_ok:
-            cube.rename(
-                "probability_of_{}_below_threshold".format(cube.name()))
-        else:
-            cube.rename(
-                "probability_of_{}_above_threshold".format(cube.name()))
+        cube.rename(
+            "probability_of_{}_{}_threshold".format(
+                cube.name(),
+                self.threshold_method['spp_string']))
         cube.units = Unit(1)
 
         cube = enforce_coordinate_ordering(

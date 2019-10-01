@@ -52,7 +52,7 @@ class Test__repr__(IrisTest):
         threshold = [0.6]
         fuzzy_bounds = [(0.6, 0.6)]
         threshold_method = 'gt'
-        expected_threshold_method = '>'
+        expected_threshold_method = 'gt'
         result = str(Threshold(threshold,
                                threshold_method=threshold_method))
         msg = ('<BasicThreshold: thresholds {}, '
@@ -67,7 +67,7 @@ class Test__repr__(IrisTest):
         threshold = [0.6, 0.8]
         fuzzy_bounds = [(0.6, 0.6), (0.8, 0.8)]
         threshold_method = 'gt'
-        expected_threshold_method = '>'
+        expected_threshold_method = 'gt'
         result = str(Threshold(threshold,
                                threshold_method=threshold_method))
         msg = ('<BasicThreshold: thresholds {}, '
@@ -82,8 +82,8 @@ class Test__repr__(IrisTest):
         threshold = 0.6
         fuzzy_factor = 0.2
         fuzzy_bounds = [(0.12, 1.08)]
-        threshold_method = 'LE'
-        expected_threshold_method = '<='
+        threshold_method = 'LT'
+        expected_threshold_method = 'LT'
         result = str(Threshold(threshold,
                                fuzzy_factor=fuzzy_factor,
                                threshold_method=threshold_method))
@@ -93,6 +93,19 @@ class Test__repr__(IrisTest):
                    threshold, fuzzy_bounds,
                    expected_threshold_method))
         self.assertEqual(result, msg)
+
+    def test_equal_fuzzy_threshold_raises_error(self):
+        """Test that combining fuzziness and equality raises expected error."""
+        threshold = 0.6
+        fuzzy_factor = 0.2
+        fuzzy_bounds = [(0.12, 1.08)]
+        threshold_method = 'LE'
+        msg = ('Threshold method "LE" must exclude equality when using fuzzy '
+               'thresholds')
+        with self.assertRaisesRegex(ValueError, msg):
+            result = str(Threshold(threshold,
+                                   fuzzy_factor=fuzzy_factor,
+                                   threshold_method=threshold_method))
 
     def test_fuzzy_bounds_scalar(self):
         """Test that the __repr__ returns the expected string."""
@@ -438,52 +451,6 @@ class Test_process(IrisTest):
         expected_result_array[0][0][2][2] = 0.25
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
-    def test_threshold_below(self):
-        """Test a point when we are in below-threshold mode."""
-        plugin = Threshold(
-            0.1, fuzzy_factor=self.fuzzy_factor, threshold_method='<')
-        result = plugin.process(self.cube)
-        expected_result_array = np.ones_like(self.cube.data).reshape(
-            1, 1, 5, 5)
-        expected_result_array[0][0][2][2] = 0
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_not_equal(self):
-        """Test a point when we are in not-equal-threshold mode."""
-        plugin = Threshold(0.5)
-        result = plugin.process(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data).reshape(
-            1, 1, 5, 5)
-        expected_result_array[0][0][2][2] = 0
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_equal(self):
-        """Test a point when we are in equal-threshold mode."""
-        plugin = Threshold(0.5, threshold_method='>=')
-        result = plugin.process(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data).reshape(
-            1, 1, 5, 5)
-        expected_result_array[0][0][2][2] = 1
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_not_equal_below(self):
-        """Test a point when we are in not-equal-threshold mode."""
-        plugin = Threshold(0.5, threshold_method='<')
-        result = plugin.process(self.cube)
-        expected_result_array = np.ones_like(self.cube.data).reshape(
-            1, 1, 5, 5)
-        expected_result_array[0][0][2][2] = 0
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_equal_below(self):
-        """Test a point when we are in equal-threshold mode."""
-        plugin = Threshold(0.5, threshold_method='<=')
-        result = plugin.process(self.cube)
-        expected_result_array = np.ones_like(self.cube.data).reshape(
-            1, 1, 5, 5)
-        expected_result_array[0][0][2][2] = 1
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
     def test_threshold_below_fuzzy(self):
         """Test a point in fuzzy threshold in below-threshold-mode."""
         plugin = Threshold(
@@ -492,6 +459,51 @@ class Test_process(IrisTest):
         expected_result_array = np.ones_like(self.cube.data).reshape(
             1, 1, 5, 5)
         expected_result_array[0][0][2][2] = 2.0/3.0
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def test_threshold_below_fuzzy_miss(self):
+        """Test not meeting the threshold in fuzzy below-threshold-mode."""
+        plugin = Threshold(
+            2.0, fuzzy_factor=self.fuzzy_factor, threshold_method='<')
+        result = plugin.process(self.cube)
+        expected_result_array = np.ones_like(self.cube.data).reshape(
+            1, 1, 5, 5)
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def test_threshold_gt(self):
+        """Test a point when we are in > threshold mode."""
+        plugin = Threshold(0.5)
+        result = plugin.process(self.cube)
+        expected_result_array = np.zeros_like(self.cube.data).reshape(
+            1, 1, 5, 5)
+        expected_result_array[0][0][2][2] = 0
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def test_threshold_ge(self):
+        """Test a point when we are in >= threshold mode."""
+        plugin = Threshold(0.5, threshold_method='>=')
+        result = plugin.process(self.cube)
+        expected_result_array = np.zeros_like(self.cube.data).reshape(
+            1, 1, 5, 5)
+        expected_result_array[0][0][2][2] = 1
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def test_threshold_lt(self):
+        """Test a point when we are in < threshold mode."""
+        plugin = Threshold(0.5, threshold_method='<')
+        result = plugin.process(self.cube)
+        expected_result_array = np.ones_like(self.cube.data).reshape(
+            1, 1, 5, 5)
+        expected_result_array[0][0][2][2] = 0
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def test_threshold_le(self):
+        """Test a point when we are in le threshold mode."""
+        plugin = Threshold(0.5, threshold_method='<=')
+        result = plugin.process(self.cube)
+        expected_result_array = np.ones_like(self.cube.data).reshape(
+            1, 1, 5, 5)
+        expected_result_array[0][0][2][2] = 1
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_multiple_thresholds(self):
@@ -507,15 +519,6 @@ class Test_process(IrisTest):
                                            expected_array12,
                                            expected_array3])
         self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_below_fuzzy_miss(self):
-        """Test not meeting the threshold in fuzzy below-threshold-mode."""
-        plugin = Threshold(
-            2.0, fuzzy_factor=self.fuzzy_factor, threshold_method='<')
-        result = plugin.process(self.cube)
-        expected_result_array = np.ones_like(self.cube.data).reshape(
-            1, 1, 5, 5)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_unit_conversion(self):

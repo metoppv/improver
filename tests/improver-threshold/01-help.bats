@@ -78,11 +78,12 @@ optional arguments:
                         suitable conversion to match the input units if
                         possible.
   --threshold_method THRESHOLD_METHOD
-                        Indicates sign and equality of the threshold. e.g.
-                        'ge' to evaluate data >= threshold or '<' to evaluate
-                        data < threshold. When fuzzy thresholds are used, the
-                        equality of the method is ignored and only the sign (>
-                        or <) is used. Default is >
+                        Indicates the inequality of the threshold. e.g. 'ge'
+                        or '>=' to evaluate data >= threshold or '<' to
+                        evaluate data < threshold. When fuzzy thresholds are
+                        used, the equality of the method is ignored and only
+                        the direction (> or <) is used. Default is >. Valid
+                        choices: > >= < <= gt ge lt le.
   --fuzzy_factor FUZZY_FACTOR
                         A decimal fraction defining the factor about the
                         threshold value(s) which should be treated as fuzzy.
