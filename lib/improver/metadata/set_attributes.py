@@ -29,7 +29,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Module setting attributes for IMPROVER blended data and the nowcast
+Module setting attributes for IMPROVER blended data, nowcasts and spot
+forecasts
 """
 
 import re
@@ -136,8 +137,8 @@ def update_spot_title_attribute(cube):
             return
         else:
             if "UK" in original_title:
-                cube.attributes["title"] = (
-                    title_regex.group('field') + ' ' + UK_SPOT_TITLE_STRING)
+                cube.attributes["title"] = '{} {}'.format(
+                    title_regex.group('field'), UK_SPOT_TITLE_STRING)
             else:
-                cube.attributes["title"] = (
-                    title_regex.group('field') + ' ' + GLOBAL_SPOT_TITLE_STRING)
+                cube.attributes["title"] = '{} {}'.format(
+                    title_regex.group('field'), GLOBAL_SPOT_TITLE_STRING)

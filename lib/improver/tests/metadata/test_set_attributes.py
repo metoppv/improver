@@ -118,7 +118,7 @@ class Test_update_spot_title_attribute(unittest.TestCase):
             "MOGREPS-G Temperature Forecast on Global Grid")
         expected_title = "MOGREPS-G Temperature Forecast Spot Values"
         update_spot_title_attribute(self.cube)
-        self.assertEqual(self.cube.attributes["title"], self.expected_title)
+        self.assertEqual(self.cube.attributes["title"], expected_title)
 
     def test_no_title(self):
         """Test no change is made to an input cube with no title"""

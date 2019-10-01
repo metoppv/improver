@@ -29,7 +29,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Module defining attributes for IMPROVER blended data and the nowcast
+Module defining attributes for IMPROVER blended data, nowcasts and spot
+forecasts
 """
 
 STANDARD_GRID_TITLE_STRING = "UK 2 km Standard Grid"
@@ -48,4 +49,3 @@ DATASET_ATTRIBUTES = {
         "institution": "Met Office"
     }
 }
-
