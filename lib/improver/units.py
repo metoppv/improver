@@ -79,7 +79,7 @@ DEFAULT_UNITS = {
     "pressure": {"unit": "Pa"},
     "temperature": {"unit": "K"},
     "temperature_at_screen_level_daytime_max": {"unit": "K"},
-    "temperature_at_screen_level_daytime_min": {"unit": "K"},
+    "temperature_at_screen_level_nighttime_min": {"unit": "K"},
     "thickness": {"unit": "m"},
     "ultraviolet_flux": {"unit": "W m-2"},
     "ultraviolet_index": {"unit": "1"},
