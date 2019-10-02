@@ -14,7 +14,7 @@ install:
   # Install miniconda
   # -----------------
   - export CONDA_BASE=https://repo.continuum.io/miniconda/Miniconda
-  - wget ${CONDA_BASE}2-latest-Linux-x86_64.sh -O miniconda.sh;
+  - wget ${CONDA_BASE}3-latest-Linux-x86_64.sh -O miniconda.sh;
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
 
