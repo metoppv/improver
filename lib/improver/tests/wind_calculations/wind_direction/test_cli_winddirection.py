@@ -30,47 +30,33 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Tests for the wind direction CLI"""
 
-import pytest as pt
+import pytest
+
 from improver.cli import wind_direction
-from improver.tests import kgo, cli
+from improver.tests import acceptance as acc
 
 
-@pt.mark.cli
-def test_no_arguments(capsys):
-    """Test usage message with no arguments"""
-    with pt.raises(SystemExit):
-        wind_direction.main([])
-    cli.check_usage_msg(capsys)
-
-
-@pt.mark.cli
-def test_help(capsys):
-    """Test help message"""
-    with pt.raises(SystemExit):
-        wind_direction.main(["-h"])
-    cli.check_help_msg(capsys)
-
-
-@pt.mark.cli
-@kgo.skipifmissing
+@pytest.mark.acc
+@pytest.mark.slow
+@acc.skip_if_kgo_missing
 def test_basic(tmp_path):
     """Test basic wind direction operation"""
-    kgo_dir = kgo.root() / "wind_direction/basic"
+    kgo_dir = acc.kgo_root() / "wind_direction/basic"
     kgo_path = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"
     wind_direction.main([str(kgo_dir / "input.nc"),
                          str(output_path)])
-    kgo.compare(output_path, kgo_path)
+    acc.compare(output_path, kgo_path)
 
 
-@pt.mark.cli
-@kgo.skipifmissing
+@pytest.mark.acc
+@acc.skip_if_kgo_missing
 def test_global(tmp_path):
     """Test global wind direction operation"""
-    kgo_dir = kgo.root() / "wind_direction/global"
+    kgo_dir = acc.kgo_root() / "wind_direction/global"
     kgo_path = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"
     wind_direction.main(["--backup_method=first_realization",
                          str(kgo_dir / "input.nc"),
                          str(output_path)])
-    kgo.compare(output_path, kgo_path)
+    acc.compare(output_path, kgo_path)

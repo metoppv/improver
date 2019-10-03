@@ -30,32 +30,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Tests for the combine CLI"""
 
-import pytest as pt
+import pytest
+
 from improver.cli import combine
-from improver.tests import kgo, cli
+from improver.tests import acceptance as acc
 
 
-@pt.mark.cli
-def test_no_arguments(capsys):
-    """Test usage message with no arguments"""
-    with pt.raises(SystemExit):
-        combine.main([])
-    cli.check_usage_msg(capsys)
-
-
-@pt.mark.cli
-def test_help(capsys):
-    """Test help message"""
-    with pt.raises(SystemExit):
-        combine.main(["-h"])
-    cli.check_help_msg(capsys)
-
-
-@pt.mark.cli
-@kgo.skipifmissing
+@pytest.mark.acc
+@acc.skip_if_kgo_missing
 def test_basic(tmp_path):
     """Test basic combine operation"""
-    kgo_dir = kgo.root() / "combine/basic"
+    kgo_dir = acc.kgo_root() / "combine/basic"
     kgo_path = kgo_dir / "kgo_cloud.nc"
     output_path = tmp_path / "output.nc"
     args = ["--operation=max",
@@ -64,15 +49,14 @@ def test_basic(tmp_path):
             str(kgo_dir / "medium_cloud.nc"),
             str(output_path)]
     combine.main(args)
-    kgo.compare(output_path, kgo_path)
+    acc.compare(output_path, kgo_path)
 
 
-@pt.mark.cli
-@pt.mark.slow
-@kgo.skipifmissing
+@pytest.mark.acc
+@acc.skip_if_kgo_missing
 def test_metadata(tmp_path):
     """Test combining with a separate metadata file"""
-    kgo_dir = kgo.root() / "combine/metadata"
+    kgo_dir = acc.kgo_root() / "combine/metadata"
     kgo_path = kgo_dir / "kgo_prob_precip.nc"
     precip_meta = kgo_dir / "prob_precip.json"
     output_path = tmp_path / "output.nc"
@@ -84,15 +68,15 @@ def test_metadata(tmp_path):
             str(kgo_dir / "precip_prob_1p0.nc"),
             str(output_path)]
     combine.main(args)
-    kgo.compare(output_path, kgo_path)
+    acc.compare(output_path, kgo_path)
 
 
-@pt.mark.cli
-@kgo.skipifmissing
-@pt.mark.parametrize("minmax", ("min", "max"))
+@pytest.mark.acc
+@acc.skip_if_kgo_missing
+@pytest.mark.parametrize("minmax", ("min", "max"))
 def test_minmax_temperatures(tmp_path, minmax):
     """Test combining minimum and maximum temperatures"""
-    kgo_dir = kgo.root() / "combine/bounds"
+    kgo_dir = acc.kgo_root() / "combine/bounds"
     kgo_path = kgo_dir / f"kgo_{minmax}.nc"
     timebound_meta = kgo_dir / "time_bound.json"
     temperatures = kgo_dir.glob(f"*temperature_at_screen_level_{minmax}.nc")
@@ -102,14 +86,14 @@ def test_minmax_temperatures(tmp_path, minmax):
             *[str(t) for t in temperatures],
             str(output_path)]
     combine.main(args)
-    kgo.compare(output_path, kgo_path)
+    acc.compare(output_path, kgo_path)
 
 
-@pt.mark.cli
-@kgo.skipifmissing
+@pytest.mark.acc
+@acc.skip_if_kgo_missing
 def test_combine_accumulation(tmp_path):
     """Test combining precipitation accumulations"""
-    kgo_dir = kgo.root() / "combine/accum"
+    kgo_dir = acc.kgo_root() / "combine/accum"
     kgo_path = kgo_dir / "kgo_accum.nc"
     rains = kgo_dir.glob("*rainfall_accumulation.nc")
     timebound_meta = kgo_dir / "time_bound.json"
@@ -118,21 +102,21 @@ def test_combine_accumulation(tmp_path):
             *[str(r) for r in rains],
             str(output_path)]
     combine.main(args)
-    kgo.compare(output_path, kgo_path)
+    acc.compare(output_path, kgo_path)
 
 
-@pt.mark.cli
-@kgo.skipifmissing
+@pytest.mark.acc
+@acc.skip_if_kgo_missing
 def test_mean_temperature(tmp_path):
     """Test combining mean temperature"""
-    kgo_dir = kgo.root() / "combine/bounds"
+    kgo_dir = acc.kgo_root() / "combine/bounds"
     kgo_path = kgo_dir / "kgo_mean.nc"
     timebound_meta = kgo_dir / "time_bound.json"
-    temperatures = kgo_dir.glob(f"*temperature_at_screen_level.nc")
+    temperatures = kgo_dir.glob("*temperature_at_screen_level.nc")
     output_path = tmp_path / "output.nc"
-    args = [f"--operation=mean",
+    args = ["--operation=mean",
             f"--metadata_jsonfile={timebound_meta}",
             *[str(t) for t in temperatures],
             str(output_path)]
     combine.main(args)
-    kgo.compare(output_path, kgo_path)
+    acc.compare(output_path, kgo_path)

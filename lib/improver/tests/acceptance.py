@@ -36,24 +36,24 @@ import shutil
 import subprocess
 import tempfile
 
-import pytest as pt
+import pytest
 
 TIGHT_TOLERANCE = 1e-5
 DEFAULT_TOLERANCE = 1e-4
 LOOSE_TOLERANCE = 1e-2
 
 
-def recreate():
+def kgo_recreate():
     """True if KGO should be re-created"""
     return "RECREATE_KGO" in os.environ
 
 
-def root():
+def kgo_root():
     """Path to the root of the KGO directories"""
     return pathlib.Path(os.environ["IMPROVER_ACC_TEST_DIR"])
 
 
-def exists():
+def kgo_exists():
     """True if KGO files exist"""
     return "IMPROVER_ACC_TEST_DIR" in os.environ
 
@@ -69,11 +69,11 @@ def recreate_if_needed(output_path, kgo_path):
     Returns:
         None
     """
-    if not recreate():
+    if not kgo_recreate():
         return
     if not kgo_path.is_absolute():
         raise IOError("KGO path is not absolute")
-    if root() not in kgo_path.parents:
+    if kgo_root() not in kgo_path.parents:
         raise IOError("Provided KGO path is not within KGO root directory")
     kgo_path.parent.mkdir(exist_ok=True)
     shutil.copyfile(output_path, kgo_path)
@@ -139,7 +139,7 @@ def nccmp(output_path, kgo_path,
     #    -b verbose output
 
     cmd = ["nccmp", "-dmNsgb", "-t", str(atol), "-T", str(rtol),
-           str(output_path), str(root() / kgo_path)]
+           str(output_path), str(kgo_root() / kgo_path)]
     print(" ".join(cmd))
     completion = subprocess.run(cmd,
                                 timeout=15,
@@ -182,5 +182,6 @@ def compare(output_path, kgo_path,
 
 # Pytest decorator to skip tests if KGO is not available for use
 # pylint: disable=invalid-name
-skipifmissing = pt.mark.skipif(not exists() and nccmp_available(),
-                               reason="KGO files and nccmp tool required")
+skip_if_kgo_missing = pytest.mark.skipif(
+    not kgo_exists() and nccmp_available(),
+    reason="KGO files and nccmp tool required")
