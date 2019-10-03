@@ -136,9 +136,9 @@ def main(argv=None):
     s_group.add_argument(
         "--site_coordinate_options", metavar="SITE_COORDINATE_OPTIONS",
         help="JSON formatted string of options passed to the cartopy"
-         " coordinate system given in site_coordinate_system. \"globe\""
-         " is handled as a special case for options to construct a cartopy"
-         " Globe object.")
+        " coordinate system given in site_coordinate_system. \"globe\""
+        " is handled as a special case for options to construct a cartopy"
+        " Globe object.")
     s_group.add_argument(
         "--site_x_coordinate", metavar="SITE_X_COORDINATE",
         help="The x coordinate key within the JSON file. The plugin default is"
