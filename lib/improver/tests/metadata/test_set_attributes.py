@@ -58,7 +58,7 @@ class Test_set_product_attributes(unittest.TestCase):
         self.grid_descriptor = " on UK 2 km Standard Grid"
 
     def test_blend(self):
-        """Test blended attributes"""
+        """Test blended attributes are correctly set"""
         expected_title = self.blend_descriptor + self.grid_descriptor
         result = set_product_attributes(self.cube, "multi-model blend")
         attrs = result.attributes
@@ -67,7 +67,7 @@ class Test_set_product_attributes(unittest.TestCase):
         self.assertEqual(attrs["institution"], "Met Office")
 
     def test_nowcast(self):
-        """Test nowcast attributes"""
+        """Test nowcast attributes are correctly set"""
         expected_title = self.nowcast_descriptor + self.grid_descriptor
         result = set_product_attributes(self.cube, "nowcast")
         attrs = result.attributes
@@ -109,8 +109,9 @@ class Test_update_spot_title_attribute(unittest.TestCase):
         """Test function recognises other grid specifications"""
         self.cube.attributes["title"] = (
             "MOGREPS-UK Temperature Forecast on Other Grid")
+        expected_title = "MOGREPS-UK Temperature Forecast Spot Values"
         update_spot_title_attribute(self.cube)
-        self.assertEqual(self.cube.attributes["title"], self.expected_title)
+        self.assertEqual(self.cube.attributes["title"], expected_title)
 
     def test_global_grid(self):
         """Test function responds correctly to a non-UK grid"""
@@ -125,6 +126,13 @@ class Test_update_spot_title_attribute(unittest.TestCase):
         self.cube.attributes.pop("title")
         update_spot_title_attribute(self.cube)
         self.assertNotIn("title", self.cube.attributes.keys())
+
+    def test_title_already_spot(self):
+        """Test no change is made to an input cube where the title contains
+        a spot-data-descriptive substring"""
+        self.cube.attributes["title"] = "Spot Values"
+        update_spot_title_attribute(self.cube)
+        self.assertEqual(self.cube.attributes["title"], "Spot Values")
 
     @ManageWarnings(record=True)
     def test_unexpected_title(self, warning_list=None):

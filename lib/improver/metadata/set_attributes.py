@@ -89,7 +89,7 @@ def _match_title(original_title):
             Value of "title" attribute on an input cube
 
     Returns:
-        match (str or None):
+        match (re.Match object or None):
             Match to expected regular expression pattern
     """
     regex = re.compile(
@@ -136,7 +136,8 @@ def update_spot_title_attribute(cube):
                 "unable to replace grid description")
             return
         else:
-            if "UK" in original_title:
+            grid_descriptor = '{}'.format(title_regex.group('grid'))
+            if "UK" in grid_descriptor:
                 cube.attributes["title"] = '{} {}'.format(
                     title_regex.group('field'), UK_SPOT_TITLE_STRING)
             else:
