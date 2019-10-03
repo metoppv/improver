@@ -234,6 +234,47 @@ def spatial_coords_match(first_cube, second_cube):
             first_cube.coord(axis='y') == second_cube.coord(axis='y'))
 
 
+def time_coords_match(first_cube, second_cube, raise_exception=False):
+    """
+    Determine if two cubes have equivalent time, forecast_period, and
+    forecast_reference_time points.
+
+    Args:
+        first_cube (iris.cube.Cube):
+            First cube to compare.
+        second_cube (iris.cube.Cube):
+            Second cube to compare.
+        raise_exception (bool):
+            By default this function returns True or False, but if this
+            argument is set to True it will raise an exception.
+
+    Returns:
+        result (bool):
+            True if the cube time coordinates are equivalent, False if they are
+            not.
+
+    Raised:
+        ValueError: The two cubes are not equivalent.
+        CoordinateNotFoundError: One of the expected temporal coordinates is
+                                 not present on one or more cubes.
+    """
+    cubes_equivalent = True
+    mismatches = []
+    for coord_name in ["forecast_period", "time", "forecast_reference_time"]:
+        try:
+            if (first_cube.coord(coord_name) != second_cube.coord(coord_name)):
+                mismatches.append(coord_name)
+                cubes_equivalent = False
+        except CoordinateNotFoundError:
+            raise
+
+    if mismatches and raise_exception:
+        msg = "The following coordinates of the two cubes do not match: {}"
+        raise ValueError(msg.format(', '.join(mismatches)))
+
+    return cubes_equivalent
+
+
 def find_percentile_coordinate(cube):
     """Find percentile coord in cube.
 
