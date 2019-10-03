@@ -47,13 +47,14 @@ from improver.utilities.cube_metadata import amend_metadata
 def set_product_attributes(cube, product):
     """
     Set attributes on an output cube of type matching a key string in the
-    DATASET_ATTRIBUTES dictionary.
+    improver.metadata.constants.attributes.DATASET_ATTRIBUTES dictionary.
 
     Args:
         cube (iris.cube.Cube):
             Cube containing product data
         product (str):
-            String describing product type
+            String describing product type, which is a key in the
+            DATASET_ATTRIBUTES dictionary.
 
     Returns:
         updated_cube (iris.cube.Cube):
@@ -65,14 +66,15 @@ def set_product_attributes(cube, product):
         original_title = ""
 
     try:
-        updated_cube = amend_metadata(
-            cube, attributes=DATASET_ATTRIBUTES[product])
+        dataset_attributes = DATASET_ATTRIBUTES[product]
     except KeyError:
         options = list(DATASET_ATTRIBUTES.keys())
         raise ValueError(
             "product '{}' not available (options: {})".format(
                 product, options))
 
+    updated_cube = amend_metadata(
+        cube, attributes=dataset_attributes)
     if STANDARD_GRID_TITLE_STRING in original_title:
         updated_cube.attributes["title"] += " on {}".format(
             STANDARD_GRID_TITLE_STRING)
@@ -82,7 +84,7 @@ def set_product_attributes(cube, product):
 
 def _match_title(original_title):
     """
-    Match a title string to a regular expression
+    Match a title string to the expected regular expression pattern
 
     Args:
         original_title (str):
@@ -90,7 +92,8 @@ def _match_title(original_title):
 
     Returns:
         match (re.Match object or None):
-            Match to expected regular expression pattern
+            Match to expected regular expression pattern, or None if the
+            string does not match the pattern
     """
     regex = re.compile(
         '(?P<field>.*?)'  # description of field

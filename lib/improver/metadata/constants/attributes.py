@@ -30,7 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """
 Module defining attributes for IMPROVER blended data, nowcasts and spot
-forecasts
+forecasts.
+
+This module is exclusively for attributes which are NOT dependent on the
+centre running the IMPROVER code.  Other attributes can be user-defined
+through configurable dictionary arguments.
 """
 
 STANDARD_GRID_TITLE_STRING = "UK 2 km Standard Grid"
