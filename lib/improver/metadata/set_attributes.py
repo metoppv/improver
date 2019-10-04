@@ -96,9 +96,9 @@ def _match_title(original_title):
             string does not match the pattern
     """
     regex = re.compile(
-        '(?P<field>.*?)'  # description of field
-        '( on )'          # expected joining statement
-        '(?P<grid>.*?)')  # eg STANDARD_GRID_TITLE_STRING
+        '(?P<field>.*)'  # description of field
+        '( on )'         # expected joining statement
+        '(?P<grid>.*)')  # eg STANDARD_GRID_TITLE_STRING
     return regex.match(original_title)
 
 

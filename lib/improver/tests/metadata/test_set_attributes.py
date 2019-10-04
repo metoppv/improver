@@ -36,7 +36,7 @@ import unittest
 import numpy as np
 
 from improver.metadata.set_attributes import (
-    set_product_attributes, update_spot_title_attribute)
+    set_product_attributes, _match_title, update_spot_title_attribute)
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
@@ -88,6 +88,20 @@ class Test_set_product_attributes(unittest.TestCase):
             set_product_attributes(self.cube, "unknown product")
 
 
+class Test__match_title(unittest.TestCase):
+    """Test the _match_title function"""
+
+    def test_basic(self):
+        """Test pattern matching is working as expected"""
+        expected_field = "MOGREPS-UK Temperature Forecast"
+        expected_grid = "UK 2 km Standard Grid"
+        original_title = (
+            "MOGREPS-UK Temperature Forecast on UK 2 km Standard Grid")
+        result = _match_title(original_title)
+        self.assertEqual(result.group("field"), expected_field)
+        self.assertEqual(result.group("grid"), expected_grid)
+
+
 class Test_update_spot_title_attribute(unittest.TestCase):
     """Test the update_spot_title_attribute function"""
 
@@ -105,14 +119,6 @@ class Test_update_spot_title_attribute(unittest.TestCase):
         update_spot_title_attribute(self.cube)
         self.assertEqual(self.cube.attributes["title"], self.expected_title)
 
-    def test_other_grid(self):
-        """Test function recognises other grid specifications"""
-        self.cube.attributes["title"] = (
-            "MOGREPS-UK Temperature Forecast on Other Grid")
-        expected_title = "MOGREPS-UK Temperature Forecast Spot Values"
-        update_spot_title_attribute(self.cube)
-        self.assertEqual(self.cube.attributes["title"], expected_title)
-
     def test_global_grid(self):
         """Test function responds correctly to a non-UK grid"""
         self.cube.attributes["title"] = (
@@ -120,6 +126,21 @@ class Test_update_spot_title_attribute(unittest.TestCase):
         expected_title = "MOGREPS-G Temperature Forecast Spot Values"
         update_spot_title_attribute(self.cube)
         self.assertEqual(self.cube.attributes["title"], expected_title)
+
+    def test_other_grid(self):
+        """Test function responds correctly to an unknown grid"""
+        self.cube.attributes["title"] = (
+            "MOGREPS-UK Temperature Forecast on Other Grid")
+        expected_title = "MOGREPS-UK Temperature Forecast Spot Values"
+        update_spot_title_attribute(self.cube)
+        self.assertEqual(self.cube.attributes["title"], expected_title)
+
+    def test_other_uk_grid(self):
+        """Test function responds correctly to an unknown UK grid"""
+        self.cube.attributes["title"] = (
+            "MOGREPS-UK Temperature Forecast on Other UK Grid")
+        update_spot_title_attribute(self.cube)
+        self.assertEqual(self.cube.attributes["title"], self.expected_title)
 
     def test_no_title(self):
         """Test no change is made to an input cube with no title"""
