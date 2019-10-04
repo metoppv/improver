@@ -160,6 +160,23 @@ class Test_process(IrisTest):
                 cube.coord('forecast_reference_time').dtype, np.int64)
             self.assertEqual(cube.coord('forecast_period').dtype, np.int32)
 
+    def test_existing_time_coordinates_respected(self):
+        """Test that time coordinates are not added to a cube that already
+        has them"""
+        expected_coords = {
+            'projection_y_coordinate', 'projection_x_coordinate',
+            'forecast_period', 'forecast_reference_time', 'time'}
+        frt_coord = self.rain_cube.coord('time').copy()
+        frt_coord.rename('forecast_reference_time')
+        self.rain_cube.add_aux_coord(frt_coord)
+        self.rain_cube.add_aux_coord(
+            iris.coords.AuxCoord(np.array([0], dtype=np.int32),
+                                 'forecast_period', 'seconds'))
+        result = self.plugin.process(
+            self.rain_cube, self.ucube, self.vcube, self.orogenh_cube)
+        result_coords = {coord.name() for coord in result[0].coords()}
+        self.assertSetEqual(result_coords, expected_coords)
+
     def test_values_integer_step(self):
         """Test values for an advection speed of one grid square per time step
         """

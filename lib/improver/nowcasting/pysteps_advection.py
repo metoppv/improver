@@ -124,15 +124,18 @@ class PystepsExtrapolate(object):
 
     def _reformat_analysis_cube(self):
         """
-        Add forecast reference time and forecast period coordinates and nowcast
-        attributes to analysis cube
+        Add forecast reference time and forecast period coordinates (if they do
+        not already exist) and nowcast attributes to analysis cube
         """
-        frt_coord = self.analysis_cube.coord('time').copy()
-        frt_coord.rename('forecast_reference_time')
-        self.analysis_cube.add_aux_coord(frt_coord)
-        self.analysis_cube.add_aux_coord(
-            AuxCoord(np.array([0], dtype=np.int32),
-                     'forecast_period', 'seconds'))
+        coords = [coord.name() for coord in self.analysis_cube.coords()]
+        if "forecast_reference_time" not in coords:
+            frt_coord = self.analysis_cube.coord('time').copy()
+            frt_coord.rename('forecast_reference_time')
+            self.analysis_cube.add_aux_coord(frt_coord)
+        if "forecast_period" not in coords:
+            self.analysis_cube.add_aux_coord(
+                AuxCoord(np.array([0], dtype=np.int32),
+                         'forecast_period', 'seconds'))
         # set nowcast attributes
         self.analysis_cube.attributes['source'] = 'MONOW'
         self.analysis_cube.attributes['title'] = (
