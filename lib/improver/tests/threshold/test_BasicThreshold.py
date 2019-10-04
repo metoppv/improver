@@ -98,14 +98,13 @@ class Test__repr__(IrisTest):
         """Test that combining fuzziness and equality raises expected error."""
         threshold = 0.6
         fuzzy_factor = 0.2
-        fuzzy_bounds = [(0.12, 1.08)]
         threshold_method = 'LE'
         msg = ('Threshold method "LE" must exclude equality when using fuzzy '
                'thresholds')
         with self.assertRaisesRegex(ValueError, msg):
-             str(Threshold(threshold,
-                           fuzzy_factor=fuzzy_factor,
-                           threshold_method=threshold_method))
+            str(Threshold(threshold,
+                          fuzzy_factor=fuzzy_factor,
+                          threshold_method=threshold_method))
 
     def test_fuzzy_bounds_scalar(self):
         """Test that the __repr__ returns the expected string."""
