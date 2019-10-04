@@ -923,7 +923,7 @@ class ApplyCoefficientsFromEnsembleCalibration():
                 uncalibrated data (0).
         """
         mask = np.broadcast_to(mask, calibrated_data.shape)
-        all_indices = np.split(mask == 1, mask.shape[-1], axis=-1)
+        all_indices = np.split(mask == 0, mask.shape[-1], axis=-1)
         original_data = np.split(original_data, original_data.shape[-1],
                                  axis=-1)
         calibrated_data = np.split(calibrated_data, calibrated_data.shape[-1],
