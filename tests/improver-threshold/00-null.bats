@@ -35,7 +35,7 @@
   expected="usage: improver threshold [-h] [--profile] [--profile_file PROFILE_FILE]
                           [--threshold_config THRESHOLD_CONFIG]
                           [--threshold_units THRESHOLD_UNITS]
-                          [--threshold_method THRESHOLD_METHOD]
+                          [--inequality INEQUALITY]
                           [--fuzzy_factor FUZZY_FACTOR]
                           [--collapse-coord COLLAPSE-COORD]
                           [--vicinity VICINITY]

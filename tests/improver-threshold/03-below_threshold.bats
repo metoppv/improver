@@ -31,14 +31,14 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "threshold input output 280 --threshold_method <=" {
+@test "threshold input output 280 --inequality <=" {
   improver_check_skip_acceptance
   KGO="threshold/below_threshold/kgo.nc"
 
   # Run threshold processing and check it passes.
   run improver threshold \
       "$IMPROVER_ACC_TEST_DIR/threshold/basic/input.nc" "$TEST_DIR/output.nc" \
-      280 --threshold_method "<="
+      280 --inequality "<="
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
