@@ -36,7 +36,8 @@ from datetime import timedelta
 from iris.coords import AuxCoord
 from pysteps.extrapolation.semilagrangian import extrapolate
 
-from improver.utilities.spatial import check_if_grid_is_equal_area
+from improver.utilities.spatial import (
+    check_if_grid_is_equal_area, calculate_grid_spacing)
 from improver.utilities.temporal import (
     iris_time_to_datetime, datetime_to_iris_time)
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
@@ -115,9 +116,7 @@ class PystepsExtrapolate(object):
             displacement = cube_ms.data*interval*60. / gridlength
             return np.ma.filled(displacement, np.nan)
 
-        axis = self.analysis_cube.coord(axis='x').copy()
-        axis.convert_units('m')
-        gridlength = np.diff(axis.points)[0]
+        gridlength = calculate_grid_spacing(self.analysis_cube, 'metres')
         udisp = _calculate_displacement(ucube, self.interval, gridlength)
         vdisp = _calculate_displacement(vcube, self.interval, gridlength)
         displacement = np.array([udisp, vdisp])
