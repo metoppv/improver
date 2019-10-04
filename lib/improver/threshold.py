@@ -111,7 +111,6 @@ class BasicThreshold(object):
                         than 1.
             ValueError: If both fuzzy_factor and fuzzy_bounds are set
                         as this is ambiguous.
-            ValueError: If inequality does not match a defined method.
         """
         # ensure threshold is a list, even if only a single value is provided
         self.thresholds = thresholds
