@@ -53,7 +53,7 @@ class BasicThreshold(object):
 
     def __init__(self, thresholds, fuzzy_factor=None,
                  fuzzy_bounds=None, threshold_units=None,
-                 threshold_method='>'):
+                 inequality='>'):
         """
         Set up for processing an in-or-out of threshold field, including the
         generation of fuzzy_bounds which are required to threshold an input
@@ -99,11 +99,10 @@ class BasicThreshold(object):
             threshold_units (str):
                 Units of the threshold values. If not provided the units are
                 assumed to be the same as those of the input cube.
-            threshold_method (str):
-                Indicates sign and equality of the threshold. e.g. "ge" to
-                evaluate data >= threshold or "<" to evaluate data < threshold
-                When fuzzy thresholds are used, the equality of the method is
-                ignored and only the sign (> or <) is used.
+            inequality (str):
+                Indicates the inequality of the threshold. e.g. 'ge' or '>=' to
+                evaluate data >= threshold or '<' to evaluate data < threshold.
+                Valid choices: > >= < <= gt ge lt le.
 
         Raises:
             ValueError: If a threshold of 0.0 is requested when using a fuzzy
@@ -112,7 +111,7 @@ class BasicThreshold(object):
                         than 1.
             ValueError: If both fuzzy_factor and fuzzy_bounds are set
                         as this is ambiguous.
-            ValueError: If self.method_string does not match a defined method.
+            ValueError: If inequality does not match a defined method.
         """
         # ensure threshold is a list, even if only a single value is provided
         self.thresholds = thresholds
@@ -177,25 +176,25 @@ class BasicThreshold(object):
 
         # Lists of known logical comparisons. The final entry in each list
         # must be recognisable by eval()
-        self.method_strings = {}
-        self.method_strings.update(dict.fromkeys(['ge', 'GE', '>='],
-                                                 {'function': operator.ge,
-                                                  'spp_string': 'above',
-                                                  'valid_for_fuzzy': False}))
-        self.method_strings.update(dict.fromkeys(['gt', 'GT', '>'],
-                                                 {'function': operator.gt,
-                                                  'spp_string': 'above',
-                                                  'valid_for_fuzzy': True}))
-        self.method_strings.update(dict.fromkeys(['le', 'LE', '<='],
-                                                 {'function': operator.le,
-                                                  'spp_string': 'below',
-                                                  'valid_for_fuzzy': False}))
-        self.method_strings.update(dict.fromkeys(['lt', 'LT', '<'],
-                                                 {'function': operator.lt,
-                                                  'spp_string': 'below',
-                                                  'valid_for_fuzzy': True}))
-        self.method_string = threshold_method
-        self._decode_method_string()
+        self.inequality_dict = {}
+        self.inequality_dict.update(dict.fromkeys(['ge', 'GE', '>='],
+                                                  {'function': operator.ge,
+                                                   'spp_string': 'above',
+                                                   'valid_for_fuzzy': False}))
+        self.inequality_dict.update(dict.fromkeys(['gt', 'GT', '>'],
+                                                  {'function': operator.gt,
+                                                   'spp_string': 'above',
+                                                   'valid_for_fuzzy': True}))
+        self.inequality_dict.update(dict.fromkeys(['le', 'LE', '<='],
+                                                  {'function': operator.le,
+                                                   'spp_string': 'below',
+                                                   'valid_for_fuzzy': False}))
+        self.inequality_dict.update(dict.fromkeys(['lt', 'LT', '<'],
+                                                  {'function': operator.lt,
+                                                   'spp_string': 'below',
+                                                   'valid_for_fuzzy': True}))
+        self.inequality_string = inequality
+        self._decode_inequality_string()
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -204,7 +203,7 @@ class BasicThreshold(object):
             'fuzzy_bounds {}, ' +
             'method: data {} threshold>'
         ).format(self.thresholds, self.fuzzy_bounds,
-                 self.method_string)
+                 self.inequality_string)
 
     def _add_threshold_coord(self, cube, threshold):
         """
@@ -239,31 +238,32 @@ class BasicThreshold(object):
         # Use an spp__relative_to_threshold attribute, as an extension to the
         # CF-conventions.
         coord.attributes.update({'spp__relative_to_threshold':
-                                 self.threshold_method['spp_string']})
+                                 self.inequality['spp_string']})
 
         cube.add_aux_coord(coord)
         return iris.util.new_axis(cube, coord)
 
-    def _decode_method_string(self):
-        """Sets self.threshold_method based on self.method_string. This is a
+    def _decode_inequality_string(self):
+        """Sets self.inequality based on self.inequality_string. This is a
         dict containing the keys 'function', 'spp_string', 'valid_for_fuzzy'
         Raises errors if invalid options are found.
 
         Raises:
-            ValueError: If self.method_string does not match a defined method.
-            ValueError: If self.method_string includes "=" and
+            ValueError: If self.inequality_string does not match a defined
+                        method.
+            ValueError: If self.inequality_string includes "=" and
                         fuzzy-thresholding is active
         """
         try:
-            self.threshold_method = self.method_strings[self.method_string]
+            self.inequality = self.inequality_dict[self.inequality_string]
         except KeyError:
-            msg = (f'String "{self.method_string}" does not match any known '
-                   'threshold method')
+            msg = (f'String "{self.inequality_string}" does not match any '
+                   'known inequality method')
             raise ValueError(msg)
         if (np.any([bounds[0] != bounds[1] for bounds in self.fuzzy_bounds])
-                and not self.threshold_method['valid_for_fuzzy']):
-            msg = (f'Threshold method "{self.method_string}" must exclude '
-                   'equality when using fuzzy thresholds')
+                and not self.inequality['valid_for_fuzzy']):
+            msg = (f'Inequality method "{self.inequality_string}" must '
+                   'exclude equality when using fuzzy thresholds')
             raise ValueError(msg)
 
     def process(self, input_cube):
@@ -323,7 +323,7 @@ class BasicThreshold(object):
             # if upper and lower bounds are equal, set a deterministic 0/1
             # probability based on exceedance of the threshold
             if bounds[0] == bounds[1]:
-                truth_value = self.threshold_method['function'](
+                truth_value = self.inequality['function'](
                     cube.data, threshold)
             # otherwise, scale exceedance probabilities linearly between 0/1
             # at the min/max fuzzy bounds and 0.5 at the threshold value
@@ -341,7 +341,7 @@ class BasicThreshold(object):
                 )
                 # if requirement is for probabilities below threshold (rather
                 # than above), invert the exceedance probability
-                if 'below' in self.threshold_method['spp_string']:
+                if 'below' in self.inequality['spp_string']:
                     truth_value = 1. - truth_value
             truth_value = truth_value.astype(input_cube_dtype)
 
@@ -359,7 +359,7 @@ class BasicThreshold(object):
         cube.rename(
             "probability_of_{}_{}_threshold".format(
                 cube.name(),
-                self.threshold_method['spp_string']))
+                self.inequality['spp_string']))
         cube.units = Unit(1)
 
         cube = enforce_coordinate_ordering(

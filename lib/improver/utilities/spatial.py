@@ -631,7 +631,7 @@ class RegridLandSea():
         if selector_val > 0.5:
             thresholder = BasicThreshold(0.5)
         else:
-            thresholder = BasicThreshold(0.5, threshold_method='<=')
+            thresholder = BasicThreshold(0.5, inequality='<=')
         in_vicinity = self.vicinity.process(
             thresholder.process(self.input_land))
 

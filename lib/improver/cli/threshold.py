@@ -83,14 +83,12 @@ def main(argv=None):
                         "input dataset. Specifying the units here will allow "
                         "a suitable conversion to match the input units if "
                         "possible.")
-    parser.add_argument("--threshold_method", metavar="THRESHOLD_METHOD",
+    parser.add_argument("--inequality", metavar="INEQUALITY",
                         default='>', choices=['>', '>=', '<', '<=',
                                               'gt', 'ge', 'lt', 'le'],
                         help="Indicates the inequality of the threshold. "
                         "e.g. 'ge' or '>=' to evaluate data >= threshold or "
-                        "'<' to evaluate data < threshold. When fuzzy "
-                        "thresholds are used, the equality of the method is "
-                        "ignored and only the direction (> or <) is used. "
+                        "'<' to evaluate data < threshold. "
                         "Default is >. Valid choices: > >= < <= gt ge lt le.")
     parser.add_argument("--fuzzy_factor", metavar="FUZZY_FACTOR",
                         default=None, type=float,
@@ -143,7 +141,7 @@ def main(argv=None):
     # Process Cube
     result = process(cube, args.threshold_values, threshold_dict,
                      args.threshold_units,
-                     args.threshold_method,
+                     args.inequality,
                      args.fuzzy_factor,
                      args.collapse_coord, args.vicinity)
     # Save Cube
@@ -151,7 +149,7 @@ def main(argv=None):
 
 
 def process(cube, threshold_values=None, threshold_dict=None,
-            threshold_units=None, threshold_method='>',
+            threshold_units=None, inequality='>',
             fuzzy_factor=None,
             collapse_coord="None", vicinity=None):
     """Module to apply thresholding to a parameter dataset.
@@ -188,11 +186,10 @@ def process(cube, threshold_values=None, threshold_dict=None,
             assumed to be the same as those of the input cube. Specifying
             the units here will allow a suitable conversion to match
             the input units if possible.
-        threshold_method (str):
-            Indicates sign and equality of the threshold. e.g. "ge" to
-            evaluate data >= threshold or "<" to evaluate data < threshold
-            When fuzzy thresholds are used, the equality of the method is
-            ignored and only the sign (> or <) is used.
+        inequality (str):
+            Indicates the inequality of the threshold. e.g. 'ge' or '>=' to
+            evaluate data >= threshold or '<' to evaluate data < threshold.
+            Default is >. Valid choices: > >= < <= gt ge lt le.
         fuzzy_factor (float):
             A decimal fraction defining the factor about the threshold value(s)
             which should be treated as fuzzy. Data which fail a test against
@@ -255,7 +252,7 @@ def process(cube, threshold_values=None, threshold_dict=None,
     result_no_collapse_coord = BasicThreshold(
         thresholds, fuzzy_factor=fuzzy_factor,
         fuzzy_bounds=fuzzy_bounds, threshold_units=threshold_units,
-        threshold_method=threshold_method).process(cube)
+        inequality=inequality).process(cube)
 
     if vicinity is not None:
         # smooth thresholded occurrences over local vicinity

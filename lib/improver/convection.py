@@ -50,7 +50,7 @@ class DiagnoseConvectivePrecipitation(object):
 
     def __init__(
             self, lower_threshold, higher_threshold, neighbourhood_method,
-            radii, fuzzy_factor=None, threshold_method='>',
+            radii, fuzzy_factor=None, inequality='>',
             lead_times=None, weighted_mode=True,
             use_adjacent_grid_square_differences=True):
         """
@@ -72,11 +72,10 @@ class DiagnoseConvectivePrecipitation(object):
             fuzzy_factor (float or None):
                 Percentage above or below threshold for fuzzy membership value.
                 If None, no fuzzy_factor is applied.
-            threshold_method (str):
-                Indicates sign and equality of the threshold. e.g. "ge" to
-                evaluate data >= threshold or "<" to evaluate data < threshold
-                When fuzzy thresholds are used, the equality of the method is
-                ignored and only the sign (> or <) is used.
+            inequality (str):
+                Indicates the inequality of the threshold. e.g. 'ge' or '>=' to
+                evaluate data >= threshold or '<' to evaluate data < threshold.
+                Valid choices: > >= < <= gt ge lt le.
             lead_times (list):
                 List of lead times or forecast periods, at which the radii
                 within radii are defined. The lead times are expected
@@ -96,7 +95,7 @@ class DiagnoseConvectivePrecipitation(object):
         self.neighbourhood_method = neighbourhood_method
         self.radii = radii
         self.fuzzy_factor = fuzzy_factor
-        self.threshold_method = threshold_method
+        self.inequality = inequality
         self.lead_times = lead_times
         self.weighted_mode = weighted_mode
         self.use_adjacent_grid_square_differences = (
@@ -107,13 +106,13 @@ class DiagnoseConvectivePrecipitation(object):
         result = ('<DiagnoseConvectivePrecipitation: lower_threshold {}; '
                   'higher_threshold {}; neighbourhood_method: {}; '
                   'radii: {}; fuzzy_factor {}; '
-                  'threshold_method: {}; lead_times: {}; '
+                  'inequality: {}; lead_times: {}; '
                   'weighted_mode: {};'
                   'use_adjacent_grid_square_differences: {}>')
         return result.format(
             self.lower_threshold, self.higher_threshold,
             self.neighbourhood_method, self.radii, self.fuzzy_factor,
-            self.threshold_method, self.lead_times, self.weighted_mode,
+            self.inequality, self.lead_times, self.weighted_mode,
             self.use_adjacent_grid_square_differences)
 
     def _calculate_convective_ratio(self, cubelist, threshold_list):
@@ -232,7 +231,7 @@ class DiagnoseConvectivePrecipitation(object):
             threshold_cube = (
                 BasicThreshold(
                     threshold, fuzzy_factor=self.fuzzy_factor,
-                    threshold_method=self.threshold_method
+                    inequality=self.inequality
                     ).process(cube.copy()))
             # Will only ever contain one slice on threshold
             for cube_slice in threshold_cube.slices_over(
