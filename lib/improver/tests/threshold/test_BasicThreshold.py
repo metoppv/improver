@@ -45,7 +45,8 @@ from improver.threshold import BasicThreshold as Threshold
 
 class Test__repr__(IrisTest):
 
-    """Test the repr method."""
+    """Test the repr method returns the expected strings after initialising
+    the plugin."""
 
     def test_single_threshold(self):
         """Test that the __repr__ returns the expected string."""
@@ -93,18 +94,6 @@ class Test__repr__(IrisTest):
                    threshold, fuzzy_bounds,
                    expected_inequality))
         self.assertEqual(result, msg)
-
-    def test_equal_fuzzy_threshold_raises_error(self):
-        """Test that combining fuzziness and equality raises expected error."""
-        threshold = 0.6
-        fuzzy_factor = 0.2
-        inequality = 'LE'
-        msg = ('Inequality method "LE" must exclude equality when using fuzzy '
-               'thresholds')
-        with self.assertRaisesRegex(ValueError, msg):
-            str(Threshold(threshold,
-                          fuzzy_factor=fuzzy_factor,
-                          inequality=inequality))
 
     def test_fuzzy_bounds_scalar(self):
         """Test that the __repr__ returns the expected string."""
@@ -554,6 +543,24 @@ class Test_process(IrisTest):
             2.0, fuzzy_factor=self.fuzzy_factor, inequality='<')
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(self.cube)
+
+
+class Test__init__(IrisTest):
+
+    """Test error-raising behaviours unique to the init method and the private
+    function _decode_inequality_string."""
+
+    def test_equal_fuzzy_threshold_raises_error(self):
+        """Test that combining fuzziness and equality raises expected error."""
+        threshold = 0.6
+        fuzzy_factor = 0.2
+        inequality = 'LE'
+        msg = ('Inequality method "LE" must exclude equality when using fuzzy '
+               'thresholds')
+        with self.assertRaisesRegex(ValueError, msg):
+            str(Threshold(threshold,
+                          fuzzy_factor=fuzzy_factor,
+                          inequality=inequality))
 
     def test_threshold_zero_with_fuzzy_factor(self):
         """Test when a threshold of zero is used with a multiplicative
