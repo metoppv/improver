@@ -245,11 +245,12 @@ def time_coords_match(first_cube, second_cube, raise_exception=False):
         second_cube (iris.cube.Cube):
             Second cube to compare.
         raise_exception (bool):
-            By default this function returns True or False, but if this
-            argument is set to True it will raise an exception.
+            By default this function returns a boolean, but if this argument is
+            set to True it will raise an exception if there is a mismatch in
+            the coordinates.
 
     Returns:
-        result (bool):
+        cubes_equivalent (bool):
             True if the cube time coordinates are equivalent, False if they are
             not.
 

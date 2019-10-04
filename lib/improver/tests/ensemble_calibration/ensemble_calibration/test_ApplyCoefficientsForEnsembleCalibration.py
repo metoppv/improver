@@ -123,12 +123,6 @@ class Test__init__(IrisTest):
         plugin = Plugin(predictor_of_mean_flag="realizations")
         self.assertEqual(plugin.predictor_of_mean_flag, "realizations")
 
-    def test_with_invalid_predictor_of_mean_flag(self):
-        """Test specifying the predictor_of_mean_flag as something invalid."""
-        msg = "The requested value for the predictor_of_mean_flag"
-        with self.assertRaisesRegex(ValueError, msg):
-            Plugin(predictor_of_mean_flag="kittens")
-
 
 class Test__repr__(IrisTest):
 
@@ -164,7 +158,7 @@ class Test__spatial_domain_match(SetupCoefficientsCubes):
         self.plugin._spatial_domain_match()
 
     def test_unmatching_x_axis(self):
-        """Test case in which spatial domains do not match."""
+        """Test case in which the x-dimensions of the domains do not match."""
         self.current_temperature_forecast_cube.coord(axis='x').points = (
             self.current_temperature_forecast_cube.coord(axis='x').points * 2.)
         self.plugin.current_forecast = self.current_temperature_forecast_cube
@@ -174,7 +168,7 @@ class Test__spatial_domain_match(SetupCoefficientsCubes):
             self.plugin._spatial_domain_match()
 
     def test_unmatching_y_axis(self):
-        """Test case in which spatial domains do not match."""
+        """Test case in which the y-dimensions of the domains do not match."""
         self.current_temperature_forecast_cube.coord(axis='y').points = (
             self.current_temperature_forecast_cube.coord(axis='y').points * 2.)
         self.plugin.current_forecast = self.current_temperature_forecast_cube
@@ -184,7 +178,8 @@ class Test__spatial_domain_match(SetupCoefficientsCubes):
             self.plugin._spatial_domain_match()
 
 
-class Test__get_calibrated_forecast_predictors_mean(SetupCoefficientsCubes):
+class Test__get_calibrated_forecast_predictors_mean(
+        SetupCoefficientsCubes, EnsembleCalibrationAssertions):
 
     """Test the _get_calibrated_forecast_predictors_mean method."""
 
@@ -214,14 +209,14 @@ class Test__get_calibrated_forecast_predictors_mean(SetupCoefficientsCubes):
         predicted_mean, forecast_predictors = (
             self.plugin._get_calibrated_forecast_predictors_mean(
                 self.optimised_coeffs))
-        assert_array_almost_equal(
-            predicted_mean, self.expected_calibrated_predictor_mean, decimal=4)
-        assert_array_almost_equal(
+        self.assertCalibratedVariablesAlmostEqual(
+            predicted_mean, self.expected_calibrated_predictor_mean)
+        self.assertCalibratedVariablesAlmostEqual(
             forecast_predictors.data, expected_forecast_predictors.data)
 
 
 class Test__get_calibrated_forecast_predictors_realizations(
-        SetupCoefficientsCubes):
+        SetupCoefficientsCubes, EnsembleCalibrationAssertions):
 
     """Test the _get_calibrated_forecast_predictors_realizations method."""
 
@@ -263,11 +258,10 @@ class Test__get_calibrated_forecast_predictors_realizations(
         predicted_mean, forecast_predictors = (
             self.plugin._get_calibrated_forecast_predictors_realizations(
                 optimised_coeffs, self.forecast_vars))
-        assert_array_almost_equal(
+        self.assertCalibratedVariablesAlmostEqual(
             predicted_mean,
-            self.expected_calibrated_predictor_statsmodels_realizations,
-            decimal=4)
-        assert_array_almost_equal(
+            self.expected_calibrated_predictor_statsmodels_realizations)
+        self.assertCalibratedVariablesAlmostEqual(
             forecast_predictors.data, expected_forecast_predictors.data)
 
     @ManageWarnings(
@@ -287,11 +281,10 @@ class Test__get_calibrated_forecast_predictors_realizations(
         predicted_mean, forecast_predictors = (
             self.plugin._get_calibrated_forecast_predictors_realizations(
                 optimised_coeffs, self.forecast_vars))
-        assert_array_almost_equal(
+        self.assertCalibratedVariablesAlmostEqual(
             predicted_mean,
-            self.expected_calibrated_predictor_no_statsmodels_realizations,
-            decimal=4)
-        assert_array_almost_equal(
+            self.expected_calibrated_predictor_no_statsmodels_realizations)
+        self.assertCalibratedVariablesAlmostEqual(
             forecast_predictors.data, expected_forecast_predictors.data)
 
 
@@ -379,8 +372,8 @@ class Test_calibrate_forecast_data(
     def test_realization_as_predictor_with_statsmodel(self):
         """Test that the calibrated forecast using realization as the
         predictor returns the correct values when using statsmodel. Check that
-        the calibrated mean is similar to when not using statsmodel and to when
-        the ensemble mean is used as the predictor."""
+        the calibrated mean is similar to when not using statsmodels and to
+        when the ensemble mean is used as the predictor."""
 
         optimised_coeffs = dict(
             zip(self.coeffs_from_statsmodels_realizations.coord(
@@ -415,7 +408,7 @@ class Test_calibrate_forecast_data(
     def test_realization_as_predictor_without_statsmodel(self):
         """Test that the calibrated forecast using realization as the
         predictor returns the correct values when not using statsmodel. Check
-        that the calibrated mean is similar to when using statsmodel and to
+        that the calibrated mean is similar to when using statsmodels and to
         when the ensemble mean is used as the predictor."""
 
         optimised_coeffs = dict(

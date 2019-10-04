@@ -918,7 +918,7 @@ class ApplyCoefficientsFromEnsembleCalibration():
 
     def _get_calibrated_forecast_predictors_mean(self, optimised_coeffs):
         """
-        Function to get appropriately formated forecast_predictors when the
+        Function to get appropriately formatted forecast_predictors when the
         predictor of mean used is the ensemble mean.
 
         Args:
@@ -952,7 +952,7 @@ class ApplyCoefficientsFromEnsembleCalibration():
     def _get_calibrated_forecast_predictors_realizations(
             self, optimised_coeffs, forecast_vars):
         """
-        Function to get appropriately formated forecast_predictors when the
+        Function to get appropriately formatted forecast_predictors when the
         predictor of mean used each realization separately.
 
         Args:
@@ -995,7 +995,8 @@ class ApplyCoefficientsFromEnsembleCalibration():
 
         return predicted_mean, calibrated_forecast_predictor
 
-    def calibrate_forecast_data(self, optimised_coeffs, predicted_mean,
+    @staticmethod
+    def calibrate_forecast_data(optimised_coeffs, predicted_mean,
                                 calibrated_forecast_predictor,
                                 calibrated_forecast_var):
         """
@@ -1010,7 +1011,7 @@ class ApplyCoefficientsFromEnsembleCalibration():
             calibrated_forecast_predictor (iris.cube.Cube):
                 The forecast predictors, mean values taken by collapsing
                 the realization coordinate.
-            forecast_vars (iris.cube.Cube):
+            calibrated_forecast_var (iris.cube.Cube):
                 A cube of forecast predictor variance calculated across
                 realizations.
 
