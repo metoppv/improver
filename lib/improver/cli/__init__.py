@@ -31,16 +31,13 @@
 "init for cli and clize"
 
 from collections import OrderedDict
-from clize import (
-    Clize,
-    parameters,
-    run,
-)
+from clize import parameters
 from clize.help import (
     HelpForAutodetectedDocstring,
     ClizeHelp,
 )
 from clize.parser import value_converter
+from clize.runner import Clize
 from sigtools.wrappers import decorator
 
 # selected clize imports/constants
@@ -52,7 +49,6 @@ LAST_OPTION = clize.Parameter.LAST_OPTION
 REQUIRED = clize.Parameter.REQUIRED
 UNDOCUMENTED = clize.Parameter.UNDOCUMENTED
 
-del clize
 
 # help helpers
 
@@ -200,25 +196,39 @@ def with_intermediate_output(wrapped, *args, intermediate_output=None,
 # cli object creation
 
 
-def _clizefy(obj, use_clize=None, **kwargs):
-    # TODO: _clizefy => Clize.get_cli after all CLIs are clizefied
+def _clizefy(obj, **kwargs):
+    # TODO: simplify after all CLIs are clizefied
+    from ast import literal_eval
     import os
     import sys
 
-    if callable(obj) and (not os.environ.get('IMPROVER_USE_CLIZE', use_clize)
-            or not getattr(obj, '__annotations__', None)):
-        # use old-style ArgParser-based CLI
+    if hasattr(obj, 'cli'):
+        return obj
 
-        impr_main = sys.modules[obj.__module__].main
-        description = obj.__doc__.split('\n')[0].strip()
+    if not callable(obj):
+        kwargs.pop('helper_class', None)
+        return Clize.get_cli(obj, **kwargs)
 
-        def clized_main(prog: parameters.pass_name, *args):
-            sys.argv[0] = prog.split()[-1]
-            impr_main(args)
+    use_clize = os.environ.get('IMPROVER_USE_CLIZE')
+    if use_clize:
+        use_clize = literal_eval(use_clize.capitalize())
 
-        return Clize.as_is(clized_main, description=description)
+    legacy_main = getattr(sys.modules[obj.__module__], 'main', None)
 
-    return Clize.get_cli(obj, **kwargs)
+    if legacy_main is None or use_clize and obj.__annotations__:
+        # legacy_main is None here for any function defined in this module
+        # before (and including) the main function
+        return Clize.keep(obj, **kwargs)
+
+    def _wrapper(prog: parameters.pass_name, *args):
+        sys.argv[0] = prog.split()[-1]
+        legacy_main(args)
+
+    description = obj.__doc__.split('\n')[0].strip()
+    _obj = Clize.as_is(_wrapper, description=description)
+    obj.cli = _obj.cli
+
+    return obj
 
 
 def clizefy(func=None, helper_class=DocutilizeClizeHelp, **kwargs):
@@ -233,13 +243,27 @@ def clizefy(func=None, helper_class=DocutilizeClizeHelp, **kwargs):
 # help command
 
 
+@clizefy(help_names=())
 def improver_help(progname: parameters.pass_name,
                   command=None, *, usage=False):
     """Show command help."""
-    progname = progname.partition(' ')[0]
-    args = [command, '--help', usage and '--usage']
-    return execute_command(SUBCOMMANDS_DISPATCHER,
-                           progname, *filter(None, args))
+    progname = progname.split()[0]
+    args = filter(None, [command, '--help', usage and '--usage'])
+    result = execute_command(SUBCOMMANDS_DISPATCHER, progname, *args)
+    if not command and usage:
+        result = '\n'.join(line for line in result.splitlines()
+                           if not line.endswith('--help [--usage]'))
+    return result
+
+
+# version command
+
+
+@clizefy(help_names=())
+def improver_version():
+    """Print version"""
+    from improver import __version__
+    return __version__
 
 
 # mapping of command names to CLI objects
@@ -250,21 +274,21 @@ def _cli_items():
     import importlib
     import pkgutil
     from improver.cli import __path__ as improver_cli_pkg_path
+    yield ('help', improver_help)
     for minfo in pkgutil.iter_modules(improver_cli_pkg_path):
         mod_name = minfo.name
         if mod_name != '__main__':
             mcli = importlib.import_module('improver.cli.' + mod_name)
             yield (mod_name, clizefy(mcli.process))
-    yield ('help', clizefy(improver_help, help_names=(), use_clize=True))
 
 
-SUBCOMMANDS_TABLE = OrderedDict(_cli_items())
+SUBCOMMANDS_TABLE = OrderedDict(sorted(_cli_items()))
 
 
 # main CLI object with subcommands
 
 
-SUBCOMMANDS_DISPATCHER = Clize.get_cli(
+SUBCOMMANDS_DISPATCHER = clizefy(
     SUBCOMMANDS_TABLE,
     description="""IMPROVER NWP post-processing toolbox""",
     footnotes="""See also improver --help for more information.""")
@@ -313,11 +337,12 @@ def execute_command(dispatcher, progname, *args, verbose=False, dry_run=False):
         result = args  # poor man's dry run!
     else:
         result = dispatcher(progname, *args)
-    if verbose:
+    if verbose or dry_run:
         print(progname, *args, ' -> ', ObjectAsStr.object2name(result))
     return result
 
 
+@clizefy(alt={'version': improver_version})
 def main(progname: parameters.pass_name,
          command: LAST_OPTION,
          *args,
@@ -352,4 +377,12 @@ def main(progname: parameters.pass_name,
     return result
 
 
-main.cli = clizefy(main, use_clize=True)
+def run_main(argv=None):
+    from clize import run
+    import sys
+    # clize shows module execution as`python -m improver.cli`
+    # override argv[0] and pass it explicitly in order to avoid this
+    if argv is None:
+        argv = sys.argv[:]
+        argv[0] = 'improver'
+    run(main, args=argv)

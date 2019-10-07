@@ -100,6 +100,7 @@ def main(argv=None):
             output=args.output_filepath)
 
 
+@cli.clizefy
 @cli.with_output
 def process(*cubelist: cli.inputcube,
             operation='+',

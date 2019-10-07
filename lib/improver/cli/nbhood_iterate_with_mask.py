@@ -142,6 +142,7 @@ def main(argv=None):
             intermediate_output=args.intermediate_filepath)
 
 
+@cli.clizefy
 @cli.with_output
 @cli.with_intermediate_output
 def process(cube: cli.inputcube,
