@@ -35,7 +35,7 @@ import numpy as np
 from cf_units import Unit
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.units import DEFAULT_UNITS
+from improver.metadata.constants.units import DEFAULT_UNITS
 
 
 def enforce_units_and_dtypes(cubes, coords=None, enforce=True):
