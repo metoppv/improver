@@ -558,9 +558,9 @@ class Test__init__(IrisTest):
         msg = ('Inequality method "LE" must exclude equality when using fuzzy '
                'thresholds')
         with self.assertRaisesRegex(ValueError, msg):
-            str(Threshold(threshold,
-                          fuzzy_factor=fuzzy_factor,
-                          inequality=inequality))
+            Threshold(threshold,
+                      fuzzy_factor=fuzzy_factor,
+                      inequality=inequality)
 
     def test_threshold_zero_with_fuzzy_factor(self):
         """Test when a threshold of zero is used with a multiplicative
@@ -616,8 +616,7 @@ class Test__init__(IrisTest):
         msg = ("Invalid bounds for one threshold: .*. "
                "Expected 2 floats.")
         with self.assertRaisesRegex(AssertionError, msg):
-            Threshold(threshold,
-                      fuzzy_bounds=fuzzy_bounds)
+            Threshold(threshold, fuzzy_bounds=fuzzy_bounds)
 
     def test_invalid_bounds_toomany(self):
         """Test when fuzzy_bounds contains three values (invalid)."""
@@ -627,8 +626,7 @@ class Test__init__(IrisTest):
         msg = ("Invalid bounds for one threshold: .*. "
                "Expected 2 floats.")
         with self.assertRaisesRegex(AssertionError, msg):
-            Threshold(threshold,
-                      fuzzy_bounds=fuzzy_bounds)
+            Threshold(threshold, fuzzy_bounds=fuzzy_bounds)
 
     def test_invalid_upper_bound(self):
         """Test when fuzzy_bounds do not bound threshold (invalid)."""
@@ -639,8 +637,7 @@ class Test__init__(IrisTest):
                r"\!\( {} <= {} <= {} \)".format(
                    fuzzy_bounds[0], threshold, fuzzy_bounds[1]))
         with self.assertRaisesRegex(AssertionError, msg):
-            Threshold(threshold,
-                      fuzzy_bounds=fuzzy_bounds)
+            Threshold(threshold, fuzzy_bounds=fuzzy_bounds)
 
     def test_invalid_lower_bound(self):
         """Test when fuzzy_bounds do not bound threshold (invalid)."""
@@ -651,8 +648,7 @@ class Test__init__(IrisTest):
                r"\!\( {} <= {} <= {} \)".format(
                    fuzzy_bounds[0], threshold, fuzzy_bounds[1]))
         with self.assertRaisesRegex(AssertionError, msg):
-            Threshold(threshold,
-                      fuzzy_bounds=fuzzy_bounds)
+            Threshold(threshold, fuzzy_bounds=fuzzy_bounds)
 
     def test_invalid_inequality(self):
         """Test plugin throws a ValueError when inequality is bad"""
@@ -661,8 +657,7 @@ class Test__init__(IrisTest):
         msg = ('String "{}" does not match any known inequality method'.format(
             inequality))
         with self.assertRaisesRegex(ValueError, msg):
-            Threshold(threshold,
-                      inequality=inequality)
+            Threshold(threshold, inequality=inequality)
 
 
 if __name__ == '__main__':
