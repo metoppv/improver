@@ -1102,7 +1102,7 @@ class ApplyCoefficientsFromEnsembleCalibration():
                 where the points of the coordinate are integer values and a
                 coefficient_name auxiliary coordinate where the points of
                 the coordinate are e.g. gamma, delta, alpha, beta.
-            landsea_mask (iris.cube.Cube):
+            landsea_mask (iris.cube.Cube or None):
                 The optional cube containing a land-sea mask. If provided, only
                 land points are calibrated using the provided coefficients.
 
