@@ -125,7 +125,7 @@ def add_coord(cube, coord_name, changes, warnings_on=False):
         UserWarning: adding new coordinate.
 
     """
-    result = cube
+    result = cube.copy()
     # Get the points for the coordinate to be added.
     # The points must be defined.
     if 'points' in changes:
@@ -188,7 +188,7 @@ def add_coord(cube, coord_name, changes, warnings_on=False):
     return result
 
 
-def update_coord(cube, coord_name, changes, warnings_on=False):
+def _update_coord(cube, coord_name, changes, warnings_on=False):
     """Amend the metadata in the combined cube.
 
     Args:
@@ -220,8 +220,8 @@ def update_coord(cube, coord_name, changes, warnings_on=False):
         UserWarning: Updated coordinate
 
     """
-    new_coord = cube.coord(coord_name)
-    result = cube
+    result = cube.copy()
+    new_coord = result.coord(coord_name)
     if changes == 'delete':
         if len(new_coord.points) != 1:
             msg = ("Can only remove a coordinate of length 1"
@@ -286,7 +286,7 @@ def update_coord(cube, coord_name, changes, warnings_on=False):
     return result
 
 
-def update_attribute(cube, attribute_name, changes, warnings_on=False):
+def _update_attribute(cube, attribute_name, changes, warnings_on=False):
     """Update the attribute in the cube.
 
     Args:
@@ -311,7 +311,7 @@ def update_attribute(cube, attribute_name, changes, warnings_on=False):
         UserWarning: Updated coordinate.
 
     """
-    result = cube
+    result = cube.copy()
     if changes == 'delete':
         result.attributes.pop(attribute_name, None)
         if warnings_on:
@@ -337,7 +337,7 @@ def update_attribute(cube, attribute_name, changes, warnings_on=False):
     return result
 
 
-def update_cell_methods(cube, cell_method_definition):
+def _update_cell_methods(cube, cell_method_definition):
     """Update cell methods. An "action" keyword is expected within the
     cell method definition to specify whether the cell method is to be added
     or deleted.
@@ -493,7 +493,7 @@ def amend_metadata(cube,
                 }
 
     """
-    result = cube
+    result = cube.copy()
     if data_type:
         result.data = result.data.astype(data_type)
     if name:
@@ -505,8 +505,8 @@ def amend_metadata(cube,
             # Otherwise, add the coordinate.
             if key in [coord.name() for coord in cube.coords()]:
                 changes = coordinates[key]
-                result = update_coord(result, key, changes,
-                                      warnings_on=warnings_on)
+                result = _update_coord(result, key, changes,
+                                       warnings_on=warnings_on)
             else:
                 changes = coordinates[key]
                 result = add_coord(result, key, changes,
@@ -515,12 +515,12 @@ def amend_metadata(cube,
     if attributes is not None:
         for key in attributes:
             changes = attributes[key]
-            result = update_attribute(result, key, changes,
-                                      warnings_on=warnings_on)
+            result = _update_attribute(result, key, changes,
+                                       warnings_on=warnings_on)
 
     if cell_methods is not None:
         for key in cell_methods:
-            update_cell_methods(result, cell_methods[key])
+            _update_cell_methods(result, cell_methods[key])
 
     if units is not None:
         result.convert_units(units)
@@ -581,40 +581,14 @@ def resolve_metadata_diff(cube1, cube2, warnings_on=False):
     for coord in unmatching_coords[1]:
         if coord not in unmatching_coords[0]:
             if len(result2.coord(coord).points) == 1:
-                result2 = update_coord(result2, coord, 'delete',
-                                       warnings_on=warnings_on)
+                result2 = _update_coord(result2, coord, 'delete',
+                                        warnings_on=warnings_on)
 
     # If shapes still do not match Raise an error
     if result1.data.shape != result2.data.shape:
         msg = "Can not combine cubes, mismatching shapes"
         raise ValueError(msg)
     return result1, result2
-
-
-def delete_attributes(cube, patterns):
-    """
-    Delete attributes that are complete or partial matches to elements in the
-    list patterns.
-
-    Args:
-        cube (iris.cube.Cube):
-            The cube from which attributes are to be deleted.
-        patterns (list or tuple):
-            A list of strings that match or partially match the keys of
-            attributes to be deleted from the cube.
-    """
-
-    if not isinstance(patterns, (tuple, list)):
-        patterns = [patterns]
-
-    grid_attributes = []
-    for pattern in patterns:
-        grid_attributes.extend([k for k in cube.attributes if pattern in k])
-
-    grid_attributes = list(set(grid_attributes))
-
-    for key in grid_attributes:
-        cube.attributes.pop(key)
 
 
 def add_history_attribute(cube, value, append=False):

@@ -308,7 +308,8 @@ def process(output_data, target_grid=None, source_landsea=None,
         target_grid_attributes = (
             {k: v for (k, v) in target_grid.attributes.items()
              if 'mosg__' in k or 'institution' in k})
-        amend_metadata(output_data, attributes=target_grid_attributes)
+        output_data = amend_metadata(
+            output_data, attributes=target_grid_attributes)
     # Change metadata only option:
     # if output file path and json metadata file specified,
     # change the metadata
