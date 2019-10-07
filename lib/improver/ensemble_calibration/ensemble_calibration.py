@@ -895,10 +895,10 @@ class ApplyCoefficientsFromEnsembleCalibration():
         return result.format(self.predictor_of_mean_flag)
 
     @staticmethod
-    def merge_calibrated_and_uncalibrated_regions(
+    def _merge_calibrated_and_uncalibrated_regions(
             original_data, calibrated_data, mask):
         """
-        If a mask has been proivded to this plugin, this function acts to
+        If a mask has been provided to this plugin, this function acts to
         combine calibrated data and uncalibrated data. Those regions where the
         mask=0 will be populated with uncalibrated data. Those regions where
         the mask=1 will retain calibrated data. The calibrated data cube will
@@ -1145,11 +1145,11 @@ class ApplyCoefficientsFromEnsembleCalibration():
 
         # Use a mask to confine calibration to regions in which the mask=1.
         if landsea_mask:
-            self.merge_calibrated_and_uncalibrated_regions(
+            self._merge_calibrated_and_uncalibrated_regions(
                 forecast_predictor.data,
                 calibrated_forecast_predictor.data,
                 landsea_mask.data)
-            self.merge_calibrated_and_uncalibrated_regions(
+            self._merge_calibrated_and_uncalibrated_regions(
                 forecast_vars.data,
                 calibrated_forecast_var.data,
                 landsea_mask.data)
