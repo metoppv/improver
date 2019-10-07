@@ -36,8 +36,8 @@ import numpy as np
 
 from iris.exceptions import CoordinateNotFoundError
 
+from improver.metadata.probabilistic import extract_diagnostic_name
 from improver.utilities.cube_checker import find_threshold_coordinate
-from improver.utilities.cube_metadata import extract_diagnostic_name
 
 
 class OccurrenceBetweenThresholds(object):

@@ -37,9 +37,9 @@ import warnings
 import iris
 
 from improver.argparser import ArgParser
+from improver.metadata.amend import amend_metadata
 from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.cube_checker import check_cube_not_float64
-from improver.utilities.cube_metadata import amend_metadata
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.utilities.spatial import RegridLandSea

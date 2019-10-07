@@ -40,11 +40,11 @@ import cartopy.crs as ccrs
 import iris
 
 from improver.argparser import ArgParser
+from improver.metadata.amend import amend_metadata
 from improver.spotdata.neighbour_finding import NeighbourSelection
 from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.cube_manipulation import (merge_cubes,
                                                   enforce_coordinate_ordering)
-from improver.utilities.cube_metadata import amend_metadata
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 

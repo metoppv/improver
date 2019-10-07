@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the cube_metadata utilities."""
+"""Tests for the improver.metadata.amend module"""
 
 import unittest
 from copy import copy, deepcopy
@@ -39,10 +39,7 @@ import numpy as np
 from iris.cube import Cube
 from iris.tests import IrisTest
 
-from improver.tests.set_up_test_cubes import (
-    set_up_variable_cube, set_up_probability_cube, add_coordinate)
-from improver.utilities.cube_checker import find_threshold_coordinate
-from improver.utilities.cube_metadata import (
+from improver.metadata.amend import (
     add_coord,
     add_history_attribute,
     amend_metadata,
@@ -50,11 +47,11 @@ from improver.utilities.cube_metadata import (
     _update_attribute,
     _update_cell_methods,
     _update_coord,
-    update_stage_v110_metadata,
-    in_vicinity_name_format,
-    extract_diagnostic_name,
-    generate_hash,
-    create_coordinate_hash)
+    update_stage_v110_metadata)
+
+from improver.tests.set_up_test_cubes import (
+    set_up_variable_cube, set_up_probability_cube, add_coordinate)
+from improver.utilities.cube_checker import find_threshold_coordinate
 from improver.utilities.warnings_handler import ManageWarnings
 
 
@@ -781,201 +778,6 @@ class Test_add_history_attribute(IrisTest):
         add_history_attribute(cube, "Nowcast", append=True)
         self.assertTrue("history" in cube.attributes)
         self.assertTrue("Nowcast" in cube.attributes["history"])
-
-
-class Test_in_vicinity_name_format(IrisTest):
-    """Test that the 'in_vicinity' above/below threshold probability
-    cube naming function produces the correctly formatted names."""
-
-    def setUp(self):
-        """Set up test cube"""
-        self.cube = create_cube_with_threshold()
-        self.cube.long_name = 'probability_of_X_rate_above_threshold'
-
-    def test_in_vicinity_name_format(self):
-        """Test that 'in_vicinity' is added correctly to the name for both
-        above and below threshold cases"""
-        correct_name_above = (
-            'probability_of_X_rate_in_vicinity_above_threshold')
-        new_name_above = in_vicinity_name_format(self.cube.name())
-        self.cube.rename('probability_of_X_below_threshold')
-        correct_name_below = (
-            'probability_of_X_in_vicinity_below_threshold')
-        new_name_below = in_vicinity_name_format(self.cube.name())
-        self.assertEqual(new_name_above, correct_name_above)
-        self.assertEqual(new_name_below, correct_name_below)
-
-    def test_between_thresholds(self):
-        """Test for "between_thresholds" suffix"""
-        self.cube.rename('probability_of_visibility_between_thresholds')
-        correct_name = (
-            'probability_of_visibility_in_vicinity_between_thresholds')
-        new_name = in_vicinity_name_format(self.cube.name())
-        self.assertEqual(new_name, correct_name)
-
-    def test_no_above_below_threshold(self):
-        """Test the case of name without above/below_threshold is handled
-        correctly"""
-        self.cube.rename('probability_of_X')
-        correct_name_no_threshold = (
-            'probability_of_X_in_vicinity')
-        new_name_no_threshold = in_vicinity_name_format(self.cube.name())
-        self.assertEqual(new_name_no_threshold, correct_name_no_threshold)
-
-    def test_in_vicinity_already_exists(self):
-        """Test the case of 'in_vicinity' already existing in the cube name"""
-        self.cube.rename('probability_of_X_in_vicinity')
-        result = in_vicinity_name_format(self.cube.name())
-        self.assertEqual(result, 'probability_of_X_in_vicinity')
-
-
-class Test_extract_diagnostic_name(IrisTest):
-    """Test utility to extract diagnostic name from probability cube name"""
-
-    def test_basic(self):
-        """Test correct name is returned from a standard (above threshold)
-        probability field"""
-        result = extract_diagnostic_name(
-            'probability_of_air_temperature_above_threshold')
-        self.assertEqual(result, 'air_temperature')
-
-    def test_below_threshold(self):
-        """Test correct name is returned from a probability below threshold"""
-        result = extract_diagnostic_name(
-            'probability_of_air_temperature_below_threshold')
-        self.assertEqual(result, 'air_temperature')
-
-    def test_between_thresholds(self):
-        """Test correct name is returned from a probability between thresholds
-        """
-        result = extract_diagnostic_name(
-            'probability_of_visibility_in_air_between_thresholds')
-        self.assertEqual(result, 'visibility_in_air')
-
-    def test_in_vicinity(self):
-        """Test correct name is returned from an "in vicinity" probability.
-        Name "cloud_height" is used in this test to illustrate why suffix
-        cannot be removed with "rstrip"."""
-        diagnostic = 'cloud_height'
-        result = extract_diagnostic_name(
-            'probability_of_{}_in_vicinity_above_threshold'.format(diagnostic))
-        self.assertEqual(result, diagnostic)
-
-    def test_error_not_probability(self):
-        """Test exception if input is not a probability cube name"""
-        with self.assertRaises(ValueError):
-            extract_diagnostic_name('lwe_precipitation_rate')
-
-
-class Test_generate_hash(IrisTest):
-    """Test utility to generate md5 hash codes from a multitude of inputs."""
-
-    def test_string_input(self):
-        """Test the expected hash is returned when input is a string type."""
-
-        hash_input = 'this is a test string'
-        result = generate_hash(hash_input)
-        expected = "8e502f6a5b4a2e0f226649210895cebc"
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, expected)
-
-    def test_numeric_input(self):
-        """Test the expected hash is returned when input is a numeric type."""
-
-        hash_input = 1000
-        result = generate_hash(hash_input)
-        expected = "d017763f19ef64f920c43fc57413d171"
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, expected)
-
-    def test_dictionary_input(self):
-        """Test the expected hash is returned when input is a dictionary."""
-
-        hash_input = {'one': 1, 'two': 2}
-        result = generate_hash(hash_input)
-        expected = "4735f4a74dd17d27b383de504a87e324"
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, expected)
-
-    def test_dictionary_order_variant(self):
-        """Test the expected hash is different if the dictionary order is
-        different."""
-
-        hash_input1 = {'one': 1, 'two': 2}
-        hash_input2 = {'two': 2, 'one': 1}
-        result1 = generate_hash(hash_input1)
-        result2 = generate_hash(hash_input2)
-        self.assertNotEqual(result1, result2)
-
-    def test_cube_input(self):
-        """Test the expected hash is returned when input is a cube."""
-
-        hash_input = set_up_variable_cube(np.ones((3, 3)).astype(np.float32))
-        result = generate_hash(hash_input)
-        expected = "ad664992debed0bdf8f20804e4164691"
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, expected)
-
-    def test_coordinate_input(self):
-        """Test the expected hash is returned when input is a cube
-        coordinate."""
-
-        cube = set_up_variable_cube(np.ones((3, 3)).astype(np.float32))
-        hash_input = cube.coord('latitude')
-        result = generate_hash(hash_input)
-        expected = "8c8846a4be49f7aab487353d9ecf623c"
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, expected)
-
-    def test_numpy_array_type_variant(self):
-        """Test the expected hash is different if the numpy array type is
-        different."""
-
-        hash_input32 = np.array([np.sqrt(2.)], dtype=np.float32)
-        hash_input64 = np.array([np.sqrt(2.)], dtype=np.float64)
-        result32 = generate_hash(hash_input32)
-        result64 = generate_hash(hash_input64)
-        self.assertNotEqual(result32, result64)
-
-    def test_equivalent_input_gives_equivalent_hash(self):
-        """Test that creating a hash twice using the same input results in the
-        same hash being generated."""
-
-        cube = set_up_variable_cube(np.ones((3, 3)).astype(np.float32))
-        hash_input = cube.coord('latitude')
-        result1 = generate_hash(hash_input)
-        result2 = generate_hash(hash_input)
-        self.assertEqual(result1, result2)
-
-
-class Test_create_coordinate_hash(IrisTest):
-    """Test wrapper to hash generation to return a hash based on the x and y
-    coordinates of a given cube."""
-
-    def test_basic(self):
-        """Test the expected hash is returned for a given cube."""
-
-        hash_input = set_up_variable_cube(np.zeros((3, 3)).astype(np.float32))
-        result = create_coordinate_hash(hash_input)
-        expected = "fd40f6d5a8e0a347f181d87bcfd445fa"
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, expected)
-
-    def test_variation(self):
-        """Test that two cubes with slightly different coordinates return
-        different hashes."""
-
-        hash_input1 = set_up_variable_cube(np.zeros((3, 3)).astype(np.float32))
-        hash_input2 = hash_input1.copy()
-        latitude = hash_input2.coord('latitude')
-        latitude_values = latitude.points * 1.001
-        latitude = latitude.copy(points=latitude_values)
-        hash_input2.remove_coord("latitude")
-        hash_input2.add_dim_coord(latitude, 0)
-
-        result1 = create_coordinate_hash(hash_input1)
-        result2 = create_coordinate_hash(hash_input2)
-        self.assertNotEqual(result1, result2)
 
 
 if __name__ == '__main__':
