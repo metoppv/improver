@@ -48,10 +48,9 @@ from improver.metadata.amend import (
     _update_cell_methods,
     _update_coord,
     update_stage_v110_metadata)
-
+from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, set_up_probability_cube, add_coordinate)
-from improver.utilities.cube_checker import find_threshold_coordinate
 from improver.utilities.warnings_handler import ManageWarnings
 
 

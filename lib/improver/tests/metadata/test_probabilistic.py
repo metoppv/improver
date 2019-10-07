@@ -31,10 +31,19 @@
 """Tests for the improver.metadata.probabilistic module"""
 
 import unittest
+import numpy as np
+
+import iris
+from iris.tests import IrisTest
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.metadata.probabilistic import (
-    in_vicinity_name_format, extract_diagnostic_name)
+    in_vicinity_name_format, extract_diagnostic_name,
+    find_threshold_coordinate, find_percentile_coordinate)
 from improver.tests.metadata.test_amend import create_cube_with_threshold
+from improver.tests.set_up_test_cubes import set_up_probability_cube
+from improver.tests.wind_calculations.wind_gust_diagnostic. \
+    test_WindGustDiagnostic import create_cube_with_percentile_coord
 
 
 class Test_in_vicinity_name_format(unittest.TestCase):
@@ -119,6 +128,108 @@ class Test_extract_diagnostic_name(unittest.TestCase):
         """Test exception if input is not a probability cube name"""
         with self.assertRaises(ValueError):
             extract_diagnostic_name('lwe_precipitation_rate')
+
+
+class Test_find_threshold_coordinate(IrisTest):
+    """Test the find_threshold_coordinate function"""
+
+    def setUp(self):
+        """Set up test probability cubes with old and new threshold coordinate
+        naming conventions"""
+        data = np.ones((3, 3, 3), dtype=np.float32)
+        self.threshold_points = np.array([276, 277, 278], dtype=np.float32)
+        cube = set_up_probability_cube(data, self.threshold_points)
+
+        self.cube_new = cube.copy()
+        self.cube_old = cube.copy()
+        self.cube_old.coord("air_temperature").rename("threshold")
+
+    def test_basic(self):
+        """Test function returns an iris.coords.Coord"""
+        threshold_coord = find_threshold_coordinate(self.cube_new)
+        self.assertIsInstance(threshold_coord, iris.coords.Coord)
+
+    def test_old_convention(self):
+        """Test function recognises threshold coordinate with name "threshold"
+        """
+        threshold_coord = find_threshold_coordinate(self.cube_old)
+        self.assertEqual(threshold_coord.name(), "threshold")
+        self.assertArrayAlmostEqual(
+            threshold_coord.points, self.threshold_points)
+
+    def test_new_convention(self):
+        """Test function recognises threshold coordinate with standard
+        diagnostic name and "threshold" as var_name"""
+        threshold_coord = find_threshold_coordinate(self.cube_new)
+        self.assertEqual(threshold_coord.name(), "air_temperature")
+        self.assertEqual(threshold_coord.var_name, "threshold")
+        self.assertArrayAlmostEqual(
+            threshold_coord.points, self.threshold_points)
+
+    def test_fails_if_not_cube(self):
+        """Test error if given a non-cube argument"""
+        msg = "Expecting data to be an instance of iris.cube.Cube"
+        with self.assertRaisesRegex(TypeError, msg):
+            find_threshold_coordinate([self.cube_new])
+
+    def test_fails_if_no_threshold_coord(self):
+        """Test error if no threshold coordinate is present"""
+        self.cube_new.coord("air_temperature").var_name = None
+        msg = "No threshold coord found"
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
+            find_threshold_coordinate(self.cube_new)
+
+
+class Test_find_percentile_coordinate(IrisTest):
+
+    """Test whether the cube has a percentile coordinate."""
+
+    def setUp(self):
+        """Create a wind-speed and wind-gust cube with percentile coord."""
+        data = np.zeros((2, 2, 2, 2))
+        self.wg_perc = 50.0
+        self.ws_perc = 95.0
+        gust = "wind_speed_of_gust"
+        self.cube_wg = (
+            create_cube_with_percentile_coord(
+                data=data,
+                perc_values=[self.wg_perc, 90.0],
+                perc_name='percentile',
+                standard_name=gust))
+
+    def test_basic(self):
+        """Test that the function returns a Coord."""
+        perc_coord = find_percentile_coordinate(self.cube_wg)
+        self.assertIsInstance(perc_coord, iris.coords.Coord)
+        self.assertEqual(perc_coord.name(), "percentile")
+
+    def test_fails_if_data_is_not_cube(self):
+        """Test it raises a Type Error if cube is not a cube."""
+        msg = ('Expecting data to be an instance of '
+               'iris.cube.Cube but is'
+               ' {}.'.format(type(self.wg_perc)))
+        with self.assertRaisesRegex(TypeError, msg):
+            find_percentile_coordinate(self.wg_perc)
+
+    def test_fails_if_no_perc_coord(self):
+        """Test it raises an Error if there is no percentile coord."""
+        msg = ('No percentile coord found on')
+        cube = self.cube_wg
+        cube.remove_coord("percentile")
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
+            find_percentile_coordinate(cube)
+
+    def test_fails_if_too_many_perc_coord(self):
+        """Test it raises a Value Error if there are too many perc coords."""
+        msg = ('Too many percentile coords found')
+        cube = self.cube_wg
+        new_perc_coord = (
+            iris.coords.AuxCoord(1,
+                                 long_name='percentile',
+                                 units='no_unit'))
+        cube.add_aux_coord(new_perc_coord)
+        with self.assertRaisesRegex(ValueError, msg):
+            find_percentile_coordinate(cube)
 
 
 if __name__ == '__main__':

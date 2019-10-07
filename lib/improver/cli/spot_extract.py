@@ -41,12 +41,12 @@ from improver.argparser import ArgParser
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
     GeneratePercentilesFromProbabilities
 from improver.metadata.amend import amend_metadata
+from improver.metadata.probabilistic import find_percentile_coordinate
 from improver.percentile import PercentileConverter
 from improver.spotdata.apply_lapse_rate import SpotLapseRateAdjust
 from improver.spotdata.neighbour_finding import NeighbourSelection
 from improver.spotdata.spot_extraction import SpotExtraction
 from improver.utilities.cli_utilities import load_json_or_none
-from improver.utilities.cube_checker import find_percentile_coordinate
 from improver.utilities.cube_extraction import extract_subcube
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf

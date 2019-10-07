@@ -31,6 +31,8 @@
 """Utilities for interrogating IMPROVER probabilistic metadata"""
 
 import re
+import iris
+from iris.exceptions import CoordinateNotFoundError
 
 
 def probability_cube_name_regex(cube_name):
@@ -96,3 +98,80 @@ def extract_diagnostic_name(cube_name):
         raise ValueError(
             'Input {} is not a valid probability cube name'.format(cube_name))
     return diagnostic_name
+
+
+def find_threshold_coordinate(cube):
+    """Find threshold coordinate in cube.
+
+    Compatible with both the old (cube.coord("threshold")) and new
+    (cube.coord.var_name == "threshold") IMPROVER metadata standards.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube containing thresholded probability data
+
+    Returns:
+        threshold_coord (iris.coords.Coord):
+            Threshold coordinate
+
+    Raises:
+        TypeError: If cube is not of type iris.cube.Cube.
+        CoordinateNotFoundError: If no threshold coordinate is found.
+    """
+    if not isinstance(cube, iris.cube.Cube):
+        msg = ('Expecting data to be an instance of '
+               'iris.cube.Cube but is {0}.'.format(type(cube)))
+        raise TypeError(msg)
+
+    threshold_coord = None
+    try:
+        threshold_coord = cube.coord("threshold")
+    except CoordinateNotFoundError:
+        for coord in cube.coords():
+            if coord.var_name == "threshold":
+                threshold_coord = coord
+                break
+
+    if threshold_coord is None:
+        msg = ('No threshold coord found on {0:s} data'.format(
+               cube.name()))
+        raise CoordinateNotFoundError(msg)
+
+    return threshold_coord
+
+
+def find_percentile_coordinate(cube):
+    """Find percentile coord in cube.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube contain one or more percentiles.
+    Returns:
+        perc_coord (iris.coords.Coord):
+            Percentile coordinate.
+    Raises:
+        TypeError: If cube is not of type iris.cube.Cube.
+        CoordinateNotFoundError: If no percentile coordinate is found in cube.
+        ValueError: If there is more than one percentile coords in the cube.
+    """
+    if not isinstance(cube, iris.cube.Cube):
+        msg = ('Expecting data to be an instance of '
+               'iris.cube.Cube but is {0}.'.format(type(cube)))
+        raise TypeError(msg)
+    standard_name = cube.name()
+    perc_coord = None
+    perc_found = 0
+    for coord in cube.coords():
+        if coord.name().find('percentile') >= 0:
+            perc_found += 1
+            perc_coord = coord
+    if perc_found != 1:
+        if perc_found == 0:
+            msg = ('No percentile coord found on {0:s} data'.format(
+                standard_name))
+            raise CoordinateNotFoundError(msg)
+        else:
+            msg = ('Too many percentile coords found on {0:s} data'.format(
+                standard_name))
+            raise ValueError(msg)
+    return perc_coord

@@ -38,8 +38,8 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.blending.weights import WeightsUtilities
+from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.tests.metadata.test_amend import create_cube_with_threshold
-from improver.utilities.cube_checker import find_threshold_coordinate
 
 
 class Test__repr__(IrisTest):

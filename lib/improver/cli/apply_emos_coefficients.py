@@ -48,7 +48,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     GenerateProbabilitiesFromMeanAndVariance,
     RebadgePercentilesAsRealizations,
     ResamplePercentiles)
-from improver.utilities.cube_checker import find_percentile_coordinate
+from improver.metadata.probabilistic import find_percentile_coordinate
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
