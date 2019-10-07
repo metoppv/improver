@@ -246,7 +246,7 @@ class Test__get_calibrated_forecast_predictors_realizations(
     def test_with_statsmodels(self):
         """
         Test that the expected values are returned by this function when using
-        statsmodel.
+        statsmodels.
         """
         optimised_coeffs = dict(
             zip(self.coeffs_from_statsmodels_realizations.coord(
@@ -269,7 +269,7 @@ class Test__get_calibrated_forecast_predictors_realizations(
     def test_without_statsmodels(self):
         """
         Test that the expected values are returned by this function when not
-        using statsmodel.
+        using statsmodels.
         """
         optimised_coeffs = dict(
             zip(self.coeffs_from_no_statsmodels_realizations.coord(
@@ -340,7 +340,7 @@ class Test_calibrate_forecast_data(
         """Test that the calibrated forecast using ensemble mean as the
         predictor returns the correct values. Check that the calibrated mean
         is similar to when the ensemble realizations are used as the predictor
-        with and without statsmodel."""
+        with and without statsmodels."""
 
         optimised_coeffs = dict(
             zip(self.coeffs_from_mean.coord("coefficient_name").points,
@@ -369,9 +369,9 @@ class Test_calibrate_forecast_data(
         self.assertIsInstance(calibrated_forecast_predictor, iris.cube.Cube)
         self.assertIsInstance(calibrated_forecast_var, iris.cube.Cube)
 
-    def test_realization_as_predictor_with_statsmodel(self):
+    def test_realization_as_predictor_with_statsmodels(self):
         """Test that the calibrated forecast using realization as the
-        predictor returns the correct values when using statsmodel. Check that
+        predictor returns the correct values when using statsmodels. Check that
         the calibrated mean is similar to when not using statsmodels and to
         when the ensemble mean is used as the predictor."""
 
@@ -405,9 +405,9 @@ class Test_calibrate_forecast_data(
         self.assertIsInstance(calibrated_forecast_predictor, iris.cube.Cube)
         self.assertIsInstance(calibrated_forecast_var, iris.cube.Cube)
 
-    def test_realization_as_predictor_without_statsmodel(self):
+    def test_realization_as_predictor_without_statsmodels(self):
         """Test that the calibrated forecast using realization as the
-        predictor returns the correct values when not using statsmodel. Check
+        predictor returns the correct values when not using statsmodels. Check
         that the calibrated mean is similar to when using statsmodels and to
         when the ensemble mean is used as the predictor."""
 
