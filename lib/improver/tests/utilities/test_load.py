@@ -32,7 +32,6 @@
 
 import os
 import unittest
-from subprocess import call as Call
 from tempfile import mkdtemp
 
 import iris
@@ -63,8 +62,8 @@ class Test_load_cube(IrisTest):
 
     def tearDown(self):
         """Remove temporary directories created for testing."""
-        Call(['rm', '-f', self.filepath])
-        Call(['rmdir', self.directory])
+        os.remove(self.filepath)
+        os.rmdir(self.directory)
 
     def test_a_cube_is_loaded(self):
         """Test that a cube is loaded when a valid filepath is provided."""
@@ -249,10 +248,16 @@ class Test_load_cubelist(IrisTest):
 
     def tearDown(self):
         """Remove temporary directories created for testing."""
-        Call(['rm', '-f', self.filepath])
-        Call(['rm', '-f', self.low_cloud_filepath])
-        Call(['rm', '-f', self.med_cloud_filepath])
-        Call(['rmdir', self.directory])
+        os.remove(self.filepath)
+        try:
+            os.remove(self.low_cloud_filepath)
+        except FileNotFoundError:
+            pass
+        try:
+            os.remove(self.med_cloud_filepath)
+        except FileNotFoundError:
+            pass
+        os.rmdir(self.directory)
 
     def test_a_cubelist_is_loaded(self):
         """Test that a cubelist is loaded when a valid filepath is provided."""

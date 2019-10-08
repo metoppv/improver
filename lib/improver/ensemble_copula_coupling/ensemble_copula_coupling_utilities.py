@@ -119,13 +119,11 @@ def choose_set_of_percentiles(no_of_percentiles, sampling="quantile"):
         # Generate percentiles from 1/N+1 to N/N+1.
         # Random sampling doesn't currently sample the ends of the
         # distribution i.e. 0 to 1/N+1 and N/N+1 to 1.
-        percentiles = []
-        for _ in range(no_of_percentiles):
-            percentiles.append(
-                random.uniform(
-                    1/float(1+no_of_percentiles),
-                    no_of_percentiles/float(1+no_of_percentiles)))
-        percentiles = sorted(percentiles)
+        percentiles = np.random.uniform(
+            1/float(1+no_of_percentiles),
+            no_of_percentiles/float(1+no_of_percentiles),
+            no_of_percentiles)
+        percentiles = sorted(list(percentiles))
     else:
         msg = "The {} sampling option is not yet implemented.".format(
             sampling)

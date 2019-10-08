@@ -41,7 +41,8 @@
       "$IMPROVER_ACC_TEST_DIR/neighbour-finding/inputs/global_orography.nc" \
       "$IMPROVER_ACC_TEST_DIR/neighbour-finding/inputs/global_landmask.nc" \
       "$TEST_DIR/output.nc" \
-      --site_coordinate_system "LambertAzimuthalEqualArea(central_latitude=54.9, central_longitude=-2.5, false_easting=0.0, false_northing=0.0, globe=Globe(semimajor_axis=6378137.0, semiminor_axis=6356752.314140356))" \
+      --site_coordinate_system "LambertAzimuthalEqualArea" \
+      --site_coordinate_options '{"central_latitude": 54.9, "central_longitude": -2.5, "false_easting": 0.0, "false_northing": 0.0, "globe": {"semimajor_axis": 6378137.0, "semiminor_axis": 6356752.314140356}}' \
       --site_x_coordinate 'projection_x_coordinate' \
       --site_y_coordinate 'projection_y_coordinate'
   [[ "$status" -eq 0 ]]
