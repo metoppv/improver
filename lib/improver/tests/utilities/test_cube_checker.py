@@ -41,7 +41,6 @@ from iris.tests import IrisTest
 
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube)
-from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_checker import (
     check_for_x_and_y_axes,
     check_cube_coordinates,
