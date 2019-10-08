@@ -930,24 +930,24 @@ class ApplyCoefficientsFromEnsembleCalibration():
             (tuple) : tuple containing:
                 **predicted_mean** (numpy.ndarray):
                     Calibrated mean values in a flattened array.
-                **forecast_predictors** (iris.cube.Cube):
+                **forecast_predictor** (iris.cube.Cube):
                     The forecast predictors, mean values taken by collapsing
                     the realization coordinate.
         """
-        forecast_predictors = self.current_forecast.collapsed(
+        forecast_predictor = self.current_forecast.collapsed(
             "realization", iris.analysis.MEAN)
 
         # Calculate predicted mean = a + b*X, where X is the
         # raw ensemble mean. In this case, b = beta.
         a_and_b = [optimised_coeffs["alpha"], optimised_coeffs["beta"]]
-        forecast_predictor_flat = forecast_predictors.data.flatten()
+        forecast_predictor_flat = forecast_predictor.data.flatten()
         col_of_ones = (
             np.ones(forecast_predictor_flat.shape, dtype=np.float32))
         ones_and_mean = (
             np.column_stack((col_of_ones, forecast_predictor_flat)))
         predicted_mean = np.dot(ones_and_mean, a_and_b)
 
-        return predicted_mean, forecast_predictors
+        return predicted_mean, forecast_predictor
 
     def _get_calibrated_forecast_predictors_realizations(
             self, optimised_coeffs, forecast_vars):
@@ -958,8 +958,6 @@ class ApplyCoefficientsFromEnsembleCalibration():
         such that each realization can be calibrated separately. These
         calibrated realizations are then collapsed to give mean values at each
         point in the domain.
-
-        used is specific to each realization
 
         Args:
             optimised_coeffs (dict):
@@ -973,11 +971,11 @@ class ApplyCoefficientsFromEnsembleCalibration():
             (tuple) : tuple containing:
                 **predicted_mean** (numpy.ndarray):
                     Calibrated mean values in a flattened array.
-                **calibrated_forecast_predictor** (iris.cube.Cube):
+                **forecast_predictor** (iris.cube.Cube):
                     The forecast predictors, mean values taken by collapsing
                     the realization coordinate.
         """
-        forecast_predictors = self.current_forecast
+        forecast_predictor = self.current_forecast
 
         # Calculate predicted mean = a + b*X, where X is the
         # raw ensemble mean. In this case, b = beta^2.
@@ -987,7 +985,7 @@ class ApplyCoefficientsFromEnsembleCalibration():
                 beta_values = np.append(beta_values, optimised_coeffs[key])
         a_and_b = np.append(optimised_coeffs["alpha"], beta_values**2)
         forecast_predictor_flat = (
-            convert_cube_data_to_2d(forecast_predictors))
+            convert_cube_data_to_2d(forecast_predictor))
         forecast_var_flat = forecast_vars.data.flatten()
         col_of_ones = np.ones(forecast_var_flat.shape, dtype=np.float32)
         ones_and_predictor = (
@@ -995,21 +993,20 @@ class ApplyCoefficientsFromEnsembleCalibration():
         predicted_mean = np.dot(ones_and_predictor, a_and_b)
         # Calculate mean of ensemble realizations, as only the
         # calibrated ensemble mean will be returned.
-        calibrated_forecast_predictor = (
-            forecast_predictors.collapsed(
+        forecast_predictor = (
+            forecast_predictor.collapsed(
                 "realization", iris.analysis.MEAN))
 
-        return predicted_mean, calibrated_forecast_predictor
+        return predicted_mean, forecast_predictor
 
     @staticmethod
     def calibrate_forecast_data(optimised_coeffs, predicted_mean,
-                                calibrated_forecast_predictor,
-                                calibrated_forecast_var):
+                                forecast_predictor, forecast_var):
         """
-        Reshape the calibrated_forecast_predictor to the original domain
-        dimensions. Apply the calibration coefficients to the forecast data
-        variance. Return both to give calibrated mean and variance in the
-        original domain dimensions.
+        Create a calibrated_forecast_predictor by reshaping the preddicted mean
+        to the original domain dimensions. Apply the calibration coefficients
+        to the forecast data variance. Return both to give calibrated mean and
+        variance in the original domain dimensions.
 
         Args:
             optimised_coeffs (dict):
@@ -1017,10 +1014,10 @@ class ApplyCoefficientsFromEnsembleCalibration():
                 keys with their corresponding values.
             predicted_mean (numpy.ndarray):
                 Calibrated mean value.
-            calibrated_forecast_predictor (iris.cube.Cube):
+            forecast_predictor (iris.cube.Cube):
                 The forecast predictors, mean values taken by collapsing
                 the realization coordinate.
-            calibrated_forecast_var (iris.cube.Cube):
+            forecast_var (iris.cube.Cube):
                 A cube of forecast predictor variance calculated across
                 realizations.
 
@@ -1035,18 +1032,19 @@ class ApplyCoefficientsFromEnsembleCalibration():
                     ensemble variance, either the ensemble mean or
                     the ensemble realizations.
         """
-        xlen = len(calibrated_forecast_predictor.coord(axis="x").points)
-        ylen = len(calibrated_forecast_predictor.coord(axis="y").points)
+        xlen = len(forecast_predictor.coord(axis="x").points)
+        ylen = len(forecast_predictor.coord(axis="y").points)
 
-        calibrated_forecast_predictor.data = (
-            np.reshape(predicted_mean, (ylen, xlen)))
+        calibrated_forecast_predictor = forecast_predictor.copy(
+            data=np.reshape(predicted_mean, (ylen, xlen)))
 
         # Calculating the predicted variance, based on the
         # raw variance S^2, where predicted variance = c + dS^2,
         # where c = (gamma)^2 and d = (delta)^2
-        calibrated_forecast_var.data = (
-            optimised_coeffs["gamma"]**2 +
-            optimised_coeffs["delta"]**2 * calibrated_forecast_var.data)
+        calibrated_forecast_var = forecast_var.copy(
+            data=(
+                optimised_coeffs["gamma"]**2 +
+                optimised_coeffs["delta"]**2 * forecast_var.data))
 
         return calibrated_forecast_predictor, calibrated_forecast_var
 
