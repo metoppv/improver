@@ -1043,7 +1043,7 @@ class ApplyCoefficientsFromEnsembleCalibration():
     def calibrate_forecast_data(optimised_coeffs, predicted_mean,
                                 forecast_predictor, forecast_var):
         """
-        Create a calibrated_forecast_predictor by reshaping the preddicted mean
+        Create a calibrated_forecast_predictor by reshaping the predicted mean
         to the original domain dimensions. Apply the calibration coefficients
         to the forecast data variance. Return both to give calibrated mean and
         variance in the original domain dimensions.
