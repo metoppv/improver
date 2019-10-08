@@ -96,7 +96,7 @@ def main(argv=None):
                         "required changes to the metadata. Information "
                         "describing the intended contents of the json file "
                         "is available in "
-                        "improver.metadata.amend.amend_metadata."
+                        "improver.metadata.amend.amend_metadata. "
                         "Every output cube will have the metadata_dict "
                         "applied. Defaults to None.", type=str)
     parser.add_argument("--max_lead_time", type=int, default=360,
