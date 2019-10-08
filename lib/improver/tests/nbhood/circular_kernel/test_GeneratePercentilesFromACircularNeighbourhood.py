@@ -404,7 +404,7 @@ class Test_run(IrisTest):
     def test_single_point_lat_long(self):
         """Test behaviour for a single grid cell on lat long grid."""
         cube = set_up_cube_lat_long()
-        msg = "Invalid grid: projection_x/y coords required"
+        msg = "Unable to convert from"
         radius = 6000.
         with self.assertRaisesRegex(ValueError, msg):
             GeneratePercentilesFromACircularNeighbourhood().run(cube, radius)

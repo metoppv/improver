@@ -483,10 +483,11 @@ class SquareNeighbourhood(object):
         # original_data * mask array.
         original_attributes = cube.attributes
         original_methods = cube.cell_methods
-        grid_cells_x, grid_cells_y = (
+        grid_cells_x = (
             convert_distance_into_number_of_grid_cells(
                 cube, radius,
                 max_distance_in_grid_cells=MAX_RADIUS_IN_GRID_CELLS))
+        grid_cells_y = grid_cells_x
         result_slices = iris.cube.CubeList()
         for cube_slice in cube.slices([cube.coord(axis='y'),
                                        cube.coord(axis='x')]):
