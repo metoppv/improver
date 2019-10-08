@@ -31,7 +31,6 @@
 """Unit tests for saving functionality."""
 
 import os
-import shutil
 import unittest
 from tempfile import mkdtemp
 
@@ -85,7 +84,11 @@ class Test_save_netcdf(IrisTest):
 
     def tearDown(self):
         """ Remove temporary directories created for testing. """
-        shutil.rmtree(self.directory, ignore_errors=True)
+        try:
+            os.remove(self.filepath)
+        except FileNotFoundError:
+            pass
+        os.rmdir(self.directory)
 
     def test_basic_cube(self):
         """ Test saves file in required location """
@@ -226,7 +229,11 @@ class Test__append_metadata_cube(IrisTest):
 
     def tearDown(self):
         """ Remove temporary directories created for testing. """
-        shutil.rmtree(self.directory, ignore_errors=True)
+        try:
+            os.remove(self.filepath)
+        except FileNotFoundError:
+            pass
+        os.rmdir(self.directory)
 
     def test_bald_attribute_added(self):
         """Test that the bald__isPrefixedBy attribute is added to each cube

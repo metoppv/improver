@@ -288,7 +288,7 @@ def process(orography, landmask, site_list, metadata_dict=None,
         if scrs not in PROJECTION_LIST:
             raise ValueError('invalid projection {}'.format(scrs))
         site_crs = getattr(ccrs, scrs)
-        scrs_opts = json.loads(kwargs['site_coordinate_options'])
+        scrs_opts = json.loads(kwargs.pop('site_coordinate_options', '{}'))
         if 'globe' in scrs_opts:
             crs_globe = ccrs.Globe(**scrs_opts['globe'])
             del scrs_opts['globe']
@@ -296,7 +296,6 @@ def process(orography, landmask, site_list, metadata_dict=None,
             crs_globe = ccrs.Globe()
         kwargs['site_coordinate_system'] = site_crs(
             globe=crs_globe, **scrs_opts)
-        del kwargs['site_coordinate_options']
     # Call plugin to generate neighbour cubes
     if all_methods:
         methods = [

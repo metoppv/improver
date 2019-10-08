@@ -31,7 +31,6 @@
 """Unit tests for loading functionality."""
 
 import os
-import shutil
 import unittest
 from tempfile import mkdtemp
 
@@ -63,7 +62,8 @@ class Test_load_cube(IrisTest):
 
     def tearDown(self):
         """Remove temporary directories created for testing."""
-        shutil.rmtree(self.directory, ignore_errors=True)
+        os.remove(self.filepath)
+        os.rmdir(self.directory)
 
     def test_a_cube_is_loaded(self):
         """Test that a cube is loaded when a valid filepath is provided."""
@@ -248,7 +248,16 @@ class Test_load_cubelist(IrisTest):
 
     def tearDown(self):
         """Remove temporary directories created for testing."""
-        shutil.rmtree(self.directory, ignore_errors=True)
+        os.remove(self.filepath)
+        try:
+            os.remove(self.low_cloud_filepath)
+        except FileNotFoundError:
+            pass
+        try:
+            os.remove(self.med_cloud_filepath)
+        except FileNotFoundError:
+            pass
+        os.rmdir(self.directory)
 
     def test_a_cubelist_is_loaded(self):
         """Test that a cubelist is loaded when a valid filepath is provided."""

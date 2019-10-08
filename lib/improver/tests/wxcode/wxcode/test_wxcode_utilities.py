@@ -32,7 +32,7 @@
 
 import datetime
 import pathlib
-import shutil
+import os
 import unittest
 from tempfile import mkdtemp
 
@@ -254,7 +254,8 @@ class Test_add_wxcode_metadata(IrisTest):
 
     def tearDown(self):
         """Remove temporary directories created for testing."""
-        shutil.rmtree(self.data_directory)
+        os.remove(self.nc_file)
+        os.rmdir(self.data_directory)
 
     def test_basic(self):
         """Test that the function returns a cube."""
