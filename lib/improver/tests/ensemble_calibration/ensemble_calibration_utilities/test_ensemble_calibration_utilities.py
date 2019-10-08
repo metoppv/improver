@@ -282,45 +282,27 @@ class Test_check_predictor_of_mean_flag(IrisTest):
 
     def test_mean(self):
         """
-        Test that the utility does not fail when the predictor_of_mean_flag
-        is "mean".
+        Test that the utility does not raise an exception when
+        predictor_of_mean_flag = "mean".
         """
-        predictor_of_mean_flag = "mean"
-
-        try:
-            check_predictor_of_mean_flag(predictor_of_mean_flag)
-        except ValueError as err:
-            msg = ("_check_predictor_of_mean_flag raised "
-                   "ValueError unexpectedly."
-                   "Message is {}").format(err)
-            self.fail(msg)
+        check_predictor_of_mean_flag("mean")
 
     def test_realizations(self):
         """
-        Test that the utility does not fail when the predictor_of_mean_flag
-        is "realizations".
+        Test that the utility does not raise an exception when
+        predictor_of_mean_flag = "realizations".
         """
-        predictor_of_mean_flag = "realizations"
+        check_predictor_of_mean_flag("realizations")
 
-        try:
-            check_predictor_of_mean_flag(predictor_of_mean_flag)
-        except ValueError as err:
-            msg = ("_check_predictor_of_mean_flag raised "
-                   "ValueError unexpectedly."
-                   "Message is {}").format(err)
-            self.fail(msg)
-
-    def test_foo(self):
+    def test_invalid_predictor_of_mean_flag(self):
         """
-        Test that the utility fails when the predictor_of_mean_flag
-        is "foo" i.e. a name not present in the list of accepted values
-        for the predictor_of_mean_flag.
+        Test that the utility raises an exception when
+        predictor_of_mean_flag = "foo", a name not present in the list of
+        accepted values for the predictor_of_mean_flag.
         """
-        predictor_of_mean_flag = "foo"
-
         msg = "The requested value for the predictor_of_mean_flag"
         with self.assertRaisesRegex(ValueError, msg):
-            check_predictor_of_mean_flag(predictor_of_mean_flag)
+            check_predictor_of_mean_flag("foo")
 
 
 if __name__ == '__main__':
