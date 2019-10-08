@@ -160,12 +160,6 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Create a cube with a single non-zero point."""
-
-        latitude = DimCoord(np.linspace(-45.0, 45.0, 5), 'latitude',
-                            units='degrees')
-        longitude = DimCoord(np.linspace(120, 180, 5), 'longitude',
-                             units='degrees')
-
         self.fuzzy_factor = 0.5
         data = np.zeros((1, 5, 5), dtype=np.float32)
         data[0][2][2] = 0.5  # ~2 mm/hr
