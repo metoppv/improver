@@ -918,8 +918,8 @@ class ApplyCoefficientsFromEnsembleCalibration():
 
     def _get_calibrated_forecast_predictors_mean(self, optimised_coeffs):
         """
-        Function to get appropriately formatted forecast_predictors when the
-        predictor of mean used is the ensemble mean.
+        Function to get calibrated forecast_predictors when the predictor of
+        mean used is the ensemble mean.
 
         Args:
             optimised_coeffs (dict):
@@ -929,7 +929,7 @@ class ApplyCoefficientsFromEnsembleCalibration():
         Returns:
             (tuple) : tuple containing:
                 **predicted_mean** (numpy.ndarray):
-                    Calibrated mean value.
+                    Calibrated mean values in a flattened array.
                 **forecast_predictors** (iris.cube.Cube):
                     The forecast predictors, mean values taken by collapsing
                     the realization coordinate.
@@ -952,8 +952,14 @@ class ApplyCoefficientsFromEnsembleCalibration():
     def _get_calibrated_forecast_predictors_realizations(
             self, optimised_coeffs, forecast_vars):
         """
-        Function to get appropriately formatted forecast_predictors when the
-        predictor of mean used each realization separately.
+        Function to get calibrated forecast_predictors when the predictor of
+        mean is the mean of each distinct realization. The domain mean in a
+        given realization has been used to generate calibration coefficients,
+        such that each realization can be calibrated separately. These
+        calibrated realizations are then collapsed to give mean values at each
+        point in the domain.
+
+        used is specific to each realization
 
         Args:
             optimised_coeffs (dict):
@@ -966,7 +972,7 @@ class ApplyCoefficientsFromEnsembleCalibration():
         Returns:
             (tuple) : tuple containing:
                 **predicted_mean** (numpy.ndarray):
-                    Calibrated mean value.
+                    Calibrated mean values in a flattened array.
                 **calibrated_forecast_predictor** (iris.cube.Cube):
                     The forecast predictors, mean values taken by collapsing
                     the realization coordinate.
@@ -1000,7 +1006,10 @@ class ApplyCoefficientsFromEnsembleCalibration():
                                 calibrated_forecast_predictor,
                                 calibrated_forecast_var):
         """
-        Apply the calibration coefficients to the forecast data.
+        Reshape the calibrated_forecast_predictor to the original domain
+        dimensions. Apply the calibration coefficients to the forecast data
+        variance. Return both to give calibrated mean and variance in the
+        original domain dimensions.
 
         Args:
             optimised_coeffs (dict):

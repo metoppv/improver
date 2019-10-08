@@ -409,13 +409,20 @@ class Test_time_coords_match(IrisTest):
     """Test for function that tests if cube temporal coordinates match."""
 
     def setUp(self):
-        """Create two unmatching cubes for temporal comparison."""
+        """Create a cube for temporal coordinate comparisons."""
         self.data = np.ones((3, 3), dtype=np.float32)
         self.ref_cube = set_up_variable_cube(self.data)
 
     def test_match(self):
         """Test returns True when cubes time coordinates match."""
         result = time_coords_match(self.ref_cube, self.ref_cube.copy())
+        self.assertTrue(result)
+
+    def test_match_with_raise_exception_option(self):
+        """Test returns True when cubes time coordinates match. In this case
+        the raise_exception option is True but we do not expect a exception."""
+        result = time_coords_match(
+            self.ref_cube, self.ref_cube.copy(), raise_exception=True)
         self.assertTrue(result)
 
     def test_validity_time_mismatch(self):
@@ -466,6 +473,14 @@ class Test_time_coords_match(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             time_coords_match(self.ref_cube, cube_different_both,
                               raise_exception=True)
+
+    def test_coordinate_not_found_exception(self):
+        """Test an exception is raised if any of the temporal coordinates are
+        missing."""
+        self.ref_cube.remove_coord('time')
+        msg = "Expected to find exactly 1 time coordinate, but found none."
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
+            time_coords_match(self.ref_cube, self.ref_cube.copy())
 
 
 class Test_find_percentile_coordinate(IrisTest):

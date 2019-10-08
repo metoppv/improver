@@ -108,6 +108,32 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
                 self.expected_realizations_gaussian_no_statsmodels,
                 self.current_temperature_forecast_cube))
 
+        # Some expected data that are used in various tests.
+        self.expected_calibrated_predictor_mean = (
+            np.array([[273.7371, 274.6500, 275.4107],
+                      [276.8409, 277.6321, 278.3928],
+                      [279.4884, 280.1578, 280.9794]]))
+        self.expected_calibrated_variance_mean = (
+            np.array([[0.2134, 0.2158, 0.0127],
+                      [0.0247, 0.0215, 0.0127],
+                      [0.0581, 0.0032, 0.0008]]))
+        self.expected_calibrated_predictor_statsmodels_realizations = (
+            np.array([[274.2120, 275.1703, 275.3308],
+                      [277.0504, 277.4221, 278.3881],
+                      [280.0826, 280.3248, 281.2376]]))
+        self.expected_calibrated_variance_statsmodels_realizations = (
+            np.array([[0.8975, 0.9075, 0.0536],
+                      [0.1038, 0.0904, 0.0536],
+                      [0.2444, 0.0134, 0.0033]]))
+        self.expected_calibrated_predictor_no_statsmodels_realizations = (
+            np.array([[274.1428, 275.0543, 275.2956],
+                      [277.0344, 277.4110, 278.3598],
+                      [280.0760, 280.3517, 281.2437]]))
+        self.expected_calibrated_variance_no_statsmodels_realizations = (
+            np.array([[0.99803287, 1.0091798, 0.06006174],
+                      [0.11588794, 0.10100815, 0.06006173],
+                      [0.27221495, 0.01540077, 0.00423326]]))
+
 
 class Test__init__(IrisTest):
 
@@ -193,9 +219,7 @@ class Test__get_calibrated_forecast_predictors_mean(
         self.plugin.current_forecast = self.current_temperature_forecast_cube
 
         self.expected_calibrated_predictor_mean = (
-            np.array([273.7371, 274.6500, 275.4107,
-                      276.8409, 277.6321, 278.3928,
-                      279.4884, 280.1578, 280.9794]))
+            self.expected_calibrated_predictor_mean.flatten())
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -231,15 +255,12 @@ class Test__get_calibrated_forecast_predictors_realizations(
 
         self.plugin = Plugin()
         self.plugin.current_forecast = self.current_temperature_forecast_cube
-
         self.expected_calibrated_predictor_statsmodels_realizations = (
-            np.array([274.2120, 275.1703, 275.3308,
-                      277.0504, 277.4221, 278.3881,
-                      280.0826, 280.3248, 281.2376]))
+            self.expected_calibrated_predictor_statsmodels_realizations.
+            flatten())
         self.expected_calibrated_predictor_no_statsmodels_realizations = (
-            np.array([274.1428, 275.0543, 275.2956,
-                      277.0344, 277.4110, 278.3598,
-                      280.0760, 280.3517, 281.2437]))
+            self.expected_calibrated_predictor_no_statsmodels_realizations.
+            flatten())
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -310,31 +331,6 @@ class Test_calibrate_forecast_data(
                 "realization", iris.analysis.MEAN))
 
         self.plugin = Plugin()
-
-        self.expected_calibrated_predictor_mean = (
-            np.array([[273.7371, 274.6500, 275.4107],
-                      [276.8409, 277.6321, 278.3928],
-                      [279.4884, 280.1578, 280.9794]]))
-        self.expected_calibrated_variance_mean = (
-            np.array([[0.2134, 0.2158, 0.0127],
-                      [0.0247, 0.0215, 0.0127],
-                      [0.0581, 0.0032, 0.0008]]))
-        self.expected_calibrated_predictor_statsmodels_realizations = (
-            np.array([[274.2120, 275.1703, 275.3308],
-                      [277.0504, 277.4221, 278.3881],
-                      [280.0826, 280.3248, 281.2376]]))
-        self.expected_calibrated_variance_statsmodels_realizations = (
-            np.array([[0.8975, 0.9075, 0.0536],
-                      [0.1038, 0.0904, 0.0536],
-                      [0.2444, 0.0134, 0.0033]]))
-        self.expected_calibrated_predictor_no_statsmodels_realizations = (
-            np.array([[274.1428, 275.0543, 275.2956],
-                      [277.0344, 277.4110, 278.3598],
-                      [280.0760, 280.3517, 281.2437]]))
-        self.expected_calibrated_variance_no_statsmodels_realizations = (
-            np.array([[0.99803287, 1.0091798, 0.06006174],
-                      [0.11588794, 0.10100815, 0.06006173],
-                      [0.27221495, 0.01540077, 0.00423326]]))
 
     def test_mean_as_predictor(self):
         """Test that the calibrated forecast using ensemble mean as the
@@ -450,15 +446,6 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
         super().setUp()
         self.plugin = Plugin()
 
-        self.expected_calibrated_predictor_mean = (
-            np.array([[273.7371, 274.6500, 275.4107],
-                      [276.8409, 277.6321, 278.3928],
-                      [279.4884, 280.1578, 280.9794]]))
-        self.expected_calibrated_variance_mean = (
-            np.array([[0.2134, 0.2158, 0.0127],
-                      [0.0247, 0.0215, 0.0127],
-                      [0.0581, 0.0032, 0.0008]]))
-
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_variable_setting(self):
@@ -487,6 +474,7 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
         self.assertCalibratedVariablesAlmostEqual(
             calibrated_forecast_var.data,
             self.expected_calibrated_variance_mean)
+        self.assertEqual(calibrated_forecast_predictor.dtype, np.float32)
 
 
 if __name__ == '__main__':

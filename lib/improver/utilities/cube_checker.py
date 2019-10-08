@@ -257,7 +257,7 @@ def time_coords_match(first_cube, second_cube, raise_exception=False):
     Raised:
         ValueError: The two cubes are not equivalent.
         CoordinateNotFoundError: One of the expected temporal coordinates is
-                                 not present on one or more cubes.
+        not present on one or more cubes.
     """
     cubes_equivalent = True
     mismatches = []
