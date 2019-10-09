@@ -474,7 +474,7 @@ def find_latest_cycletime(cubelist):
 
 
 def extract_nearest_time_point(
-        cube, dt, time_name="time", allowed_dt_difference=None):
+        cube, dt, time_name="time", allowed_dt_difference=0):
     """Find the nearest time point to the time point provided.
 
     Args:
@@ -487,11 +487,12 @@ def extract_nearest_time_point(
         time_name (str):
             Name of the "time" coordinate that will be extracted. This must be
             "time" or "forecast_reference_time".
-        allowed_dt_difference (float or None):
-            Defines a limit to the maximum difference between the datetime
-            provided and the time points available within the cube. If
-            this limit is exceeded, then an error is raised.
+        allowed_dt_difference (int):
+            A float in seconds to define a limit to the maximum difference
+            between the datetime provided and the time points available within
+            the cube. If this limit is exceeded, then an error is raised.
             This must be defined in seconds.
+            Default is 0.
 
     Returns:
         cube (iris.cube.Cube):
