@@ -32,7 +32,7 @@
 
 import pytest
 
-from improver.cli import combine
+from improver import cli
 from improver.tests import acceptance as acc
 
 
@@ -43,12 +43,14 @@ def test_basic(tmp_path):
     kgo_dir = acc.kgo_root() / "combine/basic"
     kgo_path = kgo_dir / "kgo_cloud.nc"
     output_path = tmp_path / "output.nc"
-    args = ["--operation=max",
+    args = ["improver",
+            "combine",
+            "--operation=max",
             "--new-name=cloud_area_fraction",
             str(kgo_dir / "low_cloud.nc"),
             str(kgo_dir / "medium_cloud.nc"),
-            str(output_path)]
-    combine.main(args)
+            f"--output={output_path}"]
+    cli.run_main(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -61,13 +63,15 @@ def test_metadata(tmp_path):
     precip_meta = kgo_dir / "prob_precip.json"
     output_path = tmp_path / "output.nc"
     new_name = "probability_of_total_precipitation_rate_between_thresholds"
-    args = ["--operation=-",
+    args = ["improver",
+            "combine",
+            "--operation=-",
             f"--new-name={new_name}",
             f"--metadata_jsonfile={precip_meta}",
             str(kgo_dir / "precip_prob_0p1.nc"),
             str(kgo_dir / "precip_prob_1p0.nc"),
-            str(output_path)]
-    combine.main(args)
+            f"--output={output_path}"]
+    cli.run_main(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -81,11 +85,13 @@ def test_minmax_temperatures(tmp_path, minmax):
     timebound_meta = kgo_dir / "time_bound.json"
     temperatures = kgo_dir.glob(f"*temperature_at_screen_level_{minmax}.nc")
     output_path = tmp_path / "output.nc"
-    args = [f"--operation={minmax}",
+    args = ["improver",
+            "combine",
+            f"--operation={minmax}",
             f"--metadata_jsonfile={timebound_meta}",
             *[str(t) for t in temperatures],
-            str(output_path)]
-    combine.main(args)
+            f"--output={output_path}"]
+    cli.run_main(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -98,10 +104,12 @@ def test_combine_accumulation(tmp_path):
     rains = kgo_dir.glob("*rainfall_accumulation.nc")
     timebound_meta = kgo_dir / "time_bound.json"
     output_path = tmp_path / "output.nc"
-    args = [f"--metadata_jsonfile={timebound_meta}",
+    args = ["improver",
+            "combine",
+            f"--metadata_jsonfile={timebound_meta}",
             *[str(r) for r in rains],
-            str(output_path)]
-    combine.main(args)
+            f"--output={output_path}"]
+    cli.run_main(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -114,9 +122,11 @@ def test_mean_temperature(tmp_path):
     timebound_meta = kgo_dir / "time_bound.json"
     temperatures = kgo_dir.glob("*temperature_at_screen_level.nc")
     output_path = tmp_path / "output.nc"
-    args = ["--operation=mean",
+    args = ["improver",
+            "combine",
+            "--operation=mean",
             f"--metadata_jsonfile={timebound_meta}",
             *[str(t) for t in temperatures],
-            str(output_path)]
-    combine.main(args)
+            f"--output={output_path}"]
+    cli.run_main(args)
     acc.compare(output_path, kgo_path)
