@@ -32,8 +32,8 @@
 """Script to extend a radar mask based on coverage data."""
 
 from improver.argparser import ArgParser
+from improver.metadata.enforce_datatypes_units import check_cube_not_float64
 from improver.nowcasting.utilities import ExtendRadarMask
-from improver.utilities.cube_checker import check_cube_not_float64
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 

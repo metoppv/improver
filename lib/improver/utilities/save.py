@@ -35,8 +35,7 @@ import warnings
 import cf_units
 import iris
 
-from improver.utilities.cube_checker import check_cube_not_float64
-from improver.utilities.cube_units import enforce_units_and_dtypes
+from improver.metadata.enforce_datatypes_units import enforce_units_and_dtypes
 
 
 def _append_metadata_cube(cubelist, global_keys):

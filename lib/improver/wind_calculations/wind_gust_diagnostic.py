@@ -35,7 +35,7 @@ import warnings
 import iris
 
 from improver.cube_combiner import CubeCombiner
-from improver.utilities.cube_checker import find_percentile_coordinate
+from improver.metadata.probabilistic import find_percentile_coordinate
 
 
 class WindGustDiagnostic(object):

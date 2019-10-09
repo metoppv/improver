@@ -96,7 +96,7 @@ def main(argv=None):
                         "required changes to the metadata. Information "
                         "describing the intended contents of the json file "
                         "is available in "
-                        "improver.utilities.cube_metadata.amend_metadata."
+                        "improver.metadata.amend.amend_metadata. "
                         "Every output cube will have the metadata_dict "
                         "applied. Defaults to None.", type=str)
     parser.add_argument("--max_lead_time", type=int, default=360,
@@ -218,7 +218,7 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
         metadata_dict (dict):
             Dictionary containing the required changes to the metadata.
             Information describing the intended contents of the dictionary
-            is available in improver.utilities.cube_metadata.amend_metadata.
+            is available in improver.metadata.amend.amend_metadata.
             Every output cube will have the metadata_dict applied.
             Default is None.
         max_lead_time (int):
