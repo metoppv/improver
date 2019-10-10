@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Module to contain the default units for use within IMPROVER.
+Module containing the default units and datatypes for use within IMPROVER.
 
 The DEFAULT_UNITS dictionary has the following form.
 
@@ -78,6 +78,8 @@ DEFAULT_UNITS = {
     "precipitation_rate": {"unit": "m s-1"},
     "pressure": {"unit": "Pa"},
     "temperature": {"unit": "K"},
+    "temperature_at_screen_level_daytime_max": {"unit": "K"},
+    "temperature_at_screen_level_nighttime_min": {"unit": "K"},
     "thickness": {"unit": "m"},
     "ultraviolet_flux": {"unit": "W m-2"},
     "ultraviolet_index": {"unit": "1"},

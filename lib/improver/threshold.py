@@ -165,14 +165,14 @@ class BasicThreshold(object):
 
         # check that thresholds and fuzzy_bounds are self-consistent
         for thr, bounds in zip(self.thresholds, self.fuzzy_bounds):
-            assert len(bounds) == 2, (
-                "Invalid bounds for one threshold: {}. "
-                "Expected 2 floats.".format(bounds))
-            bounds_msg = ("Threshold must be within bounds: "
-                          "!( {} <= {} <= {} )".format(bounds[0],
-                                                       thr, bounds[1]))
-            assert bounds[0] <= thr, bounds_msg
-            assert bounds[1] >= thr, bounds_msg
+            if len(bounds) != 2:
+                raise ValueError("Invalid bounds for one threshold: {}."
+                                 " Expected 2 floats.".format(bounds))
+            if bounds[0] > thr or bounds[1] < thr:
+                bounds_msg = ("Threshold must be within bounds: "
+                              "!( {} <= {} <= {} )".format(bounds[0],
+                                                           thr, bounds[1]))
+                raise ValueError(bounds_msg)
 
         # Dict of known logical comparisons. Each key contains a dict of
         # {'function': The operator function for this comparison_operator,

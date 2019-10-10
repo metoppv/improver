@@ -71,7 +71,8 @@ class Test_process(IrisTest):
         realizations = iris.cube.CubeList()
         for i in range(3):
             realization = input_cube.copy()
-            realization.coord("realization").points = np.array(i)
+            realization.coord("realization").points = np.array(
+                i, dtype=np.int32)
             realizations.append(realization)
         self.input_cube = realizations.merge_cube()
         # Create a second cube from a later forecast with a different set of
@@ -81,7 +82,8 @@ class Test_process(IrisTest):
             self.input_cube2.coord("forecast_reference_time").points[0] + 1)
         self.input_cube2.coord("forecast_period").points = np.array(
             self.input_cube2.coord("forecast_period").points[0] - 1)
-        self.input_cube2.coord("realization").points = np.array([3, 4, 5])
+        self.input_cube2.coord("realization").points = np.array(
+            [3, 4, 5], dtype=np.int32)
         # Put the two cubes in a cubelist ready to use in the plugin.
         self.input_cubelist = iris.cube.CubeList(
             [self.input_cube, self.input_cube2])
@@ -97,7 +99,7 @@ class Test_process(IrisTest):
             self.input_cubelist)
         expected_forecast_period = np.array(3)
         expected_forecast_ref_time = np.array([402292.])
-        expected_realizations = np.array([0, 1, 2, 3, 4, 5])
+        expected_realizations = [0, 1, 2, 3, 4, 5]
         self.assertArrayAlmostEqual(
             result.coord("forecast_period").points, expected_forecast_period)
         self.assertArrayAlmostEqual(
@@ -105,6 +107,8 @@ class Test_process(IrisTest):
             expected_forecast_ref_time)
         self.assertArrayAlmostEqual(
             result.coord("realization").points, expected_realizations)
+        self.assertEqual(
+            result.coord("realization").dtype, np.int32)
 
     def test_cycletime(self):
         """Test that the expected metadata is correct with a different
@@ -113,7 +117,7 @@ class Test_process(IrisTest):
             self.input_cubelist)
         expected_forecast_period = np.array(1)
         expected_forecast_ref_time = np.array([402294.])
-        expected_realizations = np.array([0, 1, 2, 3, 4, 5])
+        expected_realizations = [0, 1, 2, 3, 4, 5]
         self.assertArrayAlmostEqual(
             result.coord("forecast_period").points, expected_forecast_period)
         self.assertArrayAlmostEqual(
@@ -121,16 +125,19 @@ class Test_process(IrisTest):
             expected_forecast_ref_time)
         self.assertArrayAlmostEqual(
             result.coord("realization").points, expected_realizations)
+        self.assertEqual(
+            result.coord("realization").dtype, np.int32)
 
     def test_realizations(self):
         """Test that the expected metadata is correct with a different
            realizations"""
-        self.input_cube2.coord("realization").points = np.array([6, 7, 8])
+        self.input_cube2.coord("realization").points = np.array(
+            [6, 7, 8], dtype=np.int32)
         result = GenerateTimeLaggedEnsemble().process(
             self.input_cubelist)
         expected_forecast_period = np.array(3)
         expected_forecast_ref_time = np.array([402292.])
-        expected_realizations = np.array([0, 1, 2, 6, 7, 8])
+        expected_realizations = [0, 1, 2, 6, 7, 8]
         self.assertArrayAlmostEqual(
             result.coord("forecast_period").points, expected_forecast_period)
         self.assertArrayAlmostEqual(
@@ -138,6 +145,8 @@ class Test_process(IrisTest):
             expected_forecast_ref_time)
         self.assertArrayAlmostEqual(
             result.coord("realization").points, expected_realizations)
+        self.assertEqual(
+            result.coord("realization").dtype, np.int32)
 
     def test_duplicate_realizations(self):
         """Test that the expected metadata is correct with different
@@ -148,7 +157,7 @@ class Test_process(IrisTest):
             self.input_cubelist)
         expected_forecast_period = np.array(3)
         expected_forecast_ref_time = np.array([402292.])
-        expected_realizations = np.array([0, 1, 2, 3, 4, 5])
+        expected_realizations = [0, 1, 2, 3, 4, 5]
         self.assertArrayAlmostEqual(
             result.coord("forecast_period").points, expected_forecast_period)
         self.assertArrayAlmostEqual(
@@ -156,6 +165,8 @@ class Test_process(IrisTest):
             expected_forecast_ref_time)
         self.assertArrayAlmostEqual(
             result.coord("realization").points, expected_realizations)
+        self.assertEqual(
+            result.coord("realization").dtype, np.int32)
 
     def test_duplicate_realizations_more_input_cubes(self):
         """Test that the expected metadata is correct with different
@@ -174,7 +185,7 @@ class Test_process(IrisTest):
             input_cubelist)
         expected_forecast_period = np.array(2)
         expected_forecast_ref_time = np.array([402293.])
-        expected_realizations = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8])
+        expected_realizations = [0, 1, 2, 3, 4, 5, 6, 7, 8]
         self.assertArrayAlmostEqual(
             result.coord("forecast_period").points, expected_forecast_period)
         self.assertArrayAlmostEqual(
@@ -182,6 +193,8 @@ class Test_process(IrisTest):
             expected_forecast_ref_time)
         self.assertArrayAlmostEqual(
             result.coord("realization").points, expected_realizations)
+        self.assertEqual(
+            result.coord("realization").dtype, np.int32)
 
     def test_attributes(self):
         """Test what happens if input cubes have different attributes"""
@@ -207,19 +220,22 @@ class Test_process(IrisTest):
         data = 275.*np.ones((3, 3, 3), dtype=np.float32)
         cycletime = dt(2019, 6, 24, 9)
         cube1 = set_up_variable_cube(
-            data, realizations=[15, 16, 17], time=cycletime,
-            frt=dt(2019, 6, 24, 8))
+            data, realizations=np.array([15, 16, 17], dtype=np.int32),
+            time=cycletime, frt=dt(2019, 6, 24, 8))
         cube2 = set_up_variable_cube(
-            data, realizations=[0, 18, 19], time=cycletime, frt=cycletime)
+            data, realizations=np.array([0, 18, 19], dtype=np.int32),
+            time=cycletime, frt=cycletime)
 
         expected_cube = set_up_variable_cube(
             275.*np.ones((6, 3, 3), dtype=np.float32),
-            realizations=[0, 15, 16, 17, 18, 19],
+            realizations=np.array([0, 15, 16, 17, 18, 19], dtype=np.int32),
             time=cycletime, frt=cycletime)
 
         input_cubelist = iris.cube.CubeList([cube1, cube2])
         result = GenerateTimeLaggedEnsemble().process(input_cubelist)
         self.assertEqual(result, expected_cube)
+        self.assertEqual(
+            result.coord("realization").dtype, np.int32)
 
 
 if __name__ == '__main__':

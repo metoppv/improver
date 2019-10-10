@@ -39,8 +39,8 @@ import numpy as np
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 from scipy import ndimage, signal
 
+from improver.metadata.amend import amend_metadata
 from improver.utilities.cube_checker import check_for_x_and_y_axes
-from improver.utilities.cube_metadata import amend_metadata
 from improver.utilities.spatial import check_if_grid_is_equal_area
 
 
@@ -110,7 +110,7 @@ class OpticalFlow(object):
             metadata_dict (dict):
                 Dictionary containing information for amending the metadata
                 of the output cube. Please see the
-                :func:`improver.utilities.cube_metadata.amend_metadata`
+                :func:`improver.metadata.amend.amend_metadata`
                 for information regarding the allowed contents of the metadata
                 dictionary. This metadata_dict is used to amend both of the
                 resulting u and v cubes.

@@ -50,16 +50,7 @@ class Test_equalise_cube_attributes(IrisTest):
 
     def setUp(self):
         """Use temperature cube to test with."""
-        data = np.array([[[226.15, 237.40, 248.65],
-                          [259.90, 271.15, 282.40],
-                          [293.65, 304.90, 316.15]],
-                         [[230.15, 241.40, 252.65],
-                          [263.90, 275.15, 286.40],
-                          [297.65, 308.90, 320.15]],
-                         [[232.15, 243.40, 254.65],
-                          [265.90, 277.15, 288.40],
-                          [299.65, 310.90, 322.15]]], dtype=np.float32)
-
+        data = 278*np.ones((3, 3, 3), dtype=np.float32)
         cube_attrs = {"history": "2017-01-18T08:59:53: StaGE Decoupler",
                       "unknown_attribute": "1"}
         self.cube = set_up_variable_cube(

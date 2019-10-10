@@ -32,17 +32,16 @@
 
 import os
 import unittest
-from subprocess import call as Call
 from tempfile import mkdtemp
 
 import iris
 import numpy as np
 from iris.tests import IrisTest
 
+from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, set_up_percentile_cube, set_up_probability_cube,
     add_coordinate)
-from improver.utilities.cube_checker import find_threshold_coordinate
 from improver.utilities.load import load_cube, load_cubelist
 from improver.utilities.save import save_netcdf
 
@@ -63,8 +62,8 @@ class Test_load_cube(IrisTest):
 
     def tearDown(self):
         """Remove temporary directories created for testing."""
-        Call(['rm', '-f', self.filepath])
-        Call(['rmdir', self.directory])
+        os.remove(self.filepath)
+        os.rmdir(self.directory)
 
     def test_a_cube_is_loaded(self):
         """Test that a cube is loaded when a valid filepath is provided."""
@@ -249,10 +248,16 @@ class Test_load_cubelist(IrisTest):
 
     def tearDown(self):
         """Remove temporary directories created for testing."""
-        Call(['rm', '-f', self.filepath])
-        Call(['rm', '-f', self.low_cloud_filepath])
-        Call(['rm', '-f', self.med_cloud_filepath])
-        Call(['rmdir', self.directory])
+        os.remove(self.filepath)
+        try:
+            os.remove(self.low_cloud_filepath)
+        except FileNotFoundError:
+            pass
+        try:
+            os.remove(self.med_cloud_filepath)
+        except FileNotFoundError:
+            pass
+        os.rmdir(self.directory)
 
     def test_a_cubelist_is_loaded(self):
         """Test that a cubelist is loaded when a valid filepath is provided."""

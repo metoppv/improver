@@ -77,9 +77,9 @@ optional arguments:
                         Filename for the json file containing required changes
                         to the metadata. Information describing the intended
                         contents of the json file is available in
-                        improver.utilities.cube_metadata.amend_metadata.Every
-                        output cube will have the metadata_dict applied.
-                        Defaults to None.
+                        improver.metadata.amend.amend_metadata. Every output
+                        cube will have the metadata_dict applied. Defaults to
+                        None.
   --ofc_box_size OFC_BOX_SIZE
                         Size of square 'box' (in grid squares) within which to
                         solve the optical flow equations.

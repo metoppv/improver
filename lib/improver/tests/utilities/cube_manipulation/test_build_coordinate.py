@@ -41,17 +41,11 @@ from iris.coord_systems import TransverseMercator
 from iris.coords import AuxCoord, DimCoord
 from iris.tests import IrisTest
 
-from improver.tests.ensemble_calibration.ensemble_calibration. \
-    helper_functions import set_up_temperature_cube
 from improver.utilities.cube_manipulation import build_coordinate
 
 
 class Test_build_coordinate(IrisTest):
     """Test the build_coordinate utility."""
-
-    def setUp(self):
-        """Use temperature cube to test with."""
-        self.cube = set_up_temperature_cube()
 
     def test_basic(self):
         """Test that the utility returns a coord."""

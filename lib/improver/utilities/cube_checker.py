@@ -35,47 +35,6 @@ import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 
 
-def check_cube_not_float64(cube, fix=False):
-    """Check a cube does not contain any float64 data, excepting time
-    coordinates. The cube can be modified in place, if the fix keyword is
-    specified to be True.
-
-    Args:
-        cube (iris.cube.Cube):
-            The input cube that will be checked for float64 inclusion.
-        fix (bool):
-            If fix is True, then the cube is amended to not include float64
-            data, otherwise, an error will be raised if float64 data is found.
-
-    Raises:
-        TypeError : Raised if float64 values are found in the cube.
-
-    """
-    if cube.dtype == np.float64:
-        if fix:
-            cube.data = cube.data.astype(np.float32)
-        else:
-            raise TypeError("64 bit cube not allowed: {!r}".format(cube))
-    for coord in cube.coords():
-        if coord.name() in ["time", "forecast_reference_time"]:
-            continue
-        if coord.points.dtype == np.float64:
-            if fix:
-                coord.points = coord.points.astype(np.float32)
-            else:
-                raise TypeError(
-                    "64 bit coord points not allowed: {} in {!r}".format(
-                        coord, cube))
-        if (hasattr(coord, "bounds") and coord.bounds is not None and
-                coord.bounds.dtype == np.float64):
-            if fix:
-                coord.bounds = coord.bounds.astype(np.float32)
-            else:
-                raise TypeError(
-                    "64 bit coord bounds not allowed: {} in {!r}".format(
-                        coord, cube))
-
-
 def check_for_x_and_y_axes(cube, require_dim_coords=False):
     """
     Check whether the cube has an x and y axis, otherwise raise an error.
@@ -234,78 +193,43 @@ def spatial_coords_match(first_cube, second_cube):
             first_cube.coord(axis='y') == second_cube.coord(axis='y'))
 
 
-def find_percentile_coordinate(cube):
-    """Find percentile coord in cube.
+def time_coords_match(first_cube, second_cube, raise_exception=False):
+    """
+    Determine if two cubes have equivalent time, forecast_period, and
+    forecast_reference_time points.
 
     Args:
-        cube (iris.cube.Cube):
-            Cube contain one or more percentiles.
-    Returns:
-        perc_coord (iris.coords.Coord):
-            Percentile coordinate.
-    Raises:
-        TypeError: If cube is not of type iris.cube.Cube.
-        CoordinateNotFoundError: If no percentile coordinate is found in cube.
-        ValueError: If there is more than one percentile coords in the cube.
-    """
-    if not isinstance(cube, iris.cube.Cube):
-        msg = ('Expecting data to be an instance of '
-               'iris.cube.Cube but is {0}.'.format(type(cube)))
-        raise TypeError(msg)
-    standard_name = cube.name()
-    perc_coord = None
-    perc_found = 0
-    for coord in cube.coords():
-        if coord.name().find('percentile') >= 0:
-            perc_found += 1
-            perc_coord = coord
-    if perc_found != 1:
-        if perc_found == 0:
-            msg = ('No percentile coord found on {0:s} data'.format(
-                standard_name))
-            raise CoordinateNotFoundError(msg)
-        else:
-            msg = ('Too many percentile coords found on {0:s} data'.format(
-                standard_name))
-            raise ValueError(msg)
-    return perc_coord
-
-
-def find_threshold_coordinate(cube):
-    """Find threshold coordinate in cube.
-
-    Compatible with both the old (cube.coord("threshold")) and new
-    (cube.coord.var_name == "threshold") IMPROVER metadata standards.
-
-    Args:
-        cube (iris.cube.Cube):
-            Cube containing thresholded probability data
+        first_cube (iris.cube.Cube):
+            First cube to compare.
+        second_cube (iris.cube.Cube):
+            Second cube to compare.
+        raise_exception (bool):
+            By default this function returns a boolean, but if this argument is
+            set to True it will raise an exception if there is a mismatch in
+            the coordinates.
 
     Returns:
-        threshold_coord (iris.coords.Coord):
-            Threshold coordinate
+        cubes_equivalent (bool):
+            True if the cube time coordinates are equivalent, False if they are
+            not.
 
-    Raises:
-        TypeError: If cube is not of type iris.cube.Cube.
-        CoordinateNotFoundError: If no threshold coordinate is found.
+    Raised:
+        ValueError: The two cubes are not equivalent.
+        CoordinateNotFoundError: One of the expected temporal coordinates is
+        not present on one or more cubes.
     """
-    if not isinstance(cube, iris.cube.Cube):
-        msg = ('Expecting data to be an instance of '
-               'iris.cube.Cube but is {0}.'.format(type(cube)))
-        raise TypeError(msg)
+    cubes_equivalent = True
+    mismatches = []
+    for coord_name in ["forecast_period", "time", "forecast_reference_time"]:
+        try:
+            if (first_cube.coord(coord_name) != second_cube.coord(coord_name)):
+                mismatches.append(coord_name)
+                cubes_equivalent = False
+        except CoordinateNotFoundError:
+            raise
 
-    threshold_coord = None
-    try:
-        threshold_coord = cube.coord("threshold")
-    except CoordinateNotFoundError:
-        for coord in cube.coords():
-            if coord.var_name == "threshold":
-                threshold_coord = coord
-                break
+    if mismatches and raise_exception:
+        msg = "The following coordinates of the two cubes do not match: {}"
+        raise ValueError(msg.format(', '.join(mismatches)))
 
-    if threshold_coord is None:
-        msg = ('No threshold coord found on {0:s} data'.format(
-               cube.name()))
-        raise CoordinateNotFoundError(msg)
-
-    return threshold_coord
+    return cubes_equivalent

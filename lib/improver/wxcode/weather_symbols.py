@@ -36,8 +36,8 @@ import copy
 import iris
 import numpy as np
 
-from improver.utilities.cube_checker import find_threshold_coordinate
-from improver.utilities.cube_metadata import extract_diagnostic_name
+from improver.metadata.probabilistic import (
+    extract_diagnostic_name, find_threshold_coordinate)
 from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
 from improver.wxcode.wxcode_decision_tree_global import (
     wxcode_decision_tree_global)

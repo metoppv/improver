@@ -33,13 +33,14 @@ Unit tests for the function "cube_manipulation.enforce_coordinate_ordering".
 """
 
 import unittest
+import numpy as np
 
+import iris
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
-from improver.tests.ensemble_calibration.ensemble_calibration. \
-    helper_functions import set_up_temperature_cube
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
@@ -49,7 +50,10 @@ class Test_enforce_coordinate_ordering(IrisTest):
 
     def setUp(self):
         """Use temperature cube to test with."""
-        self.cube = set_up_temperature_cube()
+        data = 275*np.ones((3, 3, 3), dtype=np.float32)
+        cube = set_up_variable_cube(data)
+        self.cube = iris.util.new_axis(cube, "time")
+        self.cube.transpose([1, 0, 2, 3])
 
     def test_basic(self):
         """Test that the function returns an iris.cube.Cube."""
@@ -69,8 +73,7 @@ class Test_enforce_coordinate_ordering(IrisTest):
         cube."""
         expected = self.cube.copy()
         expected.transpose([1, 0, 2, 3])
-        cube = self.cube.copy()
-        result = enforce_coordinate_ordering(cube, "time")
+        result = enforce_coordinate_ordering(self.cube, "time")
         self.assertEqual(result.coord_dims("time")[0], 0)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
@@ -80,8 +83,8 @@ class Test_enforce_coordinate_ordering(IrisTest):
         the cube."""
         expected = self.cube.copy()
         expected.transpose([1, 2, 3, 0])
-        cube = self.cube.copy()
-        result = enforce_coordinate_ordering(cube, "realization", anchor="end")
+        result = enforce_coordinate_ordering(
+            self.cube, "realization", anchor="end")
         self.assertEqual(result.coord_dims("realization")[0], 3)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
@@ -91,8 +94,7 @@ class Test_enforce_coordinate_ordering(IrisTest):
         cube. The coordinate name to be reordered is specified as a list."""
         expected = self.cube.copy()
         expected.transpose([1, 0, 2, 3])
-        cube = self.cube.copy()
-        result = enforce_coordinate_ordering(cube, ["time"])
+        result = enforce_coordinate_ordering(self.cube, ["time"])
         self.assertEqual(result.coord_dims("time")[0], 0)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
@@ -103,8 +105,8 @@ class Test_enforce_coordinate_ordering(IrisTest):
         specified as a list."""
         expected = self.cube.copy()
         expected.transpose([1, 0, 2, 3])
-        cube = self.cube.copy()
-        result = enforce_coordinate_ordering(cube, ["time", "realization"])
+        result = enforce_coordinate_ordering(
+            self.cube, ["time", "realization"])
         self.assertEqual(result.coord_dims("time")[0], 0)
         self.assertEqual(result.coord_dims("realization")[0], 1)
         self.assertArrayAlmostEqual(result.data, expected.data)
@@ -116,10 +118,8 @@ class Test_enforce_coordinate_ordering(IrisTest):
         specified as a list."""
         expected = self.cube.copy()
         expected.transpose([2, 3, 1, 0])
-        cube = self.cube.copy()
         result = enforce_coordinate_ordering(
-            cube, ["time", "realization"], anchor="end")
-
+            self.cube, ["time", "realization"], anchor="end")
         self.assertEqual(result.coord_dims("time")[0], 2)
         self.assertEqual(result.coord_dims("realization")[0], 3)
         self.assertArrayAlmostEqual(result.data, expected.data)
@@ -130,9 +130,8 @@ class Test_enforce_coordinate_ordering(IrisTest):
         specified by the names within the input list."""
         expected = self.cube.copy()
         expected.transpose([2, 0, 3, 1])
-        cube = self.cube.copy()
         result = enforce_coordinate_ordering(
-            cube, ["latitude", "realization", "longitude", "time"])
+            self.cube, ["latitude", "realization", "longitude", "time"])
         self.assertEqual(result.coord_dims("latitude")[0], 0)
         self.assertEqual(result.coord_dims("realization")[0], 1)
         self.assertEqual(result.coord_dims("longitude")[0], 2)
@@ -143,10 +142,12 @@ class Test_enforce_coordinate_ordering(IrisTest):
         """Test that a cube with the expected data contents is returned when
         the names provided are partial matches of the names of the coordinates
         within the cube."""
+        # remove coordinate that causes multiple partial matches
+        # TODO remove this functionality and test (never called operationally)
+        self.cube.remove_coord("forecast_reference_time")
         expected = self.cube.copy()
         expected.transpose([1, 0, 2, 3])
-        cube = self.cube.copy()
-        result = enforce_coordinate_ordering(cube, ["tim", "realiz"])
+        result = enforce_coordinate_ordering(self.cube, ["tim", "realiz"])
         self.assertEqual(result.coord_dims("time")[0], 0)
         self.assertEqual(result.coord_dims("realization")[0], 1)
         self.assertArrayAlmostEqual(result.data, expected.data)
@@ -155,12 +156,9 @@ class Test_enforce_coordinate_ordering(IrisTest):
         """Test that the expected exception is raised when the names provided
         are partial matches of the names of multiple coordinates within the
         cube."""
-        expected = self.cube.copy()
-        expected.transpose([2, 3, 0, 1])
-        cube = self.cube.copy()
         msg = "More than 1 coordinate"
         with self.assertRaisesRegex(ValueError, msg):
-            enforce_coordinate_ordering(cube, ["l", "e"])
+            enforce_coordinate_ordering(self.cube, ["l", "e"])
 
     def test_include_extra_coordinates(self):
         """Test that a cube with the expected data contents is returned when
@@ -168,9 +166,8 @@ class Test_enforce_coordinate_ordering(IrisTest):
         are not present within the cube."""
         expected = self.cube.copy()
         expected.transpose([1, 0, 2, 3])
-        cube = self.cube.copy()
         result = enforce_coordinate_ordering(
-            cube, ["time", "realization", "nonsense"])
+            self.cube, ["time", "realization", "nonsense"])
         self.assertEqual(result.coord_dims("time")[0], 0)
         self.assertEqual(result.coord_dims("realization")[0], 1)
         self.assertArrayAlmostEqual(result.data, expected.data)

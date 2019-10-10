@@ -144,9 +144,9 @@ class WeightAndBlend():
                 Updated 3D cube of spatially-varying weights
         """
         check_if_grid_is_equal_area(cube)
-        grid_cells_x, _ = convert_distance_into_number_of_grid_cells(
+        grid_cells = convert_distance_into_number_of_grid_cells(
             cube, fuzzy_length, int_grid_cells=False)
-        SpatialWeightsPlugin = SpatiallyVaryingWeightsFromMask(grid_cells_x)
+        SpatialWeightsPlugin = SpatiallyVaryingWeightsFromMask(grid_cells)
         weights = SpatialWeightsPlugin.process(cube, weights, self.blend_coord)
         return weights
 

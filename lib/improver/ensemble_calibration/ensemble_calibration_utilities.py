@@ -140,7 +140,7 @@ def check_predictor_of_mean_flag(predictor_of_mean_flag):
         ValueError: If the predictor_of_mean_flag is not valid.
     """
     if predictor_of_mean_flag.lower() not in ["mean", "realizations"]:
-        msg = ("The requested value for the predictor_of_mean_flag {}"
+        msg = ("The requested value for the predictor_of_mean_flag {} "
                "is not an accepted value."
                "Accepted values are 'mean' or 'realizations'").format(
                    predictor_of_mean_flag.lower())

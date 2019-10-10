@@ -35,7 +35,7 @@ import json
 
 from improver.argparser import ArgParser
 from improver.between_thresholds import OccurrenceBetweenThresholds
-from improver.utilities.cube_checker import find_threshold_coordinate
+from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 

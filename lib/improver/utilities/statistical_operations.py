@@ -36,8 +36,8 @@ import iris
 import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.utilities.cube_checker import (find_percentile_coordinate,
-                                             check_cube_coordinates)
+from improver.metadata.probabilistic import find_percentile_coordinate
+from improver.utilities.cube_checker import check_cube_coordinates
 
 
 class ProbabilitiesFromPercentiles2D(object):

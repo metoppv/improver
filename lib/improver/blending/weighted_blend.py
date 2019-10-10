@@ -39,7 +39,7 @@ from iris.analysis import Aggregator
 from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.utilities.cube_checker import find_percentile_coordinate
+from improver.metadata.probabilistic import find_percentile_coordinate
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering, sort_coord_in_cube, build_coordinate,
     MergeCubes)

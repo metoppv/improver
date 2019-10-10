@@ -38,8 +38,8 @@ import numpy as np
 import scipy
 from iris.tests import IrisTest
 
+from improver.metadata.utilities import create_coordinate_hash
 from improver.spotdata.neighbour_finding import NeighbourSelection
-from improver.utilities.cube_metadata import create_coordinate_hash
 from improver.utilities.warnings_handler import ManageWarnings
 
 

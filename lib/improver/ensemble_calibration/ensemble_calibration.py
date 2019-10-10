@@ -46,9 +46,9 @@ from improver.ensemble_calibration.ensemble_calibration_utilities import (
     convert_cube_data_to_2d, check_predictor_of_mean_flag,
     flatten_ignoring_masked_data)
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+from improver.utilities.cube_checker import time_coords_match
 from improver.utilities.temporal import (
-    cycletime_to_datetime, datetime_to_cycletime, datetime_to_iris_time,
-    iris_time_to_datetime)
+    cycletime_to_datetime, datetime_to_iris_time, iris_time_to_datetime)
 
 
 class ContinuousRankedProbabilityScoreMinimisers():
@@ -873,13 +873,185 @@ class ApplyCoefficientsFromEnsembleCalibration():
     Class to apply the optimised EMOS coefficients to future dates.
 
     """
-    def __init__(
-            self, current_forecast, coefficients_cube,
-            predictor_of_mean_flag="mean"):
+    def __init__(self, predictor_of_mean_flag="mean"):
         """
         Create an ensemble calibration plugin that, for Nonhomogeneous Gaussian
         Regression, applies coefficients created using on historical forecasts
         and applies the coefficients to the current forecast.
+
+        Args:
+            predictor_of_mean_flag (str):
+                String to specify the input to calculate the calibrated mean.
+                Currently the ensemble mean ("mean") and the ensemble
+                realizations ("realizations") are supported as the predictors.
+        """
+        check_predictor_of_mean_flag(predictor_of_mean_flag)
+        self.predictor_of_mean_flag = predictor_of_mean_flag
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = ('<ApplyCoefficientsFromEnsembleCalibration: '
+                  'predictor_of_mean_flag: {}>')
+        return result.format(self.predictor_of_mean_flag)
+
+    def _spatial_domain_match(self):
+        """
+        Check that the domain of the current forecast and coefficients cube
+        match.
+
+        Raises:
+            ValueError: If the domain information of the current_forecast and
+                coefficients_cube do not match.
+        """
+        msg = ("The domain along the {} axis given by the current forecast {} "
+               "does not match the domain given by the coefficients cube {}.")
+
+        for axis in ["x", "y"]:
+            current_forecast_points = [
+                self.current_forecast.coord(axis=axis).points[0],
+                self.current_forecast.coord(axis=axis).points[-1]]
+            if not np.allclose(current_forecast_points,
+                               self.coefficients_cube.coord(axis=axis).bounds):
+                raise ValueError(
+                    msg.format(axis, current_forecast_points,
+                               self.coefficients_cube.coord(axis=axis).bounds))
+
+    def _get_calibrated_forecast_predictors_mean(self, optimised_coeffs):
+        """
+        Function to get calibrated forecast_predictors when the predictor of
+        mean used is the ensemble mean.
+
+        Args:
+            optimised_coeffs (dict):
+                A dictionary containing the calibration coefficient names as
+                keys with their corresponding values.
+
+        Returns:
+            (tuple) : tuple containing:
+                **predicted_mean** (numpy.ndarray):
+                    Calibrated mean values in a flattened array.
+                **forecast_predictor** (iris.cube.Cube):
+                    The forecast predictors, mean values taken by collapsing
+                    the realization coordinate.
+        """
+        forecast_predictor = self.current_forecast.collapsed(
+            "realization", iris.analysis.MEAN)
+
+        # Calculate predicted mean = a + b*X, where X is the
+        # raw ensemble mean. In this case, b = beta.
+        a_and_b = [optimised_coeffs["alpha"], optimised_coeffs["beta"]]
+        forecast_predictor_flat = forecast_predictor.data.flatten()
+        col_of_ones = (
+            np.ones(forecast_predictor_flat.shape, dtype=np.float32))
+        ones_and_mean = (
+            np.column_stack((col_of_ones, forecast_predictor_flat)))
+        predicted_mean = np.dot(ones_and_mean, a_and_b)
+
+        return predicted_mean, forecast_predictor
+
+    def _get_calibrated_forecast_predictors_realizations(
+            self, optimised_coeffs, forecast_vars):
+        """
+        Function to get calibrated forecast_predictors when the predictor of
+        mean is the mean of each distinct realization. The domain mean in a
+        given realization has been used to generate calibration coefficients,
+        such that each realization can be calibrated separately. These
+        calibrated realizations are then collapsed to give mean values at each
+        point in the domain.
+
+        Args:
+            optimised_coeffs (dict):
+                A dictionary containing the calibration coefficient names as
+                keys with their corresponding values.
+            forecast_vars (iris.cube.Cube):
+                A cube of forecast predictor variance calculated across
+                realizations.
+
+        Returns:
+            (tuple) : tuple containing:
+                **predicted_mean** (numpy.ndarray):
+                    Calibrated mean values in a flattened array.
+                **forecast_predictor** (iris.cube.Cube):
+                    The forecast predictors, mean values taken by collapsing
+                    the realization coordinate.
+        """
+        forecast_predictor = self.current_forecast
+
+        # Calculate predicted mean = a + b*X, where X is the
+        # raw ensemble mean. In this case, b = beta^2.
+        beta_values = np.array([], dtype=np.float32)
+        for key in optimised_coeffs.keys():
+            if key.startswith("beta"):
+                beta_values = np.append(beta_values, optimised_coeffs[key])
+        a_and_b = np.append(optimised_coeffs["alpha"], beta_values**2)
+        forecast_predictor_flat = (
+            convert_cube_data_to_2d(forecast_predictor))
+        forecast_var_flat = forecast_vars.data.flatten()
+        col_of_ones = np.ones(forecast_var_flat.shape, dtype=np.float32)
+        ones_and_predictor = (
+            np.column_stack((col_of_ones, forecast_predictor_flat)))
+        predicted_mean = np.dot(ones_and_predictor, a_and_b)
+        # Calculate mean of ensemble realizations, as only the
+        # calibrated ensemble mean will be returned.
+        forecast_predictor = (
+            forecast_predictor.collapsed(
+                "realization", iris.analysis.MEAN))
+
+        return predicted_mean, forecast_predictor
+
+    @staticmethod
+    def calibrate_forecast_data(optimised_coeffs, predicted_mean,
+                                forecast_predictor, forecast_var):
+        """
+        Create a calibrated_forecast_predictor by reshaping the preddicted mean
+        to the original domain dimensions. Apply the calibration coefficients
+        to the forecast data variance. Return both to give calibrated mean and
+        variance in the original domain dimensions.
+
+        Args:
+            optimised_coeffs (dict):
+                A dictionary containing the calibration coefficient names as
+                keys with their corresponding values.
+            predicted_mean (numpy.ndarray):
+                Calibrated mean value.
+            forecast_predictor (iris.cube.Cube):
+                The forecast predictors, mean values taken by collapsing
+                the realization coordinate.
+            forecast_var (iris.cube.Cube):
+                A cube of forecast predictor variance calculated across
+                realizations.
+
+        Returns:
+            (tuple) : tuple containing:
+                **calibrated_forecast_predictor** (iris.cube.Cube):
+                    Cube containing the calibrated version of the
+                    ensemble predictor, either the ensemble mean or
+                    the ensemble realizations.
+                **calibrated_forecast_var** (iris.cube.Cube):
+                    Cube containing the calibrated version of the
+                    ensemble variance, either the ensemble mean or
+                    the ensemble realizations.
+        """
+        xlen = len(forecast_predictor.coord(axis="x").points)
+        ylen = len(forecast_predictor.coord(axis="y").points)
+
+        calibrated_forecast_predictor = forecast_predictor.copy(
+            data=np.reshape(predicted_mean, (ylen, xlen)))
+
+        # Calculating the predicted variance, based on the
+        # raw variance S^2, where predicted variance = c + dS^2,
+        # where c = (gamma)^2 and d = (delta)^2
+        calibrated_forecast_var = forecast_var.copy(
+            data=(
+                optimised_coeffs["gamma"]**2 +
+                optimised_coeffs["delta"]**2 * forecast_var.data))
+
+        return calibrated_forecast_predictor, calibrated_forecast_var
+
+    def process(self, current_forecast, coefficients_cube):
+        """
+        Wrapping function to calculate the forecast predictor and forecast
+        variance prior to applying coefficients to the current forecast.
 
         Args:
             current_forecast (iris.cube.Cube):
@@ -890,167 +1062,42 @@ class ApplyCoefficientsFromEnsembleCalibration():
                 where the points of the coordinate are integer values and a
                 coefficient_name auxiliary coordinate where the points of
                 the coordinate are e.g. gamma, delta, alpha, beta.
-            predictor_of_mean_flag (str):
-                String to specify the input to calculate the calibrated mean.
-                Currently the ensemble mean ("mean") and the ensemble
-                realizations ("realizations") are supported as the predictors.
 
-        Raises:
-            ValueError: If the names of the current_forecast and
-                coefficients_cube do not match.
-            ValueError: If the domain information of the current_forecast and
-                coefficients_cube do not match.
+        Returns:
+            (tuple) : tuple containing:
+                **calibrated_forecast_predictor** (iris.cube.Cube):
+                    Cube containing the calibrated version of the
+                    ensemble predictor, either the ensemble mean or
+                    the ensemble realizations.
+                **calibrated_forecast_variance** (iris.cube.Cube):
+                    Cube containing the calibrated version of the
+                    ensemble variance, either the ensemble mean or
+                    the ensemble realizations.
         """
         self.current_forecast = current_forecast
         self.coefficients_cube = coefficients_cube
-        for coord_name in ["forecast_period", "time",
-                           "forecast_reference_time"]:
-            try:
-                if (self.current_forecast.coord(coord_name) !=
-                        self.coefficients_cube.coord(coord_name)):
-                    msg = ("The {} coordinate of the current forecast cube "
-                           "and coefficients cube differs. "
-                           "current forecast: {}, "
-                           "coefficients cube: {}").format(
-                               coord_name,
-                               self.current_forecast.coord(coord_name),
-                               self.coefficients_cube.coord(coord_name))
-                    raise ValueError(msg)
-            except CoordinateNotFoundError:
-                pass
 
-        # Check that the domain of the current forecast and coefficients cube
-        # matches.
-        for axis in ["x", "y"]:
-            current_forecast_points = [
-                current_forecast.coord(axis=axis).points[0],
-                current_forecast.coord(axis=axis).points[-1]]
-            if not np.allclose(current_forecast_points,
-                               coefficients_cube.coord(axis=axis).bounds):
-                msg = ("The domain along the {} axis given by the "
-                       "current forecast {} does not match the domain given "
-                       "by the coefficients cube {}.".format(
-                           axis, current_forecast_points,
-                           coefficients_cube.coord(axis=axis).bounds))
-                raise ValueError(msg)
+        # Check coefficients_cube and forecast cube are compatible.
+        time_coords_match(self.current_forecast, self.coefficients_cube)
+        self._spatial_domain_match()
 
-        # Ensure predictor_of_mean_flag is valid.
-        check_predictor_of_mean_flag(predictor_of_mean_flag)
-        self.predictor_of_mean_flag = predictor_of_mean_flag
-
-    def __repr__(self):
-        """Represent the configured plugin instance as a string."""
-        result = ('<ApplyCoefficientsFromEnsembleCalibration: '
-                  'current_forecast: {}; '
-                  'coefficients_cube: {}; '
-                  'predictor_of_mean_flag: {}>')
-        return result.format(
-            self.current_forecast.name(), self.coefficients_cube.name(),
-            self.predictor_of_mean_flag)
-
-    def process(self):
-        """
-        Wrapping function to calculate the forecast predictor and forecast
-        variance prior to applying coefficients to the current forecast.
-
-        Returns:
-            (tuple) : tuple containing:
-                **calibrated_forecast_predictor** (iris.cube.Cube):
-                    Cube containing the calibrated version of the
-                    ensemble predictor, either the ensemble mean or
-                    the ensemble realizations.
-                **calibrated_forecast_variance** (iris.cube.Cube):
-                    Cube containing the calibrated version of the
-                    ensemble variance, either the ensemble mean or
-                    the ensemble realizations.
-
-        """
-        if self.predictor_of_mean_flag.lower() == "mean":
-            forecast_predictors = self.current_forecast.collapsed(
-                "realization", iris.analysis.MEAN)
-        elif self.predictor_of_mean_flag.lower() == "realizations":
-            forecast_predictors = self.current_forecast
-
-        forecast_vars = self.current_forecast.collapsed(
-            "realization", iris.analysis.VARIANCE)
-
-        calibrated_forecast_predictor, calibrated_forecast_var = (
-            self._apply_params(forecast_predictors, forecast_vars))
-        return calibrated_forecast_predictor, calibrated_forecast_var
-
-    def _apply_params(self, forecast_predictors, forecast_vars):
-        """
-        Function to apply EMOS coefficients to all required dates.
-
-        Args:
-            forecast_predictors (iris.cube.Cube):
-                Cube containing the forecast predictor e.g. ensemble mean
-                or ensemble realizations.
-            forecast_vars (iris.cube.Cube):
-                Cube containing the forecast variance e.g. ensemble variance.
-
-        Returns:
-            (tuple) : tuple containing:
-                **calibrated_forecast_predictor** (iris.cube.Cube):
-                    Cube containing the calibrated version of the
-                    ensemble predictor, either the ensemble mean or
-                    the ensemble realizations.
-                **calibrated_forecast_variance** (iris.cube.Cube):
-                    Cube containing the calibrated version of the
-                    ensemble variance, either the ensemble mean or
-                    the ensemble realizations.
-        """
         optimised_coeffs = (
             dict(zip(self.coefficients_cube.coord("coefficient_name").points,
                      self.coefficients_cube.data)))
+        forecast_vars = self.current_forecast.collapsed(
+            "realization", iris.analysis.VARIANCE)
 
-        # Calculate the predicted mean based on whether the coefficients
-        # were estimated using the mean as the predictor or using the
-        # ensemble realizations as the predictor.
         if self.predictor_of_mean_flag.lower() == "mean":
-            # Calculate predicted mean = a + b*X, where X is the
-            # raw ensemble mean. In this case, b = beta.
-            a_and_b = [optimised_coeffs["alpha"], optimised_coeffs["beta"]]
-            forecast_predictor_flat = forecast_predictors.data.flatten()
-            col_of_ones = (
-                np.ones(forecast_predictor_flat.shape, dtype=np.float32))
-            ones_and_mean = (
-                np.column_stack((col_of_ones, forecast_predictor_flat)))
-            predicted_mean = np.dot(ones_and_mean, a_and_b)
-            calibrated_forecast_predictor = forecast_predictors
+            predicted_mean, forecast_predictor = (
+                self._get_calibrated_forecast_predictors_mean(
+                    optimised_coeffs))
         elif self.predictor_of_mean_flag.lower() == "realizations":
-            # Calculate predicted mean = a + b*X, where X is the
-            # raw ensemble mean. In this case, b = beta^2.
-            beta_values = np.array([], dtype=np.float32)
-            for key in optimised_coeffs.keys():
-                if key.startswith("beta"):
-                    beta_values = np.append(beta_values, optimised_coeffs[key])
-            a_and_b = np.append(optimised_coeffs["alpha"], beta_values**2)
-            forecast_predictor_flat = (
-                convert_cube_data_to_2d(forecast_predictors))
-            forecast_var_flat = forecast_vars.data.flatten()
-            col_of_ones = np.ones(forecast_var_flat.shape, dtype=np.float32)
-            ones_and_predictor = (
-                np.column_stack((col_of_ones, forecast_predictor_flat)))
-            predicted_mean = np.dot(ones_and_predictor, a_and_b)
-            # Calculate mean of ensemble realizations, as only the
-            # calibrated ensemble mean will be returned.
-            calibrated_forecast_predictor = (
-                forecast_predictors.collapsed(
-                    "realization", iris.analysis.MEAN))
+            predicted_mean, forecast_predictor = (
+                self._get_calibrated_forecast_predictors_realizations(
+                    optimised_coeffs, forecast_vars))
 
-        xlen = len(forecast_predictors.coord(axis="x").points)
-        ylen = len(forecast_predictors.coord(axis="y").points)
-
-        calibrated_forecast_predictor.data = (
-            np.reshape(predicted_mean, (ylen, xlen)))
-
-        calibrated_forecast_var = forecast_vars
-        # Calculating the predicted variance, based on the
-        # raw variance S^2, where predicted variance = c + dS^2,
-        # where c = (gamma)^2 and d = (delta)^2
-        calibrated_forecast_var.data = (
-            optimised_coeffs["gamma"]**2 +
-            optimised_coeffs["delta"]**2 * forecast_vars.data)
+        calibrated_forecast_predictor, calibrated_forecast_var = (
+            self.calibrate_forecast_data(optimised_coeffs, predicted_mean,
+                                         forecast_predictor, forecast_vars))
 
         return calibrated_forecast_predictor, calibrated_forecast_var

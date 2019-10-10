@@ -215,39 +215,3 @@ class ArgParser(ArgumentParser):
         """
         msg = 'Method: {} does not accept arguments: {}'
         self.error(msg.format(method, args))
-
-
-def safe_eval(command, module, allowed):
-    """
-    A wrapper for the python eval() function that enforces the use of a list of
-    allowable commands and excludes python builtin functions. This enables the
-    use of an eval statement to convert user string input into a function or
-    method without it being readily possible to trigger malicious code.
-
-    Args:
-        command (str):
-            A string identifying the function/method/object that is to be
-            returned from the provided module.
-        module (module):
-            The python module from within which the function/method/object is
-            to be found.
-        allowed (list):
-            A list of the functions/methods/objects that the user is allowed to
-            request.
-    Returns:
-        function/method/object:
-            The desired function, method, or object.
-    Raises:
-        TypeError if the requested module component is not allowed or does not
-        exist.
-    """
-    no_builtins = {"__builtins__": None}
-    safe_dict = {k: module.__dict__.get(k, None) for k in allowed}
-
-    try:
-        result = eval('{}'.format(command), no_builtins, safe_dict)
-    except TypeError:
-        raise TypeError(
-            'Function/method/object "{}" not available in module {}.'.format(
-                command, module.__name__))
-    return result
