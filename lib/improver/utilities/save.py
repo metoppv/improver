@@ -35,7 +35,8 @@ import warnings
 import cf_units
 import iris
 
-from improver.metadata.enforce_datatypes_units import enforce_units_and_dtypes
+from improver.metadata.enforce_datatypes_units import (
+    check_time_coordinate_metadata, check_datatypes, check_for_unknown_units)
 
 
 def _append_metadata_cube(cubelist, global_keys):
@@ -102,6 +103,27 @@ def _order_cell_methods(cube):
     cube.cell_methods = cell_methods
 
 
+def _check_metadata(cube):
+    """
+    Checks cube metadata that needs to be correct to guarantee data integrity
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube to be checked
+
+    Raises:
+        ValueError: if time coordinates do not have the required datatypes
+            and units; needed because values may be wrong
+        ValueError: if numerical datatypes are other than 32-bit (except
+            where specified); needed because values may be wrong
+        ValueError: if any numerical quantities have unknown units; needed
+            because units may not be preserved on save / load
+    """
+    check_time_coordinate_metadata(cube)
+    check_datatypes(cube, enforce=False)
+    check_for_unknown_units(cube)
+
+
 def save_netcdf(cubelist, filename):
     """Save the input Cube or CubeList as a NetCDF file.
 
@@ -123,7 +145,8 @@ def save_netcdf(cubelist, filename):
 
     for cube in cubelist:
         _order_cell_methods(cube)
-        enforce_units_and_dtypes(cube, enforce=False)
+        _check_metadata(cube)
+
     # If all xy slices are the same shape, use this to determine
     # the chunksize for the netCDF (eg. 1, 1, 970, 1042)
     chunksizes = None

@@ -35,7 +35,8 @@ import numpy as np
 from cf_units import Unit
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.metadata.constants.units import DEFAULT_UNITS
+from improver.metadata.constants.units import (
+    INTEGER_QUANTITIES, TIME_METADATA, DEFAULT_UNITS)
 
 
 def check_cube_not_float64(cube, fix=False):
@@ -79,8 +80,161 @@ def check_cube_not_float64(cube, fix=False):
                         coord, cube))
 
 
+def check_time_coordinate_metadata(cube):
+    """
+    Function to check time coordinates against the expected standard. The
+    standard for time coordinates is due to technical requirements and if
+    violated the data integrity cannot be guaranteed; so if time coordinates
+    are non-conformant an error is raised.
+
+    Args:
+        cubes (iris.cube.Cube):
+            Cube to be checked
+
+    Raises:
+        ValueError: if any the input cube's time coordinates do not conform
+            to the standard datatypes and units
+    """
+    error_string = ''
+    for time_coord in TIME_METADATA.keys():
+        try:
+            coord = cube.coord(time_coord)
+        except CoordinateNotFoundError:
+            continue
+        reqd_unit = TIME_METADATA[time_coord]["unit"]
+        reqd_dtype = TIME_METADATA[time_coord]["dtype"]
+
+        if not _check_units_and_dtype(coord, reqd_unit, reqd_dtype):
+            msg = ('Coordinate {} does not match required '
+                   'standard (units {}, datatype {})\n')
+            error_string += msg.format(coord, reqd_unit, reqd_dtype)
+
+    # if non-compliance was encountered, raise all messages here
+    if error_string:
+        raise ValueError(error_string)
+
+
+def _construct_object_list(cube, coords):
+    """
+    Construct a list of objects to check
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube to be checked
+        coords (list or None):
+            List of coordinate names to check.  If None, adds all
+            coordinates present on the input cube
+
+    Returns:
+        object (list):
+            List containing the original cube and coordinates to check
+    """
+    object_list = []
+    object_list.append(cube)
+    if coords is not None:
+        for coord in coords:
+            try:
+                object_list.append(cube.coord(coord))
+            except CoordinateNotFoundError:
+                pass
+    else:
+        object_list.extend(cube.coords())
+    return object_list
+
+
+def check_datatypes(cube, coords=None, enforce=False):
+    """
+    Function to check the datatypes of cube diagnostics and coordinates
+    against the expected standard.  The default datatype is float32;
+    integer quantities are expected to be 32-bit with the exception of
+    absolute time.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube to be checked
+        coords (list or None):
+            List of coordinate names to check.  If None, checks all
+            coordinates present on the input cube.
+        enforce (bool):
+            If True, this function returns a list of conformant cubes.
+            If False, a ValueError is thrown if the cube does not conform.
+
+    Raises:
+        ValueError: if "enforce=False" and the input cube does not conform
+            to the datatypes standard.
+    Returns:
+        new_cube (iris.cube.Cube):
+            New cube with conformant datatypes
+    """
+    # create a list of copied cubes to modify
+    new_cube = cube.copy()
+
+    # construct a list of objects (cube and coordinates) to be checked
+    object_list = _construct_object_list(new_cube, coords)
+
+    error_string = ''
+    for item in object_list:
+        # allow string-type objects
+        if item.dtype.type == np.unicode_:
+            continue
+
+        if item.name() in TIME_METADATA.keys():
+            reqd_dtype = TIME_METADATA[item.name()]["dtype"]
+        elif item.name() in INTEGER_QUANTITIES:
+            reqd_dtype = np.int32
+        else:
+            reqd_dtype = np.float32
+
+        if not enforce:
+            # if not enforcing, throw an error if non-compliant
+            if item.dtype != reqd_dtype:
+                msg = ('{} datatype {} does not conform '
+                       'to expected standard ({})\n')
+                msg = msg.format(item.name(), item.dtype, reqd_dtype)
+                error_string += msg
+            continue
+
+        # attempt to convert datatype and record any errors
+        try:
+            if isinstance(item, iris.cube.Cube):
+                _convert_diagnostic_dtype(item, dtype)
+            else:
+                _convert_coordinate_dtype(item, dtype)
+        except ValueError as cause:
+            error_string += str(cause) + '\n'
+
+    # if any errors were raised, re-raise with all messages here
+    if error_string:
+        msg = 'The following errors were raised during processing:\n'
+        raise ValueError(msg+error_string)
+
+    return new_cube
+
+
+def check_for_unknown_units(cube):
+    """
+    Function to check that cubes and all coordinates have units
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube to be checked
+
+    Raises:
+        ValueError: if any numerical coordinate has unknown units
+    """
+    object_list = _construct_object_list(cube, coords=None)
+    error_string = ''
+    for item in object_list:
+        if Unit(item.units).is_unknown():
+            error_string += '{} has unknown units\n'.format(item.name())
+    if error_string:
+        raise(ValueError(error_string))
+
+
 def enforce_units_and_dtypes(cubes, coords=None, enforce=True):
     """
+    DEPRECATED
+
     Function to check the units and datatypes of cube diagnostics and
     coordinates against the manifest in improver.units, with option to
     enforce or fail for non-conforming data.
@@ -111,15 +265,7 @@ def enforce_units_and_dtypes(cubes, coords=None, enforce=True):
     # construct a list of objects (cubes and coordinates) to be checked
     object_list = []
     for cube in new_cubes:
-        object_list.append(cube)
-        if coords is not None:
-            for coord in coords:
-                try:
-                    object_list.append(cube.coord(coord))
-                except CoordinateNotFoundError:
-                    pass
-        else:
-            object_list.extend(cube.coords())
+        object_list.extend(_construct_object_list(cube, coords))
 
     error_string = ''
     for item in object_list:
