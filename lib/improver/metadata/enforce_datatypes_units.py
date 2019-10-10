@@ -35,8 +35,7 @@ import numpy as np
 from cf_units import Unit
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.metadata.constants.units import (
-    INTEGER_QUANTITIES, TIME_METADATA, DEFAULT_UNITS)
+from improver.metadata.constants.units import INTEGER_QUANTITIES, TIME_METADATA
 
 
 def check_cube_not_float64(cube, fix=False):
