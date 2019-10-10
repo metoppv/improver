@@ -36,7 +36,8 @@ accumulations from shorter intervals.
 import iris
 import numpy as np
 
-from improver.metadata.enforce_datatypes_units import enforce_units_and_dtypes
+from improver.metadata.enforce_datatypes_units import (
+    check_time_coordinate_metadata)
 from improver.utilities.cube_manipulation import expand_bounds
 
 
@@ -134,9 +135,13 @@ class Accumulation:
 
         """
         # Standardise inputs to expected units
-        cubes = enforce_units_and_dtypes(
-            cubes, coords=['time', 'forecast_reference_time',
-                           'forecast_period'])
+        standardised_cubes = []
+        for cube in cubes:
+            check_time_coordinate_metadata(cube)
+            new_cube = cube.copy()
+            new_cube.convert_units('m s-1')
+            standardised_cubes.append(new_cube)
+        cubes = standardised_cubes
 
         # Sort cubes into time order and calculate intervals.
         cubes, times = self.sort_cubes_by_time(cubes)
