@@ -39,7 +39,6 @@ from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
 import improver.metadata.enforce_datatypes_units as enforce
-from improver.metadata.constants.units import DEFAULT_UNITS
 from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, set_up_probability_cube, set_up_percentile_cube)
 
@@ -157,9 +156,6 @@ class Test_check_datatypes(IrisTest):
                          276*np.ones((3, 3), dtype=np.float32)])
         percentiles = np.array([25, 50, 75], np.float32)
         self.percentile_cube = set_up_percentile_cube(data, percentiles)
-        # set to real source here, to test consistency of setup functions
-        # with up-to-date metadata standard
-        enforce.DEFAULT_UNITS = DEFAULT_UNITS
 
     def test_basic(self):
         """Test function returns a Cube"""
@@ -250,78 +246,6 @@ class Test_check_datatypes(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             enforce.check_datatypes(
                 self.percentile_cube, enforce=False)
-
-
-class LimitedDictTest(IrisTest):
-    """Set up limited item dictionary to point to in smaller tests"""
-
-    def setUp(self):
-        """Define dictionary"""
-        self.units_dict = {
-            "time": {
-                "unit": "seconds since 1970-01-01 00:00:00",
-                "dtype": np.int64},
-            "probability": {"unit": "1"},
-            "temperature": {"unit": "K"},
-            "rainfall": {"unit": "m s-1"},
-            "rate": {"unit": "m s-1"}
-        }
-
-
-class Test__find_dict_key(LimitedDictTest):
-    """Test method to find suitable substring keys in dictionary"""
-
-    def setUp(self):
-        """Redirect to dummy dictionary"""
-        super().setUp()
-        enforce.DEFAULT_UNITS = self.units_dict
-
-    def test_match(self):
-        """Test correct identification of single substring match"""
-        result = enforce._find_dict_key("air_temperature")
-        self.assertEqual(result, "temperature")
-
-    def test_probability_match(self):
-        """Test the correct substring is returned for an IMPROVER-style
-        probability cube name that matches multiple substrings"""
-        result = enforce._find_dict_key(
-            "probability_of_air_temperature_above_threshold")
-        self.assertEqual(result, "probability")
-
-    def test_no_matches_error(self):
-        """Test a KeyError is raised if there is no matching substring"""
-        msg = "Name 'kittens' is not uniquely defined in units.py"
-        with self.assertRaisesRegex(KeyError, msg):
-            enforce._find_dict_key("kittens")
-
-    def test_multiple_matches_error(self):
-        """Test a KeyError is raised if there are multiple matching substrings
-        """
-        msg = "Name 'rainfall_rate' is not uniquely defined in units.py"
-        with self.assertRaisesRegex(KeyError, msg):
-            enforce._find_dict_key("rainfall_rate")
-
-
-class Test__get_required_units_and_dtype(LimitedDictTest):
-    """Test method to read requirements from dictionary"""
-
-    def setUp(self):
-        """Redirect to dummy dictionary"""
-        super().setUp()
-        enforce.DEFAULT_UNITS = self.units_dict
-
-    def test_match(self):
-        """Test correct requirements identified"""
-        result = enforce._get_required_units_and_dtype("air_temperature")
-        self.assertEqual(result[0], "K")
-        self.assertEqual(result[1], np.float32)
-
-    def test_probability_match(self):
-        """Test correct requirements for probability (substring) diagnostic"""
-        result = enforce._get_required_units_and_dtype(
-            "probability_of_air_temperature_above_threshold")
-        self.assertEqual(result[0], "1")
-        self.assertEqual(result[1], np.float32)
 
 
 class Test__check_units_and_dtype(IrisTest):
