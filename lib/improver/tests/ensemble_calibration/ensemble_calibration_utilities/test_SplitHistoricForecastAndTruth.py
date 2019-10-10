@@ -32,7 +32,6 @@
 Unit tests for the `SplitHistoricForecastAndTruth` plugin.
 
 """
-import datetime
 import unittest
 
 from iris.tests import IrisTest
