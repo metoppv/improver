@@ -53,7 +53,7 @@ class BasicThreshold(object):
 
     def __init__(self, thresholds, fuzzy_factor=None,
                  fuzzy_bounds=None, threshold_units=None,
-                 inequality='>'):
+                 comparison_operator='>'):
         """
         Set up for processing an in-or-out of threshold field, including the
         generation of fuzzy_bounds which are required to threshold an input
@@ -99,9 +99,10 @@ class BasicThreshold(object):
             threshold_units (str):
                 Units of the threshold values. If not provided the units are
                 assumed to be the same as those of the input cube.
-            inequality (str):
-                Indicates the inequality of the threshold. e.g. 'ge' or '>=' to
-                evaluate data >= threshold or '<' to evaluate data < threshold.
+            comparison_operator (str):
+                Indicates the comparison_operator to use with the threshold.
+                e.g. 'ge' or '>=' to evaluate data >= threshold or '<' to
+                evaluate data < threshold.
                 Valid choices: > >= < <= gt ge lt le.
 
         Raises:
@@ -173,27 +174,30 @@ class BasicThreshold(object):
             assert bounds[0] <= thr, bounds_msg
             assert bounds[1] >= thr, bounds_msg
 
-        # Lists of known logical comparisons. The final entry in each list
-        # must be recognisable by eval()
-        self.inequality_dict = {}
-        self.inequality_dict.update(dict.fromkeys(['ge', 'GE', '>='],
-                                                  {'function': operator.ge,
-                                                   'spp_string': 'above',
-                                                   'valid_for_fuzzy': False}))
-        self.inequality_dict.update(dict.fromkeys(['gt', 'GT', '>'],
-                                                  {'function': operator.gt,
-                                                   'spp_string': 'above',
-                                                   'valid_for_fuzzy': True}))
-        self.inequality_dict.update(dict.fromkeys(['le', 'LE', '<='],
-                                                  {'function': operator.le,
-                                                   'spp_string': 'below',
-                                                   'valid_for_fuzzy': False}))
-        self.inequality_dict.update(dict.fromkeys(['lt', 'LT', '<'],
-                                                  {'function': operator.lt,
-                                                   'spp_string': 'below',
-                                                   'valid_for_fuzzy': True}))
-        self.inequality_string = inequality
-        self._decode_inequality_string()
+        # Dict of known logical comparisons. Each key contains a dict of
+        # {'function': The operator function for this comparison_operator,
+        #  'spp_string': Comparison_Operator string for use in CF-convention
+        #                meta-data,
+        #  'valid_for_fuzzy': Bool, True when valid for use with fuzzy bounds.}
+        self.comparison_operator_dict = {}
+        self.comparison_operator_dict.update(dict.fromkeys(
+            ['ge', 'GE', '>='], {'function': operator.ge,
+                                 'spp_string': 'above',
+                                 'valid_for_fuzzy': False}))
+        self.comparison_operator_dict.update(dict.fromkeys(
+            ['gt', 'GT', '>'], {'function': operator.gt,
+                                'spp_string': 'above',
+                                'valid_for_fuzzy': True}))
+        self.comparison_operator_dict.update(dict.fromkeys(
+            ['le', 'LE', '<='], {'function': operator.le,
+                                 'spp_string': 'below',
+                                 'valid_for_fuzzy': False}))
+        self.comparison_operator_dict.update(dict.fromkeys(
+            ['lt', 'LT', '<'], {'function': operator.lt,
+                                'spp_string': 'below',
+                                'valid_for_fuzzy': True}))
+        self.comparison_operator_string = comparison_operator
+        self._decode_comparison_operator_string()
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -202,7 +206,7 @@ class BasicThreshold(object):
             'fuzzy_bounds {}, ' +
             'method: data {} threshold>'
         ).format(self.thresholds, self.fuzzy_bounds,
-                 self.inequality_string)
+                 self.comparison_operator_string)
 
     def _add_threshold_coord(self, cube, threshold):
         """
@@ -237,31 +241,34 @@ class BasicThreshold(object):
         # Use an spp__relative_to_threshold attribute, as an extension to the
         # CF-conventions.
         coord.attributes.update({'spp__relative_to_threshold':
-                                 self.inequality['spp_string']})
+                                 self.comparison_operator['spp_string']})
 
         cube.add_aux_coord(coord)
         return iris.util.new_axis(cube, coord)
 
-    def _decode_inequality_string(self):
-        """Sets self.inequality based on self.inequality_string. This is a
-        dict containing the keys 'function', 'spp_string', 'valid_for_fuzzy'
+    def _decode_comparison_operator_string(self):
+        """Sets self.comparison_operator based on
+        self.comparison_operator_string. This is a dict containing the keys
+        'function', 'spp_string', 'valid_for_fuzzy'.
         Raises errors if invalid options are found.
 
         Raises:
-            ValueError: If self.inequality_string does not match a defined
-                        method.
-            ValueError: If self.inequality_string includes "=" and
+            ValueError: If self.comparison_operator_string does not match a
+                        defined method.
+            ValueError: If self.comparison_operator_string includes "=" and
                         fuzzy-thresholding is active
         """
         try:
-            self.inequality = self.inequality_dict[self.inequality_string]
+            self.comparison_operator = self.comparison_operator_dict[
+                self.comparison_operator_string]
         except KeyError:
-            msg = (f'String "{self.inequality_string}" does not match any '
-                   'known inequality method')
+            msg = (f'String "{self.comparison_operator_string}" '
+                   'does not match any known comparison_operator method')
             raise ValueError(msg)
         if (np.any([bounds[0] != bounds[1] for bounds in self.fuzzy_bounds])
-                and not self.inequality['valid_for_fuzzy']):
-            msg = (f'Inequality method "{self.inequality_string}" must '
+                and not self.comparison_operator['valid_for_fuzzy']):
+            msg = ('Comparison_Operator method '
+                   f'"{self.comparison_operator_string}" must '
                    'exclude equality when using fuzzy thresholds')
             raise ValueError(msg)
 
@@ -322,7 +329,7 @@ class BasicThreshold(object):
             # if upper and lower bounds are equal, set a deterministic 0/1
             # probability based on exceedance of the threshold
             if bounds[0] == bounds[1]:
-                truth_value = self.inequality['function'](
+                truth_value = self.comparison_operator['function'](
                     cube.data, threshold)
             # otherwise, scale exceedance probabilities linearly between 0/1
             # at the min/max fuzzy bounds and 0.5 at the threshold value
@@ -340,7 +347,7 @@ class BasicThreshold(object):
                 )
                 # if requirement is for probabilities below threshold (rather
                 # than above), invert the exceedance probability
-                if 'below' in self.inequality['spp_string']:
+                if 'below' in self.comparison_operator['spp_string']:
                     truth_value = 1. - truth_value
             truth_value = truth_value.astype(input_cube_dtype)
 
@@ -358,7 +365,7 @@ class BasicThreshold(object):
         cube.rename(
             "probability_of_{}_{}_threshold".format(
                 cube.name(),
-                self.inequality['spp_string']))
+                self.comparison_operator['spp_string']))
         cube.units = Unit(1)
 
         cube = enforce_coordinate_ordering(

@@ -52,30 +52,30 @@ class Test__repr__(IrisTest):
         """Test that the __repr__ returns the expected string."""
         threshold = [0.6]
         fuzzy_bounds = [(0.6, 0.6)]
-        inequality = 'gt'
-        expected_inequality = 'gt'
+        comparison_operator = 'gt'
+        expected_comparison_operator = 'gt'
         result = str(Threshold(threshold,
-                               inequality=inequality))
+                               comparison_operator=comparison_operator))
         msg = ('<BasicThreshold: thresholds {}, '
                'fuzzy_bounds {}, '
                'method: data {} threshold>'.format(
                    threshold, fuzzy_bounds,
-                   expected_inequality))
+                   expected_comparison_operator))
         self.assertEqual(result, msg)
 
     def test_multiple_thresholds(self):
         """Test that the __repr__ returns the expected string."""
         threshold = [0.6, 0.8]
         fuzzy_bounds = [(0.6, 0.6), (0.8, 0.8)]
-        inequality = 'gt'
-        expected_inequality = 'gt'
+        comparison_operator = 'gt'
+        expected_comparison_operator = 'gt'
         result = str(Threshold(threshold,
-                               inequality=inequality))
+                               comparison_operator=comparison_operator))
         msg = ('<BasicThreshold: thresholds {}, '
                'fuzzy_bounds {}, '
                'method: data {} threshold>'.format(
                    threshold, fuzzy_bounds,
-                   expected_inequality))
+                   expected_comparison_operator))
         self.assertEqual(result, msg)
 
     def test_below_fuzzy_threshold(self):
@@ -83,46 +83,46 @@ class Test__repr__(IrisTest):
         threshold = 0.6
         fuzzy_factor = 0.2
         fuzzy_bounds = [(0.12, 1.08)]
-        inequality = 'LT'
-        expected_inequality = 'LT'
+        comparison_operator = 'LT'
+        expected_comparison_operator = 'LT'
         result = str(Threshold(threshold,
                                fuzzy_factor=fuzzy_factor,
-                               inequality=inequality))
+                               comparison_operator=comparison_operator))
         msg = ('<BasicThreshold: thresholds [{}], '
                'fuzzy_bounds {}, '
                'method: data {} threshold>'.format(
                    threshold, fuzzy_bounds,
-                   expected_inequality))
+                   expected_comparison_operator))
         self.assertEqual(result, msg)
 
     def test_fuzzy_bounds_scalar(self):
         """Test that the __repr__ returns the expected string."""
         threshold = 0.6
         fuzzy_bounds = (0.4, 0.8)
-        inequality = '>'
+        comparison_operator = '>'
         result = str(Threshold(threshold,
                                fuzzy_bounds=fuzzy_bounds,
-                               inequality=inequality))
+                               comparison_operator=comparison_operator))
         msg = ('<BasicThreshold: thresholds [{}], '
                'fuzzy_bounds [{}], '
                'method: data {} threshold>'.format(
                    threshold, fuzzy_bounds,
-                   inequality))
+                   comparison_operator))
         self.assertEqual(result, msg)
 
     def test_fuzzy_bounds_list(self):
         """Test that the __repr__ returns the expected string."""
         threshold = [0.6, 2.0]
         fuzzy_bounds = [(0.4, 0.8), (1.8, 2.1)]
-        inequality = '>'
+        comparison_operator = '>'
         result = str(Threshold(threshold,
                                fuzzy_bounds=fuzzy_bounds,
-                               inequality=inequality))
+                               comparison_operator=comparison_operator))
         msg = ('<BasicThreshold: thresholds {}, '
                'fuzzy_bounds {}, '
                'method: data {} threshold>'.format(
                    threshold, fuzzy_bounds,
-                   inequality))
+                   comparison_operator))
         self.assertEqual(result, msg)
 
 
@@ -344,7 +344,7 @@ class Test_process(IrisTest):
     def test_threshold_boundingbelowzero(self):
         """Test fuzzy threshold of below-zero."""
         bounds = (-1.0, 1.0)
-        plugin = Threshold(0.0, fuzzy_bounds=bounds, inequality='<')
+        plugin = Threshold(0.0, fuzzy_bounds=bounds, comparison_operator='<')
         result = plugin.process(self.cube)
         expected_result_array = np.full_like(
             self.cube.data, fill_value=0.5).reshape(1, 1, 5, 5)
@@ -405,7 +405,7 @@ class Test_process(IrisTest):
         """Test when a point is in upper asymmetric fuzzy threshold area
         and below-threshold is requested."""
         bounds = (0.0, 0.6)
-        plugin = Threshold(0.4, fuzzy_bounds=bounds, inequality='<')
+        plugin = Threshold(0.4, fuzzy_bounds=bounds, comparison_operator='<')
         result = plugin.process(self.cube)
         expected_result_array = np.ones_like(self.cube.data).reshape(
             1, 1, 5, 5)
@@ -432,7 +432,7 @@ class Test_process(IrisTest):
         """Test a point when the threshold is negative."""
         self.cube.data[0][2][2] = -0.75
         plugin = Threshold(
-            -1.0, fuzzy_factor=self.fuzzy_factor, inequality='<')
+            -1.0, fuzzy_factor=self.fuzzy_factor, comparison_operator='<')
         result = plugin.process(self.cube)
         expected_result_array = np.zeros_like(self.cube.data).reshape(
             1, 1, 5, 5)
@@ -442,7 +442,7 @@ class Test_process(IrisTest):
     def test_threshold_below_fuzzy(self):
         """Test a point in fuzzy threshold in below-threshold-mode."""
         plugin = Threshold(
-            0.6, fuzzy_factor=self.fuzzy_factor, inequality='<')
+            0.6, fuzzy_factor=self.fuzzy_factor, comparison_operator='<')
         result = plugin.process(self.cube)
         expected_result_array = np.ones_like(self.cube.data).reshape(
             1, 1, 5, 5)
@@ -452,7 +452,7 @@ class Test_process(IrisTest):
     def test_threshold_below_fuzzy_miss(self):
         """Test not meeting the threshold in fuzzy below-threshold-mode."""
         plugin = Threshold(
-            2.0, fuzzy_factor=self.fuzzy_factor, inequality='<')
+            2.0, fuzzy_factor=self.fuzzy_factor, comparison_operator='<')
         result = plugin.process(self.cube)
         expected_result_array = np.ones_like(self.cube.data).reshape(
             1, 1, 5, 5)
@@ -461,37 +461,69 @@ class Test_process(IrisTest):
     def test_threshold_gt(self):
         """Test a point when we are in > threshold mode."""
         plugin = Threshold(0.5)
+        name = "probability_of_{}_above_threshold"
+        expected_name = name.format(self.cube.name())
+        expected_attribute = "above"
         result = plugin.process(self.cube)
         expected_result_array = np.zeros_like(self.cube.data).reshape(
             1, 1, 5, 5)
         expected_result_array[0][0][2][2] = 0
+        self.assertEqual(result.name(), expected_name)
+        self.assertEqual(
+            result.coord(var_name="threshold"
+                         ).attributes['spp__relative_to_threshold'],
+            expected_attribute)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_ge(self):
         """Test a point when we are in >= threshold mode."""
-        plugin = Threshold(0.5, inequality='>=')
+        plugin = Threshold(0.5, comparison_operator='>=')
+        name = "probability_of_{}_above_threshold"
+        expected_name = name.format(self.cube.name())
+        expected_attribute = "above"
         result = plugin.process(self.cube)
         expected_result_array = np.zeros_like(self.cube.data).reshape(
             1, 1, 5, 5)
         expected_result_array[0][0][2][2] = 1
+        self.assertEqual(result.name(), expected_name)
+        self.assertEqual(
+            result.coord(var_name="threshold"
+                         ).attributes['spp__relative_to_threshold'],
+            expected_attribute)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_lt(self):
         """Test a point when we are in < threshold mode."""
-        plugin = Threshold(0.5, inequality='<')
+        plugin = Threshold(0.5, comparison_operator='<')
+        name = "probability_of_{}_below_threshold"
+        expected_name = name.format(self.cube.name())
+        expected_attribute = "below"
         result = plugin.process(self.cube)
         expected_result_array = np.ones_like(self.cube.data).reshape(
             1, 1, 5, 5)
         expected_result_array[0][0][2][2] = 0
+        self.assertEqual(result.name(), expected_name)
+        self.assertEqual(
+            result.coord(var_name="threshold"
+                         ).attributes['spp__relative_to_threshold'],
+            expected_attribute)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_le(self):
         """Test a point when we are in le threshold mode."""
-        plugin = Threshold(0.5, inequality='<=')
+        plugin = Threshold(0.5, comparison_operator='<=')
+        name = "probability_of_{}_below_threshold"
+        expected_name = name.format(self.cube.name())
+        expected_attribute = "below"
         result = plugin.process(self.cube)
         expected_result_array = np.ones_like(self.cube.data).reshape(
             1, 1, 5, 5)
         expected_result_array[0][0][2][2] = 1
+        self.assertEqual(result.name(), expected_name)
+        self.assertEqual(
+            result.coord(var_name="threshold"
+                         ).attributes['spp__relative_to_threshold'],
+            expected_attribute)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_multiple_thresholds(self):
@@ -540,7 +572,7 @@ class Test_process(IrisTest):
         self.cube.data[0][2][2] = np.NAN
         msg = "NaN detected in input cube data"
         plugin = Threshold(
-            2.0, fuzzy_factor=self.fuzzy_factor, inequality='<')
+            2.0, fuzzy_factor=self.fuzzy_factor, comparison_operator='<')
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(self.cube)
 
@@ -548,19 +580,19 @@ class Test_process(IrisTest):
 class Test__init__(IrisTest):
 
     """Test error-raising behaviours unique to the init method and the private
-    function _decode_inequality_string."""
+    function _decode_comparison_operator_string."""
 
     def test_equal_fuzzy_threshold_raises_error(self):
         """Test that combining fuzziness and equality raises expected error."""
         threshold = 0.6
         fuzzy_factor = 0.2
-        inequality = 'LE'
-        msg = ('Inequality method "LE" must exclude equality when using fuzzy '
-               'thresholds')
+        comparison_operator = 'LE'
+        msg = ('Comparison_Operator method "LE" must exclude equality when '
+               'using fuzzy thresholds')
         with self.assertRaisesRegex(ValueError, msg):
             Threshold(threshold,
                       fuzzy_factor=fuzzy_factor,
-                      inequality=inequality)
+                      comparison_operator=comparison_operator)
 
     def test_threshold_zero_with_fuzzy_factor(self):
         """Test when a threshold of zero is used with a multiplicative
@@ -650,14 +682,14 @@ class Test__init__(IrisTest):
         with self.assertRaisesRegex(AssertionError, msg):
             Threshold(threshold, fuzzy_bounds=fuzzy_bounds)
 
-    def test_invalid_inequality(self):
-        """Test plugin throws a ValueError when inequality is bad"""
-        inequality = 'invalid'
+    def test_invalid_comparison_operator(self):
+        """Test plugin throws a ValueError when comparison_operator is bad"""
+        comparison_operator = 'invalid'
         threshold = 0.6
-        msg = ('String "{}" does not match any known inequality method'.format(
-            inequality))
+        msg = ('String "{}" does not match any known comparison_operator '
+               'method'.format(comparison_operator))
         with self.assertRaisesRegex(ValueError, msg):
-            Threshold(threshold, inequality=inequality)
+            Threshold(threshold, comparison_operator=comparison_operator)
 
 
 if __name__ == '__main__':

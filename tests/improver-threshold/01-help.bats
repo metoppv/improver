@@ -36,7 +36,7 @@
 usage: improver threshold [-h] [--profile] [--profile_file PROFILE_FILE]
                           [--threshold_config THRESHOLD_CONFIG]
                           [--threshold_units THRESHOLD_UNITS]
-                          [--inequality INEQUALITY]
+                          [--comparison_operator COMPARISON_OPERATOR]
                           [--fuzzy_factor FUZZY_FACTOR]
                           [--collapse-coord COLLAPSE-COORD]
                           [--vicinity VICINITY]
@@ -77,11 +77,11 @@ optional arguments:
                         dataset. Specifying the units here will allow a
                         suitable conversion to match the input units if
                         possible.
-  --inequality INEQUALITY
-                        Indicates the inequality of the threshold. e.g. 'ge'
-                        or '>=' to evaluate data >= threshold or '<' to
-                        evaluate data < threshold. Default is >. Valid
-                        choices: > >= < <= gt ge lt le.
+  --comparison_operator COMPARISON_OPERATOR
+                        Indicates the comparison_operator to use with the
+                        threshold. e.g. 'ge' or '>=' to evaluate data >=
+                        threshold or '<' to evaluate data < threshold.Default
+                        is >. Valid choices: > >= < <= gt ge lt le.
   --fuzzy_factor FUZZY_FACTOR
                         A decimal fraction defining the factor about the
                         threshold value(s) which should be treated as fuzzy.
