@@ -197,9 +197,9 @@ def check_datatypes(cube, coords=None, enforce=False):
         # attempt to convert datatype and record any errors
         try:
             if isinstance(item, iris.cube.Cube):
-                _convert_diagnostic_dtype(item, dtype)
+                _convert_diagnostic_dtype(item, reqd_dtype)
             else:
-                _convert_coordinate_dtype(item, dtype)
+                _convert_coordinate_dtype(item, reqd_dtype)
         except ValueError as cause:
             error_string += str(cause) + '\n'
 

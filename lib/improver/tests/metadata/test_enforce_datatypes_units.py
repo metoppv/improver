@@ -35,6 +35,7 @@ from datetime import datetime
 
 import iris
 import numpy as np
+from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
 import improver.metadata.enforce_datatypes_units as enforce
@@ -139,8 +140,8 @@ class Test_check_cube_not_float64(IrisTest):
         enforce.check_cube_not_float64(self.cube)
 
 
-class Test_enforce_units_and_dtypes(IrisTest):
-    """Test checking with option of enforcement or failure"""
+class Test_check_datatypes(IrisTest):
+    """Test datatype checking with option of enforcement or failure"""
 
     def setUp(self):
         """Set up some conformant cubes of air_temperature to test"""
@@ -161,66 +162,25 @@ class Test_enforce_units_and_dtypes(IrisTest):
         enforce.DEFAULT_UNITS = DEFAULT_UNITS
 
     def test_basic(self):
-        """Test function returns a CubeList"""
-        cubelist = [self.data_cube]
-        result = enforce.enforce_units_and_dtypes(cubelist)
-        self.assertIsInstance(result, iris.cube.CubeList)
-
-    def test_cube_input(self):
-        """Test function behaves sensibly with a single cube"""
-        result = enforce.enforce_units_and_dtypes(self.data_cube)
-        self.assertIsInstance(result, iris.cube.CubeList)
-        self.assertArrayAlmostEqual(result[0].data, self.data_cube.data)
-        self.assertEqual(result[0].metadata, self.data_cube.metadata)
+        """Test function returns a Cube"""
+        result = enforce.check_datatypes(self.data_cube)
+        self.assertIsInstance(result, iris.cube.Cube)
 
     def test_conformant_cubes(self):
         """Test conformant data, percentile and probability cubes are all
         passed when enforce=False (ie set to fail on non-conformance)"""
         cubelist = [
             self.data_cube, self.probability_cube, self.percentile_cube]
-        result = enforce.enforce_units_and_dtypes(cubelist, enforce=False)
-        self.assertIsInstance(result, iris.cube.CubeList)
-        for cube, ref in zip(result, cubelist):
-            self.assertArrayAlmostEqual(cube.data, ref.data)
-            self.assertEqual(cube.metadata, ref.metadata)
-
-    def test_data_units_enforce(self):
-        """Test units are changed on the returned cube and the input cube is
-        unmodified"""
-        self.data_cube.convert_units('Fahrenheit')
-        result, = enforce.enforce_units_and_dtypes(self.data_cube)
-        self.assertEqual(result.units, 'K')
-        self.assertEqual(self.data_cube.units, 'Fahrenheit')
-
-    def test_coord_units_enforce(self):
-        """Test coordinate units are enforced and the input cube is
-        unmodified"""
-        test_coord = 'projection_x_coordinate'
-        self.data_cube.coord(test_coord).convert_units('km')
-        result, = enforce.enforce_units_and_dtypes(self.data_cube)
-        self.assertEqual(self.data_cube.coord(test_coord).units, 'km')
-        self.assertEqual(result.coord(test_coord).units, 'm')
-
-    def test_data_units_fail(self):
-        """Test error is raised when enforce=False"""
-        self.data_cube.convert_units('Fahrenheit')
-        msg = "does not conform"
-        with self.assertRaisesRegex(ValueError, msg):
-            enforce.enforce_units_and_dtypes(self.data_cube, enforce=False)
-
-    def test_coord_units_fail(self):
-        """Test error is raised when enforce=False"""
-        self.probability_cube.coord(
-            'air_temperature').convert_units('Fahrenheit')
-        msg = "does not conform"
-        with self.assertRaisesRegex(ValueError, msg):
-            enforce.enforce_units_and_dtypes(
-                self.probability_cube, enforce=False)
+        for cube in cubelist:
+            result = enforce.check_datatypes(cube, enforce=False)
+            self.assertIsInstance(result, iris.cube.Cube)
+            self.assertArrayAlmostEqual(result.data, cube.data)
+            self.assertEqual(result.metadata, cube.metadata)
 
     def test_data_datatype_enforce(self):
         """Test dataset datatypes are enforced"""
         self.data_cube.data = self.data_cube.data.astype(np.float64)
-        result, = enforce.enforce_units_and_dtypes(self.data_cube)
+        result = enforce.check_datatypes(self.data_cube, enforce=True)
         self.assertEqual(result.dtype, np.float32)
         # check input is unchanged
         self.assertEqual(self.data_cube.dtype, np.float64)
@@ -231,10 +191,16 @@ class Test_enforce_units_and_dtypes(IrisTest):
         test_coord = 'forecast_reference_time'
         self.data_cube.coord(test_coord).points = (
              self.data_cube.coord(test_coord).points.astype(np.float64))
-        result, = enforce.enforce_units_and_dtypes(self.data_cube)
+        result = enforce.check_datatypes(self.data_cube, enforce=True)
         self.assertEqual(result.coord(test_coord).dtype, np.int64)
         # check input is unchanged
         self.assertEqual(self.data_cube.coord(test_coord).dtype, np.float64)
+
+    def test_string_coord(self):
+        """Test string coordinate does not throw an error"""
+        self.data_cube.add_aux_coord(
+            AuxCoord(["ukv"], long_name="model", units="no_unit"))
+        enforce.check_datatypes(self.data_cube, enforce=False)
 
     def test_data_datatype_fail(self):
         """Test error is raised when enforce=False"""
@@ -242,7 +208,7 @@ class Test_enforce_units_and_dtypes(IrisTest):
             self.percentile_cube.data.astype(np.float64))
         msg = "does not conform"
         with self.assertRaisesRegex(ValueError, msg):
-            enforce.enforce_units_and_dtypes(
+            enforce.check_datatypes(
                 self.percentile_cube, enforce=False)
 
     def test_coord_datatype_fail(self):
@@ -251,66 +217,39 @@ class Test_enforce_units_and_dtypes(IrisTest):
             self.percentile_cube.coord('percentile').points.astype(np.int32))
         msg = "does not conform"
         with self.assertRaisesRegex(ValueError, msg):
-            enforce.enforce_units_and_dtypes(
+            enforce.check_datatypes(
                 self.percentile_cube, enforce=False)
-
-    def test_coordinates_correctly_identified(self):
-        """Test all coordinates in a heterogeneous cube list are identified and
-        corrected"""
-        self.percentile_cube.coord('percentile').points = (
-            self.percentile_cube.coord('percentile').points.astype(np.int32))
-        self.probability_cube.coord(
-            'air_temperature').convert_units('Fahrenheit')
-        result = enforce.enforce_units_and_dtypes(
-            [self.percentile_cube, self.probability_cube])
-        self.assertEqual(result[0].coord('percentile').dtype, np.float32)
-        self.assertEqual(result[1].coord('air_temperature').units, 'K')
 
     def test_subset_of_coordinates(self):
         """Test function can enforce on a selected subset of coordinates and
         leave all others unchanged"""
         self.percentile_cube.coord('percentile').points = (
             self.percentile_cube.coord('percentile').points.astype(np.int32))
-        self.percentile_cube.coord('time').convert_units(
-            'hours since 1970-01-01 00:00:00')
-        self.probability_cube.coord(
-            'air_temperature').convert_units('Fahrenheit')
-        self.probability_cube.coord('forecast_period').convert_units('h')
-
-        result = enforce.enforce_units_and_dtypes(
-            [self.percentile_cube, self.probability_cube],
-            coords=["time", "forecast_period"])
-        self.assertEqual(result[0].coord('percentile').dtype, np.int32)
-        self.assertEqual(
-            result[0].coord('time').units, 'seconds since 1970-01-01 00:00:00')
-        self.assertEqual(
-            result[1].coord('air_temperature').units, 'Fahrenheit')
-        self.assertEqual(result[1].coord('forecast_period').units, 's')
-
-    def test_quantity_unavailable(self):
-        """Test error raised if the named quantity is not listed in the
-        dictionary standard"""
-        self.data_cube.rename("number_of_fish")
-        self.data_cube.units = "1"
-        msg = "Name 'number_of_fish' is not uniquely defined in units.py"
-        with self.assertRaisesRegex(KeyError, msg):
-            enforce.enforce_units_and_dtypes(self.data_cube)
+        self.percentile_cube.coord('forecast_period').points = (
+            self.percentile_cube.coord('forecast_period').points.astype(
+                np.float32))
+        result = enforce.check_datatypes(
+            self.percentile_cube, coords=["forecast_period"], enforce=True)
+        # unselected coordinate unchanged
+        self.assertEqual(result.coord('percentile').dtype, np.int32)
+        # selected coordinate changed
+        self.assertEqual(result.coord('forecast_period').dtype, np.int32)
 
     def test_multiple_errors(self):
         """Test a list of errors is correctly caught and re-raised"""
-        self.data_cube.convert_units('Fahrenheit')
-        self.probability_cube.coord(
-            'air_temperature').convert_units('degC')
+        self.percentile_cube.coord('percentile').points = (
+            self.percentile_cube.coord('percentile').points.astype(np.int32))
+        self.percentile_cube.coord('forecast_period').points = (
+            self.percentile_cube.coord('forecast_period').points.astype(
+                np.float32))
         msg = ("The following errors were raised during processing:\n"
-               "air_temperature with units Fahrenheit and datatype float32 "
-               "does not conform to expected standard \\(units K, datatype "
-               "\\<class 'numpy.float32'\\>\\)\n"
-               "air_temperature with units degC and datatype float32 "
-               "does not conform to expected standard \\(units K, datatype "
-               "\\<class 'numpy.float32'\\>\\)\n")
+               "percentile datatype int32 does not conform to expected "
+               "standard \\(\\<class 'numpy.float32'\\>\\)\n"
+               "forecast_period datatype float32 does not conform to expected "
+               "standard \\(\\<class 'numpy.int32'\\>\\)\n")
         with self.assertRaisesRegex(ValueError, msg):
-            enforce.enforce_units_and_dtypes(
-                [self.data_cube, self.probability_cube], enforce=False)
+            enforce.check_datatypes(
+                self.percentile_cube, enforce=False)
 
 
 class LimitedDictTest(IrisTest):
