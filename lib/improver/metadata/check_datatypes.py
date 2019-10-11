@@ -35,7 +35,8 @@ import numpy as np
 from cf_units import Unit
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.metadata.constants.units import INTEGER_QUANTITIES, TIME_METADATA
+from improver.metadata.constants.datatypes import (
+    INTEGER_QUANTITIES, TIME_METADATA)
 
 
 def check_cube_not_float64(cube, fix=False):
@@ -155,13 +156,10 @@ def check_datatypes(cube, coords=None):
         coords (list or None):
             List of coordinate names to check.  If None, checks all
             coordinates present on the input cube.
-        enforce (bool):
-            If True, this function returns a list of conformant cubes.
-            If False, a ValueError is thrown if the cube does not conform.
 
     Raises:
-        ValueError: if "enforce=False" and the input cube does not conform
-            to the datatypes standard.
+        ValueError: if the input cube does not conform to the datatypes
+            standard
     Returns:
         new_cube (iris.cube.Cube):
             New cube with conformant datatypes

@@ -35,7 +35,7 @@ import warnings
 import cf_units
 import iris
 
-from improver.metadata.enforce_datatypes_units import (
+from improver.metadata.check_datatypes import (
     check_time_coordinate_metadata, check_datatypes)
 
 

@@ -28,22 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""
-Module containing the default units and datatypes for use within IMPROVER.
-
-The DEFAULT_UNITS dictionary has the following form.
-
-<str>:
-    The principle key is the name of a coordinate or diagnostic.
-
-"unit": <str>
-    The standard/default units for the coordinate or diagnostic
-    described by the key.  This is mandatory.
-"dtype": <dtype>
-    The standard/default data type in which the coordinate points
-    or diagnostic values should be stored.  This is optional; if
-    not set, float32 is assumed.
-"""
+"""Module containing the default datatypes for use within IMPROVER."""
 
 import numpy as np
 
