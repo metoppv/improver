@@ -120,7 +120,7 @@ def _check_metadata(cube):
             because units may not be preserved on save / load
     """
     check_time_coordinate_metadata(cube)
-    check_datatypes(cube, enforce=False)
+    check_datatypes(cube)
     check_for_unknown_units(cube)
 
 

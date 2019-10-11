@@ -141,7 +141,7 @@ def _construct_object_list(cube, coords):
     return object_list
 
 
-def check_datatypes(cube, coords=None, enforce=False):
+def check_datatypes(cube, coords=None):
     """
     Function to check the datatypes of cube diagnostics and coordinates
     against the expected standard.  The default datatype is float32;
@@ -184,28 +184,16 @@ def check_datatypes(cube, coords=None, enforce=False):
         else:
             reqd_dtype = np.float32
 
-        if not enforce:
-            # if not enforcing, throw an error if non-compliant
-            if item.dtype != reqd_dtype:
-                msg = ('{} datatype {} does not conform '
-                       'to expected standard ({})\n')
-                msg = msg.format(item.name(), item.dtype, reqd_dtype)
-                error_string += msg
-            continue
+        if item.dtype != reqd_dtype:
+            msg = ('{} datatype {} does not conform '
+                   'to expected standard ({})\n')
+            msg = msg.format(item.name(), item.dtype, reqd_dtype)
+            error_string += msg
+        continue
 
-        # attempt to convert datatype and record any errors
-        try:
-            if isinstance(item, iris.cube.Cube):
-                _convert_diagnostic_dtype(item, reqd_dtype)
-            else:
-                _convert_coordinate_dtype(item, reqd_dtype)
-        except ValueError as cause:
-            error_string += str(cause) + '\n'
-
-    # if any errors were raised, re-raise with all messages here
+    # if any data was non-compliant, raise details here
     if error_string:
-        msg = 'The following errors were raised during processing:\n'
-        raise ValueError(msg+error_string)
+        raise ValueError(error_string)
 
     return new_cube
 

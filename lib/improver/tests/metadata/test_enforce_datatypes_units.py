@@ -163,73 +163,45 @@ class Test_check_datatypes(IrisTest):
         self.assertIsInstance(result, iris.cube.Cube)
 
     def test_conformant_cubes(self):
-        """Test conformant data, percentile and probability cubes are all
-        passed when enforce=False (ie set to fail on non-conformance)"""
+        """Test conformant data, percentile and probability cubes all pass"""
         cubelist = [
             self.data_cube, self.probability_cube, self.percentile_cube]
         for cube in cubelist:
-            result = enforce.check_datatypes(cube, enforce=False)
+            result = enforce.check_datatypes(cube)
             self.assertIsInstance(result, iris.cube.Cube)
             self.assertArrayAlmostEqual(result.data, cube.data)
             self.assertEqual(result.metadata, cube.metadata)
-
-    def test_data_datatype_enforce(self):
-        """Test dataset datatypes are enforced"""
-        self.data_cube.data = self.data_cube.data.astype(np.float64)
-        result = enforce.check_datatypes(self.data_cube, enforce=True)
-        self.assertEqual(result.dtype, np.float32)
-        # check input is unchanged
-        self.assertEqual(self.data_cube.dtype, np.float64)
-
-    def test_coord_datatype_enforce(self):
-        """Test coordinate datatypes are enforced (using substring processing)
-        """
-        test_coord = 'forecast_reference_time'
-        self.data_cube.coord(test_coord).points = (
-             self.data_cube.coord(test_coord).points.astype(np.float64))
-        result = enforce.check_datatypes(self.data_cube, enforce=True)
-        self.assertEqual(result.coord(test_coord).dtype, np.int64)
-        # check input is unchanged
-        self.assertEqual(self.data_cube.coord(test_coord).dtype, np.float64)
 
     def test_string_coord(self):
         """Test string coordinate does not throw an error"""
         self.data_cube.add_aux_coord(
             AuxCoord(["ukv"], long_name="model", units="no_unit"))
-        enforce.check_datatypes(self.data_cube, enforce=False)
+        enforce.check_datatypes(self.data_cube)
 
     def test_data_datatype_fail(self):
-        """Test error is raised when enforce=False"""
+        """Test error is raised for 64-bit data"""
         self.percentile_cube.data = (
             self.percentile_cube.data.astype(np.float64))
         msg = "does not conform"
         with self.assertRaisesRegex(ValueError, msg):
-            enforce.check_datatypes(
-                self.percentile_cube, enforce=False)
+            enforce.check_datatypes(self.percentile_cube)
 
     def test_coord_datatype_fail(self):
-        """Test error is raised when enforce=False"""
+        """Test error is raised for 64-bit coordinate"""
         self.percentile_cube.coord('percentile').points = (
-            self.percentile_cube.coord('percentile').points.astype(np.int32))
+            self.percentile_cube.coord('percentile').points.astype(np.float64))
         msg = "does not conform"
         with self.assertRaisesRegex(ValueError, msg):
-            enforce.check_datatypes(
-                self.percentile_cube, enforce=False)
+            enforce.check_datatypes(self.percentile_cube)
 
     def test_subset_of_coordinates(self):
-        """Test function can enforce on a selected subset of coordinates and
-        leave all others unchanged"""
+        """Test function can check a selected subset of coordinates and
+        ignore others"""
         self.percentile_cube.coord('percentile').points = (
-            self.percentile_cube.coord('percentile').points.astype(np.int32))
-        self.percentile_cube.coord('forecast_period').points = (
-            self.percentile_cube.coord('forecast_period').points.astype(
-                np.float32))
+            self.percentile_cube.coord('percentile').points.astype(np.float64))
         result = enforce.check_datatypes(
-            self.percentile_cube, coords=["forecast_period"], enforce=True)
-        # unselected coordinate unchanged
-        self.assertEqual(result.coord('percentile').dtype, np.int32)
-        # selected coordinate changed
-        self.assertEqual(result.coord('forecast_period').dtype, np.int32)
+            self.percentile_cube, coords=["forecast_period"])
+        self.assertEqual(result.coord('percentile').dtype, np.float64)
 
     def test_multiple_errors(self):
         """Test a list of errors is correctly caught and re-raised"""
@@ -238,14 +210,12 @@ class Test_check_datatypes(IrisTest):
         self.percentile_cube.coord('forecast_period').points = (
             self.percentile_cube.coord('forecast_period').points.astype(
                 np.float32))
-        msg = ("The following errors were raised during processing:\n"
-               "percentile datatype int32 does not conform to expected "
+        msg = ("percentile datatype int32 does not conform to expected "
                "standard \\(\\<class 'numpy.float32'\\>\\)\n"
                "forecast_period datatype float32 does not conform to expected "
                "standard \\(\\<class 'numpy.int32'\\>\\)\n")
         with self.assertRaisesRegex(ValueError, msg):
-            enforce.check_datatypes(
-                self.percentile_cube, enforce=False)
+            enforce.check_datatypes(self.percentile_cube)
 
 
 class Test__check_units_and_dtype(IrisTest):
