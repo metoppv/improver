@@ -80,8 +80,10 @@ optional arguments:
   --comparison_operator COMPARISON_OPERATOR
                         Indicates the comparison_operator to use with the
                         threshold. e.g. 'ge' or '>=' to evaluate data >=
-                        threshold or '<' to evaluate data < threshold.Default
-                        is >. Valid choices: > >= < <= gt ge lt le.
+                        threshold or '<' to evaluate data < threshold. When
+                        using fuzzy thresholds, there is no difference between
+                        < and <= or > and >=.Default is >. Valid choices: > >=
+                        < <= gt ge lt le.
   --fuzzy_factor FUZZY_FACTOR
                         A decimal fraction defining the factor about the
                         threshold value(s) which should be treated as fuzzy.

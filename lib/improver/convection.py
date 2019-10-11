@@ -75,7 +75,8 @@ class DiagnoseConvectivePrecipitation(object):
             comparison_operator (str):
                 Indicates the comparison_operator to use with the threshold.
                 e.g. 'ge' or '>=' to evaluate data >= threshold or '<' to
-                evaluate data < threshold.
+                evaluate data < threshold. When using fuzzy_factor, there
+                is no difference between < and <= or > and >=.
                 Valid choices: > >= < <= gt ge lt le.
             lead_times (list):
                 List of lead times or forecast periods, at which the radii

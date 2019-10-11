@@ -88,7 +88,9 @@ def main(argv=None):
                                               'gt', 'ge', 'lt', 'le'],
                         help="Indicates the comparison_operator to use with "
                         "the threshold. e.g. 'ge' or '>=' to evaluate data "
-                        ">= threshold or '<' to evaluate data < threshold."
+                        ">= threshold or '<' to evaluate data < threshold. "
+                        "When using fuzzy thresholds, there is no difference "
+                        "between < and <= or > and >=."
                         "Default is >. Valid choices: > >= < <= gt ge lt le.")
     parser.add_argument("--fuzzy_factor", metavar="FUZZY_FACTOR",
                         default=None, type=float,
@@ -189,7 +191,8 @@ def process(cube, threshold_values=None, threshold_dict=None,
         comparison_operator (str):
             Indicates the comparison_operator to use with the threshold.
             e.g. 'ge' or '>=' to evaluate data >= threshold or '<' to
-            evaluate data < threshold.
+            evaluate data < threshold. When using fuzzy thresholds, there is
+            no difference between < and <= or > and >=.
             Default is >. Valid choices: > >= < <= gt ge lt le.
         fuzzy_factor (float):
             A decimal fraction defining the factor about the threshold value(s)

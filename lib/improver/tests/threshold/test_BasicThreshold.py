@@ -568,18 +568,6 @@ class Test__init__(IrisTest):
     """Test error-raising behaviours unique to the init method and the private
     function _decode_comparison_operator_string."""
 
-    def test_equal_fuzzy_threshold_raises_error(self):
-        """Test that combining fuzziness and equality raises expected error."""
-        threshold = 0.6
-        fuzzy_factor = 0.2
-        comparison_operator = 'LE'
-        msg = ('Comparison_Operator method "LE" must exclude equality when '
-               'using fuzzy thresholds')
-        with self.assertRaisesRegex(ValueError, msg):
-            Threshold(threshold,
-                      fuzzy_factor=fuzzy_factor,
-                      comparison_operator=comparison_operator)
-
     def test_threshold_zero_with_fuzzy_factor(self):
         """Test when a threshold of zero is used with a multiplicative
         fuzzy factor (invalid)."""

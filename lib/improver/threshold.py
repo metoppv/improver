@@ -102,7 +102,8 @@ class BasicThreshold(object):
             comparison_operator (str):
                 Indicates the comparison_operator to use with the threshold.
                 e.g. 'ge' or '>=' to evaluate data >= threshold or '<' to
-                evaluate data < threshold.
+                evaluate data < threshold. When using fuzzy thresholds, there
+                is no difference between < and <= or > and >=.
                 Valid choices: > >= < <= gt ge lt le.
 
         Raises:
@@ -177,25 +178,20 @@ class BasicThreshold(object):
         # Dict of known logical comparisons. Each key contains a dict of
         # {'function': The operator function for this comparison_operator,
         #  'spp_string': Comparison_Operator string for use in CF-convention
-        #                meta-data,
-        #  'valid_for_fuzzy': Bool, True when valid for use with fuzzy bounds.}
+        #                meta-data}
         self.comparison_operator_dict = {}
         self.comparison_operator_dict.update(dict.fromkeys(
             ['ge', 'GE', '>='], {'function': operator.ge,
-                                 'spp_string': 'above',
-                                 'valid_for_fuzzy': False}))
+                                 'spp_string': 'above'}))
         self.comparison_operator_dict.update(dict.fromkeys(
             ['gt', 'GT', '>'], {'function': operator.gt,
-                                'spp_string': 'above',
-                                'valid_for_fuzzy': True}))
+                                'spp_string': 'above'}))
         self.comparison_operator_dict.update(dict.fromkeys(
             ['le', 'LE', '<='], {'function': operator.le,
-                                 'spp_string': 'below',
-                                 'valid_for_fuzzy': False}))
+                                 'spp_string': 'below'}))
         self.comparison_operator_dict.update(dict.fromkeys(
             ['lt', 'LT', '<'], {'function': operator.lt,
-                                'spp_string': 'below',
-                                'valid_for_fuzzy': True}))
+                                'spp_string': 'below'}))
         self.comparison_operator_string = comparison_operator
         self._decode_comparison_operator_string()
 
@@ -249,14 +245,12 @@ class BasicThreshold(object):
     def _decode_comparison_operator_string(self):
         """Sets self.comparison_operator based on
         self.comparison_operator_string. This is a dict containing the keys
-        'function', 'spp_string', 'valid_for_fuzzy'.
+        'function' and 'spp_string'.
         Raises errors if invalid options are found.
 
         Raises:
             ValueError: If self.comparison_operator_string does not match a
                         defined method.
-            ValueError: If self.comparison_operator_string includes "=" and
-                        fuzzy-thresholding is active
         """
         try:
             self.comparison_operator = self.comparison_operator_dict[
@@ -264,12 +258,6 @@ class BasicThreshold(object):
         except KeyError:
             msg = (f'String "{self.comparison_operator_string}" '
                    'does not match any known comparison_operator method')
-            raise ValueError(msg)
-        if (np.any([bounds[0] != bounds[1] for bounds in self.fuzzy_bounds])
-                and not self.comparison_operator['valid_for_fuzzy']):
-            msg = ('Comparison_Operator method '
-                   f'"{self.comparison_operator_string}" must '
-                   'exclude equality when using fuzzy thresholds')
             raise ValueError(msg)
 
     def process(self, input_cube):
