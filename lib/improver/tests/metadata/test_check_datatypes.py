@@ -31,7 +31,6 @@
 """Unit tests for the improver.metadata.check_datatypes module."""
 
 import unittest
-from datetime import datetime
 
 import iris
 import numpy as np

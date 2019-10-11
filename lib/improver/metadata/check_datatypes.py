@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Utilities for datatype checking"""
 
-import iris
 import numpy as np
 from cf_units import Unit
 from iris.exceptions import CoordinateNotFoundError
