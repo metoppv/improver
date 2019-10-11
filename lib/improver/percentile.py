@@ -36,7 +36,7 @@ import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.constants import DEFAULT_PERCENTILES
-from improver.utilities.cube_checker import find_percentile_coordinate
+from improver.metadata.probabilistic import find_percentile_coordinate
 
 
 class PercentileConverter(object):

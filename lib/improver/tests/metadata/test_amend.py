@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the cube_metadata utilities."""
+"""Tests for the improver.metadata.amend module"""
 
 import unittest
 from copy import copy, deepcopy
@@ -39,23 +39,18 @@ import numpy as np
 from iris.cube import Cube
 from iris.tests import IrisTest
 
-from improver.tests.set_up_test_cubes import (
-    set_up_variable_cube, set_up_probability_cube, add_coordinate)
-from improver.utilities.cube_checker import find_threshold_coordinate
-from improver.utilities.cube_metadata import (
+from improver.metadata.amend import (
     add_coord,
     add_history_attribute,
     amend_metadata,
-    delete_attributes,
     resolve_metadata_diff,
-    update_attribute,
-    update_cell_methods,
-    update_coord,
-    update_stage_v110_metadata,
-    in_vicinity_name_format,
-    extract_diagnostic_name,
-    generate_hash,
-    create_coordinate_hash)
+    _update_attribute,
+    _update_cell_methods,
+    _update_coord,
+    update_stage_v110_metadata)
+from improver.metadata.probabilistic import find_threshold_coordinate
+from improver.tests.set_up_test_cubes import (
+    set_up_variable_cube, set_up_probability_cube, add_coordinate)
 from improver.utilities.warnings_handler import ManageWarnings
 
 
@@ -140,7 +135,9 @@ class Test_add_coord(IrisTest):
         self.cube = iris.util.squeeze(cube)
 
     def test_basic(self):
-        """Test that add_coord returns a Cube and adds coord correctly"""
+        """Test that add_coord returns a Cube and adds coord correctly and does
+        not modify the input cube"""
+        original_cube = self.cube.copy()
         result = add_coord(self.cube, self.coord_name, self.changes)
         result_coord = result.coord(self.coord_name)
         self.assertIsInstance(result, Cube)
@@ -148,6 +145,7 @@ class Test_add_coord(IrisTest):
         self.assertArrayEqual(result_coord.bounds, np.array([[0.1, 2.0]]))
         self.assertEqual(str(result_coord.units), 'mm')
         self.assertEqual(result_coord.var_name, "threshold")
+        self.assertEqual(self.cube, original_cube)
 
     def test_standard_name(self):
         """Test default is for coordinate to be added as standard name"""
@@ -193,8 +191,8 @@ class Test_add_coord(IrisTest):
                             for item in warning_list))
 
 
-class Test_update_coord(IrisTest):
-    """Test the update_coord method."""
+class Test__update_coord(IrisTest):
+    """Test the _update_coord method."""
 
     def setUp(self):
         """Set up test cube and thresholds"""
@@ -203,90 +201,93 @@ class Test_update_coord(IrisTest):
         self.coord_name = find_threshold_coordinate(self.cube).name()
 
     def test_basic(self):
-        """Test update_coord returns a Cube and updates coord correctly. """
+        """Test _update_coord returns a Cube and updates coord correctly and
+        does not modify the input cube. """
+        original_cube = self.cube.copy()
         changes = {'points': [2.0], 'bounds': [0.1, 2.0]}
-        result = update_coord(self.cube, self.coord_name, changes)
+        result = _update_coord(self.cube, self.coord_name, changes)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.coord(self.coord_name).points,
                                     np.array([2.0], dtype=np.float32))
         self.assertArrayAlmostEqual(result.coord(self.coord_name).bounds,
                                     np.array([[0.1, 2.0]], dtype=np.float32))
+        self.assertEqual(self.cube, original_cube)
 
     def test_convert_units(self):
-        """Test update_coord returns a Cube and converts units correctly. """
+        """Test _update_coord returns a Cube and converts units correctly. """
         cube = create_cube_with_threshold()
         changes = {'units': 'km s-1'}
-        result = update_coord(cube, self.coord_name, changes)
+        result = _update_coord(cube, self.coord_name, changes)
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.coord(self.coord_name).points,
                          np.array([0.001], dtype=np.float32))
         self.assertEqual(str(result.coord(self.coord_name).units), 'km s-1')
 
     def test_coords_deleted(self):
-        """Test update_coord deletes coordinate. """
+        """Test _update_coord deletes coordinate. """
         changes = 'delete'
-        result = update_coord(self.cube, self.coord_name, changes)
+        result = _update_coord(self.cube, self.coord_name, changes)
         found_key = self.coord_name in [
             coord.name() for coord in result.coords()]
         self.assertArrayEqual(found_key, False)
 
     def test_coords_deleted_fails(self):
-        """Test update_coord fails to delete coord of len > 1. """
+        """Test _update_coord fails to delete coord of len > 1. """
         changes = 'delete'
         msg = "Can only remove a coordinate of length 1"
         with self.assertRaisesRegex(ValueError, msg):
-            update_coord(self.cube, 'time', changes)
+            _update_coord(self.cube, 'time', changes)
 
     @ManageWarnings(record=True)
     def test_warning_messages_with_delete(self, warning_list=None):
         """Test warning message is raised correctly when deleting coord. """
         changes = 'delete'
         warning_msg = "Deleted coordinate"
-        update_coord(self.cube, self.coord_name, changes, warnings_on=True)
+        _update_coord(self.cube, self.coord_name, changes, warnings_on=True)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         self.assertTrue(any(warning_msg in str(item)
                             for item in warning_list))
 
     def test_coords_update_fail_points(self):
-        """Test that update_coord fails if points do not match. """
+        """Test that _update_coord fails if points do not match. """
         changes = {'points': [2.0, 3.0]}
         msg = "Mismatch in points in existing coord and updated metadata"
         with self.assertRaisesRegex(ValueError, msg):
-            update_coord(self.cube, self.coord_name, changes)
+            _update_coord(self.cube, self.coord_name, changes)
 
     def test_coords_update_fail_bounds(self):
-        """Test update_coord fails if shape of new bounds do not match. """
+        """Test _update_coord fails if shape of new bounds do not match. """
         cube = create_cube_with_threshold(threshold_values=self.thresholds)
         changes = {'bounds': [0.1, 2.0]}
         msg = "The shape of the bounds array should be"
         with self.assertRaisesRegex(ValueError, msg):
-            update_coord(cube, self.coord_name, changes)
+            _update_coord(cube, self.coord_name, changes)
 
     def test_coords_update_bounds_succeed(self):
-        """Test that update_coord succeeds if bounds do match """
+        """Test that _update_coord succeeds if bounds do match """
         cube = create_cube_with_threshold(threshold_values=self.thresholds)
         cube.coord(self.coord_name).guess_bounds()
         changes = {'bounds': [[0.1, 2.0], [2.0, 3.0]]}
-        result = update_coord(cube, self.coord_name, changes)
+        result = _update_coord(cube, self.coord_name, changes)
         self.assertArrayEqual(result.coord(self.coord_name).bounds,
                               np.array([[0.1, 2.0], [2.0, 3.0]],
                                        dtype=np.float32))
 
     def test_coords_update_fails_bounds_differ(self):
-        """Test that update_coord fails if bounds differ."""
+        """Test that _update_coord fails if bounds differ."""
         cube = create_cube_with_threshold(threshold_values=self.thresholds)
         cube.coord(self.coord_name).guess_bounds()
         changes = {'bounds': [[0.1, 2.0], [2.0, 3.0], [3.0, 4.0]]}
         msg = "Mismatch in bounds in existing coord and updated metadata"
         with self.assertRaisesRegex(ValueError, msg):
-            update_coord(cube, self.coord_name, changes)
+            _update_coord(cube, self.coord_name, changes)
 
-    def test_update_attributes(self):
+    def test__update_attributes(self):
         """Test update attributes associated with a coordinate."""
         cube = create_cube_with_threshold()
         changes = {'attributes': {'spp__relative_to_threshold': "below"}}
-        result = update_coord(cube, self.coord_name, changes)
+        result = _update_coord(cube, self.coord_name, changes)
         self.assertIsInstance(result, Cube)
         self.assertEqual(
             result.coord(self.coord_name).attributes, changes["attributes"])
@@ -296,55 +297,58 @@ class Test_update_coord(IrisTest):
         """Test warning message is raised correctly when updating coord. """
         changes = {'points': [2.0], 'bounds': [0.1, 2.0]}
         warning_msg = "Updated coordinate"
-        update_coord(self.cube, self.coord_name, changes, warnings_on=True)
+        _update_coord(self.cube, self.coord_name, changes, warnings_on=True)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         self.assertTrue(any(warning_msg in str(item)
                             for item in warning_list))
 
     def test_incompatible_changes_requested(self):
-        """Test that update_coord raises an exception if 'points' and 'units'
+        """Test that _update_coord raises an exception if 'points' and 'units'
         are requested to be changed."""
         cube = create_cube_with_threshold()
         changes = {'points': [2.0, 3.0], 'units': 'mm/hr'}
         msg = "When updating a coordinate"
         with self.assertRaisesRegex(ValueError, msg):
-            update_coord(cube, self.coord_name, changes)
+            _update_coord(cube, self.coord_name, changes)
 
     def test_alternative_incompatible_changes_requested(self):
-        """Test that update_coord raises an exception if 'bounds' and 'units'
+        """Test that _update_coord raises an exception if 'bounds' and 'units'
         are requested to be changed."""
         cube = create_cube_with_threshold()
         changes = {'bounds': [0.1, 2.0], 'units': 'mm/hr'}
         msg = "When updating a coordinate"
         with self.assertRaisesRegex(ValueError, msg):
-            update_coord(cube, self.coord_name, changes)
+            _update_coord(cube, self.coord_name, changes)
 
 
-class Test_update_attribute(IrisTest):
-    """Test the update_attribute method."""
+class Test__update_attribute(IrisTest):
+    """Test the _update_attribute method."""
 
     def setUp(self):
         """Set up test cube"""
         self.cube = create_cube_with_threshold()
 
     def test_basic(self):
-        """Test that update_attribute returns a Cube and updates OK. """
+        """Test that _update_attribute returns a Cube and updates OK and does
+        not modify the input cube. """
+        original_cube = self.cube.copy()
         attribute_name = 'attribute_to_update'
         changes = 'second_value'
-        result = update_attribute(self.cube, attribute_name, changes)
+        result = _update_attribute(self.cube, attribute_name, changes)
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.attributes['attribute_to_update'],
                          'second_value')
+        self.assertEqual(self.cube.metadata, original_cube.metadata)
 
     @ManageWarnings(record=True)
     def test_attributes_updated_warnings(self, warning_list=None):
-        """Test update_attribute updates attributes and gives warning. """
+        """Test _update_attribute updates attributes and gives warning. """
         attribute_name = 'attribute_to_update'
         changes = 'second_value'
         warning_msg = "Adding or updating attribute"
-        result = update_attribute(self.cube, attribute_name, changes,
-                                  warnings_on=True)
+        result = _update_attribute(self.cube, attribute_name, changes,
+                                   warnings_on=True)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         self.assertTrue(any(warning_msg in str(item)
@@ -353,43 +357,43 @@ class Test_update_attribute(IrisTest):
                          'second_value')
 
     def test_attributes_added(self):
-        """Test update_attribute adds attribute OK. """
+        """Test _update_attribute adds attribute OK. """
         attribute_name = 'new_attribute'
         changes = 'new_value'
-        result = update_attribute(self.cube, attribute_name, changes)
+        result = _update_attribute(self.cube, attribute_name, changes)
         self.assertEqual(result.attributes['new_attribute'],
                          'new_value')
 
     def test_history_attribute_added(self):
-        """Test update_attribute adds attribute OK. """
+        """Test _update_attribute adds attribute OK. """
         attribute_name = 'history'
         changes = ['add', "Nowcast"]
-        result = update_attribute(self.cube, attribute_name, changes)
+        result = _update_attribute(self.cube, attribute_name, changes)
         self.assertTrue("history" in result.attributes.keys())
 
     def test_failure_to_add_history_attribute(self):
-        """Test update_attribute doesn't adds non-history attribute. """
+        """Test _update_attribute doesn't adds non-history attribute. """
         attribute_name = 'new_attribute'
         changes = 'add'
         msg = "Only the history attribute can be added"
         with self.assertRaisesRegex(ValueError, msg):
-            update_attribute(self.cube, attribute_name, changes)
+            _update_attribute(self.cube, attribute_name, changes)
 
     def test_attributes_deleted(self):
-        """Test update_attribute deletes attribute OK. """
+        """Test _update_attribute deletes attribute OK. """
         attribute_name = 'attribute_to_update'
         changes = 'delete'
-        result = update_attribute(self.cube, attribute_name, changes)
+        result = _update_attribute(self.cube, attribute_name, changes)
         self.assertFalse('attribute_to_update' in result.attributes)
 
     @ManageWarnings(record=True)
     def test_attributes_deleted_warnings(self, warning_list=None):
-        """Test update_attribute deletes and gives warning. """
+        """Test _update_attribute deletes and gives warning. """
         attribute_name = 'attribute_to_update'
         changes = 'delete'
         warning_msg = "Deleted attribute"
-        result = update_attribute(self.cube, attribute_name, changes,
-                                  warnings_on=True)
+        result = _update_attribute(self.cube, attribute_name, changes,
+                                   warnings_on=True)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         self.assertTrue(any(warning_msg in str(item)
@@ -397,15 +401,15 @@ class Test_update_attribute(IrisTest):
         self.assertFalse('attribute_to_update' in result.attributes)
 
     def test_attributes_deleted_when_not_present(self):
-        """Test update_attribute copes when an attribute is requested to be
+        """Test _update_attribute copes when an attribute is requested to be
         deleted, but this attribute is not available on the input cube."""
         attribute_name = 'invalid_name'
         changes = 'delete'
-        result = update_attribute(self.cube, attribute_name, changes)
+        result = _update_attribute(self.cube, attribute_name, changes)
         self.assertFalse('invalid_name' in result.attributes)
 
 
-class Test_update_cell_methods(IrisTest):
+class Test__update_cell_methods(IrisTest):
     """Test that the cell methods are updated."""
 
     def setUp(self):
@@ -423,7 +427,7 @@ class Test_update_cell_methods(IrisTest):
         cm = deepcopy(cell_methods)
         cm.pop('action')
         expected_cell_method = iris.coords.CellMethod(**cm)
-        update_cell_methods(self.cube, cell_methods)
+        _update_cell_methods(self.cube, cell_methods)
         self.assertEqual((expected_cell_method,), self.cube.cell_methods)
 
     def test_add_cell_method_partial_information(self):
@@ -435,7 +439,7 @@ class Test_update_cell_methods(IrisTest):
         cm = deepcopy(cell_methods)
         cm.pop('action')
         expected_cell_method = iris.coords.CellMethod(**cm)
-        update_cell_methods(self.cube, cell_methods)
+        _update_cell_methods(self.cube, cell_methods)
         self.assertEqual((expected_cell_method,), self.cube.cell_methods)
 
     def test_add_cell_method_empty_method(self):
@@ -448,7 +452,7 @@ class Test_update_cell_methods(IrisTest):
                         'comments': ()}
         msg = "No method has been specified within the cell method"
         with self.assertRaisesRegex(ValueError, msg):
-            update_cell_methods(self.cube, cell_methods)
+            _update_cell_methods(self.cube, cell_methods)
 
     def test_add_cell_method_no_coords(self):
         """Test add a cell method, where no coords element is specified."""
@@ -460,7 +464,7 @@ class Test_update_cell_methods(IrisTest):
         cm = deepcopy(cell_methods)
         cm.pop('action')
         expected_cell_method = iris.coords.CellMethod(**cm)
-        update_cell_methods(self.cube, cell_methods)
+        _update_cell_methods(self.cube, cell_methods)
         self.assertEqual((expected_cell_method,), self.cube.cell_methods)
 
     def test_add_cell_method_already_on_cube(self):
@@ -473,7 +477,7 @@ class Test_update_cell_methods(IrisTest):
         cm.pop('action')
         self.cube.cell_methods = (iris.coords.CellMethod(**cm),)
         expected_cell_method = iris.coords.CellMethod(**cm)
-        update_cell_methods(self.cube, cell_methods)
+        _update_cell_methods(self.cube, cell_methods)
         self.assertEqual((expected_cell_method,), self.cube.cell_methods)
 
     def test_add_additional_cell_method_to_cube(self):
@@ -491,7 +495,7 @@ class Test_update_cell_methods(IrisTest):
         cm = deepcopy(additional_cell_methods)
         cm.pop('action')
         expected_cell_method = iris.coords.CellMethod(**cm)
-        update_cell_methods(self.cube, additional_cell_methods)
+        _update_cell_methods(self.cube, additional_cell_methods)
         self.assertTrue(expected_cell_method in self.cube.cell_methods)
 
     def test_remove_cell_method(self):
@@ -505,7 +509,7 @@ class Test_update_cell_methods(IrisTest):
         cm = deepcopy(cell_methods)
         cm.pop('action')
         self.cube.cell_methods = (iris.coords.CellMethod(**cm),)
-        update_cell_methods(self.cube, cell_methods)
+        _update_cell_methods(self.cube, cell_methods)
         self.assertEqual(self.cube.cell_methods, ())
 
     def test_add_cell_method_no_action(self):
@@ -516,7 +520,7 @@ class Test_update_cell_methods(IrisTest):
                         'comments': ()}
         msg = "No action has been specified within the cell method definition."
         with self.assertRaisesRegex(ValueError, msg):
-            update_cell_methods(self.cube, cell_methods)
+            _update_cell_methods(self.cube, cell_methods)
 
 
 class Test_amend_metadata(IrisTest):
@@ -528,11 +532,13 @@ class Test_amend_metadata(IrisTest):
         self.threshold_coord = find_threshold_coordinate(self.cube).name()
 
     def test_basic(self):
-        """Test that the function returns a Cube. """
+        """Test that the function returns a Cube and the input cube is not
+        modified. """
         result = amend_metadata(
             self.cube, name='new_cube_name', data_type=np.dtype)
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), 'new_cube_name')
+        self.assertNotEqual(self.cube.name(), 'new_cube_name')
 
     def test_attributes_updated_and_added(self):
         """Test amend_metadata updates and adds attributes OK. """
@@ -734,60 +740,6 @@ class Test_resolve_metadata_diff(IrisTest):
         self.assertArrayEqual(result[1].shape, np.array([1, 2, 2, 2]))
 
 
-class Test_delete_attributes(IrisTest):
-    """Test the delete_attributes method."""
-
-    def setUp(self):
-        """Create a cube with attributes to be deleted."""
-        data = np.zeros((2, 2))
-        long_name = "probability_of_rainfall_rate_above_threshold"
-        units = "m s^-1"
-        attributes = {'title': 'This is a cube',
-                      'tithe': '10 percent',
-                      'mosg_model': 'gl_det',
-                      'mosg_grid_version': 1.0,
-                      'mosg_grid_name': 'global'}
-
-        self.cube = Cube(data, long_name=long_name, units=units)
-        self.cube.attributes = attributes
-
-    def test_basic(self):
-        """Test that an empty call leaves the cube unchanged."""
-        cube = self.cube.copy()
-        delete_attributes(cube, [])
-
-        self.assertDictEqual(self.cube.attributes, cube.attributes)
-
-    def test_accepts_string(self):
-        """Test that a single string passed as an argument works."""
-        attributes_to_delete = 'title'
-        attributes = copy(self.cube.attributes)
-        attributes.pop(attributes_to_delete)
-        delete_attributes(self.cube, attributes_to_delete)
-
-        self.assertDictEqual(attributes, self.cube.attributes)
-
-    def test_accepts_list_of_complete_matches(self):
-        """Test that a list of complete attribute names removes the expected
-        attributes."""
-        attributes_to_delete = ['title', 'tithe', 'mosg_model']
-        attributes = copy(self.cube.attributes)
-        for item in attributes_to_delete:
-            attributes.pop(item)
-        delete_attributes(self.cube, attributes_to_delete)
-
-        self.assertDictEqual(attributes, self.cube.attributes)
-
-    def test_accepts_list_of_partial_matches(self):
-        """Test that a list of partial patterns removes the expected
-        attributes."""
-        attributes_to_delete = ['tit', 'mosg_grid']
-        expected = {'mosg_model': 'gl_det'}
-        delete_attributes(self.cube, attributes_to_delete)
-
-        self.assertDictEqual(expected, self.cube.attributes)
-
-
 class Test_add_history_attribute(IrisTest):
     """Test the add_history_attribute function."""
 
@@ -825,201 +777,6 @@ class Test_add_history_attribute(IrisTest):
         add_history_attribute(cube, "Nowcast", append=True)
         self.assertTrue("history" in cube.attributes)
         self.assertTrue("Nowcast" in cube.attributes["history"])
-
-
-class Test_in_vicinity_name_format(IrisTest):
-    """Test that the 'in_vicinity' above/below threshold probability
-    cube naming function produces the correctly formatted names."""
-
-    def setUp(self):
-        """Set up test cube"""
-        self.cube = create_cube_with_threshold()
-        self.cube.long_name = 'probability_of_X_rate_above_threshold'
-
-    def test_in_vicinity_name_format(self):
-        """Test that 'in_vicinity' is added correctly to the name for both
-        above and below threshold cases"""
-        correct_name_above = (
-            'probability_of_X_rate_in_vicinity_above_threshold')
-        new_name_above = in_vicinity_name_format(self.cube.name())
-        self.cube.rename('probability_of_X_below_threshold')
-        correct_name_below = (
-            'probability_of_X_in_vicinity_below_threshold')
-        new_name_below = in_vicinity_name_format(self.cube.name())
-        self.assertEqual(new_name_above, correct_name_above)
-        self.assertEqual(new_name_below, correct_name_below)
-
-    def test_between_thresholds(self):
-        """Test for "between_thresholds" suffix"""
-        self.cube.rename('probability_of_visibility_between_thresholds')
-        correct_name = (
-            'probability_of_visibility_in_vicinity_between_thresholds')
-        new_name = in_vicinity_name_format(self.cube.name())
-        self.assertEqual(new_name, correct_name)
-
-    def test_no_above_below_threshold(self):
-        """Test the case of name without above/below_threshold is handled
-        correctly"""
-        self.cube.rename('probability_of_X')
-        correct_name_no_threshold = (
-            'probability_of_X_in_vicinity')
-        new_name_no_threshold = in_vicinity_name_format(self.cube.name())
-        self.assertEqual(new_name_no_threshold, correct_name_no_threshold)
-
-    def test_in_vicinity_already_exists(self):
-        """Test the case of 'in_vicinity' already existing in the cube name"""
-        self.cube.rename('probability_of_X_in_vicinity')
-        result = in_vicinity_name_format(self.cube.name())
-        self.assertEqual(result, 'probability_of_X_in_vicinity')
-
-
-class Test_extract_diagnostic_name(IrisTest):
-    """Test utility to extract diagnostic name from probability cube name"""
-
-    def test_basic(self):
-        """Test correct name is returned from a standard (above threshold)
-        probability field"""
-        result = extract_diagnostic_name(
-            'probability_of_air_temperature_above_threshold')
-        self.assertEqual(result, 'air_temperature')
-
-    def test_below_threshold(self):
-        """Test correct name is returned from a probability below threshold"""
-        result = extract_diagnostic_name(
-            'probability_of_air_temperature_below_threshold')
-        self.assertEqual(result, 'air_temperature')
-
-    def test_between_thresholds(self):
-        """Test correct name is returned from a probability between thresholds
-        """
-        result = extract_diagnostic_name(
-            'probability_of_visibility_in_air_between_thresholds')
-        self.assertEqual(result, 'visibility_in_air')
-
-    def test_in_vicinity(self):
-        """Test correct name is returned from an "in vicinity" probability.
-        Name "cloud_height" is used in this test to illustrate why suffix
-        cannot be removed with "rstrip"."""
-        diagnostic = 'cloud_height'
-        result = extract_diagnostic_name(
-            'probability_of_{}_in_vicinity_above_threshold'.format(diagnostic))
-        self.assertEqual(result, diagnostic)
-
-    def test_error_not_probability(self):
-        """Test exception if input is not a probability cube name"""
-        with self.assertRaises(ValueError):
-            extract_diagnostic_name('lwe_precipitation_rate')
-
-
-class Test_generate_hash(IrisTest):
-    """Test utility to generate md5 hash codes from a multitude of inputs."""
-
-    def test_string_input(self):
-        """Test the expected hash is returned when input is a string type."""
-
-        hash_input = 'this is a test string'
-        result = generate_hash(hash_input)
-        expected = "8e502f6a5b4a2e0f226649210895cebc"
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, expected)
-
-    def test_numeric_input(self):
-        """Test the expected hash is returned when input is a numeric type."""
-
-        hash_input = 1000
-        result = generate_hash(hash_input)
-        expected = "d017763f19ef64f920c43fc57413d171"
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, expected)
-
-    def test_dictionary_input(self):
-        """Test the expected hash is returned when input is a dictionary."""
-
-        hash_input = {'one': 1, 'two': 2}
-        result = generate_hash(hash_input)
-        expected = "4735f4a74dd17d27b383de504a87e324"
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, expected)
-
-    def test_dictionary_order_variant(self):
-        """Test the expected hash is different if the dictionary order is
-        different."""
-
-        hash_input1 = {'one': 1, 'two': 2}
-        hash_input2 = {'two': 2, 'one': 1}
-        result1 = generate_hash(hash_input1)
-        result2 = generate_hash(hash_input2)
-        self.assertNotEqual(result1, result2)
-
-    def test_cube_input(self):
-        """Test the expected hash is returned when input is a cube."""
-
-        hash_input = set_up_variable_cube(np.ones((3, 3)).astype(np.float32))
-        result = generate_hash(hash_input)
-        expected = "ad664992debed0bdf8f20804e4164691"
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, expected)
-
-    def test_coordinate_input(self):
-        """Test the expected hash is returned when input is a cube
-        coordinate."""
-
-        cube = set_up_variable_cube(np.ones((3, 3)).astype(np.float32))
-        hash_input = cube.coord('latitude')
-        result = generate_hash(hash_input)
-        expected = "8c8846a4be49f7aab487353d9ecf623c"
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, expected)
-
-    def test_numpy_array_type_variant(self):
-        """Test the expected hash is different if the numpy array type is
-        different."""
-
-        hash_input32 = np.array([np.sqrt(2.)], dtype=np.float32)
-        hash_input64 = np.array([np.sqrt(2.)], dtype=np.float64)
-        result32 = generate_hash(hash_input32)
-        result64 = generate_hash(hash_input64)
-        self.assertNotEqual(result32, result64)
-
-    def test_equivalent_input_gives_equivalent_hash(self):
-        """Test that creating a hash twice using the same input results in the
-        same hash being generated."""
-
-        cube = set_up_variable_cube(np.ones((3, 3)).astype(np.float32))
-        hash_input = cube.coord('latitude')
-        result1 = generate_hash(hash_input)
-        result2 = generate_hash(hash_input)
-        self.assertEqual(result1, result2)
-
-
-class Test_create_coordinate_hash(IrisTest):
-    """Test wrapper to hash generation to return a hash based on the x and y
-    coordinates of a given cube."""
-
-    def test_basic(self):
-        """Test the expected hash is returned for a given cube."""
-
-        hash_input = set_up_variable_cube(np.zeros((3, 3)).astype(np.float32))
-        result = create_coordinate_hash(hash_input)
-        expected = "fd40f6d5a8e0a347f181d87bcfd445fa"
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, expected)
-
-    def test_variation(self):
-        """Test that two cubes with slightly different coordinates return
-        different hashes."""
-
-        hash_input1 = set_up_variable_cube(np.zeros((3, 3)).astype(np.float32))
-        hash_input2 = hash_input1.copy()
-        latitude = hash_input2.coord('latitude')
-        latitude_values = latitude.points * 1.001
-        latitude = latitude.copy(points=latitude_values)
-        hash_input2.remove_coord("latitude")
-        hash_input2.add_dim_coord(latitude, 0)
-
-        result1 = create_coordinate_hash(hash_input1)
-        result2 = create_coordinate_hash(hash_input2)
-        self.assertNotEqual(result1, result2)
 
 
 if __name__ == '__main__':

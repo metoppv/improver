@@ -38,8 +38,8 @@ from numpy.linalg import lstsq
 from scipy.ndimage import generic_filter
 
 from improver.constants import DALR
-from improver.utilities.cube_checker import (
-    check_cube_not_float64, spatial_coords_match)
+from improver.metadata.enforce_datatypes_units import check_cube_not_float64
+from improver.utilities.cube_checker import spatial_coords_match
 
 
 def apply_gridded_lapse_rate(temperature, lapse_rate, source_orog, dest_orog):

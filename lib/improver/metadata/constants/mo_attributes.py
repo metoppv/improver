@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,24 +28,33 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""Module defining Met Office specific attributes"""
 
-@test "neighbour-finding no arguments" {
-  run improver neighbour-finding
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver neighbour-finding [-h] [--profile]
-                                  [--profile_file PROFILE_FILE]
-                                  [--all_methods] [--land_constraint]
-                                  [--minimum_dz]
-                                  [--search_radius SEARCH_RADIUS]
-                                  [--node_limit NODE_LIMIT]
-                                  [--site_coordinate_system SITE_COORDINATE_SYSTEM]
-                                  [--site_coordinate_options SITE_COORDINATE_OPTIONS]
-                                  [--site_x_coordinate SITE_X_COORDINATE]
-                                  [--site_y_coordinate SITE_Y_COORDINATE]
-                                  [--metadata_json METADATA_JSON]
-                                  SITE_LIST_FILEPATH OROGRAPHY_FILEPATH
-                                  LANDMASK_FILEPATH OUTPUT_FILEPATH
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+GRID_TYPE = 'standard'
+STAGE_VERSION = '1.3.0'
+
+# Define current StaGE grid metadata
+MOSG_GRID_DEFINITION = {
+    'uk_ens': {'mosg__grid_type': GRID_TYPE,
+               'mosg__model_configuration': 'uk_ens',
+               'mosg__grid_domain': 'uk_extended',
+               'mosg__grid_version': STAGE_VERSION},
+    'gl_ens': {'mosg__grid_type': GRID_TYPE,
+               'mosg__model_configuration': 'gl_ens',
+               'mosg__grid_domain': 'global',
+               'mosg__grid_version': STAGE_VERSION},
+    'uk_det': {'mosg__grid_type': GRID_TYPE,
+               'mosg__model_configuration': 'uk_det',
+               'mosg__grid_domain': 'uk_extended',
+               'mosg__grid_version': STAGE_VERSION},
+    'gl_det': {'mosg__grid_type': GRID_TYPE,
+               'mosg__model_configuration': 'gl_det',
+               'mosg__grid_domain': 'global',
+               'mosg__grid_version': STAGE_VERSION}
 }
+
+# Define correct v1.2.0 meta-data for v1.1.0 data.
+GRID_ID_LOOKUP = {'enukx_standard_v1': 'uk_ens',
+                  'engl_standard_v1': 'gl_ens',
+                  'ukvx_standard_v1': 'uk_det',
+                  'glm_standard_v1': 'gl_det'}

@@ -100,7 +100,8 @@ class GenerateTimeLaggedEnsemble(object):
             for cube in cubelist:
                 n_realization = len(cube.coord("realization").points)
                 cube.coord("realization").points = np.arange(
-                    first_realization, first_realization + n_realization)
+                    first_realization, first_realization + n_realization,
+                    dtype=np.int32)
                 first_realization = first_realization + n_realization
 
         # slice over realization to deal with cases where direct concatenation

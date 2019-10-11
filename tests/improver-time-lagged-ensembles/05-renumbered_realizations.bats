@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env bats
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,41 +28,23 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for argparser.safe_eval."""
 
+. $IMPROVER_DIR/tests/lib/utils
 
-import unittest
+@test "time-lagged-ensembles renumber non-unique realizations numbers" {
+  improver_check_skip_acceptance
+  KGO="time-lagged-ens/renumbered_realizations/kgo.nc"
 
-import cartopy.crs as ccrs
-import iris
+  # Run time-lagged-ensemble processing and check it passes.
+  run improver time-lagged-ensembles \
+      "$IMPROVER_ACC_TEST_DIR/time-lagged-ens/same_validity/20180924T1300Z-PT0005H00M-temperature_at_surface.nc" \
+      "$IMPROVER_ACC_TEST_DIR/time-lagged-ens/same_validity/20180924T1300Z-PT0005H00M-temperature_at_surface.nc" \
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 0 ]]
 
-from improver.argparser import safe_eval
+  improver_check_recreate_kgo "output.nc" $KGO
 
-
-class Test_safe_eval(unittest.TestCase):
-
-    """Test function for safely using the eval command."""
-
-    def test_iris_coords(self):
-        """Test the return of an iris.coords component."""
-        allowed = ['coords']
-        result = safe_eval('coords', iris, allowed=allowed)
-        self.assertEqual(result, iris.coords)
-
-    def test_cartopy_projection(self):
-        """Test the return of a cartopy projection."""
-        allowed = ['Mercator', 'Miller']
-        result = safe_eval('Mercator', ccrs, allowed=allowed)
-        self.assertEqual(result, ccrs.Mercator)
-
-    def test_unallowed_cartopy(self):
-        """Test the raising of an error when requesting a projection not in the
-        allowed list."""
-        allowed = ['Mercator']
-        msg = 'Function/method/object "Miller" not available in module'
-        with self.assertRaisesRegex(TypeError, msg):
-            safe_eval('Miller', ccrs, allowed=allowed)
-
-
-if __name__ == '__main__':
-    unittest.main()
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+}

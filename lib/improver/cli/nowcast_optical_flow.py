@@ -79,7 +79,7 @@ def main(argv=None):
                         "required changes to the metadata. Information "
                         "describing the intended contents of the json file "
                         "is available in "
-                        "improver.utilities.cube_metadata.amend_metadata."
+                        "improver.metadata.amend.amend_metadata. "
                         "Every output cube will have the metadata_dict "
                         "applied. Defaults to None.", type=str)
 
@@ -158,7 +158,7 @@ def process(original_cube_list, orographic_enhancement_cube=None,
         metadata_dict (dict):
             Dictionary containing required changes to the metadata.
             Information describing the intended contents of the dictionary is
-            available in improver.utilities.cube_metadata.amend_metadata.
+            available in improver.metadata.amend.amend_metadata.
             Every output cube will have the metadata_dict applied.
             Default is None.
         ofc_box_size (int):

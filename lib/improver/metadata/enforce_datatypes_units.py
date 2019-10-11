@@ -35,7 +35,48 @@ import numpy as np
 from cf_units import Unit
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.units import DEFAULT_UNITS
+from improver.metadata.constants.units import DEFAULT_UNITS
+
+
+def check_cube_not_float64(cube, fix=False):
+    """Check a cube does not contain any float64 data, excepting time
+    coordinates. The cube can be modified in place, if the fix keyword is
+    specified to be True.
+
+    Args:
+        cube (iris.cube.Cube):
+            The input cube that will be checked for float64 inclusion.
+        fix (bool):
+            If fix is True, then the cube is amended to not include float64
+            data, otherwise, an error will be raised if float64 data is found.
+
+    Raises:
+        TypeError : Raised if float64 values are found in the cube.
+
+    """
+    if cube.dtype == np.float64:
+        if fix:
+            cube.data = cube.data.astype(np.float32)
+        else:
+            raise TypeError("64 bit cube not allowed: {!r}".format(cube))
+    for coord in cube.coords():
+        if coord.name() in ["time", "forecast_reference_time"]:
+            continue
+        if coord.points.dtype == np.float64:
+            if fix:
+                coord.points = coord.points.astype(np.float32)
+            else:
+                raise TypeError(
+                    "64 bit coord points not allowed: {} in {!r}".format(
+                        coord, cube))
+        if (hasattr(coord, "bounds") and coord.bounds is not None and
+                coord.bounds.dtype == np.float64):
+            if fix:
+                coord.bounds = coord.bounds.astype(np.float32)
+            else:
+                raise TypeError(
+                    "64 bit coord bounds not allowed: {} in {!r}".format(
+                        coord, cube))
 
 
 def enforce_units_and_dtypes(cubes, coords=None, enforce=True):

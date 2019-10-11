@@ -32,18 +32,19 @@
 """Script to create neighbour cubes for extracting spot data."""
 
 from argparse import RawDescriptionHelpFormatter
+import json
 from textwrap import wrap
 
 import numpy as np
 import cartopy.crs as ccrs
 import iris
 
-from improver.argparser import ArgParser, safe_eval
+from improver.argparser import ArgParser
+from improver.metadata.amend import amend_metadata
 from improver.spotdata.neighbour_finding import NeighbourSelection
 from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.cube_manipulation import (merge_cubes,
                                                   enforce_coordinate_ordering)
-from improver.utilities.cube_metadata import amend_metadata
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
@@ -133,6 +134,12 @@ def main(argv=None):
         " required this can be specified as e.g."
         " Globe(semimajor_axis=100, semiminor_axis=100).")
     s_group.add_argument(
+        "--site_coordinate_options", metavar="SITE_COORDINATE_OPTIONS",
+        help="JSON formatted string of options passed to the cartopy"
+        " coordinate system given in site_coordinate_system. \"globe\""
+        " is handled as a special case for options to construct a cartopy"
+        " Globe object.")
+    s_group.add_argument(
         "--site_x_coordinate", metavar="SITE_X_COORDINATE",
         help="The x coordinate key within the JSON file. The plugin default is"
         " 'longitude', but can be changed using this option if required.")
@@ -159,7 +166,7 @@ def main(argv=None):
     result = process(orography, landmask, site_list, metadata_dict,
                      args.all_methods, args.land_constraint, args.minimum_dz,
                      args.search_radius, args.node_limit,
-                     args.site_coordinate_system,
+                     args.site_coordinate_system, args.site_coordinate_options,
                      args.site_x_coordinate, args.site_y_coordinate)
 
     # Save Cube
@@ -169,7 +176,8 @@ def main(argv=None):
 def process(orography, landmask, site_list, metadata_dict=None,
             all_methods=False, land_constraint=None, minimum_dz=None,
             search_radius=None, node_limit=None, site_coordinate_system=None,
-            site_x_coordinate=None, site_y_coordinate=None):
+            site_coordinate_options=None, site_x_coordinate=None,
+            site_y_coordinate=None):
     """Module to create neighbour cubes for extracting spot data.
 
     Determine grid point coordinates within the provided cubes that neighbour
@@ -230,11 +238,11 @@ def process(orography, landmask, site_list, metadata_dict=None,
             The coordinate system in which the site coordinates are provided
             within the site list. This must be provided as the name of a
             cartopy coordinate system. The Default will become PlateCarree.
-            This can be a complete definition, including parameters required
-            to modify a default system. e.g
-            Miller(central_longitude=90)
-            If a globe is required this can be specified as
-            Globe(semimajor_axis=100, semiminor_axis=100)
+            Default is None.
+        site_coordinate_options (str):
+            JSON formatted string of options passed to the cartopy coordinate
+            system given in site_coordinate_system. "globe" is handled as a
+            special case to construct a cartopy Globe object.
             Default is None.
         site_x_coordinate (str):
             The key that identifies site x coordinates in the provided site
@@ -266,6 +274,7 @@ def process(orography, landmask, site_list, metadata_dict=None,
         'minimum_dz': minimum_dz,
         'search_radius': search_radius,
         'site_coordinate_system': site_coordinate_system,
+        'site_coordinate_options': site_coordinate_options,
         'site_x_coordinate': site_x_coordinate,
         'node_limit': node_limit,
         'site_y_coordinate': site_y_coordinate
@@ -276,8 +285,17 @@ def process(orography, landmask, site_list, metadata_dict=None,
     # Deal with coordinate systems for sites other than PlateCarree.
     if 'site_coordinate_system' in kwargs.keys():
         scrs = kwargs['site_coordinate_system']
-        kwargs['site_coordinate_system'] = safe_eval(scrs, ccrs,
-                                                     PROJECTION_LIST)
+        if scrs not in PROJECTION_LIST:
+            raise ValueError('invalid projection {}'.format(scrs))
+        site_crs = getattr(ccrs, scrs)
+        scrs_opts = json.loads(kwargs.pop('site_coordinate_options', '{}'))
+        if 'globe' in scrs_opts:
+            crs_globe = ccrs.Globe(**scrs_opts['globe'])
+            del scrs_opts['globe']
+        else:
+            crs_globe = ccrs.Globe()
+        kwargs['site_coordinate_system'] = site_crs(
+            globe=crs_globe, **scrs_opts)
     # Call plugin to generate neighbour cubes
     if all_methods:
         methods = [

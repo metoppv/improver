@@ -38,10 +38,9 @@ import numpy as np
 from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 
+from improver.metadata.amend import (amend_metadata, add_history_attribute)
 from improver.nowcasting.optical_flow import check_input_coords
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
-from improver.utilities.cube_metadata import (
-    amend_metadata, add_history_attribute)
 
 
 class AdvectField():
@@ -66,7 +65,7 @@ class AdvectField():
             metadata_dict (dict):
                 Dictionary containing information for amending the metadata
                 of the output cube. Please see the
-                :func:`improver.utilities.cube_metadata.amend_metadata`
+                :func:`improver.metadata.amend.amend_metadata`
                 for information regarding the allowed contents of the metadata
                 dictionary.
         """
@@ -360,7 +359,7 @@ class CreateExtrapolationForecast():
             metadata_dict (dict):
                 Dictionary containing information for amending the metadata
                 of the output cube. Please see the
-                :func:`improver.utilities.cube_metadata.amend_metadata`
+                :func:`improver.metadata.amend.amend_metadata`
                 for information regarding the allowed contents of the metadata
                 dictionary.
         """

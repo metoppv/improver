@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,24 +28,28 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""
+Module defining attributes for IMPROVER blended data, nowcasts and spot
+forecasts.
 
-@test "neighbour-finding no arguments" {
-  run improver neighbour-finding
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver neighbour-finding [-h] [--profile]
-                                  [--profile_file PROFILE_FILE]
-                                  [--all_methods] [--land_constraint]
-                                  [--minimum_dz]
-                                  [--search_radius SEARCH_RADIUS]
-                                  [--node_limit NODE_LIMIT]
-                                  [--site_coordinate_system SITE_COORDINATE_SYSTEM]
-                                  [--site_coordinate_options SITE_COORDINATE_OPTIONS]
-                                  [--site_x_coordinate SITE_X_COORDINATE]
-                                  [--site_y_coordinate SITE_Y_COORDINATE]
-                                  [--metadata_json METADATA_JSON]
-                                  SITE_LIST_FILEPATH OROGRAPHY_FILEPATH
-                                  LANDMASK_FILEPATH OUTPUT_FILEPATH
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+This module is exclusively for attributes which are NOT dependent on the
+centre running the IMPROVER code.  Other attributes can be user-defined
+through configurable dictionary arguments.
+"""
+
+STANDARD_GRID_TITLE_STRING = "UK 2 km Standard Grid"
+UK_SPOT_TITLE_STRING = "UK Spot Values"
+GLOBAL_SPOT_TITLE_STRING = "Spot Values"
+
+DATASET_ATTRIBUTES = {
+    "nowcast": {
+        "source": "IMPROVER",
+        "title": "MONOW Extrapolation Nowcast",
+        "institution": "Met Office"
+    },
+    "multi-model blend": {
+        "source": "IMPROVER",
+        "title": "IMPROVER Post-Processed Multi-Model Blend",
+        "institution": "Met Office"
+    }
 }

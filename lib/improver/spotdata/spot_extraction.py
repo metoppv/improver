@@ -34,9 +34,9 @@
 import iris
 import numpy as np
 
+from improver.metadata.utilities import create_coordinate_hash
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
-from improver.utilities.cube_metadata import create_coordinate_hash
 
 
 class SpotExtraction():

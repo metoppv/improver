@@ -34,7 +34,6 @@
 import unittest
 
 import numpy as np
-from cf_units import Unit
 from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
@@ -160,32 +159,16 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Create a cube with a single non-zero point."""
-
-        latitude = DimCoord(np.linspace(-45.0, 45.0, 5), 'latitude',
-                            units='degrees')
-        longitude = DimCoord(np.linspace(120, 180, 5), 'longitude',
-                             units='degrees')
-
         self.fuzzy_factor = 0.5
-        data = np.zeros((1, 5, 5))
+        data = np.zeros((1, 5, 5), dtype=np.float32)
         data[0][2][2] = 0.5  # ~2 mm/hr
-        cube = Cube(data, standard_name="precipitation_amount",
-                    units="kg m^-2 s^-1")
-        cube.add_dim_coord(latitude, 1)
-        cube.add_dim_coord(longitude, 2)
-        time_origin = "hours since 1970-01-01 00:00:00"
-        calendar = "gregorian"
-        tunit = Unit(time_origin, calendar)
-        cube.add_dim_coord(DimCoord([402192.5],
-                                    "time", units=tunit), 0)
-        self.cube = cube
+        self.cube = set_up_variable_cube(
+            data, name="precipitation_amount", units="kg m^-2 s^-1")
 
-        # cube to test unit conversion
-        rate_data = np.zeros((5, 5))
+        rate_data = np.zeros((5, 5), dtype=np.float32)
         rate_data[2][2] = 1.39e-6  # 5.004 mm/hr
-        rate_cube = Cube(rate_data, 'rainfall_rate', units='m s-1',
-                         dim_coords_and_dims=[(latitude, 0), (longitude, 1)])
-        self.rate_cube = rate_cube
+        self.rate_cube = set_up_variable_cube(
+            rate_data, name="rainfall_rate", units="m s-1")
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
@@ -456,12 +439,15 @@ class Test_process(IrisTest):
         thresholds = [0.2, 0.4, 0.6]
         plugin = Threshold(thresholds)
         result = plugin.process(self.cube)
-        expected_array12 = np.zeros_like(self.cube.data).reshape(1, 1, 5, 5)
-        expected_array12[0][0][2][2] = 1.
-        expected_array3 = expected_array12 * 0.
-        expected_result_array = np.vstack([expected_array12,
-                                           expected_array12,
-                                           expected_array3])
+        all_zeroes = np.zeros_like(self.cube.data).reshape(1, 1, 5, 5)
+        one_exceed_point = all_zeroes.copy()
+        one_exceed_point[0][0][2][2] = 1.
+        expected_result_array = np.vstack([one_exceed_point,
+                                           one_exceed_point,
+                                           all_zeroes])
+        # transpose array to reflect realization coordinate re-ordering
+        expected_result_array = np.transpose(
+            expected_result_array, [1, 0, 2, 3])
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
@@ -562,7 +548,7 @@ class Test_process(IrisTest):
         # Regexp matches .* with any string.
         msg = ("Invalid bounds for one threshold: .*. "
                "Expected 2 floats.")
-        with self.assertRaisesRegex(AssertionError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             Threshold(threshold,
                       fuzzy_bounds=fuzzy_bounds)
 
@@ -573,7 +559,7 @@ class Test_process(IrisTest):
         # Regexp matches .* with any string.
         msg = ("Invalid bounds for one threshold: .*. "
                "Expected 2 floats.")
-        with self.assertRaisesRegex(AssertionError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             Threshold(threshold,
                       fuzzy_bounds=fuzzy_bounds)
 
@@ -585,7 +571,7 @@ class Test_process(IrisTest):
         msg = ("Threshold must be within bounds: "
                r"\!\( {} <= {} <= {} \)".format(
                    fuzzy_bounds[0], threshold, fuzzy_bounds[1]))
-        with self.assertRaisesRegex(AssertionError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             Threshold(threshold,
                       fuzzy_bounds=fuzzy_bounds)
 
@@ -597,7 +583,7 @@ class Test_process(IrisTest):
         msg = ("Threshold must be within bounds: "
                r"\!\( {} <= {} <= {} \)".format(
                    fuzzy_bounds[0], threshold, fuzzy_bounds[1]))
-        with self.assertRaisesRegex(AssertionError, msg):
+        with self.assertRaisesRegex(ValueError, msg):
             Threshold(threshold,
                       fuzzy_bounds=fuzzy_bounds)
 
