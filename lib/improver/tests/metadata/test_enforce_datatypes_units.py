@@ -139,8 +139,61 @@ class Test_check_cube_not_float64(IrisTest):
         enforce.check_cube_not_float64(self.cube)
 
 
+class Test_check_time_coordinate_metadata(IrisTest):
+    """Test check_time_coordinate_metatadata function"""
+
+    def test_basic(self):
+        """Test success"""
+        cube = set_up_variable_cube(np.ones((4, 4), dtype=np.float32))
+        enforce.check_time_coordinate_metadata(cube)
+
+    def test_fails_wrong_datatype(self):
+        """Test failure if any coordinate datatype is wrong"""
+        cube = set_up_variable_cube(np.ones((4, 4), dtype=np.float32))
+        cube.coord("time").points = (
+            cube.coord("time").points.astype(np.float64))
+        msg = 'Coordinate time does not match required standard'
+        with self.assertRaisesRegex(ValueError, msg):
+            enforce.check_time_coordinate_metadata(cube)
+
+    def test_fails_wrong_units(self):
+        """Test failure if any coordinate unit is wrong"""
+        cube = set_up_variable_cube(278*np.ones((4, 4), dtype=np.float32))
+        cube.coord("forecast_period").convert_units("hours")
+        msg = 'Coordinate forecast_period does not match required standard'
+        with self.assertRaisesRegex(ValueError, msg):
+            enforce.check_time_coordinate_metadata(cube)
+
+
+class Test__construct_object_list(IrisTest):
+    """Test the private _construct_object_list method"""
+
+    def setUp(self):
+        """Make a template cube"""
+        self.cube = set_up_variable_cube(
+            278*np.ones((3, 4, 4), dtype=np.float32))
+
+    def test_basic(self):
+        """Test it works for all coordinates"""
+        expected_result = {
+            self.cube, self.cube.coord('realization'),
+            self.cube.coord('latitude'), self.cube.coord('longitude'),
+            self.cube.coord('time'), self.cube.coord('forecast_period'),
+            self.cube.coord('forecast_reference_time')}
+        result = enforce._construct_object_list(self.cube, None)
+        self.assertSetEqual(set(result), expected_result)
+
+    def test_subset(self):
+        """Test it works on a subset and ignores any missing coordinates"""
+        expected_result = {
+            self.cube, self.cube.coord('realization'), self.cube.coord('time')}
+        result = enforce._construct_object_list(
+            self.cube, ['realization', 'time', 'kittens'])
+        self.assertSetEqual(set(result), expected_result)
+
+
 class Test_check_datatypes(IrisTest):
-    """Test datatype checking with option of enforcement or failure"""
+    """Test datatype checking"""
 
     def setUp(self):
         """Set up some conformant cubes of air_temperature to test"""
@@ -248,181 +301,6 @@ class Test__check_units_and_dtype(IrisTest):
     def test_fail_coord(self):
         """Test return value for non-compliant coordinate"""
         result = enforce._check_units_and_dtype(self.coord, 'm', np.int32)
-        self.assertFalse(result)
-
-
-class Test__convert_coordinate_dtype(IrisTest):
-    """Test method to convert coordinate datatypes"""
-
-    def setUp(self):
-        """Set up cubes for testing"""
-        self.cube = set_up_variable_cube(np.ones((5, 5), dtype=np.float32),
-                                         spatial_grid='equalarea')
-        self.cube_non_integer_intervals = set_up_variable_cube(
-            np.ones((5, 5), dtype=np.float32), spatial_grid='equalarea',
-            time=datetime(2017, 11, 10, 4, 30))
-        crd = self.cube_non_integer_intervals.coord('projection_x_coordinate')
-        crd.points = crd.points * 1.0005
-
-    def test_time_coordinate_to_hours_valid(self):
-        """Test that a cube with a validity time on the hour can be converted
-        to integer hours."""
-        target_units = "hours since 1970-01-01 00:00:00"
-        coord = self.cube.coord('time')
-        expected = 419524
-
-        coord.convert_units(target_units)
-        enforce._convert_coordinate_dtype(coord, np.int64)
-
-        self.assertEqual(coord.points[0], expected)
-        self.assertEqual(coord.units, target_units)
-        self.assertIsInstance(coord.points[0], np.int64)
-
-    def test_time_coordinate_to_hours_invalid(self):
-        """Test that a cube with a validity time on the half hour cannot be
-        converted to integer hours."""
-        target_units = "hours since 1970-01-01 00:00:00"
-        coord = self.cube_non_integer_intervals.coord('time')
-        coord.convert_units(target_units)
-
-        msg = ('Data type of coordinate "time" could not be'
-               ' enforced without losing significant precision.')
-        with self.assertRaisesRegex(ValueError, msg):
-            enforce._convert_coordinate_dtype(coord, np.int64)
-
-    def test_time_coordinate_to_hours_float(self):
-        """Test that a cube with a validity time on the half hour can be
-        converted to float hours."""
-        target_units = "hours since 1970-01-01 00:00:00"
-        coord = self.cube_non_integer_intervals.coord('time')
-        expected = 419524.5
-
-        coord.convert_units(target_units)
-        enforce._convert_coordinate_dtype(coord, np.float64)
-
-        self.assertEqual(coord.points[0], expected)
-        self.assertEqual(coord.units, target_units)
-        self.assertIsInstance(coord.points[0], np.float64)
-
-
-class Test__convert_diagnostic_dtype(IrisTest):
-    """Test method to convert diagnostic (cube.data) datatypes"""
-
-    def setUp(self):
-        """Set up cubes for testing"""
-        self.cube = set_up_variable_cube(np.ones((5, 5), dtype=np.float32),
-                                         spatial_grid='equalarea')
-        self.cube_non_integer_intervals = set_up_variable_cube(
-            np.ones((5, 5), dtype=np.float32), spatial_grid='equalarea')
-        self.cube_non_integer_intervals.data *= 1.5
-
-    def test_temperature_to_integer_kelvin_valid(self):
-        """Test that a cube with temperatures at whole kelvin intervals can
-        be converted to integer kelvin"""
-        expected = np.ones((5, 5), dtype=np.int32)
-        enforce._convert_diagnostic_dtype(self.cube, np.int32)
-        self.assertArrayEqual(self.cube.data, expected)
-        self.assertEqual(self.cube.data.dtype, np.int32)
-
-    def test_temperature_to_integer_kelvin_invalid(self):
-        """Test that a cube with temperatures not at whole kelvin intervals
-        cannot be converted to integer kelvin"""
-        msg = ('Data type of diagnostic "air_temperature" could not be'
-               ' enforced without losing significant precision.')
-        with self.assertRaisesRegex(ValueError, msg):
-            enforce._convert_diagnostic_dtype(
-                self.cube_non_integer_intervals, np.int32)
-
-
-class Test_check_precision_loss(IrisTest):
-
-    """Test the check_precision_loss function behaves as expected."""
-    def setUp(self):
-        """Make an instance of the plugin that is to be tested."""
-        self.plugin = enforce.check_precision_loss
-
-    def test_non_lossy_float_to_integer(self):
-        """Test that the function returns true when whole numbers in float type
-        are checked for loss upon conversion to integers. This means that the
-        conversion can go ahead without loss."""
-
-        data = np.full((3, 3), 1, dtype=np.float64)
-        dtype = np.int32
-
-        result = self.plugin(dtype, data)
-
-        self.assertTrue(result)
-
-    def test_lossy_float_to_integer(self):
-        """Test that the function returns false when non-whole numbers in float
-        type are checked for loss upon conversion to integers. This means that
-        the conversion cannot go ahead without loss."""
-
-        data = np.full((3, 3), 1.5, dtype=np.float64)
-        dtype = np.int32
-
-        result = self.plugin(dtype, data)
-
-        self.assertFalse(result)
-
-    def test_lossy_float_to_integer_low_precision(self):
-        """Test that the function returns True when non-whole numbers in float
-        type are checked for loss upon conversion to integers but the
-        fractional component is smaller than the given precision. This means
-        that the conversion can go ahead without significant loss."""
-
-        data = np.full((3, 3), 1.005, dtype=np.float64)
-        dtype = np.int32
-
-        result = self.plugin(dtype, data, precision=2)
-
-        self.assertTrue(result)
-
-    def test_lossy_float_to_float(self):
-        """Test that the function returns true even when a float conversion
-        will result in the loss of some precision. The function is not
-        designed to prevent loss when converting floats to floats. In this
-        test the conversion will result in the values becoming 1.0"""
-
-        data = np.full((3, 3), 1.00000005, dtype=np.float64)
-        dtype = np.float32
-
-        result = self.plugin(dtype, data)
-
-        self.assertTrue(result)
-
-    def test_non_lossy_int_to_int_down(self):
-        """Test that the function returns true if an integer type is changed
-        to a lower precision integer type but no information is lost."""
-
-        data = np.full((3, 3), 1234567891, dtype=np.int64)
-        dtype = np.int32
-
-        result = self.plugin(dtype, data)
-
-        self.assertTrue(result)
-
-    def test_non_lossy_int_to_int_up(self):
-        """Test that the function returns true if an integer type is changed
-        to a higher precision integer type but no information is lost."""
-
-        data = np.full((3, 3), 1234567891, dtype=np.int32)
-        dtype = np.int64
-
-        result = self.plugin(dtype, data)
-
-        self.assertTrue(result)
-
-    def test_lossy_int_to_int(self):
-        """Test that the function returns false if an integer type is changed
-        to a lower precision integer type that results in the loss of
-        information."""
-
-        data = np.full((3, 3), 12345678910, dtype=np.int64)
-        dtype = np.int32
-
-        result = self.plugin(dtype, data)
-
         self.assertFalse(result)
 
 

@@ -36,7 +36,7 @@ import cf_units
 import iris
 
 from improver.metadata.enforce_datatypes_units import (
-    check_time_coordinate_metadata, check_datatypes, check_for_unknown_units)
+    check_time_coordinate_metadata, check_datatypes)
 
 
 def _append_metadata_cube(cubelist, global_keys):
@@ -116,12 +116,13 @@ def _check_metadata(cube):
             and units; needed because values may be wrong
         ValueError: if numerical datatypes are other than 32-bit (except
             where specified); needed because values may be wrong
-        ValueError: if any numerical quantities have unknown units; needed
-            because units may not be preserved on save / load
+        ValueError: if cube dataset has unknown units; because this may cause
+            misinterpretation on "load"
     """
     check_time_coordinate_metadata(cube)
     check_datatypes(cube)
-    check_for_unknown_units(cube)
+    if cf_units.Unit(cube.units).is_unknown():
+        raise ValueError('{} has unknown units'.format(cube.name()))
 
 
 def save_netcdf(cubelist, filename):

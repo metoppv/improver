@@ -106,7 +106,8 @@ def check_time_coordinate_metadata(cube):
         if not _check_units_and_dtype(coord, reqd_unit, reqd_dtype):
             msg = ('Coordinate {} does not match required '
                    'standard (units {}, datatype {})\n')
-            error_string += msg.format(coord, reqd_unit, reqd_dtype)
+            error_string += msg.format(
+                coord.name(), reqd_unit, reqd_dtype)
 
     # if non-compliance was encountered, raise all messages here
     if error_string:
@@ -198,26 +199,6 @@ def check_datatypes(cube, coords=None):
     return new_cube
 
 
-def check_for_unknown_units(cube):
-    """
-    Function to check that cubes and all coordinates have units
-
-    Args:
-        cube (iris.cube.Cube):
-            Cube to be checked
-
-    Raises:
-        ValueError: if any numerical coordinate has unknown units
-    """
-    object_list = _construct_object_list(cube, coords=None)
-    error_string = ''
-    for item in object_list:
-        if Unit(item.units).is_unknown():
-            error_string += '{} has unknown units\n'.format(item.name())
-    if error_string:
-        raise(ValueError(error_string))
-
-
 def _check_units_and_dtype(obj, units, dtype):
     """
     Check whether the units and datatype of the input object conform
@@ -242,80 +223,3 @@ def _check_units_and_dtype(obj, units, dtype):
         return False
 
     return True
-
-
-def _convert_coordinate_dtype(coord, dtype):
-    """
-    Convert a coordinate to the required units and datatype.
-
-    Args:
-        coord (iris.coords.Coord):
-            Coordinate instance to be modified in place
-        dtype (type):
-            Required datatype
-    """
-    if check_precision_loss(dtype, coord.points):
-        coord.points = coord.points.astype(dtype)
-    else:
-        msg = ('Data type of coordinate "{}" could not be'
-               ' enforced without losing significant precision.')
-        raise ValueError(msg.format(coord.name()))
-
-
-def _convert_diagnostic_dtype(cube, dtype):
-    """
-    Convert cube data to the required units and datatype.
-
-    Args:
-        cube (iris.cube.Cube):
-            Cube to be modified in place
-        dtype (type):
-            Required datatype
-    """
-    # if units conversion succeeded, convert datatype
-    if check_precision_loss(dtype, cube.data):
-        cube.data = cube.data.astype(dtype)
-    else:
-        msg = ('Data type of diagnostic "{}" could not be'
-               ' enforced without losing significant precision.')
-        raise ValueError(msg.format(cube.name()))
-
-
-def check_precision_loss(dtype, data, precision=5):
-    """
-    This function checks that when converting data types there is not a loss
-    of significant information. Float to integer conversion, and integer to
-    integer conversion are covered by this function. Float to float conversion
-    may be lossy if changing from 64 bit to 32 bit floats, but changes at this
-    precision are not captured here by design.
-
-    If the conversion is lossless (to the defined precision) this function
-    returns True. If there is loss, the function returns False.
-
-    .. See the documentation for examples of where such loss is important.
-    .. include:: extended_documentation/utilities/cube_units/
-       check_precision_loss_examples.rst
-
-    Args:
-        dtype (dtype):
-            The data type to which the data is being converted.
-        data (numpy.ndarray):
-            The data that is to be checked for precision loss under data type
-            conversion.
-        precision (int):
-            The number of decimal places beyond which differences are ignored.
-    Returns:
-        bool:
-            True if the conversion is lossless to the given precision.
-            False if the conversion if lossy to the given precision.
-    """
-    if not np.issubdtype(dtype, np.integer):
-        return True
-    if np.issubdtype(data.dtype, np.integer):
-        values = dtype(data)
-        integers = data
-    else:
-        values = np.round(data, precision)
-        _, integers = np.modf(values)
-
-    return (values == integers).all()
