@@ -42,7 +42,7 @@ from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, add_coordinate)
 
 
-def _make_initial_rain_cube(time_now):
+def _make_initial_rain_cube(analysis_time):
     """Construct an 8x8 masked cube of rainfall rate for testing"""
 
     rain_data = np.array(
@@ -58,21 +58,21 @@ def _make_initial_rain_cube(time_now):
     rain_data = np.ma.masked_invalid(rain_data)
     rain_cube = set_up_variable_cube(
         rain_data, name='rainfall_rate', units='mm/h',
-        spatial_grid='equalarea', time=time_now, frt=time_now)
+        spatial_grid='equalarea', time=analysis_time, frt=analysis_time)
     rain_cube.remove_coord('forecast_period')
     rain_cube.remove_coord('forecast_reference_time')
     return rain_cube
 
 
-def _make_orogenh_cube(time_now, interval, max_lead_time):
+def _make_orogenh_cube(analysis_time, interval, max_lead_time):
     """Construct an orographic enhancement cube with data valid for
     every lead time"""
     orogenh_data = 0.05*np.ones((8, 8), dtype=np.float32)
     orogenh_cube = set_up_variable_cube(
         orogenh_data, name='orographic_enhancement', units='mm/h',
-        spatial_grid='equalarea', time=time_now, frt=time_now)
+        spatial_grid='equalarea', time=analysis_time, frt=analysis_time)
 
-    time_points = [time_now]
+    time_points = [analysis_time]
     lead_time = 0
     while lead_time <= max_lead_time:
         lead_time += interval
@@ -90,22 +90,22 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up test velocity and rainfall cubes"""
-        time_now = datetime.datetime(2019, 9, 10, 15)
+        analysis_time = datetime.datetime(2019, 9, 10, 15)
         wind_data = 4*np.ones((8, 8), dtype=np.float32)
         self.ucube = set_up_variable_cube(
             wind_data, name='precipitation_advection_x_velocity',
-            units='m/s', spatial_grid='equalarea', time=time_now,
-            frt=time_now)
+            units='m/s', spatial_grid='equalarea', time=analysis_time,
+            frt=analysis_time)
         self.vcube = set_up_variable_cube(
             wind_data, name='precipitation_advection_y_velocity',
-            units='m/s', spatial_grid='equalarea', time=time_now,
-            frt=time_now)
-        self.rain_cube = _make_initial_rain_cube(time_now)
+            units='m/s', spatial_grid='equalarea', time=analysis_time,
+            frt=analysis_time)
+        self.rain_cube = _make_initial_rain_cube(analysis_time)
 
         self.interval = 15
         max_lead_time = 120
         self.orogenh_cube = _make_orogenh_cube(
-            time_now, self.interval, max_lead_time)
+            analysis_time, self.interval, max_lead_time)
         self.plugin = PystepsExtrapolate(self.interval, max_lead_time)
 
         # set up all grids with 3.6 km spacing (1 m/s = 3.6 km/h,
@@ -179,7 +179,7 @@ class Test_process(IrisTest):
 
     def test_values_integer_step(self):
         """Test values for an advection speed of one grid square per time step
-        """
+        over 8 time steps (9 output forecasts including T+0)"""
         result = self.plugin.process(
             self.rain_cube, self.ucube, self.vcube, self.orogenh_cube)
         for i, cube in enumerate(result):

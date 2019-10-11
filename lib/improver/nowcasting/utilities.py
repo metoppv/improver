@@ -157,8 +157,6 @@ class ApplyOrographicEnhancement(object):
         """
         time_point, = iris_time_to_datetime(precip_cube.coord("time").copy())
         oe_cube = extract_nearest_time_point(oe_cubes, time_point)
-        # TODO set sensible tolerance and / or raise warnings if match is out
-        # by more than a certain amount.  And unit test for this.
         return oe_cube
 
     def _apply_orographic_enhancement(self, precip_cube, oe_cube):

@@ -29,13 +29,17 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Functions to assist with interface to pysteps library
+Functions to assist with interface to pysteps plotting routines.
+
+This module is for plotting only and should NOT be merged into the main
+IMPROVER master.
 """
 
 import numpy as np
 
 from improver.utilities.load import load_cube
-from improver.utilities.spatial import check_if_grid_is_equal_area
+from improver.utilities.spatial import (
+    check_if_grid_is_equal_area, calculate_grid_spacing)
 
 
 class PystepsImporter(object):
@@ -59,22 +63,22 @@ class PystepsImporter(object):
         self.metadata['transform'] = None  # data transform
 
     @staticmethod
-    def _extract_coord_properties(coord):
-        """Get grid spacing and coordinate extremes"""
-        coord.convert_units('m')
-        spacing = np.diff(coord.points)[0]
-        return spacing, min(coord.points), max(coord.points)
+    def _extract_coord_limits(coord):
+        """Get coordinate extremes in metres"""
+        n_coord = coord.copy()
+        n_coord.convert_units('m')
+        return min(n_coord.points), max(n_coord.points)
 
     def _set_coord_metadata(self):
         """Extract metadata from x- and y-coordinates and set in dict"""
-        xspacing, min_x, max_x = self._extract_coord_properties(
-            self.cube.coord(axis='x'))
-        self.metadata['xpixelsize'] = xspacing
+        min_x, max_x = self._extract_coord_limits(self.cube.coord(axis='x'))
+        self.metadata['xpixelsize'] = calculate_grid_spacing(
+            self.cube, 'metres', axis='x')
         self.metadata['x1'] = min_x
         self.metadata['x2'] = max_x
-        yspacing, min_y, max_y = self._extract_coord_properties(
-            self.cube.coord(axis='y'))
-        self.metadata['ypixelsize'] = yspacing
+        min_y, max_y = self._extract_coord_limits(self.cube.coord(axis='y'))
+        self.metadata['ypixelsize'] = calculate_grid_spacing(
+            self.cube, 'metres', axis='y')
         self.metadata['y1'] = min_y
         self.metadata['y2'] = max_y
         self.metadata['yorigin'] = 'lower'
@@ -83,31 +87,35 @@ class PystepsImporter(object):
         """
         Set projection and coordinate information in metadata dictionary
         """
-        projdef = ""
+        projection = ""
         crd_sys = self.cube.coord_system()
         for k, v in crd_sys.as_cartopy_crs().proj4_params.items():
             try:
-                projdef += "+{}={:.3f} ".format(k, float(v))
+                projection += "+{}={:.3f} ".format(k, float(v))
             except ValueError:
-                projdef += "+{}={} ".format(k, v)
-        ellps = "WGS84"
-        projdef += "+ellps={}".format(ellps)
-        self.metadata["projection"] = projdef
+                projection += "+{}={} ".format(k, v)
+        projection += "+ellps=WGS84"
+        self.metadata["projection"] = projection
         self._set_coord_metadata()
 
     def process_cube(self, precip_cube):
         """
-        Read required data and metadata from cube
+        Generate pysteps metadata dictionary and data array from cube
 
         Args:
             precip_cube (iris.cube.Cube):
                 Input precipitation rate cube with IMPROVER metadata
 
         Returns:
-            precip_rate (np.ndarray):
-                2D array of precipitation rates in mm/h
-            metadata (dict):
-                Dictionary of metadata required by pysteps algorithms
+            (tuple) : tuple containing:
+                **precip_rate** (np.ndarray):
+                    2D array of precipitation rates in mm/h
+                **metadata** (dict):
+                    Dictionary of metadata required by pysteps algorithms
+
+        Raises:
+            ValueError: if input cube does not contain some variety of
+                precipitation rates
         """
         if 'rate' not in precip_cube.name():
             msg = '{} is not a precipitation rate cube'
@@ -129,17 +137,18 @@ class PystepsImporter(object):
 
     def process_netcdf(self, filepath):
         """
-        Read required data and metadata from file
+        Generate pysteps metadata dictionary and data array from file
 
         Args:
             filepath (str):
                 Full path to precipitation rate file
 
         Returns:
-            precip_rate (np.ndarray):
-                2D array of precipitation rates in mm/h
-            metadata (dict):
-                Dictionary of metadata required by pysteps algorithms
+            (tuple) : tuple containing:
+                **precip_rate** (np.ndarray):
+                    2D array of precipitation rates in mm/h
+                **metadata** (dict):
+                    Dictionary of metadata required by pysteps algorithms
         """
         cube = load_cube(filepath)
         return self.process_cube(cube)

@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Semi-Lagrangian backward advection plugin"""
+"""Semi-Lagrangian backward advection plugin using pysteps"""
 
 import numpy as np
 from datetime import timedelta
@@ -144,6 +144,7 @@ class PystepsExtrapolate(object):
     def _set_up_output_cubes(self, all_forecasts):
         """
         Convert 3D numpy array into list of cubes with correct time metadata.
+        All other metadata are inherited from self.analysis_cube.
 
         Args:
             all_forecasts (np.ndarray):
