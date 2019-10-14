@@ -145,9 +145,10 @@ class ApplyOrographicEnhancement(object):
                 Cube or CubeList containing the orographic enhancement fields.
             allowed_time_diff (int):
                 An int in seconds to define a limit to the maximum difference
-                between the datetime provided and the time points available
-                within the cube. If this limit is exceeded, then
-                an error is raised.
+                between the datetime of the precipitation cube and the time
+                points available within the orographic enhancement cube.
+                If this limit is exceeded, then an error is raised.
+
 
         Returns:
             oe_cube (iris.cube.Cube):

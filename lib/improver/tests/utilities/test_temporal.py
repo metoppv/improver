@@ -549,7 +549,6 @@ class Test_extract_nearest_time_point(IrisTest):
     def test_time_coord(self):
         """Test that the nearest time point within the time coordinate is
         extracted."""
-        # print(self.cube.coords('time'))
         expected = self.cube[:, 0, :, :]
         time_point = datetime.datetime(2015, 11, 23, 6, 31)
         result = extract_nearest_time_point(self.cube, time_point,
@@ -577,10 +576,15 @@ class Test_extract_nearest_time_point(IrisTest):
     def test_forecast_reference_time_coord(self):
         """Test that the nearest time point within the forecast_reference_time
         coordinate is extracted."""
+        later_frt = self.cube.copy()
+        later_frt.coord('forecast_reference_time').points = (
+            later_frt.coord('forecast_reference_time').points + 3600)
+        cubes = iris.cube.CubeList([self.cube, later_frt])
+        cube = cubes.merge_cube()
         expected = self.cube
         time_point = datetime.datetime(2015, 11, 23, 3, 29)
         result = extract_nearest_time_point(
-            self.cube, time_point, time_name="forecast_reference_time",
+            cube, time_point, time_name="forecast_reference_time",
             allowed_dt_difference=1800)
         self.assertEqual(result, expected)
 
