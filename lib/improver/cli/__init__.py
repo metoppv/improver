@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"init for cli and clize"
+"""init for cli and clize"""
 
 from collections import OrderedDict
 from clize import parameters
@@ -169,7 +169,12 @@ def inputjson(to_convert):
 @decorator
 def with_output(wrapped, *args, output=None, **kwargs):
     """
-    :param output: Output file name
+
+    Args:
+        wrapped (obj):
+            The function to be wrapped.
+        output (str, optional):
+            Output file name.
     """
     from improver.utilities.save import save_netcdf
     result = wrapped(*args, **kwargs)
@@ -183,7 +188,11 @@ def with_output(wrapped, *args, output=None, **kwargs):
 def with_intermediate_output(wrapped, *args, intermediate_output=None,
                              **kwargs):
     """
-    :param intermediate_output: Output file name for intermediate result
+    Args:
+        wrapped (obj):
+            The function to be wrapped.
+        intermediate_output (str, optional):
+            Output file name for intermediate result.
     """
 
     from improver.utilities.save import save_netcdf
@@ -244,12 +253,12 @@ def clizefy(func=None, helper_class=DocutilizeClizeHelp, **kwargs):
 
 
 @clizefy(help_names=())
-def improver_help(progname: parameters.pass_name,
+def improver_help(prog_name: parameters.pass_name,
                   command=None, *, usage=False):
     """Show command help."""
-    progname = progname.split()[0]
+    prog_name = prog_name.split()[0]
     args = filter(None, [command, '--help', usage and '--usage'])
-    result = execute_command(SUBCOMMANDS_DISPATCHER, progname, *args)
+    result = execute_command(SUBCOMMANDS_DISPATCHER, prog_name, *args)
     if not command and usage:
         result = '\n'.join(line for line in result.splitlines()
                            if not line.endswith('--help [--usage]'))
@@ -322,13 +331,14 @@ def unbracket(args):
     return outargs
 
 
-def execute_command(dispatcher, progname, *args, verbose=False, dry_run=False):
+def execute_command(dispatcher, prog_name, *args,
+                    verbose=False, dry_run=False):
     """Common entry point for command execution."""
     args = list(args)
     for i, arg in enumerate(args):
         if isinstance(arg, (list, tuple)):
             # process nested commands recursively
-            arg = execute_command(dispatcher, progname, *arg,
+            arg = execute_command(dispatcher, prog_name, *arg,
                                   verbose=verbose, dry_run=dry_run)
         if not isinstance(arg, str):
             arg = ObjectAsStr(arg)
@@ -336,14 +346,14 @@ def execute_command(dispatcher, progname, *args, verbose=False, dry_run=False):
     if dry_run:
         result = args  # poor man's dry run!
     else:
-        result = dispatcher(progname, *args)
+        result = dispatcher(prog_name, *args)
     if verbose or dry_run:
-        print(progname, *args, ' -> ', ObjectAsStr.object2name(result))
+        print(prog_name, *args, ' -> ', ObjectAsStr.object2name(result))
     return result
 
 
 @clizefy(alt={'version': improver_version})
-def main(progname: parameters.pass_name,
+def main(prog_name: parameters.pass_name,
          command: LAST_OPTION,
          *args,
          verbose=False,
@@ -358,6 +368,8 @@ def main(progname: parameters.pass_name,
     Spaces around brackets are mandatory.
 
     Args:
+        prog_name:
+            The program name from argv[0].
         command (str):
             Command to execute
         args (tuple):
@@ -372,7 +384,7 @@ def main(progname: parameters.pass_name,
     """
     args = unbracket(args)
     result = execute_command(SUBCOMMANDS_DISPATCHER,
-                             progname, command, *args,
+                             prog_name, command, *args,
                              verbose=verbose, dry_run=dry_run)
     return result
 
@@ -385,4 +397,4 @@ def run_main(argv=None):
     if argv is None:
         argv = sys.argv[:]
         argv[0] = 'improver'
-    run(main, args=argv)
+    run(main, args=argv)  # pylint: disable=E1124

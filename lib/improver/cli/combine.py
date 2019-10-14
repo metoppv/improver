@@ -31,6 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to combine netcdf data."""
 
+import warnings
 
 from improver import cli
 
@@ -95,6 +96,7 @@ def main(argv=None):
                 warnings.warn(msg)
 
     # Process Cube
+    # pylint: disable=E1123
     process(*cubelist, operation=args.operation, new_name=new_cube_name,
             new_metadata=new_metadata, warnings_on=args.warnings_on,
             output=args.output_filepath)
@@ -107,7 +109,7 @@ def process(*cubelist: cli.inputcube,
             new_name=None,
             new_metadata: cli.inputjson = None,
             warnings_on=False):
-    """Combine input cubes.
+    r"""Combine input cubes.
 
     Combine the input cubes into a single cube using the requested operation.
 

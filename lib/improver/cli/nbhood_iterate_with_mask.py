@@ -134,6 +134,7 @@ def main(argv=None):
         args.collapse_dimension else None
 
     # Process Cube
+    # pylint: disable=E1123
     process(cube, mask_cube, weights, coord_for_masking=args.coord_for_masking,
             radius=args.radius, radii_by_lead_time=args.radii_by_lead_time,
             sum_or_fraction=args.sum_or_fraction, re_mask=args.re_mask,

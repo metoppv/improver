@@ -30,8 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Tests command to execute tests."""
 
-from improver import cli
-
 
 def main(argv):
     """Run pycodestyle, pylint, documentation, unit and CLI acceptance tests.
