@@ -240,7 +240,6 @@ def calculate_feels_like_temperature(temperature, wind_speed,
 
     t_data = temperature.data
     feels_like_temperature_data = np.zeros(t_data.shape, dtype=np.float32)
-    alpha = np.zeros(t_data.shape)
 
     # if temperature < 10 degrees Celsius:
     feels_like_temperature_data[t_data < 10] = wind_chill.data[t_data < 10]
@@ -249,8 +248,7 @@ def calculate_feels_like_temperature(temperature, wind_speed,
     # calculate weighting and blend between wind chill index
     # and Steadman equation
     alpha = (t_data-10.0)/10.0
-    temp_flt = (
-        alpha*apparent_temperature.data + ((1-alpha)*wind_chill.data))
+    temp_flt = (alpha*apparent_temperature.data + ((1-alpha)*wind_chill.data))
     t_data_between = (t_data >= 10) & (t_data <= 20)
     feels_like_temperature_data[t_data_between] = temp_flt[t_data_between]
 

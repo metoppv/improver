@@ -28,41 +28,35 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for argparser.safe_eval."""
+"""Tests for the wind direction CLI"""
+
+import pytest
+
+from improver.cli import wind_direction
+from improver.tests import acceptance as acc
 
 
-import unittest
-
-import cartopy.crs as ccrs
-import iris
-
-from improver.argparser import safe_eval
-
-
-class Test_safe_eval(unittest.TestCase):
-
-    """Test function for safely using the eval command."""
-
-    def test_iris_coords(self):
-        """Test the return of an iris.coords component."""
-        allowed = ['coords']
-        result = safe_eval('coords', iris, allowed=allowed)
-        self.assertEqual(result, iris.coords)
-
-    def test_cartopy_projection(self):
-        """Test the return of a cartopy projection."""
-        allowed = ['Mercator', 'Miller']
-        result = safe_eval('Mercator', ccrs, allowed=allowed)
-        self.assertEqual(result, ccrs.Mercator)
-
-    def test_unallowed_cartopy(self):
-        """Test the raising of an error when requesting a projection not in the
-        allowed list."""
-        allowed = ['Mercator']
-        msg = 'Function/method/object "Miller" not available in module'
-        with self.assertRaisesRegex(TypeError, msg):
-            safe_eval('Miller', ccrs, allowed=allowed)
+@pytest.mark.acc
+@pytest.mark.slow
+@acc.skip_if_kgo_missing
+def test_basic(tmp_path):
+    """Test basic wind direction operation"""
+    kgo_dir = acc.kgo_root() / "wind_direction/basic"
+    kgo_path = kgo_dir / "kgo.nc"
+    output_path = tmp_path / "output.nc"
+    wind_direction.main([str(kgo_dir / "input.nc"),
+                         str(output_path)])
+    acc.compare(output_path, kgo_path)
 
 
-if __name__ == '__main__':
-    unittest.main()
+@pytest.mark.acc
+@acc.skip_if_kgo_missing
+def test_global(tmp_path):
+    """Test global wind direction operation"""
+    kgo_dir = acc.kgo_root() / "wind_direction/global"
+    kgo_path = kgo_dir / "kgo.nc"
+    output_path = tmp_path / "output.nc"
+    wind_direction.main(["--backup_method=first_realization",
+                         str(kgo_dir / "input.nc"),
+                         str(output_path)])
+    acc.compare(output_path, kgo_path)

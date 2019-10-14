@@ -31,8 +31,9 @@
 """Unit tests for weather code utilities."""
 
 import datetime
+import pathlib
+import os
 import unittest
-from subprocess import call as Call
 from tempfile import mkdtemp
 
 import iris
@@ -241,20 +242,20 @@ class Test_add_wxcode_metadata(IrisTest):
         """Set up cube """
         data = np.array(
             [0, 1, 5, 11, 20, 5, 9, 10, 4, 2, 0, 1, 29, 30, 1, 5, 6, 6],
-            dtype=np.float32
+            dtype=np.int32
         ).reshape(2, 1, 3, 3)
         self.cube = set_up_cube(data, 'air_temperature', 'K',
-                                realizations=np.array([0, 1]))
+                                realizations=np.array([0, 1], dtype=np.int32))
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
         self.data_directory = mkdtemp()
         self.nc_file = self.data_directory + '/wxcode.nc'
-        Call(['touch', self.nc_file])
+        pathlib.Path(self.nc_file).touch(exist_ok=True)
 
     def tearDown(self):
         """Remove temporary directories created for testing."""
-        Call(['rm', self.nc_file])
-        Call(['rmdir', self.data_directory])
+        os.remove(self.nc_file)
+        os.rmdir(self.data_directory)
 
     def test_basic(self):
         """Test that the function returns a cube."""

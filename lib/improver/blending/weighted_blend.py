@@ -39,7 +39,7 @@ from iris.analysis import Aggregator
 from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.utilities.cube_checker import find_percentile_coordinate
+from improver.metadata.probabilistic import find_percentile_coordinate
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering, sort_coord_in_cube, build_coordinate,
     MergeCubes)
@@ -121,11 +121,9 @@ class MergeCubesForWeightedBlending():
         if ("model" in self.blend_coord and
                 self.weighting_coord is not None and
                 "forecast_period" in self.weighting_coord):
-            if cycletime is None:
-                cycletime = find_latest_cycletime(cubelist)
-            else:
-                cycletime = cycletime_to_datetime(cycletime)
-            cubelist = unify_forecast_reference_time(cubelist, cycletime)
+            cycletime = (find_latest_cycletime(cubelist) if cycletime is None
+                         else cycletime_to_datetime(cycletime))
+            unify_forecast_reference_time(cubelist, cycletime)
 
     def _create_model_coordinates(self, cubelist):
         """
@@ -520,7 +518,8 @@ class WeightedBlendAcrossWholeDimension:
         return description.format(
             self.coord, self.cycletime, self.timeblending)
 
-    def check_percentile_coord(self, cube):
+    @staticmethod
+    def check_percentile_coord(cube):
         """
         Determines if the cube to be blended has a percentile dimension
         coordinate.
@@ -581,7 +580,8 @@ class WeightedBlendAcrossWholeDimension:
                     time_points))
             raise ValueError(msg)
 
-    def shape_weights(self, cube, weights):
+    @staticmethod
+    def shape_weights(cube, weights):
         """
         The function shapes weights to match the diagnostic cube. A 1D cube of
         weights that vary across the blending coordinate will be broadcast to
@@ -858,7 +858,7 @@ class WeightedBlendAcrossWholeDimension:
             raise TypeError(msg)
 
         if not cube.coords(self.coord):
-            msg = ('Coordinate to be collapsed not found in cube.')
+            msg = 'Coordinate to be collapsed not found in cube.'
             raise CoordinateNotFoundError(msg)
 
         coord_dim = cube.coord_dims(self.coord)
@@ -871,7 +871,7 @@ class WeightedBlendAcrossWholeDimension:
         cube = sort_coord_in_cube(cube, self.coord, order="ascending")
         if weights is not None:
             if not weights.coords(self.coord):
-                msg = ('Coordinate to be collapsed not found in weights cube.')
+                msg = 'Coordinate to be collapsed not found in weights cube.'
                 raise CoordinateNotFoundError(msg)
             weights = sort_coord_in_cube(weights, self.coord,
                                          order="ascending")

@@ -35,10 +35,12 @@ import unittest
 import iris
 import numpy as np
 from cf_units import Unit
+from datetime import datetime
 from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
+from improver.tests.set_up_test_cubes import construct_scalar_time_coords
 
 
 class Test_build_spotdata_cube(IrisTest):
@@ -156,12 +158,10 @@ class Test_build_spotdata_cube(IrisTest):
 
     def test_scalar_coords(self):
         """Test additional scalar coordinates"""
-        time_origin = "hours since 1970-01-01 00:00:00"
-        calendar = "gregorian"
-        tunit = Unit(time_origin, calendar)
-        time_coord = AuxCoord(419811., "time", units=tunit)
-        frt_coord = AuxCoord(419805., "forecast_reference_time", units=tunit)
-        fp_coord = AuxCoord(6, "forecast_period", units="hours")
+        [(time_coord, _), (frt_coord, _), (fp_coord, _)] = (
+            construct_scalar_time_coords(
+                datetime(2015, 11, 23, 4, 30), None,
+                datetime(2015, 11, 22, 22, 30)))
 
         data = np.ones((4, 2), dtype=np.float32)
         result = build_spotdata_cube(
@@ -170,10 +170,12 @@ class Test_build_spotdata_cube(IrisTest):
             scalar_coords=[time_coord, frt_coord, fp_coord],
             neighbour_methods=self.neighbour_methods)
 
-        self.assertAlmostEqual(result.coord('time').points[0], 419811.)
-        self.assertAlmostEqual(
-            result.coord('forecast_reference_time').points[0], 419805.)
-        self.assertEqual(result.coord('forecast_period').points[0], 6)
+        self.assertEqual(result.coord('time').points[0], time_coord.points[0])
+        self.assertEqual(
+            result.coord('forecast_reference_time').points[0],
+            frt_coord.points[0])
+        self.assertEqual(
+            result.coord('forecast_period').points[0], fp_coord.points[0])
 
     def test_renaming_to_set_standard_name(self):
         """Test that CF standard names are set as such in the returned cube,

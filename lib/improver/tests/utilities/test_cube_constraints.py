@@ -35,9 +35,9 @@ import unittest
 import iris
 from iris.tests import IrisTest
 
+from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.tests.utilities.test_cube_extraction import (
     set_up_precip_probability_cube)
-from improver.utilities.cube_checker import find_threshold_coordinate
 from improver.utilities.cube_constraints import create_sorted_lambda_constraint
 
 
@@ -69,6 +69,20 @@ class Test_create_sorted_lambda_constraint(IrisTest):
         self.assertEqual(list(result._coord_values.keys()), [self.coord_name])
         result_cube = self.precip_cube.extract(result)
         self.assertArrayAlmostEqual(result_cube.data, self.expected_data)
+
+    def test_non_default_tolerance(self):
+        """Test that a constraint is created, if the input coordinates are
+        made more fuzzy by use of a non-standard tolerance. The default
+        tolerance is 1.0E-7, here we make it large enough to extract all the
+        available thresholds using two bounds; this is testing an extreme
+        not a desirable use case."""
+        values = [0.03, 0.6]
+        result = create_sorted_lambda_constraint(
+            self.coord_name, values, tolerance=0.9)
+        self.assertIsInstance(result, iris.Constraint)
+        self.assertEqual(list(result._coord_values.keys()), [self.coord_name])
+        result_cube = self.precip_cube.extract(result)
+        self.assertArrayAlmostEqual(result_cube.data, self.precip_cube.data)
 
 
 if __name__ == '__main__':

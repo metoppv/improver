@@ -41,8 +41,8 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
 
+from improver.metadata.probabilistic import extract_diagnostic_name
 from improver.tests.set_up_test_cubes import set_up_variable_cube
-from improver.utilities.cube_metadata import extract_diagnostic_name
 from improver.utilities.warnings_handler import ManageWarnings
 
 IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate"]
@@ -136,6 +136,45 @@ class SetupCubes(IrisTest):
             name="wind_speed", units="m s-1").merge_cube()
 
         self.wind_speed_truth_cube = _create_truth(
+            base_data, time_dt, name="wind_speed", units="m s-1").merge_cube()
+
+        # Set up another set of cubes which have a halo of zeros round the
+        # original data. This data will be masked out in tests using a
+        # landsea_mask
+        base_data = np.array([[[0.0, 0.0, 0.0, 0.0, 0.0],
+                               [0.0, 0.3, 1.1, 2.6, 0.0],
+                               [0.0, 4.2, 5.3, 6., 0.0],
+                               [0.0, 7.1, 8.2, 9., 0.0],
+                               [0.0, 0.0, 0.0, 0.0, 0.0]],
+                              [[0.0, 0.0, 0.0, 0.0, 0.0],
+                               [0.0, 0.7, 2., 3, 0.0],
+                               [0.0, 4.3, 5.6, 6.4, 0.0],
+                               [0.0, 7., 8., 9., 0.0],
+                               [0.0, 0.0, 0.0, 0.0, 0.0]],
+                              [[0.0, 0.0, 0.0, 0.0, 0.0],
+                               [0.0, 2.1, 3., 3., 0.0],
+                               [0.0, 4.8, 5., 6., 0.0],
+                               [0.0, 7.9, 8., 8.9, 0.0],
+                               [0.0, 0.0, 0.0, 0.0, 0.0]]],
+                             dtype=np.float32)
+        temperature_data = base_data + 273.15
+        # Create historic forecasts and truth
+        self.historic_forecasts_halo = _create_historic_forecasts(
+            temperature_data, time_dt, frt_dt, realizations=[0, 1, 2])
+        self.truth_halo = _create_truth(temperature_data, time_dt)
+
+        # Create the historic and truth cubes
+        self.historic_temperature_forecast_cube_halo = (
+            self.historic_forecasts_halo.merge_cube())
+        self.temperature_truth_cube_halo = self.truth_halo.merge_cube()
+
+        # Create a cube for testing wind speed.
+        self.historic_wind_speed_forecast_cube_halo = (
+            _create_historic_forecasts(
+                base_data, time_dt, frt_dt, realizations=[0, 1, 2],
+                name="wind_speed", units="m s-1").merge_cube())
+
+        self.wind_speed_truth_cube_halo = _create_truth(
             base_data, time_dt, name="wind_speed", units="m s-1").merge_cube()
 
 
@@ -265,7 +304,7 @@ def set_up_probability_above_threshold_spot_temperature_cube():
 
 
 def set_up_cube(data, name, units,
-                realizations=np.array([0, 1, 2], dtype=np.float32),
+                realizations=np.array([0, 1, 2], dtype=np.int32),
                 timesteps=1, y_dimension_length=3, x_dimension_length=3):
     """Create a cube containing multiple realizations."""
     try:
@@ -275,7 +314,7 @@ def set_up_cube(data, name, units,
 
     cube.add_dim_coord(DimCoord(realizations, 'realization',
                                 units='1'), 0)
-    time_origin = "hours since 1970-01-01 00:00:00"
+    time_origin = "seconds since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
     dt1 = datetime.datetime(2017, 1, 10, 3, 0)
@@ -283,7 +322,7 @@ def set_up_cube(data, name, units,
     num1 = cf_units.date2num(dt1, time_origin, calendar)
     num2 = cf_units.date2num(dt2, time_origin, calendar)
     cube.add_dim_coord(DimCoord(np.linspace(num1, num2, timesteps,
-                                            dtype=np.float64),
+                                            dtype=np.int64),
                                 "time", units=tunit), 1)
     cube.add_dim_coord(DimCoord(np.linspace(-45.0, 45.0, y_dimension_length,
                                             dtype=np.float32),

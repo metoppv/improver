@@ -43,8 +43,8 @@
 
   # Run processing and check it passes when the input files are not
   # specifically precipitation. In this case, the input radar precipitation
-  # files and fields have been renamed as rain to be able to test the
-  # CLIs function as intended for a non-precipitation field.
+  # files and fields have been renamed as rainfall_rate to be able to test the
+  # CLIs function as intended for a field not recognised as precipitation.
   run improver nowcast-extrapolate \
     "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic_no_orographic_enhancement/$INFILE" \
     --output_dir "$TEST_DIR" --max_lead_time 30 \
@@ -52,9 +52,9 @@
     --northward_advection "$VCOMP"
   [[ "$status" -eq 0 ]]
 
-  T0="20181103T1600Z-PT0000H00M-lwe_rain_rate.nc"
-  T1="20181103T1615Z-PT0000H15M-lwe_rain_rate.nc"
-  T2="20181103T1630Z-PT0000H30M-lwe_rain_rate.nc"
+  T0="20181103T1600Z-PT0000H00M-rainfall_rate.nc"
+  T1="20181103T1615Z-PT0000H15M-rainfall_rate.nc"
+  T2="20181103T1630Z-PT0000H30M-rainfall_rate.nc"
 
   improver_check_recreate_kgo "$T0" $KGO0
   improver_check_recreate_kgo "$T1" $KGO1

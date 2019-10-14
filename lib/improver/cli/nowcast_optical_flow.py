@@ -79,7 +79,7 @@ def main(argv=None):
                         "required changes to the metadata. Information "
                         "describing the intended contents of the json file "
                         "is available in "
-                        "improver.utilities.cube_metadata.amend_metadata."
+                        "improver.metadata.amend.amend_metadata. "
                         "Every output cube will have the metadata_dict "
                         "applied. Defaults to None.", type=str)
 
@@ -158,7 +158,7 @@ def process(original_cube_list, orographic_enhancement_cube=None,
         metadata_dict (dict):
             Dictionary containing required changes to the metadata.
             Information describing the intended contents of the dictionary is
-            available in improver.utilities.cube_metadata.amend_metadata.
+            available in improver.metadata.amend.amend_metadata.
             Every output cube will have the metadata_dict applied.
             Default is None.
         ofc_box_size (int):
@@ -241,7 +241,7 @@ def process(original_cube_list, orographic_enhancement_cube=None,
             orographic_enhancement_cube=orographic_enhancement_cube,
             metadata_dict=metadata_dict)
         # extrapolate input data to required lead times
-        for i, lead_time in enumerate(lead_times):
+        for lead_time in lead_times:
             forecast_cubes.append(forecast_plugin.extrapolate(
                 leadtime_minutes=lead_time))
 

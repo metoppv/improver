@@ -49,46 +49,67 @@ from improver.utilities.cube_checker import (
 MAX_DISTANCE_IN_GRID_CELLS = 500
 
 
-def check_if_grid_is_equal_area(cube):
-    """Identify whether the grid is an equal area grid.
-    If not, raise an error.
+def check_if_grid_is_equal_area(cube, require_equal_xy_spacing=True):
+    """
+    Identify whether the grid is an equal area grid, by checking whether points
+    are equally spaced along each of the x- and y-axes.  By default this
+    function also checks whether the grid spacing is the same in both spatial
+    dimensions.
+
     Args:
         cube (iris.cube.Cube):
-            Cube with coordinates that will be cMAhecked.
+            Cube with coordinates that will be checked.
+        require_equal_spacing (bool):
+            Flag to require the grid is equally spaced in the two spatial
+            dimensions (not strictly required for equal-area criterion).
+
     Raises:
-        ValueError : Invalid grid: projection_x/y coords required
-        ValueError : Intervals between points along the x and y axis vary.
-                     Therefore the grid is not an equal area grid.
-        ValueError : The size of the intervals along the x and y axis
-                     should be equal.
+        ValueError: If coordinate points are not equally spaced along either
+            axis (from calculate_grid_spacing)
+        ValueError: If point spacing is not equal for the two spatial axes
     """
-    try:
-        for coord_name in ['projection_x_coordinate',
-                           'projection_y_coordinate']:
-            cube.coord(coord_name)
-    except CoordinateNotFoundError:
-        raise ValueError("Invalid grid: projection_x/y coords required")
-    for coord_name in ['projection_x_coordinate',
-                       'projection_y_coordinate']:
-        if np.sum(np.diff(np.diff(cube.coord(coord_name).points))) > 0:
-            msg = ("Intervals between points along the {} axis vary."
-                   "Therefore the grid is not an equal area grid.")
-            msg = msg.format(coord_name)
-            raise ValueError(msg)
-    x_diff = np.diff(cube.coord("projection_x_coordinate").points)[0]
-    y_diff = np.diff(cube.coord("projection_y_coordinate").points)[0]
-    if abs(x_diff) != abs(y_diff):
-        msg = ("The size of the intervals along the x and y axis "
-               "should be equal. x axis interval: {}, y axis interval: {}")
-        msg = msg.format(x_diff, y_diff)
-        raise ValueError(msg)
+    xdiff = calculate_grid_spacing(cube, 'metres', axis='x')
+    ydiff = calculate_grid_spacing(cube, 'metres', axis='y')
+    if require_equal_xy_spacing and not np.isclose(xdiff, ydiff):
+        raise ValueError(
+            "Grid does not have equal spacing in x and y dimensions")
+
+
+def calculate_grid_spacing(cube, units, axis='x'):
+    """
+    Returns the grid spacing of a given spatial axis
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube of data on equal area grid
+        units (str or cf_units.Unit):
+            Unit in which the grid spacing is required
+        axis (str):
+            Axis ('x' or 'y') to use in determining grid spacing
+
+    Returns:
+        (float):
+            Grid spacing in required unit
+
+    Raises:
+        ValueError: If points are not equally spaced
+    """
+    coord = cube.coord(axis=axis).copy()
+    coord.convert_units(units)
+    diffs = np.unique(np.diff(coord.points))
+    if len(diffs) > 1:
+        raise ValueError(
+            'Coordinate {} points are not equally spaced'.format(coord.name()))
+    return diffs[0]
 
 
 def convert_distance_into_number_of_grid_cells(
-        cube, distance, max_distance_in_grid_cells=None, int_grid_cells=True):
+        cube, distance, axis='x', max_distance_in_grid_cells=None,
+        int_grid_cells=True):
     """
     Return the number of grid cells in the x and y direction based on the
-    input distance in metres.
+    input distance in metres.  Requires an equal-area grid on which the spacing
+    is equal in the x- and y- directions.
 
     Args:
         cube (iris.cube.Cube):
@@ -96,7 +117,9 @@ def convert_distance_into_number_of_grid_cells(
             calculating the number of grid cells in the x and y direction,
             which equates to the requested distance in the x and y direction.
         distance (float):
-            Distance in metres.
+            Distance in metres.  Must be positive.
+        axis (str):
+            Axis ('x' or 'y') to use in determining grid spacing
         max_distance_in_grid_cells (int or None):
             Maximum distance in grid cells.  Defaults to None, which bypasses
             the check.
@@ -105,89 +128,82 @@ def convert_distance_into_number_of_grid_cells(
             down. If false the number of grid_cells returned will be a float.
 
     Returns:
-        (tuple) : tuple containing:
-            **grid_cells_x** (int):
-                Number of grid cells in the x direction based on the requested
-                distance in metres.
-            **grid_cells_y** (int):
-                Number of grid cells in the y direction based on the requested
-                distance in metres.
+        grid_cells (int or float):
+            Number of grid cells along the specified (x or y) axis equal to the
+            requested distance in metres.
 
     Raises:
-        ValueError:
-            If the projection is not "equal area" (proxied by projection_x/y
-            spatial coordinate names).
+        ValueError: If a negative distance is provided
+        ValueError: If the projection is not equal-area
         ValueError:
             If the distance in grid cells is larger than the maximum dimension
             of the rectangular domain (measured across the diagonal).  Needed
             for neighbourhood processing.
-        ValueError:
-            If the distance in grid cells is zero.
-        ValueError:
-            If the distance in grid cells is negative.  (Assuming the distance
-            argument is positive, this indicates one or more spatial axes are
-            not correctly ordered.)
+        ValueError: If the distance in grid cells is zero.
         Value Error:
             If max_distance_in_grid_cells is set and the distance in grid cells
             exceeds this value.  Needed for neighbourhood processing.
     """
-    try:
-        x_coord = cube.coord("projection_x_coordinate").copy()
-        y_coord = cube.coord("projection_y_coordinate").copy()
-    except CoordinateNotFoundError:
-        raise ValueError("Invalid grid: projection_x/y coords required")
-    x_coord.convert_units("metres")
-    y_coord.convert_units("metres")
-    max_distance_of_domain = np.sqrt(
-        (x_coord.points.max() - x_coord.points.min())**2 +
-        (y_coord.points.max() - y_coord.points.min())**2)
+    d_error = "Distance of {}m".format(distance)
+    zero_distance_error = ("{} gives zero cell extent".format(d_error))
+    if distance == 0:
+        raise ValueError(zero_distance_error)
+    if distance < 0:
+        raise ValueError("Please specify a positive distance in metres")
+
+    # calculate grid spacing along chosen axis
+    grid_spacing_metres = calculate_grid_spacing(cube, 'metres', axis=axis)
+
+    # check required distance isn't greater than the size of the domain
+    # (note: this implicitly assumes equal x- and y-spacing)
+    def calculate_domain_extent(coord):
+        """Calculates the coordinate extent in metres"""
+        new_coord = coord.copy()
+        new_coord.convert_units('metres')
+        return max(new_coord.points) - min(new_coord.points)
+
+    x_extent_metres = calculate_domain_extent(cube.coord(axis='x'))
+    y_extent_metres = calculate_domain_extent(cube.coord(axis='y'))
+    max_distance_of_domain = np.sqrt(x_extent_metres**2 + y_extent_metres**2)
     if distance > max_distance_of_domain:
         raise ValueError(
-            ("Distance of {0}m exceeds max domain"
-             " distance of {1}m".format(distance, max_distance_of_domain)))
-    d_north_metres = y_coord.points[1] - y_coord.points[0]
-    d_east_metres = x_coord.points[1] - x_coord.points[0]
-    grid_cells_y = distance / abs(d_north_metres)
-    grid_cells_x = distance / abs(d_east_metres)
+            "{} exceeds max domain distance of {}m".format(
+                d_error, max_distance_of_domain))
+
+    # calculate distance in grid squares
+    grid_cells = distance / abs(grid_spacing_metres)
+
     if int_grid_cells:
-        grid_cells_y = int(grid_cells_y)
-        grid_cells_x = int(grid_cells_x)
-    if grid_cells_x == 0 or grid_cells_y == 0:
-        raise ValueError(
-            "Distance of {0}m gives zero cell extent".format(distance))
-    elif grid_cells_x < 0 or grid_cells_y < 0:
-        raise ValueError(
-            "Distance of {0}m gives a negative cell extent - "
-            "check coordinate ordering".format(distance))
+        grid_cells = int(grid_cells)
+        if grid_cells == 0:
+            raise ValueError(zero_distance_error)
+
     if max_distance_in_grid_cells is not None:
-        if (grid_cells_x > max_distance_in_grid_cells or
-                grid_cells_y > max_distance_in_grid_cells):
+        if grid_cells > max_distance_in_grid_cells:
             raise ValueError(
-                "Distance of {0}m exceeds maximum permitted "
-                "grid cell extent".format(distance))
-    return grid_cells_x, grid_cells_y
+                "{} exceeds maximum permitted grid cell extent".format(
+                    d_error))
+
+    return grid_cells
 
 
 def convert_number_of_grid_cells_into_distance(cube, grid_points):
     """
-    Calculate radius size in metres from the given number of gridpoints
+    Calculate distance in metres equal to the given number of gridpoints
     based on the coordinates on an input cube.
 
     Args:
         cube (iris.cube.Cube):
-            The iris cube that the number of grid points for the radius
-            refers to.
+            Cube for which the distance is to be calculated.
         grid_points (int):
-            The number of grid points you want to convert.
+            Number of grid points to convert.
     Returns:
         radius_in_metres (float):
             The radius in metres.
     """
-    check_if_grid_is_equal_area(cube)
-    cube.coord("projection_x_coordinate").convert_units("m")
-    x_diff = np.diff(cube.coord("projection_x_coordinate").points)[0]
-    # Make sure the radius isn't exactly on a grid box boundary.
-    radius_in_metres = x_diff*grid_points
+    check_if_grid_is_equal_area(cube, require_equal_xy_spacing=True)
+    spacing = calculate_grid_spacing(cube, 'metres')
+    radius_in_metres = spacing * grid_points
     return radius_in_metres
 
 
@@ -378,17 +394,16 @@ class OccurrenceWithinVicinity(object):
                 vicinity defined using the specified distance.
 
         """
-        # The number of grid cells returned along the x and y axis will be
-        # the same.
-        _, grid_cell_y = (
+        grid_spacing = (
             convert_distance_into_number_of_grid_cells(
-                cube, self.distance, MAX_DISTANCE_IN_GRID_CELLS))
+                cube, self.distance,
+                max_distance_in_grid_cells=MAX_DISTANCE_IN_GRID_CELLS))
 
-        # Convert the number of grid points (e.g. grid_cell_y) represented
-        # by self.distance, e.g. where grid_cell_y=1 is an increment to
+        # Convert the number of grid points (i.e. grid_spacing) represented
+        # by self.distance, e.g. where grid_spacing=1 is an increment to
         # a central point, into grid_cells which is the total number of points
         # within the defined vicinity along the y axis e.g grid_cells=3.
-        grid_cells = (2 * grid_cell_y) + 1
+        grid_cells = (2 * grid_spacing) + 1
 
         max_cube = cube.copy()
         unmasked_cube_data = cube.data.copy()
@@ -631,7 +646,7 @@ class RegridLandSea():
         if selector_val > 0.5:
             thresholder = BasicThreshold(0.5)
         else:
-            thresholder = BasicThreshold(0.5, below_thresh_ok=True)
+            thresholder = BasicThreshold(0.5, comparison_operator='<=')
         in_vicinity = self.vicinity.process(
             thresholder.process(self.input_land))
 

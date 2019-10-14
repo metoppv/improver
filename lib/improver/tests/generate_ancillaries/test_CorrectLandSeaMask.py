@@ -54,9 +54,10 @@ class Test_process(IrisTest):
                                        [True, True, True]])
 
     def test_landmaskcorrection(self):
-        """Test landmask correction"""
+        """Test landmask correction. Note that the name land_binary_mask is
+        enforced to reflect the change that has been made."""
         result = CorrectLand().process(self.landmask)
-        self.assertEqual(result.name(), 'test land')
+        self.assertEqual(result.name(), 'land_binary_mask')
         self.assertArrayEqual(result.data, self.expected_mask)
 
 

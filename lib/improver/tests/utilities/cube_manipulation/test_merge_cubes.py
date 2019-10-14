@@ -52,16 +52,7 @@ class Test_merge_cubes(IrisTest):
 
     def setUp(self):
         """Use temperature cube to test with."""
-
-        data = np.array([[[226.15, 237.4, 248.65],
-                          [259.9, 271.15, 282.4],
-                          [293.65, 304.9, 316.15]],
-                         [[230.15, 241.4, 252.65],
-                          [263.9, 275.15, 286.4],
-                          [297.65, 308.9, 320.15]],
-                         [[232.15, 243.4, 254.65],
-                          [265.9, 277.15, 288.4],
-                          [299.65, 310.9, 322.15]]], dtype=np.float32)
+        data = 277*np.ones((3, 3, 3), dtype=np.float32)
 
         # set up a MOGREPS-UK cube with 7 hour forecast period
         time_point = dt(2015, 11, 23, 7)

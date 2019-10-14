@@ -40,6 +40,7 @@ usage: improver neighbour-finding [-h] [--profile]
                                   [--search_radius SEARCH_RADIUS]
                                   [--node_limit NODE_LIMIT]
                                   [--site_coordinate_system SITE_COORDINATE_SYSTEM]
+                                  [--site_coordinate_options SITE_COORDINATE_OPTIONS]
                                   [--site_x_coordinate SITE_X_COORDINATE]
                                   [--site_y_coordinate SITE_Y_COORDINATE]
                                   [--metadata_json METADATA_JSON]
@@ -112,6 +113,11 @@ Site list options:
                         Miller(central_longitude=90). If a globe is required
                         this can be specified as e.g.
                         Globe(semimajor_axis=100, semiminor_axis=100).
+  --site_coordinate_options SITE_COORDINATE_OPTIONS
+                        JSON formatted string of options passed to the cartopy
+                        coordinate system given in site_coordinate_system.
+                        "globe" is handled as a special case for options to
+                        construct a cartopy Globe object.
   --site_x_coordinate SITE_X_COORDINATE
                         The x coordinate key within the JSON file. The plugin
                         default is 'longitude', but can be changed using this

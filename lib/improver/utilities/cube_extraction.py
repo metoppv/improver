@@ -32,6 +32,7 @@
 
 from ast import literal_eval
 
+import numpy as np
 import iris
 
 from improver.utilities.cube_constraints import create_sorted_lambda_constraint
@@ -76,6 +77,33 @@ def is_complex_parsing_required(value):
     else:
         complex_constraint = False
     return complex_constraint
+
+
+def create_constraint(value):
+    """
+    Constructs an appropriate constraint for matching numerical values if they
+    are floating point. If not, the original values are returned as a list
+    (even if they were single valued on entry).
+
+    Args:
+        value (float/int or list of float/int):
+            Constraint values that are being used to match against values in a
+            cube for the purposes of extracting elements of the cube.
+    Returns:
+        lambda function or list:
+            If the input value(s) are floating point this function returns a
+            lambda function that will enable for approximate matching to
+            ensure they can be matched to cube values. If the inputs are int
+            or non-numeric, they will be returned unchanged, except for single
+            values that will have become lists.
+    """
+    if not isinstance(value, list):
+        value = [value]
+
+    if np.issubdtype(np.array(value).dtype, np.number):
+        return lambda cell: any(np.isclose(cell.point, value))
+    else:
+        return value
 
 
 def parse_constraint_list(constraints, units=None):
@@ -129,9 +157,11 @@ def parse_constraint_list(constraints, units=None):
             complex_constraints.append(create_range_constraint(key, value))
         else:
             try:
-                simple_constraints_dict[key] = literal_eval(value)
+                typed_value = literal_eval(value)
             except ValueError:
                 simple_constraints_dict[key] = value
+            else:
+                simple_constraints_dict[key] = create_constraint(typed_value)
 
         if unit_val is not None and unit_val.capitalize() != 'None':
             units_dict[key] = unit_val.strip(' ')
@@ -144,6 +174,7 @@ def parse_constraint_list(constraints, units=None):
     constraints = simple_constraints
     for constr in complex_constraints:
         constraints = constraints & constr
+
     return constraints, units_dict
 
 

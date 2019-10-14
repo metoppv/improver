@@ -36,8 +36,8 @@ accumulations from shorter intervals.
 import iris
 import numpy as np
 
+from improver.metadata.enforce_datatypes_units import enforce_units_and_dtypes
 from improver.utilities.cube_manipulation import expand_bounds
-from improver.utilities.cube_units import enforce_units_and_dtypes
 
 
 class Accumulation:

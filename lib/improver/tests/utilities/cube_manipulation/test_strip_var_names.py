@@ -33,26 +33,26 @@ Unit tests for the function "cube_manipulation.strip_var_names".
 """
 
 import unittest
+import numpy as np
 
 import iris
-from iris.tests import IrisTest
 
-from improver.tests.ensemble_calibration.ensemble_calibration. \
-    helper_functions import set_up_temperature_cube
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import strip_var_names
 
 
-class Test_strip_var_names(IrisTest):
+class Test_strip_var_names(unittest.TestCase):
 
     """Test the _slice_var_names utility."""
 
     def setUp(self):
         """Use temperature cube to test with."""
-        self.cube = set_up_temperature_cube()
+        data = 281*np.ones((3, 3, 3), dtype=np.float32)
+        self.cube = set_up_variable_cube(data)
+        self.cube.var_name = "air_temperature"
 
     def test_basic(self):
         """Test that the utility returns an iris.cube.CubeList."""
-        self.cube.var_name = "air_temperature"
         result = strip_var_names(self.cube)
         self.assertIsInstance(result, iris.cube.CubeList)
 
@@ -61,7 +61,6 @@ class Test_strip_var_names(IrisTest):
         Test that the utility returns an iris.cube.Cube with a
         var_name of None.
         """
-        self.cube.var_name = "air_temperature"
         result = strip_var_names(self.cube)
         self.assertIsNone(result[0].var_name, None)
 
@@ -79,10 +78,7 @@ class Test_strip_var_names(IrisTest):
 
     def test_cubelist(self):
         """Test that the utility returns an iris.cube.CubeList."""
-        cube1 = self.cube
-        cube2 = self.cube
-        cubes = iris.cube.CubeList([cube1, cube2])
-        self.cube.var_name = "air_temperature"
+        cubes = iris.cube.CubeList([self.cube, self.cube])
         result = strip_var_names(cubes)
         self.assertIsInstance(result, iris.cube.CubeList)
         for cube in result:

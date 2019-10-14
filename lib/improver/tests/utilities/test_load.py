@@ -32,17 +32,16 @@
 
 import os
 import unittest
-from subprocess import call as Call
 from tempfile import mkdtemp
 
 import iris
 import numpy as np
 from iris.tests import IrisTest
 
+from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, set_up_percentile_cube, set_up_probability_cube,
     add_coordinate)
-from improver.utilities.cube_checker import find_threshold_coordinate
 from improver.utilities.load import load_cube, load_cubelist
 from improver.utilities.save import save_netcdf
 
@@ -63,8 +62,8 @@ class Test_load_cube(IrisTest):
 
     def tearDown(self):
         """Remove temporary directories created for testing."""
-        Call(['rm', '-f', self.filepath])
-        Call(['rmdir', self.directory])
+        os.remove(self.filepath)
+        os.rmdir(self.directory)
 
     def test_a_cube_is_loaded(self):
         """Test that a cube is loaded when a valid filepath is provided."""
@@ -181,9 +180,11 @@ class Test_load_cube(IrisTest):
             np.zeros((3, 4, 5), dtype=np.float32),
             np.array([273., 274., 275.], dtype=np.float32))
         cube = add_coordinate(
-            cube, [0, 1, 2], "realization", coord_units="no_unit")
+            cube, [0, 1, 2], "realization", dtype=np.int32,
+            coord_units="1")
         cube = add_coordinate(
-            cube, [10, 50, 90], "percentile", coord_units="%")
+            cube, [10, 50, 90], "percentile", dtype=np.float32,
+            coord_units="%")
         cube.transpose([4, 3, 2, 1, 0])
         save_netcdf(cube, self.filepath)
         result = load_cube(self.filepath)
@@ -247,10 +248,16 @@ class Test_load_cubelist(IrisTest):
 
     def tearDown(self):
         """Remove temporary directories created for testing."""
-        Call(['rm', '-f', self.filepath])
-        Call(['rm', '-f', self.low_cloud_filepath])
-        Call(['rm', '-f', self.med_cloud_filepath])
-        Call(['rmdir', self.directory])
+        os.remove(self.filepath)
+        try:
+            os.remove(self.low_cloud_filepath)
+        except FileNotFoundError:
+            pass
+        try:
+            os.remove(self.med_cloud_filepath)
+        except FileNotFoundError:
+            pass
+        os.rmdir(self.directory)
 
     def test_a_cubelist_is_loaded(self):
         """Test that a cubelist is loaded when a valid filepath is provided."""
@@ -304,9 +311,11 @@ class Test_load_cubelist(IrisTest):
         of the available files."""
         low_cloud_cube = self.cube.copy()
         low_cloud_cube.rename("low_type_cloud_area_fraction")
+        low_cloud_cube.units = 1
         save_netcdf(low_cloud_cube, self.low_cloud_filepath)
         medium_cloud_cube = self.cube.copy()
         medium_cloud_cube.rename("medium_type_cloud_area_fraction")
+        medium_cloud_cube.units = 1
         save_netcdf(medium_cloud_cube, self.med_cloud_filepath)
         constr = iris.Constraint("low_type_cloud_area_fraction")
         result = load_cubelist([self.low_cloud_filepath,
@@ -326,6 +335,7 @@ class Test_load_cubelist(IrisTest):
         filepath is provided, even if two of the cubes could be merged"""
         low_cloud_cube = self.cube.copy()
         low_cloud_cube.rename("low_type_cloud_area_fraction")
+        low_cloud_cube.units = 1
         low_cloud_cube.coord("time").points = (
             low_cloud_cube.coord("time").points + 3600)
         low_cloud_cube.coord("forecast_period").points = (
@@ -333,6 +343,7 @@ class Test_load_cubelist(IrisTest):
         save_netcdf(low_cloud_cube, self.low_cloud_filepath)
         medium_cloud_cube = self.cube.copy()
         medium_cloud_cube.rename("medium_type_cloud_area_fraction")
+        medium_cloud_cube.units = 1
         save_netcdf(medium_cloud_cube, self.med_cloud_filepath)
         fileglob = os.path.join(self.directory, "*.nc")
         result = load_cubelist(fileglob)
@@ -345,6 +356,7 @@ class Test_load_cubelist(IrisTest):
         loading CLIs."""
         low_cloud_cube = self.cube.copy()
         low_cloud_cube.rename("low_type_cloud_area_fraction")
+        low_cloud_cube.units = 1
         low_cloud_cube.coord("time").points = (
             low_cloud_cube.coord("time").points + 3600)
         low_cloud_cube.coord("forecast_period").points = (
@@ -352,6 +364,7 @@ class Test_load_cubelist(IrisTest):
         save_netcdf(low_cloud_cube, self.low_cloud_filepath)
         medium_cloud_cube = self.cube.copy()
         medium_cloud_cube.rename("medium_type_cloud_area_fraction")
+        medium_cloud_cube.units = 1
         save_netcdf(medium_cloud_cube, self.med_cloud_filepath)
         fileglob = os.path.join(self.directory, "*.nc")
         result = load_cubelist([fileglob])

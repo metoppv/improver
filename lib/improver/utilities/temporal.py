@@ -234,39 +234,20 @@ def iris_time_to_datetime(time_coord):
     return [value.point for value in coord.cells()]
 
 
-def datetime_to_iris_time(dt_in, time_units="hours"):
+def datetime_to_iris_time(dt_in):
     """
-    Convert python datetime.datetime into hours, minutes or seconds
-    since 1970-01-01 00Z.
+    Convert python datetime.datetime into seconds since 1970-01-01 00Z.
 
     Args:
         dt_in (datetime.datetime object):
-            Time to be converted.
-
-        time_units (str):
-            Name of time unit. Currently only "hours", "minutes" or
-            "seconds" are supported. Alternatively, an origin time can be
-            supported, for example "seconds since 1970-01-01 00:00:00",
-            however, "since 1970-01-01 00:00:00" will be ignored.
+            Time to be converted into seconds since 1970-01-01 00Z.
 
     Returns:
         result (float):
-            Time since epoch in the units defined by the time_units
-            with default floating point precision.
+            Time since epoch in the seconds as desired dtype.
     """
-    if all(time_unit not in time_units for time_unit in
-           ["hours", "minutes", "seconds"]):
-        msg = ("The time unit must contain 'hours', 'minutes' or 'seconds'. "
-               "The time unit was {}".format(time_units))
-        raise ValueError(msg)
     result = dt_in.replace(tzinfo=timezone.utc).timestamp()
-    if "hours" in time_units:
-        result /= 3600.
-    elif "minutes" in time_units:
-        result /= 60
-    elif "seconds" in time_units:
-        pass
-    return result
+    return np.int64(result)
 
 
 def datetime_constraint(time_in, time_max=None):
@@ -527,8 +508,7 @@ def extract_nearest_time_point(
                "'time' or 'forecast_reference_time'.")
         raise ValueError(msg)
 
-    time_point = datetime_to_iris_time(
-        dt, time_units=cube.coord(time_name).units.origin)
+    time_point = datetime_to_iris_time(dt)
     time_point_index = (
         cube.coord(time_name).nearest_neighbour_index(time_point))
     nearest_dt, = (

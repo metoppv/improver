@@ -33,9 +33,8 @@
 import iris
 import numpy as np
 
+from improver.metadata.amend import amend_metadata, resolve_metadata_diff
 from improver.utilities.cube_manipulation import expand_bounds
-from improver.utilities.cube_metadata import (
-    resolve_metadata_diff, amend_metadata)
 
 
 class CubeCombiner(object):

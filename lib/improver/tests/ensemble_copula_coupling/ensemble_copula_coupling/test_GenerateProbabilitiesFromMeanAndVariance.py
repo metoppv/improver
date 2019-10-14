@@ -40,9 +40,9 @@ from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     GenerateProbabilitiesFromMeanAndVariance as Plugin)
+from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_probability_above_threshold_temperature_cube
-from improver.utilities.cube_checker import find_threshold_coordinate
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 

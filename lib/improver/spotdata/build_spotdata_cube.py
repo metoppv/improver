@@ -91,7 +91,7 @@ def build_spotdata_cube(data, name, units,
     alt_coord = AuxCoord(altitude, 'altitude', units='m')
     lat_coord = AuxCoord(latitude, 'latitude', units='degrees')
     lon_coord = AuxCoord(longitude, 'longitude', units='degrees')
-    id_coord = AuxCoord(wmo_id, long_name='wmo_id')
+    id_coord = AuxCoord(wmo_id, long_name='wmo_id', units='no_unit')
 
     aux_coords_and_dims = []
     for coord in [alt_coord, lat_coord, lon_coord, id_coord]:
@@ -106,15 +106,17 @@ def build_spotdata_cube(data, name, units,
     if np.isscalar(data):
         data = np.array([data])
     spot_index = DimCoord(
-        np.arange(len(data)), long_name='spot_index', units='1')
+        np.arange(len(data), dtype=np.int32), long_name='spot_index',
+        units='1')
     dim_coords_and_dims = [(spot_index, 0)]
 
     if neighbour_methods is not None:
         neighbour_methods_coord = DimCoord(
-            np.arange(len(neighbour_methods)),
+            np.arange(len(neighbour_methods), dtype=np.int32),
             long_name='neighbour_selection_method', units='1')
         neighbour_methods_key = AuxCoord(
-            neighbour_methods, long_name='neighbour_selection_method_name')
+            neighbour_methods, long_name='neighbour_selection_method_name',
+            units='no_unit')
 
         dim_coords_and_dims.append((neighbour_methods_coord,
                                     neighbour_methods_dim))
@@ -123,10 +125,10 @@ def build_spotdata_cube(data, name, units,
 
     if grid_attributes is not None:
         grid_attributes_coord = DimCoord(
-            np.arange(len(grid_attributes)),
+            np.arange(len(grid_attributes), dtype=np.int32),
             long_name='grid_attributes', units='1')
         grid_attributes_key = AuxCoord(
-            grid_attributes, long_name='grid_attributes_key')
+            grid_attributes, long_name='grid_attributes_key', units='no_unit')
 
         dim_coords_and_dims.append((grid_attributes_coord,
                                     grid_attributes_dim))

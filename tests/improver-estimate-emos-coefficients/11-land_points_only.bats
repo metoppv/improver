@@ -31,37 +31,20 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "extrapolate to create accumulations calculated with 5 minute fidelity" {
+@test "estimate-emos-coefficients for diagnostic with assumed gaussian distribution using a land-sea mask" {
   improver_check_skip_acceptance
-  KGO0="nowcast-extrapolate/accumulation/kgo0_5_minute_fidelity_mm.nc"
-  KGO1="nowcast-extrapolate/accumulation/kgo1_5_minute_fidelity_mm.nc"
+  KGO="estimate-emos-coefficients/gaussian/land_only_kgo.nc"
 
-  UCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/ucomp_kgo.nc"
-  VCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/vcomp_kgo.nc"
-  INFILE="201811031600_radar_rainrate_composite_UK_regridded.nc"
-  OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
-
-  # Run processing and check it passes
-  run improver nowcast-extrapolate \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$INFILE" \
-    --output_dir "$TEST_DIR" --max_lead_time 30 \
-    --eastward_advection "$UCOMP" \
-    --northward_advection "$VCOMP" \
-    --orographic_enhancement_filepaths \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1" \
-    --accumulation_fidelity 5 \
-    --accumulation_units mm
+  # Estimate the EMOS coefficients and check that they match the kgo.
+  run improver estimate-emos-coefficients 'gaussian' '20170605T0300Z' "$TEST_DIR/output.nc" \
+      --historic_filepath "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/history/*.nc" \
+      --truth_filepath "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/truth/*.nc" \
+      --landsea_mask "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/landmask.nc"
   [[ "$status" -eq 0 ]]
 
-  T0="20181103T1615Z-PT0000H15M-lwe_thickness_of_precipitation_amount.nc"
-  T1="20181103T1630Z-PT0000H30M-lwe_thickness_of_precipitation_amount.nc"
+  improver_check_recreate_kgo "output.nc" $KGO
 
-  improver_check_recreate_kgo "$T0" $KGO0
-  improver_check_recreate_kgo "$T1" $KGO1
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/$T0" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO0"
-  improver_compare_output "$TEST_DIR/$T1" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO1"
+  # Run nccmp to compare the output and kgo realizations and check it passes.
+  improver_compare_output_lower_precision "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

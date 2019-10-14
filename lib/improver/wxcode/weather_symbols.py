@@ -36,8 +36,8 @@ import copy
 import iris
 import numpy as np
 
-from improver.utilities.cube_checker import find_threshold_coordinate
-from improver.utilities.cube_metadata import extract_diagnostic_name
+from improver.metadata.probabilistic import (
+    extract_diagnostic_name, find_threshold_coordinate)
 from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
 from improver.wxcode.wxcode_decision_tree_global import (
     wxcode_decision_tree_global)
@@ -441,7 +441,7 @@ class WeatherSymbols(object):
         threshold_coord = find_threshold_coordinate(cube)
         cube_format = next(cube.slices_over([threshold_coord]))
         symbols = cube_format.copy(data=np.full(cube_format.data.shape, -1,
-                                                dtype=np.int))
+                                                dtype=np.int32))
 
         symbols.remove_coord(threshold_coord)
         symbols = add_wxcode_metadata(symbols)

@@ -40,10 +40,10 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
+from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.tests.set_up_test_cubes import (
     construct_xy_coords, construct_scalar_time_coords, set_up_variable_cube,
     set_up_percentile_cube, set_up_probability_cube, add_coordinate)
-from improver.utilities.cube_checker import find_threshold_coordinate
 from improver.utilities.temporal import iris_time_to_datetime
 
 

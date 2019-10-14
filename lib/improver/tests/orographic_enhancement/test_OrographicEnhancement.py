@@ -35,12 +35,15 @@ import unittest
 import iris
 import numpy as np
 from cf_units import Unit
+from datetime import datetime
+
 from iris.coord_systems import GeogCS, TransverseMercator
 from iris.coords import DimCoord, AuxCoord
 from iris.tests import IrisTest
 
 from improver.orographic_enhancement import OrographicEnhancement
 from improver.utilities.cube_manipulation import sort_coord_in_cube
+from improver.tests.set_up_test_cubes import construct_scalar_time_coords
 
 # UKPP projection
 TMercCS = TransverseMercator(
@@ -65,18 +68,11 @@ def set_up_variable_cube(data, name="temperature", units="degC",
     x_coord = DimCoord(
         x_points, 'projection_x_coordinate', units='m', coord_system=TMercCS)
 
+    time_coords = construct_scalar_time_coords(
+        datetime(2015, 11, 23, 4, 30), None, datetime(2015, 11, 22, 22, 30))
     cube = iris.cube.Cube(data, long_name=name, units=units,
-                          dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
-
-    time_origin = "hours since 1970-01-01 00:00:00"
-    calendar = "gregorian"
-    tunit = Unit(time_origin, calendar)
-    t_coord = AuxCoord(402292.5, "time", units=tunit)
-    frt_coord = AuxCoord(402286.5, "forecast_reference_time", units=tunit)
-    fp_coord = AuxCoord(6, "forecast_period", units="hours")
-    for coord in [t_coord, frt_coord, fp_coord]:
-        cube.add_aux_coord(coord)
-
+                          dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)],
+                          aux_coords_and_dims=time_coords)
     return cube
 
 
@@ -85,22 +81,12 @@ def set_up_invalid_variable_cube(valid_cube):
     Generate a new cube with an extra dimension from a 2D variable cube, to
     create an invalid cube for testing the process method.
     """
-    data = np.array([valid_cube.data, valid_cube.data])
-    realization = DimCoord([0, 1], 'realization', '1')
-    y_coord = valid_cube.coord(axis='y')
-    x_coord = valid_cube.coord(axis='x')
-
-    cube = iris.cube.Cube(
-        data, long_name=valid_cube.name(), units=valid_cube.units,
-        dim_coords_and_dims=[(realization, 0), (y_coord, 1), (x_coord, 2)])
-
-    t_coord = valid_cube.coord('time')
-    frt_coord = valid_cube.coord('forecast_reference_time')
-    fp_coord = valid_cube.coord('forecast_period')
-    for coord in [t_coord, frt_coord, fp_coord]:
-        cube.add_aux_coord(coord)
-
-    return cube
+    realization_coord = DimCoord(np.array([0], dtype=np.int32), 'realization')
+    cube1 = valid_cube.copy()
+    cube1.add_aux_coord(realization_coord)
+    cube2 = cube1.copy()
+    cube2.coord('realization').points = [1]
+    return iris.cube.CubeList([cube1, cube2]).merge_cube()
 
 
 def set_up_orography_cube(data, xo=400000., yo=0.):
@@ -654,14 +640,16 @@ class Test__create_output_cubes(IrisTest):
                 self.assertEqual(coord.points.dtype, 'float32')
 
     def test_values(self):
-        """Test first cube is unchanged and regridded output cube is masked
-        as expected"""
-        expected_data = np.array([[np.nan, 1.0, 1.4, np.nan],
-                                  [np.nan, np.nan, np.nan, np.nan]])
+        """Test first cube is changed only in units (to m s-1) and regridded
+        output cube is masked as expected"""
+        expected_data = np.array(
+            [[np.nan, 2.777778e-07, 3.8888888e-07, np.nan],
+             [np.nan, np.nan, np.nan, np.nan]], dtype=np.float32)
+        original_converted = 2.7777778e-07 * self.orogenh
         expected_mask = np.where(np.isfinite(expected_data), False, True)
         output, regridded_output = self.plugin._create_output_cubes(
             self.orogenh, self.temperature)
-        self.assertArrayAlmostEqual(output.data, self.orogenh)
+        self.assertArrayAlmostEqual(output.data, original_converted)
         self.assertTrue(np.allclose(regridded_output.data.data,
                                     expected_data, equal_nan=True))
         self.assertArrayEqual(regridded_output.data.mask, expected_mask)
@@ -685,7 +673,7 @@ class Test__create_output_cubes(IrisTest):
 
         for cube in [output, regridded_output]:
             self.assertEqual(cube.name(), 'orographic_enhancement')
-            self.assertEqual(cube.units, 'mm h-1')
+            self.assertEqual(cube.units, 'm s-1')
             for t_coord in ['time', 'forecast_period',
                             'forecast_reference_time']:
                 self.assertEqual(
@@ -728,8 +716,10 @@ class Test_process(DataCubeTest):
 
     def test_unmatched_coords(self):
         """Test error thrown if input variable cubes do not match"""
-        self.temperature.coord('forecast_reference_time').points[0] = 402286.5
-        self.temperature.coord('forecast_period').points[0] = 0.
+        self.temperature.coord('forecast_reference_time').points = (
+            self.temperature.coord('forecast_reference_time').points - 3600)
+        self.temperature.coord('forecast_period').points = (
+            self.temperature.coord('forecast_period').points - 3600)
         msg = 'Input cube coordinates'
         with self.assertRaisesRegex(ValueError, msg):
             _ = self.plugin.process(
@@ -767,14 +757,18 @@ class Test_process(DataCubeTest):
 
     def test_values(self):
         """Test values of outputs"""
-        expected_data = np.array([
-            [0.9548712, 1.2267057, 0.9035998, 0.3308798, 0.0629348, 0.0056434],
-            [0.6047199, 0.8771427, 0.6350170, 0.3308798, 0.0629348, 0.0056434],
-            [0.1495147, 0.1495147, 0.3225299, 0.1034328, 0.0192389, 0.0056434],
-            [0.0030856, 0.0030856, 0.0030856, 0.0030856, 0.0076650,
-             0.0008837]])
-        expected_data_regridded = np.array([[0.6047199, 0.6350170, 0.0629348],
-                                            [0.0030856, 0.0030856, 0.0076650]])
+        expected_data = np.array(
+            [[2.6524199e-07, 3.4075157e-07, 2.5099993e-07, 9.1911055e-08,
+              1.7481890e-08, 1.5676112e-09],
+             [1.6797775e-07, 2.4365076e-07, 1.7639361e-07, 9.1911055e-08,
+              1.7481890e-08, 1.5676112e-09],
+             [4.1531862e-08, 4.1531862e-08, 8.9591637e-08, 2.8731334e-08,
+              5.3441389e-09, 1.5676112e-09],
+             [8.5711110e-10, 8.5711110e-10, 8.5711110e-10, 8.5711110e-10,
+              2.1291666e-09, 2.4547223e-10]], dtype=np.float32)
+        expected_data_regridded = np.array(
+            [[1.679777e-07, 1.763937e-07, 1.748190e-08],
+             [8.571141e-10, 8.571141e-10, 2.129176e-09]], dtype=np.float32)
 
         orogenh, orogenh_standard_grid = self.plugin.process(
             self.temperature, self.humidity, self.pressure,
