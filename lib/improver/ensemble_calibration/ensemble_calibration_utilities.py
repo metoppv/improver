@@ -36,6 +36,8 @@ specific for ensemble calibration.
 import iris
 import numpy as np
 
+from improver.utilities.cube_manipulation import merge_cubes
+
 
 def convert_cube_data_to_2d(
         forecast, coord="realization", transpose=True):
@@ -254,4 +256,5 @@ class SplitHistoricForecastAndTruth():
             cubes, self.historic_forecast_dict)
         truths = self._find_required_cubes_using_metadata(
             cubes, self.truth_dict)
-        return historic_forecasts.merge_cube(), truths.merge_cube()
+        # Use improver merge_cubes to equalise attributes
+        return merge_cubes(historic_forecasts), merge_cubes(truths)
