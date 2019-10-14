@@ -36,10 +36,10 @@
   KGO="combine/accum/kgo_accum.nc"
 
   # Run cube-combiner processing and check it passes.
-  PYTHONPATH=$PWD/lib python3 -m improver.cli combine  \
+  run improver combine \
+      --metadata_jsonfile="$IMPROVER_ACC_TEST_DIR/combine/accum/time_bound.json" \
       $IMPROVER_ACC_TEST_DIR/combine/accum/*H-rainfall_accumulation.nc \
-      --new-metadata="$IMPROVER_ACC_TEST_DIR/combine/accum/time_bound.json" \
-      --output="$TEST_DIR/output.nc"
+      "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

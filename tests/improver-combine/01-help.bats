@@ -30,29 +30,42 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 @test "cube-combiner -h" {
-  PYTHONPATH=$PWD/lib python3 -m improver.cli combine -h
+  run improver combine -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-Usage: python3 -m improver.cli combine [OPTIONS] [cubelist...]
+usage: improver combine [-h] [--profile] [--profile_file PROFILE_FILE]
+                        [--operation OPERATION] [--new-name NEW_NAME]
+                        [--metadata_jsonfile METADATA_JSONFILE]
+                        [--warnings_on]
+                        INPUT_FILENAMES [INPUT_FILENAMES ...] OUTPUT_FILE
 
-Module for combining Cubes.
+Combine the input files into a single file using the requested operation e.g.
++ - min max etc.
 
-Combine the input cubes into a single cube using the requested operation.  e.g. '+', '-', '*', 'add', 'subtract', 'multiply', 'min', 'max', 'mean'
+positional arguments:
+  INPUT_FILENAMES       Paths to the input NetCDF files. Each input file
+                        should be able to be loaded as a single iris.cube.Cube
+                        instance. The resulting file metadata will be based on
+                        the first file but its metadata can be overwritten via
+                        the metadata_jsonfile option.
+  OUTPUT_FILE           The output path for the processed NetCDF.
 
-Arguments:
-  cubelist...                An iris CubeList to be combined. (type: INPUTCUBE)
-
-Options:
-  --operation=STR            "+", "-", "*", "add", "subtract", "multiply", "min", "max", "mean" An operation to use in combining Cubes. (default: +)
-  --new-name=STR             New name for the resulting dataset.
-  --new-metadata=INPUTJSON   Dictionary of required changes to the metadata.  Default is None.
-  --warnings-on              If True, warning messages where metadata do not match will be given.  Default is False.
-  --output=STR               Output file name
-
-Other actions:
-  -h, --help                 Show the help
-
-Returns a cube with the combined data.
+optional arguments:
+  -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
+  --operation OPERATION
+                        Operation to use in combining NetCDF datasets
+                        Default=+ i.e. add
+  --new-name NEW_NAME   New name for the resulting dataset. Will default to
+                        the name of the first dataset if not set.
+  --metadata_jsonfile METADATA_JSONFILE
+                        Filename for the json file containing required changes
+                        to the metadata. default=None
+  --warnings_on         If warnings_on is set (i.e. True), Warning messages
+                        where metadata do not match will be given.
+                        Default=False
 __HELP__
   [[ "$output" == "$expected" ]]
 }

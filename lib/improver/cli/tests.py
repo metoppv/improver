@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,24 +28,24 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""Tests command to execute tests."""
 
-. $IMPROVER_DIR/tests/lib/utils
+from improver import cli
 
-@test "combine maximum value" {
-  improver_check_skip_acceptance
-  KGO="combine/bounds/kgo_max.nc"
 
-  # Run cube-combiner processing and check it passes.
-  run improver combine \
-      --operation='max' \
-      --metadata_jsonfile="$IMPROVER_ACC_TEST_DIR/combine/bounds/time_bound.json" \
-      $IMPROVER_ACC_TEST_DIR/combine/bounds/*H-temperature_at_screen_level_max.nc \
-      "$TEST_DIR/output.nc"
-  [[ "$status" -eq 0 ]]
+def main(argv):
+    """Run pycodestyle, pylint, documentation, unit and CLI acceptance tests.
+    """
+    # Temporary shim routine
+    import os
+    import sys
+    import subprocess
+    prog = os.path.join(os.environ['IMPROVER_DIR'], 'bin', 'improver-tests')
+    sys.exit(subprocess.call([prog, *argv]))
 
-  improver_check_recreate_kgo "output.nc" $KGO
 
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
-}
+def process():
+    """Run pycodestyle, pylint, documentation unit and CLI acceptance tests.
+    """
+    # TODO: port bin/improver-tests shell script to python
+    raise NotImplementedError

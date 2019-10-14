@@ -29,6 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Main to run clize on the cli"""
-import clize
-from improver.cli import main
-clize.run(main)
+from improver import cli
+
+if __name__ == '__main__':
+    cli.run_main()

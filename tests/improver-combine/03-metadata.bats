@@ -36,13 +36,13 @@
   KGO="combine/metadata/kgo_prob_precip.nc"
 
   # Run cube-combiner processing and check it passes.
-  PYTHONPATH=$PWD/lib python3 -m improver.cli combine  \
+  run improver combine \
+      --operation='-' \
+      --new-name="probability_of_total_precipitation_rate_between_thresholds" \
+      --metadata_jsonfile="$IMPROVER_ACC_TEST_DIR/combine/metadata/prob_precip.json" \
       "$IMPROVER_ACC_TEST_DIR/combine/metadata/precip_prob_0p1.nc" \
       "$IMPROVER_ACC_TEST_DIR/combine/metadata/precip_prob_1p0.nc" \
-      --operation='-' \
-      --new-name='probability_of_total_precipitation_rate_between_thresholds' \
-      --output="$TEST_DIR/output.nc" \
-      --new-metadata="$IMPROVER_ACC_TEST_DIR/combine/metadata/prob_precip.json"
+      "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

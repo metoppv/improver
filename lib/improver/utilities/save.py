@@ -144,7 +144,9 @@ def save_netcdf(cubelist, filename):
         warning if cubelist contains cubes of varying dimensions.
     """
     if isinstance(cubelist, iris.cube.Cube):
-        cubelist = [cubelist]
+        cubelist = iris.cube.CubeList([cubelist])
+    elif not isinstance(cubelist, iris.cube.CubeList):
+        cubelist = iris.cube.CubeList(cubelist)
 
     chunksizes = None
     xy_chunksizes = [None, None]
