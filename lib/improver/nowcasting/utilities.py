@@ -148,8 +148,6 @@ class ApplyOrographicEnhancement(object):
                 between the datetime provided and the time points available
                 within the cube. If this limit is exceeded, then
                 an error is raised.
-                This must be defined in seconds.
-                Default is 1800.
 
         Returns:
             oe_cube (iris.cube.Cube):
