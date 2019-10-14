@@ -488,7 +488,7 @@ def extract_nearest_time_point(
             Name of the "time" coordinate that will be extracted. This must be
             "time" or "forecast_reference_time".
         allowed_dt_difference (int):
-            A float in seconds to define a limit to the maximum difference
+            An int in seconds to define a limit to the maximum difference
             between the datetime provided and the time points available within
             the cube. If this limit is exceeded, then an error is raised.
             This must be defined in seconds.
@@ -514,13 +514,12 @@ def extract_nearest_time_point(
         cube.coord(time_name).nearest_neighbour_index(time_point))
     nearest_dt, = (
         iris_time_to_datetime(cube.coord(time_name).copy()[time_point_index]))
-    if allowed_dt_difference:
-        if abs((dt - nearest_dt).total_seconds()) > allowed_dt_difference:
-            msg = ("The datetime {} is not available within the input cube "
-                   "within the allowed difference {}. "
-                   "The nearest datetime available was {}".format(
+    if abs((dt - nearest_dt).total_seconds()) > allowed_dt_difference:
+        msg = ("The datetime {} is not available within the input "
+               "cube within the allowed difference {} seconds. "
+               "The nearest datetime available was {}".format(
                        dt, allowed_dt_difference, nearest_dt))
-            raise ValueError(msg)
+        raise ValueError(msg)
     constr = iris.Constraint(coord_values={time_name: nearest_dt})
     cube = cube.extract(constr)
     return cube

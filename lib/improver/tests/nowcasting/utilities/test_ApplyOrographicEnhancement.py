@@ -557,6 +557,8 @@ class Test_process(IrisTest):
               [4., 4., MIN_PRECIP_RATE_MMH],
               [3., 3., MIN_PRECIP_RATE_MMH]]])
         sliced_oe_cube = self.oe_cube[0]
+        self.precip_cubes[1].coord('time').points = (
+                self.precip_cubes[1].coord('time').points - 2700)
         plugin = ApplyOrographicEnhancement("subtract")
         result = plugin.process(self.precip_cubes, sliced_oe_cube)
         self.assertIsInstance(result, iris.cube.CubeList)
