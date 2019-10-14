@@ -34,120 +34,20 @@ import unittest
 
 import iris
 import numpy as np
+from datetime import datetime
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube)
-from improver.tests.set_up_test_cubes import (
-    set_up_variable_cube, set_up_probability_cube)
-from improver.tests.wind_calculations.wind_gust_diagnostic. \
-    test_WindGustDiagnostic import create_cube_with_percentile_coord
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_checker import (
-    check_cube_not_float64,
     check_for_x_and_y_axes,
     check_cube_coordinates,
     find_dimension_coordinate_mismatch,
     spatial_coords_match,
-    find_percentile_coordinate,
-    find_threshold_coordinate)
-
-
-class Test_check_cube_not_float64(IrisTest):
-
-    """Test whether a cube contains any float64 values."""
-
-    def setUp(self):
-        """Set up a cube to test."""
-        self.cube = set_up_variable_cube(np.ones((5, 5), dtype=np.float32),
-                                         spatial_grid='equalarea')
-
-    def test_float32_ok(self):
-        """Test a cube that should pass."""
-        check_cube_not_float64(self.cube)
-
-    def test_float64_cube_data(self):
-        """Test a failure of a cube with 64 bit data."""
-        self.cube.data = self.cube.data.astype(np.float64)
-        msg = "64 bit cube not allowed"
-        with self.assertRaisesRegex(TypeError, msg):
-            check_cube_not_float64(self.cube)
-
-    def test_float64_cube_data_with_fix(self):
-        """Test a cube with 64 bit data is converted to 32 bit data."""
-        self.cube.data = self.cube.data.astype(np.float64)
-        expected_cube = self.cube.copy()
-        expected_cube.data = expected_cube.data.astype(np.float64)
-        check_cube_not_float64(self.cube, fix=True)
-        self.assertEqual(self.cube, expected_cube)
-
-    def test_float64_cube_coord_points(self):
-        """Test a failure of a cube with 64 bit coord points."""
-        self.cube.coord("projection_x_coordinate").points = (
-            self.cube.coord("projection_x_coordinate").points.astype(
-                np.float64)
-        )
-        msg = "64 bit coord points not allowed"
-        with self.assertRaisesRegex(TypeError, msg):
-            check_cube_not_float64(self.cube)
-
-    def test_float64_cube_coord_points_with_fix(self):
-        """Test a failure of a cube with 64 bit coord points."""
-        self.cube.coord("projection_x_coordinate").points = (
-            self.cube.coord("projection_x_coordinate").points.astype(
-                np.float64))
-        expected_cube = self.cube.copy()
-        expected_cube.coord("projection_x_coordinate").points = (
-            expected_cube.coord("projection_x_coordinate").points.astype(
-                np.float64))
-        expected_coord = expected_cube.coord("projection_x_coordinate")
-        check_cube_not_float64(self.cube, fix=True)
-        self.assertEqual(self.cube, expected_cube)
-        self.assertEqual(
-            self.cube.coord("projection_x_coordinate"), expected_coord)
-
-    def test_float64_cube_coord_bounds(self):
-        """Test a failure of a cube with 64 bit coord bounds."""
-        x_coord = self.cube.coord("projection_x_coordinate")
-        # Default np.array for float input is np.float64.
-        x_coord.bounds = (
-            np.array([(point - 10., point + 10.) for point in x_coord.points])
-        )
-        msg = "64 bit coord bounds not allowed"
-        with self.assertRaisesRegex(TypeError, msg):
-            check_cube_not_float64(self.cube)
-
-    def test_float64_cube_coord_bounds_with_fix(self):
-        """Test a failure of a cube with 64 bit coord bounds."""
-        x_coord = self.cube.coord("projection_x_coordinate")
-        # Default np.array for float input is np.float64.
-        x_coord.bounds = (
-            np.array([(point - 10., point + 10.) for point in x_coord.points])
-        )
-        expected_cube = self.cube.copy()
-        expected_cube.coord("projection_x_coordinate").points = (
-            expected_cube.coord("projection_x_coordinate").points.astype(
-                np.float64))
-        expected_coord = expected_cube.coord("projection_x_coordinate")
-        check_cube_not_float64(self.cube, fix=True)
-        self.assertEqual(self.cube, expected_cube)
-        self.assertEqual(
-            self.cube.coord("projection_x_coordinate"), expected_coord)
-
-    def test_float64_cube_time_coord_points_ok(self):
-        """Test a pass of a cube with 64 bit time coord points."""
-        self.cube.coord("time").points = (
-             self.cube.coord("time").points.astype(np.float64))
-        check_cube_not_float64(self.cube)
-
-    def test_float64_cube_forecast_ref_time_coord_points_ok(self):
-        """Test a pass of a cube with 64 bit fcast ref time coord points."""
-        frt_coord = iris.coords.AuxCoord(
-            [np.float64(min(self.cube.coord("time").points))],
-            standard_name="forecast_reference_time")
-        self.cube.add_aux_coord(frt_coord)
-        check_cube_not_float64(self.cube)
+    time_coords_match)
 
 
 class Test_check_for_x_and_y_axes(IrisTest):
@@ -402,106 +302,83 @@ class Test_spatial_coords_match(IrisTest):
         self.assertFalse(result)
 
 
-class Test_find_percentile_coordinate(IrisTest):
+class Test_time_coords_match(IrisTest):
 
-    """Test whether the cube has a percentile coordinate."""
+    """Test for function that tests if cube temporal coordinates match."""
 
     def setUp(self):
-        """Create a wind-speed and wind-gust cube with percentile coord."""
-        data = np.zeros((2, 2, 2, 2))
-        self.wg_perc = 50.0
-        self.ws_perc = 95.0
-        gust = "wind_speed_of_gust"
-        self.cube_wg = (
-            create_cube_with_percentile_coord(
-                data=data,
-                perc_values=[self.wg_perc, 90.0],
-                perc_name='percentile',
-                standard_name=gust))
+        """Create a cube for temporal coordinate comparisons."""
+        self.data = np.ones((3, 3), dtype=np.float32)
+        self.ref_cube = set_up_variable_cube(self.data)
 
-    def test_basic(self):
-        """Test that the function returns a Coord."""
-        perc_coord = find_percentile_coordinate(self.cube_wg)
-        self.assertIsInstance(perc_coord, iris.coords.Coord)
-        self.assertEqual(perc_coord.name(), "percentile")
+    def test_match(self):
+        """Test returns True when cubes time coordinates match."""
+        result = time_coords_match(self.ref_cube, self.ref_cube.copy())
+        self.assertTrue(result)
 
-    def test_fails_if_data_is_not_cube(self):
-        """Test it raises a Type Error if cube is not a cube."""
-        msg = ('Expecting data to be an instance of '
-               'iris.cube.Cube but is'
-               ' {}.'.format(type(self.wg_perc)))
-        with self.assertRaisesRegex(TypeError, msg):
-            find_percentile_coordinate(self.wg_perc)
+    def test_match_with_raise_exception_option(self):
+        """Test returns True when cubes time coordinates match. In this case
+        the raise_exception option is True but we do not expect a exception."""
+        result = time_coords_match(
+            self.ref_cube, self.ref_cube.copy(), raise_exception=True)
+        self.assertTrue(result)
 
-    def test_fails_if_no_perc_coord(self):
-        """Test it raises an Error if there is no percentile coord."""
-        msg = ('No percentile coord found on')
-        cube = self.cube_wg
-        cube.remove_coord("percentile")
-        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            find_percentile_coordinate(cube)
+    def test_validity_time_mismatch(self):
+        """Test returns False when cubes validity times do not match."""
+        cube_different_vt = set_up_variable_cube(
+            self.data, time=datetime(2017, 11, 10, 5, 0))
+        result = time_coords_match(self.ref_cube, cube_different_vt)
+        self.assertFalse(result)
 
-    def test_fails_if_too_many_perc_coord(self):
-        """Test it raises a Value Error if there are too many perc coords."""
-        msg = ('Too many percentile coords found')
-        cube = self.cube_wg
-        new_perc_coord = (
-            iris.coords.AuxCoord(1,
-                                 long_name='percentile',
-                                 units='no_unit'))
-        cube.add_aux_coord(new_perc_coord)
+    def test_forecast_reference_time_mismatch(self):
+        """Test returns False when cubes forecast reference times do not
+        match."""
+        cube_different_frt = set_up_variable_cube(
+            self.data, frt=datetime(2017, 11, 10, 1, 0))
+        result = time_coords_match(self.ref_cube, cube_different_frt)
+        self.assertFalse(result)
+
+    def test_validity_time_mismatch_with_exception(self):
+        """Test raises exception when cubes validity times do not match and
+        raise_exception=True."""
+        cube_different_vt = set_up_variable_cube(
+            self.data, time=datetime(2017, 11, 10, 5, 0))
+        msg = ("The following coordinates of the two cubes do not match:"
+               " forecast_period, time")
         with self.assertRaisesRegex(ValueError, msg):
-            find_percentile_coordinate(cube)
+            time_coords_match(self.ref_cube, cube_different_vt,
+                              raise_exception=True)
 
+    def test_forecast_reference_time_mismatch_with_exception(self):
+        """Test raises exception when cubes forecast reference times do not
+        match and raise_exception=True."""
+        cube_different_frt = set_up_variable_cube(
+            self.data, frt=datetime(2017, 11, 10, 1, 0))
+        msg = ("The following coordinates of the two cubes do not match:"
+               " forecast_period, forecast_reference_time")
+        with self.assertRaisesRegex(ValueError, msg):
+            time_coords_match(self.ref_cube, cube_different_frt,
+                              raise_exception=True)
 
-class Test_find_threshold_coordinate(IrisTest):
-    """Test the find_threshold_coordinate function"""
+    def test_all_times_mismatch_with_exception(self):
+        """Test raises exception when all cube time coordinates differ and
+        raise_exception=True."""
+        cube_different_both = set_up_variable_cube(
+            self.data, time=datetime(2017, 11, 10, 6, 0),
+            frt=datetime(2017, 11, 10, 1, 0))
+        msg = ("The following coordinates of the two cubes do not match:"
+               " forecast_period, time, forecast_reference_time")
+        with self.assertRaisesRegex(ValueError, msg):
+            time_coords_match(self.ref_cube, cube_different_both,
+                              raise_exception=True)
 
-    def setUp(self):
-        """Set up test probability cubes with old and new threshold coordinate
-        naming conventions"""
-        data = np.ones((3, 3, 3), dtype=np.float32)
-        self.threshold_points = np.array([276, 277, 278], dtype=np.float32)
-        cube = set_up_probability_cube(data, self.threshold_points)
-
-        self.cube_new = cube.copy()
-        self.cube_old = cube.copy()
-        self.cube_old.coord("air_temperature").rename("threshold")
-
-    def test_basic(self):
-        """Test function returns an iris.coords.Coord"""
-        threshold_coord = find_threshold_coordinate(self.cube_new)
-        self.assertIsInstance(threshold_coord, iris.coords.Coord)
-
-    def test_old_convention(self):
-        """Test function recognises threshold coordinate with name "threshold"
-        """
-        threshold_coord = find_threshold_coordinate(self.cube_old)
-        self.assertEqual(threshold_coord.name(), "threshold")
-        self.assertArrayAlmostEqual(
-            threshold_coord.points, self.threshold_points)
-
-    def test_new_convention(self):
-        """Test function recognises threshold coordinate with standard
-        diagnostic name and "threshold" as var_name"""
-        threshold_coord = find_threshold_coordinate(self.cube_new)
-        self.assertEqual(threshold_coord.name(), "air_temperature")
-        self.assertEqual(threshold_coord.var_name, "threshold")
-        self.assertArrayAlmostEqual(
-            threshold_coord.points, self.threshold_points)
-
-    def test_fails_if_not_cube(self):
-        """Test error if given a non-cube argument"""
-        msg = "Expecting data to be an instance of iris.cube.Cube"
-        with self.assertRaisesRegex(TypeError, msg):
-            find_threshold_coordinate([self.cube_new])
-
-    def test_fails_if_no_threshold_coord(self):
-        """Test error if no threshold coordinate is present"""
-        self.cube_new.coord("air_temperature").var_name = None
-        msg = "No threshold coord found"
+    def test_coordinate_not_found_exception(self):
+        """Test an exception is raised if any of the temporal coordinates are
+        missing."""
+        self.ref_cube.remove_coord('time')
+        msg = "Expected to find exactly 1 time coordinate, but found none."
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            find_threshold_coordinate(self.cube_new)
+            time_coords_match(self.ref_cube, self.ref_cube.copy())
 
 
 if __name__ == '__main__':

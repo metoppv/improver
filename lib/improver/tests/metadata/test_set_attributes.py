@@ -28,9 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""
-Tests for the improver.metadata.attributes module
-"""
+"""Tests for the improver.metadata.set_attributes module"""
 
 import unittest
 import numpy as np

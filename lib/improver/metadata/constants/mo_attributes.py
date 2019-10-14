@@ -28,41 +28,33 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for argparser.safe_eval."""
+"""Module defining Met Office specific attributes"""
 
+GRID_TYPE = 'standard'
+STAGE_VERSION = '1.3.0'
 
-import unittest
+# Define current StaGE grid metadata
+MOSG_GRID_DEFINITION = {
+    'uk_ens': {'mosg__grid_type': GRID_TYPE,
+               'mosg__model_configuration': 'uk_ens',
+               'mosg__grid_domain': 'uk_extended',
+               'mosg__grid_version': STAGE_VERSION},
+    'gl_ens': {'mosg__grid_type': GRID_TYPE,
+               'mosg__model_configuration': 'gl_ens',
+               'mosg__grid_domain': 'global',
+               'mosg__grid_version': STAGE_VERSION},
+    'uk_det': {'mosg__grid_type': GRID_TYPE,
+               'mosg__model_configuration': 'uk_det',
+               'mosg__grid_domain': 'uk_extended',
+               'mosg__grid_version': STAGE_VERSION},
+    'gl_det': {'mosg__grid_type': GRID_TYPE,
+               'mosg__model_configuration': 'gl_det',
+               'mosg__grid_domain': 'global',
+               'mosg__grid_version': STAGE_VERSION}
+}
 
-import cartopy.crs as ccrs
-import iris
-
-from improver.argparser import safe_eval
-
-
-class Test_safe_eval(unittest.TestCase):
-
-    """Test function for safely using the eval command."""
-
-    def test_iris_coords(self):
-        """Test the return of an iris.coords component."""
-        allowed = ['coords']
-        result = safe_eval('coords', iris, allowed=allowed)
-        self.assertEqual(result, iris.coords)
-
-    def test_cartopy_projection(self):
-        """Test the return of a cartopy projection."""
-        allowed = ['Mercator', 'Miller']
-        result = safe_eval('Mercator', ccrs, allowed=allowed)
-        self.assertEqual(result, ccrs.Mercator)
-
-    def test_unallowed_cartopy(self):
-        """Test the raising of an error when requesting a projection not in the
-        allowed list."""
-        allowed = ['Mercator']
-        msg = 'Function/method/object "Miller" not available in module'
-        with self.assertRaisesRegex(TypeError, msg):
-            safe_eval('Miller', ccrs, allowed=allowed)
-
-
-if __name__ == '__main__':
-    unittest.main()
+# Define correct v1.2.0 meta-data for v1.1.0 data.
+GRID_ID_LOOKUP = {'enukx_standard_v1': 'uk_ens',
+                  'engl_standard_v1': 'gl_ens',
+                  'ukvx_standard_v1': 'uk_det',
+                  'glm_standard_v1': 'gl_det'}

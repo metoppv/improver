@@ -156,19 +156,23 @@ class SetupExpectedCoefficients(IrisTest):
         super().setUp()
         # The expected coefficients for temperature in Kelvin.
         self.expected_mean_predictor_gaussian = (
-            [-0., 0.4888, 23.4351, 0.9129])
+            np.array([-0., 0.4888, 23.4351, 0.9129], dtype=np.float32))
         # The expected coefficients for wind speed in m s^-1.
         self.expected_mean_predictor_truncated_gaussian = (
-            [-0., 1.5434, -0.514, 0.94])
+            np.array([-0., 1.5434, -0.514, 0.94], dtype=np.float32))
 
         self.expected_realizations_gaussian_statsmodels = (
-            [-0.0003, 1.0023, -0.2831, -0.0774, 0.3893, 0.9168])
+            np.array([-0.0003, 1.0023, -0.2831, -0.0774, 0.3893, 0.9168],
+                     dtype=np.float32))
         self.expected_realizations_gaussian_no_statsmodels = (
-            [0.0226, 1.0567, -0.0039, 0.3432, 0.2542, 0.9026])
+            np.array([0.0226, 1.0567, -0.0039, 0.3432, 0.2542, 0.9026],
+                     dtype=np.float32))
         self.expected_realizations_truncated_gaussian_statsmodels = (
-            [-0.0070, 1.3360, -0.5012, -0.5295, 0.0003, 0.8128])
+            np.array([-0.0070, 1.3360, -0.5012, -0.5295, 0.0003, 0.8128],
+                     dtype=np.float32))
         self.expected_realizations_truncated_gaussian_no_statsmodels = (
-            [0.0810, 1.3406, -0.0310, 0.7003, -0.0036, 0.6083])
+            np.array([0.0810, 1.3406, -0.0310, 0.7003, -0.0036, 0.6083],
+                     dtype=np.float32))
 
 
 class Test__init__(SetupCubes):

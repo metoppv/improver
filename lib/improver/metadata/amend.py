@@ -28,11 +28,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module containing utilities for modifying cube metadata."""
+"""Module containing utilities for modifying cube metadata"""
 
-import hashlib
-import pickle
-import re
 import warnings
 from datetime import datetime
 
@@ -40,37 +37,9 @@ import iris
 import numpy as np
 from dateutil import tz
 
+from improver.metadata.constants.mo_attributes import (
+    MOSG_GRID_DEFINITION, GRID_ID_LOOKUP)
 from improver.utilities.cube_manipulation import compare_coords
-
-GRID_TYPE = 'standard'
-STAGE_VERSION = '1.3.0'
-
-# Define current StaGE grid metadata
-MOSG_GRID_DEFINITION = {
-    'uk_ens': {'mosg__grid_type': GRID_TYPE,
-               'mosg__model_configuration': 'uk_ens',
-               'mosg__grid_domain': 'uk_extended',
-               'mosg__grid_version': STAGE_VERSION},
-    'gl_ens': {'mosg__grid_type': GRID_TYPE,
-               'mosg__model_configuration': 'gl_ens',
-               'mosg__grid_domain': 'global',
-               'mosg__grid_version': STAGE_VERSION},
-    'uk_det': {'mosg__grid_type': GRID_TYPE,
-               'mosg__model_configuration': 'uk_det',
-               'mosg__grid_domain': 'uk_extended',
-               'mosg__grid_version': STAGE_VERSION},
-    'gl_det': {'mosg__grid_type': GRID_TYPE,
-               'mosg__model_configuration': 'gl_det',
-               'mosg__grid_domain': 'global',
-               'mosg__grid_version': STAGE_VERSION}
-}
-
-
-# Define correct v1.2.0 meta-data for v1.1.0 data.
-GRID_ID_LOOKUP = {'enukx_standard_v1': 'uk_ens',
-                  'engl_standard_v1': 'gl_ens',
-                  'ukvx_standard_v1': 'uk_det',
-                  'glm_standard_v1': 'gl_det'}
 
 
 def update_stage_v110_metadata(cube):
@@ -111,7 +80,7 @@ def add_coord(cube, coord_name, changes, warnings_on=False):
             'AuxCoord'), 'points', 'bounds', 'units', 'attributes' and
             'var_name'. Any other key strings in the dictionary are ignored.
             More detail is available in
-            :func:`improver.utilities.cube_metadata.amend_metadata`
+            :func:`improver.metadata.amend.amend_metadata`
         warnings_on (bool):
             If True output warnings for mismatching metadata.
 
@@ -200,7 +169,7 @@ def _update_coord(cube, coord_name, changes, warnings_on=False):
             Details on coordinate to be updated.
             If changes = 'delete' the coordinate is deleted.
             More detail is available in
-            :func:`improver.utilities.cube_metadata.amend_metadata`
+            :func:`improver.metadata.amend.amend_metadata`
         warnings_on (bool):
             If True output warnings for mismatching metadata.
 
@@ -298,7 +267,7 @@ def _update_attribute(cube, attribute_name, changes, warnings_on=False):
             attribute value or
             If changes = 'delete' the coordinate is deleted.
             More detail is available in
-            :func:`improver.utilities.cube_metadata.amend_metadata`
+            :func:`improver.metadata.amend.amend_metadata`
         warnings_on (bool):
             If True output warnings for mismatching metadata.
 
@@ -613,104 +582,3 @@ def add_history_attribute(cube, value, append=False):
         cube.attributes["history"] += '; {}'.format(new_history)
     else:
         cube.attributes["history"] = new_history
-
-
-def probability_cube_name_regex(cube_name):
-    """
-    Regular expression matching IMPROVER probability cube name.  Returns
-    None if the cube_name does not match the regular expression (ie does
-    not start with 'probability_of').
-
-    Args:
-        cube_name (str):
-            Probability cube name
-    """
-    regex = re.compile(
-        '(probability_of_)'  # always starts this way
-        '(?P<diag>.*?)'      # named group for the diagnostic name
-        '(_in_vicinity|)'    # optional group, may be empty
-        '(?P<thresh>_above_threshold|_below_threshold|_between_thresholds|$)')
-    return regex.match(cube_name)
-
-
-def in_vicinity_name_format(cube_name):
-    """Generate the correct name format for an 'in_vicinity' probability
-    cube, taking into account the 'above/below_threshold' or
-    'between_thresholds' suffix required by convention.
-
-    Args:
-        cube_name (str):
-            The non-vicinity probability cube name to be formatted.
-
-    Returns:
-        new_cube_name (str):
-            Correctly formatted name following the accepted convention e.g.
-            'probability_of_X_in_vicinity_above_threshold'.
-    """
-    regex = probability_cube_name_regex(cube_name)
-    new_cube_name = 'probability_of_{diag}_in_vicinity{thresh}'.format(
-        **regex.groupdict())
-    return new_cube_name
-
-
-def extract_diagnostic_name(cube_name):
-    """
-    Extract the standard or long name X of the diagnostic from a probability
-    cube name of the form 'probability_of_X_above/below_threshold',
-    'probability_of_X_between_thresholds', or
-    'probability_of_X_in_vicinity_above/below_threshold'.
-
-    Args:
-        cube_name (str):
-            The probability cube name
-
-    Returns:
-        diagnostic_name (str):
-            The name of the diagnostic underlying this probability
-
-    Raises:
-        ValueError: If the input name does not match the expected regular
-            expression (ie if cube_name_regex(cube_name) returns None).
-    """
-    try:
-        diagnostic_name = probability_cube_name_regex(cube_name).group('diag')
-    except AttributeError:
-        raise ValueError(
-            'Input {} is not a valid probability cube name'.format(cube_name))
-    return diagnostic_name
-
-
-def generate_hash(data_in):
-    """
-    Generate a hash from the data_in that can be used to uniquely identify
-    equivalent data_in.
-
-    Args:
-        data_in (any):
-            The data from which a hash is to be generated. This can be of any
-            type that can be pickled.
-    Returns:
-        hash (str):
-            A hexidecimal hash representing the data.
-    """
-    hashable_type = pickle.dumps(data_in)
-    hash_result = hashlib.md5(hashable_type).hexdigest()
-    return hash_result
-
-
-def create_coordinate_hash(cube):
-    """
-    Generate a hash based on the input cube's x and y coordinates. This
-    acts as a unique identifier for the grid which can be used to allow two
-    grids to be compared.
-
-    Args:
-        cube (iris.cube.Cube):
-            The cube from which x and y coordinates will be used to
-            generate a hash.
-    Returns:
-        coordinate_hash (str):
-            A hash created using the x and y coordinates of the input cube.
-    """
-    hashable_data = [cube.coord(axis='x'), cube.coord(axis='y')]
-    return generate_hash(hashable_data)

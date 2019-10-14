@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,24 +28,47 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""General IMPROVER metadata utilities"""
 
-@test "neighbour-finding no arguments" {
-  run improver neighbour-finding
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver neighbour-finding [-h] [--profile]
-                                  [--profile_file PROFILE_FILE]
-                                  [--all_methods] [--land_constraint]
-                                  [--minimum_dz]
-                                  [--search_radius SEARCH_RADIUS]
-                                  [--node_limit NODE_LIMIT]
-                                  [--site_coordinate_system SITE_COORDINATE_SYSTEM]
-                                  [--site_coordinate_options SITE_COORDINATE_OPTIONS]
-                                  [--site_x_coordinate SITE_X_COORDINATE]
-                                  [--site_y_coordinate SITE_Y_COORDINATE]
-                                  [--metadata_json METADATA_JSON]
-                                  SITE_LIST_FILEPATH OROGRAPHY_FILEPATH
-                                  LANDMASK_FILEPATH OUTPUT_FILEPATH
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
-}
+import hashlib
+# Usage of pickle in this module is only for creation of pickles and hashing
+# the contents. There is no loading pickles which would create security risks.
+import pickle  # nosec
+
+
+def generate_hash(data_in):
+    """
+    Generate a hash from the data_in that can be used to uniquely identify
+    equivalent data_in.
+
+    Args:
+        data_in (any):
+            The data from which a hash is to be generated. This can be of any
+            type that can be pickled.
+    Returns:
+        hash (str):
+            A hexidecimal hash representing the data.
+    """
+    hashable_type = pickle.dumps(data_in)
+    # Marked as 'nosec' as the usage of MD5 hash is to produce a good checksum,
+    # rather than for cryptographic hashing purposes
+    hash_result = hashlib.md5(hashable_type).hexdigest()  # nosec
+    return hash_result
+
+
+def create_coordinate_hash(cube):
+    """
+    Generate a hash based on the input cube's x and y coordinates. This
+    acts as a unique identifier for the grid which can be used to allow two
+    grids to be compared.
+
+    Args:
+        cube (iris.cube.Cube):
+            The cube from which x and y coordinates will be used to
+            generate a hash.
+    Returns:
+        coordinate_hash (str):
+            A hash created using the x and y coordinates of the input cube.
+    """
+    hashable_data = [cube.coord(axis='x'), cube.coord(axis='y')]
+    return generate_hash(hashable_data)

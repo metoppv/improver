@@ -35,12 +35,15 @@ import unittest
 import iris
 import numpy as np
 from cf_units import Unit
+from datetime import datetime
+
 from iris.coord_systems import GeogCS, TransverseMercator
 from iris.coords import DimCoord, AuxCoord
 from iris.tests import IrisTest
 
 from improver.orographic_enhancement import OrographicEnhancement
 from improver.utilities.cube_manipulation import sort_coord_in_cube
+from improver.tests.set_up_test_cubes import construct_scalar_time_coords
 
 # UKPP projection
 TMercCS = TransverseMercator(
@@ -65,18 +68,11 @@ def set_up_variable_cube(data, name="temperature", units="degC",
     x_coord = DimCoord(
         x_points, 'projection_x_coordinate', units='m', coord_system=TMercCS)
 
+    time_coords = construct_scalar_time_coords(
+        datetime(2015, 11, 23, 4, 30), None, datetime(2015, 11, 22, 22, 30))
     cube = iris.cube.Cube(data, long_name=name, units=units,
-                          dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
-
-    time_origin = "hours since 1970-01-01 00:00:00"
-    calendar = "gregorian"
-    tunit = Unit(time_origin, calendar)
-    t_coord = AuxCoord(402292.5, "time", units=tunit)
-    frt_coord = AuxCoord(402286.5, "forecast_reference_time", units=tunit)
-    fp_coord = AuxCoord(6, "forecast_period", units="hours")
-    for coord in [t_coord, frt_coord, fp_coord]:
-        cube.add_aux_coord(coord)
-
+                          dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)],
+                          aux_coords_and_dims=time_coords)
     return cube
 
 
@@ -85,22 +81,12 @@ def set_up_invalid_variable_cube(valid_cube):
     Generate a new cube with an extra dimension from a 2D variable cube, to
     create an invalid cube for testing the process method.
     """
-    data = np.array([valid_cube.data, valid_cube.data])
-    realization = DimCoord([0, 1], 'realization', '1')
-    y_coord = valid_cube.coord(axis='y')
-    x_coord = valid_cube.coord(axis='x')
-
-    cube = iris.cube.Cube(
-        data, long_name=valid_cube.name(), units=valid_cube.units,
-        dim_coords_and_dims=[(realization, 0), (y_coord, 1), (x_coord, 2)])
-
-    t_coord = valid_cube.coord('time')
-    frt_coord = valid_cube.coord('forecast_reference_time')
-    fp_coord = valid_cube.coord('forecast_period')
-    for coord in [t_coord, frt_coord, fp_coord]:
-        cube.add_aux_coord(coord)
-
-    return cube
+    realization_coord = DimCoord(np.array([0], dtype=np.int32), 'realization')
+    cube1 = valid_cube.copy()
+    cube1.add_aux_coord(realization_coord)
+    cube2 = cube1.copy()
+    cube2.coord('realization').points = [1]
+    return iris.cube.CubeList([cube1, cube2]).merge_cube()
 
 
 def set_up_orography_cube(data, xo=400000., yo=0.):
@@ -730,8 +716,10 @@ class Test_process(DataCubeTest):
 
     def test_unmatched_coords(self):
         """Test error thrown if input variable cubes do not match"""
-        self.temperature.coord('forecast_reference_time').points[0] = 402286.5
-        self.temperature.coord('forecast_period').points[0] = 0.
+        self.temperature.coord('forecast_reference_time').points = (
+            self.temperature.coord('forecast_reference_time').points - 3600)
+        self.temperature.coord('forecast_period').points = (
+            self.temperature.coord('forecast_period').points - 3600)
         msg = 'Input cube coordinates'
         with self.assertRaisesRegex(ValueError, msg):
             _ = self.plugin.process(

@@ -31,6 +31,7 @@
 """Module containing thresholding classes."""
 
 
+import operator
 import iris
 import numpy as np
 from cf_units import Unit
@@ -52,7 +53,7 @@ class BasicThreshold(object):
 
     def __init__(self, thresholds, fuzzy_factor=None,
                  fuzzy_bounds=None, threshold_units=None,
-                 below_thresh_ok=False):
+                 comparison_operator='>'):
         """
         Set up for processing an in-or-out of threshold field, including the
         generation of fuzzy_bounds which are required to threshold an input
@@ -98,9 +99,12 @@ class BasicThreshold(object):
             threshold_units (str):
                 Units of the threshold values. If not provided the units are
                 assumed to be the same as those of the input cube.
-            below_thresh_ok (bool):
-                True to count points as significant if *below* the threshold,
-                False to count points as significant if *above* the threshold.
+            comparison_operator (str):
+                Indicates the comparison_operator to use with the threshold.
+                e.g. 'ge' or '>=' to evaluate data >= threshold or '<' to
+                evaluate data < threshold. When using fuzzy thresholds, there
+                is no difference between < and <= or > and >=.
+                Valid choices: > >= < <= gt ge lt le.
 
         Raises:
             ValueError: If a threshold of 0.0 is requested when using a fuzzy
@@ -162,25 +166,43 @@ class BasicThreshold(object):
 
         # check that thresholds and fuzzy_bounds are self-consistent
         for thr, bounds in zip(self.thresholds, self.fuzzy_bounds):
-            assert len(bounds) == 2, (
-                "Invalid bounds for one threshold: {}. "
-                "Expected 2 floats.".format(bounds))
-            bounds_msg = ("Threshold must be within bounds: "
-                          "!( {} <= {} <= {} )".format(bounds[0],
-                                                       thr, bounds[1]))
-            assert bounds[0] <= thr, bounds_msg
-            assert bounds[1] >= thr, bounds_msg
+            if len(bounds) != 2:
+                raise ValueError("Invalid bounds for one threshold: {}."
+                                 " Expected 2 floats.".format(bounds))
+            if bounds[0] > thr or bounds[1] < thr:
+                bounds_msg = ("Threshold must be within bounds: "
+                              "!( {} <= {} <= {} )".format(bounds[0],
+                                                           thr, bounds[1]))
+                raise ValueError(bounds_msg)
 
-        self.below_thresh_ok = below_thresh_ok
+        # Dict of known logical comparisons. Each key contains a dict of
+        # {'function': The operator function for this comparison_operator,
+        #  'spp_string': Comparison_Operator string for use in CF-convention
+        #                meta-data}
+        self.comparison_operator_dict = {}
+        self.comparison_operator_dict.update(dict.fromkeys(
+            ['ge', 'GE', '>='], {'function': operator.ge,
+                                 'spp_string': 'above'}))
+        self.comparison_operator_dict.update(dict.fromkeys(
+            ['gt', 'GT', '>'], {'function': operator.gt,
+                                'spp_string': 'above'}))
+        self.comparison_operator_dict.update(dict.fromkeys(
+            ['le', 'LE', '<='], {'function': operator.le,
+                                 'spp_string': 'below'}))
+        self.comparison_operator_dict.update(dict.fromkeys(
+            ['lt', 'LT', '<'], {'function': operator.lt,
+                                'spp_string': 'below'}))
+        self.comparison_operator_string = comparison_operator
+        self._decode_comparison_operator_string()
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         return (
             '<BasicThreshold: thresholds {}, ' +
             'fuzzy_bounds {}, ' +
-            'below_thresh_ok: {}>'
+            'method: data {} threshold>'
         ).format(self.thresholds, self.fuzzy_bounds,
-                 self.below_thresh_ok)
+                 self.comparison_operator_string)
 
     def _add_threshold_coord(self, cube, threshold):
         """
@@ -214,13 +236,29 @@ class BasicThreshold(object):
 
         # Use an spp__relative_to_threshold attribute, as an extension to the
         # CF-conventions.
-        if self.below_thresh_ok:
-            coord.attributes.update({'spp__relative_to_threshold': 'below'})
-        else:
-            coord.attributes.update({'spp__relative_to_threshold': 'above'})
+        coord.attributes.update({'spp__relative_to_threshold':
+                                 self.comparison_operator['spp_string']})
 
         cube.add_aux_coord(coord)
         return iris.util.new_axis(cube, coord)
+
+    def _decode_comparison_operator_string(self):
+        """Sets self.comparison_operator based on
+        self.comparison_operator_string. This is a dict containing the keys
+        'function' and 'spp_string'.
+        Raises errors if invalid options are found.
+
+        Raises:
+            ValueError: If self.comparison_operator_string does not match a
+                        defined method.
+        """
+        try:
+            self.comparison_operator = self.comparison_operator_dict[
+                self.comparison_operator_string]
+        except KeyError:
+            msg = (f'String "{self.comparison_operator_string}" '
+                   'does not match any known comparison_operator method')
+            raise ValueError(msg)
 
     def process(self, input_cube):
         """Convert each point to a truth value based on provided threshold
@@ -279,7 +317,8 @@ class BasicThreshold(object):
             # if upper and lower bounds are equal, set a deterministic 0/1
             # probability based on exceedance of the threshold
             if bounds[0] == bounds[1]:
-                truth_value = cube.data > threshold
+                truth_value = self.comparison_operator['function'](
+                    cube.data, threshold)
             # otherwise, scale exceedance probabilities linearly between 0/1
             # at the min/max fuzzy bounds and 0.5 at the threshold value
             else:
@@ -294,11 +333,11 @@ class BasicThreshold(object):
                             scale_range=(0.5, 1.),
                             clip=True),
                 )
+                # if requirement is for probabilities below threshold (rather
+                # than above), invert the exceedance probability
+                if 'below' in self.comparison_operator['spp_string']:
+                    truth_value = 1. - truth_value
             truth_value = truth_value.astype(input_cube_dtype)
-            # if requirement is for probabilities below threshold (rather than
-            # above), invert the exceedance probability
-            if self.below_thresh_ok:
-                truth_value = 1. - truth_value
 
             cube.data = truth_value
             # Overwrite masked values that have been thresholded
@@ -311,12 +350,10 @@ class BasicThreshold(object):
 
         cube, = thresholded_cubes.concatenate()
 
-        if self.below_thresh_ok:
-            cube.rename(
-                "probability_of_{}_below_threshold".format(cube.name()))
-        else:
-            cube.rename(
-                "probability_of_{}_above_threshold".format(cube.name()))
+        cube.rename(
+            "probability_of_{}_{}_threshold".format(
+                cube.name(),
+                self.comparison_operator['spp_string']))
         cube.units = Unit(1)
 
         cube = enforce_coordinate_ordering(

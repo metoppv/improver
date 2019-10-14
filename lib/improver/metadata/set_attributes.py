@@ -28,10 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""
-Module setting attributes for IMPROVER blended data, nowcasts and spot
-forecasts
-"""
+"""Module setting attributes for IMPROVER products"""
 
 import re
 import warnings
@@ -41,7 +38,7 @@ from improver.metadata.constants.attributes import (
     UK_SPOT_TITLE_STRING,
     GLOBAL_SPOT_TITLE_STRING,
     DATASET_ATTRIBUTES)
-from improver.utilities.cube_metadata import amend_metadata
+from improver.metadata.amend import amend_metadata
 
 
 def set_product_attributes(cube, product):
