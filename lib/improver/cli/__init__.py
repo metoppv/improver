@@ -106,13 +106,13 @@ class ObjectAsStr(str):
         if isinstance(obj, cls):  # pass object through if already wrapped
             return obj
         if name is None:
-            name = cls.object2name(obj)
+            name = cls.obj_to_name(obj)
         self = str.__new__(cls, name)
         self.original_object = obj
         return self
 
     @staticmethod
-    def object2name(obj, cls=None):
+    def obj_to_name(obj, cls=None):
         if cls is None:
             cls = type(obj)
         try:
@@ -129,7 +129,7 @@ def maybe_coerce_with(convert, obj, **kwargs):
 
 
 @value_converter
-def inputcube(to_convert):
+def input_cube(to_convert):
     """
 
     Args:
@@ -146,8 +146,8 @@ def inputcube(to_convert):
 
 
 @value_converter
-def inputjson(to_convert):
-    """
+def input_json(to_convert):
+    """Calls maybe_coerce with a string or obj and returns.
 
     Args:
         to_convert (string or obj):
@@ -343,12 +343,17 @@ def execute_command(dispatcher, prog_name, *args,
         if not isinstance(arg, str):
             arg = ObjectAsStr(arg)
         args[i] = arg
+
     if dry_run:
-        result = args  # poor man's dry run!
+        result = args
     else:
         result = dispatcher(prog_name, *args)
+
+    print(prog_name, *args, ' -> ', ObjectAsStr.obj_to_name(result))
+    # raise TypeError
     if verbose or dry_run:
-        print(prog_name, *args, ' -> ', ObjectAsStr.object2name(result))
+        print(prog_name, *args, ' -> ', ObjectAsStr.obj_to_name(result))
+
     return result
 
 
