@@ -133,7 +133,8 @@ class ApplyOrographicEnhancement(object):
         return result.format(self.operation)
 
     @staticmethod
-    def _select_orographic_enhancement_cube(precip_cube, oe_cubes):
+    def _select_orographic_enhancement_cube(precip_cube, oe_cubes,
+                                            allowed_time_diff=1800):
         """Select the orographic enhancement cube with the required time
         coordinate.
 
@@ -142,6 +143,12 @@ class ApplyOrographicEnhancement(object):
                 Cube containing the input precipitation fields.
             oe_cubes (iris.cube.Cube or iris.cube.CubeList):
                 Cube or CubeList containing the orographic enhancement fields.
+            allowed_time_diff (int):
+                An int in seconds to define a limit to the maximum difference
+                between the datetime of the precipitation cube and the time
+                points available within the orographic enhancement cube.
+                If this limit is exceeded, then an error is raised.
+
 
         Returns:
             oe_cube (iris.cube.Cube):
@@ -150,7 +157,8 @@ class ApplyOrographicEnhancement(object):
 
         """
         time_point, = iris_time_to_datetime(precip_cube.coord("time").copy())
-        oe_cube = extract_nearest_time_point(oe_cubes, time_point)
+        oe_cube = extract_nearest_time_point(
+            oe_cubes, time_point, allowed_dt_difference=allowed_time_diff)
         return oe_cube
 
     def _apply_orographic_enhancement(self, precip_cube, oe_cube):
