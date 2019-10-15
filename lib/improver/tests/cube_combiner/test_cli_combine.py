@@ -67,7 +67,7 @@ def test_metadata(tmp_path):
             "combine",
             "--operation=-",
             f"--new-name={new_name}",
-            f"--metadata_jsonfile={precip_meta}",
+            f"--new-metadata={precip_meta}",
             str(kgo_dir / "precip_prob_0p1.nc"),
             str(kgo_dir / "precip_prob_1p0.nc"),
             f"--output={output_path}"]
@@ -88,7 +88,7 @@ def test_minmax_temperatures(tmp_path, minmax):
     args = ["improver",
             "combine",
             f"--operation={minmax}",
-            f"--metadata_jsonfile={timebound_meta}",
+            f"--new-metadata={timebound_meta}",
             *[str(t) for t in temperatures],
             f"--output={output_path}"]
     cli.run_main(args)
@@ -106,7 +106,7 @@ def test_combine_accumulation(tmp_path):
     output_path = tmp_path / "output.nc"
     args = ["improver",
             "combine",
-            f"--metadata_jsonfile={timebound_meta}",
+            f"--new-metadata={timebound_meta}",
             *[str(r) for r in rains],
             f"--output={output_path}"]
     cli.run_main(args)
@@ -125,7 +125,7 @@ def test_mean_temperature(tmp_path):
     args = ["improver",
             "combine",
             "--operation=mean",
-            f"--metadata_jsonfile={timebound_meta}",
+            f"--new-metadata={timebound_meta}",
             *[str(t) for t in temperatures],
             f"--output={output_path}"]
     cli.run_main(args)
