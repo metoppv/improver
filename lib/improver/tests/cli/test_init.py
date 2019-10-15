@@ -31,11 +31,8 @@
 """Unit tests for cli.__init__"""
 
 import unittest
-from unittest.mock import patch, mock_open
 
-import clize
-
-from improver.cli import docutilize, HelpForNapoleonDocstring, ObjectAsStr
+from improver.cli import docutilize
 
 
 def dummy_function(first, second, third):
@@ -77,7 +74,6 @@ class Test_docutilize(unittest.TestCase):
 :returns: (iris.cube.Cube)
 """
 
-
     def test_obj(self):
         """Tests the docutilize function on an object"""
         doc = docutilize(dummy_function)
@@ -89,16 +85,6 @@ class Test_docutilize(unittest.TestCase):
         """Tests the docutilize function on a string"""
         doc = docutilize(dummy_function.__doc__)
         self.assertEqual(self.expected.strip(), doc.strip())
-
-
-class test_ObjAsStr(unittest.TestCase):
-    """Unit tests for ObjAsStr"""
-    def test_ObjectAsStr(self):
-        jsn = {'file': 1}
-        x = ObjectAsStr(jsn)
-
-
-
 
 
 if __name__ == '__main__':
