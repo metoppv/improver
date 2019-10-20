@@ -335,7 +335,11 @@ class Test__find_dict_key(LimitedDictTest):
     def setUp(self):
         """Redirect to dummy dictionary"""
         super().setUp()
+        self.orig_default_units = enforce.DEFAULT_UNITS.copy()
         enforce.DEFAULT_UNITS = self.units_dict
+
+    def tearDown(self):
+        enforce.DEFAULT_UNITS = self.orig_default_units
 
     def test_match(self):
         """Test correct identification of single substring match"""
@@ -369,7 +373,11 @@ class Test__get_required_units_and_dtype(LimitedDictTest):
     def setUp(self):
         """Redirect to dummy dictionary"""
         super().setUp()
+        self.orig_default_units = enforce.DEFAULT_UNITS.copy()
         enforce.DEFAULT_UNITS = self.units_dict
+
+    def tearDown(self):
+        enforce.DEFAULT_UNITS = self.orig_default_units
 
     def test_match(self):
         """Test correct requirements identified"""
