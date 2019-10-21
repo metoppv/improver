@@ -339,6 +339,7 @@ class Test__find_dict_key(LimitedDictTest):
         enforce.DEFAULT_UNITS = self.units_dict
 
     def tearDown(self):
+        """Reset DEFAULT_UNITS back to original"""
         enforce.DEFAULT_UNITS = self.orig_default_units
 
     def test_match(self):
@@ -377,6 +378,7 @@ class Test__get_required_units_and_dtype(LimitedDictTest):
         enforce.DEFAULT_UNITS = self.units_dict
 
     def tearDown(self):
+        """Reset DEFAULT_UNITS back to original"""
         enforce.DEFAULT_UNITS = self.orig_default_units
 
     def test_match(self):
