@@ -31,18 +31,17 @@
 """init for cli and clize"""
 
 from collections import OrderedDict
+
+import clize
 from clize import parameters
 from clize.help import (
     HelpForAutodetectedDocstring,
-    ClizeHelp,
-)
+    ClizeHelp)
 from clize.parser import value_converter
 from clize.runner import Clize
 from sigtools.wrappers import decorator
 
 # selected clize imports/constants
-
-import clize
 
 IGNORE = clize.Parameter.IGNORE
 LAST_OPTION = clize.Parameter.LAST_OPTION
@@ -65,13 +64,12 @@ def docutilize(obj):
             A converted string or an object with replaced docstring depending
             on the type of the input.
     """
-    from inspect import cleandoc
+    from inspect import cleandoc, getdoc
     from sphinx.ext.napoleon.docstring import GoogleDocstring, NumpyDocstring
     if isinstance(obj, str):
-        doc = obj
+        doc = cleandoc(obj)
     else:
-        doc = obj.__doc__
-    doc = cleandoc(doc)
+        doc = getdoc(obj)
     doc = str(NumpyDocstring(doc))
     doc = str(GoogleDocstring(doc))
     if isinstance(obj, str):
@@ -113,6 +111,7 @@ class ObjectAsStr(str):
 
     @staticmethod
     def obj_to_name(obj, cls=None):
+        """Helper function to create the string."""
         if cls is None:
             cls = type(obj)
         try:
@@ -218,7 +217,7 @@ def _clizefy(obj, **kwargs):
         kwargs.pop('helper_class', None)
         return Clize.get_cli(obj, **kwargs)
 
-    use_clize = os.environ.get('IMPROVER_USE_CLIZE')
+    use_clize = os.environ.get('IMPROVER_USE_CLIZE', False)
     if use_clize:
         use_clize = literal_eval(use_clize.capitalize())
 
@@ -306,26 +305,26 @@ SUBCOMMANDS_DISPATCHER = clizefy(
 # IMPROVER top level main
 
 
-def unbracket(args):
+def brackets_to_nested_list(args):
     """Convert input list with bracketed items into nested lists.
 
-    >>> unbracket('foo [ bar a b ] [ baz c ] -o z'.split())
+    >>> brackets_to_nested_list('foo [ bar a b ] [ baz c ] -o z'.split())
     ['foo', ['bar', 'a', 'b'], ['baz', 'c'], '-o', 'z']
     """
     outargs = []
     stack = []
     mismatch_msg = 'Mismatched bracket at position %i.'
-    for i in range(0, len(args)):
-        if args[i] == '[':
+    for i, arg in enumerate(args):
+        if arg == '[':
             stack.append(outargs)
             outargs = []
-        elif args[i] == ']':
+        elif arg == ']':
             if not stack:
                 raise ValueError(mismatch_msg % i)
             stack[-1].append(outargs)
             outargs = stack.pop()
         else:
-            outargs.append(args[i])
+            outargs.append(arg)
     if stack:
         raise ValueError(mismatch_msg % len(args))
     return outargs
@@ -349,8 +348,6 @@ def execute_command(dispatcher, prog_name, *args,
     else:
         result = dispatcher(prog_name, *args)
 
-    print(prog_name, *args, ' -> ', ObjectAsStr.obj_to_name(result))
-    # raise TypeError
     if verbose or dry_run:
         print(prog_name, *args, ' -> ', ObjectAsStr.obj_to_name(result))
 
@@ -387,7 +384,7 @@ def main(prog_name: parameters.pass_name,
     See improver help [--usage] [command] for more information
     on available command(s).
     """
-    args = unbracket(args)
+    args = brackets_to_nested_list(args)
     result = execute_command(SUBCOMMANDS_DISPATCHER,
                              prog_name, command, *args,
                              verbose=verbose, dry_run=dry_run)
@@ -395,10 +392,18 @@ def main(prog_name: parameters.pass_name,
 
 
 def run_main(argv=None):
+    """Overrides argv[0] to be improver the runs main.
+
+    Args:
+        argv (list of str):
+            Arguments that were from the command line.
+
+    """
     from clize import run
     import sys
-    # clize shows module execution as`python -m improver.cli`
+    # clize help shows module execution as `python -m improver.cli`
     # override argv[0] and pass it explicitly in order to avoid this
+    # so that the help command reflects the way that we call improver.
     if argv is None:
         argv = sys.argv[:]
         argv[0] = 'improver'

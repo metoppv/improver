@@ -53,10 +53,6 @@ def dummy_function(first, second, third):
     return first + second * third
 
 
-def empty_dummy(first, second, third):
-    return first + second * third
-
-
 class Test_docutilize(unittest.TestCase):
 
     """Test the docutilize function."""
