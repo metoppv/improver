@@ -392,7 +392,7 @@ def main(prog_name: parameters.pass_name,
 
 
 def run_main(argv=None):
-    """Overrides argv[0] to be improver the runs main.
+    """Overrides argv[0] to be 'improver' then runs main.
 
     Args:
         argv (list of str):
