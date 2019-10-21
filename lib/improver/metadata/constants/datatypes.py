@@ -33,35 +33,6 @@
 import numpy as np
 
 
-# List of named quantities to be handled as int32 (all other numerical
-# fields are handled as float32)
-INTEGER_QUANTITIES = [
-    # present on external files
-    "realization",
-    "spot_index",
-    "weather_code",
-    # present on internal files / ancillaries only
-    "coefficient_index",
-    "grid_attributes",
-    "land_binary_mask",
-    "neighbour_selection_method",
-    "topography_mask"
-]
-
-
-TIME_METADATA = {
-    "time": {
-        "unit": "seconds since 1970-01-01 00:00:00",
-        "dtype": np.int64},
-    "forecast_reference_time": {
-        "unit": "seconds since 1970-01-01 00:00:00",
-        "dtype": np.int64},
-    "forecast_period": {
-        "unit": "seconds",
-        "dtype": np.int32}
-}
-
-
 # DEPRECATED
 DEFAULT_UNITS = {
     # time coordinates and suitable substrings

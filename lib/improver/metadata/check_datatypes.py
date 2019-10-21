@@ -34,9 +34,6 @@ import numpy as np
 from cf_units import Unit
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.metadata.constants.datatypes import (
-    INTEGER_QUANTITIES, TIME_METADATA)
-
 
 def check_cube_not_float64(cube, fix=False):
     """Check a cube does not contain any float64 data, excepting time
@@ -95,13 +92,18 @@ def check_time_coordinate_metadata(cube):
             to the standard datatypes and units
     """
     error_string = ''
-    for time_coord in TIME_METADATA.keys():
+    for time_coord in ["time", "forecast_reference_time", "forecast_period"]:
         try:
             coord = cube.coord(time_coord)
         except CoordinateNotFoundError:
             continue
-        reqd_unit = TIME_METADATA[time_coord]["unit"]
-        reqd_dtype = TIME_METADATA[time_coord]["dtype"]
+
+        if coord.units.is_time_reference():
+            reqd_unit = "seconds since 1970-01-01 00:00:00"
+            reqd_dtype = np.int64
+        else:
+            reqd_unit = "seconds"
+            reqd_dtype = np.int32
 
         if not _check_units_and_dtype(coord, reqd_unit, reqd_dtype):
             msg = ('Coordinate {} does not match required '
@@ -169,9 +171,9 @@ def check_datatypes(cube, coords=None):
         if item.dtype.type == np.unicode_:
             continue
 
-        if item.name() in TIME_METADATA.keys():
-            reqd_dtype = TIME_METADATA[item.name()]["dtype"]
-        elif item.name() in INTEGER_QUANTITIES:
+        if item.units.is_time_reference():
+            reqd_dtype = np.int64
+        elif issubclass(item.dtype.type, np.integer):
             reqd_dtype = np.int32
         else:
             reqd_dtype = np.float32

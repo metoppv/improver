@@ -252,13 +252,13 @@ class Test_check_datatypes(IrisTest):
     def test_multiple_errors(self):
         """Test a list of errors is correctly caught and re-raised"""
         self.percentile_cube.coord('percentile').points = (
-            self.percentile_cube.coord('percentile').points.astype(np.int32))
+            self.percentile_cube.coord('percentile').points.astype(np.float64))
         self.percentile_cube.coord('forecast_period').points = (
             self.percentile_cube.coord('forecast_period').points.astype(
-                np.float32))
-        msg = ("percentile datatype int32 does not conform to expected "
+                np.int64))
+        msg = ("percentile datatype float64 does not conform to expected "
                "standard \\(\\<class 'numpy.float32'\\>\\)\n"
-               "forecast_period datatype float32 does not conform to expected "
+               "forecast_period datatype int64 does not conform to expected "
                "standard \\(\\<class 'numpy.int32'\\>\\)\n")
         with self.assertRaisesRegex(ValueError, msg):
             enforce.check_datatypes(self.percentile_cube)
