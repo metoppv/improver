@@ -141,27 +141,28 @@ class Test_check_cube_not_float64(IrisTest):
 class Test_check_time_coordinate_metadata(IrisTest):
     """Test check_time_coordinate_metatadata function"""
 
+    def setUp(self):
+        """Set up a test cube"""
+        self.cube = set_up_variable_cube(278*np.ones((4, 4), dtype=np.float32))
+
     def test_basic(self):
         """Test success"""
-        cube = set_up_variable_cube(np.ones((4, 4), dtype=np.float32))
-        enforce.check_time_coordinate_metadata(cube)
+        enforce.check_time_coordinate_metadata(self.cube)
 
     def test_fails_wrong_datatype(self):
         """Test failure if any coordinate datatype is wrong"""
-        cube = set_up_variable_cube(np.ones((4, 4), dtype=np.float32))
-        cube.coord("time").points = (
-            cube.coord("time").points.astype(np.float64))
+        self.cube.coord("time").points = (
+            self.cube.coord("time").points.astype(np.float64))
         msg = 'Coordinate time does not match required standard'
         with self.assertRaisesRegex(ValueError, msg):
-            enforce.check_time_coordinate_metadata(cube)
+            enforce.check_time_coordinate_metadata(self.cube)
 
     def test_fails_wrong_units(self):
         """Test failure if any coordinate unit is wrong"""
-        cube = set_up_variable_cube(278*np.ones((4, 4), dtype=np.float32))
-        cube.coord("forecast_period").convert_units("hours")
+        self.cube.coord("forecast_period").convert_units("hours")
         msg = 'Coordinate forecast_period does not match required standard'
         with self.assertRaisesRegex(ValueError, msg):
-            enforce.check_time_coordinate_metadata(cube)
+            enforce.check_time_coordinate_metadata(self.cube)
 
 
 class Test__construct_object_list(IrisTest):
