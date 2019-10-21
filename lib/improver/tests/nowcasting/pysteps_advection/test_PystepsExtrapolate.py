@@ -185,9 +185,16 @@ class Test_process(IrisTest):
         for i, cube in enumerate(result):
             expected_data = np.full((8, 8), np.nan)
             if i == 0:
+                # the first time step is the analysis field
                 expected_data = self.rain_cube.data
             elif i < 8:
+                # each time step advects the field by 1 grid cell along each
+                # axis
                 expected_data[i:, i:] = self.rain_cube.data[:-i, :-i]
+            else:
+                # the final step (i==8) has no data (as initialised); the
+                # original rain field has been advected out of the domain
+                pass
             self.assertTrue(np.allclose(
                 cube.data.data, expected_data, equal_nan=True))
 
