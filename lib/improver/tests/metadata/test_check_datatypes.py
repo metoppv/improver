@@ -209,20 +209,13 @@ class Test_check_datatypes(IrisTest):
         percentiles = np.array([25, 50, 75], np.float32)
         self.percentile_cube = set_up_percentile_cube(data, percentiles)
 
-    def test_basic(self):
-        """Test function returns a Cube"""
-        result = enforce.check_datatypes(self.data_cube)
-        self.assertIsInstance(result, iris.cube.Cube)
-
     def test_conformant_cubes(self):
-        """Test conformant data, percentile and probability cubes all pass"""
+        """Test conformant data, percentile and probability cubes all pass
+        (no error is thrown)"""
         cubelist = [
             self.data_cube, self.probability_cube, self.percentile_cube]
         for cube in cubelist:
-            result = enforce.check_datatypes(cube)
-            self.assertIsInstance(result, iris.cube.Cube)
-            self.assertArrayAlmostEqual(result.data, cube.data)
-            self.assertEqual(result.metadata, cube.metadata)
+            enforce.check_datatypes(cube)
 
     def test_string_coord(self):
         """Test string coordinate does not throw an error"""
@@ -251,9 +244,10 @@ class Test_check_datatypes(IrisTest):
         ignore others"""
         self.percentile_cube.coord('percentile').points = (
             self.percentile_cube.coord('percentile').points.astype(np.float64))
-        result = enforce.check_datatypes(
+        enforce.check_datatypes(
             self.percentile_cube, coords=["forecast_period"])
-        self.assertEqual(result.coord('percentile').dtype, np.float64)
+        self.assertEqual(
+            self.percentile_cube.coord('percentile').dtype, np.float64)
 
     def test_multiple_errors(self):
         """Test a list of errors is correctly caught and re-raised"""

@@ -126,7 +126,8 @@ def _check_metadata(cube):
 
 
 def save_netcdf(cubelist, filename):
-    """Save the input Cube or CubeList as a NetCDF file.
+    """Save the input Cube or CubeList as a NetCDF file and check metadata
+    where required for integrity.
 
     Uses the functionality provided by iris.fileformats.netcdf.save with
     local_keys to record non-global attributes as data attributes rather than

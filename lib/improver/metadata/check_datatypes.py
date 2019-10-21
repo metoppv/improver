@@ -116,18 +116,18 @@ def check_time_coordinate_metadata(cube):
 
 def _construct_object_list(cube, coords):
     """
-    Construct a list of objects to check
+    Construct a list of objects
 
     Args:
         cube (iris.cube.Cube):
-            Cube to be checked
+            Cube to append to object list
         coords (list or None):
-            List of coordinate names to check.  If None, adds all
-            coordinates present on the input cube
+            List of coordinate names to take from cube.  If None, adds all
+            coordinates present on the input cube.
 
     Returns:
         object (list):
-            List containing the original cube and coordinates to check
+            List containing the original cube and specified coordinates
     """
     object_list = []
     object_list.append(cube)
@@ -159,15 +159,9 @@ def check_datatypes(cube, coords=None):
     Raises:
         ValueError: if the input cube does not conform to the datatypes
             standard
-    Returns:
-        new_cube (iris.cube.Cube):
-            New cube with conformant datatypes
     """
-    # create a list of copied cubes to modify
-    new_cube = cube.copy()
-
     # construct a list of objects (cube and coordinates) to be checked
-    object_list = _construct_object_list(new_cube, coords)
+    object_list = _construct_object_list(cube, coords)
 
     error_string = ''
     for item in object_list:
@@ -187,13 +181,10 @@ def check_datatypes(cube, coords=None):
                    'to expected standard ({})\n')
             msg = msg.format(item.name(), item.dtype, reqd_dtype)
             error_string += msg
-        continue
 
     # if any data was non-compliant, raise details here
     if error_string:
         raise ValueError(error_string)
-
-    return new_cube
 
 
 def _check_units_and_dtype(obj, units, dtype):
