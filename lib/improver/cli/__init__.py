@@ -128,8 +128,8 @@ def maybe_coerce_with(convert, obj, **kwargs):
 
 
 @value_converter
-def input_cube(to_convert):
-    """imports loads cube as passes the function adn cube to maybe_coerce_with
+def inputcube(to_convert):
+    """imports loads cube as passes the function and cube to maybe_coerce_with.
 
     Args:
         to_convert (string or obj):
@@ -145,7 +145,7 @@ def input_cube(to_convert):
 
 
 @value_converter
-def input_json(to_convert):
+def inputjson(to_convert):
     """Calls maybe_coerce with a string or obj and returns.
 
     Args:
