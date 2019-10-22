@@ -60,4 +60,4 @@ fi
 export PATH="$IMPROVER_DIR/bin/:$PATH"
 export PYTHONPATH="$IMPROVER_DIR/lib/:${PYTHONPATH:-}"
 
-exec -a $0 python -m improver.cli "$@"
+exec python3 -m improver.cli "$@"
