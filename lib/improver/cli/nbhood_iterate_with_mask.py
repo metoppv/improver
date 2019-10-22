@@ -128,9 +128,9 @@ def main(argv=None):
     args = parser.parse_args(args=argv)
 
     # Load Cubes
-    cube = cli.input_cube(args.input_filepath)
-    mask_cube = cli.input_cube(args.input_mask_filepath)
-    weights = cli.input_cube(args.weights_for_collapsing_dim) if \
+    cube = cli.inputcube(args.input_filepath)
+    mask_cube = cli.inputcube(args.input_mask_filepath)
+    weights = cli.inputcube(args.weights_for_collapsing_dim) if \
         args.collapse_dimension else None
 
     # Process Cube
@@ -146,9 +146,9 @@ def main(argv=None):
 @cli.clizefy
 @cli.with_output
 @cli.with_intermediate_output
-def process(cube: cli.input_cube,
-            mask: cli.input_cube,
-            weights: cli.input_cube = None,
+def process(cube: cli.inputcube,
+            mask: cli.inputcube,
+            weights: cli.inputcube = None,
             *,
             coord_for_masking, radius: float = None,
             radii_by_lead_time=None,

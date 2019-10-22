@@ -78,12 +78,12 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
-    new_metadata = cli.input_json(args.metadata_jsonfile)
+    new_metadata = cli.inputjson(args.metadata_jsonfile)
     # Load cubes
     cubelist = []
     new_cube_name = args.new_name
     for filename in args.input_filenames:
-        new_cube = cli.input_cube(filename)
+        new_cube = cli.inputcube(filename)
         cubelist.append(new_cube)
         if new_cube_name is None:
             new_cube_name = new_cube.name()
@@ -104,10 +104,10 @@ def main(argv=None):
 
 @cli.clizefy
 @cli.with_output
-def process(*cubelist: cli.input_cube,
+def process(*cubelist: cli.inputcube,
             operation='+',
             new_name=None,
-            new_metadata: cli.input_json = None,
+            new_metadata: cli.inputjson = None,
             warnings_on=False):
     r"""Combine input cubes.
 
