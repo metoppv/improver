@@ -178,7 +178,7 @@ def parse_constraint_list(constraints, units=None):
     return constraints, units_dict
 
 
-def apply_extraction(cube, constraint, units=None, convert_units=True):
+def apply_extraction(cube, constraint, units=None, use_original_units=True):
     """
     Using a set of constraints, extract a subcube from the provided cube if it
     is available.
@@ -193,7 +193,7 @@ def apply_extraction(cube, constraint, units=None, convert_units=True):
             A dictionary of units for the constraints. Supplied if any
             coordinate constraints are provided in different units from those
             of the input cube (eg precip in mm/h for cube threshold in m/s).
-        convert_units (bool):
+        use_original_units (bool):
             Boolean to state whether the coordinates used in the extraction
             should be converted back to their original units. The default is
             True, indicating that the units should be converted back to the
@@ -212,7 +212,7 @@ def apply_extraction(cube, constraint, units=None, convert_units=True):
             original_units[coord] = cube.coord(coord).units
             cube.coord(coord).convert_units(units[coord])
         output_cube = cube.extract(constraint)
-        if convert_units:
+        if use_original_units:
             for coord in original_units.keys():
                 cube.coord(coord).convert_units(original_units[coord])
                 try:
@@ -225,7 +225,7 @@ def apply_extraction(cube, constraint, units=None, convert_units=True):
     return output_cube
 
 
-def extract_subcube(cube, constraints, units=None, convert_units=True):
+def extract_subcube(cube, constraints, units=None, use_original_units=True):
     """
     Using a set of constraints, extract a subcube from the provided cube if it
     is available.
@@ -240,7 +240,7 @@ def extract_subcube(cube, constraints, units=None, convert_units=True):
             List of units (as strings) corresponding to each coordinate in the
             list of constraints.  One or more "units" may be None, and units
             may only be associated with coordinate constraints.
-        convert_units (bool):
+        use_original_units (bool):
             Boolean to state whether the coordinates used in the extraction
             should be converted back to their original units. The default is
             True, indicating that the units should be converted back to the
@@ -253,5 +253,5 @@ def extract_subcube(cube, constraints, units=None, convert_units=True):
     """
     constraints, units = parse_constraint_list(constraints, units=units)
     output_cube = apply_extraction(
-        cube, constraints, units=units, convert_units=convert_units)
+        cube, constraints, units=units, use_original_units=use_original_units)
     return output_cube
