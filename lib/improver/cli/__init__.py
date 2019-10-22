@@ -60,7 +60,7 @@ def docutilize(obj):
             Takes an object and changes it's docstrings to a reStructuredText
             format.
     Returns:
-        (str or obj):
+        str or obj:
             A converted string or an object with replaced docstring depending
             on the type of the input.
     """
@@ -79,7 +79,7 @@ def docutilize(obj):
 
 
 class HelpForNapoleonDocstring(HelpForAutodetectedDocstring):
-    """Help for Napolean Docstrings."""
+    """Subclass to add support for google style docstrings"""
     def add_docstring(self, docstring, *args, **kwargs):
         """Adds the updated docstring."""
         docstring = docutilize(docstring)
@@ -129,7 +129,7 @@ def maybe_coerce_with(convert, obj, **kwargs):
 
 @value_converter
 def input_cube(to_convert):
-    """
+    """imports loads cube as passes the function adn cube to maybe_coerce_with
 
     Args:
         to_convert (string or obj):
@@ -167,7 +167,10 @@ def input_json(to_convert):
 
 @decorator
 def with_output(wrapped, *args, output=None, **kwargs):
-    """
+    """if there is an output, calls save_netcdf with the filepath given.
+
+    This is used in giving the CLI an extra argument of output.
+    If that argument is used, it saves the file, else it jut returns it.
 
     Args:
         wrapped (obj):
@@ -205,13 +208,22 @@ def with_intermediate_output(wrapped, *args, intermediate_output=None,
 
 
 def _clizefy(obj, **kwargs):
+    """Allows for legacy argparser and clize CLIs to coexist.
+
+    The legacy interface expects `<cli_name>.main` routine and the new one
+    expects <cli_name.process routine that is type annotated.
+    If both interfaces are available, then one is picked based on the
+    IMPROVER_USE_CLIZE environment variable, default is the legacy one.
+    The environment setting has to be done before `import improver.cli`.
+
+    Args:
+        obj:
+        **kwargs:
+
+    Returns:
+
+    """
     # TODO: simplify after all CLIs are clizefied
-    # The current logic allows for legacy argparse and new clize CLIs
-    # to coexist. The legacy interface expects <cli_name>.main routine and
-    # the new one expects <cli_name>.process routine that is type annotated.
-    # If both interfaces are available, then one is picked based on the
-    # IMPROVER_USE_CLIZE environment variable, default is the legacy one.
-    # The environment setting has to be done before `import improver.cli`!
     from ast import literal_eval
     import os
     import sys
@@ -246,7 +258,23 @@ def _clizefy(obj, **kwargs):
 
 
 def clizefy(func=None, helper_class=DocutilizeClizeHelp, **kwargs):
-    """Decorator for creating CLI objects."""
+    """Decorator for creating CLI objects.
+
+    The legacy interface expects `<cli_name>.main` routine and the new one
+    expects <cli_name.process routine that is type annotated.
+    If both interfaces are available, then one is picked based on the
+    IMPROVER_USE_CLIZE environment variable, default is the legacy one.
+    The environment setting has to be done before `import improver.cli`.
+
+    Args:
+        func (obj):
+            The function
+        helper_class:
+        **kwargs:
+
+    Returns:
+
+    """
     from functools import partial
     if func is None:
         return partial(clizefy, helper_class=helper_class, **kwargs)
@@ -268,19 +296,6 @@ def improver_help(prog_name: parameters.pass_name,
         result = '\n'.join(line for line in result.splitlines()
                            if not line.endswith('--help [--usage]'))
     return result
-
-
-# version command
-
-
-@clizefy(help_names=())
-def improver_version():
-    """Print version"""
-    from improver import __version__
-    return __version__
-
-
-# mapping of command names to CLI objects
 
 
 def _cli_items():
@@ -360,7 +375,7 @@ def execute_command(dispatcher, prog_name, *args,
     return result
 
 
-@clizefy(alt={'version': improver_version})
+@clizefy()
 def main(prog_name: parameters.pass_name,
          command: LAST_OPTION,
          *args,
