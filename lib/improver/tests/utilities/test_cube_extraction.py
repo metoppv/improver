@@ -319,6 +319,20 @@ class Test_apply_extraction(IrisTest):
         reference_data = self.precip_cube.data[1, :, :]
         self.assertArrayEqual(cube.data, reference_data)
 
+    def test_basic_without_reconverting_units(self):
+        """ Test cube extraction for single constraint with units,
+         where the coordinates are not reconverted into the original units."""
+        constraint_dict = {
+            self.threshold_coord:
+                lambda cell: any(np.isclose(cell.point, [0.1]))}
+        constr = iris.Constraint(**constraint_dict)
+        cube = apply_extraction(
+            self.precip_cube, constr, self.units_dict, convert_units=False)
+        self.assertIsInstance(cube, iris.cube.Cube)
+        self.assertEqual(cube.coord(self.threshold_coord).units, "mm h-1")
+        reference_data = self.precip_cube.data[1, :, :]
+        self.assertArrayEqual(cube.data, reference_data)
+
     def test_multiple_constraints_with_units(self):
         """ Test behaviour with a list of constraints and units """
         constraint_dict = {
@@ -447,6 +461,20 @@ class Test_extract_subcube(IrisTest):
         result = extract_subcube(self.precip_cube, constraints,
                                  units=precip_units)
         self.assertArrayAlmostEqual(result.data, expected.data)
+
+    def test_single_threshold_do_not_convert_units(self):
+        """Test that a single threshold is extracted correctly when using the
+        key=value syntax without converting the coordinate units back to the
+        original units."""
+        constraints = ["precipitation_rate=0.03"]
+        precip_units = ["mm h-1"]
+        expected = self.precip_cube[0]
+        expected.coord("precipitation_rate").convert_units("mm h-1")
+        result = extract_subcube(self.precip_cube, constraints,
+                                 units=precip_units, convert_units=False)
+        self.assertArrayAlmostEqual(result.data, expected.data)
+        self.assertEqual(expected.coord("precipitation_rate"),
+                         result.coord("precipitation_rate"))
 
 
 if __name__ == '__main__':
