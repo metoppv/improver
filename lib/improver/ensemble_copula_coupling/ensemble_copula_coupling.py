@@ -223,7 +223,7 @@ class ResamplePercentiles(object):
             percentile_coord_name (str):
                 Name of required percentile coordinate.
         Returns:
-            percentile_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing values for the required diagnostic e.g.
                 air_temperature at the required percentiles.
 
@@ -299,7 +299,7 @@ class ResamplePercentiles(object):
                      blocks of equal probability.
                 * Random: A random set of ordered percentiles.
         Returns:
-            forecast_at_percentiles (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube with forecast values at the desired set of percentiles.
                 The percentile coordinate is always the zeroth dimension.
 
@@ -440,7 +440,7 @@ class GeneratePercentilesFromProbabilities(object):
                 Lower and upper bound to be used as the ends of the
                 cumulative distribution function.
         Returns:
-            percentile_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing values for the required diagnostic e.g.
                 air_temperature at the required percentiles.
         Raises:
@@ -567,7 +567,7 @@ class GeneratePercentilesFromProbabilities(object):
                 * Random: A random set of ordered percentiles.
 
         Returns:
-            forecast_at_percentiles (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube with forecast values at the desired set of percentiles.
                 The threshold coordinate is always the zeroth dimension.
 
@@ -654,7 +654,7 @@ class GeneratePercentilesFromMeanAndVariance(object):
                 at.
 
         Returns:
-            percentile_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the values for the phenomenon at each of the
                 percentiles requested.
 
@@ -744,7 +744,7 @@ class GeneratePercentilesFromMeanAndVariance(object):
                 and variance provided.
 
         Returns:
-            calibrated_forecast_percentiles (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube for calibrated percentiles.
                 The percentile coordinate is always the zeroth dimension.
 
@@ -872,7 +872,7 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
                 the desired output cube format.
 
         Returns:
-            probability_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the data expressed as probabilities relative to
                 the provided thresholds in the way described by
                 spp__relative_to_threshold.
@@ -916,7 +916,7 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
                 the desired output cube format.
 
         Returns:
-            probability_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 A cube of diagnostic data expressed as probabilities relative
                 to the thresholds found in the probability_cube_template.
         """
@@ -972,7 +972,7 @@ class EnsembleReordering(object):
                 Name of required percentile coordinate.
 
         Returns:
-            raw_forecast_realizations (iris cube.Cube):
+            iris cube.Cube:
                 Cube for the raw ensemble forecast, where the raw ensemble
                 realizations have either been recycled or constrained,
                 depending upon the number of percentiles present
@@ -1042,7 +1042,7 @@ class EnsembleReordering(object):
                 values generated are not reproducible.
 
         Returns:
-            results (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube for post-processed realizations where at a particular grid
                 point, the ranking of the values within the ensemble matches
                 the ranking from the raw ensemble.
@@ -1109,7 +1109,7 @@ class EnsembleReordering(object):
                 values generated are not reproducible.
 
         Returns:
-            post-processed_forecast_realizations (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the new ensemble realizations where all points
                 within the dataset have been reordered in comparison to the
                 input percentiles.

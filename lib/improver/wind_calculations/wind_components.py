@@ -67,7 +67,7 @@ class ResolveWindComponents(object):
                 spatial grid on which the angle adjustments should be provided.
 
         Returns:
-            angle_adjustment (numpy.ndarray):
+            numpy.ndarray:
                 Angle in radians by which wind direction wrt true North at
                 each point must be rotated to be relative to grid North.
         """

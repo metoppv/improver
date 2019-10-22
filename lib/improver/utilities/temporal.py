@@ -132,7 +132,7 @@ def forecast_period_coord(
             Desired units for the resulting forecast period coordinate.
 
     Returns:
-        coord (iris.coords.AuxCoord or DimCoord):
+        iris.coords.AuxCoord or DimCoord:
             Describing the points and their units for
             'forecast_period'. A DimCoord is returned if the
             forecast_period coord is already present in the cube as a
@@ -243,7 +243,7 @@ def datetime_to_iris_time(dt_in):
             Time to be converted into seconds since 1970-01-01 00Z.
 
     Returns:
-        result (float):
+        float:
             Time since epoch in the seconds as desired dtype.
     """
     result = dt_in.replace(tzinfo=timezone.utc).timestamp()
@@ -262,7 +262,7 @@ def datetime_constraint(time_in, time_max=None):
             being returned up to < time_max.
 
     Returns:
-        time_extract (iris.Constraint):
+        iris.Constraint:
             An iris constraint to be used in extracting data at the given time
             from a cube.
     """
@@ -292,7 +292,7 @@ def extract_cube_at_time(cubes, time, time_extract):
             Iris constraint for the desired time.
 
     Returns:
-        cube (iris.cube.Cube):
+        iris.cube.Cube:
             Cube of data at the desired time.
 
     Raises:
@@ -319,7 +319,7 @@ def set_utc_offset(longitudes):
             List of longitudes.
 
     Returns:
-        utc_offsets (list):
+        list:
             List of utc_offsets calculated using longitude.
     """
     return np.floor((np.array(longitudes) + 7.5)/15.)
@@ -346,7 +346,7 @@ def get_forecast_times(forecast_length, forecast_date=None,
             unset it defaults to the latest 6 hour cycle as a start time.
 
     Returns:
-        forecast_times (list of datetime.datetime):
+        list of datetime.datetime:
             A list of python datetime.datetime objects that represent the
             times at which diagnostic data should be extracted.
 
@@ -402,7 +402,7 @@ def unify_forecast_reference_time(cubes, cycletime):
             forecast_reference_time on the individual cubes.
 
     Returns:
-        result_cubes (iris.cube.CubeList):
+        iris.cube.CubeList:
             Cubes that have had their forecast_reference_time unified.
 
     Raises:
@@ -451,7 +451,7 @@ def find_latest_cycletime(cubelist):
             forecast cycles.
 
     Returns:
-        cycletime (datetime object):
+        datetime object:
             A datetime object corresponding to the latest forecast reference
             time in the input cubelist.
     """
@@ -495,7 +495,7 @@ def extract_nearest_time_point(
             Default is 0.
 
     Returns:
-        cube (iris.cube.Cube):
+        iris.cube.Cube:
             Cube following extraction to return the cube that is nearest
             to the time point supplied.
 

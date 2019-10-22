@@ -111,7 +111,7 @@ class SquareNeighbourhood(object):
                 Flag indicating whether cube.data contains complex values.
 
         Returns:
-            summed_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube to which the cumulative summing
                 along the y and x direction has been applied.
         """
@@ -189,7 +189,7 @@ class SquareNeighbourhood(object):
                 Number of columns
 
         Returns:
-            neighbourhood_total (numpy.ndarray):
+            numpy.ndarray:
                 Array containing the calculated neighbourhood total.
         """
         flattened = summed_cube.data.flatten()
@@ -251,7 +251,7 @@ class SquareNeighbourhood(object):
                 Flag indicating whether cube.data contains complex values.
 
         Returns:
-            cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube to which square neighbourhood has been applied.
         """
         cube = summed_cube
@@ -377,7 +377,7 @@ class SquareNeighbourhood(object):
                 square neighbourhood.
 
         Returns:
-            neighbourhood_averaged_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the smoothed field after the square
                 neighbourhood method has been applied with halo added.
         """
@@ -429,7 +429,7 @@ class SquareNeighbourhood(object):
                 square neighbourhood.
 
         Returns:
-            neighbourhood_averaged_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the smoothed field after the square
                 neighbourhood method has been applied and halo removed.
         """
@@ -475,7 +475,7 @@ class SquareNeighbourhood(object):
                 Cube containing the array to be used as a mask.
 
         Returns:
-            neighbourhood_averaged_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the smoothed field after the square
                 neighbourhood method has been applied.
         """

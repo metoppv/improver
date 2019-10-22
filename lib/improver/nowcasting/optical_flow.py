@@ -170,7 +170,7 @@ class OpticalFlow(object):
                 Optional (0 or 1): average over 2 adjacent points along the
                 specified axis, rather than all 4 corners
         Returns:
-            midpoints (numpy.ndarray):
+            numpy.ndarray:
                 2D gridded interpolated average (dimensions M-1 x N-1 if
                 axis=None; M-1 x N if axis=0; M x N-1 if axis=1)
         """
@@ -194,7 +194,7 @@ class OpticalFlow(object):
                 Axis over which to calculate the spatial derivative (0 or 1)
 
         Returns:
-            (numpy.ndarray):
+            numpy.ndarray:
                 Smoothed spatial derivative
         """
         outdata = []
@@ -215,7 +215,7 @@ class OpticalFlow(object):
         array, and smooth to the original grid shape.
 
         Returns:
-            (numpy.ndarray):
+            numpy.ndarray:
                 Smoothed temporal derivative
         """
         tdiff = self.data2 - self.data1
@@ -275,7 +275,7 @@ class OpticalFlow(object):
                 Displacement of subbox on box grid
 
         Returns:
-            grid_data (numpy.ndarray):
+            numpy.ndarray:
                 Displacement on original data grid
         """
         grid_data = np.repeat(np.repeat(box_data, self.boxsize, axis=0),
@@ -311,7 +311,7 @@ class OpticalFlow(object):
                 Kernel radius or half box size for smoothing
 
         Returns:
-            kernel_2d (numpy.ndarray):
+            numpy.ndarray:
                 Kernel to use for generating a smoothed field.
 
         """
@@ -338,7 +338,7 @@ class OpticalFlow(object):
                 Method to use: 'box' (as in STEPS) or 'kernel'
 
         Returns:
-            smoothed_field (numpy.ndarray):
+            numpy.ndarray:
                 Smoothed data on input-shaped grid
 
         """
@@ -370,7 +370,7 @@ class OpticalFlow(object):
                 Weight of each grid point for averaging
 
         Returns:
-            vel (numpy.ndarray):
+            numpy.ndarray:
                 Next iteration of smart-smoothed displacement
         """
         # define kernel for neighbour weighting
@@ -420,7 +420,7 @@ class OpticalFlow(object):
                 Weights for smart smoothing
 
         Returns:
-            grid_data (numpy.ndarray):
+            numpy.ndarray:
                 Smoothed displacement vectors on input data grid
 
         """
@@ -456,7 +456,7 @@ class OpticalFlow(object):
                 1-column matrix containing partial field derivatives d/dt
 
         Returns:
-            velocity (numpy.ndarray):
+            numpy.ndarray:
                 2-column matrix (u, v) containing scalar displacement values
 
         """

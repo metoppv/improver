@@ -57,7 +57,7 @@ def generate_file_name(cube, parameter=None, include_period=False):
             time window identifier should be included within the filename.
 
     Returns:
-        filename (str):
+        str:
             File base name to which to write
 
     Raises:

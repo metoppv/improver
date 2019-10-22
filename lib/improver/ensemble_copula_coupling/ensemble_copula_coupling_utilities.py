@@ -62,7 +62,7 @@ def concatenate_2d_array_with_2d_array_endpoints(
             Number of used to create a 2d array of a constant value
             as the upper endpoint.
     Returns:
-        array_2d (numpy.ndarray):
+        numpy.ndarray:
             2d array of values after padding with the low_endpoint and
             high_endpoint.
     """
@@ -94,7 +94,7 @@ def choose_set_of_percentiles(no_of_percentiles, sampling="quantile"):
             * Random: A random set of ordered percentiles.
 
     Returns:
-        percentiles (list):
+        list:
             Percentiles calculated using the sampling technique specified.
 
     Raises:
@@ -158,7 +158,7 @@ def create_cube_with_percentiles(percentiles, template_cube, cube_data,
             The units of the data within the cube
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             Cube containing a percentile coordinate as the zeroth dimension
             coordinate in addition to the coordinates and metadata from the
             template cube.
@@ -248,7 +248,7 @@ def insert_lower_and_upper_endpoint_to_1d_array(
         high_endpoint (float or int):
             Number of use as the upper endpoint.
     Returns:
-        array_1d (numpy.ndarray):
+        numpy.ndarray:
             1d array of values padded with the low_endpoint and high_endpoint.
     """
     lower_array = np.array([low_endpoint])

@@ -54,7 +54,7 @@ def set_product_attributes(cube, product):
             DATASET_ATTRIBUTES dictionary.
 
     Returns:
-        updated_cube (iris.cube.Cube):
+        iris.cube.Cube:
             Cube with updated attributes
     """
     try:
@@ -88,7 +88,7 @@ def _match_title(original_title):
             Value of "title" attribute on an input cube
 
     Returns:
-        match (re.Match object or None):
+        re.Match object or None:
             Match to expected regular expression pattern, or None if the
             string does not match the pattern
     """

@@ -55,7 +55,7 @@ def load_and_extract(cube_filepath, height_value, units):
         units (str):
             The units of the height level to be extracted.
     Returns:
-        cube (iris.cube.Cube):
+        iris.cube.Cube:
             A cube containing the extracted height level.
     Raises:
         ValueError: If height level is not found in the input cube.
@@ -168,14 +168,14 @@ def process(temperature, humidity, pressure, wind_speed, wind_dir, orography):
             resolution (1 km) UKPP domain grid.
 
     Returns:
-        (tuple): tuple containing:
-                **orogenh_high_res** (iris.cube.Cube):
-                    Precipitation enhancement due to orography in mm/h on the
-                    UK standard grid, padded with masked up np.nans where
-                    outside the UKPP domain.
-                **orogenh_standard** (iris.cube.Cube):
-                    Precipitation enhancement due to orography in mm/h on
-                    the 1km Transverse Mercator UKPP grid domain.
+        Tuple[iris.cube.Cube, iris.cube.Cube]:
+        **iris.cube.Cube**:
+            Precipitation enhancement due to orography in mm/h on the
+            UK standard grid, padded with masked up np.nans where
+            outside the UKPP domain.
+        **iris.cube.Cube**:
+            Precipitation enhancement due to orography in mm/h on
+            the 1km Transverse Mercator UKPP grid domain.
     """
     # resolve u and v wind components
     u_wind, v_wind = ResolveWindComponents().process(wind_speed, wind_dir)

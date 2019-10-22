@@ -127,7 +127,7 @@ class Utilities(object):
             temperature (iris.cube.Cube):
                 A cube of air temperatures (K).
         Returns:
-           enthalpy (iris.cube.Cube):
+           iris.cube.Cube:
                A cube of enthalpy values calculated at the same points as the
                input cubes (J kg-1).
         """
@@ -180,7 +180,7 @@ class Utilities(object):
                 prior to calculation. Valid from 173K to 373K
 
         Returns:
-            svp (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the saturation vapour pressure of a pure
                 water vapour system. A correction must be applied to the data
                 when used to convert this to the SVP in air; see the
@@ -303,7 +303,7 @@ class WetBulbTemperature(object):
             temperature (iris.cube.Cube):
                 A cube of air temperatures (K).
         Returns:
-            svp (iris.cube.Cube):
+            iris.cube.Cube:
                 A cube of saturated vapour pressures (Pa).
         """
         # We subtract T_INCREMENT from T_MAX to get the upper bound to which we
@@ -350,7 +350,7 @@ class WetBulbTemperature(object):
                 Cube of pressure (Pa).
 
         Returns:
-            svp (iris.cube.Cube):
+            iris.cube.Cube:
                 The input cube of saturated vapour pressure of air (Pa) is
                 modified by the pressure correction.
         """
@@ -411,7 +411,7 @@ class WetBulbTemperature(object):
                 Cube of air pressures (Pa).
 
         Returns:
-            wbt (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube of wet bulb temperature (K).
 
         """
@@ -487,7 +487,7 @@ class WetBulbTemperature(object):
                 Cube of air pressures (Pa).
 
         Returns:
-            wet_bulb_temperature (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube of wet bulb temperature (K).
         """
         try:
@@ -667,7 +667,7 @@ class FallingSnowLevel(object):
                 heights agl
 
         Returns:
-            snow_level_data (numpy.ndarray):
+            numpy.ndarray:
                 Falling snow level data asl.
 
         """
@@ -961,7 +961,7 @@ class FallingSnowLevel(object):
             orog_data(numpy.data):
                 The array containing the orography data.
         Returns:
-            snow_filled (numpy.ndarray):
+            numpy.ndarray:
                 The snow falling level array with missing data filled by
                 horizontal interpolation.
         """
@@ -1021,7 +1021,7 @@ class FallingSnowLevel(object):
                 The cube containing a single 2 dimensional array of orography
                 data
         Returns:
-            max_in_nbhood_orog (iris.cube.Cube):
+            iris.cube.Cube:
                 The cube containing the maximum in a neighbourhood of the
                 orography data.
         """
@@ -1054,7 +1054,7 @@ class FallingSnowLevel(object):
                 Cube containing a binary land-sea mask.
 
         Returns:
-            falling_snow_level (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube of Falling Snow Level above sea level (asl).
         """
 

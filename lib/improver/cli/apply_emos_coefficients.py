@@ -200,7 +200,7 @@ def process(current_forecast, coeffs, num_realizations=None,
             Default is 'mean'
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             The calibrated forecast cube.
 
     Raises:

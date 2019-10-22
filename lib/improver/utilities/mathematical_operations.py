@@ -98,7 +98,7 @@ class Integration(object):
                 Note that the input cube will be modified by this method.
 
         Returns:
-            cube (iris.cube.Cube):
+            iris.cube.Cube:
                 The cube containing a coordinate that is monotonically
                 increasing in the desired direction.
 
@@ -204,7 +204,7 @@ class Integration(object):
                 integration containing the most appropriate coordinates.
 
         Returns:
-            integrated_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the output from the integration.
 
         """
@@ -294,7 +294,7 @@ class Integration(object):
                 Cube containing the data to be integrated.
 
         Returns:
-            integrated_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 The cube containing the result of the integration.
                 This will contain the same metadata as the input cube.
 

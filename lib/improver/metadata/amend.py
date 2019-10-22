@@ -53,7 +53,7 @@ def update_stage_v110_metadata(cube):
             Cube to modify meta-data in (modified in place)
 
     Returns:
-        boolean (bool):
+        bool:
             True if meta-data have been changed by this function.
     """
     try:
@@ -85,7 +85,7 @@ def add_coord(cube, coord_name, changes, warnings_on=False):
             If True output warnings for mismatching metadata.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             Cube with added coordinate.
 
     Raises:
@@ -174,7 +174,7 @@ def _update_coord(cube, coord_name, changes, warnings_on=False):
             If True output warnings for mismatching metadata.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             Cube with updated coordinate.
 
     Raises:
@@ -272,7 +272,7 @@ def _update_attribute(cube, attribute_name, changes, warnings_on=False):
             If True output warnings for mismatching metadata.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             Cube with updated coordinate.
 
     Raises:
@@ -406,7 +406,7 @@ def amend_metadata(cube,
             If True output warnings for mismatching metadata.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             Cube with corrected metadata.
 
     Example inputs:

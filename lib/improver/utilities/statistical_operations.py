@@ -142,7 +142,7 @@ class ProbabilitiesFromPercentiles2D(object):
                 required to construct a probability cube.
 
         Returns:
-            probability_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 A new 2-dimensional probability cube with suitable metadata.
         """
         cube_format = next(cube.slices([cube.coord(axis='y'),
@@ -337,7 +337,7 @@ class ProbabilitiesFromPercentiles2D(object):
                 typically x and y.
 
         Returns:
-            probabilities (iris.cube.Cube):
+            iris.cube.Cube:
                 A 2-dimensional cube of probabilities obtained by interpolating
                 between percentile values.
 
@@ -402,7 +402,7 @@ class ProbabilitiesFromPercentiles2D(object):
                 which it is desired to obtain probability values from a
                 percentiled reference cube.
         Returns:
-            probability_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 A cube of probabilities obtained by interpolating between
                 percentile values at the "threshold" level.
         """

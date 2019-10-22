@@ -93,7 +93,7 @@ class OrographicAlphas(object):
                 The maximum value we want our alpha to be
 
         Returns:
-            scaled_cubes (iris.cube.CubeList):
+            iris.cube.CubeList:
                 A list of alpha cubes scaled to within the range specified.
         """
         cube_min = min([abs(cube.data).min() for cube in cubes])
@@ -119,7 +119,7 @@ class OrographicAlphas(object):
                 A cube of the normalised gradient
 
         Returns:
-            alphas_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 The cube of initial unscaled alphas
         """
         alphas_cube = gradient_cube.copy(data=self.coefficient *
@@ -137,7 +137,7 @@ class OrographicAlphas(object):
                 A cube of alphas with "gradient" metadata
 
         Returns:
-            alphas_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 A cube of alphas with adjusted metadata
         """
         alphas_cube.rename('alphas')
@@ -264,7 +264,7 @@ class SaturatedVapourPressureTable(object):
         psychrometric_calculations.Utilities.
 
         Returns:
-            svp (iris.cube.Cube):
+            iris.cube.Cube:
                A cube of saturated vapour pressure values at temperature
                points defined by t_min, t_max, and t_increment (defined above).
         """

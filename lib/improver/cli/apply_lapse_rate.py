@@ -84,7 +84,7 @@ def process(temperature, lapse_rate, source_orog, target_orog):
             Target orography to which temperature will be downscaled.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             Cube after lapse rate has been applied to temperature data.
     """
     # apply lapse rate to temperature data

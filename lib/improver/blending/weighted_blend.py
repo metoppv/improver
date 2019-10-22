@@ -258,7 +258,7 @@ def conform_metadata(
             The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
 
     Returns:
-        cube (iris.cube.Cube):
+        iris.cube.Cube:
             Cube containing the adjusted metadata.
 
     """
@@ -370,7 +370,7 @@ class PercentileBlendingAggregator:
              hence the rename.)
 
         Returns:
-            result (numpy.ndarray):
+            numpy.ndarray:
                      containing the weighted percentile blend data across
                      the chosen coord. The dimension associated with axis
                      has been collapsed, and the rest of the dimensions remain.
@@ -436,7 +436,7 @@ class PercentileBlendingAggregator:
                 that we will blend over.
 
         Returns:
-            new_combined_perc (numpy.ndarray):
+            numpy.ndarray:
                 Array containing the weighted percentile blend data
                 across the chosen coord
         """
@@ -528,7 +528,7 @@ class WeightedBlendAcrossWholeDimension:
             cube (iris.cube.Cube):
                 The cube to be checked for a percentile coordinate.
         Returns:
-            None or perc_coord (iris.coords.DimCoord):
+            iris.coords.DimCoord:
                 None if no percentile dimension coordinate is found. If
                 such a coordinate is found it is returned.
         Raises:
@@ -597,7 +597,7 @@ class WeightedBlendAcrossWholeDimension:
             weights (iris.cube.Cube):
                 Cube of blending weights.
         Returns:
-            weights_array (numpy.ndarray):
+            numpy.ndarray:
                 An array of weights that matches the cube data shape.
         Raises:
             ValueError: If weights cube coordinates do not match the diagnostic
@@ -673,7 +673,7 @@ class WeightedBlendAcrossWholeDimension:
             weights (iris.cube.Cube or None):
                 Cube of blending weights or None.
         Returns:
-            weights_array (numpy.ndarray):
+            numpy.ndarray:
                 An array of weights that matches the cube data shape.
         """
         if weights:
@@ -713,7 +713,7 @@ class WeightedBlendAcrossWholeDimension:
                 Percentile coordinate
 
         Returns:
-            weights_array (numpy.ndarray):
+            numpy.ndarray:
                 An array of weights that matches the cube data shape.
         """
         # Percentile blending preserves the percentile dimension, but we will
@@ -765,7 +765,7 @@ class WeightedBlendAcrossWholeDimension:
             perc_coord (iris.coords.DimCoord):
                 The percentile coordinate for this cube.
         Returns:
-            cube_new (iris.cube.Cube):
+            iris.cube.Cube:
                 The cube with percentile values blended over self.coord,
                 with suitable weightings applied.
         """
@@ -814,7 +814,7 @@ class WeightedBlendAcrossWholeDimension:
             weights (iris.cube.Cube or None):
                 Cube of blending weights or None.
         Returns:
-            cube_new (iris.cube.Cube):
+            iris.cube.Cube:
                 The cube with values blended over self.coord, with suitable
                 weightings applied.
         """
@@ -842,7 +842,7 @@ class WeightedBlendAcrossWholeDimension:
                 Cube of blending weights. If None, the diagnostic cube is
                 blended with equal weights across the blending dimension.
         Returns:
-            result (iris.cube.Cube):
+            iris.cube.Cube:
                 containing the weighted blend across the chosen coord.
         Raises:
             TypeError : If the first argument not a cube.

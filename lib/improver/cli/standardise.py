@@ -239,7 +239,7 @@ def process(output_data, target_grid=None, source_landsea=None,
             Default is False.
 
     Returns:
-        output_data (iris.cube.Cube):
+        iris.cube.Cube:
             Processed cube.
 
     Raises:

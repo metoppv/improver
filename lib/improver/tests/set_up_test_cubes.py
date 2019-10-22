@@ -109,7 +109,7 @@ def construct_scalar_time_coords(time, time_bounds, frt):
             Single forecast reference time point
 
     Returns:
-        coord_dims (list):
+        list:
             List of iris.coords.DimCoord instances with the associated "None"
             dimension (format required by iris.cube.Cube initialisation).
     """

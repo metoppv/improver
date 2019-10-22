@@ -233,7 +233,7 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube=None,
             Default is None.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
            The processed cube.
 
     Raises:

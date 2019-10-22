@@ -286,7 +286,7 @@ class Accumulation:
                 to set the metadata on the output accumulation cube.
 
         Returns:
-            accumulation_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Accumulation cube with the desired metadata.
 
         """
@@ -311,7 +311,7 @@ class Accumulation:
             cubes (iris.cube.CubeList):
                 A cubelist containing input precipitation rate cubes.
         Returns:
-            accumulation_cubes (iris.cube.CubeList):
+            iris.cube.CubeList:
                 A cubelist containing precipitation accumulation cubes where
                 the accumulation periods are determined by plugin argument
                 accumulation_period.

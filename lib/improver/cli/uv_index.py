@@ -79,7 +79,7 @@ def process(rad_uv_up, rad_uv_down):
             Cube of radiation flux in UV downwards at surface.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             Processed Cube.
     """
     result = calculate_uv_index(rad_uv_up, rad_uv_down)

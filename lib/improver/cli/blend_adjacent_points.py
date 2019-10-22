@@ -133,7 +133,7 @@ def process(cubelist, coordinate, central_point, units, width,
             Default is False.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             A processed Cube
 
     Raises:

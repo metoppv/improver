@@ -67,7 +67,7 @@ def wxcode_decision_tree():
               the thresholding is as expected.
 
     Returns:
-        queries (dict):
+        dict:
             A dictionary containing the queries that comprise the decision
             tree.
     """

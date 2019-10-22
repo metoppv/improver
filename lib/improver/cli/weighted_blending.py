@@ -261,7 +261,7 @@ def process(cubelist, wts_calc_method, coordinate, cycletime, weighting_coord,
             Default is 20000.0.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             Merged and blended Cube.
 
     Raises:

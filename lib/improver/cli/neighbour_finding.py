@@ -254,7 +254,7 @@ def process(orography, landmask, site_list, metadata_dict=None,
             Default is None.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             The processed Cube.
 
     Raises:

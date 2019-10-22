@@ -98,7 +98,7 @@ def enforce_units_and_dtypes(cubes, coords=None, enforce=True):
         ValueError: if "enforce=False" and the input cubes do not conform
             to the datatypes and units standard.
     Returns:
-        new_cubes (iris.cube.CubeList):
+        iris.cube.CubeList:
             New cubelist with conformant datatypes and units
     """
     # convert input to CubeList

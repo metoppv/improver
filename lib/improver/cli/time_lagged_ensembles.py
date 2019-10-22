@@ -85,7 +85,7 @@ def process(cubes):
             CubeList for the time-lagged ensemble to combine the realizations.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             Merged Cube.
 
     Raises:

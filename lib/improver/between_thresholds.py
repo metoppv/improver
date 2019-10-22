@@ -73,7 +73,7 @@ class OccurrenceBetweenThresholds(object):
         Extract required slices from input cube
 
         Returns:
-            cubes (list):
+            list:
                 List of 2-item lists containing lower and upper
                 threshold cubes
 
@@ -119,7 +119,7 @@ class OccurrenceBetweenThresholds(object):
         multiplying the difference by -1.
 
         Returns:
-            multiplier (float):
+            float:
                 1. or -1.
 
         Raises:
@@ -142,7 +142,7 @@ class OccurrenceBetweenThresholds(object):
         Calculate between_threshold probabilities cube
 
         Returns:
-            (iris.cube.Cube):
+            iris.cube.Cube:
                 Merged cube containing recalculated probabilities
         """
         multiplier = self._get_multiplier()
@@ -192,7 +192,7 @@ class OccurrenceBetweenThresholds(object):
                 Probability cube containing thresholded data (above or below)
 
         Returns:
-            output_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing probability of occurrence between thresholds
         """
         # if cube has no threshold-type coordinate, raise an error

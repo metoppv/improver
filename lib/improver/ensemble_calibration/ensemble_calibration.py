@@ -155,7 +155,7 @@ class ContinuousRankedProbabilityScoreMinimisers():
                 minimisation within self.minimisation_dict.
 
         Returns:
-            optimised_coeffs (list):
+            list:
                 List of optimised coefficients.
                 Order of coefficients is [gamma, delta, alpha, beta].
 
@@ -276,7 +276,7 @@ class ContinuousRankedProbabilityScoreMinimisers():
                 realizations ("realizations") are supported as the predictors.
 
         Returns:
-            result (float):
+            float:
                 CRPS for the current set of coefficients.
 
         """
@@ -335,7 +335,7 @@ class ContinuousRankedProbabilityScoreMinimisers():
                 realizations ("realizations") are supported as the predictors.
 
         Returns:
-            result (float):
+            float:
                 CRPS for the current set of coefficients.
 
         """
@@ -492,7 +492,7 @@ class EstimateCoefficientsForEnsembleCalibration():
                 The cube containing the historic forecast.
 
         Returns:
-            cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube constructed using the coefficients provided and using
                 metadata from the historic_forecast cube.  The cube contains
                 a coefficient_index dimension coordinate where the points
@@ -646,7 +646,7 @@ class EstimateCoefficientsForEnsembleCalibration():
                 used as predictors. Default is None.
 
         Returns:
-            initial_guess (list):
+            list:
                 List of coefficients to be used as initial guess.
                 Order of coefficients is [gamma, delta, alpha, beta].
 
@@ -802,7 +802,7 @@ class EstimateCoefficientsForEnsembleCalibration():
                 and sea points as zeros.
 
         Returns:
-            coefficients_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the coefficients estimated using EMOS.
                 The cube contains a coefficient_index dimension coordinate
                 and a coefficient_name auxiliary coordinate.

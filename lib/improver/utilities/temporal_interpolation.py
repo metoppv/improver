@@ -176,7 +176,7 @@ class TemporalInterpolation(object):
                 enforced.
 
         Returns:
-            cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube where the datatype and units for the
                 time, forecast_reference_time and forecast_period coordinates
                 have been enforced.
@@ -219,7 +219,7 @@ class TemporalInterpolation(object):
             lons (numpy.ndarray):
                 Array 2d of longitudes for each point
         Returns:
-            sin_phi (numpy.ndarray):
+            numpy.ndarray:
                 Array of sine of solar elevation at each point
 
         """
@@ -276,7 +276,7 @@ class TemporalInterpolation(object):
                 cube containing Linear interpolation of
                 diag_cube at interpolation times in time_list.
         Returns:
-            interpolated_cubes (iris.cube.CubeList):
+            iris.cube.CubeList:
                 A list of cubes interpolated to the desired times.
 
         """
@@ -348,7 +348,7 @@ class TemporalInterpolation(object):
                 cube at interpolation times in time_list.
 
         Returns:
-            interpolated_cubes (iris.cube.CubeList):
+            iris.cube.CubeList:
                 A list of cubes interpolated to the desired times.
 
         """
@@ -381,7 +381,7 @@ class TemporalInterpolation(object):
                 interpolation is to be permitted.
 
         Returns:
-            interpolated_cubes (iris.cube.CubeList):
+            iris.cube.CubeList:
                 A list of cubes interpolated to the desired times.
 
         Raises:

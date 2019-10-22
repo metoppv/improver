@@ -118,7 +118,7 @@ def process(percentiles_cube, threshold_cube, output_diagnostic_name):
             'probability_of_snow_falling_level_below_ground_level'
 
     Returns:
-        probability_cube (iris.cube.Cube):
+        iris.cube.Cube:
             A cube of probabilities obtained by interpolating between
             percentile values at the "threshold" level.
     """
