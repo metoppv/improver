@@ -32,6 +32,8 @@
 
 import numpy as np
 from cf_units import Unit
+
+import iris
 from iris.exceptions import CoordinateNotFoundError
 
 
@@ -48,32 +50,29 @@ def check_cube_not_float64(cube, fix=False):
             data, otherwise, an error will be raised if float64 data is found.
 
     Raises:
-        TypeError : Raised if float64 values are found in the cube.
-
+        TypeError : Raised if 64 bit values are found in the cube.
     """
-    if cube.dtype == np.float64:
-        if fix:
-            cube.data = cube.data.astype(np.float32)
-        else:
-            raise TypeError("64 bit cube not allowed: {!r}".format(cube))
-    for coord in cube.coords():
-        if coord.name() in ["time", "forecast_reference_time"]:
+    objects_to_check = _construct_object_list(cube, None)
+    nonconforming_objects = []
+    for item in objects_to_check:
+        if item.units.is_time_reference():
             continue
-        if coord.points.dtype == np.float64:
-            if fix:
-                coord.points = coord.points.astype(np.float32)
-            else:
-                raise TypeError(
-                    "64 bit coord points not allowed: {} in {!r}".format(
-                        coord, cube))
-        if (hasattr(coord, "bounds") and coord.bounds is not None and
-                coord.bounds.dtype == np.float64):
-            if fix:
-                coord.bounds = coord.bounds.astype(np.float32)
-            else:
-                raise TypeError(
-                    "64 bit coord bounds not allowed: {} in {!r}".format(
-                        coord, cube))
+        if item.dtype == np.float64:
+            nonconforming_objects.append(item)
+        elif (isinstance(item, iris.coords.Coord) and item.bounds is not None
+                and item.bounds.dtype == np.float64):
+            nonconforming_objects.append(item)
+
+    if nonconforming_objects and not fix:
+        raise TypeError('64 bit data not allowed')
+
+    for item in nonconforming_objects:
+        if isinstance(item, iris.cube.Cube):
+            item.data = item.data.astype(np.float32)
+        else:
+            item.points = item.points.astype(np.float32)
+            if item.bounds is not None:
+                item.bounds = item.bounds.astype(np.float32)
 
 
 def check_time_coordinate_metadata(cube):
@@ -179,6 +178,13 @@ def check_datatypes(cube, coords=None):
             reqd_dtype = np.float32
 
         if item.dtype != reqd_dtype:
+            msg = ('{} datatype {} does not conform '
+                   'to expected standard ({})\n')
+            msg = msg.format(item.name(), item.dtype, reqd_dtype)
+            error_string += msg
+
+        if (isinstance(item, iris.coords.Coord) and item.bounds is not None
+                and item.bounds.dtype != reqd_dtype):
             msg = ('{} datatype {} does not conform '
                    'to expected standard ({})\n')
             msg = msg.format(item.name(), item.dtype, reqd_dtype)

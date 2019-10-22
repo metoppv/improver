@@ -211,6 +211,13 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
                 raise ValueError(
                     'Cannot generate {} realizations from data of shape '
                     '{}'.format(len(realizations), data.shape))
+            realizations = np.array(realizations)
+            if issubclass(realizations.dtype.type, np.integer):
+                # expect integer realizations
+                realizations = realizations.astype(np.int32)
+            else:
+                # option needed for percentile & probability cube setup
+                realizations = realizations.astype(np.float32)
         else:
             realizations = np.arange(data.shape[0]).astype(np.int32)
         realization_coord = DimCoord(realizations, "realization", units="1")

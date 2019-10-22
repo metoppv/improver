@@ -58,7 +58,7 @@ class Test_check_cube_not_float64(IrisTest):
     def test_float64_cube_data(self):
         """Test a failure of a cube with 64 bit data."""
         self.cube.data = self.cube.data.astype(np.float64)
-        msg = "64 bit cube not allowed"
+        msg = "64 bit data not allowed"
         with self.assertRaisesRegex(TypeError, msg):
             enforce.check_cube_not_float64(self.cube)
 
@@ -76,7 +76,7 @@ class Test_check_cube_not_float64(IrisTest):
             self.cube.coord("projection_x_coordinate").points.astype(
                 np.float64)
         )
-        msg = "64 bit coord points not allowed"
+        msg = "64 bit data not allowed"
         with self.assertRaisesRegex(TypeError, msg):
             enforce.check_cube_not_float64(self.cube)
 
@@ -102,7 +102,7 @@ class Test_check_cube_not_float64(IrisTest):
         x_coord.bounds = (
             np.array([(point - 10., point + 10.) for point in x_coord.points])
         )
-        msg = "64 bit coord bounds not allowed"
+        msg = "64 bit data not allowed"
         with self.assertRaisesRegex(TypeError, msg):
             enforce.check_cube_not_float64(self.cube)
 
@@ -122,20 +122,6 @@ class Test_check_cube_not_float64(IrisTest):
         self.assertEqual(self.cube, expected_cube)
         self.assertEqual(
             self.cube.coord("projection_x_coordinate"), expected_coord)
-
-    def test_float64_cube_time_coord_points_ok(self):
-        """Test a pass of a cube with 64 bit time coord points."""
-        self.cube.coord("time").points = (
-             self.cube.coord("time").points.astype(np.float64))
-        enforce.check_cube_not_float64(self.cube)
-
-    def test_float64_cube_forecast_ref_time_coord_points_ok(self):
-        """Test a pass of a cube with 64 bit fcast ref time coord points."""
-        frt_coord = iris.coords.AuxCoord(
-            [np.float64(min(self.cube.coord("time").points))],
-            standard_name="forecast_reference_time")
-        self.cube.add_aux_coord(frt_coord)
-        enforce.check_cube_not_float64(self.cube)
 
 
 class Test_check_time_coordinate_metadata(IrisTest):
