@@ -168,14 +168,14 @@ def process(temperature, humidity, pressure, wind_speed, wind_dir, orography):
             resolution (1 km) UKPP domain grid.
 
     Returns:
-        Tuple[iris.cube.Cube, iris.cube.Cube]:
-        **iris.cube.Cube**:
-            Precipitation enhancement due to orography in mm/h on the
-            UK standard grid, padded with masked up np.nans where
-            outside the UKPP domain.
-        **iris.cube.Cube**:
-            Precipitation enhancement due to orography in mm/h on
-            the 1km Transverse Mercator UKPP grid domain.
+        (tuple): tuple containing:
+                **orogenh_high_res** (iris.cube.Cube):
+                    Precipitation enhancement due to orography in mm/h on the
+                    UK standard grid, padded with masked up np.nans where
+                    outside the UKPP domain.
+                **orogenh_standard** (iris.cube.Cube):
+                    Precipitation enhancement due to orography in mm/h on
+                    the 1km Transverse Mercator UKPP grid domain.
     """
     # resolve u and v wind components
     u_wind, v_wind = ResolveWindComponents().process(wind_speed, wind_dir)

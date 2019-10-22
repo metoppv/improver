@@ -88,7 +88,7 @@ def _match_title(original_title):
             Value of "title" attribute on an input cube
 
     Returns:
-        re.Match object or None:
+        re.Match or None:
             Match to expected regular expression pattern, or None if the
             string does not match the pattern
     """

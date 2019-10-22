@@ -186,8 +186,23 @@ class NeighbourSelection:
             cube (iris.cube.Cube):
                 A cube that is representative of the model/grid from which spot
                 data will be extracted.
+
         Returns:
-           as above:
+            (tuple): tuple containing:
+                **sites** (numpy.ndarray):
+                    The sites modified to filter out the sites falling outside
+                    the grid domain of the cube.
+                **site_coords** (numpy.ndarray):
+                    The site_coords modified to filter out the sites falling
+                    outside the grid domain of the cube.
+                **site_x_coords** (numpy.ndarray):
+                    The x_coords modified to filter out the sites falling
+                    outside the grid domain of the cube.
+                **site_y_coords** (numpy.ndarray):
+                    The y_coords modified to filter out the sites falling
+                    outside the grid domain of the cube.
+
+           (tuple) tuple containing:
                The inputs modified to filter out the sites falling outside the
                grid domain of the cube.
         """
@@ -218,7 +233,7 @@ class NeighbourSelection:
                    " processed. These sites are:\n".format(num_invalid))
             dyn_msg = '{}\n'
             for site in np.array(sites)[domain_invalid]:
-                msg = msg + dyn_msg.format(site)
+                msg += dyn_msg.format(site)
             warnings.warn(msg)
 
         sites = np.array(sites)[domain_valid]
@@ -296,10 +311,10 @@ class NeighbourSelection:
                 neighbours are being selected.
         Returns:
             (tuple): tuple containing:
-                scipy.spatial.ckdtree.cKDTree:
+                **scipy.spatial.ckdtree.cKDTree**:
                     A KDTree containing the required nodes, built using the
                     scipy cKDTree method.
-                index_nodes (numpy.ndarray):
+                **numpy.ndarray**:
                     An array of shape (n_nodes, 2) that contains the x and y
                     indices that correspond to the selected node,
                     e.g. node=100 -->  x_coord_index=10, y_coord_index=300,

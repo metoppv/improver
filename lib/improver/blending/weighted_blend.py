@@ -528,7 +528,7 @@ class WeightedBlendAcrossWholeDimension:
             cube (iris.cube.Cube):
                 The cube to be checked for a percentile coordinate.
         Returns:
-            iris.coords.DimCoord:
+            iris.coords.DimCoord or None:
                 None if no percentile dimension coordinate is found. If
                 such a coordinate is found it is returned.
         Raises:
