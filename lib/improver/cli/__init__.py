@@ -136,7 +136,7 @@ def inputcube(to_convert):
             calls maybe_coerce_with function with the input and load_cube.
 
     Returns:
-        (obj):
+        obj:
             The result of maybe_coerce_with.
 
     """
@@ -154,7 +154,7 @@ def inputjson(to_convert):
             load_json_or_none.
 
     Returns:
-        (obj):
+        obj:
             The result of maybe_coerce_with.
 
     """
