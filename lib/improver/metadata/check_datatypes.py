@@ -32,8 +32,6 @@
 
 import numpy as np
 from cf_units import Unit
-
-import iris
 from iris.exceptions import CoordinateNotFoundError
 
 
