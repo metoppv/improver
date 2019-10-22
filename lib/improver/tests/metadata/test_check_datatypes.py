@@ -32,7 +32,6 @@
 
 import unittest
 
-import iris
 import numpy as np
 from iris.coords import AuxCoord
 from iris.tests import IrisTest
