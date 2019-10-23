@@ -894,6 +894,46 @@ class ApplyCoefficientsFromEnsembleCalibration():
                   'predictor_of_mean_flag: {}>')
         return result.format(self.predictor_of_mean_flag)
 
+    @staticmethod
+    def _merge_calibrated_and_uncalibrated_regions(
+            original_data, calibrated_data, mask):
+        """
+        If a mask has been provided to this plugin, this function acts to
+        combine calibrated data and uncalibrated data. Those regions where the
+        mask=0 will be populated with uncalibrated data. Those regions where
+        the mask=1 will retain calibrated data. The calibrated data cube will
+        be modified in situ.
+
+        Note that this can be achieved straightforwardly with fancy indexing
+        but there is a need to slice the data to avoid overflowing available
+        memory.
+
+        Args:
+            original_data (numpy.ndarray):
+                The uncalibrated predictor or variance that will populate
+                regions in which the mask=0.
+            calibrated_data (numpy.ndarray):
+                The calibrated predictor or variance data array that will be
+                modified in situ. Those regions of the array that correspond
+                with indices at which the mask=0 will be replaced with data
+                from the original_data array.
+            mask (numpy.ndarray):
+                A mask determining which regions should be returned with
+                calibrated data (1) and which regions should be returned with
+                uncalibrated data (0).
+        """
+        mask = np.broadcast_to(mask, calibrated_data.shape)
+        all_indices = np.split(mask == 0, mask.shape[-1], axis=-1)
+        original_data = np.split(original_data, original_data.shape[-1],
+                                 axis=-1)
+        calibrated_data = np.split(calibrated_data, calibrated_data.shape[-1],
+                                   axis=-1)
+        iterator = zip(original_data, calibrated_data, all_indices)
+
+        for original, calibrated, indices in iterator:
+            calibrated[indices] = original[indices]
+        calibrated_data = np.squeeze(np.stack(calibrated_data, axis=-1))
+
     def _spatial_domain_match(self):
         """
         Check that the domain of the current forecast and coefficients cube
@@ -1003,7 +1043,7 @@ class ApplyCoefficientsFromEnsembleCalibration():
     def calibrate_forecast_data(optimised_coeffs, predicted_mean,
                                 forecast_predictor, forecast_var):
         """
-        Create a calibrated_forecast_predictor by reshaping the preddicted mean
+        Create a calibrated_forecast_predictor by reshaping the predicted mean
         to the original domain dimensions. Apply the calibration coefficients
         to the forecast data variance. Return both to give calibrated mean and
         variance in the original domain dimensions.
@@ -1048,7 +1088,7 @@ class ApplyCoefficientsFromEnsembleCalibration():
 
         return calibrated_forecast_predictor, calibrated_forecast_var
 
-    def process(self, current_forecast, coefficients_cube):
+    def process(self, current_forecast, coefficients_cube, landsea_mask=None):
         """
         Wrapping function to calculate the forecast predictor and forecast
         variance prior to applying coefficients to the current forecast.
@@ -1062,6 +1102,9 @@ class ApplyCoefficientsFromEnsembleCalibration():
                 where the points of the coordinate are integer values and a
                 coefficient_name auxiliary coordinate where the points of
                 the coordinate are e.g. gamma, delta, alpha, beta.
+            landsea_mask (iris.cube.Cube or None):
+                The optional cube containing a land-sea mask. If provided, only
+                land points are calibrated using the provided coefficients.
 
         Returns:
             (tuple) : tuple containing:
@@ -1099,5 +1142,16 @@ class ApplyCoefficientsFromEnsembleCalibration():
         calibrated_forecast_predictor, calibrated_forecast_var = (
             self.calibrate_forecast_data(optimised_coeffs, predicted_mean,
                                          forecast_predictor, forecast_vars))
+
+        # Use a mask to confine calibration to regions in which the mask=1.
+        if landsea_mask:
+            self._merge_calibrated_and_uncalibrated_regions(
+                forecast_predictor.data,
+                calibrated_forecast_predictor.data,
+                landsea_mask.data)
+            self._merge_calibrated_and_uncalibrated_regions(
+                forecast_vars.data,
+                calibrated_forecast_var.data,
+                landsea_mask.data)
 
         return calibrated_forecast_predictor, calibrated_forecast_var

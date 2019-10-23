@@ -178,7 +178,7 @@ def parse_constraint_list(constraints, units=None):
     return constraints, units_dict
 
 
-def apply_extraction(cube, constraint, units=None):
+def apply_extraction(cube, constraint, units=None, use_original_units=True):
     """
     Using a set of constraints, extract a subcube from the provided cube if it
     is available.
@@ -193,6 +193,11 @@ def apply_extraction(cube, constraint, units=None):
             A dictionary of units for the constraints. Supplied if any
             coordinate constraints are provided in different units from those
             of the input cube (eg precip in mm/h for cube threshold in m/s).
+        use_original_units (bool):
+            Boolean to state whether the coordinates used in the extraction
+            should be converted back to their original units. The default is
+            True, indicating that the units should be converted back to the
+            original units.
 
     Returns:
         iris.cube.Cube:
@@ -207,18 +212,20 @@ def apply_extraction(cube, constraint, units=None):
             original_units[coord] = cube.coord(coord).units
             cube.coord(coord).convert_units(units[coord])
         output_cube = cube.extract(constraint)
-        for coord in original_units.keys():
-            cube.coord(coord).convert_units(original_units[coord])
-            try:
-                output_cube.coord(coord).convert_units(original_units[coord])
-            except AttributeError:
-                # an empty output cube (None) is handled by the CLI
-                pass
+        if use_original_units:
+            for coord in original_units.keys():
+                cube.coord(coord).convert_units(original_units[coord])
+                try:
+                    output_cube.coord(coord).convert_units(
+                        original_units[coord])
+                except AttributeError:
+                    # an empty output cube (None) is handled by the CLI
+                    pass
 
     return output_cube
 
 
-def extract_subcube(cube, constraints, units=None):
+def extract_subcube(cube, constraints, units=None, use_original_units=True):
     """
     Using a set of constraints, extract a subcube from the provided cube if it
     is available.
@@ -233,6 +240,11 @@ def extract_subcube(cube, constraints, units=None):
             List of units (as strings) corresponding to each coordinate in the
             list of constraints.  One or more "units" may be None, and units
             may only be associated with coordinate constraints.
+        use_original_units (bool):
+            Boolean to state whether the coordinates used in the extraction
+            should be converted back to their original units. The default is
+            True, indicating that the units should be converted back to the
+            original units.
 
     Returns:
         iris.cube.Cube or None:
@@ -240,5 +252,6 @@ def extract_subcube(cube, constraints, units=None):
             is found within cube that matches the constraints.
     """
     constraints, units = parse_constraint_list(constraints, units=units)
-    output_cube = apply_extraction(cube, constraints, units=units)
+    output_cube = apply_extraction(
+        cube, constraints, units=units, use_original_units=use_original_units)
     return output_cube

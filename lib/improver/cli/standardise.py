@@ -38,7 +38,7 @@ import iris
 
 from improver.argparser import ArgParser
 from improver.metadata.amend import amend_metadata
-from improver.metadata.enforce_datatypes_units import check_cube_not_float64
+from improver.metadata.check_datatypes import check_cube_not_float64
 from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
