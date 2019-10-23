@@ -212,7 +212,7 @@ def _clizefy(obj, **kwargs):
     """Allows for legacy argparser and clize CLIs to coexist.
 
     The legacy interface expects `<cli_name>.main` routine and the new one
-    expects <cli_name.process routine that is type annotated.
+    expects `<cli_name>.process` routine that is type annotated.
     If both interfaces are available, then one is picked based on the
     IMPROVER_USE_CLIZE environment variable, default is the legacy one.
     The environment setting has to be done before `import improver.cli`.
