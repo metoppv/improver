@@ -46,12 +46,30 @@ class Test_check_cube_not_float64(IrisTest):
     """Test whether a cube contains any float64 values."""
 
     def setUp(self):
-        """Set up a cube to test."""
-        self.cube = set_up_variable_cube(np.ones((5, 5), dtype=np.float32),
+        """Set up a test cube with the following data and coordinates, which
+        comply with the IMPROVER datatypes standard:
+
+        +-------------------------+-------------+
+        | Name                    | Datatype    |
+        +=========================+=============+
+        | data (air_temperature)  | np.float32  |
+        +-------------------------+-------------+
+        | projection_x_coordinate | np.float32  |
+        +-------------------------+-------------+
+        | projection_y_coordinate | np.float32  |
+        +-------------------------+-------------+
+        | time                    | np.int64    |
+        +-------------------------+-------------+
+        | forecast_reference_time | np.int64    |
+        +-------------------------+-------------+
+        | forecast_period         | np.int32    |
+        +-------------------------+-------------+
+        """
+        self.cube = set_up_variable_cube(280*np.ones((5, 5), dtype=np.float32),
                                          spatial_grid='equalarea')
 
-    def test_float32_ok(self):
-        """Test a cube that should pass."""
+    def test_success(self):
+        """Test a cube that should pass does not throw an error."""
         enforce.check_cube_not_float64(self.cube)
 
     def test_float64_cube_data(self):
@@ -64,10 +82,8 @@ class Test_check_cube_not_float64(IrisTest):
     def test_float64_cube_data_with_fix(self):
         """Test a cube with 64 bit data is converted to 32 bit data."""
         self.cube.data = self.cube.data.astype(np.float64)
-        expected_cube = self.cube.copy()
-        expected_cube.data = expected_cube.data.astype(np.float64)
         enforce.check_cube_not_float64(self.cube, fix=True)
-        self.assertEqual(self.cube, expected_cube)
+        self.assertEqual(self.cube.data.dtype, np.float32)
 
     def test_float64_cube_coord_points(self):
         """Test a failure of a cube with 64 bit coord points."""
@@ -84,15 +100,9 @@ class Test_check_cube_not_float64(IrisTest):
         self.cube.coord("projection_x_coordinate").points = (
             self.cube.coord("projection_x_coordinate").points.astype(
                 np.float64))
-        expected_cube = self.cube.copy()
-        expected_cube.coord("projection_x_coordinate").points = (
-            expected_cube.coord("projection_x_coordinate").points.astype(
-                np.float64))
-        expected_coord = expected_cube.coord("projection_x_coordinate")
         enforce.check_cube_not_float64(self.cube, fix=True)
-        self.assertEqual(self.cube, expected_cube)
-        self.assertEqual(
-            self.cube.coord("projection_x_coordinate"), expected_coord)
+        coord = self.cube.coord("projection_x_coordinate")
+        self.assertEqual(coord.points.dtype, np.float32)
 
     def test_float64_cube_coord_bounds(self):
         """Test a failure of a cube with 64 bit coord bounds."""
@@ -112,12 +122,10 @@ class Test_check_cube_not_float64(IrisTest):
         x_coord.bounds = (
             np.array([(point - 10., point + 10.) for point in x_coord.points])
         )
-        expected_cube = self.cube.copy()
-        expected_coord = expected_cube.coord("projection_x_coordinate")
         enforce.check_cube_not_float64(self.cube, fix=True)
-        self.assertEqual(self.cube, expected_cube)
-        self.assertEqual(
-            self.cube.coord("projection_x_coordinate"), expected_coord)
+        coord = self.cube.coord("projection_x_coordinate")
+        self.assertEqual(coord.points.dtype, np.float32)
+        self.assertEqual(coord.bounds.dtype, np.float32)
 
 
 class Test_check_time_coordinate_metadata(IrisTest):
