@@ -130,21 +130,30 @@ def main(argv=None):
              'mean. Currently the ensemble mean ("mean") and the ensemble '
              'realizations ("realizations") are supported as options. '
              'Default: "mean".')
+    parser.add_argument(
+        '--landsea_mask', metavar="LANDSEA_MASK", default=None,
+        help="The netCDF file containing a land-sea mask on the same domain "
+             "as the forecast that is to be calibrated. Land points are "
+             "specified by ones and sea points are specified by zeros. "
+             "Supplying this file will enable land-only calibration, in which "
+             "sea points are returned without the application of calibration.")
 
     args = parser.parse_args(args=argv)
 
     # Load Cubes
     current_forecast = load_cube(args.forecast_filepath)
     coeffs = load_cube(args.coefficients_filepath, allow_none=True)
+    landsea_mask = load_cube(args.landsea_mask, allow_none=True)
     # Process Cube
-    result = process(current_forecast, coeffs, args.num_realizations,
-                     args.random_ordering, args.random_seed,
-                     args.ecc_bounds_warning, args.predictor_of_mean)
+    result = process(current_forecast, coeffs, landsea_mask,
+                     args.num_realizations, args.random_ordering,
+                     args.random_seed, args.ecc_bounds_warning,
+                     args.predictor_of_mean)
     # Save Cube
     save_netcdf(result, args.output_filepath)
 
 
-def process(current_forecast, coeffs, num_realizations=None,
+def process(current_forecast, coeffs, landsea_mask, num_realizations=None,
             random_ordering=False, random_seed=None,
             ecc_bounds_warning=False, predictor_of_mean='mean'):
     """Applying coefficients for Ensemble Model Output Statistics.
@@ -163,6 +172,13 @@ def process(current_forecast, coeffs, num_realizations=None,
         coeffs (iris.cube.Cube or None):
             A cube containing the coefficients used for calibration or None.
             If none then then current_forecast is returned unchanged.
+        landsea_mask (iris.cube.Cube or None):
+            A cube containing the land-sea mask on the same domain as the
+            forecast that is to be calibrated. Land points are "
+            "specified by ones and sea points are specified by zeros. "
+            "If not None this argument will enable land-only calibration, in "
+            "which sea points are returned without the application of "
+            "calibration."
         num_realizations (numpy.int32):
             Optional argument to specify the number of ensemble realizations
             to produce. If the current forecast is input as probabilities or
@@ -275,7 +291,7 @@ def process(current_forecast, coeffs, num_realizations=None,
     ac = ApplyCoefficientsFromEnsembleCalibration(
         predictor_of_mean_flag=predictor_of_mean)
     calibrated_predictor, calibrated_variance = ac.process(
-        current_forecast, coeffs)
+        current_forecast, coeffs, landsea_mask=landsea_mask)
 
     # If input forecast is probabilities, convert output into probabilities.
     # If input forecast is percentiles, convert output into percentiles.

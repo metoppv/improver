@@ -29,20 +29,24 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "apply-emos-coefficients no arguments" {
-  run improver apply-emos-coefficients
-  [[ "$status" -eq 2 ]]
-  expected="usage: improver apply-emos-coefficients [-h] [--profile]
-                                        [--profile_file PROFILE_FILE]
-                                        [--num_realizations NUMBER_OF_REALIZATIONS]
-                                        [--random_ordering]
-                                        [--random_seed RANDOM_SEED]
-                                        [--ecc_bounds_warning]
-                                        [--predictor_of_mean PREDICTOR_OF_MEAN]
-                                        [--landsea_mask LANDSEA_MASK]
-                                        FORECAST_FILEPATH
-                                        [COEFFICIENTS_FILEPATH]
-                                        OUTPUT_FILEPATH
-"
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "apply-emos-coefficients for diagnostic with assumed gaussian distribution" {
+  improver_check_skip_acceptance
+  KGO="apply-emos-coefficients/masked/kgo.nc"
+
+  # Apply EMOS coefficients to calibrate the input forecast over land areas
+  # and check that the calibrated forecast matches the kgo
+  run improver apply-emos-coefficients \
+      "$IMPROVER_ACC_TEST_DIR/apply-emos-coefficients/gaussian/input.nc" \
+      "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/kgo.nc" \
+      "$TEST_DIR/output.nc" --random_seed 0 \
+      --landsea_mask "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/landmask.nc"
+  [[ "$status" -eq 0 ]]
+
+  improver_check_recreate_kgo "output.nc" $KGO
+
+  # Run nccmp to compare the output and kgo realizations and check it passes.
+  improver_compare_output_lower_precision "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }
