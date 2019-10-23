@@ -137,7 +137,7 @@ def main(argv=None):
     # pylint: disable=E1123
     process(cube, mask_cube, weights, coord_for_masking=args.coord_for_masking,
             radius=args.radius, radii_by_lead_time=args.radii_by_lead_time,
-            sum_or_fraction=args.sum_or_fraction, re_mask=args.re_mask,
+            sum_or_fraction=args.sum_or_fraction, remask=args.re_mask,
             collapse_dimension=args.collapse_dimension,
             output=args.output_filepath,
             intermediate_output=args.intermediate_filepath)
@@ -153,7 +153,7 @@ def process(cube: cli.inputcube,
             coord_for_masking, radius: float = None,
             radii_by_lead_time=None,
             sum_or_fraction="fraction",
-            re_mask=False,
+            remask=False,
             collapse_dimension=False):
     """Runs neighbourhooding processing iterating over a coordinate by mask.
 
@@ -199,7 +199,7 @@ def process(cube: cli.inputcube,
             Sum represents the sum of the neighbourhood.
             Fraction represents the sum of the neighbourhood divided by the
             neighbourhood area.
-        re_mask (bool):
+        remask (bool):
             If True, the original un-neighbourhood processed mask
             is applied to mask out the neighbourhood processed cube.
             If False, the original un-neighbourhood processed mask is not
@@ -232,7 +232,7 @@ def process(cube: cli.inputcube,
     result = ApplyNeighbourhoodProcessingWithAMask(
         coord_for_masking, radius_or_radii, lead_times=lead_times,
         sum_or_fraction=sum_or_fraction,
-        re_mask=re_mask).process(cube, mask)
+        re_mask=remask).process(cube, mask)
     intermediate_cube = None
 
     # Collapse with the masking dimension.

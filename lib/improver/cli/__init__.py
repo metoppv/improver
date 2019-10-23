@@ -41,6 +41,7 @@ from clize.parser import value_converter
 from clize.runner import Clize
 from sigtools.wrappers import decorator
 
+# Imports are done in their functions to make calls to -h quicker.
 # selected clize imports/constants
 
 IGNORE = clize.Parameter.IGNORE
@@ -121,10 +122,10 @@ class ObjectAsStr(str):
         return '<%s.%s@%i>' % (cls.__module__, cls.__name__, obj_id)
 
 
-def maybe_coerce_with(convert, obj, **kwargs):
+def maybe_coerce_with(converter, obj, **kwargs):
     """Apply converter if str, pass through otherwise."""
     obj = getattr(obj, 'original_object', obj)
-    return convert(obj, **kwargs) if isinstance(obj, str) else obj
+    return converter(obj, **kwargs) if isinstance(obj, str) else obj
 
 
 @value_converter
@@ -326,11 +327,13 @@ SUBCOMMANDS_DISPATCHER = clizefy(
 # IMPROVER top level main
 
 
-def brackets_to_nested_list(args):
+def unbracket(args):
     """Convert input list with bracketed items into nested lists.
 
-    >>> brackets_to_nested_list('foo [ bar a b ] [ baz c ] -o z'.split())
+    unbracket(['foo', '[', 'bar', 'a', 'b', ']',
+                            '[', 'baz', 'c', ']', '-o', 'z'])
     ['foo', ['bar', 'a', 'b'], ['baz', 'c'], '-o', 'z']
+
     """
     outargs = []
     stack = []
@@ -379,6 +382,7 @@ def execute_command(dispatcher, prog_name, *args,
 def main(prog_name: parameters.pass_name,
          command: LAST_OPTION,
          *args,
+         profile: value_converter(lambda _: _, name='FILENAME') = None,
          verbose=False,
          dry_run=False):
     """IMPROVER NWP post-processing toolbox
@@ -397,6 +401,9 @@ def main(prog_name: parameters.pass_name,
             Command to execute
         args (tuple):
             Command arguments
+        profile (str):
+            If given, will write profiling to the file given.
+            To write to stdout, use a hyphen (-)
         verbose (bool):
             Print executed commands
         dry_run (bool):
@@ -405,7 +412,10 @@ def main(prog_name: parameters.pass_name,
     See improver help [--usage] [command] for more information
     on available command(s).
     """
-    args = brackets_to_nested_list(args)
+    args = unbracket(args)
+    if profile is not None:
+        from improver.profile import profile_hook_enable
+        profile_hook_enable(dump_filename=None if profile == '-' else profile)
     result = execute_command(SUBCOMMANDS_DISPATCHER,
                              prog_name, command, *args,
                              verbose=verbose, dry_run=dry_run)
