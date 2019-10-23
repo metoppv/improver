@@ -159,10 +159,10 @@ class OrographicAlphas(object):
 
         Returns:
             (tuple): tuple containing:
-                **alpha_x** (iris.cube.Cube) - A cube of orography-dependent
+                **alpha_x** (iris.cube.Cube): A cube of orography-dependent
                     alphas calculated in the x direction.
 
-                **alpha_y** (iris.cube.Cube) - A cube of orography-dependent
+                **alpha_y** (iris.cube.Cube): A cube of orography-dependent
                     alphas calculated in the y direction.
         """
         alpha_x = self.unnormalised_alphas(gradient_x)
@@ -197,10 +197,10 @@ class OrographicAlphas(object):
 
         Returns:
             (tuple): tuple containing:
-                **alpha_x** (iris.cube.Cube) - A cube of orography-dependent
+                **alpha_x** (iris.cube.Cube): A cube of orography-dependent
                     alphas calculated in the x direction.
 
-                **alpha_y** (iris.cube.Cube) - A cube of orography-dependent
+                **alpha_y** (iris.cube.Cube): A cube of orography-dependent
                     alphas calculated in the y direction.
         """
         if not isinstance(cube, iris.cube.Cube):

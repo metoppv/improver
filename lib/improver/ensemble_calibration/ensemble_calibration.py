@@ -707,10 +707,11 @@ class EstimateCoefficientsForEnsembleCalibration():
                 compared to the historic forecasts.
 
         Returns:
-            (tuple): tuple containing:                matching_historic_forecasts (iris.cube.Cube):
+            (tuple): tuple containing:
+                **matching_historic_forecasts** (iris.cube.Cube):
                     Cube of historic forecasts where any mismatches with
                     the truth cube have been removed.
-                matching_truths (iris.cube.Cube):
+                **matching_truths** (iris.cube.Cube):
                     Cube of truths where any mismatches with
                     the historic_forecasts cube have been removed.
 

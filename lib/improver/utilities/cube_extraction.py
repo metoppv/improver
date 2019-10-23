@@ -127,7 +127,8 @@ def parse_constraint_list(constraints, units=None):
             may only be associated with coordinate constraints.
 
     Returns:
-        (tuple): tuple containing:            **constraints** (iris.Constraint or \
+        (tuple): tuple containing:
+            **constraints** (iris.Constraint or \
             iris._constraints.ConstraintCombination):
                 A combination of all the constraints that were supplied.
 

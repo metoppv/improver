@@ -183,9 +183,9 @@ def process(original_cube_list, orographic_enhancement_cube=None,
 
     Returns:
         (tuple): tuple containing:
-            **forecast_cubes** (list<Cube>):
+            **forecast_cubes** (list of Cube):
                 List of Cubes if extrapolate is True, else None.
-            **u_and_v_mean** (list<Cube>):
+            **u_and_v_mean** (list of Cube):
                 List of the umean and vmean cubes.
 
     Raises:

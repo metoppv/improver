@@ -140,11 +140,11 @@ class ResolveWindComponents(object):
 
         Returns:
             (tuple): tuple containing:
-                (iris.cube.Cube):
+                **u_speed** (iris.cube.Cube):
                     Cube containing wind vector component in the positive
                     x-direction
 
-                (iris.cube.Cube):
+                **v_speed** (iris.cube.Cube):
                     Cube containing wind vector component in the positive
                     y-direction
         """
