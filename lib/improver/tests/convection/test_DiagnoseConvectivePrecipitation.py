@@ -116,7 +116,7 @@ class Test__repr__(IrisTest):
             neighbourhood_method, radii))
         msg = ('<DiagnoseConvectivePrecipitation: lower_threshold 2.7778e-10; '
                'higher_threshold 1.3889e-06; neighbourhood_method: square; '
-               'radii: 2000.0; fuzzy_factor None; below_thresh_ok: False; '
+               'radii: 2000.0; fuzzy_factor None; comparison_operator: >; '
                'lead_times: None; weighted_mode: True;'
                'use_adjacent_grid_square_differences: True>')
         self.assertEqual(str(result), msg)
@@ -365,14 +365,14 @@ class Test_iterate_over_threshold(IrisTest):
                [1., 1., 1., 1.],
                [0., 1., 0., 0.],
                [1., 0., 0., 0.]]]])
-        below_thresh_ok = True
+        comparison_operator = '<='
         lower_threshold = 5 * mm_hr_to_m_s
         higher_threshold = 0.001 * mm_hr_to_m_s
         cubelist = iris.cube.CubeList([self.cube, self.cube])
         result = DiagnoseConvectivePrecipitation(
             lower_threshold, higher_threshold,
             self.neighbourhood_method,
-            self.radii, below_thresh_ok=below_thresh_ok
+            self.radii, comparison_operator=comparison_operator
             ).iterate_over_threshold(cubelist, self.higher_threshold)
         self.assertIsInstance(result, iris.cube.CubeList)
         self.assertArrayAlmostEqual(result[0].data, expected)

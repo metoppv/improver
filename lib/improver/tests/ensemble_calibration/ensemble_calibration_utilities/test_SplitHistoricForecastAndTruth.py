@@ -138,6 +138,16 @@ class Test_process(SetupCubes, SetupDicts):
         self.assertEqual(hf_result, self.historic_temperature_forecast_cube)
         self.assertEqual(truth_result, self.temperature_truth_cube)
 
+    def test_mismatching_history_attribute(self):
+        """Test that the input cubelist combining historic forecasts and truth
+        can be split using the metadata dictionaries provided, when there are
+        mismatches in the history attribute."""
+        self.combined[0].attributes["history"] = "history"
+        hf_result, truth_result = self.plugin.process(self.combined)
+        self.assertEqual(hf_result,
+                         self.historic_temperature_forecast_cube)
+        self.assertEqual(truth_result, self.temperature_truth_cube)
+
 
 if __name__ == '__main__':
     unittest.main()

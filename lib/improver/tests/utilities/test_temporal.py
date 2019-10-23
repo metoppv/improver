@@ -550,8 +550,9 @@ class Test_extract_nearest_time_point(IrisTest):
         """Test that the nearest time point within the time coordinate is
         extracted."""
         expected = self.cube[:, 0, :, :]
-        time_point = datetime.datetime(2015, 11, 23, 6, 0)
-        result = extract_nearest_time_point(self.cube, time_point)
+        time_point = datetime.datetime(2015, 11, 23, 6, 31)
+        result = extract_nearest_time_point(self.cube, time_point,
+                                            allowed_dt_difference=1800)
         self.assertEqual(result, expected)
 
     def test_time_coord_lower_case(self):
@@ -559,7 +560,8 @@ class Test_extract_nearest_time_point(IrisTest):
         extracted, when a time of 07:30 is requested."""
         expected = self.cube[:, 0, :, :]
         time_point = datetime.datetime(2015, 11, 23, 7, 30)
-        result = extract_nearest_time_point(self.cube, time_point)
+        result = extract_nearest_time_point(self.cube, time_point,
+                                            allowed_dt_difference=1800)
         self.assertEqual(result, expected)
 
     def test_time_coord_upper_case(self):
@@ -567,16 +569,23 @@ class Test_extract_nearest_time_point(IrisTest):
         extracted, when a time of 07:31 is requested."""
         expected = self.cube[:, 1, :, :]
         time_point = datetime.datetime(2015, 11, 23, 7, 31)
-        result = extract_nearest_time_point(self.cube, time_point)
+        result = extract_nearest_time_point(self.cube, time_point,
+                                            allowed_dt_difference=1800)
         self.assertEqual(result, expected)
 
     def test_forecast_reference_time_coord(self):
         """Test that the nearest time point within the forecast_reference_time
         coordinate is extracted."""
+        later_frt = self.cube.copy()
+        later_frt.coord('forecast_reference_time').points = (
+            later_frt.coord('forecast_reference_time').points + 3600)
+        cubes = iris.cube.CubeList([self.cube, later_frt])
+        cube = cubes.merge_cube()
         expected = self.cube
-        time_point = datetime.datetime(2015, 11, 23, 6, 0)
+        time_point = datetime.datetime(2015, 11, 23, 3, 29)
         result = extract_nearest_time_point(
-            self.cube, time_point, time_name="forecast_reference_time")
+            cube, time_point, time_name="forecast_reference_time",
+            allowed_dt_difference=1800)
         self.assertEqual(result, expected)
 
     def test_exception_using_allowed_dt_difference(self):

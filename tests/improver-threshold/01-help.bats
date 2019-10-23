@@ -36,7 +36,8 @@
 usage: improver threshold [-h] [--profile] [--profile_file PROFILE_FILE]
                           [--threshold_config THRESHOLD_CONFIG]
                           [--threshold_units THRESHOLD_UNITS]
-                          [--below_threshold] [--fuzzy_factor FUZZY_FACTOR]
+                          [--comparison_operator COMPARISON_OPERATOR]
+                          [--fuzzy_factor FUZZY_FACTOR]
                           [--collapse-coord COLLAPSE-COORD]
                           [--vicinity VICINITY]
                           INPUT_FILE OUTPUT_FILE
@@ -76,10 +77,13 @@ optional arguments:
                         dataset. Specifying the units here will allow a
                         suitable conversion to match the input units if
                         possible.
-  --below_threshold     By default truth values of 1 are returned for data
-                        ABOVE the threshold value(s). Using this flag changes
-                        this behaviour to return 1 for data below the
-                        threshold values.
+  --comparison_operator COMPARISON_OPERATOR
+                        Indicates the comparison_operator to use with the
+                        threshold. e.g. 'ge' or '>=' to evaluate data >=
+                        threshold or '<' to evaluate data < threshold. When
+                        using fuzzy thresholds, there is no difference between
+                        < and <= or > and >=.Default is >. Valid choices: > >=
+                        < <= gt ge lt le.
   --fuzzy_factor FUZZY_FACTOR
                         A decimal fraction defining the factor about the
                         threshold value(s) which should be treated as fuzzy.

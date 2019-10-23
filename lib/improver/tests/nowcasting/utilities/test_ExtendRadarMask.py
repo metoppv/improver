@@ -79,7 +79,7 @@ class Test_process(IrisTest):
                                   [0, 2, 1, 1, 3],
                                   [0, 1, 1, 1, 1],
                                   [0, 2, 1, 1, 1],
-                                  [0, 3, 1, 1, 1]])
+                                  [0, 3, 1, 1, 1]], dtype=np.int32)
 
         self.coverage = set_up_variable_cube(
             coverage_data, name='radar_coverage', units='1',
