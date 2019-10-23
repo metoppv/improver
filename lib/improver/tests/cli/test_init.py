@@ -31,7 +31,7 @@
 """Unit tests for cli.__init__"""
 
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import improver
 from improver.cli import (
