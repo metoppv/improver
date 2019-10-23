@@ -513,7 +513,8 @@ def resolve_metadata_diff(cube1, cube2, warnings_on=False):
             If True output warnings for mismatching metadata.
 
     Returns:
-        (tuple): tuple containing:            **result1** (iris.cube.Cube):
+        (tuple): tuple containing:
+            **result1** (iris.cube.Cube):
                 Cube with corrected Metadata.
             **result2** (iris.cube.Cube):
                 Cube with corrected Metadata.
