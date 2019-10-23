@@ -205,7 +205,7 @@ class RoughnessCorrectionUtilities(object):
         h_over_2.
 
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **hcmask** (numpy.ndarray):
                     2D array of booleans- True for land-points,
                     false for Sea (HC)
@@ -710,7 +710,7 @@ class RoughnessCorrection(object):
                 some iris cube to find coordinate names from
 
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **xname** (str):
                     name of the axis name in x-direction
                 **yname** (str):
@@ -853,7 +853,7 @@ class RoughnessCorrection(object):
                 cube to check the order of coordinate axis
 
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **xpos** (int):
                     position of x axis.
                 **ypos** (int):

@@ -139,8 +139,7 @@ class ResolveWindComponents(object):
                 dimensions.
 
         Returns:
-            (tuple): tuple containing
-
+            (tuple): tuple containing:
                 (iris.cube.Cube):
                     Cube containing wind vector component in the positive
                     x-direction
@@ -174,8 +173,7 @@ class ResolveWindComponents(object):
                 Cube containing wind direction values relative to true North
 
         Returns:
-            (tuple): tuple containing
-
+            (tuple): tuple containing:
                 **ucube** (iris.cube.Cube):
                     Cube containing wind speeds in the positive projection
                     x-axis direction, with units and projection matching

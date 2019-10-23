@@ -113,8 +113,7 @@ class Accumulation:
                 expected to be regular.
 
         Returns:
-            (tuple): tuple containing
-
+            (tuple): tuple containing:
                 **cubes** (iris.cube.CubeList):
                     Modified version of the input cube list of precipitation
                     rates that have had the units of the coordinates and
@@ -224,7 +223,7 @@ class Accumulation:
                 accumulation period.
 
         Returns:
-            iris.cube.Cubelist:
+            iris.cube.CubeList:
                 Cubelist that defines the cubes used to calculate
                 the accumulations.
 

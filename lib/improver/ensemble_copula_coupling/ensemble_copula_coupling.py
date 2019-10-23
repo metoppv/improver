@@ -372,7 +372,7 @@ class GeneratePercentilesFromProbabilities(object):
                 Lower and upper bound to be used as the ends of the
                 cumulative distribution function.
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **threshold_points** (numpy.ndarray):
                     Array of threshold values padded with the lower and upper
                     bound of the distribution.

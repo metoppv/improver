@@ -140,7 +140,7 @@ class WindGustDiagnostic(object):
                 Standard name of the data.
 
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **result** (iris.cube.Cube):
                     Cube containing the required percentile data
                 **perc_coord** (iris.coords.Coord):

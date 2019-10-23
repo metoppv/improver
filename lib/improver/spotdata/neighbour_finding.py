@@ -201,10 +201,6 @@ class NeighbourSelection:
                 **site_y_coords** (numpy.ndarray):
                     The y_coords modified to filter out the sites falling
                     outside the grid domain of the cube.
-
-           (tuple) tuple containing:
-               The inputs modified to filter out the sites falling outside the
-               grid domain of the cube.
         """
         # Get the grid domain limits
         x_min = cube.coord(axis='x').bounds.min()

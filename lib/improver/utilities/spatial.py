@@ -334,7 +334,7 @@ class DifferenceBetweenAdjacentGridSquares(object):
                 Cube from which the differences will be calculated.
 
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **diff_along_y_cube** (iris.cube.Cube):
                     Cube after the differences have been calculated along the
                     y axis.
@@ -510,8 +510,7 @@ def transform_grid_to_lat_lon(cube):
             Cube with points to transform
 
     Returns
-        (tuple): tuple containing
-            **lats** (numpy.ndarray):
+        (tuple): tuple containing:            **lats** (numpy.ndarray):
                 Array of cube.data.shape of Latitude values
             **lons** (numpy.ndarray):
                 Array of cube.data.shape of Longitude values

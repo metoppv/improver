@@ -707,8 +707,7 @@ class EstimateCoefficientsForEnsembleCalibration():
                 compared to the historic forecasts.
 
         Returns:
-            (tuple): tuple containing
-                matching_historic_forecasts (iris.cube.Cube):
+            (tuple): tuple containing:                matching_historic_forecasts (iris.cube.Cube):
                     Cube of historic forecasts where any mismatches with
                     the truth cube have been removed.
                 matching_truths (iris.cube.Cube):
@@ -967,7 +966,7 @@ class ApplyCoefficientsFromEnsembleCalibration():
                 keys with their corresponding values.
 
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **predicted_mean** (numpy.ndarray):
                     Calibrated mean values in a flattened array.
                 **forecast_predictor** (iris.cube.Cube):
@@ -1008,7 +1007,7 @@ class ApplyCoefficientsFromEnsembleCalibration():
                 realizations.
 
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **predicted_mean** (numpy.ndarray):
                     Calibrated mean values in a flattened array.
                 **forecast_predictor** (iris.cube.Cube):
@@ -1062,7 +1061,7 @@ class ApplyCoefficientsFromEnsembleCalibration():
                 realizations.
 
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **calibrated_forecast_predictor** (iris.cube.Cube):
                     Cube containing the calibrated version of the
                     ensemble predictor, either the ensemble mean or
@@ -1107,7 +1106,7 @@ class ApplyCoefficientsFromEnsembleCalibration():
                 land points are calibrated using the provided coefficients.
 
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **calibrated_forecast_predictor** (iris.cube.Cube):
                     Cube containing the calibrated version of the
                     ensemble predictor, either the ensemble mean or

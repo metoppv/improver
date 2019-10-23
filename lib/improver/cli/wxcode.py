@@ -158,7 +158,7 @@ def process(cubes, wxtree='high_resolution'):
     """ Processes cube for Weather symbols.
 
     Args:
-        cubes (iris.cube.Cubelist):
+        cubes (iris.cube.CubeList):
             A cubelist containing the diagnostics required for the
             weather symbols decision tree, these at co-incident times.
         wxtree (str):

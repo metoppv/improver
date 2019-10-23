@@ -245,12 +245,12 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
             Default is 'm'.
 
     Returns:
-        (tuple) tuple containing:
-            **accumulation_cubes** (iris.cube.Cubelist):
+        (tuple): tuple containing:
+            **accumulation_cubes** (iris.cube.CubeList):
                 A cubelist containing precipitation accumulation cubes where
                 the accumulation periods are determined by the
                 lead_time_interval.
-            **forecast_to_return** (iris.cube.Cubelist):
+            **forecast_to_return** (iris.cube.CubeList):
                 New cubes with updated time and extrapolated data.
 
     Raises:

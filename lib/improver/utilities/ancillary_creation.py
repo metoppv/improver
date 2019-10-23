@@ -158,8 +158,7 @@ class OrographicAlphas(object):
                 A cube of the normalised gradient in the y direction
 
         Returns:
-            (tuple): tuple containing
-
+            (tuple): tuple containing:
                 **alpha_x** (iris.cube.Cube) - A cube of orography-dependent
                     alphas calculated in the x direction.
 
@@ -197,8 +196,7 @@ class OrographicAlphas(object):
                 for.
 
         Returns:
-            (tuple): tuple containing
-
+            (tuple): tuple containing:
                 **alpha_x** (iris.cube.Cube) - A cube of orography-dependent
                     alphas calculated in the x direction.
 

@@ -228,8 +228,7 @@ class ChooseWeightsLinear:
                 for setting up the interpolation inputs.
 
         Returns:
-            (tuple): tuple containing
-
+            (tuple): tuple containing:
                 **source_points** (numpy.ndarray):
                     Points within the configuration dictionary that will
                     be used as the input to the interpolation.

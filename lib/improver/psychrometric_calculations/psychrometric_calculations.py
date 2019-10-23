@@ -583,8 +583,7 @@ class WetBulbTemperatureIntegral(object):
                 Cube of air pressures (Pa).
 
         Returns:
-            (tuple): tuple containing
-
+            (tuple): tuple containing:
                 **wet_bulb_temperature** (iris.cube.Cube) - Cube on wet bulb
                 temperatures on height levels (celsius)
 
@@ -834,8 +833,7 @@ class FallingSnowLevel(object):
                 linear fit.
 
         Returns:
-            (tuple): tuple containing
-
+            (tuple): tuple containing:
                 **gradient** (numpy.ndarray) - An array, the same shape as a
                 2D slice of the wet_bulb_temperature input, containing the
                 gradients of the fitted straight line at each point where it

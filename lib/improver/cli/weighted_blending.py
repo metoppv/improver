@@ -198,7 +198,7 @@ def process(cubelist, wts_calc_method, coordinate, cycletime, weighting_coord,
     using the method chosen before carrying out the blending.
 
     Args:
-        cubelist (iris.cube.Cubelist):
+        cubelist (iris.cube.CubeList):
             Cubelist of cubes to be blended.
         wts_calc_method (str):
             Method to use to calculate weights used in blending.

@@ -245,8 +245,7 @@ class SplitHistoricForecastAndTruth():
                 of historic forecasts and truth.
 
         Returns:
-            (tuple): tuple containing
-
+            (tuple): tuple containing:
                 iris.cube.Cube:
                     A cube containing the historic forecasts.
                 iris.cube.Cube:

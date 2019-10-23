@@ -241,7 +241,7 @@ class OpticalFlow(object):
                 Input field (partial derivative)
 
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **boxes** (list of numpy.ndarray):
                     List of numpy.ndarrays of size boxsize*boxsize containing
                     slices of data from input field.
@@ -507,7 +507,7 @@ class OpticalFlow(object):
                 2D array of partial input field derivatives d/dt
 
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **umat** (numpy.ndarray):
                     2D array of displacements in the x-direction
                 **vmat** (numpy.ndarray):
@@ -609,7 +609,7 @@ class OpticalFlow(object):
                 Radius (in grid squares) over which to smooth the input data
 
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **ucomp** (numpy.ndarray):
                     Advection displacement (grid squares) in the x direction
                 **vcomp** (numpy.ndarray):
@@ -658,7 +658,7 @@ class OpticalFlow(object):
                 data smoothing radius.
 
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **ucube** (iris.cube.Cube):
                     2D cube of advection velocities in the x-direction
                 **vcube** (iris.cube.Cube):

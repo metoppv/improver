@@ -318,7 +318,7 @@ class SquareNeighbourhood(object):
                 Input Cube containing the array to be used as a mask.
 
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **cube** (iris.cube.Cube):
                     Cube with masked or NaN values set to 0.0
                 **mask** (iris.cube.Cube):

@@ -240,7 +240,7 @@ class TemporalInterpolation(object):
             cube (iris.cube.Cube):
                 cube containing x and y axis
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **lats** (numpy.ndarray):
                     2d Array of latitudes for each point.
                 **lons** (numpy.ndarray):
