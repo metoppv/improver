@@ -39,7 +39,7 @@ from cf_units import Unit
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.constants import RMDI
-from improver.metadata.enforce_datatypes_units import check_cube_not_float64
+from improver.metadata.check_datatypes import check_cube_not_float64
 
 # Scale parameter to determine reference height
 ABSOLUTE_CORRECTION_TOL = 0.04
