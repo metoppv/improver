@@ -308,8 +308,6 @@ def set_up_percentile_cube(data, percentiles, name='air_temperature',
         include_scalar_coords=include_scalar_coords,
         standard_grid_metadata=standard_grid_metadata)
     cube.coord("realization").rename("percentile")
-    cube.coord("percentile").points = (
-        cube.coord("percentile").points.astype(np.float32))
     cube.coord("percentile").units = Unit("%")
     return cube
 
@@ -386,8 +384,6 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
         include_scalar_coords=include_scalar_coords,
         standard_grid_metadata=standard_grid_metadata)
     cube.coord("realization").rename(variable_name)
-    cube.coord(variable_name).points = (
-        cube.coord(variable_name).points.astype(np.float32))
     cube.coord(variable_name).var_name = "threshold"
     cube.coord(variable_name).attributes.update(coord_attributes)
     cube.coord(variable_name).units = Unit(threshold_units)
