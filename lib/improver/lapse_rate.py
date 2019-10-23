@@ -38,7 +38,7 @@ from numpy.linalg import lstsq
 from scipy.ndimage import generic_filter
 
 from improver.constants import DALR
-from improver.metadata.enforce_datatypes_units import check_cube_not_float64
+from improver.metadata.check_datatypes import check_cube_not_float64
 from improver.utilities.cube_checker import spatial_coords_match
 
 
