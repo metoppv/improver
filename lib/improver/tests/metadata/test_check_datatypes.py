@@ -230,6 +230,17 @@ class Test_check_datatypes(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             enforce.check_datatypes(self.percentile_cube)
 
+    def test_coord_bounds_datatype_fail(self):
+        """Test error is raised for a coordinate whose bounds datatype is
+        incorrect, but points are correct"""
+        time_bounds = np.array(
+            [self.data_cube.coord("time").points[0] - 3600,
+             self.data_cube.coord("time").points[0] + 3600], dtype=np.int32)
+        self.data_cube.coord("time").bounds = [time_bounds]
+        msg = "does not conform"
+        with self.assertRaisesRegex(ValueError, msg):
+            enforce.check_datatypes(self.data_cube)
+
     def test_subset_of_coordinates(self):
         """Test function can check a selected subset of coordinates and
         ignore others"""

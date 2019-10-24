@@ -116,14 +116,14 @@ def check_time_coordinate_metadata(cube):
         raise ValueError(error_string)
 
 
-def _construct_object_list(cube, coords):
+def _construct_object_list(cube, coord_names):
     """
     Construct a list of objects
 
     Args:
         cube (iris.cube.Cube):
             Cube to append to object list
-        coords (list or None):
+        coord_names (list of str or None):
             List of coordinate names to take from cube.  If None, adds all
             coordinates present on the input cube.
 
@@ -133,8 +133,8 @@ def _construct_object_list(cube, coords):
     """
     object_list = []
     object_list.append(cube)
-    if coords is not None:
-        for coord in coords:
+    if coord_names is not None:
+        for coord in coord_names:
             try:
                 object_list.append(cube.coord(coord))
             except CoordinateNotFoundError:
@@ -142,6 +142,20 @@ def _construct_object_list(cube, coords):
     else:
         object_list.extend(cube.coords())
     return object_list
+
+
+def _get_required_datatype(item):
+    """
+    Returns the required datatype of the object (cube or coordinate)
+    passed in, according to the IMPROVER standard.  Input object must
+    have attributes "units" and "dtype".
+    """
+    if item.units.is_time_reference():
+        return np.int64
+    elif issubclass(item.dtype.type, np.integer):
+        return np.int32
+    else:
+        return np.float32
 
 
 def check_datatypes(cube, coords=None):
@@ -165,28 +179,22 @@ def check_datatypes(cube, coords=None):
     # construct a list of objects (cube and coordinates) to be checked
     object_list = _construct_object_list(cube, coords)
 
+    msg = ('{} datatype {} does not conform to expected standard ({})\n')
     error_string = ''
     for item in object_list:
         # allow string-type objects
         if item.dtype.type == np.unicode_:
             continue
 
-        if item.units.is_time_reference():
-            reqd_dtype = np.int64
-        elif issubclass(item.dtype.type, np.integer):
-            reqd_dtype = np.int32
-        else:
-            reqd_dtype = np.float32
-
+        # check numerical datatypes
+        reqd_dtype = _get_required_datatype(item)
         if item.dtype.type != reqd_dtype:
-            msg = ('{} datatype {} does not conform '
-                   'to expected standard ({})\n')
-            msg = msg.format(item.name(), item.dtype, reqd_dtype)
-            error_string += msg
+            error_string += msg.format(item.name(), item.dtype, reqd_dtype)
 
-        # TODO check coordinate bounds.  Currently this causes several
-        # acceptance tests to fail as the input data are non-compliant.
-        # Therefore this check should be added as a separate PR and review.
+        if (hasattr(item, "bounds") and item.bounds is not None
+                and item.bounds.dtype.type != reqd_dtype):
+            error_string += msg.format(
+                item.name()+' bounds', item.bounds.dtype, reqd_dtype)
 
     # if any data was non-compliant, raise details here
     if error_string:
