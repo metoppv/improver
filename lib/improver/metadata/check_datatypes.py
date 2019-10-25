@@ -34,6 +34,8 @@ import numpy as np
 from cf_units import Unit
 from iris.exceptions import CoordinateNotFoundError
 
+TIME_REFERENCE_DTYPE = np.int64
+
 
 def check_cube_not_float64(cube, fix=False):
     """Check a cube does not contain any float64 data, excepting time
@@ -76,46 +78,6 @@ def check_cube_not_float64(cube, fix=False):
                         coord, cube))
 
 
-def check_time_coordinate_metadata(cube):
-    """
-    Function to check time coordinates against the expected standard. The
-    standard for time coordinates is due to technical requirements and if
-    violated the data integrity cannot be guaranteed; so if time coordinates
-    are non-conformant an error is raised.
-
-    Args:
-        cubes (iris.cube.Cube):
-            Cube to be checked
-
-    Raises:
-        ValueError: if any the input cube's time coordinates do not conform
-            to the standard datatypes and units
-    """
-    error_string = ''
-    for time_coord in ["time", "forecast_reference_time", "forecast_period"]:
-        try:
-            coord = cube.coord(time_coord)
-        except CoordinateNotFoundError:
-            continue
-
-        if coord.units.is_time_reference():
-            reqd_unit = "seconds since 1970-01-01 00:00:00"
-            reqd_dtype = np.int64
-        else:
-            reqd_unit = "seconds"
-            reqd_dtype = np.int32
-
-        if not _check_units_and_dtype(coord, reqd_unit, reqd_dtype):
-            msg = ('Coordinate {} does not match required '
-                   'standard (units {}, datatype {})\n')
-            error_string += msg.format(
-                coord.name(), reqd_unit, reqd_dtype)
-
-    # if non-compliance was encountered, raise all messages here
-    if error_string:
-        raise ValueError(error_string)
-
-
 def _construct_object_list(cube, coord_names):
     """
     Construct a list of objects
@@ -151,7 +113,7 @@ def _get_required_datatype(item):
     have attributes "units" and "dtype".
     """
     if item.units.is_time_reference():
-        return np.int64
+        return TIME_REFERENCE_DTYPE
     elif issubclass(item.dtype.type, np.integer):
         return np.int32
     else:
@@ -225,3 +187,43 @@ def _check_units_and_dtype(obj, units, dtype):
         return False
 
     return True
+
+
+def check_time_coordinate_metadata(cube):
+    """
+    Function to check time coordinates against the expected standard. The
+    standard for time coordinates is due to technical requirements and if
+    violated the data integrity cannot be guaranteed; so if time coordinates
+    are non-conformant an error is raised.
+
+    Args:
+        cubes (iris.cube.Cube):
+            Cube to be checked
+
+    Raises:
+        ValueError: if any the input cube's time coordinates do not conform
+            to the standard datatypes and units
+    """
+    error_string = ''
+    for time_coord in ["time", "forecast_reference_time", "forecast_period"]:
+        try:
+            coord = cube.coord(time_coord)
+        except CoordinateNotFoundError:
+            continue
+
+        if coord.units.is_time_reference():
+            reqd_unit = "seconds since 1970-01-01 00:00:00"
+            reqd_dtype = TIME_REFERENCE_DTYPE
+        else:
+            reqd_unit = "seconds"
+            reqd_dtype = np.int32
+
+        if not _check_units_and_dtype(coord, reqd_unit, reqd_dtype):
+            msg = ('Coordinate {} does not match required '
+                   'standard (units {}, datatype {})\n')
+            error_string += msg.format(
+                coord.name(), reqd_unit, reqd_dtype)
+
+    # if non-compliance was encountered, raise all messages here
+    if error_string:
+        raise ValueError(error_string)
