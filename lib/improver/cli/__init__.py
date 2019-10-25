@@ -329,9 +329,15 @@ SUBCOMMANDS_DISPATCHER = clizefy(
 
 def unbracket(args):
     """Convert input list with bracketed items into nested lists.
-
-    unbracket(['foo', '[', 'bar', 'a', 'b', ']',
-                            '[', 'baz', 'c', ']', '-o', 'z'])
+    
+    The command line splits the file on spaces, the same as
+    the string.split() meaning this example in the input into
+    test below.
+    
+    (['foo', '[', 'bar', 'a', 'b', ']',
+     '[', 'baz', 'c', ']', '-o', 'z'])
+    
+    >>> unbracket('foo [ bar a b ] [ baz c ] -o z'.split())
     ['foo', ['bar', 'a', 'b'], ['baz', 'c'], '-o', 'z']
 
     """
