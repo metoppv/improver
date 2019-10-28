@@ -205,7 +205,7 @@ class Utilities(object):
         triple_pt = consts.TRIPLE_PT_WATER
 
         # Values for which method is considered valid (see reference).
-        WetBulbTemperature.check_range(temperature, 173., 373.)
+        WetBulbTemperature.check_range(temperature.data, 173., 373.)
 
         data = temperature.data.copy()
         for cell in np.nditer(data, op_flags=['readwrite']):
@@ -271,7 +271,7 @@ class WetBulbTemperature(object):
         too low or high for a method to use safely.
 
         Args:
-            cube (iris.cube.Cube):
+            cube (numpy.ndarray):
                 A cube of temperature.
 
             low (int or float):
@@ -284,13 +284,13 @@ class WetBulbTemperature(object):
             UserWarning : If any of the values in cube.data are outside the
                           bounds set by the low and high variables.
         """
-        if cube.data.max() > high or cube.data.min() < low:
+        if cube.max() > high or cube.min() < low:
             emsg = ("Wet bulb temperatures are being calculated for conditions"
                     " beyond the valid range of the saturated vapour pressure"
                     " lookup table (< {}K or > {}K). Input cube has\n"
                     "Lowest temperature = {}\nHighest temperature = {}")
-            warnings.warn(emsg.format(low, high, cube.data.min(),
-                                      cube.data.max()))
+            warnings.warn(emsg.format(low, high, cube.min(),
+                                      cube.max()))
 
     def lookup_svp(self, temperature):
         """
@@ -312,7 +312,7 @@ class WetBulbTemperature(object):
         T_max = svp_table.T_MAX - svp_table.T_INCREMENT
         T_min = svp_table.T_MIN
         delta_T = svp_table.T_INCREMENT
-        self.check_range(temperature, T_min, T_max)
+        self.check_range(temperature.data, T_min, T_max)
         temperatures = temperature.data
         T_clipped = np.clip(temperatures, T_min, T_max)
 

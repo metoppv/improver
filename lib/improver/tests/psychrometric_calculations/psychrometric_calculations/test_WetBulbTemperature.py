@@ -82,7 +82,7 @@ class Test_check_range(Test_WetBulbTemperature):
         """Basic test that a warning is raised if temperatures fall outside the
         allowed range."""
 
-        WetBulbTemperature.check_range(self.temperature,
+        WetBulbTemperature.check_range(self.temperature.data,
                                        270., 360.)
         warning_msg = "Wet bulb temperatures are"
         self.assertTrue(any(item.category == UserWarning
