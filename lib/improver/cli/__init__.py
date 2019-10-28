@@ -57,11 +57,11 @@ def docutilize(obj):
     """Convert Numpy or Google style docstring into reStructuredText format.
 
     Args:
-        obj (str or obj):
+        obj (str or object):
             Takes an object and changes it's docstrings to a reStructuredText
             format.
     Returns:
-        str or obj:
+        str or object:
             A converted string or an object with replaced docstring depending
             on the type of the input.
     """
@@ -130,15 +130,14 @@ def maybe_coerce_with(converter, obj, **kwargs):
 
 @value_converter
 def inputcube(to_convert):
-    """imports loads cube as passes the function and cube to maybe_coerce_with.
+    """Loads cube from file or returns passed object.
 
     Args:
-        to_convert (string or obj):
-            calls maybe_coerce_with function with the input and load_cube.
+        to_convert (string or iris.cube.Cube):
+            File name or Cube object.
 
     Returns:
-        obj:
-            The result of maybe_coerce_with.
+        Loaded cube or passed object.
 
     """
     from improver.utilities.load import load_cube
@@ -147,16 +146,14 @@ def inputcube(to_convert):
 
 @value_converter
 def inputjson(to_convert):
-    """Calls maybe_coerce with a string or obj and returns.
+    """Loads json from file or returns passed object.
 
     Args:
-        to_convert (string or obj):
-            calls maybe_coerce_with function with the input and
-            load_json_or_none.
+        to_convert (string or dict):
+            File name or json dictionary.
 
     Returns:
-        obj:
-            The result of maybe_coerce_with.
+        Loaded json dictionary or passed object.
 
     """
     from improver.utilities.cli_utilities import load_json_or_none
@@ -168,16 +165,20 @@ def inputjson(to_convert):
 
 @decorator
 def with_output(wrapped, *args, output=None, **kwargs):
-    """if there is an output, calls save_netcdf with the filepath given.
+    """Add `output` keyword only argument.
 
-    This is used in giving the CLI an extra argument of output.
-    If that argument is used, it saves the file, else it jut returns it.
+    This is used to add an extra `output` CLI option. If provided, it saves
+    the result of calling `wrapped` to file and returns None, otherwise it
+    returns the result.
 
     Args:
         wrapped (obj):
             The function to be wrapped.
         output (str, optional):
             Output file name.
+
+    Returns:
+        Result of calling `wrapped` or None if `output` is given.
     """
     from improver.utilities.save import save_netcdf
     result = wrapped(*args, **kwargs)
@@ -190,7 +191,8 @@ def with_output(wrapped, *args, output=None, **kwargs):
 @decorator
 def with_intermediate_output(wrapped, *args, intermediate_output=None,
                              **kwargs):
-    """
+    """Add `intermediate_output` keyword only argument.
+
     Args:
         wrapped (obj):
             The function to be wrapped.
@@ -209,21 +211,15 @@ def with_intermediate_output(wrapped, *args, intermediate_output=None,
 
 
 def _clizefy(obj, **kwargs):
-    """Allows for legacy argparser and clize CLIs to coexist.
-
-    The legacy interface expects `<cli_name>.main` routine and the new one
-    expects `<cli_name>.process` routine that is type annotated.
-    If both interfaces are available, then one is picked based on the
-    IMPROVER_USE_CLIZE environment variable, default is the legacy one.
-    The environment setting has to be done before `import improver.cli`.
-
-    Args:
-        obj:
-        **kwargs:
-
-    Returns:
-
+    """Implementation of clizefy decorator.
     """
+    # Allows for legacy argparser and clize CLIs to coexist until transition
+    # to the new clize interface if completed.
+    # The legacy interface expects `<cli_name>.main` routine and the new one
+    # expects `<cli_name>.process` routine that is type annotated.
+    # If both interfaces are available, then one is picked based on the
+    # IMPROVER_USE_CLIZE environment variable, default is the legacy one.
+    # The environment setting has to be done before `import improver.cli`.
     # TODO: simplify after all CLIs are clizefied
     from ast import literal_eval
     import os
@@ -260,21 +256,6 @@ def _clizefy(obj, **kwargs):
 
 def clizefy(func=None, helper_class=DocutilizeClizeHelp, **kwargs):
     """Decorator for creating CLI objects.
-
-    The legacy interface expects `<cli_name>.main` routine and the new one
-    expects <cli_name.process routine that is type annotated.
-    If both interfaces are available, then one is picked based on the
-    IMPROVER_USE_CLIZE environment variable, default is the legacy one.
-    The environment setting has to be done before `import improver.cli`.
-
-    Args:
-        func (obj):
-            The function
-        helper_class:
-        **kwargs:
-
-    Returns:
-
     """
     from functools import partial
     if func is None:
@@ -329,13 +310,6 @@ SUBCOMMANDS_DISPATCHER = clizefy(
 
 def unbracket(args):
     """Convert input list with bracketed items into nested lists.
-
-    The command line splits the file on spaces, the same as
-    the string.split() meaning this example in the input into
-    test below.
-
-    (['foo', '[', 'bar', 'a', 'b', ']',
-     '[', 'baz', 'c', ']', '-o', 'z'])
 
     >>> unbracket('foo [ bar a b ] [ baz c ] -o z'.split())
     ['foo', ['bar', 'a', 'b'], ['baz', 'c'], '-o', 'z']
