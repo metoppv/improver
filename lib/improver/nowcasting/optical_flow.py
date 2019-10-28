@@ -45,7 +45,7 @@ from improver.utilities.spatial import check_if_grid_is_equal_area
 
 
 def generate_optical_flow_components(
-    cube_list, ofc_box_size, smart_smoothing_iterations, attributes_dict):
+        cube_list, ofc_box_size, smart_smoothing_iterations, attributes_dict):
     """
     Calculate the mean optical flow components between the cubes in cube_list
 

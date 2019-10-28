@@ -426,7 +426,7 @@ class CreateExtrapolationForecast():
                 Maximum lead time required, in minutes
 
         Returns:
-            list of iris.cube.Cube:
+            iris.cube.CubeList:
                 List of forecast cubes at the required lead times
         """
         lead_times = np.arange(0, max_lead_time + 1, interval)

@@ -253,7 +253,6 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
             If accumulation_fidelity is greater than 0 and max_lead_time is not
             cleanly divisible by accumulation_fidelity.
     """
-
     if (speed_cube and direction_cube) and not (u_cube or v_cube):
         u_cube, v_cube = ResolveWindComponents().process(
             speed_cube, direction_cube)

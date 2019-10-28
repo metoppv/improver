@@ -39,7 +39,7 @@ import numpy as np
 
 from improver.argparser import ArgParser
 from improver.nowcasting.forecasting import CreateExtrapolationForecast
-from improver.nowcasting.optical_flow import generate_optical_flow_components  # OpticalFlow
+from improver.nowcasting.optical_flow import generate_optical_flow_components
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
 from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.filename import generate_file_name
