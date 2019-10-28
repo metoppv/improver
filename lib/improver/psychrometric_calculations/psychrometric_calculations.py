@@ -300,10 +300,10 @@ class WetBulbTemperature(object):
         SaturatedVapourPressureTable plugin that uses the Goff-Gratch method.
 
         Args:
-            temperature (iris.cube.Cube):
+            temperature (numpy.ndarray):
                 A cube of air temperatures (K).
         Returns:
-            svp (iris.cube.Cube):
+            numpy.ndarray:
                 A cube of saturated vapour pressures (Pa).
         """
         # We subtract T_INCREMENT from T_MAX to get the upper bound to which we
@@ -312,8 +312,8 @@ class WetBulbTemperature(object):
         T_max = svp_table.T_MAX - svp_table.T_INCREMENT
         T_min = svp_table.T_MIN
         delta_T = svp_table.T_INCREMENT
-        self.check_range(temperature.data, T_min, T_max)
-        temperatures = temperature.data
+        self.check_range(temperature, T_min, T_max)
+        temperatures = temperature
         T_clipped = np.clip(temperatures, T_min, T_max)
 
         # Note the indexing below differs by -1 compared with the UM due to
@@ -324,10 +324,7 @@ class WetBulbTemperature(object):
         svps = ((1.0 - interpolation_factor) * svp_table.DATA[table_index] +
                 interpolation_factor * svp_table.DATA[table_index + 1])
 
-        svp = temperature.copy(data=svps)
-        svp.units = Unit('Pa')
-        svp.rename("saturated_vapour_pressure")
-        return svp
+        return svps
 
     @staticmethod
     def pressure_correct_svp(svp, temperature, pressure):
@@ -342,7 +339,7 @@ class WetBulbTemperature(object):
             Series, Vol. 30; Equation A4.7.
 
         Args:
-            svp (iris.cube.Cube):
+            svp (numpy.ndarray):
                 A cube of saturated vapour pressures (Pa).
             temperature (iris.cube.Cube):
                 A cube of air temperatures (K, converted to Celsius).
@@ -350,7 +347,7 @@ class WetBulbTemperature(object):
                 Cube of pressure (Pa).
 
         Returns:
-            svp (iris.cube.Cube):
+            svp (numpy.ndarray):
                 The input cube of saturated vapour pressure of air (Pa) is
                 modified by the pressure correction.
         """
@@ -359,7 +356,7 @@ class WetBulbTemperature(object):
 
         correction = (1. + 1.0E-8 * pressure.data *
                       (4.5 + 6.0E-4 * temp.data ** 2))
-        svp.data = svp.data*correction
+        svp = svp*correction
         return svp
 
     def _calculate_mixing_ratio(self, temperature, pressure):
@@ -381,14 +378,14 @@ class WetBulbTemperature(object):
         References:
             ASHRAE Fundamentals handbook (2005) Equation 22, 24, p6.8
         """
-        svp = self.lookup_svp(temperature)
+        svp = self.lookup_svp(temperature.data)
         svp = self.pressure_correct_svp(svp, temperature, pressure)
 
         # Calculation
-        result_numer = (consts.EARTH_REPSILON * svp.data)
-        max_pressure_term = np.maximum(svp.data, pressure.data)
+        result_numer = (consts.EARTH_REPSILON * svp)
+        max_pressure_term = np.maximum(svp, pressure.data)
         result_denom = (max_pressure_term - ((1. - consts.EARTH_REPSILON) *
-                                             svp.data))
+                                             svp))
         mixing_ratio = temperature.copy(data=result_numer / result_denom)
 
         # Tidying up cube

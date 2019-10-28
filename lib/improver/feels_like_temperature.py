@@ -31,6 +31,7 @@
 """Module containing feels like temperature calculation plugins"""
 
 import numpy as np
+from cf_units import Unit
 
 from improver.psychrometric_calculations.psychrometric_calculations \
     import WetBulbTemperature
@@ -165,8 +166,10 @@ def calculate_apparent_temperature(temperature, wind_speed,
     pressure.convert_units('Pa')
     relative_humidity.convert_units('1')
     temperature.convert_units('K')
+    avp = temperature.copy()
+    avp.units = Unit('Pa')
     # look up saturated vapour pressure
-    svp = WetBulbTemperature().lookup_svp(temperature)
+    svp = WetBulbTemperature().lookup_svp(temperature.data)
     # convert to SVP in air
     svp = WetBulbTemperature().pressure_correct_svp(
         svp, temperature, pressure)
@@ -174,8 +177,8 @@ def calculate_apparent_temperature(temperature, wind_speed,
     temperature.convert_units('celsius')
     # calculate actual vapour pressure
     # and convert relative humidities to fractional values
-    avp_data = svp.data*relative_humidity.data
-    avp = svp.copy(data=avp_data)
+    avp_data = svp*relative_humidity.data
+    avp = avp.copy(data=avp_data)
     avp.rename("actual_vapour_pressure")
     avp.convert_units('kPa')
     # calculate apparent temperature

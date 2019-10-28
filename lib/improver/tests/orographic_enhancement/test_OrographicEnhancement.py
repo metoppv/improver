@@ -413,9 +413,7 @@ class Test__point_orogenh(IrisTest):
         self.plugin.humidity = iris.cube.Cube(
             humidity, long_name="relhumidity", units="1",
             dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
-        self.plugin.svp = iris.cube.Cube(
-            svp, long_name="saturation_vapour_pressure", units="Pa",
-            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
+        self.plugin.svp = svp
 
         self.plugin.vgradz = np.array([[0.02, 0.08, 0.2],
                                        [-0.06, 0.12, 0.22],
