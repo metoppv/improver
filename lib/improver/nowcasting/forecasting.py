@@ -34,6 +34,7 @@ This module defines plugins used to create nowcast extrapolation forecasts.
 import datetime
 import warnings
 
+import iris
 import numpy as np
 from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
@@ -413,3 +414,20 @@ class CreateExtrapolationForecast():
                 forecast_cube, self.orographic_enhancement_cube)
 
         return forecast_cube
+
+    def process(self, interval, max_lead_time):
+        """
+        Generate nowcasts at required intervals up to the maximum lead time
+
+        Args:
+            interval (int):
+                Lead time interval, in minutes
+            max_lead_time (int):
+                Maximum lead time required, in minutes
+        """
+        lead_times = np.arange(0, max_lead_time + 1, interval)
+        forecast_cubes = iris.cube.CubeList()
+        for lead_time in lead_times:
+            forecast_cubes.append(
+                self.extrapolate(leadtime_minutes=lead_time))
+        return forecast_cubes

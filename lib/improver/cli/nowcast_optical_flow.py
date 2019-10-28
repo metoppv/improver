@@ -209,19 +209,14 @@ def process(original_cube_list, orographic_enhancement_cube=None,
     u_mean, v_mean = generate_optical_flow_components(
         cube_list, ofc_box_size, smart_smoothing_iterations, attributes_dict)
 
-    forecast_cubes = []
+    forecast_cubes = None
     if extrapolate:
-        # generate list of lead times in minutes
-        lead_times = np.arange(0, max_lead_time + 1,
-                               lead_time_interval)
         forecast_plugin = CreateExtrapolationForecast(
             original_cube_list[-1], u_mean, v_mean,
             orographic_enhancement_cube=orographic_enhancement_cube,
             attributes_dict=attributes_dict)
-        # extrapolate input data to required lead times
-        for lead_time in lead_times:
-            forecast_cubes.append(forecast_plugin.extrapolate(
-                leadtime_minutes=lead_time))
+        forecast_cubes = forecast_plugin.process(
+            lead_time_interval, max_lead_time)
 
     return forecast_cubes, [u_mean, v_mean]
 

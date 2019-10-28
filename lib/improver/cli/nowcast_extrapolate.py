@@ -260,10 +260,9 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
     elif (u_cube or v_cube) and (speed_cube or direction_cube):
         raise ValueError('Cannot mix advection component velocities with speed'
                          ' and direction')
-    # generate list of lead times in minutes
-    lead_times = np.arange(0, max_lead_time + 1, lead_time_interval)
 
-    # determine whether accumulations are also to be returned.
+    # determine whether accumulations are also to be returned, and modify time
+    # interval if finer intervals are needed for accumulations
     time_interval = lead_time_interval
     if accumulation_fidelity > 0:
         fraction, _ = np.modf(max_lead_time / accumulation_fidelity)
@@ -274,24 +273,15 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
                    " accumulation cubes at this fidelity.")
             raise ValueError(msg.format(lead_time_interval,
                                         accumulation_fidelity))
-
         time_interval = accumulation_fidelity
-        lead_times = np.arange(0, max_lead_time + 1, time_interval)
 
-    lead_time_filter = lead_time_interval // time_interval
+    # extrapolate input data to required lead times
     forecast_plugin = CreateExtrapolationForecast(
         input_cube, u_cube, v_cube,
         orographic_enhancement_cube=orographic_enhancement_cube,
         attributes_dict=attributes_dict)
+    forecast_cubes = forecast_plugin.process(time_interval, max_lead_time)
 
-    # extrapolate input data to required lead times
-    forecast_cubes = iris.cube.CubeList()
-    for lead_time in lead_times:
-        forecast_cubes.append(
-            forecast_plugin.extrapolate(leadtime_minutes=lead_time))
-
-    forecast_to_return = forecast_cubes[::lead_time_filter].copy()
-    # return rate cubes
     # calculate accumulations if required
     accumulation_cubes = None
     if accumulation_fidelity > 0:
@@ -303,6 +293,10 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
             accumulation_period=accumulation_period * 60,
             forecast_periods=lead_times * 60)
         accumulation_cubes = plugin.process(forecast_cubes)
+
+    # filter out rate forecasts that are not required
+    lead_time_filter = lead_time_interval // time_interval
+    forecast_to_return = forecast_cubes[::lead_time_filter].copy()
 
     return accumulation_cubes, forecast_to_return
 
