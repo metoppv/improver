@@ -129,7 +129,7 @@ class Test_pressure_correct_svp(Test_WetBulbTemperature):
         svp = self.pressure.copy(data=[[197.41815, 474.1368, 999.5001]])
         expected = [[199.226956, 476.293096, 1006.391004]]
         result = WetBulbTemperature().pressure_correct_svp(
-            svp, self.temperature, self.pressure)
+            svp, self.temperature.data, self.pressure.data)
 
         self.assertArrayAlmostEqual(result.data, expected)
         self.assertEqual(result.units, Unit('Pa'))

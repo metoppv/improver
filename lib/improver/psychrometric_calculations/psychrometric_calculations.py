@@ -341,9 +341,9 @@ class WetBulbTemperature(object):
         Args:
             svp (numpy.ndarray):
                 A cube of saturated vapour pressures (Pa).
-            temperature (iris.cube.Cube):
-                A cube of air temperatures (K, converted to Celsius).
-            pressure (iris.cube.Cube):
+            temperature (numpy.ndarray):
+                A cube of air temperatures (K).
+            pressure (numpy.ndarray):
                 Cube of pressure (Pa).
 
         Returns:
@@ -352,10 +352,10 @@ class WetBulbTemperature(object):
                 modified by the pressure correction.
         """
         temp = temperature.copy()
-        temp.convert_units('celsius')
+        temp = temp + consts.ABSOLUTE_ZERO
 
-        correction = (1. + 1.0E-8 * pressure.data *
-                      (4.5 + 6.0E-4 * temp.data ** 2))
+        correction = (1. + 1.0E-8 * pressure *
+                      (4.5 + 6.0E-4 * temp ** 2))
         svp = svp*correction
         return svp
 
@@ -379,7 +379,7 @@ class WetBulbTemperature(object):
             ASHRAE Fundamentals handbook (2005) Equation 22, 24, p6.8
         """
         svp = self.lookup_svp(temperature.data)
-        svp = self.pressure_correct_svp(svp, temperature, pressure)
+        svp = self.pressure_correct_svp(svp, temperature.data, pressure.data)
 
         # Calculation
         result_numer = (consts.EARTH_REPSILON * svp)

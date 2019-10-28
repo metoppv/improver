@@ -172,7 +172,7 @@ def calculate_apparent_temperature(temperature, wind_speed,
     svp = WetBulbTemperature().lookup_svp(temperature.data)
     # convert to SVP in air
     svp = WetBulbTemperature().pressure_correct_svp(
-        svp, temperature, pressure)
+        svp, temperature.data, pressure.data)
     # convert temperature units
     temperature.convert_units('celsius')
     # calculate actual vapour pressure

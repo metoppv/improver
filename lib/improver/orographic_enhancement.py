@@ -604,7 +604,7 @@ class OrographicEnhancement:
 
         self.svp = wbt.pressure_correct_svp(
             wbt.lookup_svp(self.temperature.data),
-            self.temperature, self.pressure)
+            self.temperature.data, self.pressure.data)
 
         # calculate site-specific orographic enhancement
         point_orogenh_data = self._point_orogenh()
