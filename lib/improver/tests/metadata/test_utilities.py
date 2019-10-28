@@ -45,7 +45,9 @@ class Test_generate_hash(unittest.TestCase):
 
         hash_input = 'this is a test string'
         result = generate_hash(hash_input)
-        expected = "8e502f6a5b4a2e0f226649210895cebc"
+        expected = (
+            "7a5a4f1716b08d290d5782da904cc076315376889e9bf641ae527889704fd314"
+        )
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -54,7 +56,9 @@ class Test_generate_hash(unittest.TestCase):
 
         hash_input = 1000
         result = generate_hash(hash_input)
-        expected = "d017763f19ef64f920c43fc57413d171"
+        expected = (
+            "40510175845988f13f6162ed8526f0b09f73384467fa855e1e79b44a56562a58"
+        )
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -63,26 +67,29 @@ class Test_generate_hash(unittest.TestCase):
 
         hash_input = {'one': 1, 'two': 2}
         result = generate_hash(hash_input)
-        expected = "4735f4a74dd17d27b383de504a87e324"
+        expected = (
+            "c261139b6339f880f4f75a3bf5a08f7c2d6f208e2720760f362e4464735e3845"
+        )
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
-    def test_dictionary_order_variant(self):
-        """Test the expected hash is different if the dictionary order is
-        different."""
+    def test_dictionary_order_invariant(self):
+        """Test the expected hash is the same for different dict ordering."""
 
         hash_input1 = {'one': 1, 'two': 2}
         hash_input2 = {'two': 2, 'one': 1}
         result1 = generate_hash(hash_input1)
         result2 = generate_hash(hash_input2)
-        self.assertNotEqual(result1, result2)
+        self.assertEqual(result1, result2)
 
     def test_cube_input(self):
         """Test the expected hash is returned when input is a cube."""
 
         hash_input = set_up_variable_cube(np.ones((3, 3)).astype(np.float32))
         result = generate_hash(hash_input)
-        expected = "ad664992debed0bdf8f20804e4164691"
+        expected = (
+            "4d82994200559c90234b0186bccc59b9b9d6436284f29bab9a15dc97172d1fb8"
+        )
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -93,7 +100,9 @@ class Test_generate_hash(unittest.TestCase):
         cube = set_up_variable_cube(np.ones((3, 3)).astype(np.float32))
         hash_input = cube.coord('latitude')
         result = generate_hash(hash_input)
-        expected = "8c8846a4be49f7aab487353d9ecf623c"
+        expected = (
+            "62267c5827656790244ef2f26b708a1be5dcb491e4ae36b9db9b47c2aaaadf7e"
+        )
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -127,7 +136,9 @@ class Test_create_coordinate_hash(unittest.TestCase):
 
         hash_input = set_up_variable_cube(np.zeros((3, 3)).astype(np.float32))
         result = create_coordinate_hash(hash_input)
-        expected = "fd40f6d5a8e0a347f181d87bcfd445fa"
+        expected = (
+            "b26ca16d28f6e06ea4573fd745f55750c6dd93a06891f1b4ff0c6cd50585ac08"
+        )
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 

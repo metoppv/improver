@@ -31,9 +31,7 @@
 """General IMPROVER metadata utilities"""
 
 import hashlib
-# Usage of pickle in this module is only for creation of pickles and hashing
-# the contents. There is no loading pickles which would create security risks.
-import pickle  # nosec
+import json
 
 
 def generate_hash(data_in):
@@ -44,16 +42,14 @@ def generate_hash(data_in):
     Args:
         data_in (any):
             The data from which a hash is to be generated. This can be of any
-            type that can be pickled.
+            type that can be dumped to JSON (dict, list, str, float, etc).
     Returns:
-        hash (str):
-            A hexidecimal hash representing the data.
+        hash (string):
+            A hexadecimal string which is a hash hexdigest of the data as a
+            string.
     """
-    hashable_type = pickle.dumps(data_in)
-    # Marked as 'nosec' as the usage of MD5 hash is to produce a good checksum,
-    # rather than for cryptographic hashing purposes
-    hash_result = hashlib.md5(hashable_type).hexdigest()  # nosec
-    return hash_result
+    json_bytestring = json.dumps(data_in, sort_keys=True).encode('utf-8')
+    return hashlib.sha256(json_bytestring).hexdigest()
 
 
 def create_coordinate_hash(cube):
@@ -70,5 +66,15 @@ def create_coordinate_hash(cube):
         coordinate_hash (str):
             A hash created using the x and y coordinates of the input cube.
     """
-    hashable_data = [cube.coord(axis='x'), cube.coord(axis='y')]
+    hashable_data = []
+    for axis in ('x', 'y'):
+        coord = cube.coord(axis=axis)
+        hashable_data.extend([
+            list(coord.points),
+            list(coord.bounds) if isinstance(coord.bounds, list) else None,
+            coord.standard_name,
+            coord.long_name,
+            coord.coord_system,
+            coord.units
+        ])
     return generate_hash(hashable_data)
