@@ -44,6 +44,57 @@ from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.spatial import check_if_grid_is_equal_area
 
 
+def generate_optical_flow_components(
+    cube_list, ofc_box_size, smart_smoothing_iterations, attributes_dict):
+    """
+    Calculate the mean optical flow components between the cubes in cube_list
+
+    Args:
+        cube_list (iris.cube.CubeList):
+            Cubelist from which to calculate optical flow velocities
+        ofc_box_size (int):
+            Size of square 'box' (in grid spaces) within which to solve
+            the optical flow equations
+        smart_smoothing_iterations (int):
+            Number of iterations to perform in enforcing smoothness constraint
+            for optical flow velocities
+        attributes_dict (dict or None):
+            Dictionary containing required attributes
+
+    Returns:
+        (tuple) tuple containing:
+            **u_mean** (iris.cube.Cube):
+                Cube of x-advection velocities
+            **v_mean** (iris.cube.Cube):
+                Cube of y-advection velocities
+    """
+    cube_list.sort(key=lambda x: x.coord("time").points[0])
+    time_coord = cube_list[-1].coord("time")
+
+    ofc_plugin = OpticalFlow(iterations=smart_smoothing_iterations,
+                             attributes_dict=attributes_dict)
+    u_cubes = iris.cube.CubeList([])
+    v_cubes = iris.cube.CubeList([])
+    for older_cube, newer_cube in zip(cube_list[:-1], cube_list[1:]):
+        ucube, vcube = ofc_plugin.process(older_cube, newer_cube,
+                                          boxsize=ofc_box_size)
+        u_cubes.append(ucube)
+        v_cubes.append(vcube)
+
+    # average optical flow velocity components
+    u_cube = u_cubes.merge_cube()
+    u_mean = u_cube.collapsed("time", iris.analysis.MEAN)
+    u_mean.coord("time").points = time_coord.points
+    u_mean.coord("time").units = time_coord.units
+
+    v_cube = v_cubes.merge_cube()
+    v_mean = v_cube.collapsed("time", iris.analysis.MEAN)
+    v_mean.coord("time").points = time_coord.points
+    v_mean.coord("time").units = time_coord.units
+
+    return u_mean, v_mean
+
+
 def check_input_coords(cube, require_time=False):
     """
     Checks an input cube has precisely two non-scalar dimension coordinates
