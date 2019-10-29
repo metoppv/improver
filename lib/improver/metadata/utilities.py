@@ -31,9 +31,63 @@
 """General IMPROVER metadata utilities"""
 
 import hashlib
+import iris
 # Usage of pickle in this module is only for creation of pickles and hashing
 # the contents. There is no loading pickles which would create security risks.
 import pickle  # nosec
+import numpy as np
+
+
+def create_new_diagnostic_cube(
+        name, units, coordinate_template, attributes=None, data=None):
+    """
+    Creates a template for a new diagnostic cube with suitable metadata.
+
+    Args:
+        name (str):
+            Standard or long name for output cube
+        units (str or cf_units.Unit):
+            Units for output cube
+        coordinate_template (iris.cube.Cube):
+            Cube from which to copy dimensional and auxiliary coordinates
+        attributes (dict or None):
+            Dictionary of attribute names and values
+        data (np.ndarray or None):
+            Data array.  If not set, cube is filled with zeros.
+
+    Returns:
+        iris.cube.Cube:
+            Cube with correct metadata to accommodate new diagnostic field
+    """
+    if data is None:
+        data = np.zeros(shape=coordinate_template.shape, dtype=np.float32)
+
+    dim_coords = coordinate_template.coords(dim_coords=True)
+    dim_coords_and_dims = [
+        (coord, coordinate_template.coord_dims(coord)[0])
+        for coord in dim_coords]
+
+    all_coords = coordinate_template.coords()
+    aux_coords = [coord for coord in all_coords if coord not in dim_coords]
+    aux_coords_and_dims = [(coord, None) for coord in aux_coords]
+
+    try:
+        cube = iris.cube.Cube(
+            data, standard_name=name, units=units,
+            dim_coords_and_dims=dim_coords_and_dims,
+            aux_coords_and_dims=aux_coords_and_dims,
+            attributes=attributes)
+    except ValueError as cause:
+        if 'is not a valid standard_name' in str(cause):
+            cube = iris.cube.Cube(
+                data, long_name=name, units=units,
+                dim_coords_and_dims=dim_coords_and_dims,
+                aux_coords_and_dims=aux_coords_and_dims,
+                attributes=attributes)
+        else:
+            raise ValueError(cause)
+
+    return cube
 
 
 def generate_hash(data_in):
