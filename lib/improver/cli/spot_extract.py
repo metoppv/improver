@@ -40,7 +40,7 @@ from iris.exceptions import CoordinateNotFoundError
 from improver.argparser import ArgParser
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
     GeneratePercentilesFromProbabilities
-from improver.metadata.amend import amend_metadata
+from improver.metadata.amend import amend_attributes
 from improver.metadata.probabilistic import find_percentile_coordinate
 from improver.percentile import PercentileConverter
 from improver.spotdata.apply_lapse_rate import SpotLapseRateAdjust
@@ -350,9 +350,9 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube=None,
                 "apply the lapse rate correction was enabled. No lapse rate "
                 "correction could be applied.")
 
-    # Modify final metadata as described by provided JSON file.
+    # Modify final attributes as described by provided JSON file.
     if metadata_dict:
-        result = amend_metadata(result, **metadata_dict)
+        amend_attributes(result, metadata_dict)
     # Remove the internal model_grid_hash attribute if present.
     result.attributes.pop('model_grid_hash', None)
     return result

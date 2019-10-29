@@ -101,14 +101,8 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
-    # Load Cubes and JSON.
+    # Load Cubes and JSON
     metadata_dict = load_json_or_none(args.json_file)
-    # TODO remove this, update apps and test inputs
-    try:
-        metadata_dict = metadata_dict["attributes"]
-    except:
-        metadata_dict = None
-
     original_cube_list = load_cubelist(args.input_filepaths)
     oe_cube = load_cube(args.orographic_enhancement_filepaths,
                         allow_none=True)

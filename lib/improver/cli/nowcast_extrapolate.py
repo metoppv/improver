@@ -120,16 +120,10 @@ def main(argv=None):
         help="Desired units in which the accumulations should be expressed,"
         "e.g. mm")
 
-    # Load Cubes
     args = parser.parse_args(args=argv)
 
+    # Load Cubes and JSON
     metadata_dict = load_json_or_none(args.json_file)
-    # TODO remove this, update apps and test inputs
-    try:
-        metadata_dict = metadata_dict["attributes"]
-    except:
-        metadata_dict = None
-
     upath, vpath = (args.eastward_advection_filepath,
                     args.northward_advection_filepath)
     spath, dpath = (args.advection_speed_filepath,
