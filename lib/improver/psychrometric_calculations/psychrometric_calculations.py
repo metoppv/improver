@@ -73,13 +73,13 @@ class Utilities(object):
 
         Args:
             mixing_ratio (numpy.ndarray):
-                Cube of specific humidity (fractional).
+                Array of specific humidity (fractional).
         Returns:
             numpy.ndarray:
                 Specific heat capacity of moist air (J kg-1 K-1).
         """
-        specific_heat = ((-1.*mixing_ratio + 1.) * consts.U_CP_DRY_AIR.points[0] +
-                         mixing_ratio * consts.U_CP_WATER_VAPOUR.points[0])
+        specific_heat = ((-1.*mixing_ratio + 1.) * consts.CP_DRY_AIR +
+                         mixing_ratio * consts.CP_WATER_VAPOUR)
         return specific_heat
 
     @staticmethod
@@ -90,7 +90,7 @@ class Utilities(object):
 
         Args:
             temperature_input (iris.cube.Cube):
-                A cube of air temperatures (Celsius, converted if not).
+                A Array of air temperatures (Celsius, converted if not).
         Returns:
             iris.cube.Cube:
                 Temperature adjusted latent heat of condensation (J kg-1).
@@ -117,17 +117,17 @@ class Utilities(object):
 
         Args:
             mixing_ratio (numpy.ndarray):
-                Cube of mixing ratios.
+                Array of mixing ratios.
             specific_heat (numpy.ndarray):
-                Cube of specific heat capacities of moist air (J kg-1 K-1).
+                Array of specific heat capacities of moist air (J kg-1 K-1).
             latent_heat (numpy.ndarray):
-                Cube of latent heats of condensation of water vapour
+                Array of latent heats of condensation of water vapour
                 (J kg-1).
             temperature (numpy.ndarray):
-                A cube of air temperatures (K).
+                Array of air temperatures (K).
         Returns:
            numpy.ndarray:
-               A cube of enthalpy values calculated at the same points as the
+               Array of enthalpy values calculated at the same points as the
                input cubes (J kg-1).
         """
         enthalpy = latent_heat * mixing_ratio + specific_heat * temperature
@@ -147,18 +147,18 @@ class Utilities(object):
 
         Args:
             mixing_ratio (numpy.ndarray):
-                Cube of mixing ratios.
+                Array of mixing ratios.
             specific_heat (numpy.ndarray):
-                Cube of specific heat capacities of moist air (J kg-1 K-1).
+                Array of specific heat capacities of moist air (J kg-1 K-1).
             latent_heat (numpy.ndarray):
-                Cube of latent heats of condensation of water vapour
+                Array of latent heats of condensation of water vapour
                 (J kg-1).
             temperature (numpy.ndarray):
-                A cube of temperatures (K).
+                Array of temperatures (K).
 
         Returns:
             numpy.ndarray:
-                A cube of the enthalpy gradient with respect to temperature.
+                Array of the enthalpy gradient with respect to temperature.
         """
         numerator = (mixing_ratio * latent_heat ** 2)
         denominator = consts.R_WATER_VAPOUR * temperature ** 2
@@ -268,7 +268,7 @@ class WetBulbTemperature(object):
 
         Args:
             cube (numpy.ndarray):
-                A cube of temperature.
+                Array of temperature.
 
             low (int or float):
                 Lowest allowable temperature for check
@@ -297,10 +297,10 @@ class WetBulbTemperature(object):
 
         Args:
             temperature (numpy.ndarray):
-                A cube of air temperatures (K).
+                Array of air temperatures (K).
         Returns:
             numpy.ndarray:
-                A cube of saturated vapour pressures (Pa).
+                Array of saturated vapour pressures (Pa).
         """
         # We subtract T_INCREMENT from T_MAX to get the upper bound to which we
         # clip input temperatures. This ensures that we do not attempt an
@@ -336,15 +336,15 @@ class WetBulbTemperature(object):
 
         Args:
             svp (numpy.ndarray):
-                A cube of saturated vapour pressures (Pa).
+                Array of saturated vapour pressures (Pa).
             temperature (numpy.ndarray):
-                A cube of air temperatures (K).
+                Array of air temperatures (K).
             pressure (numpy.ndarray):
-                Cube of pressure (Pa).
+                Array of pressure (Pa).
 
         Returns:
             svp (numpy.ndarray):
-                The input cube of saturated vapour pressure of air (Pa) is
+                The input Array of saturated vapour pressure of air (Pa) is
                 modified by the pressure correction.
         """
         temp = temperature.copy()
@@ -360,13 +360,13 @@ class WetBulbTemperature(object):
 
         Args:
             temperature (numpy.ndarray):
-                Cube of air temperature (K).
+                Array of air temperature (K).
             pressure (numpy.ndarray):
-                Cube of air pressure (Pa).
+                Array of air pressure (Pa).
 
         Returns
             numpy.ndarray:
-                Cube of mixing ratios.
+                Array of mixing ratios.
 
         Method from referenced documentation. Note that EARTH_REPSILON is
         simply given as an unnamed constant in the reference (0.62198).
@@ -403,7 +403,6 @@ class WetBulbTemperature(object):
                 Cube of wet bulb temperature (K).
 
         """
-        # TODO are these needed?
         relative_humidity.convert_units(1)
         pressure.convert_units('Pa')
         temperature.convert_units('K')
@@ -423,6 +422,26 @@ class WetBulbTemperature(object):
 
     def _calculate_wbt(self, latent_heat, precision, pressure,
                        relative_humidity, temperature, wbt_data):
+        """
+
+        Args:
+            latent_heat:
+                Array of temperature adjusted latent heat of
+                condensation (J kg-1).
+            precision:
+                TODO
+            pressure:
+                Array of air Pressure (Pa).
+            relative_humidity:
+                Array of relative humidities (1).
+            temperature:
+                Array of air temperature (K).
+            wbt_data:
+                Array of wet bulb temperature (TODO).
+
+        Returns:
+
+        """
 
         # Calculate mixing ratios.
         saturation_mixing_ratio = self._calculate_mixing_ratio(temperature,
@@ -452,8 +471,8 @@ class WetBulbTemperature(object):
             # oscillating solutions (the now fixed points are still calculated
             # unfortunately).
             unfinished = np.where(np.abs(delta_wbt) > precision)
-            wbt_data[unfinished] = (wbt_data[unfinished] +
-                                    delta_wbt[unfinished])
+            wbt_data[unfinished] = (wbt_data[unfinished]
+                                    + delta_wbt[unfinished])
 
             # If the errors are identical between two iterations, stop.
             if (np.array_equal(delta_wbt, delta_wbt_history) or
