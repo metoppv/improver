@@ -38,7 +38,7 @@ import numpy as np
 from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 
-from improver.metadata.amend import (amend_metadata, add_history_attribute)
+from improver.metadata.amend import (amend_attributes, add_history_attribute)
 from improver.nowcasting.optical_flow import check_input_coords
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
 
@@ -49,7 +49,7 @@ class AdvectField():
     dimensions
     """
 
-    def __init__(self, vel_x, vel_y, metadata_dict=None):
+    def __init__(self, vel_x, vel_y, attributes_dict=None):
         """
         Initialises the plugin.  Velocities are expected to be on a regular
         grid (such that grid spacing in metres is the same at all points in
@@ -62,12 +62,9 @@ class AdvectField():
             vel_y (iris.cube.Cube):
                 Cube containing a 2D array of velocities along the y
                 coordinate axis
-            metadata_dict (dict):
-                Dictionary containing information for amending the metadata
-                of the output cube. Please see the
-                :func:`improver.metadata.amend.amend_metadata`
-                for information regarding the allowed contents of the metadata
-                dictionary.
+            attributes_dict (dict):
+                Dictionary containing information for amending the attributes
+                of the output cube.
         """
 
         # check each input velocity cube has precisely two non-scalar
@@ -90,16 +87,16 @@ class AdvectField():
         self.y_coord = vel_x.coord(axis="y")
 
         # Initialise metadata dictionary.
-        if metadata_dict is None:
-            metadata_dict = {}
-        self.metadata_dict = metadata_dict
+        if attributes_dict is None:
+            attributes_dict = {}
+        self.attributes_dict = attributes_dict
 
     def __repr__(self):
         """Represent the plugin instance as a string."""
         result = ('<AdvectField: vel_x={}, vel_y={}, '
-                  'metadata_dict={}>'.format(
+                  'attributes_dict={}>'.format(
                       repr(self.vel_x), repr(self.vel_y),
-                      self.metadata_dict))
+                      self.attributes_dict))
         return result
 
     @staticmethod
@@ -322,7 +319,7 @@ class AdvectField():
             advected_cube.attributes["source"] = "Nowcast"
         add_history_attribute(advected_cube, "Nowcast")
 
-        advected_cube = amend_metadata(advected_cube, **self.metadata_dict)
+        amend_attributes(advected_cube, self.attributes_dict)
         return advected_cube
 
 
@@ -333,7 +330,7 @@ class CreateExtrapolationForecast():
     """
 
     def __init__(self, input_cube, vel_x, vel_y,
-                 orographic_enhancement_cube=None, metadata_dict=None):
+                 orographic_enhancement_cube=None, attributes_dict=None):
         """
         Initialises the object.
         This includes checking if orographic enhancement is provided and
@@ -356,12 +353,9 @@ class CreateExtrapolationForecast():
                 data for multiple times in the cube. The orographic enhancement
                 is removed from the input_cube before advecting, and added
                 back on after advection.
-            metadata_dict (dict):
-                Dictionary containing information for amending the metadata
-                of the output cube. Please see the
-                :func:`improver.metadata.amend.amend_metadata`
-                for information regarding the allowed contents of the metadata
-                dictionary.
+            attributes_dict (dict):
+                Dictionary containing information for amending the attributes
+                of the output cube.
         """
         self.orographic_enhancement_cube = orographic_enhancement_cube
         if self.orographic_enhancement_cube:
@@ -373,7 +367,7 @@ class CreateExtrapolationForecast():
             raise ValueError(msg)
         self.input_cube = input_cube
         self.advection_plugin = AdvectField(
-            vel_x, vel_y, metadata_dict=metadata_dict)
+            vel_x, vel_y, attributes_dict=attributes_dict)
 
     def __repr__(self):
         """Represent the plugin instance as a string."""

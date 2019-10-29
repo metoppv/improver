@@ -39,7 +39,7 @@ import numpy as np
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 from scipy import ndimage, signal
 
-from improver.metadata.amend import amend_metadata
+from improver.metadata.amend import amend_attributes
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.spatial import check_if_grid_is_equal_area
 
@@ -94,7 +94,7 @@ class OpticalFlow(object):
     """
 
     def __init__(self, data_smoothing_method='box', iterations=100,
-                 metadata_dict=None):
+                 attributes_dict=None):
         """
         Initialise the class with smoothing parameters for estimating gridded
         u- and v- velocities via optical flow.
@@ -107,20 +107,15 @@ class OpticalFlow(object):
             iterations (int):
                 Number of iterations to perform in post-calculation smoothing.
                 The value for good convergence is 20 (Bowler et al. 2004).
-            metadata_dict (dict):
-                Dictionary containing information for amending the metadata
-                of the output cube. Please see the
-                :func:`improver.metadata.amend.amend_metadata`
-                for information regarding the allowed contents of the metadata
-                dictionary. This metadata_dict is used to amend both of the
-                resulting u and v cubes.
+            attributes_dict (dict):
+                Dictionary containing information for amending the attributes
+                of the output cube. This dictionary is used to amend both of
+                the resulting u and v cubes.
 
         Raises:
             ValueError:
                 If iterations < 20
-
         """
-
         if iterations < 20:
             raise ValueError('Got {} iterations; minimum requirement 20 '
                              'iterations'.format(iterations))
@@ -141,18 +136,18 @@ class OpticalFlow(object):
         self.shape = None
 
         # Initialise metadata dictionary.
-        if metadata_dict is None:
-            metadata_dict = {}
-        self.metadata_dict = metadata_dict
+        if attributes_dict is None:
+            attributes_dict = {}
+        self.attributes_dict = attributes_dict
 
     def __repr__(self):
         """Represent the plugin instance as a string."""
         result = ('<OpticalFlow: data_smoothing_radius_km: {}, '
                   'data_smoothing_method: {}, iterations: {}, '
-                  'point_weight: {}, metadata_dict: {}>')
+                  'point_weight: {}, attributes_dict: {}>')
         return result.format(
             self.data_smoothing_radius_km, self.data_smoothing_method,
-            self.iterations, self.point_weight, self.metadata_dict)
+            self.iterations, self.point_weight, self.attributes_dict)
 
     @staticmethod
     def interp_to_midpoint(data, axis=None):
@@ -787,11 +782,11 @@ class OpticalFlow(object):
             ucomp, long_name="precipitation_advection_x_velocity",
             units="m s-1", dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
         ucube.add_aux_coord(t_coord)
-        ucube = amend_metadata(ucube, **self.metadata_dict)
+        amend_attributes(ucube, self.attributes_dict)
 
         vcube = iris.cube.Cube(
             vcomp, long_name="precipitation_advection_y_velocity",
             units="m s-1", dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
         vcube.add_aux_coord(t_coord)
-        vcube = amend_metadata(vcube, **self.metadata_dict)
+        amend_attributes(vcube, self.attributes_dict)
         return ucube, vcube

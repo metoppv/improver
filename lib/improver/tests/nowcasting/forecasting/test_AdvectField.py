@@ -99,7 +99,7 @@ class Test__repr__(IrisTest):
             "(m s-1) (projection_y_coordinate: 4; "
             "projection_x_coordinate: 3)>, vel_y=<iris 'Cube' of "
             "advection_velocity_y / (m s-1) (projection_y_coordinate: 4; "
-            "projection_x_coordinate: 3)>, metadata_dict={}>"
+            "projection_x_coordinate: 3)>, attributes_dict={}>"
             )
         self.assertEqual(result, expected_result)
 
@@ -240,14 +240,14 @@ class Test_process(IrisTest):
         vel_y = vel_x.copy(data=2.*np.ones(shape=(4, 3)))
         vel_y.rename("advection_velocity_y")
         self.plugin = AdvectField(vel_x, vel_y)
-        self.metadata_dict = {"attributes": {
-                                 "mosg__grid_version": "1.0.0",
-                                 "mosg__model_configuration": "nc_det",
-                                 "source": "Met Office Nowcast",
-                                 "institution": "Met Office",
-                                 "title": "Nowcast on UK 2 km Standard Grid"}}
+        self.metadata_dict = {
+            "mosg__grid_version": "1.0.0",
+            "mosg__model_configuration": "nc_det",
+            "source": "Met Office Nowcast",
+            "institution": "Met Office",
+            "title": "Nowcast on UK 2 km Standard Grid"}
         self.plugin_with_meta = AdvectField(vel_x, vel_y,
-                                            metadata_dict=self.metadata_dict)
+                                            attributes_dict=self.metadata_dict)
         data = np.array([[2., 3., 4.],
                          [1., 2., 3.],
                          [0., 1., 2.],
@@ -273,7 +273,7 @@ class Test_process(IrisTest):
         """Test plugin returns a cube with the desired metadata."""
         result = self.plugin_with_meta.process(self.cube, self.timestep)
         result.attributes.pop("history")
-        self.assertEqual(result.attributes, self.metadata_dict["attributes"])
+        self.assertEqual(result.attributes, self.metadata_dict)
 
     def test_check_source_metadata(self):
         """Test plugin returns a cube with the desired source attribute."""

@@ -76,11 +76,8 @@ def main(argv=None):
                         "compulsory for precipitation fields.")
     parser.add_argument("--json_file", metavar="JSON_FILE", default=None,
                         help="Filename for the json file containing "
-                        "required changes to the metadata. Information "
-                        "describing the intended contents of the json file "
-                        "is available in "
-                        "improver.metadata.amend.amend_metadata. "
-                        "Every output cube will have the metadata_dict "
+                        "required changes to attributes. "
+                        "Every output file will have the metadata_dict "
                         "applied. Defaults to None.", type=str)
 
     # OpticalFlow plugin configurable parameters
@@ -106,14 +103,20 @@ def main(argv=None):
 
     # Load Cubes and JSON.
     metadata_dict = load_json_or_none(args.json_file)
+    # TODO remove this, update apps and test inputs
+    try:
+        metadata_dict = metadata_dict["attributes"]
+    except:
+        metadata_dict = None
+
     original_cube_list = load_cubelist(args.input_filepaths)
     oe_cube = load_cube(args.orographic_enhancement_filepaths,
                         allow_none=True)
 
     # Process
     forecast_cubes, u_and_v_mean = process(
-        original_cube_list, oe_cube, metadata_dict, args.ofc_box_size,
-        args.smart_smoothing_iterations, args.extrapolate,
+        original_cube_list, oe_cube, metadata_dict,
+        args.ofc_box_size, args.smart_smoothing_iterations, args.extrapolate,
         args.max_lead_time, args.lead_time_interval)
 
     # Save Cubes
@@ -156,10 +159,8 @@ def process(original_cube_list, orographic_enhancement_cube=None,
             Cube containing the orographic enhancement fields.
             Default is None.
         metadata_dict (dict):
-            Dictionary containing required changes to the metadata.
-            Information describing the intended contents of the dictionary is
-            available in improver.metadata.amend.amend_metadata.
-            Every output cube will have the metadata_dict applied.
+            Dictionary containing required changes to the attributes.
+            Every output file will have the metadata_dict applied.
             Default is None.
         ofc_box_size (int):
             Size of square 'box' (in grid spaces) within which to solve
@@ -210,7 +211,7 @@ def process(original_cube_list, orographic_enhancement_cube=None,
     time_coord = cube_list[-1].coord("time")
     # calculate optical flow velocities from T-1 to T and T-2 to T-1
     ofc_plugin = OpticalFlow(iterations=smart_smoothing_iterations,
-                             metadata_dict=metadata_dict)
+                             attributes_dict=metadata_dict)
     u_cubes = iris.cube.CubeList([])
     v_cubes = iris.cube.CubeList([])
     for older_cube, newer_cube in zip(cube_list[:-1], cube_list[1:]):
@@ -239,7 +240,7 @@ def process(original_cube_list, orographic_enhancement_cube=None,
         forecast_plugin = CreateExtrapolationForecast(
             original_cube_list[-1], u_mean, v_mean,
             orographic_enhancement_cube=orographic_enhancement_cube,
-            metadata_dict=metadata_dict)
+            attributes_dict=metadata_dict)
         # extrapolate input data to required lead times
         for lead_time in lead_times:
             forecast_cubes.append(forecast_plugin.extrapolate(

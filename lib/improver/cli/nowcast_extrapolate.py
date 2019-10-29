@@ -93,12 +93,8 @@ def main(argv=None):
                         "compulsory for precipitation fields.")
     parser.add_argument("--json_file", metavar="JSON_FILE", default=None,
                         help="Filename for the json file containing "
-                        "required changes to the metadata. Information "
-                        "describing the intended contents of the json file "
-                        "is available in "
-                        "improver.metadata.amend.amend_metadata. "
-                        "Every output cube will have the metadata_dict "
-                        "applied. Defaults to None.", type=str)
+                        "required changes to the attributes. "
+                        "Defaults to None.", type=str)
     parser.add_argument("--max_lead_time", type=int, default=360,
                         help="Maximum lead time required (mins).")
     parser.add_argument("--lead_time_interval", type=int, default=15,
@@ -128,6 +124,11 @@ def main(argv=None):
     args = parser.parse_args(args=argv)
 
     metadata_dict = load_json_or_none(args.json_file)
+    # TODO remove this, update apps and test inputs
+    try:
+        metadata_dict = metadata_dict["attributes"]
+    except:
+        metadata_dict = None
 
     upath, vpath = (args.eastward_advection_filepath,
                     args.northward_advection_filepath)
@@ -216,10 +217,7 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
             for multiple times in the cube.
             Default is None.
         metadata_dict (dict):
-            Dictionary containing the required changes to the metadata.
-            Information describing the intended contents of the dictionary
-            is available in improver.metadata.amend.amend_metadata.
-            Every output cube will have the metadata_dict applied.
+            Dictionary containing the required changes to the attributes.
             Default is None.
         max_lead_time (int):
             Maximum lead time required (mins).
@@ -290,7 +288,7 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
     forecast_plugin = CreateExtrapolationForecast(
         input_cube, u_cube, v_cube,
         orographic_enhancement_cube=orographic_enhancement_cube,
-        metadata_dict=metadata_dict)
+        attributes_dict=metadata_dict)
 
     # extrapolate input data to required lead times
     forecast_cubes = iris.cube.CubeList()

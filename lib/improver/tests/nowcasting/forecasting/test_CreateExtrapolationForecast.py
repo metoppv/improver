@@ -100,20 +100,19 @@ class Test__init__(SetUpCubes):
 
     def test_basic_with_metadata_dict(self):
         """Test for simple case where __init__ does not change the input and
-           we use a metadata_dict."""
+           we amend the metadata."""
         # Change the input cube so no orographic enhancement is expected.
         input_cube = self.precip_cube.copy()
         input_cube.rename("air_temperature")
         input_cube.units = "K"
-        # set up a metadata_dict
-        metadata_dict = {"attributes": {"source": "IMPROVER"}}
+        attributes = {"source": "IMPROVER"}
         plugin = CreateExtrapolationForecast(
             input_cube.copy(), self.vel_x, self.vel_y,
-            metadata_dict=metadata_dict)
+            attributes_dict=attributes)
         self.assertEqual(input_cube, plugin.input_cube)
         self.assertEqual(plugin.orographic_enhancement_cube, None)
         self.assertIsInstance(plugin.advection_plugin, AdvectField)
-        self.assertEqual(plugin.advection_plugin.metadata_dict, metadata_dict)
+        self.assertEqual(plugin.advection_plugin.attributes_dict, attributes)
 
     def test_no_orographic_enhancement(self):
         """Test what happens if no orographic enhancement cube is provided"""
@@ -159,7 +158,7 @@ class Test__repr__(SetUpCubes):
             "(projection_y_coordinate: 4; projection_x_coordinate: 3)>, "
             "vel_y=<iris 'Cube' of advection_velocity_y / (m s-1) "
             "(projection_y_coordinate: 4; projection_x_coordinate: 3)>, "
-            "metadata_dict={}>>"
+            "attributes_dict={}>>"
             )
         self.assertEqual(result, expected_result)
 
