@@ -66,6 +66,25 @@ def update_stage_v110_metadata(cube):
     return True
 
 
+def amend_attributes(cube, attributes_dict):
+    """
+    Add, update or remove attributes from a cube.  Modifies cube in place.
+
+    Args:
+        cube (iris.cube.Cube):
+            Input cube
+        attributes_dict (dict):
+            Dictionary containing items of the form {attribute_name: value}.
+            The "value" item is either the string "delete", or the new value
+            of the attribute required.
+    """
+    for attribute_name, value in attributes_dict.items():
+        if value == "delete":
+            cube.attributes.pop(attribute_name, None)
+        else:
+            cube.attributes[attribute_name] = value
+
+
 def add_coord(cube, coord_name, changes, warnings_on=False):
     """Add coord to the cube.
 

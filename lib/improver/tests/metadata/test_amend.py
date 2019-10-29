@@ -42,6 +42,7 @@ from iris.tests import IrisTest
 from improver.metadata.amend import (
     add_coord,
     add_history_attribute,
+    amend_attributes,
     amend_metadata,
     resolve_metadata_diff,
     _update_attribute,
@@ -116,6 +117,29 @@ class Test_update_stage_v110_metadata(IrisTest):
                          self.cube.attributes['mosg__grid_domain'])
         self.assertEqual('1.1.0', self.cube.attributes['mosg__grid_version'])
         self.assertTrue(output)
+
+
+class Test_amend_attributes(IrisTest):
+    """Test the amend_attributes method."""
+
+    def setUp(self):
+        """Set up a cube and dict"""
+        self.cube = set_up_variable_cube(
+            280*np.ones((3, 3), dtype=np.float32),
+            attributes={"mosg__grid_version": "1.3.0",
+                        "mosg__model_configuration": "uk_det"})
+        self.metadata_dict = {
+            "mosg__grid_version": "delete",
+            "source": "IMPROVER unit tests",
+            "mosg__model_configuration": "other_model"}
+
+    def test_basic(self):
+        """Test function adds, removes and modifies attributes as expected"""
+        expected_attributes = {
+            "source": "IMPROVER unit tests",
+            "mosg__model_configuration": "other_model"}
+        amend_attributes(self.cube, self.metadata_dict)
+        self.assertDictEqual(self.cube.attributes, expected_attributes)
 
 
 class Test_add_coord(IrisTest):
