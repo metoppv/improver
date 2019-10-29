@@ -48,7 +48,7 @@ function improver_compare_output {
   #    -s report 'Files X and Y are identical' if they really are.
   #    -g compares global attributes in the file
 
-  run nccmp -dmNsg "$1" "$2"
+  run nccmp -dmNsgf "$1" "$2"
   [[ "$status" -eq 0 ]]
   [[ "$output" =~ "are identical." ]]
 }
