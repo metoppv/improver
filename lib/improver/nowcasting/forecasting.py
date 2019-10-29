@@ -38,7 +38,7 @@ import numpy as np
 from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 
-from improver.metadata.amend import (amend_attributes, add_history_attribute)
+from improver.metadata.amend import (amend_attributes, set_history_attribute)
 from improver.nowcasting.optical_flow import check_input_coords
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
 
@@ -317,9 +317,8 @@ class AdvectField():
                 "{} Nowcast".format(advected_cube.attributes["institution"]))
         else:
             advected_cube.attributes["source"] = "Nowcast"
-        add_history_attribute(advected_cube, "Nowcast")
-
         amend_attributes(advected_cube, self.attributes_dict)
+        set_history_attribute(advected_cube, "Nowcast")
         return advected_cube
 
 

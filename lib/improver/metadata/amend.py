@@ -306,15 +306,6 @@ def _update_attribute(cube, attribute_name, changes, warnings_on=False):
             msg = ("Deleted attribute "
                    "{}".format(attribute_name))
             warnings.warn(msg)
-    elif "add" in changes:
-        if attribute_name in ["history"]:
-            new_history = changes
-            new_history.remove("add")
-            add_history_attribute(result, new_history[0])
-        else:
-            msg = ("Only the history attribute can be added. "
-                   "The attribute specified was {}".format(attribute_name))
-            raise ValueError(msg)
     else:
         result.attributes[attribute_name] = changes
         if warnings_on:
@@ -579,7 +570,7 @@ def resolve_metadata_diff(cube1, cube2, warnings_on=False):
     return result1, result2
 
 
-def add_history_attribute(cube, value, append=False):
+def set_history_attribute(cube, value, append=False):
     """Add a history attribute to a cube. This uses the current datetime to
     generate the timestamp for the history attribute. The new history attribute
     will overwrite any existing history attribute unless the "append" option is
