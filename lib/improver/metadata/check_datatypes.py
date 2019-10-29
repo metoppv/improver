@@ -197,7 +197,7 @@ def check_time_coordinate_metadata(cube):
     are non-conformant an error is raised.
 
     Args:
-        cubes (iris.cube.Cube):
+        cube (iris.cube.Cube):
             Cube to be checked
 
     Raises:
