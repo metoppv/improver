@@ -115,8 +115,8 @@ def main(argv=None):
 
     # Process
     forecast_cubes, u_and_v_mean = process(
-        original_cube_list, oe_cube, metadata_dict,
-        args.ofc_box_size, args.smart_smoothing_iterations, args.extrapolate,
+        original_cube_list, oe_cube, metadata_dict, args.ofc_box_size,
+        args.smart_smoothing_iterations, args.extrapolate,
         args.max_lead_time, args.lead_time_interval)
 
     # Save Cubes

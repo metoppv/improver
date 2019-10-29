@@ -37,7 +37,7 @@ import numpy as np
 from improver.argparser import ArgParser
 from improver.constants import DALR, U_DALR
 from improver.lapse_rate import LapseRate
-from improver.metadata.amend import amend_metadata
+from improver.metadata.amend import amend_attributes
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
@@ -177,7 +177,7 @@ def process(temperature_cube, orography_cube, land_sea_mask_cube,
                                                    land_sea_mask_cube)
     attributes = {"title": "delete", "source": "delete",
                   "history": "delete", "um_version": "delete"}
-    result = amend_metadata(result, attributes=attributes)
+    amend_attributes(result, attributes)
     return result
 
 
