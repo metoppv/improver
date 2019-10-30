@@ -319,7 +319,7 @@ def set_utc_offset(longitudes):
             List of longitudes.
 
     Returns:
-        np.ndarray:
+        numpy.ndarray:
             List of utc_offsets calculated using longitude.
     """
     return np.floor((np.array(longitudes) + 7.5)/15.)
