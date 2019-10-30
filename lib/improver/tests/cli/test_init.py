@@ -139,7 +139,6 @@ class Test_inputjson(unittest.TestCase):
         self.assertEqual(result, {"mocked": 1})
 
 
-
 class Test_with_output(unittest.TestCase):
     """Tests the with_output wrapper"""
 
