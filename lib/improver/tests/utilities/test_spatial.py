@@ -131,7 +131,8 @@ class Test_common_functions(IrisTest):
         # So there is higher pressure in the west.
         orography.data[0:10] = 0
         orography.data[10:] = 10
-        ancillary_data = {'orography': orography}
+        ancillary_data = {}
+        ancillary_data['orography'] = orography
 
         additional_data = {}
         adlist = CubeList()
@@ -179,7 +180,7 @@ class Test_calculate_grid_spacing(IrisTest):
 
     def test_axis_keyword(self):
         """Test using the other axis"""
-        self.cube.coord(axis='y').points *= 2
+        self.cube.coord(axis='y').points = 2*(self.cube.coord(axis='y').points)
         result = calculate_grid_spacing(self.cube, self.unit, axis='y')
         self.assertAlmostEqual(result, 2*self.spacing)
 
@@ -214,7 +215,7 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
     def test_distance_to_grid_cells_other_axis(self):
         """Test the distance in metres to grid cell conversion along the
         y-axis."""
-        self.cube.coord(axis='y').points *= 0.5
+        self.cube.coord(axis='y').points = 0.5*self.cube.coord(axis='y').points
         result = convert_distance_into_number_of_grid_cells(
             self.cube, self.DISTANCE, axis='y')
         self.assertEqual(result, 6)
@@ -363,7 +364,7 @@ class Test_check_if_grid_is_equal_area(IrisTest):
 
     def test_non_equal_xy_spacing(self):
         """Test that the cubes have an equal areas grid"""
-        self.cube.coord(axis='x').points *= 2
+        self.cube.coord(axis='x').points = 2*self.cube.coord(axis='x').points
         msg = "Grid does not have equal spacing in x and y"
         with self.assertRaisesRegex(ValueError, msg):
             check_if_grid_is_equal_area(self.cube)
@@ -371,7 +372,7 @@ class Test_check_if_grid_is_equal_area(IrisTest):
     def test_non_equal_xy_spacing_override(self):
         """Test that the requirement for equal x and y spacing can be
         overridden"""
-        self.cube.coord(axis='x').points *= 2
+        self.cube.coord(axis='x').points = 2*self.cube.coord(axis='x').points
         self.assertIsNone(
             check_if_grid_is_equal_area(
                 self.cube, require_equal_xy_spacing=False))
