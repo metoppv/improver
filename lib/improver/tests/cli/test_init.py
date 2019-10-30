@@ -60,9 +60,9 @@ def dummy_function(first, second=0, third=2):
 
 
 @with_output
-def wrapped_with_output(*args):
+def wrapped_with_output(first):
     """dummy function for testing with_output wrapper"""
-    return dummy_function(*args)
+    return dummy_function(first)
 
 
 @with_intermediate_output
@@ -144,7 +144,7 @@ class Test_with_output(unittest.TestCase):
     @patch('improver.utilities.save.save_netcdf')
     def test_without_output(self, m):
         """Tests that the result of the wrapped function is returned"""
-        result = wrapped_with_output(2, 0, 2)
+        result = wrapped_with_output(2)
         m.assert_not_called()
         self.assertEqual(result, 4)
 
@@ -153,7 +153,7 @@ class Test_with_output(unittest.TestCase):
         """Tests that save_netcdf it called with object and string"""
         # pylint disable is needed as it can't see the wrappers output kwarg.
         # pylint: disable=E1123
-        result = wrapped_with_output(2, 0, 2, output="foo")
+        result = wrapped_with_output(2, output="foo")
         m.assert_called_with(4, 'foo')
         self.assertEqual(result, None)
 
@@ -187,6 +187,7 @@ class Test_unbracket(unittest.TestCase):
     """Test the unbracket function"""
 
     def test_basic(self):
+        """Tests that a list of strings changes '[' into nested lists"""
         to_test = ['foo', '[', 'bar', 'a', 'b', ']',
                    '[', 'baz', 'c', ']', '-o', 'z']
         expected = ['foo', ['bar', 'a', 'b'], ['baz', 'c'], '-o', 'z']
@@ -194,11 +195,13 @@ class Test_unbracket(unittest.TestCase):
         self.assertEqual(result, expected)
 
     def test_mismatched_open_brackets(self):
+        """Tests if there isn't a corresponding ']' it raises an error"""
         msg = 'Mismatched bracket at position'
         with self.assertRaisesRegex(ValueError, msg):
             unbracket(['foo', '[', 'bar'])
 
     def test_mismatched_close_brackets(self):
+        """Tests if there isn't a corresponding '[' it raises an error"""
         msg = 'Mismatched bracket at position'
         with self.assertRaisesRegex(ValueError, msg):
             unbracket(['foo', ']', 'bar'])
