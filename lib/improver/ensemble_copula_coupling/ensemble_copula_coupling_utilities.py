@@ -94,7 +94,7 @@ def choose_set_of_percentiles(no_of_percentiles, sampling="quantile"):
             * Random: A random set of ordered percentiles.
 
     Returns:
-        list:
+        list of float:
             Percentiles calculated using the sampling technique specified.
 
     Raises:

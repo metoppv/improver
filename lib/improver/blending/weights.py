@@ -386,7 +386,7 @@ class ChooseWeightsLinear:
                 Cube input to plugin
 
         Returns:
-            list:
+            list of iris.coord.Coord:
                 List of coordinates defining the slice to iterate over
         """
         if cube.coord_dims(self.weighting_coord_name):

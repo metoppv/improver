@@ -115,7 +115,7 @@ class TemporalInterpolation(object):
                 constructed.
 
         Returns:
-            list:
+            list of Tuple[str, List[datetime.datetime]]:
                 A list containing a tuple that specifies the coordinate and a
                 list of points along that coordinate to which to interpolate,
                 as required by the iris interpolation method, e.g.::

@@ -73,7 +73,7 @@ class OccurrenceBetweenThresholds(object):
         Extract required slices from input cube
 
         Returns:
-            list:
+            list or iris.cube.Cube:
                 List of 2-item lists containing lower and upper
                 threshold cubes
 

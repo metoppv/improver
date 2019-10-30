@@ -155,7 +155,7 @@ class ContinuousRankedProbabilityScoreMinimisers():
                 minimisation within self.minimisation_dict.
 
         Returns:
-            list:
+            list of float:
                 List of optimised coefficients.
                 Order of coefficients is [gamma, delta, alpha, beta].
 
@@ -646,7 +646,7 @@ class EstimateCoefficientsForEnsembleCalibration():
                 used as predictors. Default is None.
 
         Returns:
-            list:
+            list of float:
                 List of coefficients to be used as initial guess.
                 Order of coefficients is [gamma, delta, alpha, beta].
 

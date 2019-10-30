@@ -158,7 +158,7 @@ def find_dimension_coordinate_mismatch(
                 second_cube - first_cube
 
     Returns:
-        list:
+        list of str:
             List of the dimension coordinates that are only present in
             one out of the two cubes.
 

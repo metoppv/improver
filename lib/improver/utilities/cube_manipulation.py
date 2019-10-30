@@ -497,7 +497,7 @@ def compare_attributes(cubes, attribute_filter=None):
             A string to filter which attributes are actually compared. If None
             all attributes are compared.
     Returns:
-        list:
+        list of dict:
             List of dictionaries of unmatching attributes
     Warns:
         Warning: If only a single cube is supplied
@@ -539,7 +539,7 @@ def compare_coords(cubes):
             List of cubes to compare (must be more than 1)
 
     Returns:
-        list:
+        list of dict:
             List of dictionaries of unmatching coordinates
             Number of dictionaries equals number of cubes
             unless cubes is a single cube in which case

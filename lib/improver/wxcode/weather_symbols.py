@@ -269,7 +269,7 @@ class WeatherSymbols(object):
             test_conditions (dict):
                 A query from the decision tree.
         Returns:
-            list:
+            list of str:
                 A list of strings that describe the conditions comprising the
                 query.
                 e.g.::
@@ -398,7 +398,7 @@ class WeatherSymbols(object):
                 A list of node names found so far.
 
         Returns:
-            list:
+            list of str:
                 A list of node names that defines the route from the tree root
                 to the weather symbol leaf (end of chain).
 

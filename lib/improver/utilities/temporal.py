@@ -226,7 +226,7 @@ def iris_time_to_datetime(time_coord):
             Iris time coordinate element(s).
 
     Returns:
-        list of datetime.datetime objects
+        list of datetime.datetime:
             The time element(s) recast as a python datetime object.
     """
     coord = time_coord.copy()
@@ -319,7 +319,7 @@ def set_utc_offset(longitudes):
             List of longitudes.
 
     Returns:
-        list:
+        np.ndarray:
             List of utc_offsets calculated using longitude.
     """
     return np.floor((np.array(longitudes) + 7.5)/15.)
