@@ -103,7 +103,7 @@ class BaseNeighbourhoodProcessing(object):
                 Array of forecast times found in cube.
 
         Returns:
-            float or numpy.ndarray of float:
+            float or numpy.ndarray:
                 Required neighbourhood sizes.
         """
         if cube_lead_times is None:

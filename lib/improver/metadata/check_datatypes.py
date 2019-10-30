@@ -128,7 +128,7 @@ def _construct_object_list(cube, coords):
             coordinates present on the input cube.
 
     Returns:
-        object (list):
+        list of obj:
             List containing the original cube and specified coordinates
     """
     object_list = []

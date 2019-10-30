@@ -132,7 +132,7 @@ def forecast_period_coord(
             Desired units for the resulting forecast period coordinate.
 
     Returns:
-        iris.coords.AuxCoord or DimCoord:
+        iris.coords.Coord:
             Describing the points and their units for
             'forecast_period'. A DimCoord is returned if the
             forecast_period coord is already present in the cube as a
@@ -239,7 +239,7 @@ def datetime_to_iris_time(dt_in):
     Convert python datetime.datetime into seconds since 1970-01-01 00Z.
 
     Args:
-        dt_in (datetime.datetime object):
+        dt_in (datetime.datetime):
             Time to be converted into seconds since 1970-01-01 00Z.
 
     Returns:
@@ -255,9 +255,9 @@ def datetime_constraint(time_in, time_max=None):
     Constructs an iris equivalence constraint from a python datetime object.
 
     Args:
-        time_in (datetime.datetime object):
+        time_in (datetime.datetime):
             The time to be used to build an iris constraint.
-        time_max (datetime.datetime object):
+        time_max (datetime.datetime):
             Optional max time, which if provided leads to a range constraint
             being returned up to < time_max.
 
@@ -451,7 +451,7 @@ def find_latest_cycletime(cubelist):
             forecast cycles.
 
     Returns:
-        datetime object:
+        datetime.datetime:
             A datetime object corresponding to the latest forecast reference
             time in the input cubelist.
     """

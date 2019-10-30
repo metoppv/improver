@@ -66,7 +66,7 @@ class TemporalInterpolation(object):
                    | e.g. cube_t0 valid at 03Z, cube_t1 valid at 06Z,
                    | interval_in_minutes = 60 --> interpolate to 04Z and 05Z.
 
-            times (list or tuple of datetime.datetime objects):
+            times (list or tuple of datetime.datetime):
                 A list of datetime objects specifying the times to which to
                 interpolate.
             interpolation_method (str):

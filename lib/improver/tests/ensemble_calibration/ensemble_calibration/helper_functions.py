@@ -436,7 +436,7 @@ def _create_historic_forecasts(data, time_dt, frt_dt,
             historic forecasts.
 
     Returns:
-        historic_forecasts (iris.cube.CubeList):
+        iris.cube.CubeList:
             Cubelist of historic forecasts in one day increments.
     """
     historic_forecasts = iris.cube.CubeList([])

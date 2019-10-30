@@ -603,7 +603,7 @@ def build_coordinate(data, long_name=None,
             CF Name of the coordinate to be built.
         var_name (str):
             Variable name
-        coord_type (iris.coords.AuxCoord or iris.coords.DimCoord):
+        coord_type (iris.coords.Coord):
             Selection between Dim and Aux coord.
         data_type (<type>):
             The data type of the coordinate points, e.g. int
@@ -621,7 +621,7 @@ def build_coordinate(data, long_name=None,
 
     Returns:
         iris.coords.Coord:
-            Dim or Auxcoord as chosen.
+            The constructed coord.
 
     """
     long_name_out = long_name

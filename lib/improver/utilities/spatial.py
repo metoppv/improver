@@ -489,10 +489,9 @@ def lat_lon_transform(trg_crs, latitude, longitude):
             Longitude coordinate.
 
     Returns:
-        float:
-            Longitude and latitude transformed into the target coordinate
-            system.
-
+        (tuple): tuple containing:
+            **x** (float): The x coordinate in target coordinate system.
+            **y** (float): The y coordinate in target coordinate system.
     """
     if trg_crs is None:
         return longitude, latitude
@@ -510,7 +509,8 @@ def transform_grid_to_lat_lon(cube):
             Cube with points to transform
 
     Returns
-        (tuple): tuple containing:            **lats** (numpy.ndarray):
+        (tuple): tuple containing:
+            **lats** (numpy.ndarray):
                 Array of cube.data.shape of Latitude values
             **lons** (numpy.ndarray):
                 Array of cube.data.shape of Longitude values
@@ -555,8 +555,10 @@ def get_nearest_coords(cube, latitude, longitude, iname, jname):
             String giving the names of the x coordinates to be searched.
 
     Returns:
-        Tuple[int, int]: Grid coordinates of the nearest grid point to the
-        spot data site.
+        (tuple): tuple containing:
+            **i_latitude** (int): i_latitude
+            **j_longitude** (int): j_longitude
+
 
     """
     i_latitude = cube.coord(iname).nearest_neighbour_index(latitude)

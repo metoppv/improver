@@ -101,7 +101,7 @@ class SpatiallyVaryingWeightsFromMask(object):
                 A cube containing the data we want to collapse by doing a
                 weighted blend along a given coordinate.
         Returns:
-            weights_from_mask (iris.cube.Cube):
+            iris.cube.Cube:
                 A cube containing an initial set of weights based on the mask
                 on the input cube.
         Rasies:
