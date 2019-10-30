@@ -473,34 +473,6 @@ def lat_lon_determine(cube):
     return trg_crs
 
 
-def lat_lon_transform(trg_crs, latitude, longitude):
-    """
-    Transforms latitude/longitude coordinate pairs from a latitude/longitude
-    grid into an alternative projection defined by trg_crs.
-
-    Args:
-        trg_crs (cartopy.crs.CRS or None):
-            Target coordinate system in cartopy format or None.
-
-        latitude (float):
-            Latitude coordinate.
-
-        longitude (float):
-            Longitude coordinate.
-
-    Returns:
-        x, y (float):
-            Longitude and latitude transformed into the target coordinate
-            system.
-
-    """
-    if trg_crs is None:
-        return longitude, latitude
-    else:
-        return trg_crs.transform_point(longitude, latitude,
-                                       ccrs.PlateCarree())
-
-
 def transform_grid_to_lat_lon(cube):
     """
     Calculate the latitudes and longitudes of each points in the cube.
