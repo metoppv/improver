@@ -59,9 +59,10 @@ class Test_create_new_diagnostic_cube(unittest.TestCase):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.standard_name, "lwe_precipitation_rate")
         self.assertEqual(result.units, "mm h-1")
-        self.assertSequenceEqual(result.coords(), self.template_cube.coords())
         self.assertSequenceEqual(result.coords(dim_coords=True),
                                  self.template_cube.coords(dim_coords=True))
+        self.assertSequenceEqual(result.coords(dim_coords=False),
+                                 self.template_cube.coords(dim_coords=False))
         self.assertFalse(np.allclose(result.data, self.template_cube.data))
         self.assertFalse(result.attributes)
         self.assertFalse(result.cell_methods)
