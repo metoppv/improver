@@ -399,7 +399,7 @@ class WetBulbTemperature(object):
                 Cube of air pressures (Pa).
 
         Returns:
-            wbt (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube of wet bulb temperature (K).
 
         """
@@ -415,34 +415,35 @@ class WetBulbTemperature(object):
 
         wbt_data = self._calculate_wbt(
             latent_heat.data, precision, pressure.data,
-            relative_humidity.data, temperature.data, wbt.data)
+            relative_humidity.data, temperature.data)
 
         wbt.data = wbt_data
         return wbt
 
     def _calculate_wbt(self, latent_heat, precision, pressure,
-                       relative_humidity, temperature, wbt_data):
+                       relative_humidity, temperature):
         """
 
         Args:
-            latent_heat:
+            latent_heat (numpy.ndarray):
                 Array of temperature adjusted latent heat of
                 condensation (J kg-1).
-            precision:
-                TODO
-            pressure:
+            precision (float):
+                The precision to which the Newton iterator must converge before
+                returning wet bulb temperatures.
+            pressure (numpy.ndarray):
                 Array of air Pressure (Pa).
-            relative_humidity:
+            relative_humidity (numpy.ndarray):
                 Array of relative humidities (1).
-            temperature:
+            temperature (numpy.ndarray):
                 Array of air temperature (K).
-            wbt_data:
-                Array of wet bulb temperature (TODO).
 
         Returns:
+            numpy.ndarray:
+                Array of wet bulb temperature (K).
 
         """
-
+        wbt_data = temperature.data
         # Calculate mixing ratios.
         saturation_mixing_ratio = self._calculate_mixing_ratio(temperature,
                                                                pressure)

@@ -148,7 +148,6 @@ class Test__calculate_mixing_ratio(Test_WetBulbTemperature):
             self.temperature.data, self.pressure.data)
 
         self.assertArrayAlmostEqual(result, expected)
-        # self.assertEqual(result.units, Unit('1'))
 
 
 class Test_calculate_wet_bulb_temperature(Test_WetBulbTemperature):

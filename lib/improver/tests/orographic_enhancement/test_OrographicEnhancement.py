@@ -402,9 +402,6 @@ class Test__point_orogenh(IrisTest):
         humidity = np.array([[0.74, 0.85, 0.94],
                              [0.81, 0.82, 0.91],
                              [0.86, 0.93, 0.97]])
-        svp = np.array([[813.6, 878.0, 848.3],
-                        [903.2, 890.5, 922.2],
-                        [922.1, 928.4, 967.9]])
 
         self.plugin = OrographicEnhancement()
         self.plugin.temperature = iris.cube.Cube(
@@ -413,7 +410,9 @@ class Test__point_orogenh(IrisTest):
         self.plugin.humidity = iris.cube.Cube(
             humidity, long_name="relhumidity", units="1",
             dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
-        self.plugin.svp = svp
+        self.plugin.svp = np.array([[813.6, 878.0, 848.3],
+                                    [903.2, 890.5, 922.2],
+                                    [922.1, 928.4, 967.9]])
 
         self.plugin.vgradz = np.array([[0.02, 0.08, 0.2],
                                        [-0.06, 0.12, 0.22],

@@ -82,7 +82,6 @@ class Test_specific_heat_of_moist_air(Test_Utilities):
         expected = np.array([[1089.5, 1174., 1258.5]], dtype=np.float32)
         result = Utilities.specific_heat_of_moist_air(self.mixing_ratio.data)
         self.assertArrayAlmostEqual(result, expected)
-        # self.assertEqual(result.units, Unit('J kg-1 K-1'))
 
 
 class Test_latent_heat_of_condensation(Test_Utilities):
@@ -116,7 +115,6 @@ class Test_calculate_enthalpy(Test_Utilities):
             latent_heat.data, self.temperature.data)
 
         self.assertArrayAlmostEqual(result, expected)
-        # self.assertEqual(result.units, Unit('J kg-1'))
 
 
 class Test_calculate_d_enthalpy_dt(Test_Utilities):
@@ -138,7 +136,6 @@ class Test_calculate_d_enthalpy_dt(Test_Utilities):
             latent_heat.data, self.temperature.data)
 
         self.assertArrayAlmostEqual(result.data, expected)
-        # self.assertEqual(result.units, Unit('J kg-1 K-1'))
 
 
 class Test_saturation_vapour_pressure_goff_gratch(Test_Utilities):
