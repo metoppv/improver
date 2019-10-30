@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """General IMPROVER metadata utilities"""
 
+import dask
 import hashlib
 import iris
 # Usage of pickle in this module is only for creation of pickles and hashing
@@ -53,23 +54,22 @@ def create_new_diagnostic_cube(
         attributes (dict or None):
             Dictionary of attribute names and values
         data (np.ndarray or None):
-            Data array.  If not set, cube is filled with zeros.
+            Data array.  If not set, cube is filled with zeros using a lazy
+            data object, as this will be overwritten later by the caller
+            routine.
 
     Returns:
         iris.cube.Cube:
             Cube with correct metadata to accommodate new diagnostic field
     """
     if data is None:
-        data = np.zeros(shape=coordinate_template.shape, dtype=np.float32)
+        data = dask.array.zeros(
+            coordinate_template.shape, dtype=np.float32, chunks=-1)
 
-    dim_coords = coordinate_template.coords(dim_coords=True)
-    dim_coords_and_dims = [
-        (coord, coordinate_template.coord_dims(coord)[0])
-        for coord in dim_coords]
-
-    all_coords = coordinate_template.coords()
-    aux_coords = [coord for coord in all_coords if coord not in dim_coords]
-    aux_coords_and_dims = [(coord, None) for coord in aux_coords]
+    aux_coords_and_dims, dim_coords_and_dims = [
+        [(coord, coordinate_template.coord_dims(coord))
+         for coord in getattr(coordinate_template, coord_type)]
+        for coord_type in ('aux_coords', 'dim_coords')]
 
     try:
         cube = iris.cube.Cube(
@@ -85,7 +85,7 @@ def create_new_diagnostic_cube(
                 aux_coords_and_dims=aux_coords_and_dims,
                 attributes=attributes)
         else:
-            raise ValueError(cause)
+            raise
 
     return cube
 
