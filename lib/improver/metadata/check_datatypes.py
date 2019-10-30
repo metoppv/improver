@@ -149,14 +149,14 @@ def check_datatypes(cube, coords=None):
             continue
 
         # check numerical datatypes
-        reqd_dtype = _get_required_datatype(item)
-        if item.dtype.type != reqd_dtype:
-            error_string += msg.format(item.name(), item.dtype, reqd_dtype)
+        required_dtype = _get_required_datatype(item)
+        if item.dtype.type != required_dtype:
+            error_string += msg.format(item.name(), item.dtype, required_dtype)
 
         if (hasattr(item, "bounds") and item.bounds is not None
-                and item.bounds.dtype.type != reqd_dtype):
+                and item.bounds.dtype.type != required_dtype):
             error_string += msg.format(
-                item.name()+' bounds', item.bounds.dtype, reqd_dtype)
+                item.name()+' bounds', item.bounds.dtype, required_dtype)
 
     # if any data was non-compliant, raise details here
     if error_string:
@@ -212,17 +212,17 @@ def check_time_coordinate_metadata(cube):
             continue
 
         if coord.units.is_time_reference():
-            reqd_unit = "seconds since 1970-01-01 00:00:00"
-            reqd_dtype = TIME_REFERENCE_DTYPE
+            required_unit = "seconds since 1970-01-01 00:00:00"
+            required_dtype = TIME_REFERENCE_DTYPE
         else:
-            reqd_unit = "seconds"
-            reqd_dtype = np.int32
+            required_unit = "seconds"
+            required_dtype = np.int32
 
-        if not _check_units_and_dtype(coord, reqd_unit, reqd_dtype):
+        if not _check_units_and_dtype(coord, required_unit, required_dtype):
             msg = ('Coordinate {} does not match required '
                    'standard (units {}, datatype {})\n')
             error_string += msg.format(
-                coord.name(), reqd_unit, reqd_dtype)
+                coord.name(), required_unit, required_dtype)
 
     # if non-compliance was encountered, raise all messages here
     if error_string:
