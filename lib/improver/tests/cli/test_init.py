@@ -130,12 +130,14 @@ class Test_inputcube(unittest.TestCase):
 class Test_inputjson(unittest.TestCase):
     """Tests the input cube function"""
 
-    @patch('improver.cli.maybe_coerce_with')
+    @patch('improver.cli.maybe_coerce_with', return_value={"mocked": 1})
     def test_basic(self, m):
         """Tests that input json calls load_json_or_none with the string"""
-        inputjson("foo")
+        result = inputjson("foo")
         m.assert_called_with(
             improver.utilities.cli_utilities.load_json_or_none, "foo")
+        self.assertEqual(result, {"mocked": 1})
+
 
 
 class Test_with_output(unittest.TestCase):
