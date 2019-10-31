@@ -422,15 +422,16 @@ class WetBulbTemperature(object):
 
     def _calculate_wbt(self, latent_heat, precision, pressure,
                        relative_humidity, temperature):
-        """
+        """Calculates the wet bulb temperature. A Newton iterator is
+        used to minimise the gradient of enthalpy against temperature.
 
         Args:
             latent_heat (numpy.ndarray):
                 Array of temperature adjusted latent heat of
                 condensation (J kg-1).
-            precision (float):
+            precision (numpy.ndarray):
                 The precision to which the Newton iterator must converge before
-                returning wet bulb temperatures.
+                returning wet bulb temperatures. In the shape of temerature.
             pressure (numpy.ndarray):
                 Array of air Pressure (Pa).
             relative_humidity (numpy.ndarray):
@@ -443,7 +444,7 @@ class WetBulbTemperature(object):
                 Array of wet bulb temperature (K).
 
         """
-        wbt_data = temperature.data
+        wbt_data = temperature.copy()
         # Calculate mixing ratios.
         saturation_mixing_ratio = self._calculate_mixing_ratio(temperature,
                                                                pressure)
