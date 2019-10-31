@@ -31,7 +31,7 @@
 """General IMPROVER metadata utilities"""
 
 import hashlib
-import json
+import pprint
 
 
 def generate_hash(data_in):
@@ -48,8 +48,8 @@ def generate_hash(data_in):
             A hexadecimal string which is a hash hexdigest of the data as a
             string.
     """
-    json_bytestring = json.dumps(data_in, sort_keys=True).encode('utf-8')
-    return hashlib.sha256(json_bytestring).hexdigest()
+    bytestring = pprint.pformat(data_in).encode('utf-8')
+    return hashlib.sha256(bytestring).hexdigest()
 
 
 def create_coordinate_hash(cube):
