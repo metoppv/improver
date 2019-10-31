@@ -387,6 +387,14 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius=None,
             raise ValueError(
                 'Cannot process complex numbers with recursive filter')
 
+    if alphas_x_cube is not None and (alphas_x_cube.data > 0.5).any():
+        raise ValueError("alpha must be less than 0.5. A large alpha value "
+                         "leads to poor conservation of probabilities")
+
+    if alphas_y_cube is not None and (alphas_y_cube.data > 0.5).any():
+        raise ValueError("alpha must be less than 0.5. A large alpha value "
+                         "leads to poor conservation of probabilities")
+
     if degrees_as_complex:
         # convert cube data into complex numbers
         cube.data = WindDirection.deg_to_complex(cube.data)

@@ -29,6 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to apply a recursive filter to neighbourhooded data."""
+import warnings
 
 import iris
 import numpy as np
@@ -49,6 +50,11 @@ class RecursiveFilter(object):
                  edge_width=1, re_mask=False):
         """
         Initialise the class.
+
+        The alpha values determine how much "value" of a cell undergoing
+        filtering os comprised of the current value at that cell and how much
+        comes from the adjacent cell preceding it in the direction in which
+        filtering is being applied.
 
         Args:
             alpha_x (float or None):
@@ -73,29 +79,33 @@ class RecursiveFilter(object):
                 originally masked.
 
         Raises:
-            ValueError: If alpha_x is not set such that 0 < alpha_x < 1
-            ValueError: If alpha_y is not set such that 0 < alpha_y < 1
+            ValueError: If alpha_x is not set such that 0 < alpha_x <= 0.5
+            ValueError: If alpha_y is not set such that 0 < alpha_y <= 0.5
             ValueError: If number of iterations is not None and is set such
                         that iterations is not >= 1
 
         """
-        if alpha_x is not None:
-            if not 0 < alpha_x < 1:
-                raise ValueError(
-                    "Invalid alpha_x: must be > 0 and < 1: {}".format(
-                        alpha_x))
+        alpha_error = (
+            "alpha must be less than 0.5. A large alpha value leads to poor "
+            "conservation of probabilities: ")
+        if alpha_x is not None and not 0 < alpha_x <= 0.5:
+            message = alpha_error if alpha_x > 0.5 else ''
+            message += "Invalid alpha_x: must be > 0 and <= 0.5: {}"
+            raise ValueError(message.format(alpha_x))
 
-        if alpha_y is not None:
-            if not 0 < alpha_y < 1:
-                raise ValueError(
-                    "Invalid alpha_y: must be > 0 and < 1: {}".format(
-                        alpha_y))
+        if alpha_y is not None and not 0 < alpha_y <= 0.5:
+            message = alpha_error if alpha_y > 0.5 else ''
+            message += "Invalid alpha_y: must be > 0 and <= 0.5: {}"
+            raise ValueError(message.format(alpha_y))
 
         if iterations is not None:
-            if not iterations >= 1:
+            if iterations < 1:
                 raise ValueError(
                     "Invalid number of iterations: must be >= 1: {}".format(
                         iterations))
+            if iterations > 2:
+                warnings.warn(
+                    "Iterations of two will lead to poorer conservation.")
 
         self.alpha_x = alpha_x
         self.alpha_y = alpha_y
