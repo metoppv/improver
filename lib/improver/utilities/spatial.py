@@ -510,33 +510,6 @@ def transform_grid_to_lat_lon(cube):
     return lats, lons
 
 
-def get_nearest_coords(cube, latitude, longitude, iname, jname):
-    """
-    Uses the iris cube method nearest_neighbour_index to find the nearest grid
-    points to a given latitude-longitude position.
-
-    Args:
-        cube (iris.cube.Cube):
-            Cube containing a representative grid.
-        latitude (float):
-            Latitude coordinates of spot data site of interest.
-        longitude (float):
-            Longitude coordinates of spot data site of interest.
-        iname (str):
-            String giving the name of the y coordinates to be searched.
-        jname (str):
-            String giving the names of the x coordinates to be searched.
-
-    Returns:
-        Tuple[int, int]: Grid coordinates of the nearest grid point to the
-        spot data site.
-
-    """
-    i_latitude = cube.coord(iname).nearest_neighbour_index(latitude)
-    j_longitude = cube.coord(jname).nearest_neighbour_index(longitude)
-    return i_latitude, j_longitude
-
-
 class RegridLandSea():
     """
     Replace data values at points where the nearest-regridding technique
