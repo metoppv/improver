@@ -63,8 +63,8 @@ def create_new_diagnostic_cube(
             Cube with correct metadata to accommodate new diagnostic field
     """
     if data is None:
-        data = dask.array.zeros(
-            coordinate_template.shape, dtype=np.float32, chunks=-1)
+        data = dask.array.zeros_like(
+            coordinate_template, dtype=np.float32, chunks=-1)
 
     aux_coords_and_dims, dim_coords_and_dims = [
         [(coord, coordinate_template.coord_dims(coord))
