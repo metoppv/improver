@@ -86,33 +86,30 @@ class Test_specific_heat_of_moist_air(Test_Utilities):
 
 class Test_latent_heat_of_condensation(Test_Utilities):
 
-    """Test calculations of the latent heat of condensation with an input cube
-    of air temperatures."""
+    """Test calculations of the latent heat of condensation with an input array
+    for air """
 
     def test_basic(self):
         """Basic calculation of some latent heats of condensation."""
         expected = [[2531770.999107, 2508371.000223, 2484971.000223]]
         result = Utilities.latent_heat_of_condensation(self.temperature)
         self.assertArrayAlmostEqual(result.data, expected)
-        self.assertEqual(result.units, Unit('J kg-1'))
 
 
 class Test_calculate_enthalpy(Test_Utilities):
 
     """Test calculations of the enthalpy of air based upon the mixing ratio,
-    specific heat, latent heat and temperature input cubes."""
+    specific heat, latent heat and temperature input arrays."""
 
     def test_basic(self):
         """Basic calculation of some enthalpies."""
-        specific_heat = self.pressure.copy(data=[[1089.5, 1174., 1258.5]])
-        specific_heat.units = 'J kg-1 K-1'
-        latent_heat = self.pressure.copy(data=[[2531771., 2508371., 2484971.]])
-        latent_heat.units = 'J kg-1'
+        specific_heat = np.array([1089.5, 1174., 1258.5])
+        latent_heat = np.array([2531771., 2508371., 2484971.])
 
         expected = [[536447.103773,  818654.207476, 1097871.329623]]
         result = Utilities.calculate_enthalpy(
-            self.mixing_ratio.data, specific_heat.data,
-            latent_heat.data, self.temperature.data)
+            self.mixing_ratio.data, specific_heat,
+            latent_heat, self.temperature.data)
 
         self.assertArrayAlmostEqual(result, expected)
 
@@ -121,19 +118,17 @@ class Test_calculate_d_enthalpy_dt(Test_Utilities):
 
     """Test calculations of the enthalpy gradient with respect to temperature,
     based upon the mixing ratio, specific heat, latent heat and temperature
-    input cubes."""
+    input arrays."""
 
     def test_basic(self):
         """Basic calculation of some enthalpy gradients."""
-        specific_heat = self.pressure.copy(data=[[1089.5, 1174., 1258.5]])
-        specific_heat.units = 'J kg-1 K-1'
-        latent_heat = self.pressure.copy(data=[[2531771., 2508371., 2484971.]])
-        latent_heat.units = 'J kg-1'
+        specific_heat = np.array([1089.5, 1174., 1258.5])
+        latent_heat = np.array([2531771., 2508371., 2484971.])
 
         expected = [[21631.198581, 38569.575046, 52448.138051]]
         result = Utilities.calculate_d_enthalpy_dt(
-            self.mixing_ratio.data, specific_heat.data,
-            latent_heat.data, self.temperature.data)
+            self.mixing_ratio.data, specific_heat,
+            latent_heat, self.temperature.data)
 
         self.assertArrayAlmostEqual(result.data, expected)
 

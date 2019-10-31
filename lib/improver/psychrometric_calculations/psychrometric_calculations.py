@@ -78,8 +78,8 @@ class Utilities(object):
             numpy.ndarray:
                 Specific heat capacity of moist air (J kg-1 K-1).
         """
-        specific_heat = ((-1.*mixing_ratio + 1.) * consts.CP_DRY_AIR +
-                         mixing_ratio * consts.CP_WATER_VAPOUR)
+        specific_heat = ((-1.*mixing_ratio + 1.) * consts.CP_DRY_AIR
+                         + mixing_ratio * consts.CP_WATER_VAPOUR)
         return specific_heat
 
     @staticmethod
@@ -431,7 +431,7 @@ class WetBulbTemperature(object):
                 condensation (J kg-1).
             precision (numpy.ndarray):
                 The precision to which the Newton iterator must converge before
-                returning wet bulb temperatures. In the shape of temerature.
+                returning wet bulb temperatures. In the shape of temperature.
             pressure (numpy.ndarray):
                 Array of air Pressure (Pa).
             relative_humidity (numpy.ndarray):

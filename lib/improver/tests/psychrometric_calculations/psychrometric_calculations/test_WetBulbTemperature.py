@@ -132,7 +132,6 @@ class Test_pressure_correct_svp(Test_WetBulbTemperature):
             svp, self.temperature.data, self.pressure.data)
 
         self.assertArrayAlmostEqual(result.data, expected)
-        self.assertEqual(result.units, Unit('Pa'))
 
 
 class Test__calculate_mixing_ratio(Test_WetBulbTemperature):
