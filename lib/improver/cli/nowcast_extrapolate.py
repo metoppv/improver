@@ -123,7 +123,7 @@ def main(argv=None):
     args = parser.parse_args(args=argv)
 
     # Load Cubes and JSON
-    metadata_dict = load_json_or_none(args.json_file)
+    attributes_dict = load_json_or_none(args.json_file)
     upath, vpath = (args.eastward_advection_filepath,
                     args.northward_advection_filepath)
     spath, dpath = (args.advection_speed_filepath,
@@ -154,7 +154,7 @@ def main(argv=None):
     # Process Cubes
     accumulation_cubes, forecast_to_return = process(
         input_cube, ucube, vcube, speed_cube, direction_cube,
-        orographic_enhancement_cube, metadata_dict, args.max_lead_time,
+        orographic_enhancement_cube, attributes_dict, args.max_lead_time,
         args.lead_time_interval, args.accumulation_fidelity,
         args.accumulation_period, args.accumulation_units)
 
@@ -180,7 +180,7 @@ def main(argv=None):
 
 
 def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
-            orographic_enhancement_cube=None, metadata_dict=None,
+            orographic_enhancement_cube=None, attributes_dict=None,
             max_lead_time=360, lead_time_interval=15, accumulation_fidelity=0,
             accumulation_period=15, accumulation_units='m'):
     """Module  to extrapolate input cubes given advection velocity fields.
@@ -210,7 +210,7 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
             Cube containing the orographic enhancement fields. May have data
             for multiple times in the cube.
             Default is None.
-        metadata_dict (dict):
+        attributes_dict (dict):
             Dictionary containing the required changes to the attributes.
             Default is None.
         max_lead_time (int):
@@ -282,7 +282,7 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
     forecast_plugin = CreateExtrapolationForecast(
         input_cube, u_cube, v_cube,
         orographic_enhancement_cube=orographic_enhancement_cube,
-        attributes_dict=metadata_dict)
+        attributes_dict=attributes_dict)
 
     # extrapolate input data to required lead times
     forecast_cubes = iris.cube.CubeList()

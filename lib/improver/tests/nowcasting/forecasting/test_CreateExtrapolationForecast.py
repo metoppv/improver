@@ -100,7 +100,7 @@ class Test__init__(SetUpCubes):
 
     def test_basic_with_metadata_dict(self):
         """Test for simple case where __init__ does not change the input and
-           we amend the metadata."""
+           we amend the attributes."""
         # Change the input cube so no orographic enhancement is expected.
         input_cube = self.precip_cube.copy()
         input_cube.rename("air_temperature")

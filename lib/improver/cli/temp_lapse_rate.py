@@ -175,9 +175,9 @@ def process(temperature_cube, orography_cube, land_sea_mask_cube,
             min_lapse_rate=min_lapse_rate).process(temperature_cube,
                                                    orography_cube,
                                                    land_sea_mask_cube)
-    attributes = {"title": "delete", "source": "delete",
-                  "history": "delete", "um_version": "delete"}
-    amend_attributes(result, attributes)
+    attributes_dict = {"title": "delete", "source": "delete",
+                       "history": "delete", "um_version": "delete"}
+    amend_attributes(result, attributes_dict)
     return result
 
 
