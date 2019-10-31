@@ -48,7 +48,7 @@ function improver_compare_output {
   #    -s report 'Files X and Y are identical' if they really are.
   #    -g compares global attributes in the file
 
-  run nccmp -dmNsgf "$1" "$2"
+  run nccmp -dmNsg "$1" "$2"
   [[ "$status" -eq 0 ]]
   [[ "$output" =~ "are identical." ]]
 }
@@ -67,7 +67,7 @@ function improver_compare_output_lower_precision {
   # The use of a 1e-3 absolute tolerance is specific for usage in the
   # ensemble calibration CLI tests.
 
-  run nccmp -dmNsgf -t 1e-3 "$1" "$2"
+  run nccmp -dmNsg -t 1e-3 "$1" "$2"
   [[ "$status" -eq 0 ]]
   [[ "$output" =~ "are identical." ]]
 }
