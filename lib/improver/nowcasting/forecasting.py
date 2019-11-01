@@ -379,7 +379,7 @@ class CreateExtrapolationForecast():
                       repr(self.advection_plugin)))
         return result
 
-    def extrapolate(self, leadtime_minutes=None):
+    def extrapolate(self, leadtime_minutes):
         """
         Produce a new forecast cube for the supplied lead time. Creates a new
         advected forecast and then reapplies the orographic enhancement if it
@@ -400,10 +400,6 @@ class CreateExtrapolationForecast():
         Raises:
             ValueError: If no leadtime_minutes are provided.
         """
-        if leadtime_minutes is None:
-            message = ("leadtime_minutes must be provided in order to produce"
-                       " an extrapolated forecast")
-            raise ValueError(message)
         # cast to float as datetime.timedelta cannot accept np.int
         timestep = datetime.timedelta(minutes=float(leadtime_minutes))
         forecast_cube = self.advection_plugin.process(
@@ -432,6 +428,5 @@ class CreateExtrapolationForecast():
         lead_times = np.arange(0, max_lead_time + 1, interval)
         forecast_cubes = iris.cube.CubeList()
         for lead_time in lead_times:
-            forecast_cubes.append(
-                self.extrapolate(leadtime_minutes=lead_time))
+            forecast_cubes.append(self.extrapolate(lead_time))
         return forecast_cubes

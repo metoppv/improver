@@ -177,7 +177,7 @@ class Test_extrapolate(SetUpCubes):
         input_cube.units = "K"
         plugin = CreateExtrapolationForecast(
                 input_cube, self.vel_x, self.vel_y)
-        result = plugin.extrapolate(leadtime_minutes=10)
+        result = plugin.extrapolate(10)
         expected_result = np.array([[np.nan, np.nan, np.nan],
                                     [np.nan, 1, 2],
                                     [np.nan, 1, 1],
@@ -207,7 +207,7 @@ class Test_extrapolate(SetUpCubes):
         plugin = CreateExtrapolationForecast(
                 self.precip_cube, self.vel_x, self.vel_y,
                 orographic_enhancement_cube=self.oe_cube)
-        result = plugin.extrapolate(leadtime_minutes=10)
+        result = plugin.extrapolate(10)
         expected_result = np.array([[np.nan, np.nan, np.nan],
                                     [np.nan, 1.03125, 1.0],
                                     [np.nan, 1.0, 0.03125],
@@ -231,9 +231,8 @@ class Test_extrapolate(SetUpCubes):
         plugin = CreateExtrapolationForecast(
                 self.precip_cube, self.vel_x, self.vel_y,
                 orographic_enhancement_cube=self.oe_cube)
-        message = ("leadtime_minutes must be provided in order to "
-                   "produce an extrapolated forecast")
-        with self.assertRaisesRegex(ValueError, message):
+        message = ("missing 1 required positional argument")
+        with self.assertRaisesRegex(TypeError, message):
             plugin.extrapolate()
 
 
