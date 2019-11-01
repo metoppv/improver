@@ -82,22 +82,24 @@ class RecursiveFilter(object):
             ValueError: If alpha_x is not set such that 0 < alpha_x <= 0.5
             ValueError: If alpha_y is not set such that 0 < alpha_y <= 0.5
             ValueError: If number of iterations is not None and is set such
-                        that iterations is not >= 1
+                        that iterations is less than 1.
+
+        Warns:
+            UserWarning:
+                If iterations is higher than 2.
+
 
         """
-        alpha_error = (
-            "alpha must be less than 0.5. A large alpha value leads to poor "
-            "conservation of probabilities: ")
+        alpha_error = ("alpha must be less than 0.5. A large alpha value"
+                       "leads to poor conservation of probabilities: ")
         if alpha_x is not None and not 0 < alpha_x <= 0.5:
             message = alpha_error if alpha_x > 0.5 else ''
             message += "Invalid alpha_x: must be > 0 and <= 0.5: {}"
             raise ValueError(message.format(alpha_x))
-
         if alpha_y is not None and not 0 < alpha_y <= 0.5:
             message = alpha_error if alpha_y > 0.5 else ''
             message += "Invalid alpha_y: must be > 0 and <= 0.5: {}"
             raise ValueError(message.format(alpha_y))
-
         if iterations is not None:
             if iterations < 1:
                 raise ValueError(
@@ -329,7 +331,21 @@ class RecursiveFilter(object):
             new_cube (iris.cube.Cube):
                 Cube containing the smoothed field after the recursive filter
                 method has been applied.
+
+        Raises:
+            ValueError: If any alpha cube value is over 0.5
         """
+
+        if alphas_x is not None and (alphas_x.data > 0.5).any():
+            raise ValueError(
+                "alpha must be less than 0.5. A large alpha value "
+                "leads to poor conservation of probabilities")
+
+        if alphas_y is not None and (alphas_y.data > 0.5).any():
+            raise ValueError(
+                "alpha must be less than 0.5. A large alpha value "
+                "leads to poor conservation of probabilities")
+
         cube_format = next(cube.slices([cube.coord(axis='y'),
                                         cube.coord(axis='x')]))
         alphas_x = self._set_alphas(cube_format, self.alpha_x, alphas_x)

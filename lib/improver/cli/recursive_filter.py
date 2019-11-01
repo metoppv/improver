@@ -147,13 +147,6 @@ def process(cube, mask_cube=None, alphas_x_cube=None, alphas_y_cube=None,
         result (iris.cube.Cube):
             The processed Cube.
     """
-    if alphas_x_cube is not None and (alphas_x_cube.data > 0.5).any():
-        raise ValueError("alpha must be less than 0.5. A large alpha value "
-                         "leads to poor conservation of probabilities")
-
-    if alphas_y_cube is not None and (alphas_y_cube.data > 0.5).any():
-        raise ValueError("alpha must be less than 0.5. A large alpha value "
-                         "leads to poor conservation of probabilities")
     result = RecursiveFilter(
         alpha_x=alpha_x, alpha_y=alpha_y,
         iterations=iterations, re_mask=re_mask).process(
