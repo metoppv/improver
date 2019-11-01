@@ -36,7 +36,8 @@ import warnings
 
 import iris
 import numpy as np
-from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
+from iris.exceptions import (
+    CoordinateCollapseError, CoordinateNotFoundError, InvalidCubeError)
 from scipy import ndimage, signal
 
 from improver.metadata.amend import amend_attributes
@@ -82,15 +83,20 @@ def generate_optical_flow_components(
         v_cubes.append(vcube)
 
     # average optical flow velocity components
-    u_cube = u_cubes.merge_cube()
-    u_mean = u_cube.collapsed("time", iris.analysis.MEAN)
-    u_mean.coord("time").points = time_coord.points
-    u_mean.coord("time").units = time_coord.units
+    def _calculate_time_average(wind_cubes, time_coord):
+        """Average input cubelist over time"""
+        cube = wind_cubes.merge_cube()
+        try:
+            mean = cube.collapsed("time", iris.analysis.MEAN)
+        except CoordinateCollapseError:
+            # collapse will fail if there is only one time point
+            return cube
+        mean.coord("time").points = time_coord.points
+        mean.coord("time").units = time_coord.units
+        return mean
 
-    v_cube = v_cubes.merge_cube()
-    v_mean = v_cube.collapsed("time", iris.analysis.MEAN)
-    v_mean.coord("time").points = time_coord.points
-    v_mean.coord("time").units = time_coord.units
+    u_mean = _calculate_time_average(u_cubes, time_coord)
+    v_mean = _calculate_time_average(v_cubes, time_coord)
 
     return u_mean, v_mean
 

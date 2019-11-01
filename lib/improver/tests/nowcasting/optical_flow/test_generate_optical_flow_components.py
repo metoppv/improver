@@ -98,6 +98,18 @@ class Test_generate_optical_flow_components(IrisTest):
             self.assertAlmostEqual(
                 cube.coord("time").points[0], self.expected_time)
 
+    @ManageWarnings(ignored_messages=[
+        "No non-zero data in input fields",
+        "Collapsing a non-contiguous coordinate"])
+    def test_fewer_inputs(self):
+        """Test routine can produce output from a shorter list of inputs"""
+        result = generate_optical_flow_components(
+            [self.second_cube, self.third_cube], self.ofc_box_size,
+            self.iterations, None)
+        for cube in result:
+            self.assertAlmostEqual(
+                cube.coord("time").points[0], self.expected_time)
+
 
 if __name__ == '__main__':
     unittest.main()

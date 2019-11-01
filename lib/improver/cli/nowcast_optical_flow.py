@@ -204,8 +204,8 @@ def process(original_cube_list, orographic_enhancement_cube=None,
                    "supplied were: {}".format(cube_names))
             raise ValueError(msg)
 
-    # calculate optical flow velocities from T-1 to T and T-2 to T-1,
-    # and return averages
+    # calculate optical flow velocities from T-1 to T and T-2 to T-1, and
+    # average to produce the velocities for use in advection
     u_mean, v_mean = generate_optical_flow_components(
         cube_list, ofc_box_size, smart_smoothing_iterations, attributes_dict)
 
