@@ -134,17 +134,10 @@ def add_coord(cube, coord_name, changes, warnings_on=False):
     else:
         new_coord_method = iris.coords.DimCoord
 
-    try:
-        new_coord = new_coord_method(
-            standard_name=coord_name, var_name=var_name, points=points,
-            bounds=bounds, units=units, attributes=attributes)
-    except ValueError as cause:
-        if 'is not a valid standard_name' in str(cause):
-            new_coord = new_coord_method(
-                long_name=coord_name, var_name=var_name, points=points,
-                bounds=bounds, units=units, attributes=attributes)
-        else:
-            raise ValueError(cause)
+    new_coord = new_coord_method(
+        points=points, bounds=bounds, units=units, attributes=attributes)
+    new_coord.rename(coord_name)
+    new_coord.var_name = var_name
 
     result.add_aux_coord(new_coord)
     if metatype == 'DimCoord':

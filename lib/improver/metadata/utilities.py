@@ -30,12 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """General IMPROVER metadata utilities"""
 
-import dask
 import hashlib
 import iris
 # Usage of pickle in this module is only for creation of pickles and hashing
 # the contents. There is no loading pickles which would create security risks.
 import pickle  # nosec
+
+import dask.array as da
 import numpy as np
 
 
@@ -63,7 +64,7 @@ def create_new_diagnostic_cube(
             Cube with correct metadata to accommodate new diagnostic field
     """
     if data is None:
-        data = dask.array.zeros_like(
+        data = da.zeros_like(
             coordinate_template, dtype=np.float32, chunks=-1)
 
     aux_coords_and_dims, dim_coords_and_dims = [
@@ -71,21 +72,11 @@ def create_new_diagnostic_cube(
          for coord in getattr(coordinate_template, coord_type)]
         for coord_type in ('aux_coords', 'dim_coords')]
 
-    try:
-        cube = iris.cube.Cube(
-            data, standard_name=name, units=units,
-            dim_coords_and_dims=dim_coords_and_dims,
-            aux_coords_and_dims=aux_coords_and_dims,
-            attributes=attributes)
-    except ValueError as cause:
-        if 'is not a valid standard_name' in str(cause):
-            cube = iris.cube.Cube(
-                data, long_name=name, units=units,
-                dim_coords_and_dims=dim_coords_and_dims,
-                aux_coords_and_dims=aux_coords_and_dims,
-                attributes=attributes)
-        else:
-            raise
+    cube = iris.cube.Cube(
+        data, units=units, attributes=attributes,
+        dim_coords_and_dims=dim_coords_and_dims,
+        aux_coords_and_dims=aux_coords_and_dims)
+    cube.rename(name)
 
     return cube
 
