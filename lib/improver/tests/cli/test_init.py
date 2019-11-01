@@ -120,11 +120,12 @@ class Test_maybe_coerce_with(unittest.TestCase):
 class Test_inputcube(unittest.TestCase):
     """Tests the input cube function"""
 
-    @patch('improver.cli.maybe_coerce_with')
+    @patch('improver.cli.maybe_coerce_with', return_value='return')
     def test_basic(self, m):
         """Tests that input cube calls load_cube with the string"""
-        inputcube("foo")
+        result = inputcube("foo")
         m.assert_called_with(improver.utilities.load.load_cube, "foo")
+        self.assertEqual(result, 'return')
 
 
 class Test_inputjson(unittest.TestCase):
