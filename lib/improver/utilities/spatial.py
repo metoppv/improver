@@ -473,34 +473,6 @@ def lat_lon_determine(cube):
     return trg_crs
 
 
-def lat_lon_transform(trg_crs, latitude, longitude):
-    """
-    Transforms latitude/longitude coordinate pairs from a latitude/longitude
-    grid into an alternative projection defined by trg_crs.
-
-    Args:
-        trg_crs (cartopy.crs.CRS or None):
-            Target coordinate system in cartopy format or None.
-
-        latitude (float):
-            Latitude coordinate.
-
-        longitude (float):
-            Longitude coordinate.
-
-    Returns:
-        x, y (float):
-            Longitude and latitude transformed into the target coordinate
-            system.
-
-    """
-    if trg_crs is None:
-        return longitude, latitude
-    else:
-        return trg_crs.transform_point(longitude, latitude,
-                                       ccrs.PlateCarree())
-
-
 def transform_grid_to_lat_lon(cube):
     """
     Calculate the latitudes and longitudes of each points in the cube.
@@ -536,33 +508,6 @@ def transform_grid_to_lat_lon(cube):
     lats = points[..., 1]
 
     return lats, lons
-
-
-def get_nearest_coords(cube, latitude, longitude, iname, jname):
-    """
-    Uses the iris cube method nearest_neighbour_index to find the nearest grid
-    points to a given latitude-longitude position.
-
-    Args:
-        cube (iris.cube.Cube):
-            Cube containing a representative grid.
-        latitude (float):
-            Latitude coordinates of spot data site of interest.
-        longitude (float):
-            Longitude coordinates of spot data site of interest.
-        iname (str):
-            String giving the name of the y coordinates to be searched.
-        jname (str):
-            String giving the names of the x coordinates to be searched.
-
-    Returns:
-        Tuple[int, int]: Grid coordinates of the nearest grid point to the
-        spot data site.
-
-    """
-    i_latitude = cube.coord(iname).nearest_neighbour_index(latitude)
-    j_longitude = cube.coord(jname).nearest_neighbour_index(longitude)
-    return i_latitude, j_longitude
 
 
 class RegridLandSea():
