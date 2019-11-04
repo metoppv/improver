@@ -40,7 +40,7 @@ from iris.exceptions import CoordinateNotFoundError
 from improver.argparser import ArgParser
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
     GeneratePercentilesFromProbabilities
-from improver.metadata.amend import amend_metadata
+from improver.metadata.amend import amend_attributes
 from improver.metadata.probabilistic import find_percentile_coordinate
 from improver.percentile import PercentileConverter
 from improver.spotdata.apply_lapse_rate import SpotLapseRateAdjust
@@ -155,13 +155,13 @@ def main(argv=None):
     diagnostic_cube = load_cube(args.diagnostic_filepath)
     lapse_rate_cube = load_cube(args.temperature_lapse_rate_filepath,
                                 allow_none=True)
-    metadata_dict = load_json_or_none(args.metadata_json)
+    attributes_dict = load_json_or_none(args.metadata_json)
 
     # Process Cube
     result = process(neighbour_cube, diagnostic_cube, lapse_rate_cube,
                      args.apply_lapse_rate_correction, args.land_constraint,
                      args.minimum_dz, args.extract_percentiles,
-                     args.ecc_bounds_warning, metadata_dict,
+                     args.ecc_bounds_warning, attributes_dict,
                      args.suppress_warnings)
 
     # Save Cube
@@ -171,7 +171,7 @@ def main(argv=None):
 def process(neighbour_cube, diagnostic_cube, lapse_rate_cube=None,
             apply_lapse_rate_correction=False, land_constraint=False,
             minimum_dz=False, extract_percentiles=None,
-            ecc_bounds_warning=False, metadata_dict=None,
+            ecc_bounds_warning=False, attributes_dict=None,
             suppress_warnings=False):
     """Module to run spot data extraction.
 
@@ -223,8 +223,8 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube=None,
             If True, where calculated percentiles are outside the ECC bounds
             range, raises a warning rather than an exception.
             Default is False.
-        metadata_dict (dict):
-            If provided, this dictionary can be used to modify the metadata
+        attributes_dict (dict):
+            If provided, this dictionary can be used to modify the attributes
             of the returned cube.
             Default is None.
         suppress_warnings (bool):
@@ -350,9 +350,9 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube=None,
                 "apply the lapse rate correction was enabled. No lapse rate "
                 "correction could be applied.")
 
-    # Modify final metadata as described by provided JSON file.
-    if metadata_dict:
-        result = amend_metadata(result, **metadata_dict)
+    # Modify final attributes as described by provided JSON file.
+    if attributes_dict:
+        amend_attributes(result, attributes_dict)
     # Remove the internal model_grid_hash attribute if present.
     result.attributes.pop('model_grid_hash', None)
     return result

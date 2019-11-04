@@ -93,12 +93,8 @@ def main(argv=None):
                         "compulsory for precipitation fields.")
     parser.add_argument("--json_file", metavar="JSON_FILE", default=None,
                         help="Filename for the json file containing "
-                        "required changes to the metadata. Information "
-                        "describing the intended contents of the json file "
-                        "is available in "
-                        "improver.metadata.amend.amend_metadata. "
-                        "Every output cube will have the metadata_dict "
-                        "applied. Defaults to None.", type=str)
+                        "required changes to the attributes. "
+                        "Defaults to None.", type=str)
     parser.add_argument("--max_lead_time", type=int, default=360,
                         help="Maximum lead time required (mins).")
     parser.add_argument("--lead_time_interval", type=int, default=15,
@@ -124,11 +120,10 @@ def main(argv=None):
         help="Desired units in which the accumulations should be expressed,"
         "e.g. mm")
 
-    # Load Cubes
     args = parser.parse_args(args=argv)
 
-    metadata_dict = load_json_or_none(args.json_file)
-
+    # Load Cubes and JSON
+    attributes_dict = load_json_or_none(args.json_file)
     upath, vpath = (args.eastward_advection_filepath,
                     args.northward_advection_filepath)
     spath, dpath = (args.advection_speed_filepath,
@@ -159,7 +154,7 @@ def main(argv=None):
     # Process Cubes
     accumulation_cubes, forecast_to_return = process(
         input_cube, ucube, vcube, speed_cube, direction_cube,
-        orographic_enhancement_cube, metadata_dict, args.max_lead_time,
+        orographic_enhancement_cube, attributes_dict, args.max_lead_time,
         args.lead_time_interval, args.accumulation_fidelity,
         args.accumulation_period, args.accumulation_units)
 
@@ -185,7 +180,7 @@ def main(argv=None):
 
 
 def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
-            orographic_enhancement_cube=None, metadata_dict=None,
+            orographic_enhancement_cube=None, attributes_dict=None,
             max_lead_time=360, lead_time_interval=15, accumulation_fidelity=0,
             accumulation_period=15, accumulation_units='m'):
     """Module  to extrapolate input cubes given advection velocity fields.
@@ -215,11 +210,8 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
             Cube containing the orographic enhancement fields. May have data
             for multiple times in the cube.
             Default is None.
-        metadata_dict (dict):
-            Dictionary containing the required changes to the metadata.
-            Information describing the intended contents of the dictionary
-            is available in improver.metadata.amend.amend_metadata.
-            Every output cube will have the metadata_dict applied.
+        attributes_dict (dict):
+            Dictionary containing the required changes to the attributes.
             Default is None.
         max_lead_time (int):
             Maximum lead time required (mins).
@@ -290,7 +282,7 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
     forecast_plugin = CreateExtrapolationForecast(
         input_cube, u_cube, v_cube,
         orographic_enhancement_cube=orographic_enhancement_cube,
-        metadata_dict=metadata_dict)
+        attributes_dict=attributes_dict)
 
     # extrapolate input data to required lead times
     forecast_cubes = iris.cube.CubeList()
