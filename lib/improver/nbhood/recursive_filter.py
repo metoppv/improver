@@ -92,11 +92,11 @@ class RecursiveFilter(object):
         """
         alpha_error = ("alpha must be less than 0.5. A large alpha value"
                        "leads to poor conservation of probabilities: ")
-        for k, v in {'x': alpha_x, 'y': alpha_y}.items():
-            if v is not None and not 0 < v <= 0.5:
-                message = alpha_error if v > 0.5 else ''
+        for k, alpha in {'x': alpha_x, 'y': alpha_y}.items():
+            if alpha is not None and not 0 < alpha <= 0.5:
+                message = alpha_error if alpha > 0.5 else ''
                 message += "Invalid alpha_{}: must be > 0 and <= 0.5: {}"
-                raise ValueError(message.format(k, v))
+                raise ValueError(message.format(k, alpha))
         if iterations is not None:
             if iterations < 1:
                 raise ValueError(
