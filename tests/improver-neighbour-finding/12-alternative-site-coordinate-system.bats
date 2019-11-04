@@ -48,10 +48,6 @@
   [[ "$status" -eq 0 ]]
 
   # Run nccmp to compare the output and kgo.
-  # Note this is a special case. The site coordinates are different, but the
-  # data (neighbour indices and vertical displacements) should be identical
-  # to the 07 test in which sites were defined with latitudes and longitudes.
-  # For this reason we invoke nccmp here directly to use different options.
   improver_compare_output "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
 }
