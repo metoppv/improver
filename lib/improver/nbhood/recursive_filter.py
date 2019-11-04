@@ -52,7 +52,7 @@ class RecursiveFilter(object):
         Initialise the class.
 
         The alpha values determine how much "value" of a cell undergoing
-        filtering os comprised of the current value at that cell and how much
+        filtering is comprised of the current value at that cell and how much
         comes from the adjacent cell preceding it in the direction in which
         filtering is being applied.
 
@@ -92,14 +92,11 @@ class RecursiveFilter(object):
         """
         alpha_error = ("alpha must be less than 0.5. A large alpha value"
                        "leads to poor conservation of probabilities: ")
-        if alpha_x is not None and not 0 < alpha_x <= 0.5:
-            message = alpha_error if alpha_x > 0.5 else ''
-            message += "Invalid alpha_x: must be > 0 and <= 0.5: {}"
-            raise ValueError(message.format(alpha_x))
-        if alpha_y is not None and not 0 < alpha_y <= 0.5:
-            message = alpha_error if alpha_y > 0.5 else ''
-            message += "Invalid alpha_y: must be > 0 and <= 0.5: {}"
-            raise ValueError(message.format(alpha_y))
+        for k, v in {'x':alpha_x, 'y':alpha_y}.items():
+            if v is not None and not 0 < v <= 0.5:
+                message = alpha_error if v > 0.5 else ''
+                message += "Invalid alpha_{}: must be > 0 and <= 0.5: {}"
+                raise ValueError(message.format(k, v))
         if iterations is not None:
             if iterations < 1:
                 raise ValueError(
@@ -107,8 +104,8 @@ class RecursiveFilter(object):
                         iterations))
             if iterations > 2:
                 warnings.warn(
-                    "Iterations of two will lead to poorer conservation.")
-
+                    "More than two iterations degrades the conservation"
+                    "of probability assumption.")
         self.alpha_x = alpha_x
         self.alpha_y = alpha_y
         self.iterations = iterations
@@ -335,16 +332,11 @@ class RecursiveFilter(object):
         Raises:
             ValueError: If any alpha cube value is over 0.5
         """
-
-        if alphas_x is not None and (alphas_x.data > 0.5).any():
-            raise ValueError(
-                "alpha must be less than 0.5. A large alpha value "
-                "leads to poor conservation of probabilities")
-
-        if alphas_y is not None and (alphas_y.data > 0.5).any():
-            raise ValueError(
-                "alpha must be less than 0.5. A large alpha value "
-                "leads to poor conservation of probabilities")
+        for alpha in (alphas_x, alphas_y):
+            if alpha is not None and (alpha.data > 0.5).any():
+                raise ValueError(
+                    "alpha must be less than 0.5. A large alpha value "
+                    "leads to poor conservation of probabilities")
 
         cube_format = next(cube.slices([cube.coord(axis='y'),
                                         cube.coord(axis='x')]))

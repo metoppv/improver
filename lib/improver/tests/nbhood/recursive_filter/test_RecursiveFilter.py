@@ -95,7 +95,7 @@ class Test__init__(Test_RecursiveFilter):
     """Test plugin initialisation."""
 
     def test_alpha_x_gt_unity(self):
-        """Test when an alpha_x value > unity is given (invalid)."""
+        """Test when an alpha_x value > 0.5 is given (invalid)."""
         alpha_x = 0.6
         msg = r"alpha must be less than 0.5.*?(alpha_x).*?(: 0\.6)"
         with self.assertRaisesRegex(ValueError, msg):
@@ -109,7 +109,7 @@ class Test__init__(Test_RecursiveFilter):
             RecursiveFilter(alpha_x=alpha_x)
 
     def test_alpha_y_gt_unity(self):
-        """Test when an alpha_y value > unity is given (invalid)."""
+        """Test when an alpha_y value > 0.5 is given (invalid)."""
         alpha_y = 0.6
         msg = r"alpha must be less than 0.5.*?(alpha_y).*?(: 0\.6)"
         with self.assertRaisesRegex(ValueError, msg):
@@ -134,7 +134,9 @@ class Test__init__(Test_RecursiveFilter):
     def test_interations_warn(self, warning_list=None):
         """Test when the iteration value is more than 3 it warns."""
         iterations = 5
-        warning_msg = "Iterations of two will lead to poorer conservation."
+        warning_msg = ("More than two iterations degrades the conservation"
+                       "of probability assumption.")
+
         RecursiveFilter(iterations=iterations)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
