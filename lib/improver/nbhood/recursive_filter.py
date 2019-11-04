@@ -335,7 +335,7 @@ class RecursiveFilter(object):
         for alpha in (alphas_x, alphas_y):
             if alpha is not None and (alpha.data > 0.5).any():
                 raise ValueError(
-                    "alpha must be less than 0.5. A large alpha value "
+                    "All alpha values must be less than 0.5. A large alpha value "
                     "leads to poor conservation of probabilities")
 
         cube_format = next(cube.slices([cube.coord(axis='y'),
