@@ -34,6 +34,8 @@ import numpy as np
 from cf_units import Unit
 from iris.exceptions import CoordinateNotFoundError
 
+TIME_REFERENCE_DTYPE = np.int64
+
 
 def check_cube_not_float64(cube, fix=False):
     """Check a cube does not contain any float64 data, excepting time
@@ -76,54 +78,14 @@ def check_cube_not_float64(cube, fix=False):
                         coord, cube))
 
 
-def check_time_coordinate_metadata(cube):
-    """
-    Function to check time coordinates against the expected standard. The
-    standard for time coordinates is due to technical requirements and if
-    violated the data integrity cannot be guaranteed; so if time coordinates
-    are non-conformant an error is raised.
-
-    Args:
-        cubes (iris.cube.Cube):
-            Cube to be checked
-
-    Raises:
-        ValueError: if any the input cube's time coordinates do not conform
-            to the standard datatypes and units
-    """
-    error_string = ''
-    for time_coord in ["time", "forecast_reference_time", "forecast_period"]:
-        try:
-            coord = cube.coord(time_coord)
-        except CoordinateNotFoundError:
-            continue
-
-        if coord.units.is_time_reference():
-            reqd_unit = "seconds since 1970-01-01 00:00:00"
-            reqd_dtype = np.int64
-        else:
-            reqd_unit = "seconds"
-            reqd_dtype = np.int32
-
-        if not _check_units_and_dtype(coord, reqd_unit, reqd_dtype):
-            msg = ('Coordinate {} does not match required '
-                   'standard (units {}, datatype {})\n')
-            error_string += msg.format(
-                coord.name(), reqd_unit, reqd_dtype)
-
-    # if non-compliance was encountered, raise all messages here
-    if error_string:
-        raise ValueError(error_string)
-
-
-def _construct_object_list(cube, coords):
+def _construct_object_list(cube, coord_names):
     """
     Construct a list of objects
 
     Args:
         cube (iris.cube.Cube):
             Cube to append to object list
-        coords (list or None):
+        coord_names (list of str or None):
             List of coordinate names to take from cube.  If None, adds all
             coordinates present on the input cube.
 
@@ -133,8 +95,8 @@ def _construct_object_list(cube, coords):
     """
     object_list = []
     object_list.append(cube)
-    if coords is not None:
-        for coord in coords:
+    if coord_names is not None:
+        for coord in coord_names:
             try:
                 object_list.append(cube.coord(coord))
             except CoordinateNotFoundError:
@@ -142,6 +104,20 @@ def _construct_object_list(cube, coords):
     else:
         object_list.extend(cube.coords())
     return object_list
+
+
+def _get_required_datatype(item):
+    """
+    Returns the required datatype of the object (cube or coordinate)
+    passed in, according to the IMPROVER standard.  Input object must
+    have attributes "units" and "dtype".
+    """
+    if item.units.is_time_reference():
+        return TIME_REFERENCE_DTYPE
+    elif issubclass(item.dtype.type, np.integer):
+        return np.int32
+    else:
+        return np.float32
 
 
 def check_datatypes(cube, coords=None):
@@ -165,28 +141,22 @@ def check_datatypes(cube, coords=None):
     # construct a list of objects (cube and coordinates) to be checked
     object_list = _construct_object_list(cube, coords)
 
+    msg = ('{} datatype {} does not conform to expected standard ({})\n')
     error_string = ''
     for item in object_list:
         # allow string-type objects
         if item.dtype.type == np.unicode_:
             continue
 
-        if item.units.is_time_reference():
-            reqd_dtype = np.int64
-        elif issubclass(item.dtype.type, np.integer):
-            reqd_dtype = np.int32
-        else:
-            reqd_dtype = np.float32
+        # check numerical datatypes
+        required_dtype = _get_required_datatype(item)
+        if item.dtype.type != required_dtype:
+            error_string += msg.format(item.name(), item.dtype, required_dtype)
 
-        if item.dtype.type != reqd_dtype:
-            msg = ('{} datatype {} does not conform '
-                   'to expected standard ({})\n')
-            msg = msg.format(item.name(), item.dtype, reqd_dtype)
-            error_string += msg
-
-        # TODO check coordinate bounds.  Currently this causes several
-        # acceptance tests to fail as the input data are non-compliant.
-        # Therefore this check should be added as a separate PR and review.
+        if (hasattr(item, "bounds") and item.bounds is not None
+                and item.bounds.dtype.type != required_dtype):
+            error_string += msg.format(
+                item.name()+' bounds', item.bounds.dtype, required_dtype)
 
     # if any data was non-compliant, raise details here
     if error_string:
@@ -217,3 +187,43 @@ def _check_units_and_dtype(obj, units, dtype):
         return False
 
     return True
+
+
+def check_time_coordinate_metadata(cube):
+    """
+    Function to check time coordinates against the expected standard. The
+    standard for time coordinates is due to technical requirements and if
+    violated the data integrity cannot be guaranteed; so if time coordinates
+    are non-conformant an error is raised.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube to be checked
+
+    Raises:
+        ValueError: if any the input cube's time coordinates do not conform
+            to the standard datatypes and units
+    """
+    error_string = ''
+    for time_coord in ["time", "forecast_reference_time", "forecast_period"]:
+        try:
+            coord = cube.coord(time_coord)
+        except CoordinateNotFoundError:
+            continue
+
+        if coord.units.is_time_reference():
+            required_unit = "seconds since 1970-01-01 00:00:00"
+            required_dtype = TIME_REFERENCE_DTYPE
+        else:
+            required_unit = "seconds"
+            required_dtype = np.int32
+
+        if not _check_units_and_dtype(coord, required_unit, required_dtype):
+            msg = ('Coordinate {} does not match required '
+                   'standard (units {}, datatype {})\n')
+            error_string += msg.format(
+                coord.name(), required_unit, required_dtype)
+
+    # if non-compliance was encountered, raise all messages here
+    if error_string:
+        raise ValueError(error_string)

@@ -52,8 +52,7 @@ from improver.utilities.spatial import (
     check_if_grid_is_equal_area, calculate_grid_spacing,
     convert_distance_into_number_of_grid_cells,
     convert_number_of_grid_cells_into_distance,
-    lat_lon_determine, lat_lon_transform, transform_grid_to_lat_lon,
-    get_nearest_coords)
+    lat_lon_determine, transform_grid_to_lat_lon)
 
 
 class Test_common_functions(IrisTest):
@@ -414,28 +413,6 @@ class Test_lat_lon_determine(Test_common_functions):
         self.assertEqual(expected, result)
 
 
-class Test_lat_lon_transform(Test_common_functions):
-    """
-    Test function that transforms the lookup latitude and longitude into the
-    projection used in a diagnostic cube.
-
-    """
-    def test_projection_transform(self):
-        """
-        Test transformation of lookup coordinates to the projections in
-        which the diagnostic is provided.
-
-        """
-        trg_crs = ccrs.LambertConformal(central_longitude=50,
-                                        central_latitude=10)
-
-        plugin = lat_lon_transform
-        expected_x, expected_y = 0., 0.
-        result_x, result_y = plugin(trg_crs, 10, 50)
-        self.assertAlmostEqual(expected_x, result_x)
-        self.assertAlmostEqual(expected_y, result_y)
-
-
 class Test_transform_grid_to_lat_lon(IrisTest):
     """
     Test function that transforms the points in the cube
@@ -464,21 +441,3 @@ class Test_transform_grid_to_lat_lon(IrisTest):
         self.assertIsInstance(result_lons, np.ndarray)
         self.assertArrayAlmostEqual(result_lons, expected_lons)
         self.assertArrayAlmostEqual(result_lats, expected_lats)
-
-
-class Test_get_nearest_coords(Test_common_functions):
-    """Test wrapper for iris.cube.Cube.nearest_neighbour_index."""
-
-    def test_nearest_coords(self):
-        """Test correct indices are returned."""
-        plugin = get_nearest_coords
-        longitude = 80
-        latitude = -25
-        expected = (4, 8)
-        result = plugin(self.cube, latitude, longitude,
-                        'latitude', 'longitude')
-        self.assertEqual(expected, result)
-
-
-if __name__ == '__main__':
-    unittest.main()
