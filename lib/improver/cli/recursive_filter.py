@@ -137,7 +137,7 @@ def process(cube, mask_cube=None, alphas_x_cube=None, alphas_y_cube=None,
         iterations (int):
             Number of times to apply the filter. (Typically < 3)
             Number of iterations should be less than 3, higher values have been
-            show to lead to poorer conservation.
+            shown to lead to poorer conservation.
             Default is 1 (one).
         re_mask (bool):
             Re-apply mask to recursively filtered output.
