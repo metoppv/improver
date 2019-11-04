@@ -82,7 +82,7 @@ class Test_create_new_diagnostic_cube(unittest.TestCase):
             self.name, self.units, self.template_cube, data=data)
         self.assertTrue(np.allclose(result.data, data))
 
-    def test_datatype(self):
+    def test_dtype(self):
         """Test dummy data of a different type can be set"""
         result = create_new_diagnostic_cube(
             self.name, self.units, self.template_cube, dtype=np.int32)
