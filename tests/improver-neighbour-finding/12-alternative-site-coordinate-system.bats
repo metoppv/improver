@@ -53,4 +53,5 @@
   # to the 07 test in which sites were defined with latitudes and longitudes.
   # For this reason we invoke nccmp here directly to use different options.
   run nccmp -dm "$TEST_DIR/output.nc" "$IMPROVER_ACC_TEST_DIR/$KGO"
+  [[ "$status" -eq 0 ]]
 }

@@ -195,7 +195,8 @@ class Test__transform_sites_coordinate_system(Test_NeighbourSelection):
         expected = [[0., 0.], [1111782.53516264, 0.],
                     [2189747.33076441, 1121357.32401753]]
         result = plugin._transform_sites_coordinate_system(
-            x_points, y_points, self.region_orography)
+            x_points, y_points,
+            self.region_orography.coord_system().as_cartopy_crs())
         self.assertArrayAlmostEqual(result, expected)
 
     def test_region_to_global(self):
@@ -209,7 +210,8 @@ class Test__transform_sites_coordinate_system(Test_NeighbourSelection):
         expected = [[0., 0.], [8.98315284e-06, 0.],
                     [1.79663057e-05, 9.04369476e-06]]
         result = plugin._transform_sites_coordinate_system(
-            x_points, y_points, self.global_orography)
+            x_points, y_points,
+            self.global_orography.coord_system().as_cartopy_crs())
         self.assertArrayAlmostEqual(result, expected)
 
     def test_global_to_global(self):
@@ -220,7 +222,8 @@ class Test__transform_sites_coordinate_system(Test_NeighbourSelection):
         y_points = np.array([0, 0, 10])
         expected = np.stack((x_points, y_points), axis=1)
         result = plugin._transform_sites_coordinate_system(
-            x_points, y_points, self.global_orography)
+            x_points, y_points,
+            self.global_orography.coord_system().as_cartopy_crs())
 
         self.assertArrayAlmostEqual(result, expected)
 
@@ -233,7 +236,8 @@ class Test__transform_sites_coordinate_system(Test_NeighbourSelection):
         y_points = np.array([0, 0, 1])
         expected = np.stack((x_points, y_points), axis=1)
         result = plugin._transform_sites_coordinate_system(
-            x_points, y_points, self.region_orography)
+            x_points, y_points,
+            self.region_orography.coord_system().as_cartopy_crs())
 
         self.assertArrayAlmostEqual(result, expected)
 
