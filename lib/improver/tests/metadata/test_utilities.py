@@ -85,7 +85,7 @@ class Test_create_new_diagnostic_cube(unittest.TestCase):
     def test_datatype(self):
         """Test dummy data of a different type can be set"""
         result = create_new_diagnostic_cube(
-            self.name, self.units, self.template_cube, datatype=np.int32)
+            self.name, self.units, self.template_cube, dtype=np.int32)
         self.assertEqual(result.data.dtype, np.int32)
 
     def test_non_standard_name(self):

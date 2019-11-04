@@ -42,7 +42,7 @@ import numpy as np
 
 def create_new_diagnostic_cube(
         name, units, coordinate_template, attributes=None, data=None,
-        datatype=np.float32):
+        dtype=np.float32):
     """
     Creates a template for a new diagnostic cube with suitable metadata.
 
@@ -59,7 +59,7 @@ def create_new_diagnostic_cube(
             Data array.  If not set, cube is filled with zeros using a lazy
             data object, as this will be overwritten later by the caller
             routine.
-        datatype (numpy.dtype):
+        dtype (numpy.dtype):
             Datatype for dummy cube data if "data" argument is None.
 
     Returns:
@@ -67,7 +67,7 @@ def create_new_diagnostic_cube(
             Cube with correct metadata to accommodate new diagnostic field
     """
     if data is None:
-        data = da.zeros_like(coordinate_template, dtype=datatype)
+        data = da.zeros_like(coordinate_template.core_data(), dtype=dtype)
 
     aux_coords_and_dims, dim_coords_and_dims = [
         [(coord, coordinate_template.coord_dims(coord))
