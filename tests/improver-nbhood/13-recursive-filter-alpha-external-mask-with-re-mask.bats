@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "nbhood 'probabilities' 'square' --radius=20000 input output --apply-recursive-filter --alpha_x 0.8 --alpha_y 0.8 --iterations 5 --re_mask --input_mask_filepath" {
+@test "nbhood 'probabilities' 'square' --radius=20000 input output --apply-recursive-filter --alpha_x 0.5 --alpha_y 0.5 --iterations 2 --re_mask --input_mask_filepath" {
   improver_check_skip_acceptance
   KGO="nbhood/recursive/kgo_external_mask_with_re_mask_recursive_alpha.nc"
 
@@ -39,7 +39,7 @@
   run improver nbhood 'probabilities' 'square' --radius=20000 \
       "$IMPROVER_ACC_TEST_DIR/nbhood/mask/input.nc" \
       "$TEST_DIR/output.nc" --apply-recursive-filter --re_mask \
-      --alpha_x=0.8 --alpha_y=0.8 --iterations=5 \
+      --alpha_x=0.5 --alpha_y=0.5 --iterations=2 \
       --input_mask_filepath="$IMPROVER_ACC_TEST_DIR/nbhood/mask/mask.nc"
   [[ "$status" -eq 0 ]]
 

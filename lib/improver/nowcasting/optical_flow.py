@@ -36,12 +36,69 @@ import warnings
 
 import iris
 import numpy as np
-from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
+from iris.exceptions import (
+    CoordinateCollapseError, CoordinateNotFoundError, InvalidCubeError)
 from scipy import ndimage, signal
 
-from improver.metadata.amend import amend_metadata
+from improver.metadata.amend import amend_attributes
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.spatial import check_if_grid_is_equal_area
+
+
+def generate_optical_flow_components(
+        cube_list, ofc_box_size, smart_smoothing_iterations, attributes_dict):
+    """
+    Calculate the mean optical flow components between the cubes in cube_list
+
+    Args:
+        cube_list (iris.cube.CubeList):
+            Cubelist from which to calculate optical flow velocities
+        ofc_box_size (int):
+            Size of square 'box' (in grid spaces) within which to solve
+            the optical flow equations
+        smart_smoothing_iterations (int):
+            Number of iterations to perform in enforcing smoothness constraint
+            for optical flow velocities
+        attributes_dict (dict or None):
+            Dictionary containing required attributes
+
+    Returns:
+        (tuple) tuple containing:
+            **u_mean** (iris.cube.Cube):
+                Cube of x-advection velocities
+            **v_mean** (iris.cube.Cube):
+                Cube of y-advection velocities
+    """
+    cube_list.sort(key=lambda x: x.coord("time").points[0])
+    time_coord = cube_list[-1].coord("time")
+
+    ofc_plugin = OpticalFlow(iterations=smart_smoothing_iterations,
+                             attributes_dict=attributes_dict)
+    u_cubes = iris.cube.CubeList([])
+    v_cubes = iris.cube.CubeList([])
+    for older_cube, newer_cube in zip(cube_list[:-1], cube_list[1:]):
+        ucube, vcube = ofc_plugin.process(older_cube, newer_cube,
+                                          boxsize=ofc_box_size)
+        u_cubes.append(ucube)
+        v_cubes.append(vcube)
+
+    # average optical flow velocity components
+    def _calculate_time_average(wind_cubes, time_coord):
+        """Average input cubelist over time"""
+        cube = wind_cubes.merge_cube()
+        try:
+            mean = cube.collapsed("time", iris.analysis.MEAN)
+        except CoordinateCollapseError:
+            # collapse will fail if there is only one time point
+            return cube
+        mean.coord("time").points = time_coord.points
+        mean.coord("time").units = time_coord.units
+        return mean
+
+    u_mean = _calculate_time_average(u_cubes, time_coord)
+    v_mean = _calculate_time_average(v_cubes, time_coord)
+
+    return u_mean, v_mean
 
 
 def check_input_coords(cube, require_time=False):
@@ -94,7 +151,7 @@ class OpticalFlow(object):
     """
 
     def __init__(self, data_smoothing_method='box', iterations=100,
-                 metadata_dict=None):
+                 attributes_dict=None):
         """
         Initialise the class with smoothing parameters for estimating gridded
         u- and v- velocities via optical flow.
@@ -107,20 +164,15 @@ class OpticalFlow(object):
             iterations (int):
                 Number of iterations to perform in post-calculation smoothing.
                 The value for good convergence is 20 (Bowler et al. 2004).
-            metadata_dict (dict):
-                Dictionary containing information for amending the metadata
-                of the output cube. Please see the
-                :func:`improver.metadata.amend.amend_metadata`
-                for information regarding the allowed contents of the metadata
-                dictionary. This metadata_dict is used to amend both of the
-                resulting u and v cubes.
+            attributes_dict (dict):
+                Dictionary containing information for amending the attributes
+                of the output cube. This dictionary is used to amend both of
+                the resulting u and v cubes.
 
         Raises:
             ValueError:
                 If iterations < 20
-
         """
-
         if iterations < 20:
             raise ValueError('Got {} iterations; minimum requirement 20 '
                              'iterations'.format(iterations))
@@ -141,18 +193,18 @@ class OpticalFlow(object):
         self.shape = None
 
         # Initialise metadata dictionary.
-        if metadata_dict is None:
-            metadata_dict = {}
-        self.metadata_dict = metadata_dict
+        if attributes_dict is None:
+            attributes_dict = {}
+        self.attributes_dict = attributes_dict
 
     def __repr__(self):
         """Represent the plugin instance as a string."""
         result = ('<OpticalFlow: data_smoothing_radius_km: {}, '
                   'data_smoothing_method: {}, iterations: {}, '
-                  'point_weight: {}, metadata_dict: {}>')
+                  'point_weight: {}, attributes_dict: {}>')
         return result.format(
             self.data_smoothing_radius_km, self.data_smoothing_method,
-            self.iterations, self.point_weight, self.metadata_dict)
+            self.iterations, self.point_weight, self.attributes_dict)
 
     @staticmethod
     def interp_to_midpoint(data, axis=None):
@@ -787,11 +839,11 @@ class OpticalFlow(object):
             ucomp, long_name="precipitation_advection_x_velocity",
             units="m s-1", dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
         ucube.add_aux_coord(t_coord)
-        ucube = amend_metadata(ucube, **self.metadata_dict)
+        amend_attributes(ucube, self.attributes_dict)
 
         vcube = iris.cube.Cube(
             vcomp, long_name="precipitation_advection_y_velocity",
             units="m s-1", dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
         vcube.add_aux_coord(t_coord)
-        vcube = amend_metadata(vcube, **self.metadata_dict)
+        amend_attributes(vcube, self.attributes_dict)
         return ucube, vcube
