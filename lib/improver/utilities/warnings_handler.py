@@ -106,7 +106,7 @@ class ManageWarnings(object):
             func (function):
                 A function that we want to wrap with this decorator.
         Returns:
-            warnings_wrapper (function):
+            function:
                 The wrapped function with the warnings context manager and
                 necessary filters turned on.
         """

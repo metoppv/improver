@@ -211,7 +211,7 @@ def process(cube, threshold_values=None, threshold_dict=None,
             which to search for an occurrence.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             processed Cube.
 
     Raises:

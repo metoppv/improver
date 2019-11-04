@@ -216,7 +216,7 @@ def process(current_forecast, coeffs, landsea_mask, num_realizations=None,
             Default is 'mean'
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             The calibrated forecast cube.
 
     Raises:

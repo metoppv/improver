@@ -155,7 +155,7 @@ class AdvectField():
                 Advection time step in seconds
 
         Returns:
-            adv_field (numpy.ma.MaskedArray):
+            numpy.ma.MaskedArray:
                 2D float array of advected data values with masked "no data"
                 regions
         """
@@ -236,7 +236,7 @@ class AdvectField():
                 Advection time step
 
         Returns:
-            advected_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 New cube with updated time and extrapolated data.  New data
                 are filled with np.nan and masked where source data were
                 out of bounds (ie where data could not be advected from outside
@@ -391,7 +391,7 @@ class CreateExtrapolationForecast():
                 in minutes.
 
         Returns:
-            advected_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 New cube with updated time and extrapolated data.  New data
                 are filled with np.nan and masked where source data were
                 out of bounds (ie where data could not be advected from outside

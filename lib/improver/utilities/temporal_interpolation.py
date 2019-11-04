@@ -66,7 +66,7 @@ class TemporalInterpolation(object):
                    | e.g. cube_t0 valid at 03Z, cube_t1 valid at 06Z,
                    | interval_in_minutes = 60 --> interpolate to 04Z and 05Z.
 
-            times (list or tuple of datetime.datetime objects):
+            times (list or tuple of datetime.datetime):
                 A list of datetime objects specifying the times to which to
                 interpolate.
             interpolation_method (str):
@@ -115,7 +115,7 @@ class TemporalInterpolation(object):
                 constructed.
 
         Returns:
-            list:
+            list of Tuple[str, List[datetime.datetime]]:
                 A list containing a tuple that specifies the coordinate and a
                 list of points along that coordinate to which to interpolate,
                 as required by the iris interpolation method, e.g.::
@@ -176,7 +176,7 @@ class TemporalInterpolation(object):
                 enforced.
 
         Returns:
-            cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube where the datatype and units for the
                 time, forecast_reference_time and forecast_period coordinates
                 have been enforced.
@@ -219,7 +219,7 @@ class TemporalInterpolation(object):
             lons (numpy.ndarray):
                 Array 2d of longitudes for each point
         Returns:
-            sin_phi (numpy.ndarray):
+            numpy.ndarray:
                 Array of sine of solar elevation at each point
 
         """
@@ -240,7 +240,7 @@ class TemporalInterpolation(object):
             cube (iris.cube.Cube):
                 cube containing x and y axis
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **lats** (numpy.ndarray):
                     2d Array of latitudes for each point.
                 **lons** (numpy.ndarray):
@@ -276,7 +276,7 @@ class TemporalInterpolation(object):
                 cube containing Linear interpolation of
                 diag_cube at interpolation times in time_list.
         Returns:
-            interpolated_cubes (iris.cube.CubeList):
+            iris.cube.CubeList:
                 A list of cubes interpolated to the desired times.
 
         """
@@ -348,7 +348,7 @@ class TemporalInterpolation(object):
                 cube at interpolation times in time_list.
 
         Returns:
-            interpolated_cubes (iris.cube.CubeList):
+            iris.cube.CubeList:
                 A list of cubes interpolated to the desired times.
 
         """
@@ -381,7 +381,7 @@ class TemporalInterpolation(object):
                 interpolation is to be permitted.
 
         Returns:
-            interpolated_cubes (iris.cube.CubeList):
+            iris.cube.CubeList:
                 A list of cubes interpolated to the desired times.
 
         Raises:

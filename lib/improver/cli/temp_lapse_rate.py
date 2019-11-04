@@ -138,7 +138,7 @@ def process(temperature_cube, orography_cube, land_sea_mask_cube,
             rather than calculating the true lapse rate.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             Cube containing lapse rate (K m-1)
 
     Raises:

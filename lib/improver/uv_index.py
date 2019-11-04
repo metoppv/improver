@@ -58,7 +58,7 @@ def calculate_uv_index(uv_upward, uv_downward, scale_factor=3.6):
             referenced below (no units)
 
     Returns:
-        uv_index (iris.cube.Cube):
+        iris.cube.Cube:
             A cube of the calculated UV index.
 
     Raises:

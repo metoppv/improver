@@ -86,7 +86,7 @@ class CubeCombiner(object):
             cube2 (iris.cube.Cube):
                 Cube containing data to be combined.
         Returns:
-            result (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the combined data.
         """
         result = cube1
@@ -126,7 +126,7 @@ class CubeCombiner(object):
                 should be used as the point value, e.g.
                 {'time': 'upper'}.
         Returns:
-            result (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the combined data.
         Raises:
             TypeError: If cube_list is not an iris.cube.CubeList.

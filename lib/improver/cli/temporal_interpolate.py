@@ -158,7 +158,7 @@ def process(cube_0, cube_1, interval_in_mins=None, in_times=None,
             Default is linear.
 
     Returns:
-        result (iris.cube.Cubelist):
+        iris.cube.CubeList:
             A list of cubes interpolated to the desired times. The
             interpolated cubes will always be in chronological order of
             earliest to latest regardless of the order of the input.

@@ -50,7 +50,7 @@ def create_range_constraint(coord_name, value):
             It is assumed that the input value is of the form: "[2:10]".
 
     Returns:
-        constr (iris.Constraint):
+        iris.Constraint:
             The constraint that has been created to represent the range.
 
     """
@@ -69,7 +69,7 @@ def is_complex_parsing_required(value):
            A string that will be parsed.
 
     Returns:
-        complex_constraint (bool):
+        bool:
             Flag value to indicate whether the string requires complex parsing.
     """
     if ":" in value:
@@ -127,7 +127,7 @@ def parse_constraint_list(constraints, units=None):
             may only be associated with coordinate constraints.
 
     Returns:
-        (tuple): tuple containing
+        (tuple): tuple containing:
             **constraints** (iris.Constraint or \
             iris._constraints.ConstraintCombination):
                 A combination of all the constraints that were supplied.
@@ -200,7 +200,7 @@ def apply_extraction(cube, constraint, units=None, use_original_units=True):
             original units.
 
     Returns:
-        output_cube (iris.cube.Cube):
+        iris.cube.Cube:
             A single cube matching the input constraints, or None if no subcube
             is found within cube that matches the constraints.
     """
@@ -247,7 +247,7 @@ def extract_subcube(cube, constraints, units=None, use_original_units=True):
             original units.
 
     Returns:
-        output_cube (iris.cube.Cube or None):
+        iris.cube.Cube or None:
             A single cube matching the input constraints, or None if no subcube
             is found within cube that matches the constraints.
     """

@@ -183,7 +183,7 @@ def process(wind_speed, silhouette_roughness, sigma, target_orog,
             Default is 'm'.
 
     Returns:
-        wind_speed (iris.cube.Cube):
+        iris.cube.Cube:
             The processed Cube.
 
     Rises:

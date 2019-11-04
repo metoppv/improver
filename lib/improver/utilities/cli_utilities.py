@@ -41,7 +41,7 @@ def load_json_or_none(file_path):
             File path to the json file to load.
 
     Returns:
-        (dict or None):
+        dict or None:
             A dictionary loaded from a json file.
             or
             None

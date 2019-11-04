@@ -121,7 +121,7 @@ class NeighbourSelection:
         provided.
 
         Returns:
-            method_name (str):
+            str:
                 A string that describes the neighbour finding method employed.
                 This is essentially a concatenation of the options.
         """
@@ -186,10 +186,21 @@ class NeighbourSelection:
             cube (iris.cube.Cube):
                 A cube that is representative of the model/grid from which spot
                 data will be extracted.
+
         Returns:
-           sites, site_coords, site_x_coords, site_y_coords (as above):
-               The inputs modified to filter out the sites falling outside the
-               grid domain of the cube.
+            (tuple): tuple containing:
+                **sites** (numpy.ndarray):
+                    The sites modified to filter out the sites falling outside
+                    the grid domain of the cube.
+                **site_coords** (numpy.ndarray):
+                    The site_coords modified to filter out the sites falling
+                    outside the grid domain of the cube.
+                **site_x_coords** (numpy.ndarray):
+                    The x_coords modified to filter out the sites falling
+                    outside the grid domain of the cube.
+                **site_y_coords** (numpy.ndarray):
+                    The y_coords modified to filter out the sites falling
+                    outside the grid domain of the cube.
         """
         # Get the grid domain limits
         x_min = cube.coord(axis='x').bounds.min()
@@ -218,7 +229,7 @@ class NeighbourSelection:
                    " processed. These sites are:\n".format(num_invalid))
             dyn_msg = '{}\n'
             for site in np.array(sites)[domain_invalid]:
-                msg = msg + dyn_msg.format(site)
+                msg += dyn_msg.format(site)
             warnings.warn(msg)
 
         sites = np.array(sites)[domain_valid]
@@ -240,7 +251,7 @@ class NeighbourSelection:
             cube (iris.cube.Cube):
                 Cube containing a representative grid.
         Returns:
-            nearest_indices (numpy.ndarray):
+            numpy.ndarray:
                 A list of shape (n_sites, 2) that contains the x and y indices
                 of the nearest grid points to the sites.
         """
@@ -272,7 +283,7 @@ class NeighbourSelection:
                 An array of y coordinates that will represent one axis of the
                 mesh of coordinates to be transformed.
         Returns:
-            cartesian_nodes (numpy.ndarray):
+            numpy.ndarray:
                 An array of all the xyz combinations that describe the nodes of
                 the grid, now in 3D geocentric cartesian coordinates. The shape
                 of the array is (n_nodes, 3), order x[:, 0], y[:, 1], z[:, 2].
@@ -296,10 +307,10 @@ class NeighbourSelection:
                 neighbours are being selected.
         Returns:
             (tuple): tuple containing:
-                scipy.spatial.ckdtree.cKDTree:
+                **scipy.spatial.ckdtree.cKDTree**:
                     A KDTree containing the required nodes, built using the
                     scipy cKDTree method.
-                index_nodes (numpy.ndarray):
+                **numpy.ndarray**:
                     An array of shape (n_nodes, 2) that contains the x and y
                     indices that correspond to the selected node,
                     e.g. node=100 -->  x_coord_index=10, y_coord_index=300,
@@ -352,7 +363,7 @@ class NeighbourSelection:
                 An array of tree node indices identifying the neigbouring grid
                 points, the list corresponding to the array of distances.
         Returns:
-            grid_point (numpy.ndarray or None):
+            numpy.ndarray or None:
                 A 2-element array giving the x and y indices of the chosen grid
                 point neighbour. Returns None if no valid neighbours were found
                 in the tree query.
@@ -413,7 +424,7 @@ class NeighbourSelection:
                 A land mask cube for the model/grid from which grid point
                 neighbours are being selected.
         Returns:
-            neighbour_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 A cube containing both the spot site information and for each
                 the grid point indices of its nearest neighbour as per the
                 imposed constraints.

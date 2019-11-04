@@ -226,7 +226,7 @@ def process(cube, raw_forecast=None, no_of_percentiles=None,
             Default is None.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             The processed Cube.
     """
     if reordering:

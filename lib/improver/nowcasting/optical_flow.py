@@ -222,7 +222,7 @@ class OpticalFlow(object):
                 Optional (0 or 1): average over 2 adjacent points along the
                 specified axis, rather than all 4 corners
         Returns:
-            midpoints (numpy.ndarray):
+            numpy.ndarray:
                 2D gridded interpolated average (dimensions M-1 x N-1 if
                 axis=None; M-1 x N if axis=0; M x N-1 if axis=1)
         """
@@ -246,7 +246,7 @@ class OpticalFlow(object):
                 Axis over which to calculate the spatial derivative (0 or 1)
 
         Returns:
-            (numpy.ndarray):
+            numpy.ndarray:
                 Smoothed spatial derivative
         """
         outdata = []
@@ -267,7 +267,7 @@ class OpticalFlow(object):
         array, and smooth to the original grid shape.
 
         Returns:
-            (numpy.ndarray):
+            numpy.ndarray:
                 Smoothed temporal derivative
         """
         tdiff = self.data2 - self.data1
@@ -293,7 +293,7 @@ class OpticalFlow(object):
                 Input field (partial derivative)
 
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **boxes** (list of numpy.ndarray):
                     List of numpy.ndarrays of size boxsize*boxsize containing
                     slices of data from input field.
@@ -327,7 +327,7 @@ class OpticalFlow(object):
                 Displacement of subbox on box grid
 
         Returns:
-            grid_data (numpy.ndarray):
+            numpy.ndarray:
                 Displacement on original data grid
         """
         grid_data = np.repeat(np.repeat(box_data, self.boxsize, axis=0),
@@ -363,7 +363,7 @@ class OpticalFlow(object):
                 Kernel radius or half box size for smoothing
 
         Returns:
-            kernel_2d (numpy.ndarray):
+            numpy.ndarray:
                 Kernel to use for generating a smoothed field.
 
         """
@@ -390,7 +390,7 @@ class OpticalFlow(object):
                 Method to use: 'box' (as in STEPS) or 'kernel'
 
         Returns:
-            smoothed_field (numpy.ndarray):
+            numpy.ndarray:
                 Smoothed data on input-shaped grid
 
         """
@@ -422,7 +422,7 @@ class OpticalFlow(object):
                 Weight of each grid point for averaging
 
         Returns:
-            vel (numpy.ndarray):
+            numpy.ndarray:
                 Next iteration of smart-smoothed displacement
         """
         # define kernel for neighbour weighting
@@ -472,7 +472,7 @@ class OpticalFlow(object):
                 Weights for smart smoothing
 
         Returns:
-            grid_data (numpy.ndarray):
+            numpy.ndarray:
                 Smoothed displacement vectors on input data grid
 
         """
@@ -508,7 +508,7 @@ class OpticalFlow(object):
                 1-column matrix containing partial field derivatives d/dt
 
         Returns:
-            velocity (numpy.ndarray):
+            numpy.ndarray:
                 2-column matrix (u, v) containing scalar displacement values
 
         """
@@ -559,7 +559,7 @@ class OpticalFlow(object):
                 2D array of partial input field derivatives d/dt
 
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **umat** (numpy.ndarray):
                     2D array of displacements in the x-direction
                 **vmat** (numpy.ndarray):
@@ -661,7 +661,7 @@ class OpticalFlow(object):
                 Radius (in grid squares) over which to smooth the input data
 
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **ucomp** (numpy.ndarray):
                     Advection displacement (grid squares) in the x direction
                 **vcomp** (numpy.ndarray):
@@ -710,7 +710,7 @@ class OpticalFlow(object):
                 data smoothing radius.
 
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **ucube** (iris.cube.Cube):
                     2D cube of advection velocities in the x-direction
                 **vcube** (iris.cube.Cube):

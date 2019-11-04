@@ -58,7 +58,7 @@ def create_sorted_lambda_constraint(coord_name, values, tolerance=1.0E-7):
             using float32 values. Values of zero will be unchanged.
 
     Returns:
-        constr (iris.Constraint):
+        iris.Constraint:
             Constraint representative of a range of values.
 
     """

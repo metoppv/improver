@@ -265,7 +265,7 @@ def process(historic_forecast, truth, combined, historic_forecast_dict,
             Default is 1000.
 
     Returns:
-        result (iris.cube.Cube or None):
+        iris.cube.Cube or None:
             Cube containing the coefficients estimated using EMOS. The cube
             contains a coefficient_index dimension coordinate and a
             coefficient_name auxiliary coordinate. If no historic forecasts or

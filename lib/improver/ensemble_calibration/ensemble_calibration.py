@@ -155,7 +155,7 @@ class ContinuousRankedProbabilityScoreMinimisers():
                 minimisation within self.minimisation_dict.
 
         Returns:
-            optimised_coeffs (list):
+            list of float:
                 List of optimised coefficients.
                 Order of coefficients is [gamma, delta, alpha, beta].
 
@@ -276,7 +276,7 @@ class ContinuousRankedProbabilityScoreMinimisers():
                 realizations ("realizations") are supported as the predictors.
 
         Returns:
-            result (float):
+            float:
                 CRPS for the current set of coefficients.
 
         """
@@ -335,7 +335,7 @@ class ContinuousRankedProbabilityScoreMinimisers():
                 realizations ("realizations") are supported as the predictors.
 
         Returns:
-            result (float):
+            float:
                 CRPS for the current set of coefficients.
 
         """
@@ -492,7 +492,7 @@ class EstimateCoefficientsForEnsembleCalibration():
                 The cube containing the historic forecast.
 
         Returns:
-            cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube constructed using the coefficients provided and using
                 metadata from the historic_forecast cube.  The cube contains
                 a coefficient_index dimension coordinate where the points
@@ -646,7 +646,7 @@ class EstimateCoefficientsForEnsembleCalibration():
                 used as predictors. Default is None.
 
         Returns:
-            initial_guess (list):
+            list of float:
                 List of coefficients to be used as initial guess.
                 Order of coefficients is [gamma, delta, alpha, beta].
 
@@ -707,11 +707,11 @@ class EstimateCoefficientsForEnsembleCalibration():
                 compared to the historic forecasts.
 
         Returns:
-            (tuple): tuple containing
-                matching_historic_forecasts (iris.cube.Cube):
+            (tuple): tuple containing:
+                **matching_historic_forecasts** (iris.cube.Cube):
                     Cube of historic forecasts where any mismatches with
                     the truth cube have been removed.
-                matching_truths (iris.cube.Cube):
+                **matching_truths** (iris.cube.Cube):
                     Cube of truths where any mismatches with
                     the historic_forecasts cube have been removed.
 
@@ -802,7 +802,7 @@ class EstimateCoefficientsForEnsembleCalibration():
                 and sea points as zeros.
 
         Returns:
-            coefficients_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the coefficients estimated using EMOS.
                 The cube contains a coefficient_index dimension coordinate
                 and a coefficient_name auxiliary coordinate.
@@ -967,7 +967,7 @@ class ApplyCoefficientsFromEnsembleCalibration():
                 keys with their corresponding values.
 
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **predicted_mean** (numpy.ndarray):
                     Calibrated mean values in a flattened array.
                 **forecast_predictor** (iris.cube.Cube):
@@ -1008,7 +1008,7 @@ class ApplyCoefficientsFromEnsembleCalibration():
                 realizations.
 
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **predicted_mean** (numpy.ndarray):
                     Calibrated mean values in a flattened array.
                 **forecast_predictor** (iris.cube.Cube):
@@ -1062,7 +1062,7 @@ class ApplyCoefficientsFromEnsembleCalibration():
                 realizations.
 
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **calibrated_forecast_predictor** (iris.cube.Cube):
                     Cube containing the calibrated version of the
                     ensemble predictor, either the ensemble mean or
@@ -1107,7 +1107,7 @@ class ApplyCoefficientsFromEnsembleCalibration():
                 land points are calibrated using the provided coefficients.
 
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **calibrated_forecast_predictor** (iris.cube.Cube):
                     Cube containing the calibrated version of the
                     ensemble predictor, either the ensemble mean or

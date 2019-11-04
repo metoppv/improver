@@ -46,7 +46,7 @@ def generate_hash(data_in):
             The data from which a hash is to be generated. This can be of any
             type that can be pickled.
     Returns:
-        hash (str):
+        str:
             A hexidecimal hash representing the data.
     """
     hashable_type = pickle.dumps(data_in)
@@ -67,7 +67,7 @@ def create_coordinate_hash(cube):
             The cube from which x and y coordinates will be used to
             generate a hash.
     Returns:
-        coordinate_hash (str):
+        str:
             A hash created using the x and y coordinates of the input cube.
     """
     hashable_data = [cube.coord(axis='x'), cube.coord(axis='y')]

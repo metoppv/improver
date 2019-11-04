@@ -92,8 +92,7 @@ def create_coefficients_cube(template_cube, coeff_names, coeff_values):
             cube data.
 
     Returns:
-        (tuple): tuple containing
-
+        (tuple): tuple containing:
             **result** (iris.cube.Cube) - The resulting EMOS
                 coefficients cube.
             **x_coord** (iris.coords.DimCoord): The x coordinate

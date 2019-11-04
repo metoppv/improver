@@ -89,7 +89,7 @@ class WindGustDiagnostic(object):
             cube (iris.cube.Cube):
                 Cube containing the wind-gust diagnostic data.
         Returns:
-            result (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the wind-gust diagnostic data with
                 corrected Metadata.
 
@@ -118,7 +118,7 @@ class WindGustDiagnostic(object):
                 Percentile coordinate
 
         Returns:
-            result (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the wind-gust diagnostic data with
                 corrected Metadata.
 
@@ -140,7 +140,7 @@ class WindGustDiagnostic(object):
                 Standard name of the data.
 
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **result** (iris.cube.Cube):
                     Cube containing the required percentile data
                 **perc_coord** (iris.coords.Coord):
@@ -178,7 +178,7 @@ class WindGustDiagnostic(object):
                 Cube contain one or more percentiles of wind_speed data.
 
         Returns:
-            result (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the wind-gust diagnostic data.
 
         """
