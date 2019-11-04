@@ -41,7 +41,8 @@ import numpy as np
 
 
 def create_new_diagnostic_cube(
-        name, units, coordinate_template, attributes=None, data=None):
+        name, units, coordinate_template, attributes=None, data=None,
+        datatype=np.float32):
     """
     Creates a template for a new diagnostic cube with suitable metadata.
 
@@ -54,18 +55,19 @@ def create_new_diagnostic_cube(
             Cube from which to copy dimensional and auxiliary coordinates
         attributes (dict or None):
             Dictionary of attribute names and values
-        data (np.ndarray or None):
+        data (numpy.ndarray or None):
             Data array.  If not set, cube is filled with zeros using a lazy
             data object, as this will be overwritten later by the caller
             routine.
+        datatype (numpy.dtype):
+            Datatype for dummy cube data if "data" argument is None.
 
     Returns:
         iris.cube.Cube:
             Cube with correct metadata to accommodate new diagnostic field
     """
     if data is None:
-        data = da.zeros_like(
-            coordinate_template, dtype=np.float32, chunks=-1)
+        data = da.zeros_like(coordinate_template, dtype=datatype)
 
     aux_coords_and_dims, dim_coords_and_dims = [
         [(coord, coordinate_template.coord_dims(coord))
