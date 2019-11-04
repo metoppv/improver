@@ -131,7 +131,7 @@ class Test__init__(Test_RecursiveFilter):
                             iterations=iterations, edge_width=1)
 
     @ManageWarnings(record=True)
-    def test_interations_warn(self, warning_list=None):
+    def test_iterations_warn(self, warning_list=None):
         """Test when the iteration value is more than 3 it warns."""
         iterations = 5
         warning_msg = ("More than two iterations degrades the conservation"
