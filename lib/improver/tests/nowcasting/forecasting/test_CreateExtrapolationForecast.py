@@ -226,15 +226,6 @@ class Test_extrapolate(SetUpCubes):
         self.assertEqual(result.coord("time").points,
                          self.precip_cube.coord("time").points+600)
 
-    def test_raises_error(self):
-        """Test an error is raised if no leadtime is provided"""
-        plugin = CreateExtrapolationForecast(
-                self.precip_cube, self.vel_x, self.vel_y,
-                orographic_enhancement_cube=self.oe_cube)
-        message = ("missing 1 required positional argument")
-        with self.assertRaisesRegex(TypeError, message):
-            plugin.extrapolate()
-
 
 if __name__ == '__main__':
     unittest.main()
