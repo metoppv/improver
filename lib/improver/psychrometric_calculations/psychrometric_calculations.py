@@ -95,12 +95,11 @@ class Utilities(object):
             iris.cube.Cube:
                 Temperature adjusted latent heat of condensation (J kg-1).
         """
-        temperature = temperature_input.copy()
-        temperature.convert_units('celsius')
-        latent_heat = (-1. * consts.U_LATENT_HEAT_T_DEPENDENCE * temperature +
-                       consts.U_LH_CONDENSATION_WATER)
-        latent_heat.units = consts.U_LH_CONDENSATION_WATER.units
-        latent_heat.rename('latent_heat_of_condensation')
+        temp = temperature_input.data
+        temp = temp + consts.ABSOLUTE_ZERO
+
+        latent_heat = (-1. * consts.LATENT_HEAT_T_DEPENDENCE * temp +
+                       consts.LH_CONDENSATION_WATER)
         return latent_heat
 
     @staticmethod

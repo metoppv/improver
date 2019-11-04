@@ -91,7 +91,7 @@ class Test_latent_heat_of_condensation(Test_Utilities):
 
     def test_basic(self):
         """Basic calculation of some latent heats of condensation."""
-        expected = [[2531770.999107, 2508371.000223, 2484971.000223]]
+        expected = [[2531771, 2508371, 2484971]]
         result = Utilities.latent_heat_of_condensation(self.temperature)
         self.assertArrayAlmostEqual(result.data, expected)
 
