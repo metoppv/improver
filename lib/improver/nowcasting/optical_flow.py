@@ -36,12 +36,69 @@ import warnings
 
 import iris
 import numpy as np
-from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
+from iris.exceptions import (
+    CoordinateCollapseError, CoordinateNotFoundError, InvalidCubeError)
 from scipy import ndimage, signal
 
 from improver.metadata.amend import amend_attributes
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.spatial import check_if_grid_is_equal_area
+
+
+def generate_optical_flow_components(
+        cube_list, ofc_box_size, smart_smoothing_iterations, attributes_dict):
+    """
+    Calculate the mean optical flow components between the cubes in cube_list
+
+    Args:
+        cube_list (iris.cube.CubeList):
+            Cubelist from which to calculate optical flow velocities
+        ofc_box_size (int):
+            Size of square 'box' (in grid spaces) within which to solve
+            the optical flow equations
+        smart_smoothing_iterations (int):
+            Number of iterations to perform in enforcing smoothness constraint
+            for optical flow velocities
+        attributes_dict (dict or None):
+            Dictionary containing required attributes
+
+    Returns:
+        (tuple) tuple containing:
+            **u_mean** (iris.cube.Cube):
+                Cube of x-advection velocities
+            **v_mean** (iris.cube.Cube):
+                Cube of y-advection velocities
+    """
+    cube_list.sort(key=lambda x: x.coord("time").points[0])
+    time_coord = cube_list[-1].coord("time")
+
+    ofc_plugin = OpticalFlow(iterations=smart_smoothing_iterations,
+                             attributes_dict=attributes_dict)
+    u_cubes = iris.cube.CubeList([])
+    v_cubes = iris.cube.CubeList([])
+    for older_cube, newer_cube in zip(cube_list[:-1], cube_list[1:]):
+        ucube, vcube = ofc_plugin.process(older_cube, newer_cube,
+                                          boxsize=ofc_box_size)
+        u_cubes.append(ucube)
+        v_cubes.append(vcube)
+
+    # average optical flow velocity components
+    def _calculate_time_average(wind_cubes, time_coord):
+        """Average input cubelist over time"""
+        cube = wind_cubes.merge_cube()
+        try:
+            mean = cube.collapsed("time", iris.analysis.MEAN)
+        except CoordinateCollapseError:
+            # collapse will fail if there is only one time point
+            return cube
+        mean.coord("time").points = time_coord.points
+        mean.coord("time").units = time_coord.units
+        return mean
+
+    u_mean = _calculate_time_average(u_cubes, time_coord)
+    v_mean = _calculate_time_average(v_cubes, time_coord)
+
+    return u_mean, v_mean
 
 
 def check_input_coords(cube, require_time=False):

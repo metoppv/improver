@@ -34,6 +34,7 @@ This module defines plugins used to create nowcast extrapolation forecasts.
 import datetime
 import warnings
 
+import iris
 import numpy as np
 from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
@@ -378,7 +379,7 @@ class CreateExtrapolationForecast():
                       repr(self.advection_plugin)))
         return result
 
-    def extrapolate(self, leadtime_minutes=None):
+    def extrapolate(self, leadtime_minutes):
         """
         Produce a new forecast cube for the supplied lead time. Creates a new
         advected forecast and then reapplies the orographic enhancement if it
@@ -399,10 +400,6 @@ class CreateExtrapolationForecast():
         Raises:
             ValueError: If no leadtime_minutes are provided.
         """
-        if leadtime_minutes is None:
-            message = ("leadtime_minutes must be provided in order to produce"
-                       " an extrapolated forecast")
-            raise ValueError(message)
         # cast to float as datetime.timedelta cannot accept np.int
         timestep = datetime.timedelta(minutes=float(leadtime_minutes))
         forecast_cube = self.advection_plugin.process(
@@ -413,3 +410,23 @@ class CreateExtrapolationForecast():
                 forecast_cube, self.orographic_enhancement_cube)
 
         return forecast_cube
+
+    def process(self, interval, max_lead_time):
+        """
+        Generate nowcasts at required intervals up to the maximum lead time
+
+        Args:
+            interval (int):
+                Lead time interval, in minutes
+            max_lead_time (int):
+                Maximum lead time required, in minutes
+
+        Returns:
+            iris.cube.CubeList:
+                List of forecast cubes at the required lead times
+        """
+        lead_times = np.arange(0, max_lead_time + 1, interval)
+        forecast_cubes = iris.cube.CubeList()
+        for lead_time in lead_times:
+            forecast_cubes.append(self.extrapolate(lead_time))
+        return forecast_cubes
