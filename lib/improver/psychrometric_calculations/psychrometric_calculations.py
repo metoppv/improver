@@ -89,10 +89,10 @@ class Utilities(object):
         vapour using the relationship employed by the UM.
 
         Args:
-            temperature_input (iris.cube.Cube):
-                A Array of air temperatures (Celsius, converted if not).
+            temperature_input (np.ndarray):
+                A Array of air temperatures (K).
         Returns:
-            iris.cube.Cube:
+            np.ndarray:
                 Temperature adjusted latent heat of condensation (J kg-1).
         """
         temp = temperature_input.data
