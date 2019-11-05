@@ -31,11 +31,11 @@
 """General IMPROVER metadata utilities"""
 
 import hashlib
-import iris
 # Usage of pickle in this module is only for creation of pickles and hashing
 # the contents. There is no loading pickles which would create security risks.
 import pickle  # nosec
 
+import iris
 import dask.array as da
 import numpy as np
 
