@@ -82,8 +82,7 @@ def main(argv=None):
     parser = ArgParser(description='Calculate orographic enhancement using the'
                        ' ResolveWindComponents() and OrographicEnhancement() '
                        'plugins. Outputs data on the high resolution orography'
-                       ' grid and regridded to the coarser resolution of the '
-                       'input diagnostic variables.')
+                       ' grid.')
 
     parser.add_argument('temperature_filepath', metavar='TEMPERATURE_FILEPATH',
                         help='Full path to input NetCDF file of temperature on'
@@ -129,7 +128,7 @@ def main(argv=None):
     # load high resolution orography
     orography = load_cube(args.orography_filepath)
 
-    orogenh_high_res, orogenh_standard = process(
+    orogenh_high_res = process(
         temperature, humidity, pressure, wind_speed, wind_dir, orography)
 
     # generate file names

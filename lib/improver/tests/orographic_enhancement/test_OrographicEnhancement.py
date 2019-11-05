@@ -677,8 +677,9 @@ class Test__create_output_cubes(IrisTest):
             self.assertEqual(output.attributes[attr],
                              self.plugin.topography.attributes[attr])
 
-        self.assertEqual(output.attributes['mosg__model_configuration'],
-                    self.temperature.attributes['mosg__model_configuration'])
+        self.assertEqual(
+            output.attributes['mosg__model_configuration'],
+            self.temperature.attributes['mosg__model_configuration'])
 
 
 class Test_process(DataCubeTest):
@@ -714,7 +715,7 @@ class Test_process(DataCubeTest):
         uwind = set_up_invalid_variable_cube(self.uwind)
         vwind = set_up_invalid_variable_cube(self.vwind)
         msg = 'Require 2D fields as input; found 3 dimensions'
-        
+
         with self.assertRaisesRegex(ValueError, msg):
             _ = self.plugin.process(
                 temperature, humidity, pressure, uwind, vwind,
