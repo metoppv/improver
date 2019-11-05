@@ -81,7 +81,7 @@ def add_wxcode_metadata(cube):
         cube (iris.cube.Cube):
             Cube which needs weather code metadata added.
     Returns:
-        cube (iris.cube.Cube):
+        iris.cube.Cube:
             Cube with weather code metadata added.
     """
     cube.long_name = "weather_code"
@@ -106,7 +106,7 @@ def expand_nested_lists(query, key):
             A string denoting the field to be taken from the dict.
 
     Returns:
-        items (list):
+        list:
             A 1D list containing all the values for a given key.
     """
     items = []
@@ -126,7 +126,7 @@ def update_daynight(cubewx):
             Cube containing only daytime weather symbols.
 
     Returns:
-        cubewx_daynight(iris.cube.Cube):
+        iris.cube.Cube:
             Cube containing day and night weather symbols
 
     Raises:

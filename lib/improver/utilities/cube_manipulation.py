@@ -90,7 +90,7 @@ def strip_var_names(cubes):
             Cubes to be concatenated.
 
     Returns:
-        cubes (iris.cube.CubeList):
+        iris.cube.CubeList:
             CubeList containing original cubes without a var_name on the cube,
             or on the coordinates.
             Note: This internal function modifies the incoming cubes
@@ -170,7 +170,7 @@ class ConcatenateCubes():
                 coordinate dimension.
 
         Returns:
-            cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube where the the requested coordinates have been promoted to
                 auxiliary coordinates.
 
@@ -216,7 +216,7 @@ class ConcatenateCubes():
                 Coordinate instance or name of coordinate to slice over.
 
         Returns:
-            sliced_by_coord_cubelist (iris.cube.CubeList):
+            iris.cube.CubeList:
                 CubeList containing sliced cubes.
         """
         sliced_by_coord_cubelist = iris.cube.CubeList([])
@@ -250,7 +250,7 @@ class ConcatenateCubes():
                 Cube or list of cubes to be concatenated
 
         Returns:
-            result (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube concatenated along master coord
 
         Raises:
@@ -320,7 +320,7 @@ def concatenate_cubes(
             List of coordinates to be associated with the master_coord.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             Concatenated cube.
     """
     plugin = ConcatenateCubes(
@@ -454,7 +454,7 @@ def merge_cubes(cubes):
             Cubes to be merged.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             Merged cube.
     """
     result = MergeCubes().process(cubes)
@@ -475,7 +475,7 @@ def get_filtered_attributes(cube, attribute_filter=None):
             a filtered attribute dictionary. If None, all attributes are
             returned.
     Returns:
-        attributes (dict):
+        dict:
             A dictionary of attributes partially matching the attribute_filter
             that were found on the input cube.
     """
@@ -497,7 +497,7 @@ def compare_attributes(cubes, attribute_filter=None):
             A string to filter which attributes are actually compared. If None
             all attributes are compared.
     Returns:
-        unmatching_attributes (list):
+        list of dict:
             List of dictionaries of unmatching attributes
     Warns:
         Warning: If only a single cube is supplied
@@ -539,7 +539,7 @@ def compare_coords(cubes):
             List of cubes to compare (must be more than 1)
 
     Returns:
-        unmatching_coords (list):
+        list of dict:
             List of dictionaries of unmatching coordinates
             Number of dictionaries equals number of cubes
             unless cubes is a single cube in which case
@@ -603,7 +603,7 @@ def build_coordinate(data, long_name=None,
             CF Name of the coordinate to be built.
         var_name (str):
             Variable name
-        coord_type (iris.coords.AuxCoord or iris.coords.DimCoord):
+        coord_type (iris.coords.Coord):
             Selection between Dim and Aux coord.
         data_type (<type>):
             The data type of the coordinate points, e.g. int
@@ -620,8 +620,8 @@ def build_coordinate(data, long_name=None,
             coordinate, e.g. np.nan_to_num.
 
     Returns:
-        crd_out(iris.coords.Coord):
-            Dim or Auxcoord as chosen.
+        iris.coords.Coord:
+            The constructed coord.
 
     """
     long_name_out = long_name
@@ -757,7 +757,7 @@ def enforce_coordinate_ordering(
             requested coordinate is not present.
 
     Returns:
-        cube (iris.cube.Cube):
+        iris.cube.Cube:
             Cube where the requirement for the dimensions to be in a particular
             order will have been enforced.
 
@@ -877,7 +877,7 @@ def clip_cube_data(cube, minimum_value, maximum_value):
             The maximum value, with data in the cube that falls above this
             threshold set to it.
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             The processed cube with the data clipped to the limits of the
             original preprocessed cube.
     """
@@ -920,7 +920,7 @@ def expand_bounds(result_cube, cubelist, expanded_coords):
                 | 'upper' - equal to the upper bound
 
     Returns:
-        result_cube (iris.cube.Cube):
+        iris.cube.Cube:
             Cube with coords expanded.
 
             n.b. If argument point == 'mid' then python will convert

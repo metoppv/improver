@@ -31,21 +31,22 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "nbhood 'probabilities' 'square' --radius=20000 input output --apply-recursive-filter --alpha_x 0.5 --alpha_y 0.5 --iterations 2 --re_mask --input_mask_filepath" {
+@test "apply-emos-coefficients for diagnostic with assumed gaussian distribution" {
   improver_check_skip_acceptance
-  KGO="nbhood/recursive/kgo_external_mask_with_re_mask_recursive_alpha.nc"
+  KGO="apply-emos-coefficients/masked/kgo.nc"
 
-  # Run square neighbourhood processing, apply recursive filter and check it passes.
-  run improver nbhood 'probabilities' 'square' --radius=20000 \
-      "$IMPROVER_ACC_TEST_DIR/nbhood/mask/input.nc" \
-      "$TEST_DIR/output.nc" --apply-recursive-filter --re_mask \
-      --alpha_x=0.5 --alpha_y=0.5 --iterations=2 \
-      --input_mask_filepath="$IMPROVER_ACC_TEST_DIR/nbhood/mask/mask.nc"
+  # Apply EMOS coefficients to calibrate the input forecast over land areas
+  # and check that the calibrated forecast matches the kgo
+  run improver apply-emos-coefficients \
+      "$IMPROVER_ACC_TEST_DIR/apply-emos-coefficients/gaussian/input.nc" \
+      "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/kgo.nc" \
+      "$TEST_DIR/output.nc" --random_seed 0 \
+      --landsea_mask "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/landmask.nc"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
 
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
+  # Run nccmp to compare the output and kgo realizations and check it passes.
+  improver_compare_output_lower_precision "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

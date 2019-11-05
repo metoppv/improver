@@ -73,7 +73,7 @@ def choose(index_array, array_set):
             sub-arrays from which values are to be extracted at positions that
             match those given in the index_array.
     Returns:
-        result (numpy.ndarray):
+        numpy.ndarray:
             An array containing the reordered data extracted from array_set.
             The returned array will have the same shape as the index_array and
             array_set arrays.

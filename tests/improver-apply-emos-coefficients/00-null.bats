@@ -39,6 +39,7 @@
                                         [--random_seed RANDOM_SEED]
                                         [--ecc_bounds_warning]
                                         [--predictor_of_mean PREDICTOR_OF_MEAN]
+                                        [--landsea_mask LANDSEA_MASK]
                                         FORECAST_FILEPATH
                                         [COEFFICIENTS_FILEPATH]
                                         OUTPUT_FILEPATH

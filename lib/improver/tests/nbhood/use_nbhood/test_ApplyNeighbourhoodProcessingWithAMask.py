@@ -59,7 +59,7 @@ def add_dimensions_to_cube(cube, new_dims):
             counting up from 0.
             The data will all be copies of the input cube's data.
     Returns:
-        cube (iris.cube.Cube):
+        iris.cube.Cube:
             The iris cube with the additional dimensions added.
     """
     for dim_name, dim_size in new_dims.items():

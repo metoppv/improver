@@ -103,7 +103,7 @@ def process(temperature, relative_humidity, pressure,
             Default is 0.05.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             Cube of wet-bulb temperature (K).
 
     """

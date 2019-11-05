@@ -55,7 +55,7 @@ def load_and_extract(cube_filepath, height_value, units):
         units (str):
             The units of the height level to be extracted.
     Returns:
-        cube (iris.cube.Cube):
+        iris.cube.Cube:
             A cube containing the extracted height level.
     Raises:
         ValueError: If height level is not found in the input cube.

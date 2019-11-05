@@ -328,7 +328,7 @@ def process(cube, neighbourhood_output, neighbourhood_shape, radius=None,
             Default is 1 (one).
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             A processed Cube.
 
     Raises:

@@ -140,7 +140,7 @@ def process(cube, coordinates=None, ecc_bounds_warning=False,
             Default is None.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             The processed Cube.
 
     Raises:

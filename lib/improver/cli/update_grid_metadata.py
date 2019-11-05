@@ -88,7 +88,7 @@ def process(cube):
             Cube to be changed.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             Processed Cube.
 
     """

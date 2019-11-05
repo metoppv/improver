@@ -31,22 +31,29 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "neighbour-finding modify output cube metadata" {
+@test "apply-emos-coefficients using non-default predictor 'realizations'" {
   improver_check_skip_acceptance
-  KGO="neighbour-finding/outputs/modified_metadata_kgo.nc"
+  if python -c "import statsmodels" &> /dev/null; then
+      COEFFS="estimate-emos-coefficients/realizations/with_statsmodels_kgo.nc"
+      KGO="apply-emos-coefficients/masked/with_statsmodels_kgo.nc"
+  else
+      COEFFS="estimate-emos-coefficients/realizations/without_statsmodels_kgo.nc"
+      KGO="apply-emos-coefficients/masked/without_statsmodels_kgo.nc"
+  fi
 
-  # Run cube extraction processing and check it passes.
-  run improver neighbour-finding \
-      "$IMPROVER_ACC_TEST_DIR/neighbour-finding/inputs/uk_sites.json" \
-      "$IMPROVER_ACC_TEST_DIR/neighbour-finding/inputs/ukvx_orography.nc" \
-      "$IMPROVER_ACC_TEST_DIR/neighbour-finding/inputs/ukvx_landmask.nc" \
+  # Apply EMOS coefficients to calibrate the input forecast
+  # and check that the calibrated forecast matches the kgo.
+  run improver apply-emos-coefficients \
+      "$IMPROVER_ACC_TEST_DIR/apply-emos-coefficients/gaussian/input.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$COEFFS" \
       "$TEST_DIR/output.nc" \
-      --metadata_json "$IMPROVER_ACC_TEST_DIR/neighbour-finding/inputs/metadata.json"
+      --predictor_of_mean 'realizations' --random_seed 0 \
+      --landsea_mask "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/landmask.nc"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
 
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
+  # Run nccmp to compare the output and kgo realizations and check it passes.
+  improver_compare_output_lower_precision "$TEST_DIR/output.nc" \
       "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

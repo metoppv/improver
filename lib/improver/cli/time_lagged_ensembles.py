@@ -81,11 +81,11 @@ def process(cubes):
     metadata that does not match.
 
     Args:
-        cubes (iris.cube.Cubelist):
+        cubes (iris.cube.CubeList):
             CubeList for the time-lagged ensemble to combine the realizations.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             Merged Cube.
 
     Raises:

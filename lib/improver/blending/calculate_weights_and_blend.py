@@ -102,7 +102,7 @@ class WeightAndBlend():
                 Cube of input data to be blended
 
         Returns:
-            weights (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing 1D array of weights for blending
         """
         if self.wts_calc_method == "dict":
@@ -140,7 +140,7 @@ class WeightAndBlend():
                 boundaries
 
         Returns:
-            weights (iris.cube.Cube):
+            iris.cube.Cube:
                 Updated 3D cube of spatially-varying weights
         """
         check_if_grid_is_equal_area(cube)

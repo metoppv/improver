@@ -51,7 +51,7 @@ def check_coord_type(cube, coord):
     Args:
         cube (iris.cube.Cube):
             Iris cube containing coordinates to be checked
-        coord (iris.coords.DimCoord or iris.coords.AuxCoord):
+        coord (iris.coords.Coord):
             Coordinate to check
     """
     coord_scalar = True

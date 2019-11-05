@@ -74,7 +74,7 @@ def datetime_to_numdateval(year=2018, month=9, day=12, hour=5, minutes=43):
     Default values should be roughly sunrise in Exeter.
 
     Returns:
-        numdateval (float):
+        float:
            date and time as a value relative to time_origin
     """
 
@@ -94,7 +94,7 @@ def set_up_wxcube(time_points=None):
            Array of time points
 
     Returns:
-        cube (iris.cube.Cube):
+        iris.cube.Cube:
             cube of weather codes set to 1
             data shape (time_points, 16, 16)
             grid covers 0 to 30km west of origin and
@@ -156,7 +156,7 @@ def set_up_wxcube_lat_lon(time_points=None):
            Array of time points
 
     Returns:
-        cube (iris.cube.Cube):
+        iris.cube.Cube:
             lat lon cube of weather codes set to 1
             data shape (time_points, 16, 16)
             grid covering 8W to 7E, 49N to 64N

@@ -112,7 +112,7 @@ def process(gust_cube, speed_cube, percentile_gust, percentile_speed):
             Percentile value required from wind-speed cube.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             Cube containing the wind-gust diagnostic data.
     """
     result = (
