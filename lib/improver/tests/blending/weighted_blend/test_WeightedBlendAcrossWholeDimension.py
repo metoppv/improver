@@ -661,22 +661,6 @@ class Test_process(Test_weighted_blend):
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_alternative_title(self):
-        """Test that the plugin returns an iris.cube.Cube with metadata that
-        matches the input cube where appropriate. In this case the title is
-        removed from the input cube, resulting in a default title being applied
-        to the result cube."""
-
-        coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord)
-        self.cube.attributes.pop('title')
-        expected = "IMPROVER Model Forecast"
-        result = plugin.process(self.cube)
-
-        self.assertEqual(result.attributes['title'], expected)
-
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_specific_cycletime(self):
         """Test that the plugin setup with a specific cycletime returns a cube
         in which the forecast reference time has been changed to match the

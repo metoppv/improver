@@ -41,6 +41,7 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
 from improver.metadata.probabilistic import find_percentile_coordinate
+from improver.metadata.update_blended_metadata import update_blended_metadata
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering, sort_coord_in_cube, build_coordinate,
     MergeCubes)
@@ -882,18 +883,18 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
 
         # Percentile aggregator
         if perc_coord:
-            cube_new = self.percentile_weighted_mean(cube, weights, perc_coord)
+            result = self.percentile_weighted_mean(cube, weights, perc_coord)
         # Weighted mean
         else:
-            cube_new = self.weighted_mean(cube, weights)
+            result = self.weighted_mean(cube, weights)
 
         # Modify the cube metadata and add to the cubelist.
         try:
             frt_coord = cube.coord("forecast_reference_time")
         except iris.exceptions.CoordinateNotFoundError:
             frt_coord = None
-        result = conform_metadata(
-            cube_new, self.coord, frt_coord, cycletime=self.cycletime)
+        update_blended_metadata(
+            result, self.coord, frt_coord, cycletime=self.cycletime)
 
         if isinstance(cube.data, np.ma.core.MaskedArray):
             result.data = np.ma.array(result.data)

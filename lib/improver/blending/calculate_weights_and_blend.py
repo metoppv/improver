@@ -29,12 +29,13 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Plugin to calculate blend weights and blend data across a dimension"""
+
 from improver import BasePlugin
+from improver.metadata.update_blended_metadata import update_blended_metadata
 from improver.blending.spatial_weights import (
     SpatiallyVaryingWeightsFromMask)
 from improver.blending.weighted_blend import (
-    MergeCubesForWeightedBlending, conform_metadata,
-    WeightedBlendAcrossWholeDimension)
+    MergeCubesForWeightedBlending, WeightedBlendAcrossWholeDimension)
 from improver.blending.weights import (
     ChooseWeightsLinear, ChooseDefaultWeightsLinear,
     ChooseDefaultWeightsNonLinear)
@@ -192,7 +193,7 @@ class WeightAndBlend(BasePlugin):
                 frt_coord = cube.coord("forecast_reference_time")
             except iris.exceptions.CoordinateNotFoundError:
                 frt_coord = None
-            conform_metadata(
+            update_blended_metadata(
                 result, self.blend_coord, frt_coord, cycletime=cycletime)
 
         # otherwise, calculate weights and blend across specified dimension

@@ -364,8 +364,6 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, self.enukx_cube.data)
         self.assertEqual(
             result.attributes['mosg__model_configuration'], 'blend')
-        self.assertEqual(
-            result.attributes['title'], 'IMPROVER Model Forecast')
 
     def test_one_cube_with_cycletime(self):
         """Test the plugin returns a single input cube with an updated forecast
