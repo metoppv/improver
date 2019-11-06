@@ -188,8 +188,12 @@ class WeightAndBlend(BasePlugin):
         if (self.blend_coord not in coord_names or
                 len(cube.coord(self.blend_coord).points) == 1):
             result = cube.copy()
+            try:
+                frt_coord = cube.coord("forecast_reference_time")
+            except iris.exceptions.CoordinateNotFoundError:
+                frt_coord = None
             conform_metadata(
-                result, cube, self.blend_coord, cycletime=cycletime)
+                result, self.blend_coord, frt_coord, cycletime=cycletime)
 
         # otherwise, calculate weights and blend across specified dimension
         else:

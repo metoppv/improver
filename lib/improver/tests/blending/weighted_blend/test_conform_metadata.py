@@ -61,18 +61,15 @@ class Test_conform_metadata(IrisTest):
             np.full((3, 3), 275.15, dtype=np.float32),
             time=dt(2015, 11, 23, 7, 0),
             frt=dt(2015, 11, 23, 4, 0))
-        self.cube_orig = iris.cube.CubeList([self.cube, cube2]).merge_cube()
+        cube_orig = iris.cube.CubeList([self.cube, cube2]).merge_cube()
 
         # Cube without forecast_period.
-        cube_orig_without_fp = self.cube_orig.copy()
-        cube_orig_without_fp.remove_coord("forecast_period")
-        self.cube_orig_without_fp = cube_orig_without_fp
         cube_without_fp = self.cube.copy()
         cube_without_fp.remove_coord("forecast_period")
         self.cube_without_fp = cube_without_fp
 
         # Cube with model_id and model configuration coordinates
-        cube_orig_model = self.cube_orig.copy()
+        cube_orig_model = cube_orig.copy()
         cube_orig_model.add_aux_coord(
             AuxCoord(["Operational MOGREPS-UK Model Forecast",
                       "Operational UKV Model Forecast"], long_name="model_id"),
@@ -80,17 +77,18 @@ class Test_conform_metadata(IrisTest):
         cube_orig_model.add_aux_coord(
             AuxCoord(["uk_ens", "uk_det"], long_name="model_configuration"),
             data_dims=0)
-        self.cube_orig_model = cube_orig_model
         self.cube_model = cube_orig_model.collapsed(
             "forecast_reference_time", iris.analysis.MEAN)
 
         # Coordinate that is being blended.
-        self.coord = "forecast_reference_time"
+        self.blend_coord = "forecast_reference_time"
+        self.frt_coord = (
+            cube_orig.coord("forecast_reference_time").copy())
 
     def test_basic(self):
         """Test that conform_metadata returns a cube with a suitable title
         attribute."""
-        result = conform_metadata(self.cube, self.cube_orig, self.coord)
+        result = conform_metadata(self.cube, self.blend_coord, self.frt_coord)
         expected_attributes = {'title': 'IMPROVER Model Forecast'}
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertDictEqual(result.attributes, expected_attributes)
@@ -98,30 +96,27 @@ class Test_conform_metadata(IrisTest):
     def test_with_forecast_period(self):
         """Test that a cube is dealt with correctly, if the cube contains
         a forecast_reference_time and forecast_period coordinate."""
-        result = conform_metadata(self.cube, self.cube_orig, self.coord)
+        result = conform_metadata(self.cube, self.blend_coord, self.frt_coord)
         self.assertEqual(
             result.coord("forecast_reference_time").points,
-            np.max(self.cube_orig.coord("forecast_reference_time").points))
+            np.max(self.frt_coord.points))
         self.assertFalse(result.coord("forecast_reference_time").bounds)
         self.assertEqual(
             result.coord("forecast_period").points,
-            np.min(self.cube_orig.coord("forecast_period").points))
+            np.min(self.cube.coord("forecast_period").points))
         self.assertFalse(result.coord("forecast_period").bounds)
 
     def test_without_forecast_period(self):
         """Test that a cube is dealt with correctly, if the cube contains a
         forecast_reference_time coordinate but not a forecast_period."""
         result = conform_metadata(
-            self.cube_without_fp, self.cube_orig_without_fp, self.coord)
-        fp_coord = self.cube_orig.coord("forecast_period").copy()
-        fp_coord.convert_units("seconds")
+            self.cube_without_fp, self.blend_coord, self.frt_coord)
         self.assertEqual(
             result.coord("forecast_reference_time").points,
-            np.max(self.cube_orig.coord("forecast_reference_time").points))
+            np.max(self.frt_coord.points))
         self.assertFalse(result.coord("forecast_reference_time").bounds)
         self.assertEqual(
-            result.coord("forecast_period").points,
-            np.min(fp_coord.points))
+            result.coord("forecast_period").points, [3*3600])  # 3 hours
         self.assertFalse(result.coord("forecast_period").bounds)
 
     def test_with_forecast_period_and_cycletime(self):
@@ -129,9 +124,10 @@ class Test_conform_metadata(IrisTest):
         a forecast_reference_time and forecast_period coordinate and a
         cycletime is specified."""
         expected_forecast_reference_time = np.array([1448258400])
-        expected_forecast_period = np.array([3600])  # 1 hour.
+        expected_forecast_period = np.array([3600])  # 1 hour
         result = conform_metadata(
-            self.cube, self.cube_orig, self.coord, cycletime="20151123T0600Z")
+            self.cube, self.blend_coord, self.frt_coord,
+            cycletime="20151123T0600Z")
         self.assertArrayAlmostEqual(
             result.coord("forecast_reference_time").points,
             expected_forecast_reference_time)
@@ -149,7 +145,7 @@ class Test_conform_metadata(IrisTest):
         expected_forecast_reference_time = np.array([1448258400])
         expected_forecast_period = np.array([3600])
         result = conform_metadata(
-            self.cube_without_fp, self.cube_orig_without_fp, self.coord,
+            self.cube_without_fp, self.blend_coord, self.frt_coord,
             cycletime="20151123T0600Z")
         self.assertEqual(
             result.coord("forecast_reference_time").points,
@@ -162,19 +158,20 @@ class Test_conform_metadata(IrisTest):
     def test_with_model_coordinates(self):
         """Test that a cube is dealt with correctly, if the cube contains a
         model, model_id and model_configuration coordinate."""
-        coord = "model_id"
-        result = conform_metadata(self.cube_model, self.cube_orig_model, coord)
+        blend_coord = "model_id"
+        frt_coord = self.cube_model.coord("forecast_reference_time").copy()
+        result = conform_metadata(self.cube_model, blend_coord, frt_coord)
         self.assertFalse(result.coords("model_id"))
         self.assertFalse(result.coords("model_configuration"))
 
     def test_forecast_coordinate_bounds_removal(self):
         """Test that if a cube has bounds on the forecast period and reference
         time, that these are removed"""
-        self.cube_orig.coord("forecast_period").bounds = np.array(
-            [[x-0.5, x+0.5] for x in self.cube_orig.coord(
+        self.cube.coord("forecast_period").bounds = np.array(
+            [[x-0.5, x+0.5] for x in self.cube.coord(
                 "forecast_period").points])
-        self.cube_orig.coord("forecast_reference_time").bounds = np.array(
-            [[x-0.5, x+0.5] for x in self.cube_orig.coord(
+        self.cube.coord("forecast_reference_time").bounds = np.array(
+            [[x-0.5, x+0.5] for x in self.cube.coord(
                 "forecast_reference_time").points])
         self.cube.coord("forecast_period").bounds = np.array(
             [[x-0.5, x+0.5] for x in self.cube.coord(
@@ -183,10 +180,10 @@ class Test_conform_metadata(IrisTest):
             [[x-0.5, x+0.5] for x in self.cube.coord(
                 "forecast_reference_time").points])
         result = conform_metadata(
-            self.cube, self.cube_orig, "forecast_reference_time")
+            self.cube, self.blend_coord, self.frt_coord)
         self.assertIsNone(result.coord("forecast_reference_time").bounds)
         self.assertIsNone(result.coord("forecast_period").bounds)
-
+ 
 
 if __name__ == '__main__':
     unittest.main()

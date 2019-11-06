@@ -224,7 +224,7 @@ class MergeCubesForWeightedBlending(BasePlugin):
 
 
 def conform_metadata(
-        cube, cube_orig, coord, cycletime=None):
+        cube, blend_coord, frt_coord, cycletime=None):
     """Ensure that the metadata conforms after blending together across
     the chosen coordinate.
 
@@ -248,15 +248,13 @@ def conform_metadata(
 
     Args:
         cube (iris.cube.Cube):
-            Cube containing the metadata to be adjusted.
-        cube_orig (iris.cube.Cube):
-            Cube containing metadata that may be useful for adjusting
-            metadata on the `cube` variable.
-        coord (str):
-            Coordinate that has been blended. This allows specific metadata
-            changes to be limited to whichever coordinate is being blended.
+            Cube containing the metadata to be adjusted
+        blend_coord (str):
+            Name of the coordinate that has been blended
+        frt_coord (iris.coords.Coord or None):
+            Reference forecast reference time coordinate, or None
         cycletime (str):
-            The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
+            The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z
 
     Returns:
         iris.cube.Cube:
@@ -264,25 +262,23 @@ def conform_metadata(
 
     """
     # unify time coordinates for cycle and grid (model) blends
-    if coord in ["forecast_reference_time", "model_id"]:
-        # if cycle blending, update forecast reference time and remove bounds
-        if cube.coords("forecast_reference_time"):
-            if cycletime is None:
-                new_cycletime = (
-                    np.max(cube_orig.coord("forecast_reference_time").points))
-            else:
-                cycletime_units = (
-                    cube_orig.coord("forecast_reference_time").units.origin)
-                cycletime_calendar = (
-                    cube.coord("forecast_reference_time").units.calendar)
-                new_cycletime = cycletime_to_number(
-                    cycletime, time_unit=cycletime_units,
-                    calendar=cycletime_calendar)
-                # Preserve the data type to avoid converting ints to floats.
-                frt_type = cube.coord("forecast_reference_time").dtype
-                new_cycletime = np.round(new_cycletime).astype(frt_type)
-            cube.coord("forecast_reference_time").points = new_cycletime
-            cube.coord("forecast_reference_time").bounds = None
+    if blend_coord in ["forecast_reference_time", "model_id"]:
+
+        # update forecast reference time using cycletime or reference
+        new_frt_coord = cube.coord("forecast_reference_time")
+        frt_units = new_frt_coord.units.origin
+        if cycletime is None:
+            frt_coord.convert_units(frt_units)
+            new_cycletime = np.max(frt_coord.points)
+        else:
+            frt_calendar = new_frt_coord.units.calendar
+            new_cycletime = cycletime_to_number(
+                cycletime, time_unit=frt_units, calendar=frt_calendar)
+            # Preserve the data type to avoid converting ints to floats.
+            frt_type = new_frt_coord.dtype
+            new_cycletime = np.round(new_cycletime).astype(frt_type)
+        cube.coord("forecast_reference_time").points = new_cycletime
+        cube.coord("forecast_reference_time").bounds = None
 
         # recalculate forecast period coordinate
         if cube.coords("forecast_period"):
@@ -891,9 +887,12 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
             cube_new = self.weighted_mean(cube, weights)
 
         # Modify the cube metadata and add to the cubelist.
+        try:
+            frt_coord = cube.coord("forecast_reference_time")
+        except iris.exceptions.CoordinateNotFoundError:
+            frt_coord = None
         result = conform_metadata(
-            cube_new, cube, coord=self.coord,
-            cycletime=self.cycletime)
+            cube_new, self.coord, frt_coord, cycletime=self.cycletime)
 
         if isinstance(cube.data, np.ma.core.MaskedArray):
             result.data = np.ma.array(result.data)
