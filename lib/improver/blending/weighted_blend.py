@@ -225,8 +225,8 @@ class MergeCubesForWeightedBlending(BasePlugin):
 
 def conform_metadata(
         cube, blend_coord, frt_coord, cycletime=None):
-    """Ensure that the metadata conforms after blending together across
-    the chosen coordinate.
+    """
+    Update metadata after blending.
 
     The metadata adjustments are:
         - Forecast reference time: If a cycletime is not present, the
@@ -250,7 +250,9 @@ def conform_metadata(
         cube (iris.cube.Cube):
             Cube containing the metadata to be adjusted
         blend_coord (str):
-            Name of the coordinate that has been blended
+            Name of the coordinate that has been blended. This allows updates
+            to forecast reference time and attributes to be restricted to cycle
+            and model blends.
         frt_coord (iris.coords.Coord or None):
             Reference forecast reference time coordinate, or None
         cycletime (str):
@@ -261,7 +263,6 @@ def conform_metadata(
             Cube containing the adjusted metadata.
 
     """
-    # unify time coordinates for cycle and grid (model) blends
     if blend_coord in ["forecast_reference_time", "model_id"]:
 
         # update forecast reference time using cycletime or reference
@@ -292,9 +293,9 @@ def conform_metadata(
             ndim = cube.coord_dims("time")
             cube.add_aux_coord(forecast_period, data_dims=ndim)
 
-    # update blended cube attributes
-    if "title" not in cube.attributes.keys():
-        cube.attributes["title"] = "IMPROVER Model Forecast"
+        # update blended cube attributes
+        if "title" not in cube.attributes.keys():
+            cube.attributes["title"] = "IMPROVER Model Forecast"
 
     # remove appropriate scalar coordinates
     for crd in ["model_id", "model_configuration", "realization"]:
