@@ -288,6 +288,24 @@ class Test_iris_time_to_datetime(IrisTest):
             self.assertIsInstance(item, datetime.datetime)
         self.assertEqual(result[0], datetime.datetime(2017, 2, 17, 6, 0))
 
+    def test_bounds(self):
+        """Test iris_time_to_datetime returns list of datetimes calculated
+        from the coordinate bounds."""
+        # Assign time bounds equivalent to [
+        # datetime.datetime(2017, 2, 17, 5, 0),
+        # datetime.datetime(2017, 2, 17, 6, 0)]
+        self.cube.coord('time').bounds = [1487307600, 1487311200]
+
+        result = iris_time_to_datetime(
+            self.cube.coord('time'), point_or_bound="bound")
+        self.assertIsInstance(result, list)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(len(result[0]), 2)
+        for item in result[0]:
+            self.assertIsInstance(item, datetime.datetime)
+        self.assertEqual(result[0][0], datetime.datetime(2017, 2, 17, 5, 0))
+        self.assertEqual(result[0][1], datetime.datetime(2017, 2, 17, 6, 0))
+
     def test_input_cube_unmodified(self):
         """Test that an input cube with unexpected coordinate units is not
         modified"""

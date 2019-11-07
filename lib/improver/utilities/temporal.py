@@ -217,7 +217,7 @@ def forecast_period_coord(
     return result_coord
 
 
-def iris_time_to_datetime(time_coord):
+def iris_time_to_datetime(time_coord, point_or_bound="point"):
     """
     Convert iris time to python datetime object. Working in UTC.
 
@@ -231,7 +231,11 @@ def iris_time_to_datetime(time_coord):
     """
     coord = time_coord.copy()
     coord.convert_units('seconds since 1970-01-01 00:00:00')
-    return [value.point for value in coord.cells()]
+    if point_or_bound == "point":
+        datetime_list = [value.point for value in coord.cells()]
+    elif point_or_bound == "bound":
+        datetime_list = [value.bound for value in coord.cells()]
+    return datetime_list
 
 
 def datetime_to_iris_time(dt_in):
