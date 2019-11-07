@@ -645,8 +645,6 @@ class Test_process(Test_weighted_blend):
         plugin = WeightedBlendAcrossWholeDimension(coord)
         result = plugin.process(self.cube)
 
-        # conform metadata means the output FRT and forecast period are the
-        # most recent on the input cubes.
         expected_frt = int(
             self.cube.coord('forecast_reference_time').points[-1])
         expected_forecast_period = int(
@@ -696,6 +694,22 @@ class Test_process(Test_weighted_blend):
                          expected_forecast_period)
         self.assertEqual(result.coord('time').points,
                          cube.coord('time').points)
+
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate"])
+    def test_attributes_dict(self):
+        """Test updates to attributes on output cube"""
+        attributes_dict = {"source": "IMPROVER", "history": "cycle blended"}
+        for key, value in self.cube.attributes.items():
+            if "mosg__" in key:
+                attributes_dict[key] = "remove"
+        expected_attributes = {"source": "IMPROVER",
+                               "history": "cycle blended",
+                               "title": self.cube.attributes["title"]}
+        coord = "forecast_reference_time"
+        plugin = WeightedBlendAcrossWholeDimension(coord)
+        result = plugin.process(self.cube, attributes_dict=attributes_dict)
+        self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_fails_coord_not_in_cube(self):
         """Test it raises CoordinateNotFoundError if the blending coord is not

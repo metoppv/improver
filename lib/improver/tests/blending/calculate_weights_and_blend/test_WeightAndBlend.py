@@ -338,6 +338,22 @@ class Test_process(IrisTest):
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate",
                           "Deleting unmatched attribute"])
+    def test_attributes_dict(self):
+        """Test output attributes can be updated through argument"""
+        attribute_changes = {"mosg__model_configuration": "remove",
+                             "source": "IMPROVER",
+                             "title": "IMPROVER Multi-Model Blend"}
+        expected_attributes = {"source": "IMPROVER",
+                               "title": "IMPROVER Multi-Model Blend"}
+        result = self.plugin_model.process(
+            [self.ukv_cube, self.nowcast_cube],
+            model_id_attr="mosg__model_configuration",
+            attributes_dict=attribute_changes)
+        self.assertDictEqual(result.attributes, expected_attributes)
+
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate",
+                          "Deleting unmatched attribute"])
     def test_blend_three_models(self):
         """Test plugin produces correct output for 3-model blend when all
         models have (equal) non-zero weights. Each model in WEIGHTS_DICT has
@@ -357,13 +373,11 @@ class Test_process(IrisTest):
                 result.coord(coord), self.nowcast_cube.coord(coord))
 
     def test_one_cube(self):
-        """Test the plugin returns a single input cube with identical data and
-        suitably updated metadata"""
+        """Test the plugin returns a single unmodified input cube"""
         result = self.plugin_model.process(
             [self.enukx_cube], model_id_attr="mosg__model_configuration")
         self.assertArrayAlmostEqual(result.data, self.enukx_cube.data)
-        self.assertEqual(
-            result.attributes['mosg__model_configuration'], 'blend')
+        self.assertEqual(result.metadata, self.enukx_cube.metadata)
 
     def test_one_cube_with_cycletime(self):
         """Test the plugin returns a single input cube with an updated forecast

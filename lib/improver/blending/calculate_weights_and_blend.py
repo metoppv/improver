@@ -152,7 +152,8 @@ class WeightAndBlend(BasePlugin):
         return weights
 
     def process(self, cubelist, cycletime=None, model_id_attr=None,
-                spatial_weights=False, fuzzy_length=20000):
+                spatial_weights=False, fuzzy_length=20000,
+                attributes_dict=None):
         """
         Merge a cubelist, calculate appropriate blend weights and compute the
         weighted mean. Returns a single cube collapsed over the dimension
@@ -173,6 +174,9 @@ class WeightAndBlend(BasePlugin):
             fuzzy_length (float):
                 Distance (in metres) over which to smooth spatial weights.
                 Default is 20 km.
+            attributes_dict (dict or None):
+                Changes to cube attributes to be applied after blending
+
         """
         # Prepare cubes for weighted blending, including creating model_id and
         # model_configuration coordinates for multi-model blending. The merged
@@ -192,7 +196,8 @@ class WeightAndBlend(BasePlugin):
             frt_coord = (cube.coord("forecast_reference_time")
                          if cube.coords("forecast_reference_time") else None)
             update_blended_metadata(
-                result, self.blend_coord, frt_coord, cycletime=cycletime)
+                result, self.blend_coord, frt_coord, cycletime=cycletime,
+                attributes_dict=attributes_dict)
 
         # otherwise, calculate weights and blend across specified dimension
         else:
@@ -209,6 +214,7 @@ class WeightAndBlend(BasePlugin):
             # blend across specified dimension
             BlendingPlugin = WeightedBlendAcrossWholeDimension(
                 self.blend_coord, cycletime=cycletime)
-            result = BlendingPlugin.process(cube, weights=weights)
+            result = BlendingPlugin.process(
+                cube, weights=weights, attributes_dict=attributes_dict)
 
         return result

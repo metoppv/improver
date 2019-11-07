@@ -194,10 +194,8 @@ class MergeCubesForWeightedBlending(BasePlugin):
         cubes_in = (
             [cubes_in] if isinstance(cubes_in, iris.cube.Cube) else cubes_in)
 
-        # if input is already a single cube, return with updated metadata
+        # if input is already a single cube, return unchanged
         if len(cubes_in) == 1:
-            if "model" in self.blend_coord:
-                cubes_in[0].attributes[self.model_id_attr] = "blend"
             return cubes_in[0]
 
         # create copies of input cubes so as not to modify in place
@@ -745,7 +743,7 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
 
         return cube_new
 
-    def process(self, cube, weights=None):
+    def process(self, cube, weights=None, attributes_dict=None):
         """Calculate weighted blend across the chosen coord, for either
            probabilistic or percentile data. If there is a percentile
            coordinate on the cube, it will blend using the
@@ -758,6 +756,9 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
             weights (iris.cube.Cube):
                 Cube of blending weights. If None, the diagnostic cube is
                 blended with equal weights across the blending dimension.
+            attributes_dict (dict or None):
+                Changes to cube attributes to be applied after blending
+
         Returns:
             iris.cube.Cube:
                 containing the weighted blend across the chosen coord.
@@ -810,7 +811,8 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
         frt_coord = (cube.coord("forecast_reference_time")
                      if cube.coords("forecast_reference_time") else None)
         update_blended_metadata(
-            result, self.coord, frt_coord, cycletime=self.cycletime)
+            result, self.coord, frt_coord, cycletime=self.cycletime,
+            attributes_dict=attributes_dict)
 
         if isinstance(cube.data, np.ma.core.MaskedArray):
             result.data = np.ma.array(result.data)

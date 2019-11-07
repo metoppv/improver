@@ -33,10 +33,8 @@
 import numpy as np
 
 from improver.metadata.amend import amend_attributes
-from improver.metadata.constants import TIME_COORDINATES
 from improver.utilities.temporal import (
     cycletime_to_number, forecast_period_coord)
-
 
 TIME_COORDINATES = ["time", "forecast_period", "forecast_reference_time"]
 
