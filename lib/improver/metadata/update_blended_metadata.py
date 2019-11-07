@@ -38,6 +38,9 @@ from improver.utilities.temporal import (
     cycletime_to_number, forecast_period_coord)
 
 
+TIME_COORDINATES = ["time", "forecast_period", "forecast_reference_time"]
+
+
 def _update_blended_forecast_reference_time(
         cube, reference_frt_coord, cycletime):
     """
@@ -104,7 +107,7 @@ def update_blended_metadata(
     if blend_coord in ["forecast_reference_time", "model_id"]:
         _update_blended_forecast_reference_time(cube, frt_coord, cycletime)
         _recalculate_forecast_period(cube)
-    
+
     # update attributes
     if attributes_dict is not None:
         amend_attributes(cube, attributes_dict)
