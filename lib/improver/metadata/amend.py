@@ -79,7 +79,7 @@ def amend_attributes(cube, attributes_dict):
             of the attribute required.
     """
     for attribute_name, value in attributes_dict.items():
-        if value == "delete":
+        if value == "remove" or value == "delete":
             cube.attributes.pop(attribute_name, None)
         else:
             cube.attributes[attribute_name] = value

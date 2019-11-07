@@ -63,11 +63,13 @@ class Test_update_blended_metadata(IrisTest):
 
     def setUp(self):
         """Set up inputs to metadata update function"""
+        attributes = {"source": "Met Office Unified Model",
+                      "history": "Post-Processing"}
         self.cycle_blended_cube = set_up_probability_cube(
             np.full((3, 3, 3), 0.5, dtype=np.float32),
             np.array([278, 279, 280], dtype=np.float32),
-            time=dt(2015, 11, 23, 7, 0),
-            frt=dt(2015, 11, 23, 3, 0))
+            time=dt(2015, 11, 23, 7, 0), frt=dt(2015, 11, 23, 3, 0),
+            attributes=attributes)
 
         frts = [dt(2015, 11, 23, 2, 0),
                 dt(2015, 11, 23, 3, 0),
@@ -158,6 +160,19 @@ class Test_update_blended_metadata(IrisTest):
             cube, "forecast_reference_time", self.frt_coord)
         self.assertIsNone(cube.coord("forecast_reference_time").bounds)
         self.assertIsNone(cube.coord("forecast_period").bounds)
+
+    def test_attributes_dict(self):
+        """Test attributes can be added, updated, and removed from the cube"""
+        attribute_changes = {"history": "remove",
+                             "source": "IMPROVER",
+                             "title": "IMPROVER Multi-Model Blend"}
+        expected_attributes = {"source": "IMPROVER",
+                               "title": "IMPROVER Multi-Model Blend"}
+        update_blended_metadata(
+            self.cycle_blended_cube, "forecast_reference_time",
+            self.frt_coord, attributes_dict=attribute_changes)
+        self.assertDictEqual(
+            self.cycle_blended_cube.attributes, expected_attributes)
 
 
 if __name__ == '__main__':
