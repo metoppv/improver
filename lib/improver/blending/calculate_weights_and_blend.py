@@ -31,7 +31,6 @@
 """Plugin to calculate blend weights and blend data across a dimension"""
 
 from improver import BasePlugin
-from improver.metadata.update_blended_metadata import update_blended_metadata
 from improver.blending.spatial_weights import (
     SpatiallyVaryingWeightsFromMask)
 from improver.blending.weighted_blend import (
@@ -39,6 +38,7 @@ from improver.blending.weighted_blend import (
 from improver.blending.weights import (
     ChooseWeightsLinear, ChooseDefaultWeightsLinear,
     ChooseDefaultWeightsNonLinear)
+from improver.metadata.update_blended_metadata import update_blended_metadata
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells)
 
@@ -189,10 +189,8 @@ class WeightAndBlend(BasePlugin):
         if (self.blend_coord not in coord_names or
                 len(cube.coord(self.blend_coord).points) == 1):
             result = cube.copy()
-            try:
-                frt_coord = cube.coord("forecast_reference_time")
-            except iris.exceptions.CoordinateNotFoundError:
-                frt_coord = None
+            frt_coord = (cube.coord("forecast_reference_time")
+                         if cube.coords("forecast_reference_time") else None)
             update_blended_metadata(
                 result, self.blend_coord, frt_coord, cycletime=cycletime)
 

@@ -889,10 +889,8 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
             result = self.weighted_mean(cube, weights)
 
         # Modify the cube metadata and add to the cubelist.
-        try:
-            frt_coord = cube.coord("forecast_reference_time")
-        except iris.exceptions.CoordinateNotFoundError:
-            frt_coord = None
+        frt_coord = (cube.coord("forecast_reference_time")
+                     if cube.coords("forecast_reference_time") else None)
         update_blended_metadata(
             result, self.coord, frt_coord, cycletime=self.cycletime)
 
