@@ -104,10 +104,8 @@ class Test__init__(IrisTest):
 
     def test_basic(self):
         """Test that the __init__ sets things up correctly"""
-        plugin = (WeightedBlendAcrossWholeDimension(
-            'time', cycletime='20171101T0300Z'))
+        plugin = WeightedBlendAcrossWholeDimension('time')
         self.assertEqual(plugin.blend_coord, 'time')
-        self.assertEqual(plugin.cycletime, '20171101T0300Z')
 
     def test_threshold_blending_unsupported(self):
         """Test that the __init__ raises an error if trying to blend over
@@ -125,7 +123,7 @@ class Test__repr__(IrisTest):
         """Test that the __repr__ returns the expected string."""
         result = str(WeightedBlendAcrossWholeDimension('time'))
         msg = ('<WeightedBlendAcrossWholeDimension: coord = time, '
-               'cycletime = None, timeblending: False>')
+               'timeblending: False>')
         self.assertEqual(result, msg)
 
 
@@ -682,11 +680,10 @@ class Test_process(Test_weighted_blend):
         cubes = iris.cube.CubeList([cube1, cube2])
         cube = merge_cubes(cubes)
 
-        plugin = WeightedBlendAcrossWholeDimension(
-            coord_name, cycletime='20151118T0900Z')
+        plugin = WeightedBlendAcrossWholeDimension(coord_name)
         expected_frt = 1447837200
         expected_forecast_period = 61200
-        result = plugin.process(cube)
+        result = plugin.process(cube, cycletime='20151118T0900Z')
 
         self.assertEqual(result.coord('forecast_reference_time').points,
                          expected_frt)

@@ -305,7 +305,7 @@ class PercentileBlendingAggregator:
         # Firstly ensure axis coordinate and percentile coordinate
         # are indexed as the first and second values in the data array
         data = np.moveaxis(data, [perc_dim, axis], [1, 0])
-        # Determine the rest of the sha
+        # Determine the rest of the shape
         shape = data.shape[2:]
         input_shape = [data.shape[0],
                        data.shape[1],
@@ -408,15 +408,13 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
        dimension. Uses one of two methods, either weighted average, or
        the maximum of the weighted probabilities."""
 
-    def __init__(self, coord, cycletime=None, timeblending=False):
+    def __init__(self, coord, timeblending=False):
         """Set up for a Weighted Blending plugin
 
         Args:
             coord (str):
                 The name of the coordinate dimension over which the cube will
                 be blended.
-            cycletime (str):
-                The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
             timeblending (bool):
                 With the default of False the cube being blended will be
                 checked to ensure that slices across the blending coordinate
@@ -432,15 +430,14 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
             raise ValueError(msg)
         self.blend_coord = coord
         self.timeblending = timeblending
-        self.cycletime = cycletime
+        self.cycletime = None
         self.crds_to_remove = None
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        description = ('<WeightedBlendAcrossWholeDimension: coord = {0:},'
-                       ' cycletime = {1:}, timeblending: {2:}>')
-        return description.format(
-            self.blend_coord, self.cycletime, self.timeblending)
+        description = ('<WeightedBlendAcrossWholeDimension: coord = {}, '
+                       'timeblending: {}>')
+        return description.format(self.blend_coord, self.timeblending)
 
     @staticmethod
     def check_percentile_coord(cube):
@@ -833,7 +830,8 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
         if attributes_dict is not None:
             amend_attributes(blended_cube, attributes_dict)
 
-    def process(self, cube, weights=None, attributes_dict=None):
+    def process(self, cube, weights=None,
+                cycletime=None, attributes_dict=None):
         """Calculate weighted blend across the chosen coord, for either
            probabilistic or percentile data. If there is a percentile
            coordinate on the cube, it will blend using the
@@ -846,6 +844,8 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
             weights (iris.cube.Cube):
                 Cube of blending weights. If None, the diagnostic cube is
                 blended with equal weights across the blending dimension.
+            cycletime (str):
+                The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
             attributes_dict (dict or None):
                 Changes to cube attributes to be applied after blending
 
@@ -892,7 +892,7 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
 
         # Establish metadata changes to be made after blending
         self.cycletime = (
-            self._get_cycletime(cube, self.cycletime) if self.blend_coord in [
+            self._get_cycletime(cube, cycletime) if self.blend_coord in [
                 "forecast_reference_time", "model_id"] else None)
         self.crds_to_remove = self._get_coords_to_remove(cube)
 
