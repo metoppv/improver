@@ -40,7 +40,6 @@ from iris.exceptions import CoordinateNotFoundError
 from improver.argparser import ArgParser
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
     GeneratePercentilesFromProbabilities
-from improver.metadata.amend import amend_attributes
 from improver.metadata.probabilistic import find_percentile_coordinate
 from improver.percentile import PercentileConverter
 from improver.spotdata.apply_lapse_rate import SpotLapseRateAdjust
@@ -266,7 +265,8 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube=None,
         minimum_dz=minimum_dz).neighbour_finding_method_name()
     plugin = SpotExtraction(
         neighbour_selection_method=neighbour_selection_method)
-    result = plugin.process(neighbour_cube, diagnostic_cube)
+    result = plugin.process(neighbour_cube, diagnostic_cube,
+                            attributes_dict=attributes_dict)
 
     # If a probability or percentile diagnostic cube is provided, extract
     # the given percentile if available. This is done after the spot-extraction
@@ -350,9 +350,6 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube=None,
                 "apply the lapse rate correction was enabled. No lapse rate "
                 "correction could be applied.")
 
-    # Modify final attributes as described by provided JSON file.
-    if attributes_dict:
-        amend_attributes(result, attributes_dict)
     # Remove the internal model_grid_hash attribute if present.
     result.attributes.pop('model_grid_hash', None)
     return result
