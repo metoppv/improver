@@ -35,12 +35,11 @@
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
 usage: improver spot-extract [-h] [--profile] [--profile_file PROFILE_FILE]
+                             [--new_title NEW_TITLE]
                              [--apply_lapse_rate_correction]
                              [--land_constraint] [--minimum_dz]
                              [--extract_percentiles EXTRACT_PERCENTILES [EXTRACT_PERCENTILES ...]]
-                             [--ecc_bounds_warning]
-                             [--metadata_json METADATA_JSON]
-                             [--suppress_warnings]
+                             [--ecc_bounds_warning] [--suppress_warnings]
                              NEIGHBOUR_FILEPATH DIAGNOSTIC_FILEPATH
                              [LAPSE_RATE_FILEPATH] OUTPUT_FILEPATH
 
@@ -66,6 +65,9 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
+  --new_title NEW_TITLE
+                        Title attribute for spot-extracted data. If not set,
+                        this attribute is removed.
   --apply_lapse_rate_correction
                         If the option is set and a lapse rate cube has been
                         provided, extracted screen temperatures will be
@@ -107,12 +109,6 @@ Extract percentiles:
                         of probabilities, percentiles, or realizations. Note
                         that for percentile inputs, the desired percentile(s)
                         must exist in the input cube.
-
-Metadata:
-  --metadata_json METADATA_JSON
-                        If provided, this JSON file can be used to modify the
-                        metadata of the returned netCDF file. Defaults to
-                        None.
 
 Suppress Verbose output:
   --suppress_warnings   Suppress warning output. This option should only be

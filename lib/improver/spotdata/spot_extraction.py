@@ -35,7 +35,6 @@ import iris
 import numpy as np
 
 from improver import BasePlugin
-from improver.metadata.amend import amend_attributes
 from improver.metadata.utilities import create_coordinate_hash
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
@@ -154,7 +153,7 @@ class SpotExtraction(BasePlugin):
             neighbour_cube.coord('wmo_id').points)
         return neighbour_cube
 
-    def process(self, neighbour_cube, diagnostic_cube, attributes_dict=None):
+    def process(self, neighbour_cube, diagnostic_cube, new_title=None):
         """
         Create a spot data cube containing diagnostic data extracted at the
         coordinates provided by the neighbour cube.
@@ -169,8 +168,9 @@ class SpotExtraction(BasePlugin):
                 their grid point neighbours.
             diagnostic_cube (iris.cube.Cube):
                 A cube of diagnostic data from which spot data is being taken.
-            attributes_dict (dict or None):
-                Dictionary describing user-specified changes to spot attributes.
+            new_title (str or None):
+                New title for spot-extracted data.  If None, this attribute is
+                removed from the output cube.
         Returns:
             iris.cube.Cube:
                 A cube containing diagnostic data for each spot site, as well
@@ -200,12 +200,14 @@ class SpotExtraction(BasePlugin):
         spotdata_cube = data_cubes.merge_cube()
 
         # Copy attributes from the diagnostic cube that describe the data's
-        # provenance, and modify if required
+        # provenance, and update title if specified
         spotdata_cube.attributes = diagnostic_cube.attributes
         spotdata_cube.attributes['model_grid_hash'] = (
             neighbour_cube.attributes['model_grid_hash'])
-        if attributes_dict is not None:
-            amend_attributes(spotdata_cube, attributes_dict)
+        if new_title is not None:
+            spotdata_cube.attributes["title"] = new_title
+        else:
+            spotdata_cube.attributes.pop("title", None)
 
         return spotdata_cube
 

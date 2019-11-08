@@ -39,7 +39,7 @@
   run improver spot-extract \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/all_methods_uk.nc" \
       "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_temperature.nc" \
-      --metadata_json "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/metadata.json" \
+      --new_title "IMPROVER Spot Values" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

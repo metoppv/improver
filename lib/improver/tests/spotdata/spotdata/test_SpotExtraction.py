@@ -253,16 +253,15 @@ class Test_process(Test_SpotExtraction):
         self.assertDictEqual(result.attributes,
                              self.diagnostic_cube_xy.attributes)
 
-    def test_attributes_dict(self):
-        """Test attribute modifications are correctly applied"""
+    def test_new_title(self):
+        """Test title is updated as expected"""
         expected_attributes = self.diagnostic_cube_xy.attributes.copy()
         expected_attributes["title"] = "IMPROVER Spot Forecast"
         expected_keys = set(expected_attributes.keys())
         expected_keys.add("model_grid_hash")
-        attributes_dict = {"title": "IMPROVER Spot Forecast"}
         plugin = SpotExtraction(neighbour_selection_method='nearest_land')
         result = plugin.process(self.neighbour_cube, self.diagnostic_cube_xy,
-                                attributes_dict=attributes_dict)
+                                new_title="IMPROVER Spot Forecast")
         self.assertSetEqual(set(result.attributes.keys()), expected_keys)
         result.attributes.pop('model_grid_hash')
         self.assertDictEqual(result.attributes, expected_attributes)

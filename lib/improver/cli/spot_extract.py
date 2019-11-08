@@ -77,6 +77,9 @@ def main(argv=None):
                         " site-altitude.")
     parser.add_argument("output_filepath", metavar="OUTPUT_FILEPATH",
                         help="The output path for the resulting NetCDF")
+    parser.add_argument("--new_title", metavar="NEW_TITLE", default=None,
+                        help="Title attribute for spot-extracted data. If not "
+                        "set, this attribute is removed.")
 
     parser.add_argument(
         "--apply_lapse_rate_correction",
@@ -125,12 +128,6 @@ def main(argv=None):
         help="If True, where calculated percentiles are outside the ECC "
         "bounds range, raise a warning rather than an exception.")
 
-    meta_group = parser.add_argument_group("Metadata")
-    meta_group.add_argument(
-        "--metadata_json", metavar="METADATA_JSON", default=None,
-        help="If provided, this JSON file can be used to modify the metadata "
-        "of the returned netCDF file. Defaults to None.")
-
     output_group = parser.add_argument_group("Suppress Verbose output")
     # This CLI may be used to prepare data for verification without knowing the
     # form of the input, be it deterministic, realizations or probabilistic.
@@ -154,13 +151,12 @@ def main(argv=None):
     diagnostic_cube = load_cube(args.diagnostic_filepath)
     lapse_rate_cube = load_cube(args.temperature_lapse_rate_filepath,
                                 allow_none=True)
-    attributes_dict = load_json_or_none(args.metadata_json)
 
     # Process Cube
     result = process(neighbour_cube, diagnostic_cube, lapse_rate_cube,
                      args.apply_lapse_rate_correction, args.land_constraint,
                      args.minimum_dz, args.extract_percentiles,
-                     args.ecc_bounds_warning, attributes_dict,
+                     args.ecc_bounds_warning, args.new_title,
                      args.suppress_warnings)
 
     # Save Cube
@@ -170,7 +166,7 @@ def main(argv=None):
 def process(neighbour_cube, diagnostic_cube, lapse_rate_cube=None,
             apply_lapse_rate_correction=False, land_constraint=False,
             minimum_dz=False, extract_percentiles=None,
-            ecc_bounds_warning=False, attributes_dict=None,
+            ecc_bounds_warning=False, new_title=None,
             suppress_warnings=False):
     """Module to run spot data extraction.
 
@@ -222,10 +218,9 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube=None,
             If True, where calculated percentiles are outside the ECC bounds
             range, raises a warning rather than an exception.
             Default is False.
-        attributes_dict (dict):
-            If provided, this dictionary can be used to modify the attributes
-            of the returned cube.
-            Default is None.
+        new_title (str or None):
+            New title for the spot-extracted data.  If None, this attribute is
+            removed from the output cube.
         suppress_warnings (bool):
             Suppress warning output. This option should only be used if it
             is known that warnings will be generated but they are not required.
@@ -266,7 +261,7 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube=None,
     plugin = SpotExtraction(
         neighbour_selection_method=neighbour_selection_method)
     result = plugin.process(neighbour_cube, diagnostic_cube,
-                            attributes_dict=attributes_dict)
+                            new_title=new_title)
 
     # If a probability or percentile diagnostic cube is provided, extract
     # the given percentile if available. This is done after the spot-extraction
