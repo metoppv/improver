@@ -38,7 +38,7 @@ from improver.blending.weighted_blend import (
 from improver.blending.weights import (
     ChooseWeightsLinear, ChooseDefaultWeightsLinear,
     ChooseDefaultWeightsNonLinear)
-from improver.metadata.update_blended_metadata import update_blended_metadata
+from improver.metadata.amend import amend_attributes
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells)
 
@@ -188,16 +188,14 @@ class WeightAndBlend(BasePlugin):
         cube = merger.process(cubelist, cycletime=cycletime)
 
         # if blend_coord has only one value, or is not present (case where only
-        # one model has been provided for a model blend) update metadata only
+        # one model has been provided for a model blend), update attributes
+        # only
         coord_names = [coord.name() for coord in cube.coords()]
         if (self.blend_coord not in coord_names or
                 len(cube.coord(self.blend_coord).points) == 1):
             result = cube.copy()
-            frt_coord = (cube.coord("forecast_reference_time")
-                         if cube.coords("forecast_reference_time") else None)
-            update_blended_metadata(
-                result, self.blend_coord, frt_coord, cycletime=cycletime,
-                attributes_dict=attributes_dict)
+            if attributes_dict is not None:
+                amend_attributes(result, attributes_dict)
 
         # otherwise, calculate weights and blend across specified dimension
         else:

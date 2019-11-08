@@ -417,6 +417,7 @@ def unify_forecast_reference_time(cubes, cycletime):
 
     result_cubes = iris.cube.CubeList([])
     for cube in cubes:
+        cube = cube.copy()
         frt_units = cube.coord('forecast_reference_time').units
         frt_type = cube.coord('forecast_reference_time').dtype
         new_frt_units = Unit('seconds since 1970-01-01 00:00:00')

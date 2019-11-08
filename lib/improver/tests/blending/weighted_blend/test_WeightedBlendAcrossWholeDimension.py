@@ -106,7 +106,7 @@ class Test__init__(IrisTest):
         """Test that the __init__ sets things up correctly"""
         plugin = (WeightedBlendAcrossWholeDimension(
             'time', cycletime='20171101T0300Z'))
-        self.assertEqual(plugin.coord, 'time')
+        self.assertEqual(plugin.blend_coord, 'time')
         self.assertEqual(plugin.cycletime, '20171101T0300Z')
 
     def test_threshold_blending_unsupported(self):

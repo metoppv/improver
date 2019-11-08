@@ -109,37 +109,30 @@ class Test__rationalise_blend_time_coords(IrisTest):
 
         # set up a plugin for multi-model blending
         self.plugin = MergeCubesForWeightedBlending(
-            "model", weighting_coord="forecast_period",
+            "model_id", weighting_coord="forecast_period",
             model_id_attr="mosg__model_configuration")
 
     def test_null_irrelevant_coord(self):
         """Test function does nothing if not given a relevant coord"""
         reference_cubelist = self.cubelist.copy()
         plugin = MergeCubesForWeightedBlending("realization")
-        plugin._rationalise_blend_time_coords(self.cubelist)
-        self.assertEqual(self.cubelist, reference_cubelist)
-
-    def test_null_cubes_have_fp(self):
-        """Test function does nothing if blending over forecast_reference_time
-        where a forecast period coordinate exists"""
-        reference_cubelist = self.cubelist.copy()
-        plugin = MergeCubesForWeightedBlending("forecast_reference_time")
-        plugin._rationalise_blend_time_coords(self.cubelist)
-        self.assertEqual(self.cubelist, reference_cubelist)
+        result = plugin._rationalise_blend_time_coords(self.cubelist)
+        self.assertEqual(result, reference_cubelist)
 
     def test_null_model_no_fp(self):
         """Test function does nothing if blending over models but not weighting
         by forecast period"""
         reference_cubelist = self.cubelist.copy()
-        self.plugin._rationalise_blend_time_coords(self.cubelist)
-        self.assertEqual(self.cubelist, reference_cubelist)
+        self.plugin.weighting_coord = "something_else"
+        result = self.plugin._rationalise_blend_time_coords(self.cubelist)
+        self.assertEqual(result, reference_cubelist)
 
     def test_remove_fp(self):
         """Test function removes forecast_period coord if blending over
         forecast_reference_time"""
         plugin = MergeCubesForWeightedBlending("forecast_reference_time")
-        plugin._rationalise_blend_time_coords(self.cubelist)
-        for cube in self.cubelist:
+        result = plugin._rationalise_blend_time_coords(self.cubelist)
+        for cube in result:
             self.assertTrue("forecast_period" not in cube.coords())
 
     def test_unify_frt(self):
@@ -147,8 +140,8 @@ class Test__rationalise_blend_time_coords(IrisTest):
         model blend by forecast_period"""
         expected_frt, = self.enuk_cube.coord("forecast_reference_time").points
         expected_fp = 3 * 3600
-        self.plugin._rationalise_blend_time_coords(self.cubelist)
-        for cube in self.cubelist:
+        result = self.plugin._rationalise_blend_time_coords(self.cubelist)
+        for cube in result:
             self.assertEqual(
                 cube.coord("forecast_reference_time").points[0], expected_frt)
             self.assertEqual(
@@ -161,9 +154,9 @@ class Test__rationalise_blend_time_coords(IrisTest):
             (3 * 3600)
         )
         expected_fp = 6 * 3600
-        self.plugin._rationalise_blend_time_coords(
+        result = self.plugin._rationalise_blend_time_coords(
             self.cubelist, cycletime='20170109T2100Z')
-        for cube in self.cubelist:
+        for cube in result:
             self.assertEqual(
                 cube.coord("forecast_reference_time").points[0], expected_frt)
             self.assertEqual(
