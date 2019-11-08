@@ -670,14 +670,13 @@ class Test_process(Test_NeighbourSelection):
         coordinates defined in latitudes and longitudes, so they should be
         unchanged."""
 
-        plugin = NeighbourSelection()
-        result = plugin.process(self.global_sites, self.global_orography,
-                                self.global_land_mask)
-
         latitude_expected = np.array([self.global_sites[0]['latitude']],
                                      dtype=np.float32)
         longitude_expected = np.array([self.global_sites[0]['longitude']],
                                       dtype=np.float32)
+        plugin = NeighbourSelection()
+        result = plugin.process(self.global_sites, self.global_orography,
+                                self.global_land_mask)
 
         self.assertIsNotNone(result.coord('latitude'))
         self.assertIsNotNone(result.coord('longitude'))
