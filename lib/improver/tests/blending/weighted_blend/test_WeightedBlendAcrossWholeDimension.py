@@ -697,7 +697,7 @@ class Test_process(Test_weighted_blend):
     def test_attributes_dict(self):
         """Test updates to attributes on output cube"""
         attributes_dict = {"source": "IMPROVER", "history": "cycle blended"}
-        for key, value in self.cube.attributes.items():
+        for key in self.cube.attributes:
             if "mosg__" in key:
                 attributes_dict[key] = "remove"
         expected_attributes = {"source": "IMPROVER",

@@ -748,7 +748,8 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
 
         return cube_new
 
-    def _get_cycletime(self, input_cube, cycletime):
+    @staticmethod
+    def _get_cycletime_point(input_cube, cycletime):
         """
         For cycle and model blending, establish the single forecast reference
         time to be appended to the cube after blending.
@@ -892,7 +893,7 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
 
         # Establish metadata changes to be made after blending
         self.cycletime = (
-            self._get_cycletime(cube, cycletime) if self.blend_coord in [
+            self._get_cycletime_point(cube, cycletime) if self.blend_coord in [
                 "forecast_reference_time", "model_id"] else None)
         self.crds_to_remove = self._get_coords_to_remove(cube)
 
