@@ -388,33 +388,53 @@ def get_forecast_times(forecast_length, forecast_date=None,
     return forecast_times
 
 
-def unify_forecast_reference_time(cubes, cycletime):
-    """Function to unify the forecast_reference_time across the input cubes
-    provided. The cycletime specified is used as the forecast_reference_time.
-    This function is intended for use in grid blending, where the models
-    being blended may not have been run at the same cycle time, but should
-    be given the same forecast period weightings.
+def rebadge_forecasts_as_latest_cycle(cubes, cycletime=None):
+    """
+    Function to update the forecast_reference_time and forecast_period
+    on a list of input forecasts to match either a given cycletime, or
+    the most recent forecast in the list (proxy for the current cycle).
 
     Args:
-        cubes (iris.cube.CubeList or iris.cube.Cube):
-            Cubes that will have their forecast_reference_time unified.
-            If a single cube is provided the forecast_reference_time will be
-            updated. Any bounds on the forecast_reference_time coord will be
-            discarded.
+        cubes (iris.cube.CubeList):
+            Cubes that will have their forecast_reference_time and
+            forecast_period updated.
+        cycletime (str or None):
+            Required forecast reference time in a YYYYMMDDTHHMMZ format
+            e.g. 20171122T0100Z. If None, the latest forecast reference
+            time is used.
+
+    Returns:
+        iris.cube.CubeList:
+            Updated cubes
+    """
+    cycletime = (find_latest_cycletime(cubes) if cycletime is None
+                 else cycletime_to_datetime(cycletime))
+    return unify_forecast_reference_time(cubes, cycletime)
+
+
+def unify_forecast_reference_time(cubes, cycletime):
+    """
+    Function to unify the forecast_reference_time and update forecast_period.
+    The cycletime specified is used as the forecast_reference_time, and the
+    forecast_period is recalculated using the time coordinate and updated
+    forecast_reference_time.
+
+    Args:
+        cubes (iris.cube.CubeList):
+            Cubes that will have their forecast_reference_time and
+            forecast_period updated. Any bounds on the forecast_reference_time
+            coordinate will be discarded.
         cycletime (datetime.datetime):
             Datetime for the cycletime that will be used to replace the
             forecast_reference_time on the individual cubes.
 
     Returns:
         iris.cube.CubeList:
-            Cubes that have had their forecast_reference_time unified.
+            Updated cubes
 
     Raises:
         ValueError: if forecast_reference_time is a dimension coordinate
     """
-    if isinstance(cubes, iris.cube.Cube):
-        cubes = iris.cube.CubeList([cubes])
-
     result_cubes = iris.cube.CubeList([])
     for cube in cubes:
         cube = cube.copy()
@@ -432,8 +452,7 @@ def unify_forecast_reference_time(cubes, cycletime):
         cube.remove_coord("forecast_reference_time")
         cube.add_aux_coord(frt_coord, data_dims=None)
 
-        # If a forecast period coordinate already exists on a cube, replace
-        # this coordinate, otherwise create a new coordinate.
+        # Update the forecast period for consistency within each cube
         fp_units = "seconds"
         if cube.coords("forecast_period"):
             fp_units = cube.coord("forecast_period").units

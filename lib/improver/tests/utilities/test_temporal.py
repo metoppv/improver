@@ -46,11 +46,10 @@ from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, add_coordinate)
 from improver.utilities.temporal import (
     cycletime_to_datetime, cycletime_to_number, datetime_to_cycletime,
-    forecast_period_coord,
-    iris_time_to_datetime, datetime_constraint,
+    forecast_period_coord, iris_time_to_datetime, datetime_constraint,
     extract_cube_at_time, set_utc_offset, get_forecast_times,
-    unify_forecast_reference_time, find_latest_cycletime,
-    extract_nearest_time_point, datetime_to_iris_time)
+    rebadge_forecasts_as_latest_cycle, unify_forecast_reference_time,
+    find_latest_cycletime, extract_nearest_time_point, datetime_to_iris_time)
 from improver.utilities.warnings_handler import ManageWarnings
 
 
@@ -626,6 +625,12 @@ class Test_extract_nearest_time_point(IrisTest):
                                        time_name="forecast_period")
 
 
+class Test_rebadge_forecasts_as_latest_cycle(IrisTest):
+    """Test the rebadge_forecasts_as_latest_cycle function"""
+    # TODO write unit tests
+    pass
+
+
 class Test_unify_forecast_reference_time(IrisTest):
 
     """Test the unify_forecast_reference_time function."""
@@ -687,7 +692,7 @@ class Test_unify_forecast_reference_time(IrisTest):
         self.assertIsInstance(result, iris.cube.CubeList)
         self.assertEqual(result, expected)
 
-    def test_cube_input(self):
+    def test_single_item_cubelist_input(self):
         """Test when supplying a cube representing a UK deterministic model
         configuration only. This effectively updates the
         forecast_reference_time on the cube to the specified cycletime."""
@@ -699,11 +704,11 @@ class Test_unify_forecast_reference_time(IrisTest):
         expected_uk_det.coord("forecast_period").points = (
             np.array([3, 5, 7]) * 3600)
         result = unify_forecast_reference_time(
-            self.cube_uk_det, self.cycletime)
+            [self.cube_uk_det], self.cycletime)
         self.assertIsInstance(result, iris.cube.CubeList)
         self.assertEqual(result[0], expected_uk_det)
 
-    def test_cube_input_no_forecast_period_coordinate(self):
+    def test_input_no_forecast_period_coordinate(self):
         """Test when supplying a cube representing a UK deterministic model
         configuration only. This forces a forecast_period coordinate to be
         created from a forecast_reference_time coordinate and a time
@@ -717,7 +722,7 @@ class Test_unify_forecast_reference_time(IrisTest):
             np.array([3, 5, 7]) * 3600)
         cube_uk_det = self.cube_uk_det.copy()
         cube_uk_det.remove_coord("forecast_period")
-        result = unify_forecast_reference_time(cube_uk_det, self.cycletime)
+        result = unify_forecast_reference_time([cube_uk_det], self.cycletime)
         self.assertIsInstance(result, iris.cube.CubeList)
         self.assertEqual(result[0], expected_uk_det)
 
