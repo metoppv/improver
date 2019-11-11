@@ -46,7 +46,6 @@
       "$TEST_DIR" --boundary_height=500. --boundary_height_units=m
   [[ "$status" -eq 0 ]]
 
-  OUTPUT_STANDARD="20180810T1200Z-PT0006H00M-orographic_enhancement.nc"
   OUTPUT_HI_RES="20180810T1200Z-PT0006H00M-orographic_enhancement_high_resolution.nc"
 
   improver_check_recreate_kgo $OUTPUT_HI_RES $KGO_HI_RES

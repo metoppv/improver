@@ -164,9 +164,8 @@ def process(temperature, humidity, pressure, wind_speed, wind_dir, orography):
 
     Returns:
         iris.cube.Cube:
-            Precipitation enhancement due to orography in mm/h on the
-            UK standard grid, padded with masked up np.nans where
-            outside the UKPP domain.
+            Precipitation enhancement due to orography on the high resolution
+            input orography grid.
     """
     # resolve u and v wind components
     u_wind, v_wind = ResolveWindComponents().process(wind_speed, wind_dir)

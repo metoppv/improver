@@ -669,8 +669,8 @@ class Test__create_output_cubes(IrisTest):
 
     def test_grid_metadata(self):
         """Test specific grid and model metadata inheritance"""
-        output = self.plugin._create_output_cube(self.orogenh,
-                                                 self.temperature)
+        output = self.plugin._create_output_cube(
+            self.orogenh, self.temperature)
 
         for attr in ['mosg__grid_type', 'mosg__grid_version',
                      'mosg__grid_domain']:

@@ -471,9 +471,7 @@ class OrographicEnhancement:
         return orogenh
 
     def _create_output_cube(self, orogenh_data, reference_cube):
-        """
-        Creates a cube of orographic enhancement on a grid.
-        Casts coordinate points and bounds explicitly to np.float32.
+        """Creates a cube containing orographic enhancement values in SI units.
 
         Args:
             orogenh_data (numpy.ndarray):
@@ -521,9 +519,9 @@ class OrographicEnhancement:
     def process(self, temperature, humidity, pressure, uwind, vwind,
                 topography):
         """
-        Calculate precipitation enhancement over orography on high
-        resolution grids.  Input variables are expected to be on the same
-        grid (either standard or high resolution).
+        Calculate precipitation enhancement over orography on high resolution
+        grid. Input diagnostics are all expected to be on the same grid, and
+        are regridded to match the orography.
 
         Args:
             temperature (iris.cube.Cube):
@@ -544,8 +542,7 @@ class OrographicEnhancement:
 
         Returns:
             iris.cube.Cube:
-                Precipitation enhancement due to orography in mm/h on the
-                1 km Transverse Mercator UKPP grid domain
+                Precipitation enhancement due to orography in m/s.
         """
         # check input variable cube coordinates match
         unmatched_coords = compare_coords(
