@@ -35,10 +35,9 @@ extrapolate."""
 import os
 
 import iris
-import numpy as np
+from iris.cube import CubeList
 
 from improver.argparser import ArgParser
-from improver.nowcasting.forecasting import CreateExtrapolationForecast
 from improver.nowcasting.optical_flow import generate_optical_flow_components
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
 from improver.utilities.cli_utilities import load_json_or_none
@@ -104,7 +103,7 @@ def main(argv=None):
     # Save Cubes
     for wind_cube in u_and_v_mean:
         file_name = generate_file_name(wind_cube)
-        save_netcdf(wind_cube, os.path.join(args.output_dir, file_name))
+        save_netcdf(u_and_v_mean, os.path.join(args.output_dir, file_name))
 
 
 def process(original_cube_list, orographic_enhancement_cube=None,
@@ -137,11 +136,8 @@ def process(original_cube_list, orographic_enhancement_cube=None,
             Default is 100.
 
     Returns:
-        (tuple): tuple containing:
-            **forecast_cubes** (list of iris.cube.Cube):
-                List of Cubes if extrapolate is True, else None.
-            **u_and_v_mean** (list of iris.cube.Cube):
-                List of the umean and vmean cubes.
+        iris.cube.CubeList:
+            List of the umean and vmean cubes.
 
     Raises:
         ValueError:
@@ -169,7 +165,7 @@ def process(original_cube_list, orographic_enhancement_cube=None,
     u_mean, v_mean = generate_optical_flow_components(
         cube_list, ofc_box_size, smart_smoothing_iterations, attributes_dict)
 
-    return [u_mean, v_mean]
+    return CubeList([u_mean, v_mean])
 
 
 if __name__ == "__main__":
