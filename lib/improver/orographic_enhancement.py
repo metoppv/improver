@@ -482,7 +482,7 @@ class OrographicEnhancement:
 
         Returns:
             iris.cube.Cube:
-                Orographic enhancement cube on 1 km UKPP grid (m s-1)
+                Orographic enhancement cube (m s-1)
         """
         # create cube containing high resolution data in mm/h
         x_coord = self.topography.coord(axis='x')
@@ -503,18 +503,18 @@ class OrographicEnhancement:
             except KeyError:
                 continue
 
-        orog_cube = iris.cube.Cube(
+        orog_enhance_cube = iris.cube.Cube(
             orogenh_data, long_name="orographic_enhancement",
             units="mm h-1", attributes=attributes,
             dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)],
             aux_coords_and_dims=aux_coords)
-        orog_cube.convert_units("m s-1")
+        orog_enhance_cube.convert_units("m s-1")
 
         for key, value in self.topography.attributes.items():
             if 'mosg__grid' in key:
-                orog_cube.attributes[key] = value
+                orog_enhance_cube.attributes[key] = value
 
-        return orog_cube
+        return orog_enhance_cube
 
     def process(self, temperature, humidity, pressure, uwind, vwind,
                 topography):
