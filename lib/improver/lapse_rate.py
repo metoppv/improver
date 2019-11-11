@@ -37,6 +37,7 @@ from iris.exceptions import CoordinateNotFoundError
 from numpy.linalg import lstsq
 from scipy.ndimage import generic_filter
 
+from improver import BasePlugin
 from improver.constants import DALR
 from improver.metadata.check_datatypes import check_cube_not_float64
 from improver.utilities.cube_checker import spatial_coords_match
@@ -159,7 +160,7 @@ class SaveNeighbourhood(object):
         return 0.0
 
 
-class LapseRate(object):
+class LapseRate(BasePlugin):
     """
     Plugin to calculate the lapse rate from orography and temperature
     cubes.

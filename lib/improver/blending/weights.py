@@ -37,6 +37,7 @@ import iris
 import numpy as np
 from scipy.interpolate import interp1d
 
+from improver import BasePlugin
 from improver.utilities.cube_manipulation import (
     check_cube_coordinates, sort_coord_in_cube)
 
@@ -133,7 +134,7 @@ class WeightsUtilities:
         return weights_cube
 
 
-class ChooseWeightsLinear:
+class ChooseWeightsLinear(BasePlugin):
     """Plugin to interpolate weights linearly to the required points, where
     original weights are provided as a configuration dictionary"""
 
@@ -470,7 +471,7 @@ class ChooseWeightsLinear:
         return new_weights_cube
 
 
-class ChooseDefaultWeightsLinear:
+class ChooseDefaultWeightsLinear(BasePlugin):
     """ Calculate Default Weights using Linear Function. """
 
     def __init__(self, y0val, ynval):
@@ -561,7 +562,7 @@ class ChooseDefaultWeightsLinear:
         return desc
 
 
-class ChooseDefaultWeightsNonLinear:
+class ChooseDefaultWeightsNonLinear(BasePlugin):
     """ Calculate Default Weights using NonLinear Function. """
     def __init__(self, cval):
         """
@@ -665,7 +666,7 @@ class ChooseDefaultWeightsNonLinear:
         return desc
 
 
-class ChooseDefaultWeightsTriangular:
+class ChooseDefaultWeightsTriangular(BasePlugin):
     """ Calculate Default Weights using a Triangular Function. """
     def __init__(self, width, units="no_unit"):
         """Set up for calculating default weights using triangular function.

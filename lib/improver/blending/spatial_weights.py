@@ -36,10 +36,11 @@ import iris
 import numpy as np
 from scipy.ndimage.morphology import distance_transform_edt
 
+from improver import BasePlugin
 from improver.utilities.rescale import rescale
 
 
-class SpatiallyVaryingWeightsFromMask(object):
+class SpatiallyVaryingWeightsFromMask(BasePlugin):
     """
     Plugin for adjusting weights spatially based on missing data in the input
     cube. It takes in an initial one dimensional cube of weights which would

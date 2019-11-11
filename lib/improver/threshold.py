@@ -36,11 +36,12 @@ import iris
 import numpy as np
 from cf_units import Unit
 
+from improver import BasePlugin
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.rescale import rescale
 
 
-class BasicThreshold(object):
+class BasicThreshold(BasePlugin):
 
     """Apply a threshold truth criterion to a cube.
 

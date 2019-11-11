@@ -33,13 +33,14 @@
 import iris
 import numpy as np
 
+from improver import BasePlugin
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.threshold import BasicThreshold
 from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
 
 
-class DiagnoseConvectivePrecipitation(object):
+class DiagnoseConvectivePrecipitation(BasePlugin):
     """
     Diagnose convective precipitation by using differences between
     adjacent grid squares to help distinguish convective and stratiform

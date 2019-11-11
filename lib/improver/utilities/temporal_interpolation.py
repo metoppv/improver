@@ -36,6 +36,7 @@ import iris
 import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 
+from improver import BasePlugin
 from improver.utilities.cube_manipulation import merge_cubes
 from improver.utilities.solar import DayNightMask, calc_solar_elevation
 from improver.utilities.spatial import (
@@ -43,7 +44,7 @@ from improver.utilities.spatial import (
 from improver.utilities.temporal import iris_time_to_datetime
 
 
-class TemporalInterpolation(object):
+class TemporalInterpolation(BasePlugin):
 
     """
     Interpolate data to intermediate times between the validity times of two

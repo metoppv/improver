@@ -38,9 +38,9 @@ import numpy as np
 import scipy.ndimage
 from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
-from iris.exceptions import CoordinateNotFoundError
 from scipy.interpolate import griddata
 
+from improver import BasePlugin
 from improver.threshold import BasicThreshold
 from improver.utilities.cube_checker import (
     check_cube_coordinates, spatial_coords_match)
@@ -207,7 +207,7 @@ def convert_number_of_grid_cells_into_distance(cube, grid_points):
     return radius_in_metres
 
 
-class DifferenceBetweenAdjacentGridSquares(object):
+class DifferenceBetweenAdjacentGridSquares(BasePlugin):
 
     """
     Calculate the difference between adjacent grid squares within
@@ -354,7 +354,7 @@ class DifferenceBetweenAdjacentGridSquares(object):
         return diff_along_x_cube, diff_along_y_cube
 
 
-class OccurrenceWithinVicinity(object):
+class OccurrenceWithinVicinity(BasePlugin):
 
     """Calculate whether a phenomenon occurs within the specified distance."""
 
@@ -510,7 +510,7 @@ def transform_grid_to_lat_lon(cube):
     return lats, lons
 
 
-class RegridLandSea():
+class RegridLandSea(BasePlugin):
     """
     Replace data values at points where the nearest-regridding technique
     selects a source grid-point with an opposite land-sea-mask value to the

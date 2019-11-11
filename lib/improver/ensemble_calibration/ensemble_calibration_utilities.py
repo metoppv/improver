@@ -36,6 +36,7 @@ specific for ensemble calibration.
 import iris
 import numpy as np
 
+from improver import BasePlugin
 from improver.utilities.cube_manipulation import merge_cubes
 
 
@@ -149,7 +150,7 @@ def check_predictor_of_mean_flag(predictor_of_mean_flag):
         raise ValueError(msg)
 
 
-class SplitHistoricForecastAndTruth():
+class SplitHistoricForecastAndTruth(BasePlugin):
 
     """Split the historic forecasts and truth datasets based on the
     metadata identifiers provided."""

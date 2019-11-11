@@ -34,13 +34,14 @@ import iris
 import numpy as np
 import numpy.ma as ma
 
+from improver import BasePlugin
 from improver.blending.weights import WeightsUtilities
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.cube_checker import (
     check_cube_coordinates, find_dimension_coordinate_mismatch)
 
 
-class ApplyNeighbourhoodProcessingWithAMask(object):
+class ApplyNeighbourhoodProcessingWithAMask(BasePlugin):
 
     r"""Class for applying neighbourhood processing when passing in a mask
     cube that is iterated over.
@@ -215,7 +216,7 @@ class ApplyNeighbourhoodProcessingWithAMask(object):
         return result
 
 
-class CollapseMaskedNeighbourhoodCoordinate(object):
+class CollapseMaskedNeighbourhoodCoordinate(BasePlugin):
 
     r"""
     Plugin for collapsing the coordinate the mask was applied to after

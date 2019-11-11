@@ -34,11 +34,12 @@ import warnings
 
 import iris
 
+from improver import BasePlugin
 from improver.cube_combiner import CubeCombiner
 from improver.metadata.probabilistic import find_percentile_coordinate
 
 
-class WindGustDiagnostic(object):
+class WindGustDiagnostic(BasePlugin):
 
     """Plugin for calculating wind-gust diagnostic.
 

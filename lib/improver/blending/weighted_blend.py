@@ -39,6 +39,7 @@ from iris.analysis import Aggregator
 from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError
 
+from improver import BasePlugin
 from improver.metadata.probabilistic import find_percentile_coordinate
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering, sort_coord_in_cube, build_coordinate,
@@ -48,7 +49,7 @@ from improver.utilities.temporal import (
     unify_forecast_reference_time, find_latest_cycletime)
 
 
-class MergeCubesForWeightedBlending():
+class MergeCubesForWeightedBlending(BasePlugin):
     """Prepares cubes for cycle and grid blending"""
 
     def __init__(self, blend_coord, weighting_coord=None, model_id_attr=None):
@@ -479,7 +480,7 @@ class PercentileBlendingAggregator:
         return new_combined_perc
 
 
-class WeightedBlendAcrossWholeDimension:
+class WeightedBlendAcrossWholeDimension(BasePlugin):
     """Apply a Weighted blend to a cube, collapsing across the whole
        dimension. Uses one of two methods, either weighted average, or
        the maximum of the weighted probabilities."""

@@ -36,11 +36,12 @@ import iris
 import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 
+from improver import BasePlugin
 from improver.metadata.probabilistic import find_percentile_coordinate
 from improver.utilities.cube_checker import check_cube_coordinates
 
 
-class ProbabilitiesFromPercentiles2D(object):
+class ProbabilitiesFromPercentiles2D(BasePlugin):
     r"""
     Generate a 2-dimensional field of probabilities by interpolating a
     percentiled cube of data to required points.

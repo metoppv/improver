@@ -34,11 +34,12 @@
 import iris
 import numpy as np
 
+from improver import BasePlugin
 from improver.spotdata.spot_extraction import (SpotExtraction,
                                                check_grid_match)
 
 
-class SpotLapseRateAdjust:
+class SpotLapseRateAdjust(BasePlugin):
     """
     Adjusts spot data temperatures by a lapse rate to better represent the
     conditions at their altitude that may not be captured by the model

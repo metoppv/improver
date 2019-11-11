@@ -38,6 +38,7 @@ import numpy as np
 from cf_units import Unit
 from iris.exceptions import CoordinateNotFoundError
 
+from improver import BasePlugin
 from improver.constants import RMDI
 from improver.metadata.check_datatypes import check_cube_not_float64
 
@@ -54,7 +55,7 @@ VONKARMAN = 0.4
 Z0M_SEA = 0.0001
 
 
-class FrictionVelocity(object):
+class FrictionVelocity(BasePlugin):
     """"Class to calculate the friction velocity.
 
     This holds the function to calculate the friction velocity u_star,
@@ -640,7 +641,7 @@ class RoughnessCorrectionUtilities(object):
         return result
 
 
-class RoughnessCorrection(object):
+class RoughnessCorrection(BasePlugin):
     """Plugin to orographically-correct 3d wind speeds."""
 
     zcoordnames = ["height", "model_level_number"]

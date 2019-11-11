@@ -35,6 +35,7 @@ import datetime as dt
 import cf_units as unit
 import numpy as np
 
+from improver import BasePlugin
 from improver.utilities.spatial import (
     lat_lon_determine, transform_grid_to_lat_lon)
 from improver.utilities.temporal import iris_time_to_datetime
@@ -189,7 +190,7 @@ def daynight_terminator(longitudes, day_of_year, utc_hour):
     return lats
 
 
-class DayNightMask(object):
+class DayNightMask(BasePlugin):
     """
     Plugin Class to generate a daynight mask for the provided cube
     """

@@ -34,6 +34,8 @@ import iris
 import numpy as np
 from cf_units import Unit
 
+from improver import BasePlugin
+
 
 def _make_mask_cube(
         mask_data, coords, topographic_bounds, topographic_units,
@@ -95,7 +97,7 @@ def _make_mask_cube(
     return mask_cube
 
 
-class CorrectLandSeaMask(object):
+class CorrectLandSeaMask(BasePlugin):
     """
     Round landsea mask to binary values
 
@@ -132,7 +134,7 @@ class CorrectLandSeaMask(object):
         return standard_landmask
 
 
-class GenerateOrographyBandAncils(object):
+class GenerateOrographyBandAncils(BasePlugin):
     """
     Generate topographic band ancillaries for the standard grids.
 

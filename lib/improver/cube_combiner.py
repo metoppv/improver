@@ -33,11 +33,12 @@
 import iris
 import numpy as np
 
+from improver import BasePlugin
 from improver.metadata.amend import amend_metadata, resolve_metadata_diff
 from improver.utilities.cube_manipulation import expand_bounds
 
 
-class CubeCombiner(object):
+class CubeCombiner(BasePlugin):
 
     """Plugin for combining cubes.
 

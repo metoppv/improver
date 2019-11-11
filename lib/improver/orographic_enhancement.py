@@ -38,6 +38,7 @@ import numpy as np
 from iris.analysis.cartography import rotate_winds
 from scipy.ndimage import uniform_filter1d
 
+from improver import BasePlugin
 from improver.constants import R_WATER_VAPOUR
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.psychrometric_calculations.psychrometric_calculations \
@@ -50,7 +51,7 @@ from improver.utilities.spatial import (
     DifferenceBetweenAdjacentGridSquares)
 
 
-class OrographicEnhancement:
+class OrographicEnhancement(BasePlugin):
     """
     Class to calculate orographic enhancement from horizontal wind components,
     temperature and relative humidity.

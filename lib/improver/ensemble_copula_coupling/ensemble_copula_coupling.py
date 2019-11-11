@@ -39,6 +39,7 @@ import numpy as np
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 from scipy.stats import norm
 
+from improver import BasePlugin
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     convert_cube_data_to_2d)
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
@@ -56,7 +57,7 @@ from improver.utilities.cube_manipulation import (
 from improver.utilities.indexing_operations import choose
 
 
-class RebadgePercentilesAsRealizations(object):
+class RebadgePercentilesAsRealizations(BasePlugin):
     """
     Class to rebadge percentiles as ensemble realizations.
     This will allow the quantisation to percentiles to be completed, without
@@ -120,7 +121,7 @@ class RebadgePercentilesAsRealizations(object):
         return cube
 
 
-class ResamplePercentiles(object):
+class ResamplePercentiles(BasePlugin):
     """
     Class for resampling percentiles from an existing set of percentiles.
     In combination with the Ensemble Reordering plugin, this is a variant of
@@ -325,7 +326,7 @@ class ResamplePercentiles(object):
         return forecast_at_percentiles
 
 
-class GeneratePercentilesFromProbabilities(object):
+class GeneratePercentilesFromProbabilities(BasePlugin):
     """
     Class for generating percentiles from probabilities.
     In combination with the Ensemble Reordering plugin, this is a variant
@@ -621,7 +622,7 @@ class GeneratePercentilesFromProbabilities(object):
         return forecast_at_percentiles
 
 
-class GeneratePercentilesFromMeanAndVariance(object):
+class GeneratePercentilesFromMeanAndVariance(BasePlugin):
     """
     Plugin focussing on generating percentiles from mean and variance.
     In combination with the EnsembleReordering plugin, this is Ensemble
@@ -772,7 +773,7 @@ class GeneratePercentilesFromMeanAndVariance(object):
         return calibrated_forecast_percentiles
 
 
-class GenerateProbabilitiesFromMeanAndVariance(object):
+class GenerateProbabilitiesFromMeanAndVariance(BasePlugin):
     """
     Plugin to generate probabilities relative to given thresholds from the mean
     and variance of a distribution.
@@ -930,7 +931,7 @@ class GenerateProbabilitiesFromMeanAndVariance(object):
         return probability_cube
 
 
-class EnsembleReordering(object):
+class EnsembleReordering(BasePlugin):
     """
     Plugin for applying the reordering step of Ensemble Copula Coupling,
     in order to generate ensemble realizations with multivariate structure

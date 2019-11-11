@@ -33,10 +33,11 @@
 import iris
 import numpy as np
 
+from improver import BasePlugin
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 
 
-class Integration(object):
+class Integration(BasePlugin):
     """Perform integration along a chosen coordinate. This class currently
     supports the integration of positive values only, in order to
     support its usage as part of computing the wet-bulb temperature integral.

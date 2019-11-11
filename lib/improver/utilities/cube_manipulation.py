@@ -39,6 +39,7 @@ import six
 from iris.coords import AuxCoord, DimCoord
 from iris.exceptions import CoordinateNotFoundError
 
+from improver import BasePlugin
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.cube_checker import check_cube_coordinates
 
@@ -106,7 +107,7 @@ def strip_var_names(cubes):
     return cubes
 
 
-class ConcatenateCubes():
+class ConcatenateCubes(BasePlugin):
     """
     Class adding functionality to iris.concatenate_cubes().
 
@@ -330,7 +331,7 @@ def concatenate_cubes(
     return result
 
 
-class MergeCubes():
+class MergeCubes(BasePlugin):
     """
     Class adding functionality to iris.merge_cubes()
 
