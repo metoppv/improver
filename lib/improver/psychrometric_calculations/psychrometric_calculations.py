@@ -308,18 +308,15 @@ class WetBulbTemperature(object):
         T_min = svp_table.T_MIN
         delta_T = svp_table.T_INCREMENT
         self.check_range(temperature, T_min, T_max)
-        temperatures = temperature
-        T_clipped = np.clip(temperatures, T_min, T_max)
+        T_clipped = np.clip(temperature, T_min, T_max)
 
         # Note the indexing below differs by -1 compared with the UM due to
         # Python vs. Fortran indexing.
         table_position = (T_clipped - T_min + delta_T)/delta_T - 1.
         table_index = table_position.astype(int)
         interpolation_factor = table_position - table_index
-        svps = ((1.0 - interpolation_factor) * svp_table.DATA[table_index] +
+        return ((1.0 - interpolation_factor) * svp_table.DATA[table_index] +
                 interpolation_factor * svp_table.DATA[table_index + 1])
-
-        return svps
 
     @staticmethod
     def pressure_correct_svp(svp, temperature, pressure):
@@ -410,24 +407,18 @@ class WetBulbTemperature(object):
         wbt = temperature.copy()
         wbt.rename('wet_bulb_temperature')
 
-        latent_heat = Utilities.latent_heat_of_condensation(temperature)
-
         wbt_data = self._calculate_wbt(
-            latent_heat.data, precision, pressure.data,
-            relative_humidity.data, temperature.data)
+            precision, pressure.data, relative_humidity.data, temperature.data)
 
         wbt.data = wbt_data
         return wbt
 
-    def _calculate_wbt(self, latent_heat, precision, pressure,
+    def _calculate_wbt(self, precision, pressure,
                        relative_humidity, temperature):
         """Calculates the wet bulb temperature. A Newton iterator is
         used to minimise the gradient of enthalpy against temperature.
 
         Args:
-            latent_heat (numpy.ndarray):
-                Array of temperature adjusted latent heat of
-                condensation (J kg-1).
             precision (numpy.ndarray):
                 The precision to which the Newton iterator must converge before
                 returning wet bulb temperatures. In the shape of temperature.
@@ -443,7 +434,9 @@ class WetBulbTemperature(object):
                 Array of wet bulb temperature (K).
 
         """
+        # Use air temperature as a first guess for wet bulb temperature.
         wbt_data = temperature.copy()
+        latent_heat = Utilities.latent_heat_of_condensation(temperature)
         # Calculate mixing ratios.
         saturation_mixing_ratio = self._calculate_mixing_ratio(temperature,
                                                                pressure)
@@ -454,7 +447,6 @@ class WetBulbTemperature(object):
         # Calculate enthalpy.
         g_tw = Utilities.calculate_enthalpy(mixing_ratio, specific_heat,
                                             latent_heat, temperature)
-        # Use air temperature as a first guess for wet bulb temperature.
         delta_wbt = 10. * precision
         delta_wbt_history = 5. * precision
         max_iterations = 20
