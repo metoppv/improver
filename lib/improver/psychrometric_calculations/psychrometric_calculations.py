@@ -95,7 +95,7 @@ class Utilities(object):
             np.ndarray:
                 Temperature adjusted latent heat of condensation (J kg-1).
         """
-        temp = temperature_input.data
+        temp = temperature_input
         temp = temp + consts.ABSOLUTE_ZERO
 
         latent_heat = (-1. * consts.LATENT_HEAT_T_DEPENDENCE * temp +
