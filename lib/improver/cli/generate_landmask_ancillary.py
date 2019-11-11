@@ -83,7 +83,7 @@ def process(landmask):
             Cube to process
 
     Returns:
-        (iris.cube.Cube):
+        iris.cube.Cube:
             A cube landmask of boolean values.
     """
     return CorrectLandSeaMask().process(landmask)

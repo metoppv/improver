@@ -201,7 +201,7 @@ class NowcastLightning(object):
                 An input cube
 
         Returns:
-            new_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Output cube - a copy of input cube with meta-data relating to
                 a Nowcast of lightning probability.
                 The data array will be a copy of the input cube.data
@@ -245,7 +245,7 @@ class NowcastLightning(object):
                 Can be <No cube> or None or anything that evaluates to False.
 
         Returns:
-            new_prob_lightning_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Output cube containing Nowcast lightning probability.
 
         Raises:
@@ -320,7 +320,7 @@ class NowcastLightning(object):
                 Units of threshold coord modified in-place to mm hr-1
 
         Returns:
-            new_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Output cube containing updated nowcast lightning probability.
                 This cube will have the same dimensions and meta-data as
                 prob_lightning_cube.
@@ -398,7 +398,7 @@ class NowcastLightning(object):
                 Units of threshold coord modified in-place to kg m^-2
 
         Returns:
-            new_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Output cube containing updated nowcast lightning probability.
                 This cube will have the same dimensions and meta-data as
                 prob_lightning_cube.
@@ -459,7 +459,7 @@ class NowcastLightning(object):
                       at self.ice_thresholds.
 
         Returns:
-            new_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Output cube containing Nowcast lightning probability.
                 This cube will have the same dimensions as the input
                 Nowcast precipitation probability after the threshold coord

@@ -58,7 +58,7 @@ def rescale(data, data_range=None, scale_range=(0., 1.),
             max.
 
     Returns:
-        result (numpy.ndarray):
+        numpy.ndarray:
             Output array of scaled data. Has same shape as data.
     """
     data_min = np.min(data) if data_range is None else data_range[0]
@@ -108,7 +108,7 @@ def apply_double_scaling(data_cube, scaled_cube,
             Expected to be numpy.minimum (default) or numpy.maximum.
 
     Returns:
-        data (numpy.ndarray):
+        numpy.ndarray:
             Output data from data_cube after rescaling and combining with
             scaled_cube.
             This array will have the same dimensions as scaled_cube.

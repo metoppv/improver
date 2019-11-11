@@ -86,7 +86,7 @@ def process(cube, threshold_ranges, threshold_units=None):
             to the units of the threshold coordinate on the input cube.
 
     Returns:
-        (iris.cube.Cube):
+        iris.cube.Cube:
             Cube containing probability of occurrences between the thresholds
             specified
     """

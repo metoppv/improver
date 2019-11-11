@@ -166,7 +166,7 @@ class OrographicEnhancement:
                 Required unit for this variable
 
         Returns:
-            out_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing regridded variable data
         """
         for axis in ['x', 'y']:
@@ -261,7 +261,7 @@ class OrographicEnhancement:
         The mask is therefore "True" if any of these conditions are false.
 
         Returns:
-            mask (numpy.ndarray):
+            numpy.ndarray:
                 Boolean mask - where True, set orographic enhancement to a
                 default zero value
         """
@@ -287,7 +287,7 @@ class OrographicEnhancement:
                        (R_WATER_VAPOUR * temperature)) * 60 * 60
 
         Returns:
-            point_orogenh (numpy.ndarray):
+            numpy.ndarray:
                 Orographic enhancement values in mm/h
         """
         mask = np.logical_not(self._generate_mask())
@@ -314,7 +314,7 @@ class OrographicEnhancement:
                 cos(wind_direction) with respect to grid north
 
         Returns:
-            distance (numpy.ndarray):
+            numpy.ndarray:
                 3D array of source-to-destination distances in grid points,
                 with np.nan filled in for out of range values
         """
@@ -433,7 +433,7 @@ class OrographicEnhancement:
                 Site orographic enhancement in mm h-1
 
         Returns:
-            orogenh (numpy.ndarray):
+            numpy.ndarray:
                 Total orographic enhancement in mm h-1
         """
         # get wind speed and sin / cos direction wrt grid North

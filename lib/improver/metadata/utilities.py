@@ -35,6 +35,53 @@ import hashlib
 # the contents. There is no loading pickles which would create security risks.
 import pickle  # nosec
 
+import iris
+import dask.array as da
+import numpy as np
+
+
+def create_new_diagnostic_cube(
+        name, units, coordinate_template, attributes=None, data=None,
+        dtype=np.float32):
+    """
+    Creates a template for a new diagnostic cube with suitable metadata.
+
+    Args:
+        name (str):
+            Standard or long name for output cube
+        units (str or cf_units.Unit):
+            Units for output cube
+        coordinate_template (iris.cube.Cube):
+            Cube from which to copy dimensional and auxiliary coordinates
+        attributes (dict or None):
+            Dictionary of attribute names and values
+        data (numpy.ndarray or None):
+            Data array.  If not set, cube is filled with zeros using a lazy
+            data object, as this will be overwritten later by the caller
+            routine.
+        dtype (numpy.dtype):
+            Datatype for dummy cube data if "data" argument is None.
+
+    Returns:
+        iris.cube.Cube:
+            Cube with correct metadata to accommodate new diagnostic field
+    """
+    if data is None:
+        data = da.zeros_like(coordinate_template.core_data(), dtype=dtype)
+
+    aux_coords_and_dims, dim_coords_and_dims = [
+        [(coord, coordinate_template.coord_dims(coord))
+         for coord in getattr(coordinate_template, coord_type)]
+        for coord_type in ('aux_coords', 'dim_coords')]
+
+    cube = iris.cube.Cube(
+        data, units=units, attributes=attributes,
+        dim_coords_and_dims=dim_coords_and_dims,
+        aux_coords_and_dims=aux_coords_and_dims)
+    cube.rename(name)
+
+    return cube
+
 
 def generate_hash(data_in):
     """
@@ -46,7 +93,7 @@ def generate_hash(data_in):
             The data from which a hash is to be generated. This can be of any
             type that can be pickled.
     Returns:
-        hash (str):
+        str:
             A hexidecimal hash representing the data.
     """
     hashable_type = pickle.dumps(data_in)
@@ -67,7 +114,7 @@ def create_coordinate_hash(cube):
             The cube from which x and y coordinates will be used to
             generate a hash.
     Returns:
-        coordinate_hash (str):
+        str:
             A hash created using the x and y coordinates of the input cube.
     """
     hashable_data = [cube.coord(axis='x'), cube.coord(axis='y')]

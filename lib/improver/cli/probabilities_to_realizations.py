@@ -184,7 +184,7 @@ def process(cube, raw_forecast=None, no_of_realizations=None, reordering=False,
             Default is False.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             Processed result Cube.
 
     Raises:

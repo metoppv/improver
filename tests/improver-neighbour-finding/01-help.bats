@@ -43,7 +43,6 @@ usage: improver neighbour-finding [-h] [--profile]
                                   [--site_coordinate_options SITE_COORDINATE_OPTIONS]
                                   [--site_x_coordinate SITE_X_COORDINATE]
                                   [--site_y_coordinate SITE_Y_COORDINATE]
-                                  [--metadata_json METADATA_JSON]
                                   SITE_LIST_FILEPATH OROGRAPHY_FILEPATH
                                   LANDMASK_FILEPATH OUTPUT_FILEPATH
 
@@ -126,12 +125,6 @@ Site list options:
                         The y coordinate key within the JSON file. The plugin
                         default is 'latitude', but can be changed using this
                         option if required.
-
-Metadata:
-  --metadata_json METADATA_JSON
-                        If provided, this JSON file can be used to modify the
-                        metadata of the returned netCDF file. Defaults to
-                        None.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

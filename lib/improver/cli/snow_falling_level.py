@@ -137,7 +137,7 @@ def process(temperature, relative_humidity, pressure, orog, land_sea,
             Default is 90.0.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             Processed Cube of falling snow level above sea level.
     """
     result = FallingSnowLevel(

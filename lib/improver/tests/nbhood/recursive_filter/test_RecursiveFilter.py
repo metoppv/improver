@@ -41,6 +41,7 @@ from improver.nbhood.recursive_filter import RecursiveFilter
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.pad_spatial import pad_cube_with_halo
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test__repr__(IrisTest):
@@ -94,36 +95,32 @@ class Test__init__(Test_RecursiveFilter):
     """Test plugin initialisation."""
 
     def test_alpha_x_gt_unity(self):
-        """Test when an alpha_x value > unity is given (invalid)."""
-        alpha_x = 1.1
-        msg = "Invalid alpha_x: must be > 0 and < 1: 1.1"
+        """Test when an alpha_x value > 0.5 is given (invalid)."""
+        alpha_x = 0.6
+        msg = r"alpha must be less than 0.5.*?(alpha_x).*?(: 0\.6)"
         with self.assertRaisesRegex(ValueError, msg):
-            RecursiveFilter(alpha_x=alpha_x, alpha_y=None,
-                            iterations=None, edge_width=1)
+            RecursiveFilter(alpha_x=alpha_x)
 
     def test_alpha_x_lt_zero(self):
         """Test when an alpha_x value <= zero is given (invalid)."""
         alpha_x = -0.5
-        msg = "Invalid alpha_x: must be > 0 and < 1: -0.5"
+        msg = "Invalid alpha_x: must be > 0 and <= 0.5: -0.5"
         with self.assertRaisesRegex(ValueError, msg):
-            RecursiveFilter(alpha_x=alpha_x, alpha_y=None,
-                            iterations=None, edge_width=1)
+            RecursiveFilter(alpha_x=alpha_x)
 
     def test_alpha_y_gt_unity(self):
-        """Test when an alpha_y value > unity is given (invalid)."""
-        alpha_y = 1.1
-        msg = "Invalid alpha_y: must be > 0 and < 1: 1.1"
+        """Test when an alpha_y value > 0.5 is given (invalid)."""
+        alpha_y = 0.6
+        msg = r"alpha must be less than 0.5.*?(alpha_y).*?(: 0\.6)"
         with self.assertRaisesRegex(ValueError, msg):
-            RecursiveFilter(alpha_x=None, alpha_y=alpha_y,
-                            iterations=None, edge_width=1)
+            RecursiveFilter(alpha_y=alpha_y)
 
     def test_alpha_y_lt_zero(self):
         """Test when an alpha_y value <= zero is given (invalid)."""
         alpha_y = -0.5
-        msg = "Invalid alpha_y: must be > 0 and < 1: -0.5"
+        msg = "Invalid alpha_y: must be > 0 and <= 0.5: -0.5"
         with self.assertRaisesRegex(ValueError, msg):
-            RecursiveFilter(alpha_x=None, alpha_y=alpha_y,
-                            iterations=None, edge_width=1)
+            RecursiveFilter(alpha_y=alpha_y)
 
     def test_iterations(self):
         """Test when iterations value less than unity is given (invalid)."""
@@ -132,6 +129,19 @@ class Test__init__(Test_RecursiveFilter):
         with self.assertRaisesRegex(ValueError, msg):
             RecursiveFilter(alpha_x=None, alpha_y=None,
                             iterations=iterations, edge_width=1)
+
+    @ManageWarnings(record=True)
+    def test_iterations_warn(self, warning_list=None):
+        """Test when the iteration value is more than 3 it warns."""
+        iterations = 5
+        warning_msg = ("More than two iterations degrades the conservation"
+                       "of probability assumption.")
+
+        RecursiveFilter(iterations=iterations)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
 
 
 class Test__set_alphas(Test_RecursiveFilter):

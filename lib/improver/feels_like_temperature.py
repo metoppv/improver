@@ -52,7 +52,7 @@ def calculate_wind_chill(temperature, wind_speed):
         Cube of 10m wind speeds
 
     Returns:
-      wind_chill (iris.cube.Cube):
+      iris.cube.Cube:
         Cube of wind chill temperatures. The units of wind chill will be the
         same as the units of the temperature cube when it is input into the
         function.
@@ -146,7 +146,7 @@ def calculate_apparent_temperature(temperature, wind_speed,
         Cube of air pressure
 
     Returns:
-      apparent_temperature (iris.cube.Cube):
+      iris.cube.Cube:
         Cube of apparent temperatures. The units of apparent temperature
         will be the same as the units of the temperature cube when it is input
         into the function.
@@ -228,7 +228,7 @@ def calculate_feels_like_temperature(temperature, wind_speed,
         Cube of air pressure
 
     Returns:
-      feels_like_temperature (iris.cube.Cube):
+      iris.cube.Cube:
         Cube of feels like temperatures. The units of feels like temperature
         will be the same as the units of the temperature cube when it is input
         into the function.

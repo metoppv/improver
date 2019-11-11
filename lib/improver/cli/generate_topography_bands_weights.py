@@ -149,7 +149,7 @@ def process(landmask, orography, thresholds_dict=None):
             [950., 6000.]], 'units': 'm'}
 
     Returns:
-        (iris.cube.Cube):
+        iris.cube.Cube:
             Cube containing the weights depending upon where the orography
             point is within the topographical zones.
     """

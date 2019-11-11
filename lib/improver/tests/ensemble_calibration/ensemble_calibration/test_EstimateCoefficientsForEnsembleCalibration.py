@@ -92,8 +92,7 @@ def create_coefficients_cube(template_cube, coeff_names, coeff_values):
             cube data.
 
     Returns:
-        (tuple): tuple containing
-
+        (tuple): tuple containing:
             **result** (iris.cube.Cube) - The resulting EMOS
                 coefficients cube.
             **x_coord** (iris.coords.DimCoord): The x coordinate
@@ -746,6 +745,25 @@ class Test__filter_non_matching_cubes(SetupCubes):
 
     def test_all_matching(self):
         """Test for when the historic forecast and truth cubes all match."""
+        hf_result, truth_result = Plugin._filter_non_matching_cubes(
+            self.historic_temperature_forecast_cube,
+            self.temperature_truth_cube)
+        self.assertEqual(hf_result, self.historic_temperature_forecast_cube)
+        self.assertEqual(truth_result, self.temperature_truth_cube)
+
+    def test_bounded_variables(self):
+        """Test for when the historic forecast and truth cubes all match
+        inclusive of both the points and bounds on the time coordinate."""
+        # Define bounds so that the lower bound is one hour preceding the point
+        # whilst the upper bound is equal to the point.
+        points = self.historic_temperature_forecast_cube.coord("time").points
+        bounds = []
+        for point in points:
+            bounds.append([point - 1*60*60, point])
+
+        self.historic_temperature_forecast_cube.coord("time").bounds = bounds
+        self.temperature_truth_cube.coord("time").bounds = bounds
+
         hf_result, truth_result = Plugin._filter_non_matching_cubes(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)

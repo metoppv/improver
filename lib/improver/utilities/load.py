@@ -61,7 +61,7 @@ def load_cube(filepath, constraints=None, no_lazy_load=False,
             Default is False.
 
     Returns:
-        cube (iris.cube.Cube):
+        iris.cube.Cube:
             Cube that has been loaded from the input filepath given the
             constraints provided.
     """
@@ -127,7 +127,7 @@ def load_cubelist(filepath, constraints=None, no_lazy_load=False):
             memory. If False (default) then lazy load.
 
     Returns:
-        cubelist (iris.cube.CubeList):
+        iris.cube.CubeList:
             CubeList that has been created from the input filepath given the
             constraints provided.
     """

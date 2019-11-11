@@ -40,7 +40,6 @@ import cartopy.crs as ccrs
 import iris
 
 from improver.argparser import ArgParser
-from improver.metadata.amend import amend_metadata
 from improver.spotdata.neighbour_finding import NeighbourSelection
 from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.cube_manipulation import (merge_cubes,
@@ -148,22 +147,15 @@ def main(argv=None):
         help="The y coordinate key within the JSON file. The plugin default is"
         " 'latitude', but can be changed using this option if required.")
 
-    meta_group = parser.add_argument_group("Metadata")
-    meta_group.add_argument(
-        "--metadata_json", metavar="METADATA_JSON", default=None,
-        help="If provided, this JSON file can be used to modify the metadata "
-        "of the returned netCDF file. Defaults to None.")
-
     args = parser.parse_args(args=argv)
 
     # Load Cubes and JSON.
     site_list = load_json_or_none(args.site_list_filepath)
-    metadata_dict = load_json_or_none(args.metadata_json)
     orography = load_cube(args.orography_filepath)
     landmask = load_cube(args.landmask_filepath)
 
     # Process Cube
-    result = process(orography, landmask, site_list, metadata_dict,
+    result = process(orography, landmask, site_list,
                      args.all_methods, args.land_constraint, args.minimum_dz,
                      args.search_radius, args.node_limit,
                      args.site_coordinate_system, args.site_coordinate_options,
@@ -173,7 +165,7 @@ def main(argv=None):
     save_netcdf(result, args.output_filepath)
 
 
-def process(orography, landmask, site_list, metadata_dict=None,
+def process(orography, landmask, site_list,
             all_methods=False, land_constraint=None, minimum_dz=None,
             search_radius=None, node_limit=None, site_coordinate_system=None,
             site_coordinate_options=None, site_x_coordinate=None,
@@ -200,10 +192,6 @@ def process(orography, landmask, site_list, metadata_dict=None,
         site_list (dict):
             Dictionary that contains the spot sites for which neighbouring grid
             points are to be found.
-        metadata_dict (dict):
-            Dictionary that can be used to modify the metadata of the
-            returned cube.
-            Default is None.
         all_methods (bool):
             If True, this will return a cube containing the nearest grid point
             neighbours to spot sites as defined by each possible combination
@@ -254,7 +242,7 @@ def process(orography, landmask, site_list, metadata_dict=None,
             Default is None.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             The processed Cube.
 
     Raises:
@@ -322,9 +310,6 @@ def process(orography, landmask, site_list, metadata_dict=None,
         result,
         ['spot_index', 'neighbour_selection_method', 'grid_attributes'])
 
-    # Modify final metadata as described by provided JSON file.
-    if metadata_dict:
-        result = amend_metadata(result, **metadata_dict)
     return result
 
 

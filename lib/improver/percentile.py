@@ -108,7 +108,7 @@ class PercentileConverter(object):
                 along that coordinate into a PDF and extract percentiles.
 
         Returns:
-            cube (iris.cube.Cube):
+            iris.cube.Cube:
                 A single merged cube of all the cubes produced by each
                 percentile collapse.
 
