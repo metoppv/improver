@@ -402,26 +402,19 @@ class WetBulbTemperature(object):
         relative_humidity.convert_units(1)
         pressure.convert_units('Pa')
         temperature.convert_units('K')
-
-        precision = np.full(temperature.data.shape, self.precision)
-        wbt = temperature.copy()
-        wbt.rename('wet_bulb_temperature')
-
         wbt_data = self._calculate_wbt(
-            precision, pressure.data, relative_humidity.data, temperature.data)
+            pressure.data, relative_humidity.data, temperature.data)
 
-        wbt.data = wbt_data
+        wbt = temperature.copy(data=wbt_data)
+        wbt.rename('wet_bulb_temperature')
         return wbt
 
-    def _calculate_wbt(self, precision, pressure,
+    def _calculate_wbt(self, pressure,
                        relative_humidity, temperature):
         """Calculates the wet bulb temperature. A Newton iterator is
         used to minimise the gradient of enthalpy against temperature.
 
         Args:
-            precision (numpy.ndarray):
-                The precision to which the Newton iterator must converge before
-                returning wet bulb temperatures. In the shape of temperature.
             pressure (numpy.ndarray):
                 Array of air Pressure (Pa).
             relative_humidity (numpy.ndarray):
@@ -447,6 +440,9 @@ class WetBulbTemperature(object):
         # Calculate enthalpy.
         g_tw = Utilities.calculate_enthalpy(mixing_ratio, specific_heat,
                                             latent_heat, temperature)
+
+        precision = np.full(temperature.shape, self.precision)
+
         delta_wbt = 10. * precision
         delta_wbt_history = 5. * precision
         max_iterations = 20
