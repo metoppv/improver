@@ -75,8 +75,8 @@ def amend_attributes(cube, attributes_dict):
             Input cube
         attributes_dict (dict):
             Dictionary containing items of the form {attribute_name: value}.
-            The "value" item is either the string "delete", or the new value
-            of the attribute required.
+            The "value" item is either the string "delete" (to be deprecated)
+            or "remove", or the new value of the attribute required.
     """
     for attribute_name, value in attributes_dict.items():
         if value == "remove" or value == "delete":
