@@ -382,9 +382,7 @@ class WetBulbTemperature(object):
 
     def calculate_wet_bulb_temperature(self, temperature, relative_humidity,
                                        pressure):
-        """
-        Perform the calculation of wet bulb temperatures. A Newton iterator is
-        used to minimise the gradient of enthalpy against temperature.
+        """Calculates the wet bulb temperature.
 
         Args:
             temperature (iris.cube.Cube):
@@ -411,8 +409,10 @@ class WetBulbTemperature(object):
 
     def _calculate_wbt(self, pressure,
                        relative_humidity, temperature):
-        """Calculates the wet bulb temperature. A Newton iterator is
-        used to minimise the gradient of enthalpy against temperature.
+        """Calculates the wet bulb temperature. without using iris.cubes'
+
+        A Newton iterator is used to minimise the gradient of enthalpy
+        against temperature.
 
         Args:
             pressure (numpy.ndarray):
