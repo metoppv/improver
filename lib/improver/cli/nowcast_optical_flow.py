@@ -88,17 +88,6 @@ def main(argv=None):
                         help="Number of iterations to perform in enforcing "
                         "smoothness constraint for optical flow velocities.")
 
-    # AdvectField options
-    parser.add_argument("--extrapolate", action="store_true", default=False,
-                        help="Optional flag to advect current data forward to "
-                        "specified lead times.")
-    parser.add_argument("--max_lead_time", type=int, default=360,
-                        help="Maximum lead time required (mins).  Ignored "
-                        "unless '--extrapolate' is set.")
-    parser.add_argument("--lead_time_interval", type=int, default=15,
-                        help="Interval between required lead times (mins). "
-                        "Ignored unless '--extrapolate' is set.")
-
     args = parser.parse_args(args=argv)
 
     # Load Cubes and JSON
@@ -108,37 +97,19 @@ def main(argv=None):
                         allow_none=True)
 
     # Process
-    forecast_cubes, u_and_v_mean = process(
+    u_and_v_mean = process(
         original_cube_list, oe_cube, attributes_dict, args.ofc_box_size,
-        args.smart_smoothing_iterations, args.extrapolate,
-        args.max_lead_time, args.lead_time_interval)
+        args.smart_smoothing_iterations)
 
     # Save Cubes
     for wind_cube in u_and_v_mean:
         file_name = generate_file_name(wind_cube)
         save_netcdf(wind_cube, os.path.join(args.output_dir, file_name))
 
-    # advect latest input data to the required lead times
-    if args.extrapolate:
-        if args.nowcast_filepaths:
-            if len(args.nowcast_filepaths) != len(forecast_cubes):
-                raise ValueError("Require exactly one output file name for "
-                                 "each forecast lead time")
-
-        for i, cube in enumerate(forecast_cubes):
-            # save to a suitably-named output file
-            if args.nowcast_filepaths:
-                file_name = args.nowcast_filepaths[i]
-            else:
-                file_name = os.path.join(
-                    args.output_dir, generate_file_name(cube))
-            save_netcdf(cube, file_name)
-
 
 def process(original_cube_list, orographic_enhancement_cube=None,
             attributes_dict=None, ofc_box_size=30,
-            smart_smoothing_iterations=100, extrapolate=False,
-            max_lead_time=360, lead_time_interval=15):
+            smart_smoothing_iterations=100):
     """Calculates optical flow and can (optionally) extrapolate data.
 
     Calculates optical flow components from input fields and (optionally)
@@ -164,17 +135,6 @@ def process(original_cube_list, orographic_enhancement_cube=None,
             Number of iterations to perform in enforcing smoothness constraint
             for optical flow velocities.
             Default is 100.
-        extrapolate (bool):
-            If True, advects current data forward to specified lead times.
-            Default is False.
-        max_lead_time (int):
-            Maximum lead time required (mins). Ignored unless extrapolate is
-            True.
-            Default is 360.
-        lead_time_interval (int):
-            Interval between required lead times (mins). Ignored unless
-            extrapolate is True.
-            Default is 15.
 
     Returns:
         (tuple): tuple containing:
@@ -209,16 +169,7 @@ def process(original_cube_list, orographic_enhancement_cube=None,
     u_mean, v_mean = generate_optical_flow_components(
         cube_list, ofc_box_size, smart_smoothing_iterations, attributes_dict)
 
-    forecast_cubes = None
-    if extrapolate:
-        forecast_plugin = CreateExtrapolationForecast(
-            original_cube_list[-1], u_mean, v_mean,
-            orographic_enhancement_cube=orographic_enhancement_cube,
-            attributes_dict=attributes_dict)
-        forecast_cubes = forecast_plugin.process(
-            lead_time_interval, max_lead_time)
-
-    return forecast_cubes, [u_mean, v_mean]
+    return [u_mean, v_mean]
 
 
 if __name__ == "__main__":

@@ -41,9 +41,6 @@ usage: improver nowcast-optical-flow [-h] [--profile]
                                      [--json_file JSON_FILE]
                                      [--ofc_box_size OFC_BOX_SIZE]
                                      [--smart_smoothing_iterations SMART_SMOOTHING_ITERATIONS]
-                                     [--extrapolate]
-                                     [--max_lead_time MAX_LEAD_TIME]
-                                     [--lead_time_interval LEAD_TIME_INTERVAL]
                                      INPUT_FILEPATHS INPUT_FILEPATHS
                                      INPUT_FILEPATHS
 
@@ -83,14 +80,6 @@ optional arguments:
   --smart_smoothing_iterations SMART_SMOOTHING_ITERATIONS
                         Number of iterations to perform in enforcing
                         smoothness constraint for optical flow velocities.
-  --extrapolate         Optional flag to advect current data forward to
-                        specified lead times.
-  --max_lead_time MAX_LEAD_TIME
-                        Maximum lead time required (mins). Ignored unless '--
-                        extrapolate' is set.
-  --lead_time_interval LEAD_TIME_INTERVAL
-                        Interval between required lead times (mins). Ignored
-                        unless '--extrapolate' is set.
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

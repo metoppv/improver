@@ -41,9 +41,6 @@ usage: improver nowcast-optical-flow [-h] [--profile]
                                      [--json_file JSON_FILE]
                                      [--ofc_box_size OFC_BOX_SIZE]
                                      [--smart_smoothing_iterations SMART_SMOOTHING_ITERATIONS]
-                                     [--extrapolate]
-                                     [--max_lead_time MAX_LEAD_TIME]
-                                     [--lead_time_interval LEAD_TIME_INTERVAL]
                                      INPUT_FILEPATHS INPUT_FILEPATHS
                                      INPUT_FILEPATHS
 __TEXT__
