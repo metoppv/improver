@@ -163,9 +163,11 @@ def main(argv=None):
                              'to solve for.')
     parser.add_argument('--tolerance', metavar='TOLERANCE',
                         type=np.float32, default=1,
-                        help='The tolerance required for termination of the '
-                             'minimisation. If repeated solutions are equal '
-                             'within the specified tolerance then the '
+                        help='The tolerance for the Continuous Ranked '
+                             'Probability Score (CRPS) calculated by the '
+                             'minimisation. Once multiple iterations '
+                             'result in a CRPS equal to the same value '
+                             'within the specified tolerance, the '
                              'minimisation will terminate.')
     parser.add_argument('--landsea_mask', metavar="LANDSEA_MASK", default=None,
                         help="The netCDF file containing a land-sea mask on "
@@ -260,9 +262,10 @@ def process(historic_forecast, truth, combined, historic_forecast_dict,
             ("realizations") are supported as the predictors.
             Default is 'mean'.
         tolerance (float):
-            The tolerance required for termination of the minimisation. If
-            repeated solutions are equal within the specified tolerance then
-            the minimisation will terminate.
+            The tolerance for the Continuous Ranked Probability Score (CRPS)
+            calculated by the minimisation. Once multiple iterations result in
+            a CRPS equal to the same value within the specified tolerance, the
+            minimisation will terminate.
         max_iterations (int):
             The maximum number of iterations allowed until the minimisation has
             converged to a stable solution. If the maximum number of iterations

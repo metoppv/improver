@@ -83,9 +83,10 @@ class ContinuousRankedProbabilityScoreMinimisers():
 
         Args:
             tolerance (float):
-                The tolerance required for termination of the minimisation. If
-                repeated solutions are equal within the specified tolerance
-                then the minimisation will terminate.
+                The tolerance for the Continuous Ranked Probability
+                Score (CRPS) calculated by the minimisation. Once multiple
+                iterations result in a CRPS equal to the same value within the
+                specified tolerance, the minimisation will terminate.
             max_iterations (int):
                 The maximum number of iterations allowed until the
                 minimisation has converged to a stable solution. If the
@@ -410,9 +411,10 @@ class EstimateCoefficientsForEnsembleCalibration():
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
             tolerance (float):
-                The tolerance required for termination of the minimisation. If
-                repeated solutions are equal within the specified tolerance
-                then the minimisation will terminate.
+                The tolerance for the Continuous Ranked Probability
+                Score (CRPS) calculated by the minimisation. Once multiple
+                iterations result in a CRPS equal to the same value within the
+                specified tolerance, the minimisation will terminate.
             max_iterations (int):
                 The maximum number of iterations allowed until the
                 minimisation has converged to a stable solution. If the

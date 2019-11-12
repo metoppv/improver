@@ -131,10 +131,11 @@ optional arguments:
                         of iterations may require increasing, as there will be
                         more coefficients to solve for.
   --tolerance TOLERANCE
-                        The tolerance required for termination of the
-                        minimisation. If repeated solutions are equal within
-                        the specified tolerance then the minimisation will
-                        terminate.
+                        The tolerance for the Continuous Ranked Probability
+                        Score (CRPS) calculated by the minimisation. Once
+                        multiple iterations result in a CRPS equal to the same
+                        value within the specified tolerance, the minimisation
+                        will terminate.
   --landsea_mask LANDSEA_MASK
                         The netCDF file containing a land-sea mask on the same
                         domain as the historic forecast and truth data. Land
