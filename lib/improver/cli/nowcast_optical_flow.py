@@ -60,10 +60,9 @@ def main(argv=None):
                         "T-2 from which to calculate optical flow velocities. "
                         "The files require a 'time' coordinate on which they "
                         "are sorted, so the order of inputs does not matter.")
-    parser.add_argument("--output_dir", metavar="OUTPUT_DIR", type=str,
-                        default='', help="Directory to write all output files,"
-                        " or only advection velocity components if "
-                        "NOWCAST_FILEPATHS is specified.")
+    parser.add_argument("output_filepath", metavar="OUTPUT_FILEPATH",
+                        help="The output path for the resulting NetCDF")
+
     parser.add_argument("--nowcast_filepaths", nargs="+", type=str,
                         default=None, help="Optional list of full paths to "
                         "output nowcast files. Overrides OUTPUT_DIR. Ignored "
@@ -92,18 +91,15 @@ def main(argv=None):
     # Load Cubes and JSON
     attributes_dict = load_json_or_none(args.json_file)
     original_cube_list = load_cubelist(args.input_filepaths)
-    oe_cube = load_cube(args.orographic_enhancement_filepaths,
-                        allow_none=True)
+    oe_cube = load_cube(args.orographic_enhancement_filepaths, allow_none=True)
 
     # Process
-    u_and_v_mean = process(
+    result = process(
         original_cube_list, oe_cube, attributes_dict, args.ofc_box_size,
         args.smart_smoothing_iterations)
 
     # Save Cubes
-    for wind_cube in u_and_v_mean:
-        file_name = generate_file_name(wind_cube)
-        save_netcdf(u_and_v_mean, os.path.join(args.output_dir, file_name))
+    save_netcdf(result, args.output_filepath)
 
 
 def process(original_cube_list, orographic_enhancement_cube=None,
