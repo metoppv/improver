@@ -300,7 +300,6 @@ class Test__get_calibrated_forecast_predictors_mean(
         predicted_mean, forecast_predictors = (
             self.plugin._get_calibrated_forecast_predictors_mean(
                 self.optimised_coeffs))
-
         self.assertCalibratedVariablesAlmostEqual(
             predicted_mean, self.expected_calibrated_predictor_mean)
         self.assertCalibratedVariablesAlmostEqual(

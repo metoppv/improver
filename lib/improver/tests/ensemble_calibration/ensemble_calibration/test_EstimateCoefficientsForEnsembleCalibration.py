@@ -65,7 +65,7 @@ IGNORED_MESSAGES = [
     "can't resolve package from",  # Originating from statsmodels
     "Minimisation did not result in convergence",  # From calibration code
     "The final iteration resulted in",  # From calibration code
-    "Invalid value encountered in",  # From calculculating percentage change in
+    "Invalid value encountered in",  # From calculating percentage change in
                                      # calibration code
 ]
 WARNING_TYPES = [
