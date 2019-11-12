@@ -538,8 +538,63 @@ class Test_extract_nearest_time_point(IrisTest):
 
 class Test_rebadge_forecasts_as_latest_cycle(IrisTest):
     """Test the rebadge_forecasts_as_latest_cycle function"""
-    # TODO write unit tests
-    pass
+
+    def setUp(self):
+        """Set up some cubes with different cycle times"""
+        self.cycletime = '20190711T1200Z'
+        validity_time = datetime.datetime(2019, 7, 11, 14)
+        self.cube_early = set_up_variable_cube(
+            np.full((4, 4), 273.15, dtype=np.float32),
+            time=validity_time, frt=datetime.datetime(2019, 7, 11, 9))
+        self.cube_late = set_up_variable_cube(
+            np.full((4, 4), 273.15, dtype=np.float32),
+            time=validity_time, frt=datetime.datetime(2019, 7, 11, 10))
+
+    def test_cubelist(self):
+        """Test a list of cubes is returned with the latest frt"""
+        expected = self.cube_late.copy()
+        result = rebadge_forecasts_as_latest_cycle(
+            [self.cube_early, self.cube_late])
+        self.assertEqual(len(result), 2)
+        for cube in result:
+            for coord in ["forecast_reference_time", "forecast_period"]:
+                self.assertEqual(cube.coord(coord), expected.coord(coord))
+
+    def test_cycletime(self):
+        """Test a list of cubes using the cycletime argument"""
+        expected_frt_point = (
+            self.cube_late.coord("forecast_reference_time").points[0] + 2*3600)
+        expected_fp_point = (
+            self.cube_late.coord("forecast_period").points[0] - 2*3600)
+        result = rebadge_forecasts_as_latest_cycle(
+            [self.cube_early, self.cube_late], cycletime=self.cycletime)
+        for cube in result:
+            self.assertEqual(cube.coord("forecast_reference_time").points[0],
+                             expected_frt_point)
+            self.assertEqual(cube.coord("forecast_period").points[0],
+                             expected_fp_point)
+
+    def test_single_cube(self):
+        """Test a single cube is returned unchanged if the cycletime argument
+        is not set"""
+        expected = self.cube_early.copy()
+        result, = rebadge_forecasts_as_latest_cycle([self.cube_early])
+        for coord in ["forecast_reference_time", "forecast_period"]:
+            self.assertEqual(result.coord(coord), expected.coord(coord))
+
+    def test_single_cube_with_cycletime(self):
+        """Test a single cube has its forecast reference time and period
+        updated if cycletime is specified"""
+        expected_frt_point = (
+            self.cube_late.coord("forecast_reference_time").points[0] + 2*3600)
+        expected_fp_point = (
+            self.cube_late.coord("forecast_period").points[0] - 2*3600)
+        result, = rebadge_forecasts_as_latest_cycle(
+            [self.cube_late], cycletime=self.cycletime)
+        self.assertEqual(result.coord("forecast_reference_time").points[0],
+                         expected_frt_point)
+        self.assertEqual(result.coord("forecast_period").points[0],
+                         expected_fp_point)
 
 
 class Test_unify_forecast_reference_time(IrisTest):
