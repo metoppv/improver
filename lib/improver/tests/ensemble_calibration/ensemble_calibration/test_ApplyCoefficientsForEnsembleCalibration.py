@@ -110,29 +110,29 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
 
         # Some expected data that are used in various tests.
         self.expected_calibrated_predictor_mean = (
-            np.array([[273.7371, 274.6500, 275.4107],
-                      [276.8409, 277.6321, 278.3928],
-                      [279.4884, 280.1578, 280.9794]]))
+            np.array([[273.8033, 274.7080, 275.4619],
+                      [276.8792, 277.6633, 278.4172],
+                      [279.5029, 280.1663, 280.9805]]))
         self.expected_calibrated_variance_mean = (
-            np.array([[0.2134, 0.2158, 0.0127],
-                      [0.0247, 0.0215, 0.0127],
-                      [0.0581, 0.0032, 0.0008]]))
+            np.array([[0.8933, 0.9033, 0.0533],
+                      [0.1033, 0.09, 0.0533],
+                      [0.2433, 0.0133, 0.0033]]))
         self.expected_calibrated_predictor_statsmodels_realizations = (
-            np.array([[274.2120, 275.1703, 275.3308],
-                      [277.0504, 277.4221, 278.3881],
-                      [280.0826, 280.3248, 281.2376]]))
+            np.array([[274.3172, 275.2758, 275.4361],
+                      [277.1564, 277.528, 278.4944],
+                      [280.1898, 280.4319, 281.3451]]))
         self.expected_calibrated_variance_statsmodels_realizations = (
-            np.array([[0.8975, 0.9075, 0.0536],
+            np.array([[0.8976, 0.9077, 0.0536],
                       [0.1038, 0.0904, 0.0536],
-                      [0.2444, 0.0134, 0.0033]]))
+                      [0.2445, 0.0134, 0.0033]]))
         self.expected_calibrated_predictor_no_statsmodels_realizations = (
-            np.array([[274.1428, 275.0543, 275.2956],
-                      [277.0344, 277.4110, 278.3598],
-                      [280.0760, 280.3517, 281.2437]]))
+            np.array([[273.3461, 274.3438, 275.1823],
+                      [276.7422, 277.6121, 278.4414],
+                      [279.6318, 280.3687, 281.2658]]))
         self.expected_calibrated_variance_no_statsmodels_realizations = (
-            np.array([[0.99803287, 1.0091798, 0.06006174],
-                      [0.11588794, 0.10100815, 0.06006173],
-                      [0.27221495, 0.01540077, 0.00423326]]))
+            np.array([[0.9231, 0.9334, 0.0551],
+                      [0.1068, 0.093, 0.0551],
+                      [0.2514, 0.0138, 0.0034]]))
 
 
 class Test__init__(IrisTest):
@@ -300,6 +300,7 @@ class Test__get_calibrated_forecast_predictors_mean(
         predicted_mean, forecast_predictors = (
             self.plugin._get_calibrated_forecast_predictors_mean(
                 self.optimised_coeffs))
+
         self.assertCalibratedVariablesAlmostEqual(
             predicted_mean, self.expected_calibrated_predictor_mean)
         self.assertCalibratedVariablesAlmostEqual(

@@ -161,6 +161,12 @@ def main(argv=None):
                              'then the number of iterations may require '
                              'increasing, as there will be more coefficients '
                              'to solve for.')
+    parser.add_argument('--tolerance', metavar='TOLERANCE',
+                        type=np.float32, default=1,
+                        help='The tolerance required for termination of the '
+                             'minimisation. If repeated solutions are equal '
+                             'within the specified tolerance then the '
+                             'minimisation will terminate.')
     parser.add_argument('--landsea_mask', metavar="LANDSEA_MASK", default=None,
                         help="The netCDF file containing a land-sea mask on "
                              "the same domain as the historic forecast and "
@@ -184,7 +190,7 @@ def main(argv=None):
                            historic_forecast_dict, truth_dict,
                            args.distribution, args.cycletime, landsea_mask,
                            args.units, args.predictor_of_mean,
-                           args.max_iterations)
+                           args.tolerance, args.max_iterations)
     # Save Cube
     # Check whether a coefficients cube has been created. If the historic
     # forecasts and truths provided did not match in validity time, then
@@ -195,7 +201,7 @@ def main(argv=None):
 
 def process(historic_forecast, truth, combined, historic_forecast_dict,
             truth_dict, distribution, cycletime, landsea_mask, units=None,
-            predictor_of_mean='mean', max_iterations=1000):
+            predictor_of_mean='mean', tolerance=1, max_iterations=1000):
     """Module for estimate coefficients for Ensemble Model Output Statistics.
 
     Loads in arguments for estimating coefficients for Ensemble Model
@@ -253,6 +259,10 @@ def process(historic_forecast, truth, combined, historic_forecast_dict,
             Currently the ensemble mean ("mean") and the ensemble realizations
             ("realizations") are supported as the predictors.
             Default is 'mean'.
+        tolerance (float):
+            The tolerance required for termination of the minimisation. If
+            repeated solutions are equal within the specified tolerance then
+            the minimisation will terminate.
         max_iterations (int):
             The maximum number of iterations allowed until the minimisation has
             converged to a stable solution. If the maximum number of iterations
@@ -338,7 +348,7 @@ def process(historic_forecast, truth, combined, historic_forecast_dict,
         result = EstimateCoefficientsForEnsembleCalibration(
             distribution, cycletime, desired_units=units,
             predictor_of_mean_flag=predictor_of_mean,
-            max_iterations=max_iterations).process(
+            tolerance=tolerance, max_iterations=max_iterations).process(
                 historic_forecast, truth, landsea_mask=landsea_mask)
 
     return result

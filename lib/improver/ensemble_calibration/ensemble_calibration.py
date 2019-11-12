@@ -76,12 +76,16 @@ class ContinuousRankedProbabilityScoreMinimisers():
     # as part of the minimisation.
     BAD_VALUE = np.float64(999999)
 
-    def __init__(self, max_iterations=1000):
+    def __init__(self, tolerance=1, max_iterations=1000):
         """
         Initialise class for performing minimisation of the Continuous
         Ranked Probability Score (CRPS).
 
         Args:
+            tolerance (float):
+                The tolerance required for termination of the minimisation. If
+                repeated solutions are equal within the specified tolerance
+                then the minimisation will terminate.
             max_iterations (int):
                 The maximum number of iterations allowed until the
                 minimisation has converged to a stable solution. If the
@@ -98,17 +102,18 @@ class ContinuousRankedProbabilityScoreMinimisers():
         self.minimisation_dict = {
             "gaussian": self.calculate_normal_crps,
             "truncated_gaussian": self.calculate_truncated_normal_crps}
+        self.tolerance = tolerance
         # Maximum iterations for minimisation using Nelder-Mead.
         self.max_iterations = max_iterations
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = ('<ContinuousRankedProbabilityScoreMinimisers: '
-                  'minimisation_dict: {}; max_iterations: {}>')
+                  'minimisation_dict: {}; tolerance: {}; max_iterations: {}>')
         print_dict = {}
         for key in self.minimisation_dict:
             print_dict.update({key: self.minimisation_dict[key].__name__})
-        return result.format(print_dict, self.max_iterations)
+        return result.format(print_dict, self.tolerance, self.max_iterations)
 
     def process(
             self, initial_guess, forecast_predictor, truth, forecast_var,
@@ -234,7 +239,7 @@ class ContinuousRankedProbabilityScoreMinimisers():
             minimisation_function, initial_guess,
             args=(forecast_predictor_data, truth_data,
                   forecast_var_data, sqrt_pi, predictor_of_mean_flag),
-            method="Nelder-Mead",
+            method="Nelder-Mead", tol=self.tolerance,
             options={"maxiter": self.max_iterations, "return_all": True})
 
         if not optimised_coeffs.success:
@@ -381,7 +386,8 @@ class EstimateCoefficientsForEnsembleCalibration():
     ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = True
 
     def __init__(self, distribution, current_cycle, desired_units=None,
-                 predictor_of_mean_flag="mean", max_iterations=1000):
+                 predictor_of_mean_flag="mean", tolerance=1,
+                 max_iterations=1000):
         """
         Create an ensemble calibration plugin that, for Nonhomogeneous Gaussian
         Regression, calculates coefficients based on historical forecasts and
@@ -403,6 +409,10 @@ class EstimateCoefficientsForEnsembleCalibration():
                 String to specify the input to calculate the calibrated mean.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
+            tolerance (float):
+                The tolerance required for termination of the minimisation. If
+                repeated solutions are equal within the specified tolerance
+                then the minimisation will terminate.
             max_iterations (int):
                 The maximum number of iterations allowed until the
                 minimisation has converged to a stable solution. If the
@@ -432,9 +442,10 @@ class EstimateCoefficientsForEnsembleCalibration():
         # Ensure predictor_of_mean_flag is valid.
         check_predictor_of_mean_flag(predictor_of_mean_flag)
         self.predictor_of_mean_flag = predictor_of_mean_flag
+        self.tolerance = tolerance
         self.max_iterations = max_iterations
         self.minimiser = ContinuousRankedProbabilityScoreMinimisers(
-            max_iterations=self.max_iterations)
+            tolerance=self.tolerance, max_iterations=self.max_iterations)
 
         # Setting default values for coeff_names. Beta is the final
         # coefficient name in the list, as there can potentially be
@@ -470,11 +481,12 @@ class EstimateCoefficientsForEnsembleCalibration():
                   'predictor_of_mean_flag: {}; '
                   'minimiser: {}; '
                   'coeff_names: {}; '
+                  'tolerance: {}; '
                   'max_iterations: {}>')
         return result.format(
             self.distribution, self.current_cycle, self.desired_units,
             self.predictor_of_mean_flag, self.minimiser.__class__,
-            self.coeff_names, self.max_iterations)
+            self.coeff_names, self.tolerance, self.max_iterations)
 
     def create_coefficients_cube(
             self, optimised_coeffs, historic_forecast):
