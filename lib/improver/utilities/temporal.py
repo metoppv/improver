@@ -319,73 +319,14 @@ def set_utc_offset(longitudes):
     when no more rigorous source of timeszone information is provided.
 
     Args:
-        longitudes (list):
-            List of longitudes.
+        longitudes (list or np.ndarray):
+            List of longitudes in degrees
 
     Returns:
         numpy.ndarray:
-            List of utc_offsets calculated using longitude.
+            List of utc_offsets in hours
     """
     return np.floor((np.array(longitudes) + 7.5)/15.)
-
-
-def get_forecast_times(forecast_length, forecast_date=None,
-                       forecast_time=None):
-    """
-    Generate a list of python datetime objects specifying the desired forecast
-    times. This list will be created from input specifications if provided.
-    Otherwise defaults are to start today at the most recent 6-hourly interval
-    (00, 06, 12, 18) and to run out to T+144 hours.
-
-    Args:
-        forecast_length (int):
-            An integer giving the desired length of the forecast output in
-            hours (e.g. 48 for a two day forecast period).
-        forecast_date (str):
-            A string of format YYYYMMDD defining the start date for which
-            forecasts are required. If unset it defaults to today in UTC.
-        forecast_time (int):
-            An integer giving the hour on the forecast_date at which to start
-            the forecast output; 24hr clock such that 17 = 17Z for example. If
-            unset it defaults to the latest 6 hour cycle as a start time.
-
-    Returns:
-        list of datetime.datetime:
-            A list of python datetime.datetime objects that represent the
-            times at which diagnostic data should be extracted.
-
-    Raises:
-        ValueError : raised if the input date is not in the expected format.
-    """
-    date_format = re.compile('[0-9]{8}')
-
-    if forecast_date is None:
-        start_date = datetime.utcnow().date()
-    else:
-        if date_format.match(forecast_date) and len(forecast_date) == 8:
-            start_date = datetime.strptime(forecast_date,
-                                           "%Y%m%d").date()
-        else:
-            raise ValueError('Date {} is in unexpected format; should be '
-                             'YYYYMMDD.'.format(forecast_date))
-
-    if forecast_time is None:
-        # If no start hour provided, go back to the nearest multiple of 6
-        # hours (e.g. utcnow = 11Z --> 06Z).
-        forecast_start_time = datetime.combine(
-            start_date, dt_time(divmod(datetime.utcnow().hour, 6)[0]*6))
-    else:
-        forecast_start_time = datetime.combine(start_date,
-                                               dt_time(forecast_time))
-
-    # Generate forecast times. Hourly to T+48, 3 hourly to T+forecast_length.
-    forecast_times = [forecast_start_time + timedelta(hours=x) for x in
-                      range(min(forecast_length, 49))]
-    forecast_times = (forecast_times +
-                      [forecast_start_time + timedelta(hours=x) for x in
-                       range(51, forecast_length+1, 3)])
-
-    return forecast_times
 
 
 def rebadge_forecasts_as_latest_cycle(cubes, cycletime=None):
@@ -407,6 +348,8 @@ def rebadge_forecasts_as_latest_cycle(cubes, cycletime=None):
         iris.cube.CubeList:
             Updated cubes
     """
+    if cycletime is None and len(cubes) == 1:
+        return cubes
     cycletime = (find_latest_cycletime(cubes) if cycletime is None
                  else cycletime_to_datetime(cycletime))
     return unify_forecast_reference_time(cubes, cycletime)

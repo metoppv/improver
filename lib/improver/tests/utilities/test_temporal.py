@@ -47,7 +47,7 @@ from improver.tests.set_up_test_cubes import (
 from improver.utilities.temporal import (
     cycletime_to_datetime, cycletime_to_number, datetime_to_cycletime,
     forecast_period_coord, iris_time_to_datetime, datetime_constraint,
-    extract_cube_at_time, set_utc_offset, get_forecast_times,
+    extract_cube_at_time, set_utc_offset,
     rebadge_forecasts_as_latest_cycle, unify_forecast_reference_time,
     find_latest_cycletime, extract_nearest_time_point, datetime_to_iris_time)
 from improver.utilities.warnings_handler import ManageWarnings
@@ -455,95 +455,6 @@ class Test_set_utc_offset(IrisTest):
         expected = np.arange(-12, 13, 1)
         result = set_utc_offset(longitudes)
         self.assertArrayEqual(expected, result)
-
-
-class Test_get_forecast_times(IrisTest):
-
-    """Test the generation of forecast time using the function."""
-
-    def test_all_data_provided(self):
-        """Test setting up a forecast range when start date, start hour and
-        forecast length are all provided."""
-
-        forecast_start = datetime.datetime(2017, 6, 1, 9, 0)
-        forecast_date = forecast_start.strftime("%Y%m%d")
-        forecast_time = int(forecast_start.strftime("%H"))
-        forecast_length = 300
-        forecast_end = forecast_start + timedelta(hours=forecast_length)
-        result = get_forecast_times(forecast_length,
-                                    forecast_date=forecast_date,
-                                    forecast_time=forecast_time)
-        self.assertEqual(forecast_start, result[0])
-        self.assertEqual(forecast_end, result[-1])
-        self.assertEqual(timedelta(hours=1), result[1] - result[0])
-        self.assertEqual(timedelta(hours=3), result[-1] - result[-2])
-
-    def test_no_data_provided(self):
-        """Test setting up a forecast range when no data is provided. Expect a
-        range of times starting from last hour before now that was an interval
-        of 6 hours. Length set to 7 days (168 hours).
-
-        Note: this could fail if time between forecast_start being set and
-        reaching the get_forecast_times call bridges a 6-hour time
-        (00, 06, 12, 18). As such it is allowed two goes before
-        reporting a failure (slightly unconventional I'm afraid)."""
-
-        second_chance = 0
-        while second_chance < 2:
-            forecast_start = datetime.datetime.utcnow()
-            expected_date = forecast_start.date()
-            expected_hour = time(divmod(forecast_start.hour, 6)[0]*6)
-            forecast_date = None
-            forecast_time = None
-            forecast_length = 168
-            result = get_forecast_times(forecast_length,
-                                        forecast_date=forecast_date,
-                                        forecast_time=forecast_time)
-
-            check1 = (expected_date == result[0].date())
-            check2 = (expected_hour.hour == result[0].hour)
-            check3 = (timedelta(hours=168) == (result[-1] - result[0]))
-
-            if not all([check1, check2, check3]):
-                second_chance += 1
-                continue
-            else:
-                break
-
-        self.assertTrue(check1)
-        self.assertTrue(check2)
-        self.assertTrue(check3)
-
-    def test_partial_data_provided(self):
-        """Test setting up a forecast range when start hour and forecast length
-        are both provided, but no start date."""
-
-        forecast_start = datetime.datetime(2017, 6, 1, 15, 0)
-        forecast_date = None
-        forecast_time = int(forecast_start.strftime("%H"))
-        forecast_length = 144
-        expected_date = datetime.datetime.utcnow().date()
-        expected_start = datetime.datetime.combine(expected_date,
-                                                   time(forecast_time))
-        expected_end = expected_start + timedelta(hours=144)
-        result = get_forecast_times(forecast_length,
-                                    forecast_date=forecast_date,
-                                    forecast_time=forecast_time)
-
-        self.assertEqual(expected_start, result[0])
-        self.assertEqual(expected_end, result[-1])
-        self.assertEqual(timedelta(hours=1), result[1] - result[0])
-        self.assertEqual(timedelta(hours=3), result[-1] - result[-2])
-
-    def test_invalid_date_format(self):
-        """Test error is raised when a date is provided in an unexpected
-        format."""
-
-        forecast_date = '17MARCH2017'
-        msg = 'Date .* is in unexpected format'
-        with self.assertRaisesRegex(ValueError, msg):
-            get_forecast_times(144, forecast_date=forecast_date,
-                               forecast_time=6)
 
 
 class Test_extract_nearest_time_point(IrisTest):
