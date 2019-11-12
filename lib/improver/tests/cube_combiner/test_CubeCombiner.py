@@ -107,60 +107,6 @@ class set_up_cubes(IrisTest):
             attributes={'attribute_to_update': 'first_value'})
 
 
-class Test_combine(set_up_cubes):
-
-    """Test the combine method."""
-
-    def test_basic(self):
-        """Test that the function returns a Cube. """
-        operation = '*'
-        plugin = CubeCombiner(operation)
-        result = plugin.combine(self.cube1, self.cube2)
-        self.assertIsInstance(result, Cube)
-        expected_data = np.full((1, 2, 2), 0.3, dtype=np.float32)
-        self.assertArrayAlmostEqual(result.data, expected_data)
-
-    def test_add(self):
-        """Test combine adds the cubes correctly. """
-        operation = '+'
-        plugin = CubeCombiner(operation)
-        result = plugin.combine(self.cube1, self.cube2)
-        expected_data = np.full((1, 2, 2), 1.1, dtype=np.float32)
-        self.assertArrayAlmostEqual(result.data, expected_data)
-
-    def test_minus(self):
-        """Test combine minus the cubes correctly. """
-        operation = '-'
-        plugin = CubeCombiner(operation)
-        result = plugin.combine(self.cube1, self.cube2)
-        expected_data = np.full((1, 2, 2), -0.1, dtype=np.float32)
-        self.assertArrayAlmostEqual(result.data, expected_data)
-
-    def test_max(self):
-        """Test combine finds the max of the cubes correctly."""
-        operation = 'max'
-        plugin = CubeCombiner(operation)
-        result = plugin.combine(self.cube1, self.cube2)
-        expected_data = np.full((1, 2, 2), 0.6, dtype=np.float32)
-        self.assertArrayAlmostEqual(result.data, expected_data)
-
-    def test_min(self):
-        """Test combine finds the min of the cubes correctly."""
-        operation = 'min'
-        plugin = CubeCombiner(operation)
-        result = plugin.combine(self.cube1, self.cube2)
-        expected_data = np.full((1, 2, 2), 0.5, dtype=np.float32)
-        self.assertArrayAlmostEqual(result.data, expected_data)
-
-    def test_mean(self):
-        """Test that the function adds the cubes correctly for mean."""
-        operation = 'mean'
-        plugin = CubeCombiner(operation)
-        result = plugin.combine(self.cube1, self.cube2)
-        expected_data = np.full((1, 2, 2), 1.1, dtype=np.float32)
-        self.assertArrayAlmostEqual(result.data, expected_data)
-
-
 class Test_process(set_up_cubes):
 
     """Test the plugin combines the cubelist into a cube."""
@@ -215,8 +161,7 @@ class Test_process(set_up_cubes):
         """Test that the plugin raises an exception if something other than a
         cubelist is passed in."""
         plugin = CubeCombiner('-')
-        msg = "Expecting data to be an instance of"
-
+        msg = "object of type 'Cube'"
         with self.assertRaisesRegex(TypeError, msg):
             plugin.process(self.cube1, 'new_cube_name')
 

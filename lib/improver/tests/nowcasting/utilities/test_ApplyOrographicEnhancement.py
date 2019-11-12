@@ -461,12 +461,11 @@ class Test_process(IrisTest):
     def test_add_with_mask(self):
         """Test the addition of cubelists containing cubes of
         precipitation rate and orographic enhancement, where a mask has
-        been applied. Note the change for the upper right point within the
-        expected1 array compared to the test_basic_add test."""
+        been applied."""
         expected0 = np.array([[[0., 1., 2.],
                                [1., 2., 7.],
                                [0., 3., 4.]]])
-        expected1 = np.array([[[9., 9., 1.],
+        expected1 = np.array([[[9., 9., 6.],
                                [6., 5., 1.],
                                [6., 5., 1.]]])
 
@@ -485,8 +484,10 @@ class Test_process(IrisTest):
 
         plugin = ApplyOrographicEnhancement("add")
         result = plugin.process(self.precip_cubes, self.oe_cube)
+
         self.assertIsInstance(result, iris.cube.CubeList)
         for aresult, precip_cube in zip(result, self.precip_cubes):
+            self.assertIsInstance(aresult.data, np.ma.MaskedArray)
             self.assertEqual(
                 aresult.metadata, precip_cube.metadata)
         for cube in result:
@@ -497,14 +498,14 @@ class Test_process(IrisTest):
     def test_subtract_with_mask(self):
         """Test the subtraction of cubelists containing cubes of orographic
         enhancement from cubes of precipitation rate, where a mask has been
-        applied. Note the change for the upper right point within the
-        expected1 array compared to the test_basic_subtract test."""
+        applied."""
         expected0 = np.array([[[0., 1., 2.],
                                [1., 2., MIN_PRECIP_RATE_MMH],
                                [0., 1., MIN_PRECIP_RATE_MMH]]])
-        expected1 = np.array([[[MIN_PRECIP_RATE_MMH, MIN_PRECIP_RATE_MMH, 1.],
-                               [2., 3., 1.],
-                               [2., 3., 1.]]])
+        expected1 = np.array(
+            [[[MIN_PRECIP_RATE_MMH, MIN_PRECIP_RATE_MMH, MIN_PRECIP_RATE_MMH],
+              [2., 3., 1.],
+              [2., 3., 1.]]])
 
         # Mask values within the input precipitation cube that are equal to,
         # or below 1.
@@ -522,6 +523,7 @@ class Test_process(IrisTest):
         result = plugin.process(self.precip_cubes, self.oe_cube)
         self.assertIsInstance(result, iris.cube.CubeList)
         for aresult, precip_cube in zip(result, self.precip_cubes):
+            self.assertIsInstance(aresult.data, np.ma.MaskedArray)
             self.assertEqual(
                 aresult.metadata, precip_cube.metadata)
         for cube in result:

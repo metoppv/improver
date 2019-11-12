@@ -229,8 +229,8 @@ class WindGustDiagnostic(BasePlugin):
         req_cube_gust = self.add_metadata(req_cube_gust)
 
         # Calculate wind-gust diagnostic using CubeCombiner
-        plugin = CubeCombiner('max')
-        result = plugin.combine(req_cube_gust, req_cube_ws)
+        result = CubeCombiner('max').process(
+            [req_cube_gust, req_cube_ws], req_cube_gust.name())
 
         # Update metadata
         result = self.update_metadata_after_max(result,
