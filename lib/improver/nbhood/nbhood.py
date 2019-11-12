@@ -104,7 +104,7 @@ class BaseNeighbourhoodProcessing(BasePlugin):
                 Array of forecast times found in cube.
 
         Returns:
-            radii (float or numpy.ndarray of float):
+            float or numpy.ndarray:
                 Required neighbourhood sizes.
         """
         if cube_lead_times is None:
@@ -136,7 +136,7 @@ class BaseNeighbourhoodProcessing(BasePlugin):
                 Cube containing the array to be used as a mask.
 
         Returns:
-            cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube after applying a neighbourhood processing method, so that
                 the resulting field is smoothed.
 

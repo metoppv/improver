@@ -147,7 +147,7 @@ class WindDirection(BasePlugin):
                 3D array or float - radius value for each point, default=1.
 
         Returns:
-            (numpy.ndarray or float):
+            numpy.ndarray or float:
                 3D array or float - wind direction translated to
                 complex numbers.
 
@@ -177,7 +177,7 @@ class WindDirection(BasePlugin):
                 complex number form.
 
         Returns:
-            angle (numpy.ndarray):
+            numpy.ndarray:
                 3D array - wind direction in angle form
 
         Raises
@@ -400,7 +400,7 @@ class WindDirection(BasePlugin):
                 realizations.
 
         Returns:
-            cube_mean_wdir (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the wind direction averaged from the
                 ensemble realizations.
             cube_r_vals (numpy.ndarray):

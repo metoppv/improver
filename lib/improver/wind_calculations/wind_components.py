@@ -68,7 +68,7 @@ class ResolveWindComponents(BasePlugin):
                 spatial grid on which the angle adjustments should be provided.
 
         Returns:
-            angle_adjustment (numpy.ndarray):
+            numpy.ndarray:
                 Angle in radians by which wind direction wrt true North at
                 each point must be rotated to be relative to grid North.
         """
@@ -140,13 +140,12 @@ class ResolveWindComponents(BasePlugin):
                 dimensions.
 
         Returns:
-            (tuple): tuple containing
-
-                (iris.cube.Cube):
+            (tuple): tuple containing:
+                **u_speed** (iris.cube.Cube):
                     Cube containing wind vector component in the positive
                     x-direction
 
-                (iris.cube.Cube):
+                **v_speed** (iris.cube.Cube):
                     Cube containing wind vector component in the positive
                     y-direction
         """
@@ -175,8 +174,7 @@ class ResolveWindComponents(BasePlugin):
                 Cube containing wind direction values relative to true North
 
         Returns:
-            (tuple): tuple containing
-
+            (tuple): tuple containing:
                 **ucube** (iris.cube.Cube):
                     Cube containing wind speeds in the positive projection
                     x-axis direction, with units and projection matching

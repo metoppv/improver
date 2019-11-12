@@ -62,7 +62,7 @@ def circular_kernel(fullranges, ranges, weighted_mode):
             If False, use a circle with constant weighting.
 
     Returns:
-        kernel (numpy.ndarray):
+        numpy.ndarray:
             Array containing the circular smoothing kernel.
             This will have the same number of dimensions as fullranges.
 
@@ -151,7 +151,7 @@ class CircularNeighbourhood(object):
                 the kernel.
 
         Returns:
-            cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the smoothed field after the kernel has been
                 applied.
 
@@ -195,7 +195,7 @@ class CircularNeighbourhood(object):
                 Cube containing the array to be used as a mask.
 
         Returns:
-            cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the smoothed field after the kernel has been
                 applied.
 
@@ -405,7 +405,7 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
                 Cube containing the array to be used as a mask.
 
         Returns:
-            result (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the percentile fields.
                 Has percentile as an added dimension.
 
@@ -466,7 +466,7 @@ class GeneratePercentilesFromACircularNeighbourhood(object):
             cube (iris.cube.Cube):
                 Cube to copy meta data from.
         Returns:
-            cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube like input but with added percentiles coordinate.
                 Each slice along this coordinate is identical.
         """

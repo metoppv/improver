@@ -54,7 +54,7 @@ def calc_solar_declination(day_of_year):
             Day of the year 0 to 365, 0 = 1st January
 
     Returns:
-        solar_declination (float):
+        float:
             Declination in degrees.North-South
     """
     # Declination (degrees):
@@ -129,7 +129,7 @@ def calc_solar_elevation(latitudes, longitudes, day_of_year, utc_hour,
             Default False.
 
     Returns:
-        solar_elevation (float or numpy.ndarray):
+        float or numpy.ndarray:
             Solar elevation in degrees for each location.
     """
     if np.min(latitudes) < -90.0 or np.max(latitudes) > 90.0:
@@ -172,7 +172,7 @@ def daynight_terminator(longitudes, day_of_year, utc_hour):
             Hour of the day in UTC
 
     Returns:
-        latitudes (numpy.ndarray):
+        numpy.ndarray:
             latitudes of the daynight terminator
     """
     if day_of_year < 0 or day_of_year > 365:
@@ -214,7 +214,7 @@ class DayNightMask(BasePlugin):
                 cube with the times and coordinates required for mask
 
         Returns:
-            daynight_mask (iris.cube.Cube):
+            iris.cube.Cube:
                 Blank daynight mask cube. The resulting cube will be the
                 same shape as the time, y, and x coordinate, other coordinates
                 will be ignored although they might appear as attributes
@@ -244,7 +244,7 @@ class DayNightMask(BasePlugin):
                 Hour in UTC
 
         Returns:
-            mask_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 daynight mask cube - daytime set to self.day
         """
         lons = mask_cube.coord('longitude').points
@@ -280,7 +280,7 @@ class DayNightMask(BasePlugin):
                 input cube
 
         Returns:
-            daynight_mask (iris.cube.Cube):
+            iris.cube.Cube:
                 daynight mask cube, daytime set to self.day
                 nighttime set to self.night.
                 The resulting cube will be the same shape as

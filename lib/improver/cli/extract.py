@@ -111,7 +111,7 @@ def process(cube, constraints, units=None):
             only be associated with coordinate constraints.
 
     Returns:
-        (iris.cube.Cube):
+        iris.cube.Cube:
             A single cube matching the input constraints or None. If no
             sub-cube is found within the cube that matches the constraints.
     """

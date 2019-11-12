@@ -88,7 +88,7 @@ def calculate_grid_spacing(cube, units, axis='x'):
             Axis ('x' or 'y') to use in determining grid spacing
 
     Returns:
-        (float):
+        float:
             Grid spacing in required unit
 
     Raises:
@@ -128,7 +128,7 @@ def convert_distance_into_number_of_grid_cells(
             down. If false the number of grid_cells returned will be a float.
 
     Returns:
-        grid_cells (int or float):
+        int or float:
             Number of grid cells along the specified (x or y) axis equal to the
             requested distance in metres.
 
@@ -198,7 +198,7 @@ def convert_number_of_grid_cells_into_distance(cube, grid_points):
         grid_points (int):
             Number of grid points to convert.
     Returns:
-        radius_in_metres (float):
+        float:
             The radius in metres.
     """
     check_if_grid_is_equal_area(cube, require_equal_xy_spacing=True)
@@ -236,7 +236,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
                 Array containing the differences.
 
         Returns:
-            diff_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the differences calculated along the
                 specified axis.
         """
@@ -286,7 +286,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
                 iris.util.guess_coord_axis.
 
         Returns:
-            diff_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube after the differences have been calculated along the
                 specified axis.
         """
@@ -314,7 +314,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
 
 
         Returns:
-            gradient (iris.cube.Cube):
+            iris.cube.Cube:
                 A cube of the gradients in the coordinate direction specified.
         """
         grid_spacing = np.diff(diff_cube.coord(axis=coord_axis).points)[0]
@@ -334,7 +334,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
                 Cube from which the differences will be calculated.
 
         Returns:
-            (tuple) : tuple containing:
+            (tuple): tuple containing:
                 **diff_along_y_cube** (iris.cube.Cube):
                     Cube after the differences have been calculated along the
                     y axis.
@@ -388,7 +388,7 @@ class OccurrenceWithinVicinity:
                 Thresholded cube.
 
         Returns:
-            cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube where the occurrences have been spatially spread, so that
                 they're equally likely to have occurred anywhere within the
                 vicinity defined using the specified distance.
@@ -460,7 +460,7 @@ def lat_lon_determine(cube):
             A diagnostic cube to examine for coordinate system.
 
     Returns:
-        trg_crs (cartopy.crs.CRS or None):
+        cartopy.crs.CRS or None:
             Coordinate system of the diagnostic cube in a cartopy format unless
             it is already a latitude/longitude grid, in which case None is
             returned.
@@ -482,7 +482,7 @@ def transform_grid_to_lat_lon(cube):
             Cube with points to transform
 
     Returns
-        (tuple): tuple containing
+        (tuple): tuple containing:
             **lats** (numpy.ndarray):
                 Array of cube.data.shape of Latitude values
             **lons** (numpy.ndarray):

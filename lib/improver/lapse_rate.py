@@ -60,7 +60,7 @@ def apply_gridded_lapse_rate(temperature, lapse_rate, source_orog, dest_orog):
             2D cube of destination orography heights (units modified in place)
 
     Returns:
-        adjusted_temperature (iris.cube.Cube):
+        iris.cube.Cube:
             Lapse-rate adjusted temperature field
     """
     # check dimensions and coordinates match on input cubes
@@ -270,7 +270,7 @@ class LapseRate(BasePlugin):
                 neighbours.
 
         Returns:
-            gradient (float):
+            float:
                 The gradient of the temperature/orography values. This
                 represents the lapse rate.
 
@@ -311,7 +311,7 @@ class LapseRate(BasePlugin):
                Each row contains the height values of each neighbourhood.
 
         Returns:
-            height_diff_mask (numpy.ndarray):
+            numpy.ndarray:
                 A 2D array of boolean values.
 
         """
@@ -344,7 +344,7 @@ class LapseRate(BasePlugin):
                 and False for Sea.
 
         Returns:
-            lapse_rate_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing lapse rate (K m-1)
 
         Raises

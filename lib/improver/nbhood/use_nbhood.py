@@ -159,7 +159,7 @@ class ApplyNeighbourhoodProcessingWithAMask(BasePlugin):
                 Cube containing the array to be used as a mask.
 
         Returns:
-            concatenated_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the smoothed field after the square
                 neighbourhood method has been applied when applying masking
                 for each point along the coord_for_masking coordinate.
@@ -378,7 +378,7 @@ class CollapseMaskedNeighbourhoodCoordinate(BasePlugin):
                 with a mask has been applied.
 
         Returns:
-            result (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the weighted mean from neighbourhood after
                 collapsing the chosen coordinate.
 

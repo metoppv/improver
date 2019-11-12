@@ -144,7 +144,7 @@ class RecursiveFilter(BasePlugin):
                 Index of the spatial axis (0 or 1) over which to recurse.
 
         Returns:
-            grid (numpy.ndarray):
+            numpy.ndarray:
                 2D array containing the smoothed field after the recursive
                 filter method has been applied to the input array in the
                 forward direction along the specified axis.
@@ -183,7 +183,7 @@ class RecursiveFilter(BasePlugin):
                 Index of the spatial axis (0 or 1) over which to recurse.
 
         Returns:
-            grid (numpy.ndarray):
+            numpy.ndarray:
                 2D array containing the smoothed field after the recursive
                 filter method has been applied to the input array in the
                 backwards direction along the specified axis.
@@ -217,7 +217,7 @@ class RecursiveFilter(BasePlugin):
                 The number of iterations of the recursive filter
 
         Returns:
-            cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the smoothed field after the recursive filter
                 method has been applied to the input cube.
         """
@@ -261,7 +261,7 @@ class RecursiveFilter(BasePlugin):
                         of data array
 
         Returns:
-            alphas_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing a padded array of alpha values
                 for the specified direction.
         """
@@ -326,7 +326,7 @@ class RecursiveFilter(BasePlugin):
                 applying the recursive filter.
 
         Returns:
-            new_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the smoothed field after the recursive filter
                 method has been applied.
 

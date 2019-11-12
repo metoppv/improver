@@ -74,7 +74,7 @@ class GenerateTopographicZoneWeights(BasePlugin):
                 The highest index for the bands coordinate in the weights.
 
         Returns:
-            topographic_zone_weights (numpy.ndarray):
+            numpy.ndarray:
                 Weights that we have already calculated for the points within
                 the orography band that has been updated to account for the
                 upper adjacent band.
@@ -115,7 +115,7 @@ class GenerateTopographicZoneWeights(BasePlugin):
                 processed.
 
         Returns:
-            topographic_zone_weights (numpy.ndarray):
+            numpy.ndarray:
                 Topographic zone array containing the weights that we have
                 already calculated for the points within the orography band
                 that has been updated to account for the lower adjacent band.
@@ -152,7 +152,7 @@ class GenerateTopographicZoneWeights(BasePlugin):
                 e.g. [100., 200.].
 
         Returns:
-            interpolated_weights (numpy.ndarray):
+            numpy.ndarray:
                 The weights generated to indicate the contribution of each
                 point to a band.
         """
@@ -178,7 +178,7 @@ class GenerateTopographicZoneWeights(BasePlugin):
                 Land mask on standard grid. If provided sea points are masked
                 out in the output array.
         Returns:
-            topographic_zone_weights (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the weights depending upon where the orography
                 point is within the topographic zones.
         """

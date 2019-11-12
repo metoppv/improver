@@ -101,8 +101,8 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
             cube (iris.cube.Cube):
                 A cube containing the data we want to collapse by doing a
                 weighted blend along a given coordinate.
-        Return:
-            weights_from_mask (iris.cube.Cube):
+        Returns:
+            iris.cube.Cube:
                 A cube containing an initial set of weights based on the mask
                 on the input cube.
         Rasies:
@@ -137,7 +137,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 A cube containing an initial set of weights based on the mask
                 on the input cube.
         Returns:
-            result (iris.cube.Cube):
+            iris.cube.Cube:
                 A cube containing the fuzzy weights calculated based on the
                 weights_from_mask. The dimension order may have changed from
                 the input cube as it has been sliced over x and y coordinates.
@@ -189,7 +189,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 plugin.
 
         Returns:
-            result (iris.cube.Cube):
+            iris.cube.Cube:
                 A cube with the same dimensions as the input cube, but with
                 the weights multiplied by the weights from the
                 one_dimensional_weights_cube. The blend_coord will be the
@@ -233,7 +233,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 normalisation is needed.
 
         Returns:
-            result (iris.cube.Cube):
+            iris.cube.Cube:
                 A cube with the same dimensions as the input cube, but with
                 the weights normalised along the blend_coord dimension.
                 The blend_coord will be the leading dimension on the
@@ -275,7 +275,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 coordinate in one_dimensional_weights_cube.
 
         Returns:
-            first slice (iris.cube.Cube):
+            iris.cube.Cube:
                 A cube containing dimension coordinates blend_coord, y, x,
                 with all other dimensions stripped out.
 
@@ -354,7 +354,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 coordinate in one_dimensional_weights_cube.
 
         Returns:
-            result (iris.cube.Cube):
+            iris.cube.Cube:
                 A cube containing normalised spatial weights based on the
                 cube_to_collapsemask and the one_dimensional weights supplied.
                 Contains the dimensions, blend_coord, y, x.

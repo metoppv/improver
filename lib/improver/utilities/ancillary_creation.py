@@ -94,7 +94,7 @@ class OrographicAlphas(BasePlugin):
                 The maximum value we want our alpha to be
 
         Returns:
-            scaled_cubes (iris.cube.CubeList):
+            iris.cube.CubeList:
                 A list of alpha cubes scaled to within the range specified.
         """
         cube_min = min([abs(cube.data).min() for cube in cubes])
@@ -120,7 +120,7 @@ class OrographicAlphas(BasePlugin):
                 A cube of the normalised gradient
 
         Returns:
-            alphas_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 The cube of initial unscaled alphas
         """
         alphas_cube = gradient_cube.copy(data=self.coefficient *
@@ -138,7 +138,7 @@ class OrographicAlphas(BasePlugin):
                 A cube of alphas with "gradient" metadata
 
         Returns:
-            alphas_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 A cube of alphas with adjusted metadata
         """
         alphas_cube.rename('alphas')
@@ -159,12 +159,11 @@ class OrographicAlphas(BasePlugin):
                 A cube of the normalised gradient in the y direction
 
         Returns:
-            (tuple): tuple containing
-
-                **alpha_x** (iris.cube.Cube) - A cube of orography-dependent
+            (tuple): tuple containing:
+                **alpha_x** (iris.cube.Cube): A cube of orography-dependent
                     alphas calculated in the x direction.
 
-                **alpha_y** (iris.cube.Cube) - A cube of orography-dependent
+                **alpha_y** (iris.cube.Cube): A cube of orography-dependent
                     alphas calculated in the y direction.
         """
         alpha_x = self.unnormalised_alphas(gradient_x)
@@ -198,12 +197,11 @@ class OrographicAlphas(BasePlugin):
                 for.
 
         Returns:
-            (tuple): tuple containing
-
-                **alpha_x** (iris.cube.Cube) - A cube of orography-dependent
+            (tuple): tuple containing:
+                **alpha_x** (iris.cube.Cube): A cube of orography-dependent
                     alphas calculated in the x direction.
 
-                **alpha_y** (iris.cube.Cube) - A cube of orography-dependent
+                **alpha_y** (iris.cube.Cube): A cube of orography-dependent
                     alphas calculated in the y direction.
         """
         if not isinstance(cube, iris.cube.Cube):
@@ -265,7 +263,7 @@ class SaturatedVapourPressureTable(BasePlugin):
         psychrometric_calculations.Utilities.
 
         Returns:
-            svp (iris.cube.Cube):
+            iris.cube.Cube:
                A cube of saturated vapour pressure values at temperature
                points defined by t_min, t_max, and t_increment (defined above).
         """

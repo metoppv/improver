@@ -146,7 +146,7 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
                 The list of thresholds.
 
         Returns:
-            convective_ratio (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the convective ratio.
 
         Raises:
@@ -202,7 +202,7 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
                 calculated.
 
         Returns:
-            cubelist (iris.cube.CubeList):
+            iris.cube.CubeList:
                 Cubelist containing cubes with the absolute difference
                 between adjacent grid squares along x and y, respectively.
         """
@@ -226,7 +226,7 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
                 The threshold that will be applied.
 
         Returns:
-            cubes (iris.cube.CubeList):
+            iris.cube.CubeList:
                 Cubelist after thresholding each cube.
         """
         cubes = iris.cube.CubeList([])
@@ -261,7 +261,7 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
                 which have been thresholded.
 
         Returns:
-            cube_on_orig_grid (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube on the original grid with the values from the thresholded
                 adjacent grid square difference cubes inserted. The resulting
                 values have been restricted to be between 0 and 1.
@@ -294,7 +294,7 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
                 The cube from which the convective ratio will be calculated.
 
         Returns:
-            convective_ratios (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the convective ratio defined as the ratio
                 between a cube with a high threshold applied and a cube with a
                 low threshold applied.

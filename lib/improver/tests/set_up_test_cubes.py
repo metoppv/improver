@@ -109,7 +109,7 @@ def construct_scalar_time_coords(time, time_bounds, frt):
             Single forecast reference time point
 
     Returns:
-        coord_dims (list):
+        list of Tuple[iris.coord.DimCoord, bool]:
             List of iris.coords.DimCoord instances with the associated "None"
             dimension (format required by iris.cube.Cube initialisation).
     """
@@ -242,17 +242,10 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
         cube_attrs.update(attributes)
 
     # create data cube
-    try:
-        cube = iris.cube.Cube(data, name, units=units,
-                              dim_coords_and_dims=dim_coords,
-                              aux_coords_and_dims=scalar_coords,
-                              attributes=cube_attrs)
-    except ValueError:
-        # if "name" is not a standard name, set long name instead
-        cube = iris.cube.Cube(data, long_name=name, units=units,
-                              dim_coords_and_dims=dim_coords,
-                              aux_coords_and_dims=scalar_coords,
-                              attributes=cube_attrs)
+    cube = iris.cube.Cube(data, units=units, attributes=cube_attrs,
+                          dim_coords_and_dims=dim_coords,
+                          aux_coords_and_dims=scalar_coords)
+    cube.rename(name)
 
     # don't allow unit tests to set up invalid cubes
     check_cube_not_float64(cube)

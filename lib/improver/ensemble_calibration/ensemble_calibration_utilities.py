@@ -59,7 +59,7 @@ def convert_cube_data_to_2d(
             This will result in a 2d array of format [:, coord].
 
     Returns:
-        forecast_data (numpy.ndarray):
+        numpy.ndarray:
             Reshaped 2d array.
 
     """
@@ -94,7 +94,7 @@ def flatten_ignoring_masked_data(data_array, preserve_leading_dimension=False):
             If True the flattened array is reshaped so it has the same leading
             dimension as the input array. If False the returned array is 1D.
     Returns:
-        result (numpy.ndarray):
+        numpy.ndarray:
             A flattened array containing only valid data. Either 1D or, if
             preserving the leading dimension 2D. In the latter case the
             leading dimension is the same as the input data_array.
@@ -246,8 +246,7 @@ class SplitHistoricForecastAndTruth(BasePlugin):
                 of historic forecasts and truth.
 
         Returns:
-            (tuple): tuple containing
-
+            (tuple): tuple containing:
                 iris.cube.Cube:
                     A cube containing the historic forecasts.
                 iris.cube.Cube:

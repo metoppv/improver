@@ -144,7 +144,7 @@ def process(cube, mask_cube=None, alphas_x_cube=None, alphas_y_cube=None,
             Default is False.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             The processed Cube.
     """
     result = RecursiveFilter(

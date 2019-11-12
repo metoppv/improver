@@ -270,7 +270,7 @@ class WeatherSymbols(BasePlugin):
             test_conditions (dict):
                 A query from the decision tree.
         Returns:
-            condition_chain (list):
+            list of str:
                 A list of strings that describe the conditions comprising the
                 query.
                 e.g.::
@@ -328,7 +328,7 @@ class WeatherSymbols(BasePlugin):
                 coordinate name from diagnostic name
 
         Returns:
-            (str or list of str):
+            str or list of str:
                 String, or list of strings, encoding iris cube constraints.
         """
         def _constraint_string(diagnostic, threshold_name, threshold_val):
@@ -399,7 +399,7 @@ class WeatherSymbols(BasePlugin):
                 A list of node names found so far.
 
         Returns:
-            routes (list):
+            list of str:
                 A list of node names that defines the route from the tree root
                 to the weather symbol leaf (end of chain).
 
@@ -435,7 +435,7 @@ class WeatherSymbols(BasePlugin):
                 An x-y slice of one of the input cubes, used to define the
                 size of the weather symbol grid.
         Returns:
-            symbols (iris.cube.Cube):
+            iris.cube.Cube:
                 A cube full of -1 values, with suitable metadata to describe
                 the weather symbols that will fill it.
         """
@@ -459,7 +459,7 @@ class WeatherSymbols(BasePlugin):
                 weather symbols decision tree, these at co-incident times.
 
         Returns:
-            symbols (iris.cube.Cube):
+            iris.cube.Cube:
                 A cube of weather symbols.
         """
         # Check input cubes contain required data

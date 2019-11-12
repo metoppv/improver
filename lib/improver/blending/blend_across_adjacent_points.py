@@ -101,7 +101,7 @@ class TriangularWeightedBlendAcrossAdjacentPoints(BasePlugin):
                 Cube containing input for blending.
 
         Returns:
-            central_point_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing central point.
 
         Raises:
@@ -133,7 +133,7 @@ class TriangularWeightedBlendAcrossAdjacentPoints(BasePlugin):
                 Cube containing input for blending.
 
         Returns:
-            blended_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 The processed cube, with the same coordinates as the input
                 central_cube. The points in one coordinate will be blended
                 with the adjacent points based on a triangular weighting

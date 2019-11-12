@@ -70,7 +70,7 @@ class ExtendRadarMask(BasePlugin):
                     3: precip not detected & 1/32 mm/h NOT detectable
 
         Returns:
-            (iris.cube.Cube):
+            iris.cube.Cube:
                 Radar data with mask extended to mask out regions where
                 1/32 mm/h are not detectable
         """
@@ -152,7 +152,7 @@ class ApplyOrographicEnhancement(BasePlugin):
 
 
         Returns:
-            oe_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the orographic enhancement fields at the
                 required time.
 
@@ -174,7 +174,7 @@ class ApplyOrographicEnhancement(BasePlugin):
                 the validity time of the precipitation cube.
 
         Returns:
-            cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the precipitation rate field modified by the
                 orographic enhancement cube.
 
@@ -213,7 +213,7 @@ class ApplyOrographicEnhancement(BasePlugin):
                 with orographic enhancement.
 
         Returns:
-            cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing the precipitation rate field where any
                 negative precipitation rates have been capped at the defined
                 minimum precipitation rate.
@@ -256,7 +256,7 @@ class ApplyOrographicEnhancement(BasePlugin):
                 Cube containing the orographic enhancement fields.
 
         Returns:
-            updated_cubes (iris.cube.CubeList):
+            iris.cube.CubeList:
                 CubeList of precipitation rate cubes that have been updated
                 using orographic enhancement.
         """

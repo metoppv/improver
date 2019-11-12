@@ -221,19 +221,10 @@ class BasicThreshold(BasePlugin):
             iris.cube.Cube:
                 With new "threshold" axis
         """
-        try:
-            coord = iris.coords.DimCoord(
-                np.array([threshold], dtype=np.float32),
-                standard_name=self.threshold_coord_name,
-                var_name="threshold", units=cube.units)
-        except ValueError as cause:
-            if 'is not a valid standard_name' in str(cause):
-                coord = iris.coords.DimCoord(
-                    np.array([threshold], dtype=np.float32),
-                    long_name=self.threshold_coord_name,
-                    var_name="threshold", units=cube.units)
-            else:
-                raise ValueError(cause)
+        coord = iris.coords.DimCoord(np.array([threshold], dtype=np.float32),
+                                     units=cube.units)
+        coord.rename(self.threshold_coord_name)
+        coord.var_name = "threshold"
 
         # Use an spp__relative_to_threshold attribute, as an extension to the
         # CF-conventions.
@@ -273,7 +264,7 @@ class BasicThreshold(BasePlugin):
                 Cube to threshold. The code is dimension-agnostic.
 
         Returns:
-            cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube after a threshold has been applied. The data within this
                 cube will contain values between 0 and 1 to indicate whether
                 a given threshold has been exceeded or not.
