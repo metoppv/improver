@@ -34,7 +34,7 @@ import iris
 import numpy as np
 
 from improver import BasePlugin
-from improver.metadata.amend import amend_metadata, resolve_metadata_diff
+from improver.metadata.amend import amend_metadata
 from improver.utilities.cube_manipulation import expand_bounds
 
 
@@ -141,16 +141,11 @@ class CubeCombiner(BasePlugin):
             msg = 'Expecting 2 or more cubes in cube_list'
             raise ValueError(msg)
 
-        # resulting cube will be based on the first cube.
-        data_type = cube_list[0].dtype
+        # perform operation (add, subtract, min, max, mean, multiply)
+        # cumulatively
         result = cube_list[0].copy()
-
-        for ind in range(1, len(cube_list)):
-            cube1, cube2 = (
-                resolve_metadata_diff(result.copy(),
-                                      cube_list[ind].copy(),
-                                      warnings_on=self.warnings_on))
-            result = self.combine(cube1, cube2)
+        for cube in cube_list[1:]:
+            result = self.combine(result.copy(), cube.copy())
 
         if self.operation == 'mean':
             result.data = result.data / len(cube_list)
@@ -160,10 +155,9 @@ class CubeCombiner(BasePlugin):
             result = expand_bounds(result, cube_list, expanded_coord)
 
         result = amend_metadata(result,
-                                new_diagnostic_name,
-                                data_type,
-                                revised_coords,
-                                revised_attributes,
+                                name=new_diagnostic_name,
+                                coordinates=revised_coords,
+                                attributes=revised_attributes,
                                 warnings_on=self.warnings_on)
 
         return result

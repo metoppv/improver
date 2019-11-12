@@ -500,69 +500,6 @@ def amend_metadata(cube,
     return result
 
 
-def resolve_metadata_diff(cube1, cube2, warnings_on=False):
-    """Resolve any differences in metadata between cubes. This involves
-    identifying coordinates that are mismatching between the cubes and
-    attempting to add this coordinate where it is missing. This makes use of
-    the points, bounds, units and attributes, as well as the coordinate type
-    i.e. DimCoord or AuxCoord.
-
-    Args:
-        cube1 (iris.cube.Cube):
-            Cube containing data to be combined.
-        cube2 (iris.cube.Cube):
-            Cube containing data to be combined.
-        warnings_on (bool):
-            If True output warnings for mismatching metadata.
-
-    Returns:
-        (tuple): tuple containing:
-            **result1** (iris.cube.Cube):
-                Cube with corrected Metadata.
-            **result2** (iris.cube.Cube):
-                Cube with corrected Metadata.
-
-    """
-    result1 = cube1
-    result2 = cube2
-    cubes = iris.cube.CubeList([result1, result2])
-
-    # Processing will be based on cube1 so any unmatching
-    # attributes will be ignored
-
-    # Find mismatching coords
-    unmatching_coords = compare_coords(cubes)
-    # If extra dim coord length 1 on cube1 then add to cube2
-    for coord in unmatching_coords[0]:
-        if coord not in unmatching_coords[1]:
-            if len(result1.coord(coord).points) == 1:
-                if len(result1.coord_dims(coord)) > 0:
-                    coord_dict = dict()
-                    coord_dict['points'] = result1.coord(coord).points
-                    coord_dict['bounds'] = result1.coord(coord).bounds
-                    coord_dict['units'] = result1.coord(coord).units
-                    coord_dict['attributes'] = result1.coord(coord).attributes
-                    coord_dict['metatype'] = 'DimCoord'
-                    if result1.coord(coord).var_name is not None:
-                        coord_dict['var_name'] = result1.coord(coord).var_name
-                    result2 = add_coord(result2, coord, coord_dict,
-                                        warnings_on=warnings_on)
-                    result2 = iris.util.as_compatible_shape(result2,
-                                                            result1)
-    # If extra dim coord length 1 on cube2 then delete from cube2
-    for coord in unmatching_coords[1]:
-        if coord not in unmatching_coords[0]:
-            if len(result2.coord(coord).points) == 1:
-                result2 = _update_coord(result2, coord, 'delete',
-                                        warnings_on=warnings_on)
-
-    # If shapes still do not match Raise an error
-    if result1.data.shape != result2.data.shape:
-        msg = "Can not combine cubes, mismatching shapes"
-        raise ValueError(msg)
-    return result1, result2
-
-
 def set_history_attribute(cube, value, append=False):
     """Add a history attribute to a cube. This uses the current datetime to
     generate the timestamp for the history attribute. The new history attribute

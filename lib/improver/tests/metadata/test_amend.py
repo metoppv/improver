@@ -44,7 +44,6 @@ from improver.metadata.amend import (
     set_history_attribute,
     amend_attributes,
     amend_metadata,
-    resolve_metadata_diff,
     _update_attribute,
     _update_cell_methods,
     _update_coord,
@@ -648,105 +647,6 @@ class Test_amend_metadata(IrisTest):
                             for item in warning_list))
         self.assertEqual(result.attributes['new_attribute'],
                          'new_value')
-
-
-class Test_resolve_metadata_diff(IrisTest):
-    """Test the resolve_metadata_diff method."""
-
-    def setUp(self):
-        """Create a cube with threshold coord is not first coord."""
-        self.cube1 = create_cube_with_threshold()
-        self.cube2 = add_coordinate(
-            self.cube1, np.arange(2).astype(np.float32),
-            "realization", dtype=np.float32)
-        self.coord_name = find_threshold_coordinate(self.cube1).name()
-
-    def test_basic(self):
-        """Test that the function returns a tuple of Cubes. """
-        cube2 = self.cube1.copy()
-        result = resolve_metadata_diff(self.cube1, cube2)
-        self.assertIsInstance(result, tuple)
-        self.assertEqual(len(result), 2)
-        self.assertIsInstance(result[0], Cube)
-        self.assertIsInstance(result[1], Cube)
-
-    def test_mismatching_coords_wrong_shape(self):
-        """Test raises an error if shape do not match. """
-        cube2 = create_cube_with_threshold(
-            threshold_values=np.array([1.0, 2.0], dtype=np.float32))
-        msg = "Can not combine cubes, mismatching shapes"
-        with self.assertRaisesRegex(ValueError, msg):
-            resolve_metadata_diff(self.cube1, cube2)
-
-    def test_mismatching_coords_1d_coord_pos0_on_cube1(self):
-        """Test missing coord on cube2. Coord is leading coord in cube1."""
-        cube2 = self.cube1.copy()
-        cube2.remove_coord(self.coord_name)
-        cube2 = iris.util.squeeze(cube2)
-        result = resolve_metadata_diff(self.cube1, cube2)
-        self.assertIsInstance(result, tuple)
-        self.assertArrayEqual(result[0].shape, np.array([1, 2, 2, 2]))
-        self.assertArrayEqual(result[1].shape, np.array([1, 2, 2, 2]))
-
-    def test_mismatching_coords_1d_coord_pos0_on_cube2(self):
-        """Test missing coord on cube1. Coord is leading coord in cube2."""
-        cube2 = self.cube1.copy()
-        self.cube1.remove_coord(self.coord_name)
-        self.cube1 = iris.util.squeeze(self.cube1)
-        result = resolve_metadata_diff(self.cube1, cube2)
-        self.assertIsInstance(result, tuple)
-        self.assertArrayEqual(result[0].shape, np.array([2, 2, 2]))
-        self.assertArrayEqual(result[1].shape, np.array([2, 2, 2]))
-
-    def test_mismatching_coords_1d_coord_pos1_cube1(self):
-        """Test missing 1d coord on cube2.
-           Coord is not leading coord in cube1."""
-        cube2 = self.cube2.copy()
-        cube2.remove_coord(self.coord_name)
-        cube2 = iris.util.squeeze(cube2)
-        result = resolve_metadata_diff(self.cube2, cube2)
-        self.assertIsInstance(result, tuple)
-        self.assertArrayEqual(result[0].shape, np.array([2, 1, 2, 2, 2]))
-        self.assertArrayEqual(result[1].shape, np.array([2, 1, 2, 2, 2]))
-
-    def test_mismatching_coords_1d_coord_pos1_cube2(self):
-        """Test missing 1d coord on cube1.
-           Coord is not leading coord in cube2."""
-        cube2 = self.cube2.copy()
-        self.cube2.remove_coord(self.coord_name)
-        self.cube2 = iris.util.squeeze(self.cube2)
-        result = resolve_metadata_diff(self.cube2, cube2)
-        self.assertIsInstance(result, tuple)
-        self.assertArrayEqual(result[0].shape, np.array([2, 2, 2, 2]))
-        self.assertArrayEqual(result[1].shape, np.array([2, 2, 2, 2]))
-
-    def test_mismatching_coords_same_shape(self):
-        """Test works with mismatching coords but coords same shape."""
-        cube2 = create_cube_with_threshold(
-            threshold_values=np.array([2.0], dtype=np.float32))
-        result = resolve_metadata_diff(self.cube1, cube2)
-        self.assertIsInstance(result, tuple)
-        self.assertArrayEqual(result[0].coord(self.coord_name).points,
-                              np.array([1.0]))
-        self.assertArrayEqual(result[1].coord(self.coord_name).points,
-                              np.array([2.0]))
-
-    @ManageWarnings(record=True)
-    def test_warnings_on_work(self, warning_list=None):
-        """Test warning messages are given if warnings_on is set."""
-        cube2 = self.cube1.copy()
-        cube2.remove_coord(self.coord_name)
-        cube2 = iris.util.squeeze(cube2)
-        warning_msg = 'Adding new coordinate'
-        result = resolve_metadata_diff(self.cube1, cube2,
-                                       warnings_on=True)
-        self.assertTrue(any(item.category == UserWarning
-                            for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item)
-                            for item in warning_list))
-        self.assertIsInstance(result, tuple)
-        self.assertArrayEqual(result[0].shape, np.array([1, 2, 2, 2]))
-        self.assertArrayEqual(result[1].shape, np.array([1, 2, 2, 2]))
 
 
 class Test_set_history_attribute(IrisTest):
