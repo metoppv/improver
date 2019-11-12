@@ -354,7 +354,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         return diff_along_x_cube, diff_along_y_cube
 
 
-class OccurrenceWithinVicinity(BasePlugin):
+class OccurrenceWithinVicinity:
 
     """Calculate whether a phenomenon occurs within the specified distance."""
 
@@ -510,7 +510,7 @@ def transform_grid_to_lat_lon(cube):
     return lats, lons
 
 
-class RegridLandSea(BasePlugin):
+class RegridLandSea:
     """
     Replace data values at points where the nearest-regridding technique
     selects a source grid-point with an opposite land-sea-mask value to the
