@@ -82,8 +82,7 @@ def main(argv=None):
     parser = ArgParser(description='Calculate orographic enhancement using the'
                        ' ResolveWindComponents() and OrographicEnhancement() '
                        'plugins. Outputs data on the high resolution orography'
-                       ' grid and regridded to the coarser resolution of the '
-                       'input diagnostic variables.')
+                       ' grid.')
 
     parser.add_argument('temperature_filepath', metavar='TEMPERATURE_FILEPATH',
                         help='Full path to input NetCDF file of temperature on'
@@ -129,19 +128,16 @@ def main(argv=None):
     # load high resolution orography
     orography = load_cube(args.orography_filepath)
 
-    orogenh_high_res, orogenh_standard = process(
+    orogenh_high_res = process(
         temperature, humidity, pressure, wind_speed, wind_dir, orography)
 
     # generate file names
-    fname_standard = os.path.join(
-        args.output_dir, generate_file_name(orogenh_standard))
     fname_high_res = os.path.join(
         args.output_dir, generate_file_name(
             orogenh_high_res,
             parameter="orographic_enhancement_high_resolution"))
 
     # save output files
-    save_netcdf(orogenh_standard, fname_standard)
     save_netcdf(orogenh_high_res, fname_high_res)
 
 
@@ -149,8 +145,7 @@ def process(temperature, humidity, pressure, wind_speed, wind_dir, orography):
     """Calculate orograhpic enhancement
 
     Uses the ResolveWindComponents() and OrographicEnhancement() plugins.
-    Outputs data on the high resolution orography grid and regrided to the
-    coarser resolution of the input diagnostic variables.
+    Outputs data on the high resolution orography grid.
 
     Args:
         temperature (iris.cube.Cube):
@@ -168,21 +163,15 @@ def process(temperature, humidity, pressure, wind_speed, wind_dir, orography):
             resolution (1 km) UKPP domain grid.
 
     Returns:
-        (tuple): tuple containing:
-                **orogenh_high_res** (iris.cube.Cube):
-                    Precipitation enhancement due to orography in mm/h on the
-                    UK standard grid, padded with masked up np.nans where
-                    outside the UKPP domain.
-                **orogenh_standard** (iris.cube.Cube):
-                    Precipitation enhancement due to orography in mm/h on
-                    the 1km Transverse Mercator UKPP grid domain.
+        iris.cube.Cube:
+            Precipitation enhancement due to orography on the high resolution
+            input orography grid.
     """
     # resolve u and v wind components
     u_wind, v_wind = ResolveWindComponents().process(wind_speed, wind_dir)
     # calculate orographic enhancement
-    orogenh_high_res, orogenh_standard = OrographicEnhancement().process(
-        temperature, humidity, pressure, u_wind, v_wind, orography)
-    return orogenh_high_res, orogenh_standard
+    return OrographicEnhancement().process(temperature, humidity, pressure,
+                                           u_wind, v_wind, orography)
 
 
 if __name__ == "__main__":
