@@ -309,81 +309,11 @@ def _update_attribute(cube, attribute_name, changes, warnings_on=False):
     return result
 
 
-def _update_cell_methods(cube, cell_method_definition):
-    """Update cell methods. An "action" keyword is expected within the
-    cell method definition to specify whether the cell method is to be added
-    or deleted.
-
-    The cube will be modified in-place.
-
-    Args:
-        cube (iris.cube.Cube):
-            Cube containing cell methods that will be updated.
-        cell_method_definition (dict):
-            A dictionary which must contain an "action" keyword with a value of
-            either "add" or "delete", which determines whether to add or delete
-            the cell method. The rest of the keys are passed to the
-            iris.coords.CellMethod function. Of these keys, "method", is
-            compulsory, and "comments", "coords" and "intervals" are optional.
-            If any additional keys are provided in the dictionary they are
-            ignored.
-
-    Raises:
-        ValueError: If no action is specified for the cell method, then raise
-                    an error.
-        ValueError: If no method is specified for the cell method, then raise
-                    an error.
-
-    """
-    if "action" not in cell_method_definition:
-        msg = ("No action has been specified within the cell method "
-               "definition. Please specify an action either 'add' or 'delete'."
-               "The cell method definition provided "
-               "was {}".format(cell_method_definition))
-        raise ValueError(msg)
-
-    if not cell_method_definition["method"]:
-        msg = ("No method has been specified within the cell method "
-               "definition. Please specify a method to describe "
-               "the name of the operation, see iris.coords.CellMethod."
-               "The cell method definition provided "
-               "was {}".format(cell_method_definition))
-        raise ValueError(msg)
-
-    for key in ["coords", "intervals", "comments"]:
-        if key not in cell_method_definition:
-            cell_method_definition[key] = ()
-
-    if not cell_method_definition["coords"]:
-        coords = ()
-    else:
-        coords = tuple([cell_method_definition["coords"]])
-
-    cell_method = iris.coords.CellMethod(
-        method=cell_method_definition["method"],
-        coords=coords,
-        intervals=cell_method_definition["intervals"],
-        comments=cell_method_definition["comments"])
-
-    cm_list = []
-    for cm in cube.cell_methods:
-        if cm == cell_method and cell_method_definition["action"] == "delete":
-            continue
-        cm_list.append(cm)
-
-    if cell_method_definition["action"] == "add":
-        if cell_method not in cube.cell_methods:
-            cm_list.append(cell_method)
-
-    cube.cell_methods = cm_list
-
-
 def amend_metadata(cube,
                    name=None,
                    data_type=None,
                    coordinates=None,
                    attributes=None,
-                   cell_methods=None,
                    units=None,
                    warnings_on=False):
     """Amend the metadata in the incoming cube. Please note that if keyword
@@ -401,8 +331,6 @@ def amend_metadata(cube,
             Revised coordinates for incoming cube.
         attributes (dict or None):
             Revised attributes for incoming cube.
-        cell_methods (dict or None):
-            Cell methods for modification within the incoming cube.
         units (str, cf_units.Unit or None):
             Units for use in converting the units of the input cube.
         warnings_on (bool):
@@ -453,17 +381,6 @@ def amend_metadata(cube,
                 * "history": ["add", "Nowcast"]
                 * "history": "delete"
 
-        cell_methods: Cell methods are specified using a all arguments taken
-            by iris.coords.CellMethod. Additionally, an action key is required
-            to specify whether the specified cell method will be added or
-            deleted.
-            For example:
-                {
-                    "action": "delete",
-                    "method": "point",
-                    "coords": "time"
-                }
-
     """
     result = cube.copy()
     if data_type:
@@ -489,10 +406,6 @@ def amend_metadata(cube,
             changes = attributes[key]
             result = _update_attribute(result, key, changes,
                                        warnings_on=warnings_on)
-
-    if cell_methods is not None:
-        for key in cell_methods:
-            _update_cell_methods(result, cell_methods[key])
 
     if units is not None:
         result.convert_units(units)
