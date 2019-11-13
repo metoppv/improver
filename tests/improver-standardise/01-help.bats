@@ -69,7 +69,7 @@ optional arguments:
                         found but no fix applied.
   --json_file JSON_FILE
                         Filename for the json file containing required changes
-                        that will be applied to the metadata. Defaults to
+                        that will be applied to the attributes. Defaults to
                         None.
 
 Regridding options:

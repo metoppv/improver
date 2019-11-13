@@ -129,7 +129,7 @@ def main(argv=None):
     parser.add_argument("--json_file", metavar="JSON_FILE", default=None,
                         help='Filename for the json file containing required '
                              'changes that will be applied '
-                             'to the metadata. Defaults to None.')
+                             'to the attributes. Defaults to None.')
 
     args = parser.parse_args(args=argv)
 
@@ -151,7 +151,7 @@ def main(argv=None):
         raise ValueError(msg)
 
     # Load Cube and json
-    metadata_dict = load_json_or_none(args.json_file)
+    attributes_dict = load_json_or_none(args.json_file)
     # source file data path is a mandatory argument
     output_data = load_cube(args.source_data_filepath)
     target_grid = None
@@ -167,7 +167,7 @@ def main(argv=None):
 
     # Process Cube
     output_data = process(output_data, target_grid, source_landsea,
-                          metadata_dict, args.regrid_mode,
+                          attributes_dict, args.regrid_mode,
                           args.extrapolation_mode, args.landmask_vicinity,
                           args.fix_float64)
 
@@ -177,7 +177,7 @@ def main(argv=None):
 
 
 def process(output_data, target_grid=None, source_landsea=None,
-            metadata_dict=None, regrid_mode='bilinear',
+            attributes_dict=None, regrid_mode='bilinear',
             extrapolation_mode='nanmask', landmask_vicinity=25000,
             fix_float64=False):
     """Standardises a cube by one or more of regridding, updating meta-data etc
@@ -201,10 +201,9 @@ def process(output_data, target_grid=None, source_landsea=None,
             A cube describing the land_binary_mask on the source-grid if
             coastline-aware regridding is required.
             Default is None.
-        metadata_dict (dict):
+        attributes_dict (dict):
             Dictionary containing required changes that will be applied to
-            the metadata.
-            Default is None.
+            the attributes. Default is None.
         regrid_mode (str):
             Selects which regridding techniques to use. Default uses
             iris.analysis.Linear(); "nearest" uses Nearest() (Use for less
@@ -272,7 +271,8 @@ def process(output_data, target_grid=None, source_landsea=None,
         regrid_mode=regrid_mode, extrapolation_mode=extrapolation_mode,
         landmask=source_landsea, landmask_vicinity=landmask_vicinity)
     output_data = plugin.process(
-        output_data, target_grid, metadata_dict, fix_float64)
+        output_data, target_grid, attributes_dict=attributes_dict,
+        fix_float64=fix_float64)
 
     return output_data
 

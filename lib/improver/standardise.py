@@ -34,7 +34,7 @@
 import warnings
 from iris.analysis import Nearest, Linear
 
-from improver.metadata.amend import amend_metadata
+from improver.metadata.amend import amend_attributes
 from improver.metadata.check_datatypes import check_cube_not_float64
 from improver.utilities.spatial import RegridLandSea
 
@@ -44,9 +44,24 @@ class StandardiseGridAndMetadata:
     """Plugin to regrid cube data and standardise metadata"""
 
     def __init__(self, regrid_mode='bilinear', extrapolation_mode='nanmask',
-                 landmask=None, landmask_vicinity=25000):
+                 landmask=None, landmask_vicinity=25000,
+                 regrid_attributes=None):
         """
         Initialise regridding parameters
+
+        Args:
+            regrid_mode (str):
+                Mode of interpolation in regridding.
+            extrapolation_mode (str):
+                Mode to fill regions outside the domain in regridding.
+            landmask (iris.cube.Cube or None):
+                Land-sea mask, required for "nearest-with-mask" regrid option.
+            landmask_vicinity (float):
+                Radius of vicinity to search for a coastline, in metres
+            regrid_attributes (list of str or None):
+                List of attribute names to inherit from the target grid cube,
+                eg mosg__model_configuration, that describe the new grid. If
+                None, a list of Met Office-specific attributes is used.
         """
         if not landmask and "nearest-with-mask" in regrid_mode:
             msg = ("An argument has been specified that requires an input "
@@ -57,10 +72,19 @@ class StandardiseGridAndMetadata:
         self.extrapolation_mode = extrapolation_mode
         self.landmask_vicinity = landmask_vicinity
 
+        self.regrid_attributes = regrid_attributes
+        if self.regrid_attributes is None:
+            self.regrid_attributes = [
+                'mosg__grid_version', 'mosg__grid_domain', 'mosg__grid_type',
+                'mosg__model_configuration', 'institution']
+
     def _regrid_landsea(self, cube, target_grid):
         """
         Apply land-sea masking to the regridded cube. Raise warnings if
         landmask metadata is not as expected.
+
+        Returns:
+            iris.cube.Cube: Regridded cube
         """
         if "land_binary_mask" not in self.landmask.name():
             msg = ("Expected land_binary_mask in input_landmask cube "
@@ -77,16 +101,10 @@ class StandardiseGridAndMetadata:
 
     def _regrid_to_target(self, cube, target_grid):
         """
-        Regrid cube to target_grid
-
-        Args:
-            cube (iris.cube.Cube):
-                Input cube to be standardised
-            target_grid (iris.cube.Cube):
-                Cube on the required grid
+        Regrid cube to target_grid and inherit appropriate grid attributes
 
         Returns:
-            iris.cube.Cube
+            iris.cube.Cube: Regridded cube with updated attributes
         """
         regridder = Linear(extrapolation_mode=self.extrapolation_mode)
         if self.regrid_mode in ["nearest", "nearest-with-mask"]:
@@ -96,14 +114,14 @@ class StandardiseGridAndMetadata:
         if self.regrid_mode in ["nearest-with-mask"]:
             cube = self._regrid_landsea(cube, target_grid)
 
-        target_grid_attributes = (
+        attributes_to_inherit = (
             {k: v for (k, v) in target_grid.attributes.items()
-            if 'mosg__' in k or 'institution' in k})
-        cube = amend_metadata(cube, attributes=target_grid_attributes)
+            if k in self.regrid_attributes})
+        amend_attributes(cube, attributes_to_inherit)
 
         return cube
 
-    def process(self, cube, target_grid=None, metadata_dict=None,
+    def process(self, cube, target_grid=None, attributes_dict=None,
                 fix_float64=False):
         """
         Perform regridding and metadata adjustments
@@ -113,20 +131,20 @@ class StandardiseGridAndMetadata:
                 Input cube to be standardised
             target_grid (iris.cube.Cube or None):
                 Cube on the required grid
-            metadata_dict (dict or None):
-                Dictionary of required metadata updates
+            attributes_dict (dict or None):
+                Dictionary of required attribute updates. Keys are
+                attribute names, and values are the required value or "remove".
             fix_float64 (bool):
                 Flag to de-escalate float64 precision
 
         Returns:
             iris.cube.Cube
         """
-
         if target_grid:
             cube = self._regrid_to_target(cube, target_grid)
 
-        if metadata_dict:
-            cube = amend_metadata(cube, **metadata_dict)
+        if attributes_dict:
+            amend_attributes(cube, attributes_dict)
 
         check_cube_not_float64(cube, fix=fix_float64)
 
