@@ -38,7 +38,7 @@
   # Run cube-combiner processing and check it passes.
   run improver combine \
       --operation='min' \
-      --metadata_jsonfile="$IMPROVER_ACC_TEST_DIR/combine/bounds/time_bound.json" \
+      --metadata_jsonfile="$IMPROVER_ACC_TEST_DIR/combine/bounds/min_metadata.json" \
       $IMPROVER_ACC_TEST_DIR/combine/bounds/*H-temperature_at_screen_level_min.nc \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
