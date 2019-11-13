@@ -1,5 +1,5 @@
-#!/bin/bash
-#------------------------------------------------------------------------------
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
 #
@@ -28,36 +28,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-#------------------------------------------------------------------------------
-# NAME
-#    improver - IMPROVER post-processing and verification operations
-#
-# SYNOPSIS
-#    improver OPERATION [OPTIONS] [ARGS...] # Invoke an IMPROVER operation
-#    improver help                     # Generic help across operations
-#    improver help OPERATION           # Specific help for a particular operation
-#    improver version                  # Print out version information
-#
-# DESCRIPTION
-#    Launch particular operations for post-processing or verification of
-#    meteorological data. This script is a central launcher for all
-#    IMPROVER subcommands (improver-xxxx) and central help.
-#
-# ENVIRONMENT
-#    IMPROVER_SITE_INIT     # override default location for etc/site-init file
-#------------------------------------------------------------------------------
+"""Main to run clize on the cli"""
+from improver import cli
 
-set -eu
-
-export IMPROVER_DIR="$(cd $(dirname $0)/../ && pwd -P)"
-
-# Apply site-specific setup if necessary.
-if [[ -f "${IMPROVER_SITE_INIT:=$IMPROVER_DIR/etc/site-init}" ]]; then
-    . "$IMPROVER_SITE_INIT"
-fi
-
-# Put our library and scripts in the paths.
-export PATH="$IMPROVER_DIR/bin/:$PATH"
-export PYTHONPATH="$IMPROVER_DIR/lib/:${PYTHONPATH:-}"
-
-exec python3 -m improver.cli "$@"
+if __name__ == '__main__':
+    cli.run_main()

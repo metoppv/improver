@@ -33,18 +33,14 @@
 
 import warnings
 
-import iris
-
-from improver.argparser import ArgParser
-from improver.cube_combiner import CubeCombiner
-from improver.utilities.cli_utilities import load_json_or_none
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
+from improver import cli
 
 
 def main(argv=None):
     """Load in arguments for the cube combiner plugin.
     """
+    from improver.argparser import ArgParser
+
     parser = ArgParser(
         description="Combine the input files into a single file using "
                     "the requested operation e.g. + - min max etc.")
@@ -82,12 +78,12 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
-    new_metadata = load_json_or_none(args.metadata_jsonfile)
+    new_metadata = cli.inputjson(args.metadata_jsonfile)
     # Load cubes
-    cubelist = iris.cube.CubeList([])
+    cubelist = []
     new_cube_name = args.new_name
     for filename in args.input_filenames:
-        new_cube = load_cube(filename)
+        new_cube = cli.inputcube(filename)
         cubelist.append(new_cube)
         if new_cube_name is None:
             new_cube_name = new_cube.name()
@@ -100,40 +96,43 @@ def main(argv=None):
                 warnings.warn(msg)
 
     # Process Cube
-    result = process(cubelist, args.operation, new_cube_name,
-                     new_metadata, args.warnings_on)
+    # pylint: disable=E1123
+    process(*cubelist, operation=args.operation, new_name=new_cube_name,
+            new_metadata=new_metadata, warnings_on=args.warnings_on,
+            output=args.output_filepath)
 
-    # Save Cube
-    save_netcdf(result, args.output_filepath)
 
-
-def process(cubelist, operation, new_cube_name,
-            new_metadata=None, warnings_on=False):
-    """Module for combining Cubes.
+@cli.clizefy
+@cli.with_output
+def process(*cubelist: cli.inputcube,
+            operation='+',
+            new_name=None,
+            new_metadata: cli.inputjson = None,
+            warnings_on=False):
+    r"""Combine input cubes.
 
     Combine the input cubes into a single cube using the requested operation.
-    e.g. '+', '-', '*', 'add', 'subtract', 'multiply', 'min', 'max', 'mean'
 
     Args:
-        cubelist (iris.cube.CubeList):
+        cubelist (iris.cube.CubeList or list of iris.cube.Cube):
             An iris CubeList to be combined.
         operation (str):
-            "+", "-", "*", "add", "subtract", "multiply", "min", "max", "mean"
-            An operation to use in combining Cubes.
-        new_cube_name (str):
+            An operation to use in combining input cubes. One of:
+            +, -, \*, add, subtract, multiply, min, max, mean
+        new_name (str):
             New name for the resulting dataset.
         new_metadata (dict):
             Dictionary of required changes to the metadata.
-            Default is None.
         warnings_on (bool):
             If True, warning messages where metadata do not match will be
             given.
-            Default is False.
 
-    Returns
+    Returns:
         result (iris.cube.Cube):
             Returns a cube with the combined data.
     """
+    from improver.cube_combiner import CubeCombiner
+    from iris.cube import CubeList
     # Load the metadata changes if required
     new_coords = None
     new_attr = None
@@ -145,14 +144,13 @@ def process(cubelist, operation, new_cube_name,
             new_attr = new_metadata['attributes']
         if 'expanded_coord' in new_metadata:
             expanded_coord = new_metadata['expanded_coord']
-
-    result = (
-        CubeCombiner(operation, warnings_on=warnings_on).process(
-            cubelist,
-            new_cube_name,
-            revised_coords=new_coords,
-            revised_attributes=new_attr,
-            expanded_coord=expanded_coord))
+    if not cubelist:
+        raise TypeError("A cube is needed to be combined.")
+    if new_name is None:
+        new_name = cubelist[0].name()
+    result = CubeCombiner(operation, warnings_on=warnings_on).process(
+        CubeList(cubelist), new_name, revised_coords=new_coords,
+        revised_attributes=new_attr, expanded_coord=expanded_coord)
     return result
 
 
