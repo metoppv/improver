@@ -135,10 +135,10 @@ class Test_process(set_up_cubes):
         correctly and expands the requested coordinate bounds in the
         resulting output."""
         plugin = CubeCombiner('add')
-        expanded_coord = {'time': 'upper'}
+        coords_to_expand = {'time': 'upper'}
         cubelist = iris.cube.CubeList([self.cube1, self.cube2])
         result = plugin.process(cubelist, 'new_cube_name',
-                                expanded_coord=expanded_coord)
+                                coords_to_expand=coords_to_expand)
         expected_data = np.full((1, 2, 2), 1.1, dtype=np.float32)
         self.assertEqual(result.name(), 'new_cube_name')
         self.assertArrayAlmostEqual(result.data, expected_data)
@@ -196,32 +196,6 @@ class Test_process(set_up_cubes):
         cubelist = iris.cube.CubeList([self.cube1])
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(cubelist, 'new_cube_name')
-
-    def test_revised_coords(self):
-        """Test that the plugin passes through the relevant dictionary to
-        modify a coordinate and that these modifications are present in the
-        returned cube."""
-        plugin = CubeCombiner('mean')
-        revised_coords = {'lwe_thickness_of_precipitation_amount': {
-            'points': [2.0]}}
-        cubelist = iris.cube.CubeList([self.cube1, self.cube2])
-        result = plugin.process(cubelist, 'new_cube_name',
-                                revised_coords=revised_coords)
-        self.assertEqual(
-            result.coord('lwe_thickness_of_precipitation_amount').points[0],
-            2.0)
-
-    def test_revised_attributes(self):
-        """Test that the plugin passes through the relevant dictionary to
-        modify an attribute and that these modifications are present in the
-        returned cube."""
-        plugin = CubeCombiner('mean')
-        revised_attributes = {'attribute_to_update': 'second_value'}
-        cubelist = iris.cube.CubeList([self.cube1, self.cube2])
-        result = plugin.process(cubelist, 'new_cube_name',
-                                revised_attributes=revised_attributes)
-        self.assertEqual(result.attributes['attribute_to_update'],
-                         'second_value')
 
 
 if __name__ == '__main__':

@@ -134,23 +134,21 @@ def process(*cubelist: cli.inputcube,
     from improver.cube_combiner import CubeCombiner
     from iris.cube import CubeList
     # Load the metadata changes if required
-    new_coords = None
-    new_attr = None
-    expanded_coord = None
+    cell_method_updates = None
+    coords_to_expand = None
     if new_metadata:
-        if 'coordinates' in new_metadata:
-            new_coords = new_metadata['coordinates']
-        if 'attributes' in new_metadata:
-            new_attr = new_metadata['attributes']
+        if 'cell_methods' in new_metadata:
+            cell_method_updates = new_metadata['cell_methods']
         if 'expanded_coord' in new_metadata:
-            expanded_coord = new_metadata['expanded_coord']
+            coords_to_expand = new_metadata['expanded_coord']
     if not cubelist:
         raise TypeError("A cube is needed to be combined.")
     if new_name is None:
         new_name = cubelist[0].name()
     result = CubeCombiner(operation, warnings_on=warnings_on).process(
-        CubeList(cubelist), new_name, revised_coords=new_coords,
-        revised_attributes=new_attr, expanded_coord=expanded_coord)
+        CubeList(cubelist), new_name, cell_method_updates=cell_method_updates,
+        expanded_coord=coords_to_expand)
+
     return result
 
 

@@ -105,9 +105,8 @@ class CubeCombiner(BasePlugin):
                     "Cannot combine cubes with different dimensions")
 
     def process(self, cube_list, new_diagnostic_name,
-                revised_coords=None,
-                revised_attributes=None,
-                expanded_coord=None):
+                cell_method_updates=None,
+                coords_to_expand=None):
         """
         Create a combined cube.
 
@@ -116,11 +115,9 @@ class CubeCombiner(BasePlugin):
                 List of cubes to combine.
             new_diagnostic_name (str):
                 New name for the combined diagnostic.
-            revised_coords (dict or None):
-                Revised coordinates for combined cube.
-            revised_attributes (dict or None):
-                Revised attributes for combined cube.
-            expanded_coord (dict or None):
+            cell_method_updates (dict or None):
+                Changes to cell methods for combined cube.
+            coords_to_expand (dict or None):
                 Coordinates to be expanded as a key, with the value
                 indicating whether the upper or mid point of the coordinate
                 should be used as the point value, e.g.
@@ -147,13 +144,12 @@ class CubeCombiner(BasePlugin):
             result.data = result.data / len(cube_list)
 
         # If cube has coord bounds that we want to expand
-        if expanded_coord:
-            result = expand_bounds(result, cube_list, expanded_coord)
+        if coords_to_expand is not None:
+            result = expand_bounds(result, cube_list, coords_to_expand)
+        result.rename(new_diagnostic_name)
 
         result = amend_metadata(result,
-                                name=new_diagnostic_name,
-                                coordinates=revised_coords,
-                                attributes=revised_attributes,
+                                cell_methods=cell_method_updates,
                                 warnings_on=self.warnings_on)
 
         return result
