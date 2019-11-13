@@ -98,7 +98,7 @@ def process(temperature, wind_speed, relative_humidity, pressure):
             Cube of air pressure.
 
     Returns:
-        (iris.cube.Cube):
+        iris.cube.Cube:
             Cube of feels like temperature. The units of feels like temperature
             will be the same as the units of temperature cube when it is input
             into the function.

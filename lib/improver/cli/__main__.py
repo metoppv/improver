@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,24 +28,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""Main to run clize on the cli"""
+from improver import cli
 
-. $IMPROVER_DIR/tests/lib/utils
-
-@test "nbhood 'probabilities' 'square' --radius=20000 input output --apply-recursive-filter --alpha_x 0.5 --alpha_y 0.5 --iterations 2 --re_mask --input_mask_filepath" {
-  improver_check_skip_acceptance
-  KGO="nbhood/recursive/kgo_external_mask_with_re_mask_recursive_alpha.nc"
-
-  # Run square neighbourhood processing, apply recursive filter and check it passes.
-  run improver nbhood 'probabilities' 'square' --radius=20000 \
-      "$IMPROVER_ACC_TEST_DIR/nbhood/mask/input.nc" \
-      "$TEST_DIR/output.nc" --apply-recursive-filter --re_mask \
-      --alpha_x=0.5 --alpha_y=0.5 --iterations=2 \
-      --input_mask_filepath="$IMPROVER_ACC_TEST_DIR/nbhood/mask/mask.nc"
-  [[ "$status" -eq 0 ]]
-
-  improver_check_recreate_kgo "output.nc" $KGO
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
-}
+if __name__ == '__main__':
+    cli.run_main()

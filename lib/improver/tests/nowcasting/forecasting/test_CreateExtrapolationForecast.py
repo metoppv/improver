@@ -100,20 +100,19 @@ class Test__init__(SetUpCubes):
 
     def test_basic_with_metadata_dict(self):
         """Test for simple case where __init__ does not change the input and
-           we use a metadata_dict."""
+           we amend the attributes."""
         # Change the input cube so no orographic enhancement is expected.
         input_cube = self.precip_cube.copy()
         input_cube.rename("air_temperature")
         input_cube.units = "K"
-        # set up a metadata_dict
-        metadata_dict = {"attributes": {"source": "IMPROVER"}}
+        attributes = {"source": "IMPROVER"}
         plugin = CreateExtrapolationForecast(
             input_cube.copy(), self.vel_x, self.vel_y,
-            metadata_dict=metadata_dict)
+            attributes_dict=attributes)
         self.assertEqual(input_cube, plugin.input_cube)
         self.assertEqual(plugin.orographic_enhancement_cube, None)
         self.assertIsInstance(plugin.advection_plugin, AdvectField)
-        self.assertEqual(plugin.advection_plugin.metadata_dict, metadata_dict)
+        self.assertEqual(plugin.advection_plugin.attributes_dict, attributes)
 
     def test_no_orographic_enhancement(self):
         """Test what happens if no orographic enhancement cube is provided"""
@@ -159,7 +158,7 @@ class Test__repr__(SetUpCubes):
             "(projection_y_coordinate: 4; projection_x_coordinate: 3)>, "
             "vel_y=<iris 'Cube' of advection_velocity_y / (m s-1) "
             "(projection_y_coordinate: 4; projection_x_coordinate: 3)>, "
-            "metadata_dict={}>>"
+            "attributes_dict={}>>"
             )
         self.assertEqual(result, expected_result)
 
@@ -178,7 +177,7 @@ class Test_extrapolate(SetUpCubes):
         input_cube.units = "K"
         plugin = CreateExtrapolationForecast(
                 input_cube, self.vel_x, self.vel_y)
-        result = plugin.extrapolate(leadtime_minutes=10)
+        result = plugin.extrapolate(10)
         expected_result = np.array([[np.nan, np.nan, np.nan],
                                     [np.nan, 1, 2],
                                     [np.nan, 1, 1],
@@ -208,7 +207,7 @@ class Test_extrapolate(SetUpCubes):
         plugin = CreateExtrapolationForecast(
                 self.precip_cube, self.vel_x, self.vel_y,
                 orographic_enhancement_cube=self.oe_cube)
-        result = plugin.extrapolate(leadtime_minutes=10)
+        result = plugin.extrapolate(10)
         expected_result = np.array([[np.nan, np.nan, np.nan],
                                     [np.nan, 1.03125, 1.0],
                                     [np.nan, 1.0, 0.03125],
@@ -226,16 +225,6 @@ class Test_extrapolate(SetUpCubes):
             self.precip_cube.coord("forecast_reference_time").points)
         self.assertEqual(result.coord("time").points,
                          self.precip_cube.coord("time").points+600)
-
-    def test_raises_error(self):
-        """Test an error is raised if no leadtime is provided"""
-        plugin = CreateExtrapolationForecast(
-                self.precip_cube, self.vel_x, self.vel_y,
-                orographic_enhancement_cube=self.oe_cube)
-        message = ("leadtime_minutes must be provided in order to "
-                   "produce an extrapolated forecast")
-        with self.assertRaisesRegex(ValueError, message):
-            plugin.extrapolate()
 
 
 if __name__ == '__main__':

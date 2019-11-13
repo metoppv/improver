@@ -135,14 +135,16 @@ def process(cube, mask_cube=None, alphas_x_cube=None, alphas_y_cube=None,
             square in the y direction.
             Default is None.
         iterations (int):
-            Number of times to apply the filter. (Typically < 5)
+            Number of times to apply the filter. (Typically < 3)
+            Number of iterations should be 2 or less, higher values have been
+            shown to lead to poorer conservation.
             Default is 1 (one).
         re_mask (bool):
             Re-apply mask to recursively filtered output.
             Default is False.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             The processed Cube.
     """
     result = RecursiveFilter(

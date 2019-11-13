@@ -141,7 +141,7 @@ def process(orography, landmask=None, thresholds_dict=None):
             [950., 6000.]], 'units': 'm'}
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             list of orographic band mask cube.
 
     """

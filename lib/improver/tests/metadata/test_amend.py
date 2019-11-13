@@ -41,7 +41,8 @@ from iris.tests import IrisTest
 
 from improver.metadata.amend import (
     add_coord,
-    add_history_attribute,
+    set_history_attribute,
+    amend_attributes,
     amend_metadata,
     resolve_metadata_diff,
     _update_attribute,
@@ -116,6 +117,29 @@ class Test_update_stage_v110_metadata(IrisTest):
                          self.cube.attributes['mosg__grid_domain'])
         self.assertEqual('1.1.0', self.cube.attributes['mosg__grid_version'])
         self.assertTrue(output)
+
+
+class Test_amend_attributes(IrisTest):
+    """Test the amend_attributes method."""
+
+    def setUp(self):
+        """Set up a cube and dict"""
+        self.cube = set_up_variable_cube(
+            280*np.ones((3, 3), dtype=np.float32),
+            attributes={"mosg__grid_version": "1.3.0",
+                        "mosg__model_configuration": "uk_det"})
+        self.metadata_dict = {
+            "mosg__grid_version": "delete",
+            "source": "IMPROVER unit tests",
+            "mosg__model_configuration": "other_model"}
+
+    def test_basic(self):
+        """Test function adds, removes and modifies attributes as expected"""
+        expected_attributes = {
+            "source": "IMPROVER unit tests",
+            "mosg__model_configuration": "other_model"}
+        amend_attributes(self.cube, self.metadata_dict)
+        self.assertDictEqual(self.cube.attributes, expected_attributes)
 
 
 class Test_add_coord(IrisTest):
@@ -363,21 +387,6 @@ class Test__update_attribute(IrisTest):
         result = _update_attribute(self.cube, attribute_name, changes)
         self.assertEqual(result.attributes['new_attribute'],
                          'new_value')
-
-    def test_history_attribute_added(self):
-        """Test _update_attribute adds attribute OK. """
-        attribute_name = 'history'
-        changes = ['add', "Nowcast"]
-        result = _update_attribute(self.cube, attribute_name, changes)
-        self.assertTrue("history" in result.attributes.keys())
-
-    def test_failure_to_add_history_attribute(self):
-        """Test _update_attribute doesn't adds non-history attribute. """
-        attribute_name = 'new_attribute'
-        changes = 'add'
-        msg = "Only the history attribute can be added"
-        with self.assertRaisesRegex(ValueError, msg):
-            _update_attribute(self.cube, attribute_name, changes)
 
     def test_attributes_deleted(self):
         """Test _update_attribute deletes attribute OK. """
@@ -740,13 +749,13 @@ class Test_resolve_metadata_diff(IrisTest):
         self.assertArrayEqual(result[1].shape, np.array([1, 2, 2, 2]))
 
 
-class Test_add_history_attribute(IrisTest):
-    """Test the add_history_attribute function."""
+class Test_set_history_attribute(IrisTest):
+    """Test the set_history_attribute function."""
 
     def test_add_history(self):
         """Test that a history attribute has been added."""
         cube = set_up_variable_cube(np.ones((3, 3), dtype=np.float32))
-        add_history_attribute(cube, "Nowcast")
+        set_history_attribute(cube, "Nowcast")
         self.assertTrue("history" in cube.attributes)
         self.assertTrue("Nowcast" in cube.attributes["history"])
 
@@ -756,7 +765,7 @@ class Test_add_history_attribute(IrisTest):
         cube = set_up_variable_cube(np.ones((3, 3), dtype=np.float32))
         old_history = "2018-09-13T11:28:29: StaGE"
         cube.attributes["history"] = old_history
-        add_history_attribute(cube, "Nowcast")
+        set_history_attribute(cube, "Nowcast")
         self.assertTrue("history" in cube.attributes)
         self.assertTrue("Nowcast" in cube.attributes["history"])
         self.assertFalse(old_history in cube.attributes["history"])
@@ -766,7 +775,7 @@ class Test_add_history_attribute(IrisTest):
         cube = set_up_variable_cube(np.ones((3, 3), dtype=np.float32))
         old_history = "2018-09-13T11:28:29: StaGE"
         cube.attributes["history"] = old_history
-        add_history_attribute(cube, "Nowcast", append=True)
+        set_history_attribute(cube, "Nowcast", append=True)
         self.assertTrue("history" in cube.attributes)
         self.assertTrue("Nowcast" in cube.attributes["history"])
         self.assertTrue(old_history in cube.attributes["history"])
@@ -774,7 +783,7 @@ class Test_add_history_attribute(IrisTest):
     def test_history_append_no_existing(self):
         """Test the "append" option doesn't crash when no history exists."""
         cube = set_up_variable_cube(np.ones((3, 3), dtype=np.float32))
-        add_history_attribute(cube, "Nowcast", append=True)
+        set_history_attribute(cube, "Nowcast", append=True)
         self.assertTrue("history" in cube.attributes)
         self.assertTrue("Nowcast" in cube.attributes["history"])
 

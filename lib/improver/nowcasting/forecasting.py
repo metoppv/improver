@@ -34,11 +34,12 @@ This module defines plugins used to create nowcast extrapolation forecasts.
 import datetime
 import warnings
 
+import iris
 import numpy as np
 from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 
-from improver.metadata.amend import (amend_metadata, add_history_attribute)
+from improver.metadata.amend import (amend_attributes, set_history_attribute)
 from improver.nowcasting.optical_flow import check_input_coords
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
 
@@ -49,7 +50,7 @@ class AdvectField():
     dimensions
     """
 
-    def __init__(self, vel_x, vel_y, metadata_dict=None):
+    def __init__(self, vel_x, vel_y, attributes_dict=None):
         """
         Initialises the plugin.  Velocities are expected to be on a regular
         grid (such that grid spacing in metres is the same at all points in
@@ -62,12 +63,9 @@ class AdvectField():
             vel_y (iris.cube.Cube):
                 Cube containing a 2D array of velocities along the y
                 coordinate axis
-            metadata_dict (dict):
-                Dictionary containing information for amending the metadata
-                of the output cube. Please see the
-                :func:`improver.metadata.amend.amend_metadata`
-                for information regarding the allowed contents of the metadata
-                dictionary.
+            attributes_dict (dict):
+                Dictionary containing information for amending the attributes
+                of the output cube.
         """
 
         # check each input velocity cube has precisely two non-scalar
@@ -90,16 +88,16 @@ class AdvectField():
         self.y_coord = vel_x.coord(axis="y")
 
         # Initialise metadata dictionary.
-        if metadata_dict is None:
-            metadata_dict = {}
-        self.metadata_dict = metadata_dict
+        if attributes_dict is None:
+            attributes_dict = {}
+        self.attributes_dict = attributes_dict
 
     def __repr__(self):
         """Represent the plugin instance as a string."""
         result = ('<AdvectField: vel_x={}, vel_y={}, '
-                  'metadata_dict={}>'.format(
+                  'attributes_dict={}>'.format(
                       repr(self.vel_x), repr(self.vel_y),
-                      self.metadata_dict))
+                      self.attributes_dict))
         return result
 
     @staticmethod
@@ -157,7 +155,7 @@ class AdvectField():
                 Advection time step in seconds
 
         Returns:
-            adv_field (numpy.ma.MaskedArray):
+            numpy.ma.MaskedArray:
                 2D float array of advected data values with masked "no data"
                 regions
         """
@@ -238,7 +236,7 @@ class AdvectField():
                 Advection time step
 
         Returns:
-            advected_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 New cube with updated time and extrapolated data.  New data
                 are filled with np.nan and masked where source data were
                 out of bounds (ie where data could not be advected from outside
@@ -320,9 +318,8 @@ class AdvectField():
                 "{} Nowcast".format(advected_cube.attributes["institution"]))
         else:
             advected_cube.attributes["source"] = "Nowcast"
-        add_history_attribute(advected_cube, "Nowcast")
-
-        advected_cube = amend_metadata(advected_cube, **self.metadata_dict)
+        amend_attributes(advected_cube, self.attributes_dict)
+        set_history_attribute(advected_cube, "Nowcast")
         return advected_cube
 
 
@@ -333,7 +330,7 @@ class CreateExtrapolationForecast():
     """
 
     def __init__(self, input_cube, vel_x, vel_y,
-                 orographic_enhancement_cube=None, metadata_dict=None):
+                 orographic_enhancement_cube=None, attributes_dict=None):
         """
         Initialises the object.
         This includes checking if orographic enhancement is provided and
@@ -356,12 +353,9 @@ class CreateExtrapolationForecast():
                 data for multiple times in the cube. The orographic enhancement
                 is removed from the input_cube before advecting, and added
                 back on after advection.
-            metadata_dict (dict):
-                Dictionary containing information for amending the metadata
-                of the output cube. Please see the
-                :func:`improver.metadata.amend.amend_metadata`
-                for information regarding the allowed contents of the metadata
-                dictionary.
+            attributes_dict (dict):
+                Dictionary containing information for amending the attributes
+                of the output cube.
         """
         self.orographic_enhancement_cube = orographic_enhancement_cube
         if self.orographic_enhancement_cube:
@@ -373,7 +367,7 @@ class CreateExtrapolationForecast():
             raise ValueError(msg)
         self.input_cube = input_cube
         self.advection_plugin = AdvectField(
-            vel_x, vel_y, metadata_dict=metadata_dict)
+            vel_x, vel_y, attributes_dict=attributes_dict)
 
     def __repr__(self):
         """Represent the plugin instance as a string."""
@@ -385,7 +379,7 @@ class CreateExtrapolationForecast():
                       repr(self.advection_plugin)))
         return result
 
-    def extrapolate(self, leadtime_minutes=None):
+    def extrapolate(self, leadtime_minutes):
         """
         Produce a new forecast cube for the supplied lead time. Creates a new
         advected forecast and then reapplies the orographic enhancement if it
@@ -397,7 +391,7 @@ class CreateExtrapolationForecast():
                 in minutes.
 
         Returns:
-            advected_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 New cube with updated time and extrapolated data.  New data
                 are filled with np.nan and masked where source data were
                 out of bounds (ie where data could not be advected from outside
@@ -406,10 +400,6 @@ class CreateExtrapolationForecast():
         Raises:
             ValueError: If no leadtime_minutes are provided.
         """
-        if leadtime_minutes is None:
-            message = ("leadtime_minutes must be provided in order to produce"
-                       " an extrapolated forecast")
-            raise ValueError(message)
         # cast to float as datetime.timedelta cannot accept np.int
         timestep = datetime.timedelta(minutes=float(leadtime_minutes))
         forecast_cube = self.advection_plugin.process(
@@ -420,3 +410,23 @@ class CreateExtrapolationForecast():
                 forecast_cube, self.orographic_enhancement_cube)
 
         return forecast_cube
+
+    def process(self, interval, max_lead_time):
+        """
+        Generate nowcasts at required intervals up to the maximum lead time
+
+        Args:
+            interval (int):
+                Lead time interval, in minutes
+            max_lead_time (int):
+                Maximum lead time required, in minutes
+
+        Returns:
+            iris.cube.CubeList:
+                List of forecast cubes at the required lead times
+        """
+        lead_times = np.arange(0, max_lead_time + 1, interval)
+        forecast_cubes = iris.cube.CubeList()
+        for lead_time in lead_times:
+            forecast_cubes.append(self.extrapolate(lead_time))
+        return forecast_cubes

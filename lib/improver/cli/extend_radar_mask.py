@@ -85,7 +85,7 @@ def process(coverage, radar_data, fix_float64=False):
             will be raised if float64 data is found but no fix applied.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             A cube with the remasked radar data.
     """
     # extend mask

@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,25 +28,22 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""Tests command to execute tests."""
 
-. $IMPROVER_DIR/tests/lib/utils
 
-@test "neighbour-finding modify output cube metadata" {
-  improver_check_skip_acceptance
-  KGO="neighbour-finding/outputs/modified_metadata_kgo.nc"
+def main(argv):
+    """Run pycodestyle, pylint, documentation, unit and CLI acceptance tests.
+    """
+    # Temporary shim routine
+    import os
+    import sys
+    import subprocess
+    prog = os.path.join(os.environ['IMPROVER_DIR'], 'bin', 'improver-tests')
+    sys.exit(subprocess.call([prog, *argv]))
 
-  # Run cube extraction processing and check it passes.
-  run improver neighbour-finding \
-      "$IMPROVER_ACC_TEST_DIR/neighbour-finding/inputs/uk_sites.json" \
-      "$IMPROVER_ACC_TEST_DIR/neighbour-finding/inputs/ukvx_orography.nc" \
-      "$IMPROVER_ACC_TEST_DIR/neighbour-finding/inputs/ukvx_landmask.nc" \
-      "$TEST_DIR/output.nc" \
-      --metadata_json "$IMPROVER_ACC_TEST_DIR/neighbour-finding/inputs/metadata.json"
-  [[ "$status" -eq 0 ]]
 
-  improver_check_recreate_kgo "output.nc" $KGO
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
-}
+def process():
+    """Run pycodestyle, pylint, documentation unit and CLI acceptance tests.
+    """
+    # TODO: port bin/improver-tests shell script to python
+    raise NotImplementedError

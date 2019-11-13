@@ -54,7 +54,7 @@ def interrogate_decision_tree(wxtree):
     is used to create the CLI help, informing the user of the necessary inputs.
 
     Returns:
-        output (list of str):
+        list of str:
             Returns a list of strings, an entry for each diagnostic required,
             including threshold details.
     """
@@ -158,7 +158,7 @@ def process(cubes, wxtree='high_resolution'):
     """ Processes cube for Weather symbols.
 
     Args:
-        cubes (iris.cube.Cubelist):
+        cubes (iris.cube.CubeList):
             A cubelist containing the diagnostics required for the
             weather symbols decision tree, these at co-incident times.
         wxtree (str):
@@ -167,7 +167,7 @@ def process(cubes, wxtree='high_resolution'):
             Default is 'high_resolution'.
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             A cube of weather symbols.
 
     """

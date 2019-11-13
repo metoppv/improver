@@ -71,11 +71,7 @@ optional arguments:
                         files are compulsory for precipitation fields.
   --json_file JSON_FILE
                         Filename for the json file containing required changes
-                        to the metadata. Information describing the intended
-                        contents of the json file is available in
-                        improver.metadata.amend.amend_metadata. Every output
-                        cube will have the metadata_dict applied. Defaults to
-                        None.
+                        to the attributes. Defaults to None.
   --max_lead_time MAX_LEAD_TIME
                         Maximum lead time required (mins).
   --lead_time_interval LEAD_TIME_INTERVAL

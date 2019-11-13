@@ -72,7 +72,7 @@ class SpotExtraction():
                 A cube containing information about the spot data sites and
                 their grid point neighbours.
         Returns:
-            coordinate_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 A cube containing only the x and y grid coordinates for the
                 grid point neighbours given the chosen neighbour selection
                 method. The neighbour cube contains the indices stored as
@@ -113,7 +113,7 @@ class SpotExtraction():
             diagnostic_cube (iris.cube.Cube):
                 A cube of diagnostic data from which spot data is being taken.
         Returns:
-            spot_values (numpy.ndarray):
+            numpy.ndarray:
                 An array of diagnostic values at the grid coordinates found
                 within the coordinate cube.
         """
@@ -140,7 +140,7 @@ class SpotExtraction():
                 An array containing the diagnostic values extracted for the
                 required spot sites.
         Returns:
-            neighbour_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 A spot data cube containing the extracted diagnostic data.
         """
 
@@ -168,7 +168,7 @@ class SpotExtraction():
             diagnostic_cube (iris.cube.Cube):
                 A cube of diagnostic data from which spot data is being taken.
         Returns:
-            spotdata_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 A cube containing diagnostic data for each spot site, as well
                 as information about the sites themselves.
         """

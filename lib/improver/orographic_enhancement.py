@@ -166,7 +166,7 @@ class OrographicEnhancement:
                 Required unit for this variable
 
         Returns:
-            out_cube (iris.cube.Cube):
+            iris.cube.Cube:
                 Cube containing regridded variable data
         """
         for axis in ['x', 'y']:
@@ -261,7 +261,7 @@ class OrographicEnhancement:
         The mask is therefore "True" if any of these conditions are false.
 
         Returns:
-            mask (numpy.ndarray):
+            numpy.ndarray:
                 Boolean mask - where True, set orographic enhancement to a
                 default zero value
         """
@@ -287,14 +287,14 @@ class OrographicEnhancement:
                        (R_WATER_VAPOUR * temperature)) * 60 * 60
 
         Returns:
-            point_orogenh (numpy.ndarray):
+            numpy.ndarray:
                 Orographic enhancement values in mm/h
         """
         mask = np.logical_not(self._generate_mask())
         point_orogenh = np.zeros(self.temperature.data.shape, dtype=np.float32)
 
         prefactor = 3600./R_WATER_VAPOUR
-        numerator = np.multiply(self.humidity.data, self.svp.data)
+        numerator = np.multiply(self.humidity.data, self.svp)
         numerator = np.multiply(numerator, self.vgradz)
         point_orogenh[mask] = prefactor * np.divide(
             numerator[mask], self.temperature.data[mask])
@@ -314,7 +314,7 @@ class OrographicEnhancement:
                 cos(wind_direction) with respect to grid north
 
         Returns:
-            distance (numpy.ndarray):
+            numpy.ndarray:
                 3D array of source-to-destination distances in grid points,
                 with np.nan filled in for out of range values
         """
@@ -433,7 +433,7 @@ class OrographicEnhancement:
                 Site orographic enhancement in mm h-1
 
         Returns:
-            orogenh (numpy.ndarray):
+            numpy.ndarray:
                 Total orographic enhancement in mm h-1
         """
         # get wind speed and sin / cos direction wrt grid North
@@ -470,10 +470,8 @@ class OrographicEnhancement:
 
         return orogenh
 
-    def _create_output_cubes(self, orogenh_data, reference_cube):
-        """
-        Create two output cubes of orographic enhancement on different grids.
-        Casts coordinate points and bounds explicitly to np.float32.
+    def _create_output_cube(self, orogenh_data, reference_cube):
+        """Creates a cube containing orographic enhancement values in SI units.
 
         Args:
             orogenh_data (numpy.ndarray):
@@ -483,12 +481,8 @@ class OrographicEnhancement:
                 the UK standard grid
 
         Returns:
-            (tuple): tuple containing:
-                **orogenh** (iris.cube.Cube):
-                    Orographic enhancement cube on 1 km UKPP grid (m s-1)
-                **orogenh_standard_grid** (iris.cube.Cube):
-                    Orographic enhancement cube on the UK standard grid, padded
-                    with masked np.nans where outside the UKPP domain (m s-1)
+            iris.cube.Cube:
+                Orographic enhancement cube (m s-1)
         """
         # create cube containing high resolution data in mm/h
         x_coord = self.topography.coord(axis='x')
@@ -509,44 +503,25 @@ class OrographicEnhancement:
             except KeyError:
                 continue
 
-        orogenh = iris.cube.Cube(
+        orog_enhance_cube = iris.cube.Cube(
             orogenh_data, long_name="orographic_enhancement",
             units="mm h-1", attributes=attributes,
             dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)],
             aux_coords_and_dims=aux_coords)
-        orogenh.convert_units("m s-1")
+        orog_enhance_cube.convert_units("m s-1")
 
-        # regrid the orographic enhancement cube onto the standard grid and
-        # mask extrapolated points
-        orogenh_standard_grid = orogenh.regrid(
-            reference_cube, iris.analysis.Linear(extrapolation_mode='mask'))
+        for key, value in self.topography.attributes.items():
+            if 'mosg__grid' in key:
+                orog_enhance_cube.attributes[key] = value
 
-        for axis in ['x', 'y']:
-            orogenh_standard_grid = sort_coord_in_cube(
-                orogenh_standard_grid, orogenh_standard_grid.coord(axis=axis))
-            orogenh_standard_grid.coord(axis=axis).points = (
-                orogenh_standard_grid.coord(axis=axis).points.astype(
-                    np.float32))
-            if orogenh_standard_grid.coord(axis=axis).bounds is not None:
-                orogenh_standard_grid.coord(axis=axis).bounds = (
-                    orogenh_standard_grid.coord(axis=axis).bounds.astype(
-                        np.float32))
-
-        # add any relevant grid definition attributes
-        for data_cube, grid_cube in zip([orogenh, orogenh_standard_grid],
-                                        [self.topography, reference_cube]):
-            for key, val in grid_cube.attributes.items():
-                if 'mosg__grid' in key:
-                    data_cube.attributes[key] = val
-
-        return orogenh, orogenh_standard_grid
+        return orog_enhance_cube
 
     def process(self, temperature, humidity, pressure, uwind, vwind,
                 topography):
         """
-        Calculate precipitation enhancement over orography on standard and
-        high resolution grids.  Input variables are expected to be on the same
-        grid (either standard or high resolution).
+        Calculate precipitation enhancement over orography on high resolution
+        grid. Input diagnostics are all expected to be on the same grid, and
+        are regridded to match the orography.
 
         Args:
             temperature (iris.cube.Cube):
@@ -566,14 +541,8 @@ class OrographicEnhancement:
                 UKPP domain grid
 
         Returns:
-            (tuple): tuple containing:
-                **orogenh** (iris.cube.Cube):
-                    Precipitation enhancement due to orography in mm/h on the
-                    1 km Transverse Mercator UKPP grid domain
-                **orogenh_standard_grid** (iris.cube.Cube):
-                    Precipitation enhancement due to orography in mm/h on the
-                    UK standard grid, padded with masked np.nans where outside
-                    the UKPP domain
+            iris.cube.Cube:
+                Precipitation enhancement due to orography in m/s.
         """
         # check input variable cube coordinates match
         unmatched_coords = compare_coords(
@@ -601,9 +570,10 @@ class OrographicEnhancement:
 
         # calculate saturation vapour pressure
         wbt = WetBulbTemperature()
+
         self.svp = wbt.pressure_correct_svp(
-            wbt.lookup_svp(self.temperature),
-            self.temperature, self.pressure)
+            wbt.lookup_svp(self.temperature.data),
+            self.temperature.data, self.pressure.data)
 
         # calculate site-specific orographic enhancement
         point_orogenh_data = self._point_orogenh()
@@ -617,7 +587,6 @@ class OrographicEnhancement:
         orogenh_data = self._add_upstream_component(point_orogenh_data)
 
         # create data cubes on the two required output grids
-        orogenh, orogenh_standard_grid = self._create_output_cubes(
-            orogenh_data, temperature)
+        orogenh = self._create_output_cube(orogenh_data, temperature)
 
-        return orogenh, orogenh_standard_grid
+        return orogenh

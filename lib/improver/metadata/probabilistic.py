@@ -63,7 +63,7 @@ def in_vicinity_name_format(cube_name):
             The non-vicinity probability cube name to be formatted.
 
     Returns:
-        new_cube_name (str):
+        str:
             Correctly formatted name following the accepted convention e.g.
             'probability_of_X_in_vicinity_above_threshold'.
     """
@@ -85,7 +85,7 @@ def extract_diagnostic_name(cube_name):
             The probability cube name
 
     Returns:
-        diagnostic_name (str):
+        str:
             The name of the diagnostic underlying this probability
 
     Raises:
@@ -111,7 +111,7 @@ def find_threshold_coordinate(cube):
             Cube containing thresholded probability data
 
     Returns:
-        threshold_coord (iris.coords.Coord):
+        iris.coords.Coord:
             Threshold coordinate
 
     Raises:
@@ -147,7 +147,7 @@ def find_percentile_coordinate(cube):
         cube (iris.cube.Cube):
             Cube contain one or more percentiles.
     Returns:
-        perc_coord (iris.coords.Coord):
+        iris.coords.Coord:
             Percentile coordinate.
     Raises:
         TypeError: If cube is not of type iris.cube.Cube.

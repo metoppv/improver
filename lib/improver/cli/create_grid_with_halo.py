@@ -75,7 +75,7 @@ def process(cube, halo_radius=162000.0):
             Default is 162,000
 
     Returns:
-        result (iris.cube.Cube):
+        iris.cube.Cube:
             The processed Cube defining the halo-padded grid (data set to 0)
     """
     result = create_cube_with_halo(cube, halo_radius)

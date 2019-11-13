@@ -34,7 +34,6 @@
 @test "orographic-enhancement" {
   improver_check_skip_acceptance
   KGO_HI_RES="orographic_enhancement/basic/kgo_hi_res.nc"
-  KGO_STANDARD="orographic_enhancement/basic/kgo_standard.nc"
 
   # Run orographic enhancement and check it passes
   run improver orographic-enhancement \
@@ -47,15 +46,11 @@
       "$TEST_DIR"
   [[ "$status" -eq 0 ]]
 
-  OUTPUT_STANDARD="20180810T1200Z-PT0006H00M-orographic_enhancement.nc"
   OUTPUT_HI_RES="20180810T1200Z-PT0006H00M-orographic_enhancement_high_resolution.nc"
 
   improver_check_recreate_kgo $OUTPUT_HI_RES $KGO_HI_RES
-  improver_check_recreate_kgo $OUTPUT_STANDARD $KGO_STANDARD
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/$OUTPUT_HI_RES" \
       "$IMPROVER_ACC_TEST_DIR/$KGO_HI_RES"
-  improver_compare_output "$TEST_DIR/$OUTPUT_STANDARD" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO_STANDARD"
 }

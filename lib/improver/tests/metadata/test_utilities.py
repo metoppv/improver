@@ -31,10 +31,69 @@
 """Tests for the improver.metadata.utilities module"""
 
 import unittest
+import iris
 import numpy as np
 
-from improver.metadata.utilities import generate_hash, create_coordinate_hash
+from improver.metadata.utilities import (
+    create_new_diagnostic_cube, generate_hash, create_coordinate_hash)
 from improver.tests.set_up_test_cubes import set_up_variable_cube
+
+
+class Test_create_new_diagnostic_cube(unittest.TestCase):
+    """Test utility to create new diagnostic cubes"""
+
+    def setUp(self):
+        """Set up template with data, coordinates, attributes and cell
+        methods"""
+        self.template_cube = set_up_variable_cube(
+            280*np.ones((3, 5, 5), dtype=np.float32),
+            standard_grid_metadata='uk_det')
+        self.template_cube.add_cell_method('time (max): 1 hour')
+        self.name = "lwe_precipitation_rate"
+        self.units = "mm h-1"
+
+    def test_basic(self):
+        """Test result is a cube that inherits coordinates only"""
+        result = create_new_diagnostic_cube(
+            self.name, self.units, self.template_cube)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertEqual(result.standard_name, "lwe_precipitation_rate")
+        self.assertEqual(result.units, "mm h-1")
+        self.assertSequenceEqual(result.coords(dim_coords=True),
+                                 self.template_cube.coords(dim_coords=True))
+        self.assertSequenceEqual(result.coords(dim_coords=False),
+                                 self.template_cube.coords(dim_coords=False))
+        self.assertFalse(np.allclose(result.data, self.template_cube.data))
+        self.assertFalse(result.attributes)
+        self.assertFalse(result.cell_methods)
+        self.assertEqual(result.data.dtype, np.float32)
+
+    def test_attributes(self):
+        """Test attributes can be set on the output cube"""
+        attributes = {"source": "IMPROVER"}
+        result = create_new_diagnostic_cube(
+            self.name, self.units, self.template_cube, attributes=attributes)
+        self.assertDictEqual(result.attributes, attributes)
+
+    def test_data(self):
+        """Test data can be set on the output cube"""
+        data = np.arange(3*5*5).reshape((3, 5, 5)).astype(np.float32)
+        result = create_new_diagnostic_cube(
+            self.name, self.units, self.template_cube, data=data)
+        self.assertTrue(np.allclose(result.data, data))
+
+    def test_dtype(self):
+        """Test dummy data of a different type can be set"""
+        result = create_new_diagnostic_cube(
+            self.name, self.units, self.template_cube, dtype=np.int32)
+        self.assertEqual(result.data.dtype, np.int32)
+
+    def test_non_standard_name(self):
+        """Test cube can be created with a non-CF-standard name"""
+        result = create_new_diagnostic_cube(
+            "RainRate Composite", self.units, self.template_cube)
+        self.assertEqual(result.long_name, "RainRate Composite")
+        self.assertIsNone(result.standard_name)
 
 
 class Test_generate_hash(unittest.TestCase):
