@@ -32,8 +32,6 @@
 """Script to calculate optical flow advection velocities with option to
 extrapolate."""
 
-import os
-
 import iris
 from iris.cube import CubeList
 
@@ -41,7 +39,6 @@ from improver.argparser import ArgParser
 from improver.nowcasting.optical_flow import generate_optical_flow_components
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
 from improver.utilities.cli_utilities import load_json_or_none
-from improver.utilities.filename import generate_file_name
 from improver.utilities.load import load_cubelist, load_cube
 from improver.utilities.save import save_netcdf
 
