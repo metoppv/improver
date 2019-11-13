@@ -38,12 +38,9 @@ import iris
 
 from improver.argparser import ArgParser
 from improver.standardise import StandardiseGridAndMetadata
-#from improver.metadata.amend import amend_metadata
-#from improver.metadata.check_datatypes import check_cube_not_float64
 from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
-#from improver.utilities.spatial import RegridLandSea
 
 
 def main(argv=None):
@@ -271,9 +268,11 @@ def process(output_data, target_grid=None, source_landsea=None,
                "target_grid_filepath")
         raise ValueError(msg)
 
-    output_data = StandardiseGridAndMetadata().process(
-        output_data, target_grid, source_landsea, metadata_dict, regrid_mode,
-        extrapolation_mode, landmask_vicinity, fix_float64)
+    plugin = StandardiseGridAndMetadata(
+        regrid_mode=regrid_mode, extrapolation_mode=extrapolation_mode,
+        landmask=source_landsea, landmask_vicinity=landmask_vicinity)
+    output_data = plugin.process(
+        output_data, target_grid, metadata_dict, fix_float64)
 
     return output_data
 
