@@ -95,7 +95,7 @@ def generate_hash(data_in):
             A hexadecimal string which is a hash hexdigest of the data as a
             string.
     """
-    bytestring = pprint.pformat(data_in, sort_dicts=True).encode('utf-8')
+    bytestring = pprint.pformat(data_in).encode('utf-8')
     return hashlib.sha256(bytestring).hexdigest()
 
 
