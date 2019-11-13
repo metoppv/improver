@@ -148,7 +148,7 @@ class Test_calculate_normal_crps(SetupGaussianInputs):
             predictor_of_mean_flag)
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 11.7407838)
+        self.assertAlmostEqual(result, 0.2609063)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -168,7 +168,7 @@ class Test_calculate_normal_crps(SetupGaussianInputs):
             predictor_of_mean_flag)
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 11.7407763)
+        self.assertAlmostEqual(result, 0.2609061)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -442,7 +442,7 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedGaussianInputs):
             predictor_of_mean_flag)
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 7.5157541)
+        self.assertAlmostEqual(result, 0.1670168)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -461,7 +461,7 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedGaussianInputs):
             self.forecast_variance_data, self.sqrt_pi, predictor_of_mean_flag)
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 7.5157531)
+        self.assertAlmostEqual(result, 0.1670167)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",

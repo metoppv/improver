@@ -296,11 +296,12 @@ class ContinuousRankedProbabilityScoreMinimisers():
         xz = (truth - mu) / sigma
         normal_cdf = norm.cdf(xz)
         normal_pdf = norm.pdf(xz)
-        result = np.nansum(
-            sigma * (xz * (2 * normal_cdf - 1) + 2 * normal_pdf - 1 / sqrt_pi))
-        if not np.isfinite(np.min(mu/sigma)):
+        if np.isfinite(np.min(mu/sigma)):
+            result = np.nanmean(
+                sigma * (
+                    xz * (2 * normal_cdf - 1) + 2 * normal_pdf - 1 / sqrt_pi))
+        else:
             result = self.BAD_VALUE
-
         return result
 
     def calculate_truncated_normal_crps(
@@ -358,12 +359,13 @@ class ContinuousRankedProbabilityScoreMinimisers():
         x0 = mu / sigma
         normal_cdf_0 = norm.cdf(x0)
         normal_cdf_root_two = norm.cdf(np.sqrt(2) * x0)
-        result = np.nansum(
-            (sigma / normal_cdf_0**2) *
-            (xz * normal_cdf_0 * (2 * normal_cdf + normal_cdf_0 - 2) +
-             2 * normal_pdf * normal_cdf_0 -
-             normal_cdf_root_two / sqrt_pi))
-        if not np.isfinite(np.min(mu/sigma)) or (np.min(mu/sigma) < -3):
+        if np.isfinite(np.min(mu / sigma)) or (np.min(mu / sigma) >= -3):
+            result = np.nanmean(
+                (sigma / normal_cdf_0**2) *
+                (xz * normal_cdf_0 * (2 * normal_cdf + normal_cdf_0 - 2) +
+                 2 * normal_pdf * normal_cdf_0 -
+                 normal_cdf_root_two / sqrt_pi))
+        else:
             result = self.BAD_VALUE
         return result
 
