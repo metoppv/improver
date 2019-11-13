@@ -99,6 +99,7 @@ def main(argv=None):
                         help="Maximum lead time required (mins).")
     parser.add_argument("--lead_time_interval", type=int, default=15,
                         help="Interval between required lead times (mins).")
+    parser.add_argument("--u_and_v", type=str, help="Path to u and v cubelist")
 
     accumulation_args = parser.add_argument_group(
         'Calculate accumulations from advected fields')
@@ -124,22 +125,21 @@ def main(argv=None):
 
     # Load Cubes and JSON
     attributes_dict = load_json_or_none(args.json_file)
+
     upath, vpath = (args.eastward_advection_filepath,
                     args.northward_advection_filepath)
     spath, dpath = (args.advection_speed_filepath,
                     args.advection_direction_filepath)
 
-    # load files and initialise advection plugin
     input_cube = load_cube(args.input_filepath)
     orographic_enhancement_cube = load_cube(
         args.orographic_enhancement_filepaths, allow_none=True)
+    ucube = load_cube(upath, allow_none=True)
+    vcube = load_cube(vpath, allow_none=True)
 
-    speed_cube = direction_cube = ucube = vcube = None
-    if (upath and vpath) and not (spath or dpath):
-        ucube = load_cube(upath)
-        vcube = load_cube(vpath)
-    elif (spath and dpath) and not (upath or vpath):
-        level_constraint = Constraint(pressure=args.pressure_level)
+    level_constraint = Constraint(pressure=args.pressure_level)
+    speed_cube = direction_cube = None
+    if spath and dpath:
         try:
             speed_cube = load_cube(spath, constraints=level_constraint)
             direction_cube = load_cube(dpath, constraints=level_constraint)
@@ -147,9 +147,6 @@ def main(argv=None):
             raise ValueError(
                 '{} Unable to extract specified pressure level from given '
                 'speed and direction files.'.format(err))
-    else:
-        raise ValueError('Cannot mix advection component velocities with speed'
-                         ' and direction')
 
     # Process Cubes
     accumulation_cubes, forecast_to_return = process(
@@ -159,8 +156,8 @@ def main(argv=None):
         args.accumulation_period, args.accumulation_units)
 
     # Save Cube
-    if args.output_filepaths and \
-            len(args.output_filepaths) != len(forecast_to_return):
+    if (args.output_filepaths and
+            len(args.output_filepaths) != len(forecast_to_return)):
         raise ValueError("Require exactly one output file name for each "
                          "forecast lead time")
     for i, cube in enumerate(forecast_to_return):
@@ -256,7 +253,7 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
     if (speed_cube and direction_cube) and not (u_cube or v_cube):
         u_cube, v_cube = ResolveWindComponents().process(
             speed_cube, direction_cube)
-    elif (u_cube or v_cube) and (speed_cube or direction_cube):
+    if not (u_cube and v_cube and not speed_cube or direction_cube):
         raise ValueError('Cannot mix advection component velocities with speed'
                          ' and direction')
 

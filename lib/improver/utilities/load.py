@@ -92,15 +92,15 @@ def load_cube(filepath, constraints=None, no_lazy_load=False,
     elif return_cubelist:
         cube = []
         for c in cubes:
-            cube.append(remove_meta_and_lazy(c, no_lazy_load))
-        cube = CubeList(cube)
+            cube.append(_remove_meta_and_lazy(c, no_lazy_load))
+        return CubeList(cube)
     else:
         cube = merge_cubes(cubes)
-        cube = remove_meta_and_lazy(cube, no_lazy_load)
+    cube = _remove_meta_and_lazy(cube, no_lazy_load)
     return cube
 
 
-def remove_meta_and_lazy(cube, no_lazy_load):
+def _remove_meta_and_lazy(cube, no_lazy_load):
     # Remove metadata prefix cube attributes
     if 'bald__isPrefixedBy' in cube.attributes.keys():
         cube.attributes.pop('bald__isPrefixedBy')
