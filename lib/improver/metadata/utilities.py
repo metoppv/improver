@@ -42,13 +42,13 @@ def generate_hash(data_in):
     Args:
         data_in (any):
             The data from which a hash is to be generated. This can be of any
-            type that can be dumped to JSON (dict, list, str, float, etc).
+            type that can be pretty printed.
     Returns:
         hash (string):
             A hexadecimal string which is a hash hexdigest of the data as a
             string.
     """
-    bytestring = pprint.pformat(data_in).encode('utf-8')
+    bytestring = pprint.pformat(data_in, sort_dicts=True).encode('utf-8')
     return hashlib.sha256(bytestring).hexdigest()
 
 
