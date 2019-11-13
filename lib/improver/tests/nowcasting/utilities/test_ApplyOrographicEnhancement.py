@@ -98,13 +98,6 @@ class Test__init__(IrisTest):
         plugin = ApplyOrographicEnhancement("add")
         self.assertEqual(plugin.operation, "add")
 
-    def test_exception(self):
-        """Test that an exception is raised if the operation requested is
-        not a valid choice."""
-        msg = "Operation 'multiply' not supported for"
-        with self.assertRaisesRegex(ValueError, msg):
-            ApplyOrographicEnhancement("multiply")
-
 
 class Test__repr__(IrisTest):
 
@@ -461,11 +454,12 @@ class Test_process(IrisTest):
     def test_add_with_mask(self):
         """Test the addition of cubelists containing cubes of
         precipitation rate and orographic enhancement, where a mask has
-        been applied."""
+        been applied. Orographic enhancement is not added to the masked
+        points (where precip rate <= 1 mm/hr)."""
         expected0 = np.array([[[0., 1., 2.],
                                [1., 2., 7.],
                                [0., 3., 4.]]])
-        expected1 = np.array([[[9., 9., 6.],
+        expected1 = np.array([[[9., 9., 1.],
                                [6., 5., 1.],
                                [6., 5., 1.]]])
 
@@ -498,14 +492,14 @@ class Test_process(IrisTest):
     def test_subtract_with_mask(self):
         """Test the subtraction of cubelists containing cubes of orographic
         enhancement from cubes of precipitation rate, where a mask has been
-        applied."""
+        applied. Orographic enhancement is not added to the masked points
+        (where precip rate <= 1 mm/hr)."""
         expected0 = np.array([[[0., 1., 2.],
                                [1., 2., MIN_PRECIP_RATE_MMH],
                                [0., 1., MIN_PRECIP_RATE_MMH]]])
-        expected1 = np.array(
-            [[[MIN_PRECIP_RATE_MMH, MIN_PRECIP_RATE_MMH, MIN_PRECIP_RATE_MMH],
-              [2., 3., 1.],
-              [2., 3., 1.]]])
+        expected1 = np.array([[[MIN_PRECIP_RATE_MMH, MIN_PRECIP_RATE_MMH, 1.],
+                               [2., 3., 1.],
+                               [2., 3., 1.]]])
 
         # Mask values within the input precipitation cube that are equal to,
         # or below 1.
