@@ -91,7 +91,7 @@ class CubeCombiner(BasePlugin):
 
         Args:
             cube_list (iris.cube.CubeList or list):
-                List if cubes to compare
+                List of cubes to compare
 
         Raises:
             ValueError: If dimension coordinates do not match

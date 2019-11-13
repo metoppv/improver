@@ -31,11 +31,11 @@
 """Module containing plugin for WindGustDiagnostic."""
 
 import warnings
+import numpy as np
 
 import iris
 
 from improver import BasePlugin
-from improver.cube_combiner import CubeCombiner
 from improver.metadata.probabilistic import find_percentile_coordinate
 
 
@@ -228,9 +228,9 @@ class WindGustDiagnostic(BasePlugin):
         # Add metadata to gust cube
         req_cube_gust = self.add_metadata(req_cube_gust)
 
-        # Calculate wind-gust diagnostic using CubeCombiner
-        result = CubeCombiner('max').process(
-            [req_cube_gust, req_cube_ws], req_cube_gust.name())
+        # Calculate wind-gust diagnostic
+        result = req_cube_gust.copy(
+            data=np.maximum(req_cube_gust.data, req_cube_ws.data))
 
         # Update metadata
         result = self.update_metadata_after_max(result,
