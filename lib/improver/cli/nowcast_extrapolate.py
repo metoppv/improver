@@ -114,20 +114,11 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
+    v_cube = load_cube(args.u_and_v, "precipitation_advection_y_velocity", allow_none=True)
+    u_cube = load_cube(args.u_and_v, "precipitation_advection_x_velocity", allow_none=True)
 
     # Load Cubes and JSON
-    u_cube = v_cube = speed_cube = direction_cube = None
-    # Load u and v
-    if args.u_and_v is not None:
-        u_and_v = load_cube(args.u_and_v, return_cubelist=True)
-        if "precipitation_advection_y_velocity" in str(u_and_v[0].name):
-            v_cube = u_and_v[0].copy()
-            u_cube = u_and_v[1].copy()
-        elif "precipitation_advection_y_velocity" in str(u_and_v[1].name):
-            v_cube = u_and_v[1].copy()
-            u_cube = u_and_v[0].copy()
-        else:
-            raise TypeError("No cubes of y velocity.")
+    speed_cube = direction_cube = None
 
     input_cube = load_cube(args.input_filepath)
     orographic_enhancement_cube = load_cube(

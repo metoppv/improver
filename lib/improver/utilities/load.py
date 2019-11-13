@@ -33,14 +33,13 @@
 import glob
 
 import iris
-from iris.cube import CubeList
 
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering, merge_cubes)
 
 
 def load_cube(filepath, constraints=None, no_lazy_load=False,
-              allow_none=False, return_cubelist=False):
+              allow_none=False):
     """Load the filepath provided using Iris into a cube.
 
     Args:
@@ -60,8 +59,6 @@ def load_cube(filepath, constraints=None, no_lazy_load=False,
             If True, when the filepath is None, returns None.
             If False, normal error handling applies.
             Default is False.
-        return_cubelist (bool):
-            If true, will return a cubeList without trying to merge the cubes.
 
     Returns:
         iris.cube.Cube:
@@ -89,21 +86,13 @@ def load_cube(filepath, constraints=None, no_lazy_load=False,
         raise ValueError(message)
     elif len(cubes) == 1:
         cube = cubes[0]
-    elif return_cubelist:
-        cube = []
-        for c in cubes:
-            cube.append(_remove_meta_and_lazy(c, no_lazy_load))
-        return CubeList(cube)
     else:
         cube = merge_cubes(cubes)
-    cube = _remove_meta_and_lazy(cube, no_lazy_load)
-    return cube
 
-
-def _remove_meta_and_lazy(cube, no_lazy_load):
     # Remove metadata prefix cube attributes
     if 'bald__isPrefixedBy' in cube.attributes.keys():
         cube.attributes.pop('bald__isPrefixedBy')
+
     # Ensure the probabilistic coordinates are the first coordinates within a
     # cube and are in the specified order.
     cube = enforce_coordinate_ordering(
