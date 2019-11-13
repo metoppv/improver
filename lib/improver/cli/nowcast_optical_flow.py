@@ -44,12 +44,10 @@ from improver.utilities.save import save_netcdf
 
 
 def main(argv=None):
-    """Calculate optical flow advection velocities and (optionally)
-    extrapolate data."""
+    """Calculate optical flow advection velocities"""
 
     parser = ArgParser(
-        description="Calculate optical flow components from input fields "
-        "and (optionally) extrapolate to required lead times.")
+        description="Calculate optical flow components from input fields.")
 
     parser.add_argument("input_filepaths", metavar="INPUT_FILEPATHS",
                         nargs=3, type=str, help="Paths to the input radar "
@@ -102,10 +100,7 @@ def main(argv=None):
 def process(original_cube_list, orographic_enhancement_cube=None,
             attributes_dict=None, ofc_box_size=30,
             smart_smoothing_iterations=100):
-    """Calculates optical flow and can (optionally) extrapolate data.
-
-    Calculates optical flow components from input fields and (optionally)
-    extrapolate to required lead times.
+    """Calculate optical flow components from input fields.
 
     Args:
         original_cube_list (iris.cube.CubeList):

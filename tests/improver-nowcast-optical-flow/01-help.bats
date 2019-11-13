@@ -43,8 +43,7 @@ usage: improver nowcast-optical-flow [-h] [--profile]
                                      INPUT_FILEPATHS INPUT_FILEPATHS
                                      INPUT_FILEPATHS OUTPUT_FILEPATH
 
-Calculate optical flow components from input fields and (optionally)
-extrapolate to required lead times.
+Calculate optical flow components from input fields.
 
 positional arguments:
   INPUT_FILEPATHS       Paths to the input radar files. There should be 3
