@@ -90,7 +90,8 @@ def main(argv=None):
                         help="Maximum lead time required (mins).")
     parser.add_argument("--lead_time_interval", type=int, default=15,
                         help="Interval between required lead times (mins).")
-    parser.add_argument("--u_and_v", type=str, help="Path to u and v cubelist")
+    parser.add_argument("--u_and_v_filepath", type=str, help="Path to u and v"
+                        " cubelist.")
 
     accumulation_args = parser.add_argument_group(
         'Calculate accumulations from advected fields')
@@ -114,8 +115,8 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
-    v_cube = load_cube(args.u_and_v, "precipitation_advection_y_velocity", allow_none=True)
-    u_cube = load_cube(args.u_and_v, "precipitation_advection_x_velocity", allow_none=True)
+    v_cube = load_cube(args.u_and_v_filepath, "precipitation_advection_y_velocity", allow_none=True)
+    u_cube = load_cube(args.u_and_v_filepath, "precipitation_advection_x_velocity", allow_none=True)
 
     # Load Cubes and JSON
     speed_cube = direction_cube = None

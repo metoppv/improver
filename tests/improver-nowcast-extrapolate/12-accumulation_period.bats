@@ -43,7 +43,7 @@
   run improver nowcast-extrapolate \
     "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$INFILE" \
     --output_dir "$TEST_DIR" --max_lead_time 30 \
-    --u_and_v "$UVCOMP" \
+    --u_and_v_filepath "$UVCOMP" \
     --orographic_enhancement_filepaths \
     "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1" \
     --accumulation_fidelity 5 --accumulation_period 30 \

@@ -45,7 +45,7 @@
     --output_dir "$TEST_DIR" --max_lead_time 30 \
     --advection_direction_filepath "$WDIR" \
     --advection_speed_filepath "$WSPEED" \
-    --u_and_v "$UVCOMP"
+    --u_and_v_filepath "$UVCOMP"
   [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
 ValueError: Cannot mix advection component velocities with speed

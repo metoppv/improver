@@ -47,7 +47,7 @@
   run improver nowcast-extrapolate \
     "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic_no_orographic_enhancement/$INFILE" \
     --output_dir "$TEST_DIR" --max_lead_time 30 \
-    --u_and_v "$UVCOMP"
+    --u_and_v_filepath "$UVCOMP"
   [[ "$status" -eq 0 ]]
 
   T0="20181103T1600Z-PT0000H00M-rainfall_rate.nc"

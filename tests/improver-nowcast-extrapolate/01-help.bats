@@ -43,7 +43,7 @@ usage: improver nowcast-extrapolate [-h] [--profile]
                                     [--json_file JSON_FILE]
                                     [--max_lead_time MAX_LEAD_TIME]
                                     [--lead_time_interval LEAD_TIME_INTERVAL]
-                                    [--u_and_v U_AND_V]
+                                    [--u_and_v_filepath U_AND_V_FILEPATH]
                                     [--accumulation_fidelity ACCUMULATION_FIDELITY]
                                     [--accumulation_period ACCUMULATION_PERIOD]
                                     [--accumulation_units ACCUMULATION_UNITS]
@@ -75,7 +75,8 @@ optional arguments:
                         Maximum lead time required (mins).
   --lead_time_interval LEAD_TIME_INTERVAL
                         Interval between required lead times (mins).
-  --u_and_v U_AND_V     Path to u and v cubelist
+  --u_and_v_filepath U_AND_V_FILEPATH
+                        Path to u and v cubelist.
 
 Advect using files containing speed and direction:
   --advection_speed_filepath ADVECTION_SPEED_FILEPATH
