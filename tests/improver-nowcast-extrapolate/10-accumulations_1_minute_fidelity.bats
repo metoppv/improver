@@ -31,12 +31,12 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "extrapolate to create accumulations calculated with 5 minute fidelity" {
+@test "extrapolate to create accumulations calculated with 1 minute fidelity" {
   improver_check_skip_acceptance
-  KGO="nowcast-extrapolate/accumulation/kgo_5_minute_fidelity_30_minute_accum_period.nc"
+  KGO0="nowcast-extrapolate/accumulation/kgo0_1_minute_fidelity.nc"
+  KGO1="nowcast-extrapolate/accumulation/kgo1_1_minute_fidelity.nc"
 
-  UCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/ucomp_kgo.nc"
-  VCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/vcomp_kgo.nc"
+  UVCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/kgo.nc"
   INFILE="201811031600_radar_rainrate_composite_UK_regridded.nc"
   OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
 
@@ -44,19 +44,21 @@
   run improver nowcast-extrapolate \
     "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$INFILE" \
     --output_dir "$TEST_DIR" --max_lead_time 30 \
-    --eastward_advection "$UCOMP" \
-    --northward_advection "$VCOMP" \
+    --u_and_v "$UVCOMP" \
     --orographic_enhancement_filepaths \
     "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1" \
-    --accumulation_fidelity 5 --accumulation_period 30 \
-    --lead_time_interval 5
+    --accumulation_fidelity 1
   [[ "$status" -eq 0 ]]
 
-  T0="20181103T1630Z-PT0000H30M-lwe_thickness_of_precipitation_amount.nc"
+  T0="20181103T1615Z-PT0000H15M-lwe_thickness_of_precipitation_amount.nc"
+  T1="20181103T1630Z-PT0000H30M-lwe_thickness_of_precipitation_amount.nc"
 
-  improver_check_recreate_kgo "$T0" $KGO
+  improver_check_recreate_kgo "$T0" $KGO0
+  improver_check_recreate_kgo "$T1" $KGO1
 
   # Run nccmp to compare the output and kgo.
   improver_compare_output "$TEST_DIR/$T0" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
+      "$IMPROVER_ACC_TEST_DIR/$KGO0"
+  improver_compare_output "$TEST_DIR/$T1" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO1"
 }

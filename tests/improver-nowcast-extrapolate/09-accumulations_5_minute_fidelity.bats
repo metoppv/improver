@@ -36,8 +36,7 @@
   KGO0="nowcast-extrapolate/accumulation/kgo0_5_minute_fidelity.nc"
   KGO1="nowcast-extrapolate/accumulation/kgo1_5_minute_fidelity.nc"
 
-  UCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/ucomp_kgo.nc"
-  VCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/vcomp_kgo.nc"
+  UVCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/kgo.nc"
   INFILE="201811031600_radar_rainrate_composite_UK_regridded.nc"
   OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
 
@@ -45,8 +44,7 @@
   run improver nowcast-extrapolate \
     "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$INFILE" \
     --output_dir "$TEST_DIR" --max_lead_time 30 \
-    --eastward_advection "$UCOMP" \
-    --northward_advection "$VCOMP" \
+    --u_and_v "$UVCOMP" \
     --orographic_enhancement_filepaths \
     "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1" \
     --accumulation_fidelity 5

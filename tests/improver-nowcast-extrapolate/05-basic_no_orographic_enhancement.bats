@@ -37,8 +37,7 @@
   KGO1="nowcast-extrapolate/extrapolate_no_orographic_enhancement/kgo1.nc"
   KGO2="nowcast-extrapolate/extrapolate_no_orographic_enhancement/kgo2.nc"
 
-  UCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/ucomp_kgo.nc"
-  VCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/vcomp_kgo.nc"
+  UVCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/kgo.nc"
   INFILE="201811031600_radar_rainrate_composite_UK_regridded.nc"
 
   # Run processing and check it passes when the input files are not
@@ -48,8 +47,7 @@
   run improver nowcast-extrapolate \
     "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic_no_orographic_enhancement/$INFILE" \
     --output_dir "$TEST_DIR" --max_lead_time 30 \
-    --eastward_advection "$UCOMP" \
-    --northward_advection "$VCOMP"
+    --u_and_v "$UVCOMP"
   [[ "$status" -eq 0 ]]
 
   T0="20181103T1600Z-PT0000H00M-rainfall_rate.nc"

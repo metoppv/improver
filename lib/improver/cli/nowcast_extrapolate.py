@@ -62,15 +62,6 @@ def main(argv=None):
                        help="List of full paths to output nowcast files, in "
                        "order of increasing lead time.")
 
-    optflw = parser.add_argument_group('Advect using files containing the x '
-                                       ' and y components of the velocity')
-    optflw.add_argument("--eastward_advection_filepath", type=str, help="Path"
-                        " to input file containing Eastward advection "
-                        "velocities.")
-    optflw.add_argument("--northward_advection_filepath", type=str, help="Path"
-                        " to input file containing Northward advection "
-                        "velocities.")
-
     speed = parser.add_argument_group('Advect using files containing speed and'
                                       ' direction')
     speed.add_argument("--advection_speed_filepath", type=str, help="Path"
@@ -123,22 +114,28 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
-    # Load Cubes and JSON
-    attributes_dict = load_json_or_none(args.json_file)
 
-    upath, vpath = (args.eastward_advection_filepath,
-                    args.northward_advection_filepath)
-    spath, dpath = (args.advection_speed_filepath,
-                    args.advection_direction_filepath)
+    # Load Cubes and JSON
+    u_cube = v_cube = speed_cube = direction_cube = None
+    # Load u and v
+    if args.u_and_v is not None:
+        u_and_v = load_cube(args.u_and_v, return_cubelist=True)
+        if "precipitation_advection_y_velocity" in str(u_and_v[0].name):
+            v_cube = u_and_v[0].copy()
+            u_cube = u_and_v[1].copy()
+        elif "precipitation_advection_y_velocity" in str(u_and_v[1].name):
+            v_cube = u_and_v[1].copy()
+            u_cube = u_and_v[0].copy()
+        else:
+            raise TypeError("No cubes of y velocity.")
 
     input_cube = load_cube(args.input_filepath)
     orographic_enhancement_cube = load_cube(
         args.orographic_enhancement_filepaths, allow_none=True)
-    ucube = load_cube(upath, allow_none=True)
-    vcube = load_cube(vpath, allow_none=True)
 
+    spath, dpath = (args.advection_speed_filepath,
+                    args.advection_direction_filepath)
     level_constraint = Constraint(pressure=args.pressure_level)
-    speed_cube = direction_cube = None
     if spath and dpath:
         try:
             speed_cube = load_cube(spath, constraints=level_constraint)
@@ -148,9 +145,10 @@ def main(argv=None):
                 '{} Unable to extract specified pressure level from given '
                 'speed and direction files.'.format(err))
 
+    attributes_dict = load_json_or_none(args.json_file)
     # Process Cubes
     accumulation_cubes, forecast_to_return = process(
-        input_cube, ucube, vcube, speed_cube, direction_cube,
+        input_cube, u_cube, v_cube, speed_cube, direction_cube,
         orographic_enhancement_cube, attributes_dict, args.max_lead_time,
         args.lead_time_interval, args.accumulation_fidelity,
         args.accumulation_period, args.accumulation_units)
@@ -253,7 +251,9 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
     if (speed_cube and direction_cube) and not (u_cube or v_cube):
         u_cube, v_cube = ResolveWindComponents().process(
             speed_cube, direction_cube)
-    if not (u_cube and v_cube and not speed_cube or direction_cube):
+    elif u_cube and v_cube and not (speed_cube or direction_cube):
+        pass
+    else:
         raise ValueError('Cannot mix advection component velocities with speed'
                          ' and direction')
 

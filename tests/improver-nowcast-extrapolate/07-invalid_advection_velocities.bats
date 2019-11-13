@@ -34,8 +34,9 @@
 @test "Invalid advection velocities" {
   improver_check_skip_acceptance
 
+  WSPEED="$IMPROVER_ACC_TEST_DIR/nowcast-extrapolate/model_winds/20181103T1600Z-PT0001H00M-wind_speed_on_pressure_levels.nc"
   WDIR="$IMPROVER_ACC_TEST_DIR/nowcast-extrapolate/model_winds/20181103T1600Z-PT0001H00M-wind_direction_on_pressure_levels.nc"
-  UCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/ucomp_kgo.nc"
+  UVCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/kgo.nc"
   INFILE="201811031600_radar_rainrate_composite_UK_regridded.nc"
 
   # Run processing and check it passes
@@ -43,7 +44,8 @@
     "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$INFILE" \
     --output_dir "$TEST_DIR" --max_lead_time 30 \
     --advection_direction_filepath "$WDIR" \
-    --eastward_advection "$UCOMP"
+    --advection_speed_filepath "$WSPEED" \
+    --u_and_v "$UVCOMP"
   [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
 ValueError: Cannot mix advection component velocities with speed
