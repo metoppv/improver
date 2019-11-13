@@ -37,12 +37,13 @@ import warnings
 import iris
 
 from improver.argparser import ArgParser
-from improver.metadata.amend import amend_metadata
-from improver.metadata.check_datatypes import check_cube_not_float64
+from improver.standardise import StandardiseGridAndMetadata
+#from improver.metadata.amend import amend_metadata
+#from improver.metadata.check_datatypes import check_cube_not_float64
 from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
-from improver.utilities.spatial import RegridLandSea
+#from improver.utilities.spatial import RegridLandSea
 
 
 def main(argv=None):
@@ -269,54 +270,10 @@ def process(output_data, target_grid=None, source_landsea=None,
         msg = ("Cannot specify input_landmask_filepath without "
                "target_grid_filepath")
         raise ValueError(msg)
-    # Process
-    # Re-grid with options:
-    check_cube_not_float64(output_data, fix=fix_float64)
-    # if a target grid file has been specified, then regrid optionally
-    # applying float64 data check, metadata change, Iris nearest and
-    # extrapolation mode as required.
-    if target_grid:
-        regridder = iris.analysis.Linear(
-            extrapolation_mode=extrapolation_mode)
 
-        if regrid_mode in ["nearest", "nearest-with-mask"]:
-            regridder = iris.analysis.Nearest(
-                extrapolation_mode=extrapolation_mode)
-
-        output_data = output_data.regrid(target_grid, regridder)
-
-        if regrid_mode in ["nearest-with-mask"]:
-            if not source_landsea:
-                msg = ("An argument has been specified that requires an input "
-                       "landmask cube but none has been provided")
-                raise ValueError(msg)
-
-            if "land_binary_mask" not in source_landsea.name():
-                msg = ("Expected land_binary_mask in input_landmask cube "
-                       "but found {}".format(repr(source_landsea)))
-                warnings.warn(msg)
-
-            if "land_binary_mask" not in target_grid.name():
-                msg = ("Expected land_binary_mask in target_grid cube "
-                       "but found {}".format(repr(target_grid)))
-                warnings.warn(msg)
-
-            output_data = RegridLandSea(
-                vicinity_radius=landmask_vicinity).process(
-                output_data, source_landsea, target_grid)
-
-        target_grid_attributes = (
-            {k: v for (k, v) in target_grid.attributes.items()
-             if 'mosg__' in k or 'institution' in k})
-        output_data = amend_metadata(
-            output_data, attributes=target_grid_attributes)
-    # Change metadata only option:
-    # if output file path and json metadata file specified,
-    # change the metadata
-    if metadata_dict:
-        output_data = amend_metadata(output_data, **metadata_dict)
-
-    check_cube_not_float64(output_data, fix=fix_float64)
+    output_data = StandardiseGridAndMetadata().process(
+        output_data, target_grid, source_landsea, metadata_dict, regrid_mode,
+        extrapolation_mode, landmask_vicinity, fix_float64)
 
     return output_data
 
