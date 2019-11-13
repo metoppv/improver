@@ -277,7 +277,8 @@ class ContinuousRankedProbabilityScoreMinimisers():
 
         Returns:
             float:
-                CRPS for the current set of coefficients.
+                CRPS for the current set of coefficients. This CRPS is a mean
+                value across all points.
 
         """
         if predictor_of_mean_flag.lower() == "mean":
@@ -337,7 +338,8 @@ class ContinuousRankedProbabilityScoreMinimisers():
 
         Returns:
             float:
-                CRPS for the current set of coefficients.
+                CRPS for the current set of coefficients. This CRPS is a mean
+                value across all points.
 
         """
         if predictor_of_mean_flag.lower() == "mean":
