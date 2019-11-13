@@ -84,6 +84,26 @@ class CubeCombiner(BasePlugin):
                                                self.warnings_on))
         return desc
 
+    @staticmethod
+    def _check_dimensions_match(cube_list):
+        """
+        Check all coordinate dimensions on the input cubes are equal
+
+        Args:
+            cube_list (iris.cube.CubeList or list):
+                List if cubes to compare
+
+        Raises:
+            ValueError: If dimension coordinates do not match
+        """
+        ref_coords = cube_list[0].coords(dim_coords=True)
+        for cube in cube_list[1:]:
+            coords = cube.coords(dim_coords=True)
+            compare = [a == b for a, b in zip(coords, ref_coords)]
+            if not np.all(compare):
+                raise ValueError(
+                    "Cannot combine cubes with different dimensions")
+
     def process(self, cube_list, new_diagnostic_name,
                 revised_coords=None,
                 revised_attributes=None,
@@ -92,7 +112,7 @@ class CubeCombiner(BasePlugin):
         Create a combined cube.
 
         Args:
-            cube_list (iris.cube.CubeList):
+            cube_list (iris.cube.CubeList or list):
                 List of cubes to combine.
             new_diagnostic_name (str):
                 New name for the combined diagnostic.
@@ -114,6 +134,8 @@ class CubeCombiner(BasePlugin):
         if len(cube_list) < 2:
             msg = 'Expecting 2 or more cubes in cube_list'
             raise ValueError(msg)
+
+        self._check_dimensions_match(cube_list)
 
         # perform operation (add, subtract, min, max, mean, multiply)
         # cumulatively

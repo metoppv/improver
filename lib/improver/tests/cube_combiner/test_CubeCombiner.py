@@ -157,6 +157,19 @@ class Test_process(set_up_cubes):
         self.assertEqual(result.name(), 'new_cube_name')
         self.assertArrayAlmostEqual(result.data, expected_data)
 
+    def test_with_mask(self):
+        """Test that the plugin preserves the mask if any of the inputs are
+        masked"""
+        expected_data = np.full((1, 2, 2), 1.2, dtype=np.float32)
+        mask = [[[False, True], [False, False]]]
+        self.cube1.data = np.ma.MaskedArray(self.cube1.data, mask=mask)
+        plugin = CubeCombiner('add')
+        result = plugin.process(
+            [self.cube1, self.cube2, self.cube3], 'new_cube_name')
+        self.assertIsInstance(result.data, np.ma.MaskedArray)
+        self.assertArrayAlmostEqual(result.data.data, expected_data)
+        self.assertArrayEqual(result.data.mask, mask)
+
     def test_exception_for_cube_passed_in(self):
         """Test that the plugin raises an exception if something other than a
         cubelist is passed in."""
@@ -164,6 +177,15 @@ class Test_process(set_up_cubes):
         msg = "object of type 'Cube'"
         with self.assertRaisesRegex(TypeError, msg):
             plugin.process(self.cube1, 'new_cube_name')
+
+    def test_exception_mismatched_dimensions(self):
+        """Test an error is raised if dimension coordinates do not match"""
+        self.cube2.coord("lwe_thickness_of_precipitation_amount").rename(
+            "snow_depth")
+        plugin = CubeCombiner('+')
+        msg = "Cannot combine cubes with different dimensions"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.process([self.cube1, self.cube2], 'new_cube_name')
 
     def test_exception_for_single_entry_cubelist(self):
         """Test that the plugin raises an exception if a cubelist containing
