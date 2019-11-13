@@ -40,7 +40,10 @@ usage: improver standardise [-h] [--profile] [--profile_file PROFILE_FILE]
                             [--extrapolation_mode EXTRAPOLATION_MODE]
                             [--input_landmask_filepath INPUT_LANDMASK_FILE]
                             [--landmask_vicinity LANDMASK_VICINITY]
+                            [--grid_attributes GRID_ATTRIBUTES [GRID_ATTRIBUTES ...]]
                             [--fix_float64] [--json_file JSON_FILE]
+                            [--coords_to_remove COORDS_TO_REMOVE [COORDS_TO_REMOVE ...]]
+                            [--new_name NEW_NAME]
                             SOURCE_DATA
 
 Standardise a source data cube. Three main options are available; fixing
@@ -71,6 +74,10 @@ optional arguments:
                         Filename for the json file containing required changes
                         that will be applied to the attributes. Defaults to
                         None.
+  --coords_to_remove COORDS_TO_REMOVE [COORDS_TO_REMOVE ...]
+                        List of names of scalar coordinates to be removed from
+                        the non-standard input.
+  --new_name NEW_NAME   New dataset name.
 
 Regridding options:
   --target_grid_filepath TARGET_GRID
@@ -105,6 +112,9 @@ Regridding options:
   --landmask_vicinity LANDMASK_VICINITY
                         Radius of vicinity to search for a coastline, in
                         metres. Default value; 25000 m
+  --grid_attributes GRID_ATTRIBUTES [GRID_ATTRIBUTES ...]
+                        List of grid-describing attributes to inherit from the
+                        target grid.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

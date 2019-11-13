@@ -121,15 +121,26 @@ def main(argv=None):
         help=("Radius of vicinity to search for a coastline, in metres. "
               "Default value; 25000 m"))
 
+    regrid_group.add_argument(
+        "--grid_attributes", nargs="+", type=str, default=None,
+        help="List of grid-describing attributes to inherit from the target "
+             "grid.")
+
+    # metadata standardisation
     parser.add_argument("--fix_float64", action='store_true', default=False,
                         help="Check and fix cube for float64 data. Without "
                              "this option an exception will be raised if "
                              "float64 data is found but no fix applied.")
-
     parser.add_argument("--json_file", metavar="JSON_FILE", default=None,
                         help='Filename for the json file containing required '
                              'changes that will be applied '
                              'to the attributes. Defaults to None.')
+    parser.add_argument("--coords_to_remove", metavar="COORDS_TO_REMOVE",
+                        nargs="+", type=str, default=None,
+                        help="List of names of scalar coordinates to be "
+                             "removed from the non-standard input.")
+    parser.add_argument("--new_name", metavar="NEW_NAME", type=str,
+                        default=None, help="New dataset name.")
 
     args = parser.parse_args(args=argv)
 
@@ -166,19 +177,21 @@ def main(argv=None):
             source_landsea = load_cube(args.input_landmask_filepath)
 
     # Process Cube
-    output_data = process(output_data, target_grid, source_landsea,
-                          attributes_dict, args.regrid_mode,
-                          args.extrapolation_mode, args.landmask_vicinity,
-                          args.fix_float64)
+    output_data = process(output_data, target_grid, args.regrid_mode,
+                          args.extrapolation_mode, source_landsea,
+                          args.landmask_vicinity, args.grid_attributes,
+                          attributes_dict, args.coords_to_remove,
+                          args.new_name, args.fix_float64)
 
     # Save Cube
     if args.output_filepath:
         save_netcdf(output_data, args.output_filepath)
 
 
-def process(output_data, target_grid=None, source_landsea=None,
-            attributes_dict=None, regrid_mode='bilinear',
-            extrapolation_mode='nanmask', landmask_vicinity=25000,
+def process(output_data, target_grid=None, regrid_mode='bilinear',
+            extrapolation_mode='nanmask', source_landsea=None,
+            landmask_vicinity=25000, grid_attributes=None,
+            attributes_dict=None, coords_to_remove=None, new_name=None,
             fix_float64=False):
     """Standardises a cube by one or more of regridding, updating meta-data etc
 
@@ -197,13 +210,6 @@ def process(output_data, target_grid=None, source_landsea=None,
             grid is enabled. If also using landmask-aware regridding then this
             must be land_binary_mask data.
             Default is None.
-        source_landsea (iris.cube.Cube):
-            A cube describing the land_binary_mask on the source-grid if
-            coastline-aware regridding is required.
-            Default is None.
-        attributes_dict (dict):
-            Dictionary containing required changes that will be applied to
-            the attributes. Default is None.
         regrid_mode (str):
             Selects which regridding techniques to use. Default uses
             iris.analysis.Linear(); "nearest" uses Nearest() (Use for less
@@ -226,9 +232,23 @@ def process(output_data, target_grid=None, source_landsea=None,
             nanmask - If the source data is a MaskedArray the extrapolation
             points will be masked. Otherwise they will be set to NaN.
             Defaults is 'nanmask'.
+        source_landsea (iris.cube.Cube):
+            A cube describing the land_binary_mask on the source-grid if
+            coastline-aware regridding is required.
+            Default is None.
         landmask_vicinity (float):
             Radius of vicinity to search for a coastline, in metres.
             Defaults is 25000 m
+        grid_attributes (list of str or None):
+            List of grid-describing attributes to inherit from target grid. If
+            None, defaults are set by the StandardiseGridAndMetadata plugin.
+        attributes_dict (dict or None):
+            Dictionary containing required changes that will be applied to
+            the attributes. Default is None.
+        coords_to_remove (list or None):
+            List of names of scalar coordinates to remove.
+        new_name (str or None):
+            Name of output cube.
         fix_float64 (bool):
             If True, checks and fixes cube for float64 data. Without this
             option an exception will be raised if float64 data is found but no
@@ -269,9 +289,11 @@ def process(output_data, target_grid=None, source_landsea=None,
 
     plugin = StandardiseGridAndMetadata(
         regrid_mode=regrid_mode, extrapolation_mode=extrapolation_mode,
-        landmask=source_landsea, landmask_vicinity=landmask_vicinity)
+        landmask=source_landsea, landmask_vicinity=landmask_vicinity,
+        grid_attributes=grid_attributes)
     output_data = plugin.process(
-        output_data, target_grid, attributes_dict=attributes_dict,
+        output_data, target_grid, new_name=new_name,
+        coords_to_remove=coords_to_remove, attributes_dict=attributes_dict,
         fix_float64=fix_float64)
 
     return output_data

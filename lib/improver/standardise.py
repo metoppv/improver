@@ -33,6 +33,7 @@
 
 import warnings
 from iris.analysis import Nearest, Linear
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.metadata.amend import amend_attributes
 from improver.metadata.check_datatypes import check_cube_not_float64
@@ -44,8 +45,7 @@ class StandardiseGridAndMetadata:
     """Plugin to regrid cube data and standardise metadata"""
 
     def __init__(self, regrid_mode='bilinear', extrapolation_mode='nanmask',
-                 landmask=None, landmask_vicinity=25000,
-                 regrid_attributes=None):
+                 landmask=None, landmask_vicinity=25000, grid_attributes=None):
         """
         Initialise regridding parameters
 
@@ -58,7 +58,7 @@ class StandardiseGridAndMetadata:
                 Land-sea mask, required for "nearest-with-mask" regrid option.
             landmask_vicinity (float):
                 Radius of vicinity to search for a coastline, in metres
-            regrid_attributes (list of str or None):
+            grid_attributes (list of str or None):
                 List of attribute names to inherit from the target grid cube,
                 eg mosg__model_configuration, that describe the new grid. If
                 None, a list of Met Office-specific attributes is used.
@@ -72,9 +72,9 @@ class StandardiseGridAndMetadata:
         self.extrapolation_mode = extrapolation_mode
         self.landmask_vicinity = landmask_vicinity
 
-        self.regrid_attributes = regrid_attributes
-        if self.regrid_attributes is None:
-            self.regrid_attributes = [
+        self.grid_attributes = grid_attributes
+        if self.grid_attributes is None:
+            self.grid_attributes = [
                 'mosg__grid_version', 'mosg__grid_domain', 'mosg__grid_type',
                 'mosg__model_configuration', 'institution']
 
@@ -116,12 +116,39 @@ class StandardiseGridAndMetadata:
 
         attributes_to_inherit = (
             {k: v for (k, v) in target_grid.attributes.items()
-            if k in self.regrid_attributes})
+             if k in self.grid_attributes})
         amend_attributes(cube, attributes_to_inherit)
 
         return cube
 
-    def process(self, cube, target_grid=None, attributes_dict=None,
+    @staticmethod
+    def _collapse_scalar_dimensions(cube):
+        """
+        Demote any scalar dimensions (excluding "realization") on the input
+        cube to auxiliary coordinates.
+
+        Returns:
+            iris.cube.Cube
+        """
+        coords_to_collapse = []
+        for coord in cube.coords(dim_coords=True):
+            if len(coord.points) == 1 and "realization" not in coord.name():
+                coords_to_collapse.append(coord)
+        for coord in coords_to_collapse:
+            cube = next(cube.slices_over(coord))
+        return cube
+
+    @staticmethod
+    def _remove_scalar_coords(cube, coords_to_remove):
+        """Removes named coordinates from the cube."""
+        for coord in coords_to_remove:
+            try:
+                cube.remove_coord(coord)
+            except iris.exceptions.CoordinateNotFoundError:
+                continue
+
+    def process(self, cube, target_grid=None, new_name=None,
+                coords_to_remove=None, attributes_dict=None,
                 fix_float64=False):
         """
         Perform regridding and metadata adjustments
@@ -131,8 +158,12 @@ class StandardiseGridAndMetadata:
                 Input cube to be standardised
             target_grid (iris.cube.Cube or None):
                 Cube on the required grid
+            new_name (str or None):
+                Optional rename for output cube
+            coords_to_remove (list of str or None):
+                Optional list of scalar coordinates to remove from output cube
             attributes_dict (dict or None):
-                Dictionary of required attribute updates. Keys are
+                Optional dictionary of required attribute updates. Keys are
                 attribute names, and values are the required value or "remove".
             fix_float64 (bool):
                 Flag to de-escalate float64 precision
@@ -143,10 +174,16 @@ class StandardiseGridAndMetadata:
         if target_grid:
             cube = self._regrid_to_target(cube, target_grid)
 
+        if new_name:
+            cube.rename(new_name)
+
+        cube = self._collapse_scalar_dimensions(cube)
+        if coords_to_remove:
+            self._remove_scalar_coords(cube, coords_to_remove)
+
         if attributes_dict:
             amend_attributes(cube, attributes_dict)
 
         check_cube_not_float64(cube, fix=fix_float64)
 
         return cube
-
