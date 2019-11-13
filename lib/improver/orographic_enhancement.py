@@ -294,7 +294,7 @@ class OrographicEnhancement:
         point_orogenh = np.zeros(self.temperature.data.shape, dtype=np.float32)
 
         prefactor = 3600./R_WATER_VAPOUR
-        numerator = np.multiply(self.humidity.data, self.svp.data)
+        numerator = np.multiply(self.humidity.data, self.svp)
         numerator = np.multiply(numerator, self.vgradz)
         point_orogenh[mask] = prefactor * np.divide(
             numerator[mask], self.temperature.data[mask])
@@ -570,9 +570,10 @@ class OrographicEnhancement:
 
         # calculate saturation vapour pressure
         wbt = WetBulbTemperature()
+
         self.svp = wbt.pressure_correct_svp(
-            wbt.lookup_svp(self.temperature),
-            self.temperature, self.pressure)
+            wbt.lookup_svp(self.temperature.data),
+            self.temperature.data, self.pressure.data)
 
         # calculate site-specific orographic enhancement
         point_orogenh_data = self._point_orogenh()
