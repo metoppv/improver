@@ -36,6 +36,7 @@ import os
 import iris
 import numpy as np
 from iris import Constraint
+from iris.cube import CubeList
 
 from improver.argparser import ArgParser
 from improver.nowcasting.accumulation import Accumulation
@@ -54,13 +55,8 @@ def main(argv=None):
         description="Extrapolate input data to required lead times.")
     parser.add_argument("input_filepath", metavar="INPUT_FILEPATH",
                         type=str, help="Path to input NetCDF file.")
-
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("--output_dir", metavar="OUTPUT_DIR", type=str,
-                       default="", help="Directory to write output files.")
-    group.add_argument("--output_filepaths", nargs="+", type=str,
-                       help="List of full paths to output nowcast files, in "
-                       "order of increasing lead time.")
+    parser.add_argument("output_filepath", metavar="OUTPUT_FILEPATH",
+                        help="The output path for the resulting NetCDF")
 
     speed = parser.add_argument_group('Advect using files containing speed and'
                                       ' direction')
@@ -102,21 +98,13 @@ def main(argv=None):
         " time interval in minutes between advected fields that is used to"
         " calculate these accumulations. This interval must be a factor of"
         " the lead_time_interval.")
-    accumulation_args.add_argument(
-        "--accumulation_period", type=int, default=15,
-        help="The period over which the accumulation is calculated (mins). "
-        "Only full accumulation periods will be computed. At lead times "
-        "that are shorter than the accumulation period, no accumulation "
-        "output will be produced.")
-    accumulation_args.add_argument(
-        "--accumulation_units", type=str, default='m',
-        help="Desired units in which the accumulations should be expressed,"
-        "e.g. mm")
 
     args = parser.parse_args(args=argv)
 
-    v_cube = load_cube(args.u_and_v_filepath, "precipitation_advection_y_velocity", allow_none=True)
-    u_cube = load_cube(args.u_and_v_filepath, "precipitation_advection_x_velocity", allow_none=True)
+    v_cube = load_cube(args.u_and_v_filepath,
+                       "precipitation_advection_y_velocity", allow_none=True)
+    u_cube = load_cube(args.u_and_v_filepath,
+                       "precipitation_advection_x_velocity", allow_none=True)
 
     # Load Cubes and JSON
     speed_cube = direction_cube = None
@@ -139,37 +127,18 @@ def main(argv=None):
 
     attributes_dict = load_json_or_none(args.json_file)
     # Process Cubes
-    accumulation_cubes, forecast_to_return = process(
+    result = process(
         input_cube, u_cube, v_cube, speed_cube, direction_cube,
         orographic_enhancement_cube, attributes_dict, args.max_lead_time,
-        args.lead_time_interval, args.accumulation_fidelity,
-        args.accumulation_period, args.accumulation_units)
+        args.lead_time_interval, args.accumulation_fidelity)
 
     # Save Cube
-    if (args.output_filepaths and
-            len(args.output_filepaths) != len(forecast_to_return)):
-        raise ValueError("Require exactly one output file name for each "
-                         "forecast lead time")
-    for i, cube in enumerate(forecast_to_return):
-        # save to a suitably-named output file
-        if args.output_filepaths:
-            file_name = args.output_filepaths[i]
-        else:
-            file_name = os.path.join(
-                args.output_dir, generate_file_name(cube))
-        save_netcdf(cube, file_name)
-
-    if args.accumulation_fidelity > 0:
-        # return accumulation cubes
-        for i, cube in enumerate(accumulation_cubes):
-            file_name = os.path.join(args.output_dir, generate_file_name(cube))
-            save_netcdf(cube, file_name)
+    save_netcdf(result, args.output_filepath)
 
 
 def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
             orographic_enhancement_cube=None, attributes_dict=None,
-            max_lead_time=360, lead_time_interval=15, accumulation_fidelity=0,
-            accumulation_period=15, accumulation_units='m'):
+            max_lead_time=360, lead_time_interval=15, accumulation_fidelity=0):
     """Module  to extrapolate input cubes given advection velocity fields.
 
     Args:
@@ -213,24 +182,10 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
             calculate these accumulations. This interval must be a factor of
             the lead_time_interval.
             Default is 0.
-        accumulation_period (int):
-            The period over which the accumulation is calculated (mins).
-            Only full accumulation periods will be computed. At lead times
-            that are shorter than the accumulation period, no accumulation
-            output will be produced.
-        accumulation_units (str):
-            Desired units in which the accumulations should be expressed.
-            e.g. 'mm'
-            Default is 'm'.
 
     Returns:
-        (tuple): tuple containing:
-            **accumulation_cubes** (iris.cube.CubeList):
-                A cubelist containing precipitation accumulation cubes where
-                the accumulation periods are determined by the
-                lead_time_interval.
-            **forecast_to_return** (iris.cube.CubeList):
-                New cubes with updated time and extrapolated data.
+        iris.cube.CubeList:
+            New cubes with updated time and extrapolated data.
 
     Raises:
         ValueError:
@@ -270,23 +225,12 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
         attributes_dict=attributes_dict)
     forecast_cubes = forecast_plugin.process(time_interval, max_lead_time)
 
-    # calculate accumulations if required
-    accumulation_cubes = None
-    if accumulation_fidelity > 0:
-        lead_times = (
-            np.arange(lead_time_interval, max_lead_time + 1,
-                      lead_time_interval))
-        plugin = Accumulation(
-            accumulation_units=accumulation_units,
-            accumulation_period=accumulation_period * 60,
-            forecast_periods=lead_times * 60)
-        accumulation_cubes = plugin.process(forecast_cubes)
-
     # filter out rate forecasts that are not required
     lead_time_filter = lead_time_interval // time_interval
     forecast_to_return = forecast_cubes[::lead_time_filter].copy()
-
-    return accumulation_cubes, forecast_to_return
+    for i in forecast_cubes:
+        print(i.attributes.pop('history'))
+    return CubeList(forecast_to_return).merge_cube()
 
 
 if __name__ == "__main__":
