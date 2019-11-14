@@ -42,7 +42,8 @@
   # Run processing and check it passes
   run improver nowcast-extrapolate \
     "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$INFILE" \
-    --output_dir "$TEST_DIR" --max_lead_time 30 \
+    "$TEST_DIR/output.nc" \
+    --max_lead_time 30 \
     --advection_speed_filepath "$WSPEED" \
     --advection_direction_filepath "$WDIR" \
     --pressure_level 1234 \

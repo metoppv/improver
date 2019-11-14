@@ -86,16 +86,6 @@ def main(argv=None):
     parser.add_argument("--u_and_v_filepath", type=str, help="Path to u and v"
                         " cubelist.")
 
-    accumulation_args = parser.add_argument_group(
-        'Calculate accumulations from advected fields')
-    accumulation_args.add_argument(
-        "--accumulation_fidelity", type=int, default=0,
-        help="If set, this CLI will additionally return accumulations"
-        " calculated from the advected fields. This fidelity specifies the"
-        " time interval in minutes between advected fields that is used to"
-        " calculate these accumulations. This interval must be a factor of"
-        " the lead_time_interval.")
-
     args = parser.parse_args(args=argv)
 
     v_cube = load_cube(args.u_and_v_filepath,
@@ -127,7 +117,7 @@ def main(argv=None):
     result = process(
         input_cube, u_cube, v_cube, speed_cube, direction_cube,
         orographic_enhancement_cube, attributes_dict, args.max_lead_time,
-        args.lead_time_interval, args.accumulation_fidelity)
+        args.lead_time_interval)
 
     # Save Cube
     save_netcdf(result, args.output_filepath)
@@ -135,7 +125,7 @@ def main(argv=None):
 
 def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
             orographic_enhancement_cube=None, attributes_dict=None,
-            max_lead_time=360, lead_time_interval=15, accumulation_fidelity=0):
+            max_lead_time=360, lead_time_interval=15):
     """Module  to extrapolate input cubes given advection velocity fields.
 
     Args:
@@ -172,13 +162,6 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
         lead_time_interval (int):
             Interval between required lead times (mins).
             Default is 15.
-        accumulation_fidelity (int):
-            If set, this will additionally return accumulations calculated
-            from the advected fields. This fidelity specifies the time
-            interval in minutes between advected fields that is used to
-            calculate these accumulations. This interval must be a factor of
-            the lead_time_interval.
-            Default is 0.
 
     Returns:
         iris.cube.CubeList:
@@ -201,29 +184,15 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
         raise ValueError('Cannot mix advection component velocities with speed'
                          ' and direction')
 
-    # determine whether accumulations are also to be returned, and modify time
-    # interval if finer intervals are needed for accumulations
-    time_interval = lead_time_interval
-    if accumulation_fidelity > 0:
-        fraction, _ = np.modf(max_lead_time / accumulation_fidelity)
-        if fraction != 0:
-            msg = ("The specified lead_time_interval ({}) is not cleanly "
-                   "divisible by the specified accumulation_fidelity ({}). As "
-                   "a result the lead_time_interval cannot be constructed from"
-                   " accumulation cubes at this fidelity.")
-            raise ValueError(msg.format(lead_time_interval,
-                                        accumulation_fidelity))
-        time_interval = accumulation_fidelity
-
     # extrapolate input data to required lead times
     forecast_plugin = CreateExtrapolationForecast(
         input_cube, u_cube, v_cube,
         orographic_enhancement_cube=orographic_enhancement_cube,
         attributes_dict=attributes_dict)
-    forecast_cubes = forecast_plugin.process(time_interval, max_lead_time)
+    forecast_cubes = forecast_plugin.process(lead_time_interval, max_lead_time)
 
     # filter out rate forecasts that are not required
-    lead_time_filter = lead_time_interval // time_interval
+    lead_time_filter = lead_time_interval // lead_time_interval
     forecast_to_return = forecast_cubes[::lead_time_filter].copy()
     return merge_cubes(forecast_to_return)
 

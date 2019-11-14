@@ -35,7 +35,6 @@
   read -d '' expected <<'__TEXT__' || true
 usage: improver nowcast-extrapolate [-h] [--profile]
                                     [--profile_file PROFILE_FILE]
-                                    [--output_dir OUTPUT_DIR | --output_filepaths OUTPUT_FILEPATHS [OUTPUT_FILEPATHS ...]]
                                     [--advection_speed_filepath ADVECTION_SPEED_FILEPATH]
                                     [--advection_direction_filepath ADVECTION_DIRECTION_FILEPATH]
                                     [--pressure_level PRESSURE_LEVEL]
@@ -45,25 +44,19 @@ usage: improver nowcast-extrapolate [-h] [--profile]
                                     [--lead_time_interval LEAD_TIME_INTERVAL]
                                     [--u_and_v_filepath U_AND_V_FILEPATH]
                                     [--accumulation_fidelity ACCUMULATION_FIDELITY]
-                                    [--accumulation_period ACCUMULATION_PERIOD]
-                                    [--accumulation_units ACCUMULATION_UNITS]
-                                    INPUT_FILEPATH
+                                    INPUT_FILEPATH OUTPUT_FILEPATH
 
 Extrapolate input data to required lead times.
 
 positional arguments:
   INPUT_FILEPATH        Path to input NetCDF file.
+  OUTPUT_FILEPATH       The output path for the resulting NetCDF
 
 optional arguments:
   -h, --help            show this help message and exit
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
-  --output_dir OUTPUT_DIR
-                        Directory to write output files.
-  --output_filepaths OUTPUT_FILEPATHS [OUTPUT_FILEPATHS ...]
-                        List of full paths to output nowcast files, in order
-                        of increasing lead time.
   --orographic_enhancement_filepaths OROGRAPHIC_ENHANCEMENT_FILEPATHS [OROGRAPHIC_ENHANCEMENT_FILEPATHS ...]
                         List or wildcarded file specification to the input
                         orographic enhancement files. Orographic enhancement
@@ -101,15 +94,6 @@ Calculate accumulations from advected fields:
                         between advected fields that is used to calculate
                         these accumulations. This interval must be a factor of
                         the lead_time_interval.
-  --accumulation_period ACCUMULATION_PERIOD
-                        The period over which the accumulation is calculated
-                        (mins). Only full accumulation periods will be
-                        computed. At lead times that are shorter than the
-                        accumulation period, no accumulation output will be
-                        produced.
-  --accumulation_units ACCUMULATION_UNITS
-                        Desired units in which the accumulations should be
-                        expressed,e.g. mm
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }
