@@ -66,8 +66,7 @@ class MergeCubesForWeightedBlending(BasePlugin):
                 instance for all cubes passed into the "process" method.
             weighting_coord (str or None):
                 The coordinate across which weights will be scaled in a
-                multi-model blend.  Required for
-                rationalise_blend_time_coordinates.
+                multi-model blend.
             model_id_attr (str or None):
                 Name of attribute used to identify model for grid blending.
                 None for cycle blending.
@@ -158,14 +157,15 @@ class MergeCubesForWeightedBlending(BasePlugin):
         cubes_in = (
             [cubes_in] if isinstance(cubes_in, iris.cube.Cube) else cubes_in)
 
-        # copy cubes to avoid modifying inputs
         if ("model" in self.blend_coord and
                 self.weighting_coord is not None and
                 "forecast_period" in self.weighting_coord):
             # if blending models using weights by forecast period, unify
-            # forecast periods (assuming validity times are identical)
+            # forecast periods (assuming validity times are identical);
+            # method returns a new cubelist with copies of input cubes
             cubelist = rebadge_forecasts_as_latest_cycle(cubes_in, cycletime)
         else:
+            # copy cubes to avoid modifying inputs
             cubelist = [cube.copy() for cube in cubes_in]
 
         # if input is already a single cube, return here
@@ -368,11 +368,11 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
        dimension. Uses one of two methods, either weighted average, or
        the maximum of the weighted probabilities."""
 
-    def __init__(self, coord, timeblending=False):
+    def __init__(self, blend_coord, timeblending=False):
         """Set up for a Weighted Blending plugin
 
         Args:
-            coord (str):
+            blend_coord (str):
                 The name of the coordinate dimension over which the cube will
                 be blended.
             timeblending (bool):
@@ -385,10 +385,10 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
         Raises:
             ValueError: If the blend coordinate is "threshold".
         """
-        if coord == "threshold":
+        if blend_coord == "threshold":
             msg = "Blending over thresholds is not supported"
             raise ValueError(msg)
-        self.blend_coord = coord
+        self.blend_coord = blend_coord
         self.timeblending = timeblending
         self.cycletime_point = None
         self.crds_to_remove = None
@@ -712,7 +712,7 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
     def _get_cycletime_point(input_cube, cycletime):
         """
         For cycle and model blending, establish the single forecast reference
-        time to be appended to the cube after blending.
+        time to set on the cube after blending.
 
         Args:
             input_cube (iris.cube.Cube):
@@ -725,10 +725,10 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
                 Forecast reference time point in units of input cube coordinate
         """
         frt_coord = input_cube.coord("forecast_reference_time")
-        frt_units = frt_coord.units.origin
         if cycletime is None:
             return np.max(frt_coord.points)
         else:
+            frt_units = frt_coord.units.origin
             frt_calendar = frt_coord.units.calendar
             cycletime_point = cycletime_to_number(
                     cycletime, time_unit=frt_units, calendar=frt_calendar)
@@ -815,7 +815,8 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
                 forecast reference time from the contributing cubes is used.
             attributes_dict (dict or None):
                 Changes to cube attributes to be applied after blending. See
-                improver.metadata.amend.amend_attributes for required format.
+                :func:~improver.metadata.amend.amend_attributes for required
+                format.
 
         Returns:
             iris.cube.Cube:

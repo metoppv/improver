@@ -554,7 +554,7 @@ class Test_rebadge_forecasts_as_latest_cycle(IrisTest):
         """Test a list of cubes is returned with the latest frt"""
         expected = self.cube_late.copy()
         result = rebadge_forecasts_as_latest_cycle(
-            [self.cube_early, self.cube_late])
+            [self.cube_early, self.cube_late], None)
         self.assertIsInstance(result, iris.cube.CubeList)
         self.assertEqual(len(result), 2)
         for cube in result:
@@ -568,7 +568,7 @@ class Test_rebadge_forecasts_as_latest_cycle(IrisTest):
         expected_fp_point = (
             self.cube_late.coord("forecast_period").points[0] - 2*3600)
         result = rebadge_forecasts_as_latest_cycle(
-            [self.cube_early, self.cube_late], cycletime=self.cycletime)
+            [self.cube_early, self.cube_late], self.cycletime)
         for cube in result:
             self.assertEqual(cube.coord("forecast_reference_time").points[0],
                              expected_frt_point)
@@ -579,7 +579,7 @@ class Test_rebadge_forecasts_as_latest_cycle(IrisTest):
         """Test a single cube is returned unchanged if the cycletime argument
         is not set"""
         expected = self.cube_early.copy()
-        result, = rebadge_forecasts_as_latest_cycle([self.cube_early])
+        result, = rebadge_forecasts_as_latest_cycle([self.cube_early], None)
         for coord in ["forecast_reference_time", "forecast_period"]:
             self.assertEqual(result.coord(coord), expected.coord(coord))
 
@@ -591,7 +591,7 @@ class Test_rebadge_forecasts_as_latest_cycle(IrisTest):
         expected_fp_point = (
             self.cube_late.coord("forecast_period").points[0] - 2*3600)
         result, = rebadge_forecasts_as_latest_cycle(
-            [self.cube_late], cycletime=self.cycletime)
+            [self.cube_late], self.cycletime)
         self.assertEqual(result.coord("forecast_reference_time").points[0],
                          expected_frt_point)
         self.assertEqual(result.coord("forecast_period").points[0],

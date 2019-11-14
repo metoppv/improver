@@ -329,7 +329,7 @@ def set_utc_offset(longitudes):
     return np.floor((np.array(longitudes) + 7.5)/15.)
 
 
-def rebadge_forecasts_as_latest_cycle(cubes, cycletime=None):
+def rebadge_forecasts_as_latest_cycle(cubes, cycletime):
     """
     Function to update the forecast_reference_time and forecast_period
     on a list of input forecasts to match either a given cycletime, or
