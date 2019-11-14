@@ -55,7 +55,8 @@ class StandardiseGridAndMetadata:
             extrapolation_mode (str):
                 Mode to fill regions outside the domain in regridding.
             landmask (iris.cube.Cube or None):
-                Land-sea mask, required for "nearest-with-mask" regrid option.
+                Land-sea mask ("land_binary_mask") on the input cube grid.
+                Required for "nearest-with-mask" regridding option.
             landmask_vicinity (float):
                 Radius of vicinity to search for a coastline, in metres
             grid_attributes (list of str or None):
@@ -63,14 +64,16 @@ class StandardiseGridAndMetadata:
                 eg mosg__model_configuration, that describe the new grid. If
                 None, a list of Met Office-specific attributes is used.
         """
-        if not landmask and "nearest-with-mask" in regrid_mode:
+        if landmask is None and "nearest-with-mask" in regrid_mode:
             msg = ("An argument has been specified that requires an input "
                    "landmask cube but none has been provided")
             raise ValueError(msg)
-        self.landmask = landmask
         self.regrid_mode = regrid_mode
         self.extrapolation_mode = extrapolation_mode
-        self.landmask_vicinity = landmask_vicinity
+        self.landmask_source_grid = landmask
+        self.landmask_vicinity = (
+            None if landmask is None else landmask_vicinity)
+        self.landmask_name = "land_binary_mask"
 
         self.grid_attributes = grid_attributes
         if self.grid_attributes is None:
@@ -86,18 +89,20 @@ class StandardiseGridAndMetadata:
         Returns:
             iris.cube.Cube: Regridded cube
         """
-        if "land_binary_mask" not in self.landmask.name():
+        if self.landmask_name not in self.landmask_source_grid.name():
             msg = ("Expected land_binary_mask in input_landmask cube "
                    "but found {}".format(repr(self.landmask)))
             warnings.warn(msg)
 
-        if "land_binary_mask" not in target_grid.name():
+        if self.landmask_name not in target_grid.name():
             msg = ("Expected land_binary_mask in target_grid cube "
                    "but found {}".format(repr(target_grid)))
             warnings.warn(msg)
 
+        # adjust regridded cube data using differences in high resolution vs
+        # regridded land masks
         return RegridLandSea(vicinity_radius=self.landmask_vicinity).process(
-            cube, self.landmask, target_grid)
+            cube, self.landmask_source_grid, target_grid)
 
     def _regrid_to_target(self, cube, target_grid):
         """
@@ -157,7 +162,9 @@ class StandardiseGridAndMetadata:
             cube (iris.cube.Cube):
                 Input cube to be standardised
             target_grid (iris.cube.Cube or None):
-                Cube on the required grid
+                Cube on the required grid. For "nearest-with-mask" regridding,
+                this cube should contain a binary land-sea mask
+                ("land_binary_mask").
             new_name (str or None):
                 Optional rename for output cube
             coords_to_remove (list of str or None):
