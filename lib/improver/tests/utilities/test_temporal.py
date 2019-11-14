@@ -555,6 +555,7 @@ class Test_rebadge_forecasts_as_latest_cycle(IrisTest):
         expected = self.cube_late.copy()
         result = rebadge_forecasts_as_latest_cycle(
             [self.cube_early, self.cube_late])
+        self.assertIsInstance(result, iris.cube.CubeList)
         self.assertEqual(len(result), 2)
         for cube in result:
             for coord in ["forecast_reference_time", "forecast_period"]:

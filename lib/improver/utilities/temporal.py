@@ -350,9 +350,9 @@ def rebadge_forecasts_as_latest_cycle(cubes, cycletime=None):
     """
     if cycletime is None and len(cubes) == 1:
         return cubes
-    cycletime = (find_latest_cycletime(cubes) if cycletime is None
-                 else cycletime_to_datetime(cycletime))
-    return unify_forecast_reference_time(cubes, cycletime)
+    cycle_datetime = (find_latest_cycletime(cubes) if cycletime is None
+                      else cycletime_to_datetime(cycletime))
+    return unify_forecast_reference_time(cubes, cycle_datetime)
 
 
 def unify_forecast_reference_time(cubes, cycletime):
