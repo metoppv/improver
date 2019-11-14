@@ -43,7 +43,6 @@ usage: improver nowcast-extrapolate [-h] [--profile]
                                     [--max_lead_time MAX_LEAD_TIME]
                                     [--lead_time_interval LEAD_TIME_INTERVAL]
                                     [--u_and_v_filepath U_AND_V_FILEPATH]
-                                    [--accumulation_fidelity ACCUMULATION_FIDELITY]
                                     INPUT_FILEPATH OUTPUT_FILEPATH
 __TEXT__
   [[ "$output" =~ "$expected" ]]

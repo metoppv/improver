@@ -33,7 +33,7 @@
 
 @test "extrapolate using model winds on pressure levels" {
   improver_check_skip_acceptance
-  KGO0="nowcast-extrapolate/model_winds/kgo.nc"
+  KGO="nowcast-extrapolate/model_winds/kgo.nc"
 
   WSPEED="$IMPROVER_ACC_TEST_DIR/nowcast-extrapolate/model_winds/20181103T1600Z-PT0001H00M-wind_speed_on_pressure_levels.nc"
   WDIR="$IMPROVER_ACC_TEST_DIR/nowcast-extrapolate/model_winds/20181103T1600Z-PT0001H00M-wind_direction_on_pressure_levels.nc"
