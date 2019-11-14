@@ -35,6 +35,7 @@ extrapolate."""
 import os
 
 import iris
+import numpy as np
 
 from improver.argparser import ArgParser
 from improver.nowcasting.forecasting import CreateExtrapolationForecast

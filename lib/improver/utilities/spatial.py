@@ -38,6 +38,7 @@ import numpy as np
 import scipy.ndimage
 from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
+from iris.exceptions import CoordinateNotFoundError
 from scipy.interpolate import griddata
 
 from improver import BasePlugin
