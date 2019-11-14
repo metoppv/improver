@@ -815,7 +815,7 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
                 forecast reference time from the contributing cubes is used.
             attributes_dict (dict or None):
                 Changes to cube attributes to be applied after blending. See
-                :func:~improver.metadata.amend.amend_attributes for required
+                :func:`~improver.metadata.amend.amend_attributes` for required
                 format.
 
         Returns:
