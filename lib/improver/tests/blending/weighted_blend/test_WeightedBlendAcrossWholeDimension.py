@@ -48,53 +48,25 @@ from improver.tests.blending.weighted_blend.test_PercentileBlendingAggregator \
     import (PERCENTILE_DATA, BLENDED_PERCENTILE_DATA,
             BLENDED_PERCENTILE_DATA_EQUAL_WEIGHTS,
             BLENDED_PERCENTILE_DATA_SPATIAL_WEIGHTS)
+from improver.tests.set_up_test_cubes import (
+    set_up_variable_cube, set_up_probability_cube,
+    set_up_percentile_cube, add_coordinate)
 from improver.utilities.cube_manipulation import merge_cubes
 from improver.utilities.warnings_handler import ManageWarnings
 
 
-def time_coords_for_test_cubes():
-    """Set up time coordinates in human-readable format"""
-    tunit = "seconds since 1970-01-01 00:00:00"
-    calendar = "gregorian"
-
-    time_point_seconds = np.round(
-        date2num(datetime(2015, 11, 19, 2), tunit, calendar)).astype(np.int64)
-
-    frt_points = []
-    for i in range(3):
-        frt_points.append(np.round(date2num(datetime(2015, 11, 19, i), tunit,
-                                            calendar)).astype(np.int64))
-
-    time_coord = AuxCoord([time_point_seconds], "time", units=tunit)
-    frt_coord = DimCoord(frt_points, "forecast_reference_time", units=tunit)
-    fp_coord = AuxCoord([7200, 3600, 0], "forecast_period", units="seconds")
-
-    return time_coord, frt_coord, fp_coord
-
-
 def percentile_cube():
     """Create a percentile cube for testing."""
-    data = np.reshape(PERCENTILE_DATA, (6, 3, 2, 2))
-
-    # construct dim coords
-    perc_coord = DimCoord([0, 20, 40, 60, 80, 100],
-                          long_name="percentile")
-    y_coord = DimCoord(np.linspace(-45.0, 45.0, 2).astype(np.float32),
-                       'latitude', units='degrees')
-    x_coord = DimCoord(np.linspace(120, 180, 2).astype(np.float32),
-                       'longitude', units='degrees')
-
-    # construct time coords
-    time_coord, frt_coord, fp_coord = time_coords_for_test_cubes()
-
-    # build cube
-    dim_coords = [(perc_coord, 0), (frt_coord, 1),
-                  (y_coord, 2), (x_coord, 3)]
-    aux_coords = [(fp_coord, 1), (time_coord, None)]
-
-    cube = Cube(data, standard_name="air_temperature", units="C",
-                dim_coords_and_dims=dim_coords, aux_coords_and_dims=aux_coords)
-
+    cube = set_up_percentile_cube(
+        np.zeros((6, 2, 2), dtype=np.float32),
+        np.arange(0, 101, 20).astype(np.float32),
+        name="air_temperature", units="C", time=datetime(2015, 11, 19, 2),
+        frt=datetime(2015, 11, 19, 0))
+    frt_points = [datetime(2015, 11, 19, 0), datetime(2015, 11, 19, 1),
+                  datetime(2015, 11, 19, 2)]
+    cube = add_coordinate(cube, frt_points, "forecast_reference_time",
+                          is_datetime=True, order=(1, 0, 2, 3))
+    cube.data = np.reshape(PERCENTILE_DATA, (6, 3, 2, 2)).astype(np.float32)
     return cube
 
 
@@ -133,70 +105,41 @@ class Test_weighted_blend(IrisTest):
     plugin."""
 
     def setUp(self):
-        """Create a cube with a single non-zero point."""
-        time_coord, frt_coord, fp_coord = time_coords_for_test_cubes()
+        """Create data cubes and weights for testing"""
+        frt_points = [datetime(2015, 11, 19, 0), datetime(2015, 11, 19, 1),
+                      datetime(2015, 11, 19, 2)]
 
-        lat_coord = DimCoord(np.linspace(-45.0, 45.0, 2), 'latitude',
-                             units='degrees')
-        lon_coord = DimCoord(np.linspace(120, 180, 2), 'longitude',
-                             units='degrees')
-        threshold = DimCoord([0.4, 1.0], long_name="precipitation_amount",
-                             units="kg m^-2 s^-1", var_name="threshold")
+        cube = set_up_variable_cube(
+            np.zeros((2, 2), dtype=np.float32), name="precipitation_amount",
+            units="kg m^-2 s^-1", time=datetime(2015, 11, 19, 2),
+            frt=datetime(2015, 11, 19, 0), standard_grid_metadata="gl_det",
+            attributes={'title': 'Operational ENGL Model Forecast'})
+        self.cube = add_coordinate(
+            cube, frt_points, "forecast_reference_time", is_datetime=True)
+        self.cube.data[0][:][:] = 1.0
+        self.cube.data[1][:][:] = 2.0
+        self.cube.data[2][:][:] = 3.0
+        self.attributes = self.cube.attributes
 
-        data = np.zeros((3, 2, 2))
-        data[0][:][:] = 1.0
-        data[1][:][:] = 2.0
-        data[2][:][:] = 3.0
-        cube = Cube(
-            data, standard_name="precipitation_amount", units="kg m^-2 s^-1",
-            dim_coords_and_dims=[(frt_coord, 0), (lat_coord, 1),
-                                 (lon_coord, 2)])
-        cube.add_aux_coord(time_coord)
-        cube.add_aux_coord(fp_coord, data_dims=0)
-        self.attributes = {
-            'mosg__grid_domain': 'global',
-            'mosg__grid_type': 'standard',
-            'mosg__grid_version': '1.2.0',
-            'mosg__model_configuration': 'gl_det',
-            'title': 'Operational ENGL Model Forecast'
-            }
-        cube.attributes = self.attributes
-        self.cube = cube
+        cube_threshold = set_up_probability_cube(
+            np.zeros((2, 2, 2), dtype=np.float32),
+            np.array([0.4, 1], dtype=np.float32),
+            variable_name="precipitation_amount",
+            threshold_units="kg m^-2 s^-1", time=datetime(2015, 11, 19, 2),
+            frt=datetime(2015, 11, 19, 0), standard_grid_metadata="gl_det",
+            attributes={'title': 'Operational ENGL Model Forecast'})
 
-        new_scalar_coord = AuxCoord(1, long_name='dummy_scalar_coord',
-                                    units='no_unit')
-        cube_with_scalar = cube.copy()
-        cube_with_scalar.add_aux_coord(new_scalar_coord)
-        self.cube_with_scalar = cube_with_scalar
-
-        data_threshold = np.zeros((2, 3, 2, 2))
-        data_threshold[0, 0, :, :] = 0.2
-        data_threshold[0, 1, :, :] = 0.4
-        data_threshold[0, 2, :, :] = 0.6
-        data_threshold[1, 0, :, :] = 0.4
-        data_threshold[1, 1, :, :] = 0.6
-        data_threshold[1, 2, :, :] = 0.8
-
-        cube_threshold = Cube(
-            data_threshold,
-            long_name="probability_of_precipitation_amount_below_threshold")
-        cube_threshold.add_dim_coord(threshold, 0)
-        cube_threshold.add_dim_coord(frt_coord, 1)
-        cube_threshold.add_dim_coord(lat_coord, 2)
-        cube_threshold.add_dim_coord(lon_coord, 3)
-        cube_threshold.add_aux_coord(time_coord)
-        cube_threshold.add_aux_coord(fp_coord, data_dims=1)
-
-        cube_threshold.coord(var_name="threshold").attributes.update(
-            {'spp__relative_to_threshold': 'below'})
-        cube_threshold.attributes = self.attributes
-        self.cube_threshold = cube_threshold
+        self.cube_threshold = add_coordinate(
+            cube_threshold, frt_points, "forecast_reference_time",
+            is_datetime=True, order=(1, 0, 2, 3))
+        self.cube_threshold.data[0, 0, :, :] = 0.2
+        self.cube_threshold.data[0, 1, :, :] = 0.4
+        self.cube_threshold.data[0, 2, :, :] = 0.6
+        self.cube_threshold.data[1, 0, :, :] = 0.4
+        self.cube_threshold.data[1, 1, :, :] = 0.6
+        self.cube_threshold.data[1, 2, :, :] = 0.8
 
         # Weights cubes
-        # 1D varying with forecast reference time.
-        weights1d = np.array([0.6, 0.3, 0.1], dtype=np.float32)
-        # 1D varying with threshold.
-        weights_threshold = np.array([0.8, 0.2], dtype=np.float32)
         # 3D varying in space and forecast reference time.
         weights3d = np.array([[[0.1, 0.3],
                                [0.2, 0.4]],
@@ -204,22 +147,16 @@ class Test_weighted_blend(IrisTest):
                                [0.2, 0.4]],
                               [[0.8, 0.4],
                                [0.6, 0.2]]], dtype=np.float32)
+        self.weights3d = self.cube.copy(data=weights3d)
+        self.weights3d.rename("weights")
+        self.weights3d.units = "no_unit"
+        self.weights3d.attributes = {}
 
-        self.weights1d = Cube(
-            weights1d, long_name='weights',
-            dim_coords_and_dims=[(frt_coord, 0)],
-            aux_coords_and_dims=[(fp_coord, 0)])
-        self.weights1d.add_aux_coord(time_coord)
-
-        self.weights_threshold = Cube(
-            weights_threshold, long_name='weights',
-            dim_coords_and_dims=[(threshold, 0)])
-
-        self.weights3d = Cube(
-            weights3d, long_name='weights',
-            dim_coords_and_dims=[(frt_coord, 0), (lat_coord, 1),
-                                 (lon_coord, 2)],
-            aux_coords_and_dims=[(fp_coord, 0), (time_coord, None)])
+        # 1D varying with forecast reference time.
+        weights1d = np.array([0.6, 0.3, 0.1], dtype=np.float32)
+        self.weights1d = self.weights3d[:, 0, 0].copy(data=weights1d)
+        self.weights1d.remove_coord("latitude")
+        self.weights1d.remove_coord("longitude")
 
 
 class Test_check_percentile_coord(Test_weighted_blend):
@@ -359,12 +296,13 @@ class Test_shape_weights(Test_weighted_blend):
         have incompatible coordinates."""
 
         coord = "forecast_reference_time"
+        self.weights1d.coord("forecast_reference_time").rename("threshold")
         plugin = WeightedBlendAcrossWholeDimension(coord)
         msg = (
-            "precipitation_amount is a coordinate on the weights cube but it "
+            "threshold is a coordinate on the weights cube but it "
             "is not found on the cube we are trying to collapse.")
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.shape_weights(self.cube, self.weights_threshold)
+            plugin.shape_weights(self.cube, self.weights1d)
 
 
 class Test_percentile_weights(Test_weighted_blend):
@@ -739,17 +677,18 @@ class Test_process(Test_weighted_blend):
     def test_scalar_coord(self):
         """Test plugin throws an error if trying to blending across a scalar
         coordinate."""
-
         coord = "dummy_scalar_coord"
+        new_scalar_coord = AuxCoord(1, long_name=coord, units='no_unit')
+        self.cube.add_aux_coord(new_scalar_coord)
         plugin = WeightedBlendAcrossWholeDimension(coord)
         weights = ([1.0])
         msg = 'has no associated dimension'
         with self.assertRaisesRegex(ValueError, msg):
-            _ = plugin.process(self.cube_with_scalar, weights)
+            _ = plugin.process(self.cube, weights)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def tests_threshold_cube_with_weights_weighted_mean(self):
+    def test_threshold_cube_with_weights_weighted_mean(self):
         """Test weighted_mean method works collapsing a cube with a threshold
         dimension when the blending is over a different coordinate. Note that
         this test is in process to include the slicing."""
@@ -769,6 +708,26 @@ class Test_process(Test_weighted_blend):
         self.assertEqual(result.coord('time').points, expected_frt)
         self.assertEqual(result.coord('forecast_period').points,
                          expected_forecast_period)
+
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_remove_unnecessary_scalar_coordinates(self):
+        """Test model_id and model_configuration coordinates are both removed
+        after model blending"""
+        cube_model = set_up_variable_cube(
+            282*np.zeros((2, 2), dtype=np.float32))
+        cube_model = add_coordinate(cube_model, [0, 1], "model_id")
+        cube_model.add_aux_coord(
+            AuxCoord(["uk_ens", "uk_det"], long_name="model_configuration"),
+            data_dims=0)
+        weights_model = Cube(
+            np.array([0.5, 0.5]), long_name='weights',
+            dim_coords_and_dims=[(cube_model.coord("model_id"), 0)])
+        plugin = WeightedBlendAcrossWholeDimension("model_id")
+        result = plugin.process(cube_model, weights_model)
+        for coord_name in ["model_id", "model_configuration"]:
+            self.assertNotIn(
+                coord_name, [coord.name() for coord in result.coords()])
 
 
 if __name__ == '__main__':
