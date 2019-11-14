@@ -39,6 +39,7 @@ from iris.cube import CubeList
 from improver.argparser import ArgParser
 from improver.nowcasting.forecasting import CreateExtrapolationForecast
 from improver.utilities.cli_utilities import load_json_or_none
+from improver.utilities.cube_manipulation import merge_cubes
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.wind_calculations.wind_components import ResolveWindComponents
@@ -224,9 +225,7 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
     # filter out rate forecasts that are not required
     lead_time_filter = lead_time_interval // time_interval
     forecast_to_return = forecast_cubes[::lead_time_filter].copy()
-    for i in forecast_cubes:
-        print(i.attributes.pop('history'))
-    return CubeList(forecast_to_return).merge_cube()
+    return merge_cubes(forecast_to_return)
 
 
 if __name__ == "__main__":
