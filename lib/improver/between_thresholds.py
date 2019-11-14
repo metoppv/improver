@@ -36,11 +36,12 @@ import numpy as np
 
 from iris.exceptions import CoordinateNotFoundError
 
+from improver import BasePlugin
 from improver.metadata.probabilistic import (
     extract_diagnostic_name, find_threshold_coordinate)
 
 
-class OccurrenceBetweenThresholds(object):
+class OccurrenceBetweenThresholds(BasePlugin):
     """Calculate the probability of occurrence between thresholds"""
 
     def __init__(self, threshold_ranges, threshold_units):

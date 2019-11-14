@@ -42,6 +42,7 @@ from scipy import stats
 from scipy.optimize import minimize
 from scipy.stats import norm
 
+from improver import BasePlugin
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     convert_cube_data_to_2d, check_predictor_of_mean_flag,
     flatten_ignoring_masked_data)
@@ -51,7 +52,7 @@ from improver.utilities.temporal import (
     cycletime_to_datetime, datetime_to_iris_time, iris_time_to_datetime)
 
 
-class ContinuousRankedProbabilityScoreMinimisers():
+class ContinuousRankedProbabilityScoreMinimisers:
     """
     Minimise the Continuous Ranked Probability Score (CRPS)
 
@@ -368,7 +369,7 @@ class ContinuousRankedProbabilityScoreMinimisers():
         return result
 
 
-class EstimateCoefficientsForEnsembleCalibration():
+class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
     """
     Class focussing on estimating the optimised coefficients for ensemble
     calibration.
@@ -881,7 +882,7 @@ class EstimateCoefficientsForEnsembleCalibration():
         return coefficients_cube
 
 
-class ApplyCoefficientsFromEnsembleCalibration():
+class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
     """
     Class to apply the optimised EMOS coefficients to future dates.
 
