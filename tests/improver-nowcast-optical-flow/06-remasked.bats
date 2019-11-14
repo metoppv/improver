@@ -31,41 +31,27 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "nowcast-optical-flow extrapolate" {
+@test "optical-flow remasked" {
+
   improver_check_skip_acceptance
-  KGO0="nowcast-extrapolate/extrapolate/kgo0.nc"
-  KGO1="nowcast-extrapolate/extrapolate/kgo1.nc"
-  KGO2="nowcast-extrapolate/extrapolate/kgo2.nc"
+  KGO="nowcast-optical-flow/remasked/kgo.nc"
 
-  COMP1="201811031530_radar_rainrate_composite_UK_regridded.nc"
-  COMP2="201811031545_radar_rainrate_composite_UK_regridded.nc"
-  COMP3="201811031600_radar_rainrate_composite_UK_regridded.nc"
+  COMP1="201811271330_radar_rainrate_remasked_composite_2km_UK.nc"
+  COMP2="201811271345_radar_rainrate_remasked_composite_2km_UK.nc"
+  COMP3="201811271400_radar_rainrate_remasked_composite_2km_UK.nc"
 
-  OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
-
-  # Run processing and check it passes
+  # Run processing with radar data whose masks differ
   run improver nowcast-optical-flow \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$COMP1" \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$COMP2" \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$COMP3" \
-    --orographic_enhancement_filepaths \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1" \
-    --output_dir "$TEST_DIR" --extrapolate --max_lead_time 30
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/remasked/$COMP1" \
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/remasked/$COMP2" \
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/remasked/$COMP3" \
+    "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
-  T0="20181103T1600Z-PT0000H00M-lwe_precipitation_rate.nc"
-  T1="20181103T1615Z-PT0000H15M-lwe_precipitation_rate.nc"
-  T2="20181103T1630Z-PT0000H30M-lwe_precipitation_rate.nc"
-
-  improver_check_recreate_kgo "$T0" $KGO0
-  improver_check_recreate_kgo "$T1" $KGO1
-  improver_check_recreate_kgo "$T2" $KGO2
+  improver_check_recreate_kgo "output.nc" $KGO
 
   # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/$T0" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO0"
-  improver_compare_output "$TEST_DIR/$T1" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO1"
-  improver_compare_output "$TEST_DIR/$T2" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO2"
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }
+
