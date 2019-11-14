@@ -32,9 +32,7 @@
 """Script to extrapolate input data given advection velocity fields."""
 
 import iris
-import numpy as np
 from iris import Constraint
-from iris.cube import CubeList
 
 from improver.argparser import ArgParser
 from improver.nowcasting.forecasting import CreateExtrapolationForecast
