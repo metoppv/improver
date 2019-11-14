@@ -36,7 +36,11 @@ from iris.analysis import Nearest, Linear
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.metadata.amend import amend_attributes
-from improver.metadata.check_datatypes import check_cube_not_float64
+from improver.metadata.check_datatypes import (
+    check_cube_not_float64, check_time_coordinate_metadata)
+from improver.metadata.constants.time_types import (
+    TIME_COORD_NAMES, TIME_REFERENCE_DTYPE, TIME_REFERENCE_UNIT,
+    TIME_DTYPE, TIME_UNIT)
 from improver.utilities.spatial import RegridLandSea
 
 
@@ -127,6 +131,37 @@ class StandardiseGridAndMetadata:
         return cube
 
     @staticmethod
+    def _standardise_time_coordinates(cube):
+        """
+        If cube time-type coordinates do not conform to expected standards,
+        update units and datatypes in place.
+        """
+        def _update_time_coordinate(coord):
+            """Update a non-conforming time coordinate"""
+            if coord.units.is_time_reference():
+                coord.convert_units(TIME_REFERENCE_UNIT)
+                coord.points = coord.points.astype(TIME_REFERENCE_DTYPE)
+                if coord.bounds is not None:
+                    coord.bounds = coord.bounds.astype(TIME_REFERENCE_DTYPE)
+            else:
+                coord.convert_units(TIME_UNIT)
+                coord.points = coord.points.astype(TIME_DTYPE)
+                if coord.bounds is not None:
+                    coord.bounds = coord.bounds.astype(TIME_DTYPE)
+
+        # check all time coordinates; if check fails, update them all
+        try:
+            check_time_coordinate_metadata(cube)
+        except ValueError:
+            for time_coord in TIME_COORD_NAMES:
+                try:
+                    coord = cube.coord(time_coord)
+                except CoordinateNotFoundError:
+                    pass
+                else:
+                    _update_time_coordinate(coord)
+
+    @staticmethod
     def _collapse_scalar_dimensions(cube):
         """
         Demote any scalar dimensions (excluding "realization") on the input
@@ -178,13 +213,18 @@ class StandardiseGridAndMetadata:
         Returns:
             iris.cube.Cube
         """
+        # regridding
         if target_grid:
             cube = self._regrid_to_target(cube, target_grid)
 
+        # standard metadata updates
+        cube = self._collapse_scalar_dimensions(cube)
+        self._standardise_time_coordinates(cube)
+
+        # optional metadata updates
         if new_name:
             cube.rename(new_name)
 
-        cube = self._collapse_scalar_dimensions(cube)
         if coords_to_remove:
             self._remove_scalar_coords(cube, coords_to_remove)
 
