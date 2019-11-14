@@ -684,7 +684,7 @@ class Test_process(Test_weighted_blend):
         weights = ([1.0])
         msg = 'has no associated dimension'
         with self.assertRaisesRegex(ValueError, msg):
-            _ = plugin.process(self.cube, weights)
+            plugin.process(self.cube, weights)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
