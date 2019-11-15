@@ -147,7 +147,7 @@ def process(*cubelist: cli.inputcube,
         new_name = cubelist[0].name()
     result = CubeCombiner(operation, warnings_on=warnings_on).process(
         CubeList(cubelist), new_name, cell_method_updates=cell_method_updates,
-        expanded_coord=coords_to_expand)
+        coords_to_expand=coords_to_expand)
 
     return result
 
