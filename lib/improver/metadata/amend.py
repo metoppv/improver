@@ -34,12 +34,10 @@ import warnings
 from datetime import datetime
 
 import iris
-import numpy as np
 from dateutil import tz
 
 from improver.metadata.constants.mo_attributes import (
     MOSG_GRID_DEFINITION, GRID_ID_LOOKUP)
-from improver.utilities.cube_manipulation import compare_coords
 
 
 def update_stage_v110_metadata(cube):

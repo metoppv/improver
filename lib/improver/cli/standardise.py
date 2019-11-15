@@ -32,10 +32,6 @@
 """Script to standardise a NetCDF file by one or more of regridding, updating
 meta-data and demoting float64 data to float32"""
 
-import warnings
-
-import iris
-
 from improver.argparser import ArgParser
 from improver.standardise import StandardiseGridAndMetadata
 from improver.utilities.cli_utilities import load_json_or_none
