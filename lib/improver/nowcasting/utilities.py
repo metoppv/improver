@@ -194,7 +194,7 @@ class ApplyOrographicEnhancement(BasePlugin):
         else:
             msg = ("Operation '{}' not supported for combining "
                    "precipitation rate and "
-                   "orographic enhancement.".format(operation))
+                   "orographic enhancement.".format(self.operation))
             raise ValueError(msg)
 
         return cube

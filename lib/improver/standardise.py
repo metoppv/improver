@@ -185,7 +185,7 @@ class StandardiseGridAndMetadata(BasePlugin):
         for coord in coords_to_remove:
             try:
                 cube.remove_coord(coord)
-            except iris.exceptions.CoordinateNotFoundError:
+            except CoordinateNotFoundError:
                 continue
 
     def process(self, cube, target_grid=None, new_name=None,
