@@ -642,7 +642,8 @@ class Test_process(Test_weighted_blend):
         result = plugin.process(cube, cycletime='20191011T0000Z')
         self.assertEqual(
             result.coord("forecast_reference_time").points[0], expected_frt)
-        self.assertEqual(result.coord("forecast_period").points[0], expected_fp)        
+        self.assertEqual(
+            result.coord("forecast_period").points[0], expected_fp)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate"])
