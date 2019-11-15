@@ -630,6 +630,20 @@ class Test_process(Test_weighted_blend):
         self.assertEqual(result.coord('time').points,
                          cube.coord('time').points)
 
+    def test_cycletime_not_updated(self):
+        """Test changes to forecast period and forecast reference time are not
+        made when not blending over cycle or model."""
+        cube = set_up_variable_cube(
+            278*np.ones((3, 5, 5), dtype=np.float32),
+            time=datetime(2019, 10, 11, 1), frt=datetime(2019, 10, 10, 21))
+        expected_frt = cube.coord("forecast_reference_time").points[0]
+        expected_fp = cube.coord("forecast_period").points[0]
+        plugin = WeightedBlendAcrossWholeDimension("realization")
+        result = plugin.process(cube, cycletime='20191011T0000Z')
+        self.assertEqual(
+            result.coord("forecast_reference_time").points[0], expected_frt)
+        self.assertEqual(result.coord("forecast_period").points[0], expected_fp)        
+
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate"])
     def test_attributes_dict(self):
