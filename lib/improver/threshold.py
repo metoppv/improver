@@ -36,11 +36,12 @@ import iris
 import numpy as np
 from cf_units import Unit
 
+from improver import BasePlugin
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.rescale import rescale
 
 
-class BasicThreshold(object):
+class BasicThreshold(BasePlugin):
 
     """Apply a threshold truth criterion to a cube.
 
@@ -220,19 +221,10 @@ class BasicThreshold(object):
             iris.cube.Cube:
                 With new "threshold" axis
         """
-        try:
-            coord = iris.coords.DimCoord(
-                np.array([threshold], dtype=np.float32),
-                standard_name=self.threshold_coord_name,
-                var_name="threshold", units=cube.units)
-        except ValueError as cause:
-            if 'is not a valid standard_name' in str(cause):
-                coord = iris.coords.DimCoord(
-                    np.array([threshold], dtype=np.float32),
-                    long_name=self.threshold_coord_name,
-                    var_name="threshold", units=cube.units)
-            else:
-                raise ValueError(cause)
+        coord = iris.coords.DimCoord(np.array([threshold], dtype=np.float32),
+                                     units=cube.units)
+        coord.rename(self.threshold_coord_name)
+        coord.var_name = "threshold"
 
         # Use an spp__relative_to_threshold attribute, as an extension to the
         # CF-conventions.

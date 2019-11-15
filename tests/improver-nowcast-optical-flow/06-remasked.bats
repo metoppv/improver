@@ -34,8 +34,7 @@
 @test "optical-flow remasked" {
 
   improver_check_skip_acceptance
-  KGO1="nowcast-optical-flow/remasked/ucomp_kgo.nc"
-  KGO2="nowcast-optical-flow/remasked/vcomp_kgo.nc"
+  KGO="nowcast-optical-flow/remasked/kgo.nc"
 
   COMP1="201811271330_radar_rainrate_remasked_composite_2km_UK.nc"
   COMP2="201811271345_radar_rainrate_remasked_composite_2km_UK.nc"
@@ -46,19 +45,13 @@
     "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/remasked/$COMP1" \
     "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/remasked/$COMP2" \
     "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/remasked/$COMP3" \
-    --output_dir "$TEST_DIR"
+    "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
-  UCOMP="20181127T1400Z-PT0000H00M-precipitation_advection_x_velocity.nc"
-  VCOMP="20181127T1400Z-PT0000H00M-precipitation_advection_y_velocity.nc"
-
-  improver_check_recreate_kgo "$UCOMP" $KGO1
-  improver_check_recreate_kgo "$VCOMP" $KGO2
+  improver_check_recreate_kgo "output.nc" $KGO
 
   # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/$UCOMP" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO1"
-  improver_compare_output "$TEST_DIR/$VCOMP" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO2"
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }
 

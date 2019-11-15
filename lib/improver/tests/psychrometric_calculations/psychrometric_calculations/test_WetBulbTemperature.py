@@ -82,7 +82,7 @@ class Test_check_range(Test_WetBulbTemperature):
         """Basic test that a warning is raised if temperatures fall outside the
         allowed range."""
 
-        WetBulbTemperature.check_range(self.temperature,
+        WetBulbTemperature.check_range(self.temperature.data,
                                        270., 360.)
         warning_msg = "Wet bulb temperatures are"
         self.assertTrue(any(item.category == UserWarning
@@ -99,9 +99,8 @@ class Test_lookup_svp(Test_WetBulbTemperature):
         """Basic extraction of some SVP values from the lookup table."""
         self.temperature.data[0, 1] = 260.56833
         expected = [[1.350531e-02, 2.06000274e+02, 2.501530e+04]]
-        result = WetBulbTemperature().lookup_svp(self.temperature)
-        self.assertArrayAlmostEqual(result.data, expected)
-        self.assertEqual(result.units, Unit('Pa'))
+        result = WetBulbTemperature().lookup_svp(self.temperature.data)
+        self.assertArrayAlmostEqual(result, expected)
 
     @ManageWarnings(record=True)
     def test_beyond_table_bounds(self, warning_list=None):
@@ -110,14 +109,13 @@ class Test_lookup_svp(Test_WetBulbTemperature):
         self.temperature.data[0, 0] = 150.
         self.temperature.data[0, 2] = 400.
         expected = [[9.664590e-03, 2.075279e+02, 2.501530e+04]]
-        result = WetBulbTemperature().lookup_svp(self.temperature)
+        result = WetBulbTemperature().lookup_svp(self.temperature.data)
         warning_msg = "Wet bulb temperatures are"
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         self.assertTrue(any(warning_msg in str(item)
                             for item in warning_list))
-        self.assertArrayAlmostEqual(result.data, expected)
-        self.assertEqual(result.units, Unit('Pa'))
+        self.assertArrayAlmostEqual(result, expected)
 
 
 class Test_pressure_correct_svp(Test_WetBulbTemperature):
@@ -131,10 +129,9 @@ class Test_pressure_correct_svp(Test_WetBulbTemperature):
         svp = self.pressure.copy(data=[[197.41815, 474.1368, 999.5001]])
         expected = [[199.226956, 476.293096, 1006.391004]]
         result = WetBulbTemperature().pressure_correct_svp(
-            svp, self.temperature, self.pressure)
+            svp, self.temperature.data, self.pressure.data)
 
         self.assertArrayAlmostEqual(result.data, expected)
-        self.assertEqual(result.units, Unit('Pa'))
 
 
 class Test__calculate_mixing_ratio(Test_WetBulbTemperature):
@@ -147,10 +144,9 @@ class Test__calculate_mixing_ratio(Test_WetBulbTemperature):
 
         expected = [[6.06744631e-08, 1.31079322e-03, 1.77063149e-01]]
         result = WetBulbTemperature()._calculate_mixing_ratio(
-            self.temperature, self.pressure)
+            self.temperature.data, self.pressure.data)
 
-        self.assertArrayAlmostEqual(result.data, expected)
-        self.assertEqual(result.units, Unit('1'))
+        self.assertArrayAlmostEqual(result, expected)
 
 
 class Test_calculate_wet_bulb_temperature(Test_WetBulbTemperature):

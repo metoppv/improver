@@ -31,10 +31,8 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "nowcast-optical-flow basic no orographic enhancement" {
+@test "nowcast-optical-flow no orographic enhancement" {
   improver_check_skip_acceptance
-  KGO1="nowcast-optical-flow/basic_no_orographic_enhancement/ucomp_kgo.nc"
-  KGO2="nowcast-optical-flow/basic_no_orographic_enhancement/vcomp_kgo.nc"
 
   COMP1="201811031530_radar_rainrate_composite_UK_regridded.nc"
   COMP2="201811031545_radar_rainrate_composite_UK_regridded.nc"
@@ -42,21 +40,13 @@
 
   # Run processing and check it passes
   run improver nowcast-optical-flow \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic_no_orographic_enhancement/$COMP1" \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic_no_orographic_enhancement/$COMP2" \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic_no_orographic_enhancement/$COMP3" \
-    --output_dir "$TEST_DIR"
-  [[ "$status" -eq 0 ]]
-
-  UCOMP="20181103T1600Z-PT0000H00M-precipitation_advection_x_velocity.nc"
-  VCOMP="20181103T1600Z-PT0000H00M-precipitation_advection_y_velocity.nc"
-
-  improver_check_recreate_kgo "$UCOMP" $KGO1
-  improver_check_recreate_kgo "$VCOMP" $KGO2
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/$UCOMP" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO1"
-  improver_compare_output "$TEST_DIR/$VCOMP" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO2"
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$COMP1" \
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$COMP2" \
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$COMP3" \
+    "$TEST_DIR/output.nc"
+  [[ "$status" -eq 1 ]]
+  read -d '' expected <<'__TEXT__' || true
+ValueError: For precipitation fields, orographic enhancement
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
 }

@@ -402,9 +402,6 @@ class Test__point_orogenh(IrisTest):
         humidity = np.array([[0.74, 0.85, 0.94],
                              [0.81, 0.82, 0.91],
                              [0.86, 0.93, 0.97]])
-        svp = np.array([[813.6, 878.0, 848.3],
-                        [903.2, 890.5, 922.2],
-                        [922.1, 928.4, 967.9]])
 
         self.plugin = OrographicEnhancement()
         self.plugin.temperature = iris.cube.Cube(
@@ -413,9 +410,9 @@ class Test__point_orogenh(IrisTest):
         self.plugin.humidity = iris.cube.Cube(
             humidity, long_name="relhumidity", units="1",
             dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
-        self.plugin.svp = iris.cube.Cube(
-            svp, long_name="saturation_vapour_pressure", units="Pa",
-            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
+        self.plugin.svp = np.array([[813.6, 878.0, 848.3],
+                                    [903.2, 890.5, 922.2],
+                                    [922.1, 928.4, 967.9]])
 
         self.plugin.vgradz = np.array([[0.02, 0.08, 0.2],
                                        [-0.06, 0.12, 0.22],
@@ -608,7 +605,7 @@ class Test__add_upstream_component(IrisTest):
 
 
 class Test__create_output_cubes(IrisTest):
-    """Test the _create_output_cubes method"""
+    """Test the _create_output_cube method"""
 
     def setUp(self):
         """Set up a plugin instance, data array and cubes"""
@@ -631,88 +628,69 @@ class Test__create_output_cubes(IrisTest):
                                  [0.8, 0.9, 1.2, 0.9]])
 
     def test_basic(self):
-        """Test that two cubes are returned with float32 coords"""
-        output, regridded_output = self.plugin._create_output_cubes(
+        """Test that the cube is returned with float32 coords"""
+        output = self.plugin._create_output_cube(
             self.orogenh, self.temperature)
-        for cube in [output, regridded_output]:
-            self.assertIsInstance(cube, iris.cube.Cube)
-            for coord in cube.coords(dim_coords=True):
-                self.assertEqual(coord.points.dtype, 'float32')
+
+        self.assertIsInstance(output, iris.cube.Cube)
+        for coord in output.coords(dim_coords=True):
+            self.assertEqual(coord.points.dtype, 'float32')
 
     def test_values(self):
-        """Test first cube is changed only in units (to m s-1) and regridded
-        output cube is masked as expected"""
-        expected_data = np.array(
-            [[np.nan, 2.777778e-07, 3.8888888e-07, np.nan],
-             [np.nan, np.nan, np.nan, np.nan]], dtype=np.float32)
+        """Test the cube is changed only in units (to m s-1)"""
         original_converted = 2.7777778e-07 * self.orogenh
-        expected_mask = np.where(np.isfinite(expected_data), False, True)
-        output, regridded_output = self.plugin._create_output_cubes(
+
+        output = self.plugin._create_output_cube(
             self.orogenh, self.temperature)
         self.assertArrayAlmostEqual(output.data, original_converted)
-        self.assertTrue(np.allclose(regridded_output.data.data,
-                                    expected_data, equal_nan=True))
-        self.assertArrayEqual(regridded_output.data.mask, expected_mask)
 
     def test_metadata(self):
-        """Check output metadata on both cubes is as expected"""
+        """Check output metadata on cube is as expected"""
         hi_res_attributes = self.temperature.attributes
         for key, val in self.plugin.topography.attributes.items():
             hi_res_attributes[key] = val
 
-        tref = sort_coord_in_cube(
-            self.temperature, self.temperature.coord(axis='y'))
-        output, regridded_output = self.plugin._create_output_cubes(
-            self.orogenh, self.temperature)
+        output = self.plugin._create_output_cube(self.orogenh,
+                                                 self.temperature)
 
         for axis in ['x', 'y']:
             self.assertEqual(output.coord(axis=axis),
                              self.plugin.topography.coord(axis=axis))
-            self.assertEqual(regridded_output.coord(axis=axis),
-                             tref.coord(axis=axis))
 
-        for cube in [output, regridded_output]:
-            self.assertEqual(cube.name(), 'orographic_enhancement')
-            self.assertEqual(cube.units, 'm s-1')
-            for t_coord in ['time', 'forecast_period',
-                            'forecast_reference_time']:
-                self.assertEqual(
-                    cube.coord(t_coord), self.temperature.coord(t_coord))
-        self.assertDictEqual(
-            regridded_output.attributes, self.temperature.attributes)
+        self.assertEqual(output.name(), 'orographic_enhancement')
+        self.assertEqual(output.units, 'm s-1')
+        for t_coord in ['time', 'forecast_period', 'forecast_reference_time']:
+            self.assertEqual(
+                output.coord(t_coord), self.temperature.coord(t_coord))
         self.assertDictEqual(output.attributes, hi_res_attributes)
 
     def test_grid_metadata(self):
         """Test specific grid and model metadata inheritance"""
-        output, regridded_output = self.plugin._create_output_cubes(
+        output = self.plugin._create_output_cube(
             self.orogenh, self.temperature)
 
         for attr in ['mosg__grid_type', 'mosg__grid_version',
                      'mosg__grid_domain']:
-            self.assertEqual(regridded_output.attributes[attr],
-                             self.temperature.attributes[attr])
             self.assertEqual(output.attributes[attr],
                              self.plugin.topography.attributes[attr])
 
-        for cube in [output, regridded_output]:
-            self.assertEqual(
-                cube.attributes['mosg__model_configuration'],
-                self.temperature.attributes['mosg__model_configuration'])
+        self.assertEqual(
+            output.attributes['mosg__model_configuration'],
+            self.temperature.attributes['mosg__model_configuration'])
 
 
 class Test_process(DataCubeTest):
     """Test the process method"""
 
     def test_basic(self):
-        """Test outputs are float32 cubes with float32 coordinates"""
-        orogenh, orogenh_standard_grid = self.plugin.process(
+        """Test output is float32 cube with float32 coordinates"""
+        orogenh = self.plugin.process(
             self.temperature, self.humidity, self.pressure,
             self.uwind, self.vwind, self.orography_cube)
-        for cube in [orogenh, orogenh_standard_grid]:
-            self.assertIsInstance(cube, iris.cube.Cube)
-            self.assertEqual(cube.data.dtype, 'float32')
-            for coord in cube.coords(dim_coords=True):
-                self.assertEqual(coord.points.dtype, 'float32')
+        self.assertIsInstance(orogenh, iris.cube.Cube)
+        self.assertEqual(orogenh.data.dtype, 'float32')
+        for coord in orogenh.coords(dim_coords=True):
+            self.assertEqual(coord.points.dtype, 'float32')
 
     def test_unmatched_coords(self):
         """Test error thrown if input variable cubes do not match"""
@@ -734,6 +712,7 @@ class Test_process(DataCubeTest):
         uwind = set_up_invalid_variable_cube(self.uwind)
         vwind = set_up_invalid_variable_cube(self.vwind)
         msg = 'Require 2D fields as input; found 3 dimensions'
+
         with self.assertRaisesRegex(ValueError, msg):
             _ = self.plugin.process(
                 temperature, humidity, pressure, uwind, vwind,
@@ -756,7 +735,7 @@ class Test_process(DataCubeTest):
             self.assertEqual(cube.metadata, copy.metadata)
 
     def test_values(self):
-        """Test values of outputs"""
+        """Test values of output"""
         expected_data = np.array(
             [[2.6524199e-07, 3.4075157e-07, 2.5099993e-07, 9.1911055e-08,
               1.7481890e-08, 1.5676112e-09],
@@ -766,16 +745,12 @@ class Test_process(DataCubeTest):
               5.3441389e-09, 1.5676112e-09],
              [8.5711110e-10, 8.5711110e-10, 8.5711110e-10, 8.5711110e-10,
               2.1291666e-09, 2.4547223e-10]], dtype=np.float32)
-        expected_data_regridded = np.array(
-            [[1.679777e-07, 1.763937e-07, 1.748190e-08],
-             [8.571141e-10, 8.571141e-10, 2.129176e-09]], dtype=np.float32)
 
-        orogenh, orogenh_standard_grid = self.plugin.process(
+        orogenh = self.plugin.process(
             self.temperature, self.humidity, self.pressure,
             self.uwind, self.vwind, self.orography_cube)
+
         self.assertArrayAlmostEqual(orogenh.data, expected_data)
-        self.assertArrayAlmostEqual(
-            orogenh_standard_grid.data, expected_data_regridded)
         self.assertAlmostEqual(self.plugin.grid_spacing_km, 1.)
 
 

@@ -32,18 +32,14 @@
 """Script to run neighbourhooding processing when iterating over a coordinate
 defining a series of masks."""
 
-from improver.argparser import ArgParser
-from improver.nbhood.use_nbhood import (
-    ApplyNeighbourhoodProcessingWithAMask,
-    CollapseMaskedNeighbourhoodCoordinate)
-from improver.utilities.cli_utilities import radius_or_radii_and_lead
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
+from improver import cli
 
 
 def main(argv=None):
     """Load in arguments for applying neighbourhood processing when using a
     mask."""
+    from improver.argparser import ArgParser
+
     parser = ArgParser(
         description='Apply the requested neighbourhood method via the '
                     'ApplyNeighbourhoodProcessingWithAMask plugin to a file '
@@ -132,25 +128,32 @@ def main(argv=None):
     args = parser.parse_args(args=argv)
 
     # Load Cubes
-    cube = load_cube(args.input_filepath)
-    mask_cube = load_cube(args.input_mask_filepath)
-    weights = load_cube(args.weights_for_collapsing_dim) if \
+    cube = cli.inputcube(args.input_filepath)
+    mask_cube = cli.inputcube(args.input_mask_filepath)
+    weights = cli.inputcube(args.weights_for_collapsing_dim) if \
         args.collapse_dimension else None
 
     # Process Cube
-    result, intermediate_cube = process(
-        cube, mask_cube, weights, args.coord_for_masking, args.radius,
-        args.radii_by_lead_time, args.sum_or_fraction, args.re_mask,
-        args.collapse_dimension)
-
-    # Save Cube
-    save_netcdf(result, args.output_filepath)
-    if args.intermediate_filepath is not None:
-        save_netcdf(intermediate_cube, args.intermediate_filepath)
+    # pylint: disable=E1123
+    process(cube, mask_cube, weights, coord_for_masking=args.coord_for_masking,
+            radius=args.radius, radii_by_lead_time=args.radii_by_lead_time,
+            sum_or_fraction=args.sum_or_fraction, remask=args.re_mask,
+            collapse_dimension=args.collapse_dimension,
+            output=args.output_filepath,
+            intermediate_output=args.intermediate_filepath)
 
 
-def process(cube, mask_cube, weights, coord_for_masking, radius=None,
-            radii_by_lead_time=None, sum_or_fraction="fraction", re_mask=False,
+@cli.clizefy
+@cli.with_output
+@cli.with_intermediate_output
+def process(cube: cli.inputcube,
+            mask: cli.inputcube,
+            weights: cli.inputcube = None,
+            *,
+            coord_for_masking, radius: float = None,
+            radii_by_lead_time=None,
+            sum_or_fraction="fraction",
+            remask=False,
             collapse_dimension=False):
     """Runs neighbourhooding processing iterating over a coordinate by mask.
 
@@ -172,9 +175,9 @@ def process(cube, mask_cube, weights, coord_for_masking, radius=None,
     Args:
         cube (iris.cube.Cube):
             Cube to be processed.
-        mask_cube (iris.cube.Cube):
+        mask (iris.cube.Cube):
             Cube to act as a mask.
-        weights (iris.cube.Cube):
+        weights (iris.cube.Cube, Optional):
             Cube containing the weights which are used for collapsing the
             dimension gained through masking.
         coord_for_masking (str):
@@ -185,34 +188,29 @@ def process(cube, mask_cube, weights, coord_for_masking, radius=None,
             Rounded up to convert into integer number of grid points east and
             north, based on the characteristic spacing at the zero indices of
             the cube projection-x and y coordinates.
-            Default is None.
         radii_by_lead_time (float or list of float):
             A list with the radius in metres at [0] and the lead_time at [1]
             Lead time is a List of lead times or forecast periods, at which
             the radii within 'radii' are defined. The lead times are expected
             in hours.
-            Default is None.
         sum_or_fraction (str):
             Identifier for whether sum or fraction should be returned from
             neighbourhooding.
             Sum represents the sum of the neighbourhood.
             Fraction represents the sum of the neighbourhood divided by the
             neighbourhood area.
-            Default is fraction.
-        re_mask (bool):
+        remask (bool):
             If True, the original un-neighbourhood processed mask
             is applied to mask out the neighbourhood processed cube.
             If False, the original un-neighbourhood processed mask is not
             applied.
             Therefore, the neighbourhood processing may result in
             values being present in areas that were originally masked.
-            Default is False.
         collapse_dimension (bool):
             Collapse the dimension from the mask, by doing a weighted mean
             using the weights provided.  This is only suitable when the result
             is left unmasked, so there is data to weight between the points
             in the coordinate we are collapsing.
-            Default is False.
 
     Returns:
         (tuple): tuple containing:
@@ -222,17 +220,24 @@ def process(cube, mask_cube, weights, coord_for_masking, radius=None,
                 A cube before it is collapsed, if 'collapse_dimension' is True.
 
     """
+    from improver.nbhood.use_nbhood import (
+        ApplyNeighbourhoodProcessingWithAMask,
+        CollapseMaskedNeighbourhoodCoordinate,
+    )
+    from improver.utilities.cli_utilities import radius_or_radii_and_lead
+
     radius_or_radii, lead_times = radius_or_radii_and_lead(radius,
                                                            radii_by_lead_time)
 
     result = ApplyNeighbourhoodProcessingWithAMask(
         coord_for_masking, radius_or_radii, lead_times=lead_times,
         sum_or_fraction=sum_or_fraction,
-        re_mask=re_mask).process(cube, mask_cube)
-    intermediate_cube = result.copy()
+        re_mask=remask).process(cube, mask)
+    intermediate_cube = None
 
     # Collapse with the masking dimension.
     if collapse_dimension:
+        intermediate_cube = result.copy()
         result = CollapseMaskedNeighbourhoodCoordinate(
             coord_for_masking, weights).process(result)
     return result, intermediate_cube

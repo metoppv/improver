@@ -42,6 +42,7 @@ from scipy import stats
 from scipy.optimize import minimize
 from scipy.stats import norm
 
+from improver import BasePlugin
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     convert_cube_data_to_2d, check_predictor_of_mean_flag,
     flatten_ignoring_masked_data)
@@ -51,7 +52,7 @@ from improver.utilities.temporal import (
     cycletime_to_datetime, datetime_to_iris_time, iris_time_to_datetime)
 
 
-class ContinuousRankedProbabilityScoreMinimisers():
+class ContinuousRankedProbabilityScoreMinimisers:
     """
     Minimise the Continuous Ranked Probability Score (CRPS)
 
@@ -368,7 +369,7 @@ class ContinuousRankedProbabilityScoreMinimisers():
         return result
 
 
-class EstimateCoefficientsForEnsembleCalibration():
+class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
     """
     Class focussing on estimating the optimised coefficients for ensemble
     calibration.
@@ -723,10 +724,23 @@ class EstimateCoefficientsForEnsembleCalibration():
         matching_historic_forecasts = iris.cube.CubeList([])
         matching_truths = iris.cube.CubeList([])
         for hf_slice in historic_forecast.slices_over("time"):
-            coord_values = (
-                {"time": iris_time_to_datetime(hf_slice.coord("time"))})
+            if hf_slice.coord("time").has_bounds():
+                point = iris_time_to_datetime(hf_slice.coord("time"),
+                                              point_or_bound="point")
+                bounds, = iris_time_to_datetime(
+                    hf_slice.coord("time"), point_or_bound="bound")
+                coord_values = (
+                    {"time": lambda cell: point[0] == cell.point and
+                        bounds[0] == cell.bound[0] and
+                        bounds[1] == cell.bound[1]})
+            else:
+                coord_values = (
+                    {"time": iris_time_to_datetime(
+                        hf_slice.coord("time"), point_or_bound="point")})
+
             constr = iris.Constraint(coord_values=coord_values)
             truth_slice = truth.extract(constr)
+
             if truth_slice:
                 matching_historic_forecasts.append(hf_slice)
                 matching_truths.append(truth_slice)
@@ -868,7 +882,7 @@ class EstimateCoefficientsForEnsembleCalibration():
         return coefficients_cube
 
 
-class ApplyCoefficientsFromEnsembleCalibration():
+class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
     """
     Class to apply the optimised EMOS coefficients to future dates.
 

@@ -51,52 +51,6 @@ set -eu
 
 export IMPROVER_DIR="$(cd $(dirname $0)/../ && pwd -P)"
 
-# List all improver subcommands or operations.
-get_operations() {
-    ( cd "$IMPROVER_DIR/bin/"
-      ls improver-*[^~] | sed "s/^improver-//"
-      cd "$IMPROVER_DIR/lib/improver/cli"
-      ls *.py | sed "/__init__\.py/d; s/\.py$//; s/_/-/g" ) | sort
-}
-
-# Print generic or operation specific help.
-print_help() {
-    OPER=${1:-}
-    if [[ -n "$OPER" ]] && [[ $OPER != all ]]; then
-        # Operation-specific help.
-        "$IMPROVER_DIR/bin/improver" "$OPER" --help
-    else
-        # General help.
-        sed -n '/^# NAME/,/^#---/{/^#\-/d; s/^#//; s/^ //; p}' "$0"
-        echo
-        echo "OPERATIONS"
-        get_operations | sed "s/^/   improver /"
-    fi
-}
-
-# Print the version.
-print_version() {
-    cat "$IMPROVER_DIR/etc/VERSION"
-}
-
-
-HELP_TARGET=all
-if (($# == 0)); then
-    print_help
-    exit 0
-fi
-if [[ $1 == help ]] || [[ $1 == --help ]]; then
-    print_help ${2:-}
-    exit 0
-fi
-if [[ $1 == version ]] || [[ $1 == --version ]]; then
-    print_version
-    exit 0
-fi
-
-OPER=$1
-shift
-
 # Apply site-specific setup if necessary.
 if [[ -f "${IMPROVER_SITE_INIT:=$IMPROVER_DIR/etc/site-init}" ]]; then
     . "$IMPROVER_SITE_INIT"
@@ -106,8 +60,4 @@ fi
 export PATH="$IMPROVER_DIR/bin/:$PATH"
 export PYTHONPATH="$IMPROVER_DIR/lib/:${PYTHONPATH:-}"
 
-if [[ -f "$IMPROVER_DIR/bin/improver-$OPER" ]]; then
-    exec "$IMPROVER_DIR/bin/improver-$OPER" "$@"
-else
-    exec python -m improver.cli.${OPER//-/_} "$@"
-fi
+exec python3 -m improver.cli "$@"

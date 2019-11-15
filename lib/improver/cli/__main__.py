@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,45 +28,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""Main to run clize on the cli"""
+from improver import cli
 
-. $IMPROVER_DIR/tests/lib/utils
-
-@test "nowcast-optical-flow extrapolate with filenames" {
-  improver_check_skip_acceptance
-  KGO0="nowcast-extrapolate/extrapolate/kgo0.nc"
-  KGO1="nowcast-extrapolate/extrapolate/kgo1.nc"
-  KGO2="nowcast-extrapolate/extrapolate/kgo2.nc"
-
-  COMP1="201811031530_radar_rainrate_composite_UK_regridded.nc"
-  COMP2="201811031545_radar_rainrate_composite_UK_regridded.nc"
-  COMP3="201811031600_radar_rainrate_composite_UK_regridded.nc"
-
-  OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
-
-  # Run processing and check it passes
-  run improver nowcast-optical-flow \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$COMP1" \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$COMP2" \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$COMP3" \
-    --orographic_enhancement_filepaths \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1" \
-    --output_dir "$TEST_DIR" \
-    --nowcast_filepaths \
-    "$TEST_DIR/outfile0.nc" \
-    "$TEST_DIR/outfile1.nc" \
-    "$TEST_DIR/outfile2.nc" \
-    --extrapolate --max_lead_time 30
-  [[ "$status" -eq 0 ]]
-
-  improver_check_recreate_kgo "outfile0.nc" $KGO0
-  improver_check_recreate_kgo "outfile1.nc" $KGO1
-  improver_check_recreate_kgo "outfile2.nc" $KGO2
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/outfile0.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO0"
-  improver_compare_output "$TEST_DIR/outfile1.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO1"
-  improver_compare_output "$TEST_DIR/outfile2.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO2"
-}
+if __name__ == '__main__':
+    cli.run_main()

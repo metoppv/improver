@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,41 +28,22 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""Tests command to execute tests."""
 
-. $IMPROVER_DIR/tests/lib/utils
 
-@test "nowcast-optical-flow with json file" {
-  improver_check_skip_acceptance
-  KGO1="nowcast-optical-flow/basic/ucomp_kgo_with_metadata.nc"
-  KGO2="nowcast-optical-flow/basic/vcomp_kgo_with_metadata.nc"
+def main(argv):
+    """Run pycodestyle, pylint, documentation, unit and CLI acceptance tests.
+    """
+    # Temporary shim routine
+    import os
+    import sys
+    import subprocess
+    prog = os.path.join(os.environ['IMPROVER_DIR'], 'bin', 'improver-tests')
+    sys.exit(subprocess.call([prog, *argv]))
 
-  COMP1="201811031530_radar_rainrate_composite_UK_regridded.nc"
-  COMP2="201811031545_radar_rainrate_composite_UK_regridded.nc"
-  COMP3="201811031600_radar_rainrate_composite_UK_regridded.nc"
 
-  OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
-
-  JSONFILE="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/metadata/precip.json"
-
-  # Run processing and check it passes
-  run improver nowcast-optical-flow \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$COMP1" \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$COMP2" \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$COMP3" \
-    --orographic_enhancement_filepaths \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1" \
-    --output_dir "$TEST_DIR" --json_file "$JSONFILE"
-  [[ "$status" -eq 0 ]]
-
-  UCOMP="20181103T1600Z-PT0000H00M-precipitation_advection_x_velocity.nc"
-  VCOMP="20181103T1600Z-PT0000H00M-precipitation_advection_y_velocity.nc"
-
-  improver_check_recreate_kgo "$UCOMP" $KGO1
-  improver_check_recreate_kgo "$VCOMP" $KGO2
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/$UCOMP" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO1"
-  improver_compare_output "$TEST_DIR/$VCOMP" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO2"
-}
+def process():
+    """Run pycodestyle, pylint, documentation unit and CLI acceptance tests.
+    """
+    # TODO: port bin/improver-tests shell script to python
+    raise NotImplementedError

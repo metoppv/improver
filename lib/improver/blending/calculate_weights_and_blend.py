@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Plugin to calculate blend weights and blend data across a dimension"""
-
+from improver import BasePlugin
 from improver.blending.spatial_weights import (
     SpatiallyVaryingWeightsFromMask)
 from improver.blending.weighted_blend import (
@@ -42,7 +42,7 @@ from improver.utilities.spatial import (
     check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells)
 
 
-class WeightAndBlend():
+class WeightAndBlend(BasePlugin):
     """
     Wrapper class to calculate weights and blend data across cycles or models
     """

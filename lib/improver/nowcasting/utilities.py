@@ -35,12 +35,13 @@ import iris
 import numpy as np
 from cf_units import Unit
 
+from improver import BasePlugin
 from improver.cube_combiner import CubeCombiner
 from improver.utilities.temporal import (
     extract_nearest_time_point, iris_time_to_datetime)
 
 
-class ExtendRadarMask(object):
+class ExtendRadarMask(BasePlugin):
     """
     Extend the mask on radar rainrate data based on the radar coverage
     composite
@@ -97,7 +98,7 @@ class ExtendRadarMask(object):
         return cube_list.merge_cube()
 
 
-class ApplyOrographicEnhancement(object):
+class ApplyOrographicEnhancement(BasePlugin):
 
     """Apply orographic enhancement to precipitation rate input, either to
      add or subtract an orographic enhancement component."""

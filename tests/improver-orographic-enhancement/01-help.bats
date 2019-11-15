@@ -44,8 +44,7 @@ usage: improver orographic-enhancement [-h] [--profile]
 
 Calculate orographic enhancement using the ResolveWindComponents() and
 OrographicEnhancement() plugins. Outputs data on the high resolution orography
-grid and regridded to the coarser resolution of the input diagnostic
-variables.
+grid.
 
 positional arguments:
   TEMPERATURE_FILEPATH  Full path to input NetCDF file of temperature on

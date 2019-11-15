@@ -31,10 +31,69 @@
 """Tests for the improver.metadata.utilities module"""
 
 import unittest
+import iris
 import numpy as np
 
-from improver.metadata.utilities import generate_hash, create_coordinate_hash
+from improver.metadata.utilities import (
+    create_new_diagnostic_cube, generate_hash, create_coordinate_hash)
 from improver.tests.set_up_test_cubes import set_up_variable_cube
+
+
+class Test_create_new_diagnostic_cube(unittest.TestCase):
+    """Test utility to create new diagnostic cubes"""
+
+    def setUp(self):
+        """Set up template with data, coordinates, attributes and cell
+        methods"""
+        self.template_cube = set_up_variable_cube(
+            280*np.ones((3, 5, 5), dtype=np.float32),
+            standard_grid_metadata='uk_det')
+        self.template_cube.add_cell_method('time (max): 1 hour')
+        self.name = "lwe_precipitation_rate"
+        self.units = "mm h-1"
+
+    def test_basic(self):
+        """Test result is a cube that inherits coordinates only"""
+        result = create_new_diagnostic_cube(
+            self.name, self.units, self.template_cube)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertEqual(result.standard_name, "lwe_precipitation_rate")
+        self.assertEqual(result.units, "mm h-1")
+        self.assertSequenceEqual(result.coords(dim_coords=True),
+                                 self.template_cube.coords(dim_coords=True))
+        self.assertSequenceEqual(result.coords(dim_coords=False),
+                                 self.template_cube.coords(dim_coords=False))
+        self.assertFalse(np.allclose(result.data, self.template_cube.data))
+        self.assertFalse(result.attributes)
+        self.assertFalse(result.cell_methods)
+        self.assertEqual(result.data.dtype, np.float32)
+
+    def test_attributes(self):
+        """Test attributes can be set on the output cube"""
+        attributes = {"source": "IMPROVER"}
+        result = create_new_diagnostic_cube(
+            self.name, self.units, self.template_cube, attributes=attributes)
+        self.assertDictEqual(result.attributes, attributes)
+
+    def test_data(self):
+        """Test data can be set on the output cube"""
+        data = np.arange(3*5*5).reshape((3, 5, 5)).astype(np.float32)
+        result = create_new_diagnostic_cube(
+            self.name, self.units, self.template_cube, data=data)
+        self.assertTrue(np.allclose(result.data, data))
+
+    def test_dtype(self):
+        """Test dummy data of a different type can be set"""
+        result = create_new_diagnostic_cube(
+            self.name, self.units, self.template_cube, dtype=np.int32)
+        self.assertEqual(result.data.dtype, np.int32)
+
+    def test_non_standard_name(self):
+        """Test cube can be created with a non-CF-standard name"""
+        result = create_new_diagnostic_cube(
+            "RainRate Composite", self.units, self.template_cube)
+        self.assertEqual(result.long_name, "RainRate Composite")
+        self.assertIsNone(result.standard_name)
 
 
 class Test_generate_hash(unittest.TestCase):
@@ -45,7 +104,9 @@ class Test_generate_hash(unittest.TestCase):
 
         hash_input = 'this is a test string'
         result = generate_hash(hash_input)
-        expected = "8e502f6a5b4a2e0f226649210895cebc"
+        expected = (
+            "7a5a4f1716b08d290d5782da904cc076315376889e9bf641ae527889704fd314"
+        )
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -54,7 +115,9 @@ class Test_generate_hash(unittest.TestCase):
 
         hash_input = 1000
         result = generate_hash(hash_input)
-        expected = "d017763f19ef64f920c43fc57413d171"
+        expected = (
+            "40510175845988f13f6162ed8526f0b09f73384467fa855e1e79b44a56562a58"
+        )
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -63,26 +126,29 @@ class Test_generate_hash(unittest.TestCase):
 
         hash_input = {'one': 1, 'two': 2}
         result = generate_hash(hash_input)
-        expected = "4735f4a74dd17d27b383de504a87e324"
+        expected = (
+            "c261139b6339f880f4f75a3bf5a08f7c2d6f208e2720760f362e4464735e3845"
+        )
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
-    def test_dictionary_order_variant(self):
-        """Test the expected hash is different if the dictionary order is
-        different."""
+    def test_dictionary_order_invariant(self):
+        """Test the expected hash is the same for different dict ordering."""
 
         hash_input1 = {'one': 1, 'two': 2}
         hash_input2 = {'two': 2, 'one': 1}
         result1 = generate_hash(hash_input1)
         result2 = generate_hash(hash_input2)
-        self.assertNotEqual(result1, result2)
+        self.assertEqual(result1, result2)
 
     def test_cube_input(self):
         """Test the expected hash is returned when input is a cube."""
 
         hash_input = set_up_variable_cube(np.ones((3, 3)).astype(np.float32))
         result = generate_hash(hash_input)
-        expected = "ad664992debed0bdf8f20804e4164691"
+        expected = (
+            "4d82994200559c90234b0186bccc59b9b9d6436284f29bab9a15dc97172d1fb8"
+        )
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -93,7 +159,9 @@ class Test_generate_hash(unittest.TestCase):
         cube = set_up_variable_cube(np.ones((3, 3)).astype(np.float32))
         hash_input = cube.coord('latitude')
         result = generate_hash(hash_input)
-        expected = "8c8846a4be49f7aab487353d9ecf623c"
+        expected = (
+            "62267c5827656790244ef2f26b708a1be5dcb491e4ae36b9db9b47c2aaaadf7e"
+        )
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -127,7 +195,9 @@ class Test_create_coordinate_hash(unittest.TestCase):
 
         hash_input = set_up_variable_cube(np.zeros((3, 3)).astype(np.float32))
         result = create_coordinate_hash(hash_input)
-        expected = "fd40f6d5a8e0a347f181d87bcfd445fa"
+        expected = (
+            "b26ca16d28f6e06ea4573fd745f55750c6dd93a06891f1b4ff0c6cd50585ac08"
+        )
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 

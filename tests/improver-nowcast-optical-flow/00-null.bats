@@ -35,17 +35,14 @@
   read -d '' expected <<'__TEXT__' || true
 usage: improver nowcast-optical-flow [-h] [--profile]
                                      [--profile_file PROFILE_FILE]
-                                     [--output_dir OUTPUT_DIR]
                                      [--nowcast_filepaths NOWCAST_FILEPATHS [NOWCAST_FILEPATHS ...]]
                                      [--orographic_enhancement_filepaths OROGRAPHIC_ENHANCEMENT_FILEPATHS [OROGRAPHIC_ENHANCEMENT_FILEPATHS ...]]
                                      [--json_file JSON_FILE]
                                      [--ofc_box_size OFC_BOX_SIZE]
                                      [--smart_smoothing_iterations SMART_SMOOTHING_ITERATIONS]
-                                     [--extrapolate]
-                                     [--max_lead_time MAX_LEAD_TIME]
-                                     [--lead_time_interval LEAD_TIME_INTERVAL]
                                      INPUT_FILEPATHS INPUT_FILEPATHS
-                                     INPUT_FILEPATHS
+                                     INPUT_FILEPATHS OUTPUT_FILEPATH
+
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }
