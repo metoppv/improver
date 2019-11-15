@@ -33,7 +33,7 @@
 from iris.coords import AuxCoord
 
 
-def wxcode_decision_tree():
+def wxcode_decision_tree_without_lightning():
     """
     Define queries that comprise the weather symbol decision tree.
     Each queries contains the following elements:
@@ -72,29 +72,6 @@ def wxcode_decision_tree():
             tree.
     """
     queries = {
-
-        'lightning': {
-            'succeed': 'lightning_cloud',
-            'fail': 'heavy_precipitation',
-            'probability_thresholds': [0.5],
-            'threshold_condition': '>=',
-            'condition_combination': '',
-            'diagnostic_fields':
-                ['probability_of_number_of_lightning_flashes_'
-                 'per_unit_area_in_vicinity_above_threshold'],
-            'diagnostic_thresholds': [AuxCoord(0.0, units="m-2")],
-            'diagnostic_conditions': ['above']},
-
-        'lightning_cloud': {
-            'succeed': 30,
-            'fail': 29,
-            'probability_thresholds': [0.5],
-            'threshold_condition': '>=',
-            'condition_combination': '',
-            'diagnostic_fields':
-                ['probability_of_cloud_area_fraction_above_threshold'],
-            'diagnostic_thresholds': [AuxCoord(0.8125, units=1)],
-            'diagnostic_conditions': ['above']},
 
         'heavy_precipitation': {
             'succeed': 'heavy_precipitation_cloud',
