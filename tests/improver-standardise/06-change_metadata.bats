@@ -33,15 +33,16 @@
 
 @test "standardise" {
   improver_check_skip_acceptance
-  KGO="standardise/metadata/changed_metadata_kgo.nc"
+  KGO="standardise/metadata/kgo_no_regrid.nc"
 
-  JSONFILE="$IMPROVER_ACC_TEST_DIR/standardise/metadata/metadata.json"
+  JSONFILE="$IMPROVER_ACC_TEST_DIR/standardise/metadata/radar_metadata.json"
 
   # Change cube metadata and check it passes.
   run improver standardise \
-      "$IMPROVER_ACC_TEST_DIR/standardise/regrid-basic/global_cutout.nc" \
+      "$IMPROVER_ACC_TEST_DIR/standardise/metadata/input.nc" \
       --output_filepath "$TEST_DIR/output.nc" \
-      --json_file "$JSONFILE"
+      --new_name "lwe_precipitation_rate" --new_units "m s-1" \
+      --json_file "$JSONFILE" --coords_to_remove "height"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
