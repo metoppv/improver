@@ -143,10 +143,14 @@ class Test_process(IrisTest):
                                "mosg__grid_type": "standard",
                                "mosg__model_configuration": "gl_det",
                                "institution": "Met Office"}
+        expected_data = self.cube.data.copy() - 273.15
         result = StandardiseGridAndMetadata().process(
-            self.cube, new_name=new_name, coords_to_remove=["forecast_period"],
+            self.cube, new_name=new_name, new_units="degC",
+            coords_to_remove=["forecast_period"],
             attributes_dict=attribute_changes)
         self.assertEqual(result.name(), new_name)
+        self.assertEqual(result.units, "degC")
+        self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
         self.assertDictEqual(result.attributes, expected_attributes)
         self.assertNotIn(
             "forecast_period", [coord.name() for coord in result.coords()])
