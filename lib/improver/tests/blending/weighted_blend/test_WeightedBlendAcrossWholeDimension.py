@@ -37,7 +37,6 @@ from datetime import datetime
 
 import iris
 import numpy as np
-from cf_units import date2num
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError

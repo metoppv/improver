@@ -30,10 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Provide support utilities for making temporal calculations."""
 
-import re
 import warnings
-from datetime import datetime, timedelta, timezone
-from datetime import time as dt_time
+from datetime import datetime, timezone
 
 import cf_units as unit
 import iris
@@ -169,7 +167,6 @@ def forecast_period_coord(
             [c.point for c in fr_coord.cells()])
         required_lead_times = (
             time_points - forecast_reference_time_points)
-        # Convert the timedeltas to a total in seconds.
         required_lead_times = np.array(
             [x.total_seconds() for x in required_lead_times]).astype(fr_type)
         if t_coord.bounds is not None:
@@ -177,7 +174,6 @@ def forecast_period_coord(
                 [c.bound for c in t_coord.cells()])
             required_lead_bounds = (
                 time_bounds - forecast_reference_time_points)
-            # Convert the timedeltas to a total in seconds.
             required_lead_bounds = np.array(
                 [[b.total_seconds() for b in x]
                  for x in required_lead_bounds]).astype(fr_type)
