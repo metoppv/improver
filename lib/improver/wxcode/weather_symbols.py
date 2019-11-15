@@ -42,6 +42,8 @@ from improver.metadata.probabilistic import (
 from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
 from improver.wxcode.wxcode_decision_tree_global import (
     wxcode_decision_tree_global)
+from improver.wxcode.wxcode_decision_tree_without_lightning import (
+    wxcode_decision_tree_without_lightning)
 from improver.wxcode.wxcode_utilities import (add_wxcode_metadata,
                                               expand_nested_lists,
                                               update_daynight)
@@ -63,7 +65,7 @@ class WeatherSymbols(BasePlugin):
 
         Key Args:
             wxtree (str):
-                Choose weather symbol decision tree.
+                Used to choose weather symbol decision tree.
                 Default is 'high_resolution'
                 'global' will load the global weather symbol decision tree.
 
@@ -98,6 +100,10 @@ class WeatherSymbols(BasePlugin):
         Args:
             cubes (iris.cube.CubeList):
                 A CubeList containing the input diagnostic cubes.
+
+        Returns:
+            None or str:
+            Optional data missing e.g. lightning
 
         Raises:
             IOError:
@@ -141,30 +147,51 @@ class WeatherSymbols(BasePlugin):
                         not self.coord_named_threshold):
                     self.coord_named_threshold = True
 
-                test_condition = (
-                    iris.Constraint(
-                        coord_values={threshold_name: lambda cell: (
-                            threshold * (1. - self.float_tolerance) < cell <
-                            threshold * (1. + self.float_tolerance))},
-                        cube_func=lambda cube: (
-                            find_threshold_coordinate(
-                                cube
-                            ).attributes['spp__relative_to_threshold'] ==
-                            condition)))
+                if threshold == 0.0:
+                    test_condition = (
+                        iris.Constraint(
+                            coord_values={threshold_name: lambda cell: (
+                                cell == 0)},
+                            cube_func=lambda cube: (
+                                find_threshold_coordinate(
+                                    cube
+                                ).attributes['spp__relative_to_threshold'] ==
+                                condition)))
+                else:
+                    test_condition = (
+                        iris.Constraint(
+                            coord_values={threshold_name: lambda cell: (
+                                threshold * (1. - self.float_tolerance) < cell <
+                                threshold * (1. + self.float_tolerance))},
+                            cube_func=lambda cube: (
+                                find_threshold_coordinate(
+                                    cube
+                                ).attributes['spp__relative_to_threshold'] ==
+                                condition)))
                 matched_threshold = matched_cube.extract(test_condition)
                 if not matched_threshold:
                     missing_data.append([diagnostic, threshold, condition])
 
+        optional_data_missing = None
         if missing_data:
+            not_optional_data = len(missing_data)
+            lightning_name = ('probability_of_number_of_lightning_'
+                               'flashes_per_unit_area_in_vicinity_'
+                               'above_threshold')
             msg = ('Weather Symbols input cubes are missing'
                    ' the following required'
                    ' input fields:\n')
             dyn_msg = ('name: {}, threshold: {}, '
                        'spp__relative_to_threshold: {}\n')
             for item in missing_data:
-                msg = msg + dyn_msg.format(*item)
-            raise IOError(msg)
-        return
+                if item[0] == lightning_name:
+                    optional_data_missing = 'without_lightning'
+                    not_optional_data = not_optional_data - 1
+                else:
+                    msg = msg + dyn_msg.format(*item)
+            if not_optional_data > 0:
+                raise IOError(msg)
+        return optional_data_missing
 
     @staticmethod
     def invert_condition(test_conditions):
@@ -344,13 +371,22 @@ class WeatherSymbols(BasePlugin):
                     Value of threshold coordinate required
             Returns: (str)
             """
-            return ("iris.Constraint(name='{diagnostic}', {threshold_name}="
+            if threshold_val == 0:
+                constraint_str = (
+                    "iris.Constraint(name='{diagnostic}', {threshold_name}="
+                    "lambda cell: cell == 0.0 )".format(
+                        diagnostic=diagnostic, threshold_name=threshold_name,
+                        threshold_val=threshold_val))
+            else:
+                constraint_str = (
+                    "iris.Constraint(name='{diagnostic}', {threshold_name}="
                     "lambda cell: {threshold_val} * {float_min} < cell < "
                     "{threshold_val} * {float_max})".format(
                         diagnostic=diagnostic, threshold_name=threshold_name,
                         threshold_val=threshold_val,
                         float_min=(1. - WeatherSymbols().float_tolerance),
                         float_max=(1. + WeatherSymbols().float_tolerance)))
+            return constraint_str
 
         # if input is list, loop over and return a list of strings
         if isinstance(diagnostics, list):
@@ -463,7 +499,17 @@ class WeatherSymbols(BasePlugin):
                 A cube of weather symbols.
         """
         # Check input cubes contain required data
-        self.check_input_cubes(cubes)
+        missing_optional_data = self.check_input_cubes(cubes)
+
+        start_node = 'lightning'
+        if self.wxtree == 'global':
+            start_node = 'heavy_precipitation'
+        elif missing_optional_data is not None:
+            if self.wxtree != 'global' and missing_optional_data == 'without_lightning':
+                start_node = 'heavy_precipitation'
+                self.queries = wxcode_decision_tree_without_lightning()
+                self.wxtree = '{}_{}'.format(self.wxtree, missing_optional_data)
+                self.check_input_cubes(cubes)
 
         # Construct graph nodes dictionary
         graph = {key: [self.queries[key]['succeed'], self.queries[key]['fail']]
@@ -476,16 +522,17 @@ class WeatherSymbols(BasePlugin):
                 if isinstance(value, int):
                     defined_symbols.append(value)
 
+
         # Create symbol cube
         symbols = self.create_symbol_cube(cubes[0])
 
         # Loop over possible symbols
         for symbol_code in defined_symbols:
+
             # In current decision tree
             # start node is heavy_precipitation
-            routes = self.find_all_routes(graph, 'heavy_precipitation',
+            routes = self.find_all_routes(graph, start_node,
                                           symbol_code)
-
             # Loop over possible routes from root to leaf
             for route in routes:
                 conditions = []

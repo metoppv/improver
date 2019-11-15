@@ -73,29 +73,6 @@ def wxcode_decision_tree():
     """
     queries = {
 
-        'lightning': {
-            'succeed': 'lightning_cloud',
-            'fail': 'heavy_precipitation',
-            'probability_thresholds': [0.5],
-            'threshold_condition': '>=',
-            'condition_combination': '',
-            'diagnostic_fields':
-                ['probability_of_number_of_lightning_flashes_'
-                 'per_unit_area_in_vicinity_above_threshold'],
-            'diagnostic_thresholds': [AuxCoord(0.0, units="m-2")],
-            'diagnostic_conditions': ['above']},
-
-        'lightning_cloud': {
-            'succeed': 30,
-            'fail': 29,
-            'probability_thresholds': [0.5],
-            'threshold_condition': '>=',
-            'condition_combination': '',
-            'diagnostic_fields':
-                ['probability_of_cloud_area_fraction_above_threshold'],
-            'diagnostic_thresholds': [AuxCoord(0.8125, units=1)],
-            'diagnostic_conditions': ['above']},
-
         'heavy_precipitation': {
             'succeed': 'heavy_precipitation_cloud',
             'fail': 'precipitation_in_vicinity',
@@ -110,14 +87,38 @@ def wxcode_decision_tree():
             'diagnostic_conditions': ['above', 'above']},
 
         'heavy_precipitation_cloud': {
-            'succeed': 'heavy_sleet_continuous',
-            'fail': 'heavy_sleet_shower',
+            'succeed': 'lightning_continuous',
+            'fail': 'lightning_shower',
             'probability_thresholds': [0.5],
             'threshold_condition': '>=',
             'condition_combination': '',
             'diagnostic_fields':
                 ['probability_of_cloud_area_fraction_above_threshold'],
             'diagnostic_thresholds': [AuxCoord(0.8125, units=1)],
+            'diagnostic_conditions': ['above']},
+
+        'lightning_continuous': {
+            'succeed': 30,
+            'fail': 'heavy_sleet_continuous',
+            'probability_thresholds': [0.5],
+            'threshold_condition': '>=',
+            'condition_combination': '',
+            'diagnostic_fields':
+                ['probability_of_number_of_lightning_flashes_'
+                 'per_unit_area_in_vicinity_above_threshold'],
+            'diagnostic_thresholds': [AuxCoord(0.0, units="m-2")],
+            'diagnostic_conditions': ['above']},
+
+        'lightning_shower': {
+            'succeed': 29,
+            'fail': 'heavy_sleet_shower',
+            'probability_thresholds': [0.5],
+            'threshold_condition': '>=',
+            'condition_combination': '',
+            'diagnostic_fields':
+                ['probability_of_number_of_lightning_flashes_'
+                 'per_unit_area_in_vicinity_above_threshold'],
+            'diagnostic_thresholds': [AuxCoord(0.0, units="m-2")],
             'diagnostic_conditions': ['above']},
 
         'heavy_sleet_continuous': {
@@ -434,7 +435,7 @@ def wxcode_decision_tree():
             'diagnostic_conditions': ['above']},
 
         'heavy_rain_continuous_in_vicinity': {
-            'succeed': 15,
+            'succeed': 'lightning_continuous_in_vicinity',
             'fail': 12,
             'probability_thresholds': [0.5],
             'threshold_condition': '>=',
@@ -444,8 +445,20 @@ def wxcode_decision_tree():
             'diagnostic_thresholds': [AuxCoord(1.0, units='mm hr-1')],
             'diagnostic_conditions': ['above']},
 
+        'lightning_continuous_in_vicinity': {
+            'succeed': 30,
+            'fail': 15,
+            'probability_thresholds': [0.5],
+            'threshold_condition': '>=',
+            'condition_combination': '',
+            'diagnostic_fields':
+                ['probability_of_number_of_lightning_flashes_'
+                 'per_unit_area_in_vicinity_above_threshold'],
+            'diagnostic_thresholds': [AuxCoord(0.0, units="m-2")],
+            'diagnostic_conditions': ['above']},
+
         'heavy_rain_shower_in_vicinity': {
-            'succeed': 14,
+            'succeed': 'lightning_shower_in_vicinity',
             'fail': 10,
             'probability_thresholds': [0.5],
             'threshold_condition': '>=',
@@ -453,6 +466,18 @@ def wxcode_decision_tree():
             'diagnostic_fields': [
                 'probability_of_rainfall_rate_in_vicinity_above_threshold'],
             'diagnostic_thresholds': [AuxCoord(1.0, units='mm hr-1')],
+            'diagnostic_conditions': ['above']},
+
+        'lightning_shower_in_vicinity': {
+            'succeed': 29,
+            'fail': 14,
+            'probability_thresholds': [0.5],
+            'threshold_condition': '>=',
+            'condition_combination': '',
+            'diagnostic_fields':
+                ['probability_of_number_of_lightning_flashes_'
+                 'per_unit_area_in_vicinity_above_threshold'],
+            'diagnostic_thresholds': [AuxCoord(0.0, units="m-2")],
             'diagnostic_conditions': ['above']},
 
         'mist_conditions': {
