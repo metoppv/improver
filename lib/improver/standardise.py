@@ -96,7 +96,7 @@ class StandardiseGridAndMetadata(BasePlugin):
         """
         if self.landmask_name not in self.landmask_source_grid.name():
             msg = ("Expected land_binary_mask in input_landmask cube "
-                   "but found {}".format(repr(self.landmask)))
+                   "but found {}".format(repr(self.landmask_source_grid)))
             warnings.warn(msg)
 
         if self.landmask_name not in target_grid.name():
