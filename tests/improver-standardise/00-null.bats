@@ -43,7 +43,7 @@ usage: improver standardise [-h] [--profile] [--profile_file PROFILE_FILE]
                             [--grid_attributes GRID_ATTRIBUTES [GRID_ATTRIBUTES ...]]
                             [--fix_float64] [--json_file JSON_FILE]
                             [--coords_to_remove COORDS_TO_REMOVE [COORDS_TO_REMOVE ...]]
-                            [--new_name NEW_NAME]
+                            [--new_name NEW_NAME] [--new_units NEW_UNITS]
                             SOURCE_DATA
 __TEXT__
   [[ "$output" =~ "$expected" ]]

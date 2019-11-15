@@ -35,6 +35,7 @@ import warnings
 from iris.analysis import Nearest, Linear
 from iris.exceptions import CoordinateNotFoundError
 
+from improver import BasePlugin
 from improver.metadata.amend import amend_attributes
 from improver.metadata.check_datatypes import (
     check_cube_not_float64, check_time_coordinate_metadata)
@@ -44,7 +45,7 @@ from improver.metadata.constants.time_types import (
 from improver.utilities.spatial import RegridLandSea
 
 
-class StandardiseGridAndMetadata:
+class StandardiseGridAndMetadata(BasePlugin):
 
     """Plugin to regrid cube data and standardise metadata"""
 
@@ -188,7 +189,7 @@ class StandardiseGridAndMetadata:
                 continue
 
     def process(self, cube, target_grid=None, new_name=None,
-                coords_to_remove=None, attributes_dict=None,
+                new_units=None, coords_to_remove=None, attributes_dict=None,
                 fix_float64=False):
         """
         Perform regridding and metadata adjustments
@@ -202,6 +203,8 @@ class StandardiseGridAndMetadata:
                 ("land_binary_mask").
             new_name (str or None):
                 Optional rename for output cube
+            new_units (str or None):
+                Optional unit conversion for output cube
             coords_to_remove (list of str or None):
                 Optional list of scalar coordinates to remove from output cube
             attributes_dict (dict or None):
@@ -224,10 +227,10 @@ class StandardiseGridAndMetadata:
         # optional metadata updates
         if new_name:
             cube.rename(new_name)
-
+        if new_units:
+            cube.convert_units(new_units)
         if coords_to_remove:
             self._remove_scalar_coords(cube, coords_to_remove)
-
         if attributes_dict:
             amend_attributes(cube, attributes_dict)
 

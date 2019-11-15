@@ -43,7 +43,7 @@ usage: improver standardise [-h] [--profile] [--profile_file PROFILE_FILE]
                             [--grid_attributes GRID_ATTRIBUTES [GRID_ATTRIBUTES ...]]
                             [--fix_float64] [--json_file JSON_FILE]
                             [--coords_to_remove COORDS_TO_REMOVE [COORDS_TO_REMOVE ...]]
-                            [--new_name NEW_NAME]
+                            [--new_name NEW_NAME] [--new_units NEW_UNITS]
                             SOURCE_DATA
 
 Standardise a source data cube. Three main options are available; fixing
@@ -78,6 +78,8 @@ optional arguments:
                         List of names of scalar coordinates to be removed from
                         the non-standard input.
   --new_name NEW_NAME   New dataset name.
+  --new_units NEW_UNITS
+                        New dataset units.
 
 Regridding options:
   --target_grid_filepath TARGET_GRID

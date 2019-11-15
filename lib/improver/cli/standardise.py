@@ -141,6 +141,8 @@ def main(argv=None):
                              "removed from the non-standard input.")
     parser.add_argument("--new_name", metavar="NEW_NAME", type=str,
                         default=None, help="New dataset name.")
+    parser.add_argument("--new_units", metavar="NEW_UNITS", type=str,
+                        default=None, help="New dataset units.")
 
     args = parser.parse_args(args=argv)
 
@@ -181,7 +183,7 @@ def main(argv=None):
                           args.extrapolation_mode, source_landsea,
                           args.landmask_vicinity, args.grid_attributes,
                           attributes_dict, args.coords_to_remove,
-                          args.new_name, args.fix_float64)
+                          args.new_name, args.new_units, args.fix_float64)
 
     # Save Cube
     if args.output_filepath:
@@ -192,7 +194,7 @@ def process(output_data, target_grid=None, regrid_mode='bilinear',
             extrapolation_mode='nanmask', source_landsea=None,
             landmask_vicinity=25000, grid_attributes=None,
             attributes_dict=None, coords_to_remove=None, new_name=None,
-            fix_float64=False):
+            new_units=None, fix_float64=False):
     """Standardises a cube by one or more of regridding, updating meta-data etc
 
     Standardise a source cube. Available options are regridding
@@ -292,7 +294,7 @@ def process(output_data, target_grid=None, regrid_mode='bilinear',
         landmask=source_landsea, landmask_vicinity=landmask_vicinity,
         grid_attributes=grid_attributes)
     output_data = plugin.process(
-        output_data, target_grid, new_name=new_name,
+        output_data, target_grid, new_name=new_name, new_units=new_units,
         coords_to_remove=coords_to_remove, attributes_dict=attributes_dict,
         fix_float64=fix_float64)
 
