@@ -665,6 +665,8 @@ class Test_process(IrisTest):
         """Test process returns right values if no lightning. """
         plugin = WeatherSymbols()
         result = plugin.process(self.cubes_no_lightning)
+        msg = '<WeatherSymbols tree=high_resolution_without_lightning>'
+        self.assertEqual(str(plugin), msg)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
         self.assertEqual(result.attributes['weather_code_meaning'],

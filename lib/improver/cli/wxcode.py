@@ -118,6 +118,7 @@ def main(argv=None):
         'requires a specific set of input diagnostics, where data\nmay be in '
         'any units to which the thresholds given below can\nbe converted:\n' +
         dlist.format(*diagnostics) +
+        '\n\n (probability_of_number_of_lightning_flashes data is optional)'
         '\n\n or for global data\n\n' +
         dlist_global.format(*diagnostics_global),
         formatter_class=RawTextHelpFormatter)
@@ -138,14 +139,6 @@ def main(argv=None):
 
     # Load Cube
     cubes = load_cubelist(args.input_filepaths, no_lazy_load=True)
-    required_number_of_inputs = n_files
-    if args.wxtree == 'global':
-        required_number_of_inputs = n_files_global
-    if len(cubes) != required_number_of_inputs:
-        msg = ('Incorrect number of inputs: files {} gave {} cubes' +
-               ', {} required').format(args.input_filepaths, len(cubes),
-                                       required_number_of_inputs)
-        raise argparse.ArgumentTypeError(msg)
 
     # Process Cube
     result = process(cubes, args.wxtree)

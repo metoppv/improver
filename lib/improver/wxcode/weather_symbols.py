@@ -161,7 +161,8 @@ class WeatherSymbols(BasePlugin):
                     test_condition = (
                         iris.Constraint(
                             coord_values={threshold_name: lambda cell: (
-                                threshold * (1. - self.float_tolerance) < cell <
+                                threshold * (1. - self.float_tolerance) <
+                                cell <
                                 threshold * (1. + self.float_tolerance))},
                             cube_func=lambda cube: (
                                 find_threshold_coordinate(
@@ -176,8 +177,8 @@ class WeatherSymbols(BasePlugin):
         if missing_data:
             not_optional_data = len(missing_data)
             lightning_name = ('probability_of_number_of_lightning_'
-                               'flashes_per_unit_area_in_vicinity_'
-                               'above_threshold')
+                              'flashes_per_unit_area_in_vicinity_'
+                              'above_threshold')
             msg = ('Weather Symbols input cubes are missing'
                    ' the following required'
                    ' input fields:\n')
@@ -505,10 +506,12 @@ class WeatherSymbols(BasePlugin):
         if self.wxtree == 'global':
             start_node = 'heavy_precipitation'
         elif missing_optional_data is not None:
-            if self.wxtree != 'global' and missing_optional_data == 'without_lightning':
+            if (self.wxtree != 'global' and
+                    missing_optional_data == 'without_lightning'):
                 start_node = 'heavy_precipitation'
                 self.queries = wxcode_decision_tree_without_lightning()
-                self.wxtree = '{}_{}'.format(self.wxtree, missing_optional_data)
+                self.wxtree = '{}_{}'.format(self.wxtree,
+                                             missing_optional_data)
                 self.check_input_cubes(cubes)
 
         # Construct graph nodes dictionary
@@ -521,7 +524,6 @@ class WeatherSymbols(BasePlugin):
             for value in item.values():
                 if isinstance(value, int):
                     defined_symbols.append(value)
-
 
         # Create symbol cube
         symbols = self.create_symbol_cube(cubes[0])
