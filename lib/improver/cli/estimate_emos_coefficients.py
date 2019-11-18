@@ -162,10 +162,14 @@ def main(argv=None):
                              'increasing, as there will be more coefficients '
                              'to solve for.')
     parser.add_argument('--tolerance', metavar='TOLERANCE',
-                        type=np.float32, default=1,
+                        type=np.float32, default=0.01,
                         help='The tolerance for the Continuous Ranked '
                              'Probability Score (CRPS) calculated by the '
-                             'minimisation. Once multiple iterations '
+                             'minimisation. The CRPS is in the units of the '
+                             'variable being calibrated. The tolerance is '
+                             'therefore representative of how close to the '
+                             'actual value are we aiming to forecast for a '
+                             'particular variable. Once multiple iterations '
                              'result in a CRPS equal to the same value '
                              'within the specified tolerance, the '
                              'minimisation will terminate.')

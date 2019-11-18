@@ -287,7 +287,7 @@ class Test__repr__(IrisTest):
                "ensemble_calibration."
                "ContinuousRankedProbabilityScoreMinimisers'>; "
                "coeff_names: ['gamma', 'delta', 'alpha', 'beta']; "
-               "tolerance: 1; "
+               "tolerance: 0.01; "
                "max_iterations: 1000>")
         self.assertEqual(result, msg)
 

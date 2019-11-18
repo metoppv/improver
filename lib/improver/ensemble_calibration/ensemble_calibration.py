@@ -76,7 +76,7 @@ class ContinuousRankedProbabilityScoreMinimisers():
     # as part of the minimisation.
     BAD_VALUE = np.float64(999999)
 
-    def __init__(self, tolerance=1, max_iterations=1000):
+    def __init__(self, tolerance=0.01, max_iterations=1000):
         """
         Initialise class for performing minimisation of the Continuous
         Ranked Probability Score (CRPS).
@@ -84,7 +84,10 @@ class ContinuousRankedProbabilityScoreMinimisers():
         Args:
             tolerance (float):
                 The tolerance for the Continuous Ranked Probability
-                Score (CRPS) calculated by the minimisation. Once multiple
+                Score (CRPS) calculated by the minimisation. The CRPS is in
+                the units of the variable being calibrated. The tolerance is
+                therefore representative of how close to the actual value are
+                we aiming to forecast for a particular variable. Once multiple
                 iterations result in a CRPS equal to the same value within the
                 specified tolerance, the minimisation will terminate.
             max_iterations (int):
@@ -302,9 +305,11 @@ class ContinuousRankedProbabilityScoreMinimisers():
         xz = (truth - mu) / sigma
         normal_cdf = norm.cdf(xz)
         normal_pdf = norm.pdf(xz)
-        result = np.nansum(
-            sigma * (xz * (2 * normal_cdf - 1) + 2 * normal_pdf - 1 / sqrt_pi))
-        if not np.isfinite(np.min(mu/sigma)):
+        if np.isfinite(np.min(mu/sigma)):
+            result = np.nansum(
+                sigma * (
+                    xz * (2 * normal_cdf - 1) + 2 * normal_pdf - 1 / sqrt_pi))
+        else:
             result = self.BAD_VALUE
 
         return result
@@ -364,12 +369,13 @@ class ContinuousRankedProbabilityScoreMinimisers():
         x0 = mu / sigma
         normal_cdf_0 = norm.cdf(x0)
         normal_cdf_root_two = norm.cdf(np.sqrt(2) * x0)
-        result = np.nansum(
-            (sigma / normal_cdf_0**2) *
-            (xz * normal_cdf_0 * (2 * normal_cdf + normal_cdf_0 - 2) +
-             2 * normal_pdf * normal_cdf_0 -
-             normal_cdf_root_two / sqrt_pi))
-        if not np.isfinite(np.min(mu/sigma)) or (np.min(mu/sigma) < -3):
+        if np.isfinite(np.min(mu / sigma)) or (np.min(mu / sigma) >= -3):
+            result = np.nansum(
+                (sigma / normal_cdf_0 ** 2) *
+                (xz * normal_cdf_0 * (2 * normal_cdf + normal_cdf_0 - 2) +
+                 2 * normal_pdf * normal_cdf_0 -
+                 normal_cdf_root_two / sqrt_pi))
+        else:
             result = self.BAD_VALUE
         return result
 
@@ -387,7 +393,7 @@ class EstimateCoefficientsForEnsembleCalibration():
     ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = True
 
     def __init__(self, distribution, current_cycle, desired_units=None,
-                 predictor_of_mean_flag="mean", tolerance=1,
+                 predictor_of_mean_flag="mean", tolerance=0.01,
                  max_iterations=1000):
         """
         Create an ensemble calibration plugin that, for Nonhomogeneous Gaussian
@@ -412,7 +418,10 @@ class EstimateCoefficientsForEnsembleCalibration():
                 realizations ("realizations") are supported as the predictors.
             tolerance (float):
                 The tolerance for the Continuous Ranked Probability
-                Score (CRPS) calculated by the minimisation. Once multiple
+                Score (CRPS) calculated by the minimisation. The CRPS is in
+                the units of the variable being calibrated. The tolerance is
+                therefore representative of how close to the actual value are
+                we aiming to forecast for a particular variable. Once multiple
                 iterations result in a CRPS equal to the same value within the
                 specified tolerance, the minimisation will terminate.
             max_iterations (int):
