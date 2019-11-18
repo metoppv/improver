@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Tests for the wind-gust-diagnostic CLI"""
 
-import argparse
 import pytest
 
 from improver.cli import wind_gust_diagnostic
@@ -45,10 +44,11 @@ def test_average_wind_gust(tmp_path):
     kgo_path = kgo_dir / "kgo_average_wind_gust.nc"
     output_path = tmp_path / "output.nc"
     args = [str(kgo_dir / "wind_gust_perc.nc"),
-        str(kgo_dir / "wind_speed_perc.nc"),
-        str(output_path)]
+            str(kgo_dir / "wind_speed_perc.nc"),
+            str(output_path)]
     wind_gust_diagnostic.main(args)
     acc.compare(output_path, kgo_path)
+
 
 @pytest.mark.acc
 @acc.skip_if_kgo_missing
@@ -58,9 +58,8 @@ def test_extreme_wind_gust(tmp_path):
     kgo_path = kgo_dir / "kgo_extreme_wind_gust.nc"
     output_path = tmp_path / "output.nc"
     args = ["--percentile_gust=95.0", "--percentile_ws=100.0",
-        str(kgo_dir / "wind_gust_perc.nc"),
-        str(kgo_dir / "wind_speed_perc.nc"),
-        str(output_path)]
+            str(kgo_dir / "wind_gust_perc.nc"),
+            str(kgo_dir / "wind_speed_perc.nc"),
+            str(output_path)]
     wind_gust_diagnostic.main(args)
     acc.compare(output_path, kgo_path)
-
