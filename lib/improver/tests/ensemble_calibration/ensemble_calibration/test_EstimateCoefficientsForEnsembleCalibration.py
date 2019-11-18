@@ -992,9 +992,12 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions,
     def test_coefficients_gaussian_distribution_default_initial_guess(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
-        expected values for a Gaussian distribution, where the default
-        values for the initial guess are used, rather than using a linear
-        least-squares regression to construct an initial guess."""
+        expected values for a Gaussian distribution, where the
+        default values for the initial guess are used, rather than using a
+        linear least-squares regression to construct an initial guess.
+        Reducing the value for the tolerance would result in the coefficients
+        more closely matching the coefficients created when using a linear
+        least-squares regression to construct the initial guess."""
         expected = [0.0001, 1.0374, -0.0001, 0.9974]
         plugin = Plugin(self.distribution, self.current_cycle)
         plugin.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
@@ -1078,7 +1081,10 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions,
         expected values, and the coefficient names also match
         expected values for a truncated Gaussian distribution, where the
         default values for the initial guess are used, rather than using a
-        linear least-squares regression to construct an initial guess."""
+        linear least-squares regression to construct an initial guess.
+        Reducing the value for the tolerance would result in the coefficients
+        more closely matching the coefficients created when using a linear
+        least-squares regression to construct the initial guess."""
         expected = [-0.0013, 1.3785, -0.0002, 0.8557]
         distribution = "truncated_gaussian"
 
