@@ -44,14 +44,14 @@ def test_basic(tmp_path):
     kgo_dir = acc.kgo_root() / "wxcode/basic"
     kgo_path = kgo_dir / "kgo.nc"
     params = ["rainfall_rate_above",
-            "rainfall_rate_in_vicinity_above",
-            "lwe_snowfall_rate_above",
-            "lwe_snowfall_rate_in_vicinity_above",
-            "visibility_in_air_below",
-            "cloud_area_fraction_above",
-            "low_type_cloud_area_fraction_above"]
+              "rainfall_rate_in_vicinity_above",
+              "lwe_snowfall_rate_above",
+              "lwe_snowfall_rate_in_vicinity_above",
+              "visibility_in_air_below",
+              "cloud_area_fraction_above",
+              "low_type_cloud_area_fraction_above"]
     param_paths = [str(kgo_dir / f"probability_of_{p}_threshold.nc")
-        for p in params]
+                   for p in params]
     output_path = tmp_path / "output.nc"
     args = [*param_paths, str(output_path)]
     wxcode.main(args)
@@ -66,14 +66,14 @@ def test_native_units(tmp_path):
     input_dir = acc.kgo_root() / "wxcode/native_units"
     kgo_path = kgo_dir / "kgo.nc"
     params = ["rainfall_rate_above",
-            "rainfall_rate_in_vicinity_above",
-            "lwe_snowfall_rate_above",
-            "lwe_snowfall_rate_in_vicinity_above",
-            "visibility_in_air_below",
-            "cloud_area_fraction_above",
-            "low_type_cloud_area_fraction_above"]
+              "rainfall_rate_in_vicinity_above",
+              "lwe_snowfall_rate_above",
+              "lwe_snowfall_rate_in_vicinity_above",
+              "visibility_in_air_below",
+              "cloud_area_fraction_above",
+              "low_type_cloud_area_fraction_above"]
     param_paths = [str(input_dir / f"probability_of_{p}_threshold.nc")
-        for p in params]
+                   for p in params]
     output_path = tmp_path / "output.nc"
     args = [*param_paths, str(output_path)]
     wxcode.main(args)
@@ -87,12 +87,12 @@ def test_global(tmp_path):
     kgo_dir = acc.kgo_root() / "wxcode/global"
     kgo_path = kgo_dir / "kgo.nc"
     params = ["rainfall_rate_above",
-            "snowfall_rate_above",
-            "visibility_at_screen_level_below",
-            "cloud_area_fraction_above",
-            "low_type_cloud_area_fraction_above"]
+              "snowfall_rate_above",
+              "visibility_at_screen_level_below",
+              "cloud_area_fraction_above",
+              "low_type_cloud_area_fraction_above"]
     param_paths = [str(kgo_dir / f"probability_of_{p}_threshold.nc")
-        for p in params]
+                   for p in params]
     output_path = tmp_path / "output.nc"
     args = ["--wxtree=global", *param_paths, str(output_path)]
     wxcode.main(args)
@@ -105,11 +105,11 @@ def test_insufficent_files(tmp_path):
     """Test wxcode processing with insufficent files"""
     kgo_dir = acc.kgo_root() / "wxcode/global"
     params = ["rainfall_rate_above",
-            "snowfall_rate_above",
-            "cloud_area_fraction_above",
-            "low_type_cloud_area_fraction_above"]
+              "snowfall_rate_above",
+              "cloud_area_fraction_above",
+              "low_type_cloud_area_fraction_above"]
     param_paths = [str(kgo_dir / f"probability_of_{p}_threshold.nc")
-        for p in params]
+                   for p in params]
     output_path = tmp_path / "output.nc"
     args = ["--wxtree=global", *param_paths, str(output_path)]
     with pytest.raises(argparse.ArgumentTypeError):
