@@ -42,6 +42,7 @@
                                            [--units UNITS]
                                            [--predictor_of_mean PREDICTOR_OF_MEAN]
                                            [--max_iterations MAX_ITERATIONS]
+                                           [--tolerance TOLERANCE]
                                            [--landsea_mask LANDSEA_MASK]
                                            DISTRIBUTION CYCLETIME
                                            OUTPUT_FILEPATH

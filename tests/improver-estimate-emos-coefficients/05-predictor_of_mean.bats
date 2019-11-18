@@ -44,7 +44,7 @@
       --predictor_of_mean 'realizations' \
       --historic_filepath "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/history/*.nc" \
       --truth_filepath "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/truth/*.nc" \
-      --max_iterations 150
+      --max_iterations 150 --tolerance 1e-4
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

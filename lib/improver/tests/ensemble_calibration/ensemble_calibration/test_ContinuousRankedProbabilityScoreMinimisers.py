@@ -59,17 +59,16 @@ class Test__repr__(IrisTest):
         msg = ("<ContinuousRankedProbabilityScoreMinimisers: "
                "minimisation_dict: {'gaussian': 'calculate_normal_crps', "
                "'truncated_gaussian': 'calculate_truncated_normal_crps'}; "
-               "max_iterations: 1000>")
+               "tolerance: 0.01; max_iterations: 1000>")
         self.assertEqual(result, msg)
 
-    def test_update_max_iterations(self):
-        """A test to update the max_iterations
-        keyword argument."""
-        result = str(Plugin(max_iterations=10))
+    def test_update_kwargs(self):
+        """A test to update the available keyword argument."""
+        result = str(Plugin(tolerance=10, max_iterations=10))
         msg = ("<ContinuousRankedProbabilityScoreMinimisers: "
                "minimisation_dict: {'gaussian': 'calculate_normal_crps', "
                "'truncated_gaussian': 'calculate_truncated_normal_crps'}; "
-               "max_iterations: 10>")
+               "tolerance: 10; max_iterations: 10>")
         self.assertEqual(result, msg)
 
 
@@ -208,6 +207,8 @@ class Test_process_gaussian_distribution(
         The coefficients are in the order [gamma, delta, alpha, beta].
         """
         super().setUp()
+        self.tolerance = 1e-4
+        self.plugin = Plugin(tolerance=self.tolerance)
         self.expected_mean_coefficients = (
             [0.0023, 0.8070, -0.0008, 1.0009])
         self.expected_realizations_coefficients = (
@@ -225,8 +226,7 @@ class Test_process_gaussian_distribution(
         """
         predictor_of_mean_flag = "mean"
         distribution = "gaussian"
-        plugin = Plugin()
-        result = plugin.process(
+        result = self.plugin.process(
             self.initial_guess_for_mean, self.forecast_predictor_mean,
             self.truth, self.forecast_variance, predictor_of_mean_flag,
             distribution)
@@ -249,8 +249,7 @@ class Test_process_gaussian_distribution(
         """
         predictor_of_mean_flag = "realizations"
         distribution = "gaussian"
-        plugin = Plugin()
-        result = plugin.process(
+        result = self.plugin.process(
             self.initial_guess_for_realization,
             self.forecast_predictor_realizations, self.truth,
             self.forecast_variance, predictor_of_mean_flag, distribution)
@@ -270,10 +269,9 @@ class Test_process_gaussian_distribution(
         predictor_of_mean_flag = "mean"
         distribution = "foo"
 
-        plugin = Plugin()
         msg = "Distribution requested"
         with self.assertRaisesRegex(KeyError, msg):
-            plugin.process(
+            self.plugin.process(
                 self.initial_guess_for_mean, self.forecast_predictor_mean,
                 self.truth, self.forecast_variance,
                 predictor_of_mean_flag, distribution)
@@ -296,7 +294,8 @@ class Test_process_gaussian_distribution(
         max_iterations = 400
         distribution = "gaussian"
 
-        plugin = Plugin(max_iterations=max_iterations)
+        plugin = Plugin(
+            tolerance=self.tolerance, max_iterations=max_iterations)
         result = plugin.process(
             self.initial_guess_for_mean, self.forecast_predictor_mean,
             self.truth, self.forecast_variance,
@@ -324,7 +323,8 @@ class Test_process_gaussian_distribution(
         max_iterations = 1000
         distribution = "gaussian"
 
-        plugin = Plugin(max_iterations=max_iterations)
+        plugin = Plugin(
+            tolerance=self.tolerance, max_iterations=max_iterations)
         result = plugin.process(
             self.initial_guess_for_realization,
             self.forecast_predictor_realizations, self.truth,
@@ -343,7 +343,7 @@ class Test_process_gaussian_distribution(
         predictor_of_mean_flag = "mean"
         distribution = "gaussian"
 
-        plugin = Plugin(max_iterations=10)
+        plugin = Plugin(tolerance=self.tolerance, max_iterations=10)
         plugin.process(
             self.initial_guess_for_mean, self.forecast_predictor_mean,
             self.truth, self.forecast_variance, predictor_of_mean_flag,
@@ -369,7 +369,7 @@ class Test_process_gaussian_distribution(
         predictor_of_mean_flag = "mean"
         distribution = "gaussian"
 
-        plugin = Plugin(max_iterations=5)
+        plugin = Plugin(tolerance=self.tolerance, max_iterations=5)
         plugin.process(
             initial_guess, self.forecast_predictor_mean, self.truth,
             self.forecast_variance, predictor_of_mean_flag, distribution)
@@ -499,6 +499,8 @@ class Test_process_truncated_gaussian_distribution(
     def setUp(self):
         """Set up expected output."""
         super().setUp()
+        self.tolerance = 1e-4
+        self.plugin = Plugin(tolerance=self.tolerance)
         self.expected_mean_coefficients = (
             [0.0459, 0.6047, 0.3965, 0.958])
         self.expected_realizations_coefficients = (
@@ -519,8 +521,7 @@ class Test_process_truncated_gaussian_distribution(
         predictor_of_mean_flag = "mean"
         distribution = "truncated_gaussian"
 
-        plugin = Plugin()
-        result = plugin.process(
+        result = self.plugin.process(
             self.initial_guess_for_mean, self.forecast_predictor_mean,
             self.truth, self.forecast_variance, predictor_of_mean_flag,
             distribution)
@@ -543,8 +544,7 @@ class Test_process_truncated_gaussian_distribution(
         predictor_of_mean_flag = "realizations"
         distribution = "truncated_gaussian"
 
-        plugin = Plugin()
-        result = plugin.process(
+        result = self.plugin.process(
             self.initial_guess_for_realization,
             self.forecast_predictor_realizations, self.truth,
             self.forecast_variance, predictor_of_mean_flag, distribution)
@@ -563,32 +563,12 @@ class Test_process_truncated_gaussian_distribution(
         predictor_of_mean_flag = "mean"
         distribution = "foo"
 
-        plugin = Plugin()
         msg = "Distribution requested"
         with self.assertRaisesRegex(KeyError, msg):
-            plugin.process(
+            self.plugin.process(
                 self.initial_guess_for_mean, self.forecast_predictor_mean,
                 self.truth, self.forecast_variance,
                 predictor_of_mean_flag, distribution)
-
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_realizations_predictor_keyerror(self):
-        """
-        Test that an exception is raised when the distribution requested is
-        not an available option when the predictor_of_mean_flag is the
-        ensemble realizations.
-        """
-        predictor_of_mean_flag = "realizations"
-        distribution = "foo"
-
-        plugin = Plugin()
-        msg = "Distribution requested"
-        with self.assertRaisesRegex(KeyError, msg):
-            plugin.process(
-                self.initial_guess_for_realization,
-                self.forecast_predictor_realizations, self.truth,
-                self.forecast_variance, predictor_of_mean_flag, distribution)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -611,7 +591,8 @@ class Test_process_truncated_gaussian_distribution(
         max_iterations = 400
         distribution = "truncated_gaussian"
 
-        plugin = Plugin(max_iterations=max_iterations)
+        plugin = Plugin(
+            tolerance=self.tolerance, max_iterations=max_iterations)
         result = plugin.process(
             self.initial_guess_for_mean, self.forecast_predictor_mean,
             self.truth, self.forecast_variance, predictor_of_mean_flag,
@@ -639,7 +620,8 @@ class Test_process_truncated_gaussian_distribution(
         max_iterations = 1000
         distribution = "truncated_gaussian"
 
-        plugin = Plugin(max_iterations=max_iterations)
+        plugin = Plugin(
+            tolerance=self.tolerance, max_iterations=max_iterations)
         result = plugin.process(
             self.initial_guess_for_realization,
             self.forecast_predictor_realizations, self.truth,
@@ -658,7 +640,7 @@ class Test_process_truncated_gaussian_distribution(
         predictor_of_mean_flag = "mean"
         distribution = "truncated_gaussian"
 
-        plugin = Plugin(max_iterations=10)
+        plugin = Plugin(tolerance=self.tolerance, max_iterations=10)
         plugin.process(
             self.initial_guess_for_mean, self.forecast_predictor_mean,
             self.truth, self.forecast_variance, predictor_of_mean_flag,
@@ -672,9 +654,7 @@ class Test_process_truncated_gaussian_distribution(
     @ManageWarnings(
         record=True,
         ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_catch_warnings_percentage_change(
-            self,
-            warning_list=None):
+    def test_catch_warnings_percentage_change(self, warning_list=None):
         """
         Test that two warnings are generated if the minimisation
         does not result in a convergence. The first warning reports a that
@@ -688,7 +668,7 @@ class Test_process_truncated_gaussian_distribution(
         predictor_of_mean_flag = "mean"
         distribution = "truncated_gaussian"
 
-        plugin = Plugin(max_iterations=5)
+        plugin = Plugin(tolerance=self.tolerance, max_iterations=5)
 
         plugin.process(
             initial_guess, self.forecast_predictor_mean,
