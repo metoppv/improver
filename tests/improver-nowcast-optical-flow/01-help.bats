@@ -35,20 +35,15 @@
   read -d '' expected <<'__TEXT__' || true
 usage: improver nowcast-optical-flow [-h] [--profile]
                                      [--profile_file PROFILE_FILE]
-                                     [--output_dir OUTPUT_DIR]
                                      [--nowcast_filepaths NOWCAST_FILEPATHS [NOWCAST_FILEPATHS ...]]
                                      [--orographic_enhancement_filepaths OROGRAPHIC_ENHANCEMENT_FILEPATHS [OROGRAPHIC_ENHANCEMENT_FILEPATHS ...]]
                                      [--json_file JSON_FILE]
                                      [--ofc_box_size OFC_BOX_SIZE]
                                      [--smart_smoothing_iterations SMART_SMOOTHING_ITERATIONS]
-                                     [--extrapolate]
-                                     [--max_lead_time MAX_LEAD_TIME]
-                                     [--lead_time_interval LEAD_TIME_INTERVAL]
                                      INPUT_FILEPATHS INPUT_FILEPATHS
-                                     INPUT_FILEPATHS
+                                     INPUT_FILEPATHS OUTPUT_FILEPATH
 
-Calculate optical flow components from input fields and (optionally)
-extrapolate to required lead times.
+Calculate optical flow components from input fields.
 
 positional arguments:
   INPUT_FILEPATHS       Paths to the input radar files. There should be 3
@@ -56,15 +51,13 @@ positional arguments:
                         optical flow velocities. The files require a 'time'
                         coordinate on which they are sorted, so the order of
                         inputs does not matter.
+  OUTPUT_FILEPATH       The output path for the resulting NetCDF
 
 optional arguments:
   -h, --help            show this help message and exit
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
-  --output_dir OUTPUT_DIR
-                        Directory to write all output files, or only advection
-                        velocity components if NOWCAST_FILEPATHS is specified.
   --nowcast_filepaths NOWCAST_FILEPATHS [NOWCAST_FILEPATHS ...]
                         Optional list of full paths to output nowcast files.
                         Overrides OUTPUT_DIR. Ignored unless '--extrapolate'
@@ -83,14 +76,7 @@ optional arguments:
   --smart_smoothing_iterations SMART_SMOOTHING_ITERATIONS
                         Number of iterations to perform in enforcing
                         smoothness constraint for optical flow velocities.
-  --extrapolate         Optional flag to advect current data forward to
-                        specified lead times.
-  --max_lead_time MAX_LEAD_TIME
-                        Maximum lead time required (mins). Ignored unless '--
-                        extrapolate' is set.
-  --lead_time_interval LEAD_TIME_INTERVAL
-                        Interval between required lead times (mins). Ignored
-                        unless '--extrapolate' is set.
+
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

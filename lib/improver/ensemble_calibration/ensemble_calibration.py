@@ -42,6 +42,7 @@ from scipy import stats
 from scipy.optimize import minimize
 from scipy.stats import norm
 
+from improver import BasePlugin
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     convert_cube_data_to_2d, check_predictor_of_mean_flag,
     flatten_ignoring_masked_data)
@@ -51,7 +52,7 @@ from improver.utilities.temporal import (
     cycletime_to_datetime, datetime_to_iris_time, iris_time_to_datetime)
 
 
-class ContinuousRankedProbabilityScoreMinimisers():
+class ContinuousRankedProbabilityScoreMinimisers:
     """
     Minimise the Continuous Ranked Probability Score (CRPS)
 
@@ -286,7 +287,8 @@ class ContinuousRankedProbabilityScoreMinimisers():
 
         Returns:
             float:
-                CRPS for the current set of coefficients.
+                CRPS for the current set of coefficients. This CRPS is a mean
+                value across all points.
 
         """
         if predictor_of_mean_flag.lower() == "mean":
@@ -306,12 +308,11 @@ class ContinuousRankedProbabilityScoreMinimisers():
         normal_cdf = norm.cdf(xz)
         normal_pdf = norm.pdf(xz)
         if np.isfinite(np.min(mu/sigma)):
-            result = np.nansum(
+            result = np.nanmean(
                 sigma * (
                     xz * (2 * normal_cdf - 1) + 2 * normal_pdf - 1 / sqrt_pi))
         else:
             result = self.BAD_VALUE
-
         return result
 
     def calculate_truncated_normal_crps(
@@ -347,7 +348,8 @@ class ContinuousRankedProbabilityScoreMinimisers():
 
         Returns:
             float:
-                CRPS for the current set of coefficients.
+                CRPS for the current set of coefficients. This CRPS is a mean
+                value across all points.
 
         """
         if predictor_of_mean_flag.lower() == "mean":
@@ -370,8 +372,8 @@ class ContinuousRankedProbabilityScoreMinimisers():
         normal_cdf_0 = norm.cdf(x0)
         normal_cdf_root_two = norm.cdf(np.sqrt(2) * x0)
         if np.isfinite(np.min(mu / sigma)) or (np.min(mu / sigma) >= -3):
-            result = np.nansum(
-                (sigma / normal_cdf_0 ** 2) *
+            result = np.nanmean(
+                (sigma / normal_cdf_0**2) *
                 (xz * normal_cdf_0 * (2 * normal_cdf + normal_cdf_0 - 2) +
                  2 * normal_pdf * normal_cdf_0 -
                  normal_cdf_root_two / sqrt_pi))
@@ -380,7 +382,7 @@ class ContinuousRankedProbabilityScoreMinimisers():
         return result
 
 
-class EstimateCoefficientsForEnsembleCalibration():
+class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
     """
     Class focussing on estimating the optimised coefficients for ensemble
     calibration.
@@ -904,7 +906,7 @@ class EstimateCoefficientsForEnsembleCalibration():
         return coefficients_cube
 
 
-class ApplyCoefficientsFromEnsembleCalibration():
+class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
     """
     Class to apply the optimised EMOS coefficients to future dates.
 

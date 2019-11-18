@@ -40,6 +40,7 @@ from iris.exceptions import (
     CoordinateCollapseError, CoordinateNotFoundError, InvalidCubeError)
 from scipy import ndimage, signal
 
+from improver import BasePlugin
 from improver.metadata.amend import amend_attributes
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.spatial import check_if_grid_is_equal_area
@@ -136,7 +137,7 @@ def check_input_coords(cube, require_time=False):
             raise InvalidCubeError('Input cube has no time coordinate')
 
 
-class OpticalFlow(object):
+class OpticalFlow(BasePlugin):
     """
     Class to calculate advection velocities along two orthogonal spatial axes
     from time-separated fields using an optical flow algorithm

@@ -31,11 +31,9 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "nowcast-optical-flow extrapolate" {
+@test "nowcast-optical-flow with json file" {
   improver_check_skip_acceptance
-  KGO0="nowcast-extrapolate/extrapolate/kgo0.nc"
-  KGO1="nowcast-extrapolate/extrapolate/kgo1.nc"
-  KGO2="nowcast-extrapolate/extrapolate/kgo2.nc"
+  KGO="nowcast-optical-flow/basic/kgo_with_metadata.nc"
 
   COMP1="201811031530_radar_rainrate_composite_UK_regridded.nc"
   COMP2="201811031545_radar_rainrate_composite_UK_regridded.nc"
@@ -43,29 +41,21 @@
 
   OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
 
+  JSONFILE="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/metadata/precip.json"
+
   # Run processing and check it passes
   run improver nowcast-optical-flow \
     "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$COMP1" \
     "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$COMP2" \
     "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$COMP3" \
+    "$TEST_DIR/output.nc" \
     --orographic_enhancement_filepaths \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1" \
-    --output_dir "$TEST_DIR" --extrapolate --max_lead_time 30
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1" 
   [[ "$status" -eq 0 ]]
 
-  T0="20181103T1600Z-PT0000H00M-lwe_precipitation_rate.nc"
-  T1="20181103T1615Z-PT0000H15M-lwe_precipitation_rate.nc"
-  T2="20181103T1630Z-PT0000H30M-lwe_precipitation_rate.nc"
-
-  improver_check_recreate_kgo "$T0" $KGO0
-  improver_check_recreate_kgo "$T1" $KGO1
-  improver_check_recreate_kgo "$T2" $KGO2
+  improver_check_recreate_kgo "output.nc" $KGO
 
   # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/$T0" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO0"
-  improver_compare_output "$TEST_DIR/$T1" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO1"
-  improver_compare_output "$TEST_DIR/$T2" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO2"
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

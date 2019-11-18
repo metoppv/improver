@@ -37,12 +37,13 @@ import cartopy.crs as ccrs
 import numpy as np
 from scipy.spatial import cKDTree
 
+from improver import BasePlugin
 from improver.metadata.utilities import create_coordinate_hash
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
-class NeighbourSelection:
+class NeighbourSelection(BasePlugin):
     """
     For the selection of a grid point near an arbitrary coordinate, where the
     selection may be the nearest point, or a point that fulfils other

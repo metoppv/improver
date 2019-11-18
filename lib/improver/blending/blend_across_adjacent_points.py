@@ -34,12 +34,13 @@ opposed to collapsing the whole dimension."""
 import iris
 from cf_units import Unit
 
+from improver import BasePlugin
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
 from improver.blending.weights import ChooseDefaultWeightsTriangular
 from improver.utilities.cube_checker import check_cube_coordinates
 
 
-class TriangularWeightedBlendAcrossAdjacentPoints(object):
+class TriangularWeightedBlendAcrossAdjacentPoints(BasePlugin):
     """
     Apply a Weighted blend to a coordinate, using triangular weights at each
     point in the coordinate. Returns a cube with the same coordinates as the
