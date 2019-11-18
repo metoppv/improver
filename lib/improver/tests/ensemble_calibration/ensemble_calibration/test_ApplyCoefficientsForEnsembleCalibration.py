@@ -110,29 +110,29 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
 
         # Some expected data that are used in various tests.
         self.expected_calibrated_predictor_mean = (
-            np.array([[273.8033, 274.7080, 275.4619],
-                      [276.8792, 277.6633, 278.4172],
-                      [279.5029, 280.1663, 280.9805]]))
+            np.array([[273.7854, 274.6913, 275.4461],
+                      [276.8652, 277.6502, 278.405],
+                      [279.492, 280.1562, 280.9715]]))
         self.expected_calibrated_variance_mean = (
-            np.array([[0.8933, 0.9033, 0.0533],
-                      [0.1033, 0.09, 0.0533],
-                      [0.2433, 0.0133, 0.0033]]))
+            np.array([[0.1952, 0.1974, 0.0117],
+                      [0.0226, 0.0197, 0.0117],
+                      [0.0532, 0.0029, 0.0007]]))
         self.expected_calibrated_predictor_statsmodels_realizations = (
-            np.array([[274.3172, 275.2758, 275.4361],
-                      [277.1564, 277.528, 278.4944],
-                      [280.1898, 280.4319, 281.3451]]))
+            np.array([[274.1395, 275.0975, 275.258],
+                      [276.9771, 277.3487, 278.3144],
+                      [280.0085, 280.2506, 281.1632]]))
         self.expected_calibrated_variance_statsmodels_realizations = (
-            np.array([[0.8976, 0.9077, 0.0536],
+            np.array([[0.8973, 0.9073, 0.0536],
                       [0.1038, 0.0904, 0.0536],
-                      [0.2445, 0.0134, 0.0033]]))
+                      [0.2444, 0.0134, 0.0033]]))
         self.expected_calibrated_predictor_no_statsmodels_realizations = (
-            np.array([[273.3461, 274.3438, 275.1823],
-                      [276.7422, 277.6121, 278.4414],
-                      [279.6318, 280.3687, 281.2658]]))
+            np.array([[273.4695, 274.4673, 275.3034],
+                      [276.8648, 277.733, 278.5632],
+                      [279.7562, 280.4913, 281.3889]]))
         self.expected_calibrated_variance_no_statsmodels_realizations = (
-            np.array([[0.9231, 0.9334, 0.0551],
-                      [0.1068, 0.093, 0.0551],
-                      [0.2514, 0.0138, 0.0034]]))
+            np.array([[0.9344, 0.9448, 0.0558],
+                      [0.1081, 0.0941, 0.0558],
+                      [0.2545, 0.0139, 0.0035]]))
 
 
 class Test__init__(IrisTest):

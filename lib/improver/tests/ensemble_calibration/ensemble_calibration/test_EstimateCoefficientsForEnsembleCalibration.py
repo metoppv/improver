@@ -158,22 +158,22 @@ class SetupExpectedCoefficients(IrisTest):
         super().setUp()
         # The expected coefficients for temperature in Kelvin.
         self.expected_mean_predictor_gaussian = (
-            np.array([0., 1., 25.7496, 0.9047], dtype=np.float32))
+            np.array([0.0013, 0.4675, 25.4302, 0.9058], dtype=np.float32))
         # The expected coefficients for wind speed in m s^-1.
         self.expected_mean_predictor_truncated_gaussian = (
-            np.array([0., 1.05, -0.2759, 0.9047], dtype=np.float32))
+            np.array([-0.0025, 1.5457, -0.5185, 0.9408], dtype=np.float32))
 
         self.expected_realizations_gaussian_statsmodels = (
-            np.array([-0.0003, 1.0024, -0.2825, -0.0773, 0.3891, 0.9171],
+            np.array([-0.0003, 1.0022, -0.2838, -0.0774, 0.3892, 0.9167],
                      dtype=np.float32))
         self.expected_realizations_gaussian_no_statsmodels = (
-            np.array([0.0001, 1.0165, 0., 0.5795, 0.5786, 0.5713],
+            np.array([0.0001, 1.0227, -0., 0.5785, 0.578, 0.5733],
                      dtype=np.float32))
         self.expected_realizations_truncated_gaussian_statsmodels = (
-            np.array([-0., 1.1667, -0.7014, -0.0757, 0.3494, 0.9264],
+            np.array([0.0003, 1.2571, -0.606, -0.0623, 0.3786, 0.9014],
                      dtype=np.float32))
         self.expected_realizations_truncated_gaussian_no_statsmodels = (
-            np.array([0.0004, 1.0953, 0.0003, 0.5419, 0.4998, 0.5645],
+            np.array([0.0007, 1.356, -0.0015, 0.7171, -0.0089, 0.585],
                      dtype=np.float32))
 
 
@@ -975,6 +975,7 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions,
         expected values for a Gaussian distribution for when the historic
         forecasts and truths input having some mismatches in validity time.
         """
+        expected = [0.0041, 0.4885, 23.4593, 0.9128]
         partial_historic_forecasts = (
             self.historic_forecasts[:2] +
             self.historic_forecasts[3:]).merge_cube()
@@ -982,8 +983,7 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions,
         plugin = Plugin(self.distribution, self.current_cycle)
         result = plugin.process(partial_historic_forecasts, partial_truth)
 
-        self.assertEMOSCoefficientsAlmostEqual(
-            result.data, self.expected_mean_predictor_gaussian)
+        self.assertEMOSCoefficientsAlmostEqual(result.data, expected)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, self.coeff_names)
 
@@ -995,7 +995,7 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions,
         expected values for a Gaussian distribution, where the default
         values for the initial guess are used, rather than using a linear
         least-squares regression to construct an initial guess."""
-        expected = [0.0001, 1.0533, -0.0001, 0.997]
+        expected = [0.0001, 1.0374, -0.0001, 0.9974]
         plugin = Plugin(self.distribution, self.current_cycle)
         plugin.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
         result = plugin.process(
@@ -1079,7 +1079,7 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions,
         expected values for a truncated Gaussian distribution, where the
         default values for the initial guess are used, rather than using a
         linear least-squares regression to construct an initial guess."""
-        expected = [0.0002, 1.1072, 0.0001, 0.8386]
+        expected = [-0.0013, 1.3785, -0.0002, 0.8557]
         distribution = "truncated_gaussian"
 
         plugin = Plugin(distribution, self.current_cycle)

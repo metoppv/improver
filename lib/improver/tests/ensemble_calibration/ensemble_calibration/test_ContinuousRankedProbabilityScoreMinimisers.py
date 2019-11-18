@@ -654,9 +654,7 @@ class Test_process_truncated_gaussian_distribution(
     @ManageWarnings(
         record=True,
         ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_catch_warnings_percentage_change(
-            self,
-            warning_list=None):
+    def test_catch_warnings_percentage_change(self, warning_list=None):
         """
         Test that two warnings are generated if the minimisation
         does not result in a convergence. The first warning reports a that
