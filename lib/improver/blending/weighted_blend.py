@@ -728,12 +728,11 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
         frt_coord = input_cube.coord("forecast_reference_time")
         if cycletime is None:
             return np.max(frt_coord.points)
-        else:
-            frt_units = frt_coord.units.origin
-            frt_calendar = frt_coord.units.calendar
-            cycletime_point = cycletime_to_number(
-                    cycletime, time_unit=frt_units, calendar=frt_calendar)
-            return np.round(cycletime_point).astype(np.int64)
+        frt_units = frt_coord.units.origin
+        frt_calendar = frt_coord.units.calendar
+        cycletime_point = cycletime_to_number(
+            cycletime, time_unit=frt_units, calendar=frt_calendar)
+        return np.round(cycletime_point).astype(np.int64)
 
     def _set_coords_to_remove(self, input_cube):
         """
