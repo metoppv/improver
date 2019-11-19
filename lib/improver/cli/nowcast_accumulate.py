@@ -82,8 +82,8 @@ def main(argv=None):
     save_netcdf(result, args.output_filepath)
 
 
-def process(u_cube, v_cube, max_lead_time, lead_time_interval,
-            accumulation_period, accumulation_units):
+def process(u_cube, v_cube, max_lead_time=360, lead_time_interval=15,
+            accumulation_period=15, accumulation_units='m'):
     """
 
     Args:
