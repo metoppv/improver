@@ -110,29 +110,29 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
 
         # Some expected data that are used in various tests.
         self.expected_calibrated_predictor_mean = (
-            np.array([[273.7371, 274.6500, 275.4107],
-                      [276.8409, 277.6321, 278.3928],
-                      [279.4884, 280.1578, 280.9794]]))
+            np.array([[273.7854, 274.6913, 275.4461],
+                      [276.8652, 277.6502, 278.405],
+                      [279.492, 280.1562, 280.9715]]))
         self.expected_calibrated_variance_mean = (
-            np.array([[0.2134, 0.2158, 0.0127],
-                      [0.0247, 0.0215, 0.0127],
-                      [0.0581, 0.0032, 0.0008]]))
+            np.array([[0.1952, 0.1974, 0.0117],
+                      [0.0226, 0.0197, 0.0117],
+                      [0.0532, 0.0029, 0.0007]]))
         self.expected_calibrated_predictor_statsmodels_realizations = (
-            np.array([[274.2120, 275.1703, 275.3308],
-                      [277.0504, 277.4221, 278.3881],
-                      [280.0826, 280.3248, 281.2376]]))
+            np.array([[274.1395, 275.0975, 275.258],
+                      [276.9771, 277.3487, 278.3144],
+                      [280.0085, 280.2506, 281.1632]]))
         self.expected_calibrated_variance_statsmodels_realizations = (
-            np.array([[0.8975, 0.9075, 0.0536],
+            np.array([[0.8973, 0.9073, 0.0536],
                       [0.1038, 0.0904, 0.0536],
                       [0.2444, 0.0134, 0.0033]]))
         self.expected_calibrated_predictor_no_statsmodels_realizations = (
-            np.array([[274.1428, 275.0543, 275.2956],
-                      [277.0344, 277.4110, 278.3598],
-                      [280.0760, 280.3517, 281.2437]]))
+            np.array([[273.4695, 274.4673, 275.3034],
+                      [276.8648, 277.733, 278.5632],
+                      [279.7562, 280.4913, 281.3889]]))
         self.expected_calibrated_variance_no_statsmodels_realizations = (
-            np.array([[0.99803287, 1.0091798, 0.06006174],
-                      [0.11588794, 0.10100815, 0.06006173],
-                      [0.27221495, 0.01540077, 0.00423326]]))
+            np.array([[0.9344, 0.9448, 0.0558],
+                      [0.1081, 0.0941, 0.0558],
+                      [0.2545, 0.0139, 0.0035]]))
 
 
 class Test__init__(IrisTest):

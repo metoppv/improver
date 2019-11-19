@@ -41,6 +41,7 @@ from scipy.stats import linregress
 from stratify import interpolate
 
 import improver.constants as consts
+from improver import BasePlugin
 from improver.psychrometric_calculations import svp_table
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.mathematical_operations import Integration
@@ -230,7 +231,7 @@ class Utilities(object):
         return svp
 
 
-class WetBulbTemperature(object):
+class WetBulbTemperature(BasePlugin):
 
     """
     A plugin to calculate wet bulb temperatures from air temperature, relative
@@ -529,7 +530,7 @@ class WetBulbTemperature(object):
         return wet_bulb_temperature
 
 
-class WetBulbTemperatureIntegral(object):
+class WetBulbTemperatureIntegral(BasePlugin):
     """Calculate  a wet-bulb temperature integral."""
 
     def __init__(self, precision=0.005, coord_name_to_integrate="height",
@@ -614,7 +615,7 @@ class WetBulbTemperatureIntegral(object):
         return wet_bulb_temperature, wet_bulb_temperature_integral
 
 
-class FallingSnowLevel(object):
+class FallingSnowLevel(BasePlugin):
     """Calculate a field of continuous falling snow level."""
 
     def __init__(self, precision=0.005, falling_level_threshold=90.0,

@@ -32,13 +32,14 @@
 
 import numpy as np
 
+from improver import BasePlugin
 from improver.utilities.cube_manipulation import concatenate_cubes
 from improver.utilities.temporal import (
     unify_forecast_reference_time, cycletime_to_datetime,
     find_latest_cycletime)
 
 
-class GenerateTimeLaggedEnsemble(object):
+class GenerateTimeLaggedEnsemble(BasePlugin):
 
     """
     A plugin to combine realizations from different forecast cycles into one
