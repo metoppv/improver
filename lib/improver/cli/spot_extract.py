@@ -79,7 +79,10 @@ def main(argv=None):
                         help="The output path for the resulting NetCDF")
     parser.add_argument("--new_title", metavar="NEW_TITLE", default=None,
                         help="Title attribute for spot-extracted data. If not "
-                        "set, this attribute is removed.", type=str)
+                        "set, this attribute is removed, since it has no "
+                        "prescribed standard and may therefore contain grid "
+                        "information that is no longer correct after spot-"
+                        "extraction.", type=str)
 
     parser.add_argument(
         "--apply_lapse_rate_correction",

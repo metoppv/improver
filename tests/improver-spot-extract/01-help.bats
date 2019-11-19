@@ -67,7 +67,9 @@ optional arguments:
                         Dump profiling info to a file. Implies --profile.
   --new_title NEW_TITLE
                         Title attribute for spot-extracted data. If not set,
-                        this attribute is removed.
+                        this attribute is removed, since it has no prescribed
+                        standard and may therefore contain grid information
+                        that is no longer correct after spot-extraction.
   --apply_lapse_rate_correction
                         If the option is set and a lapse rate cube has been
                         provided, extracted screen temperatures will be
