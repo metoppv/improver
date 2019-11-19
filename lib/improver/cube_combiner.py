@@ -103,37 +103,7 @@ class CubeCombiner(BasePlugin):
                 raise ValueError(
                     "Cannot combine cubes with different dimensions")
 
-    @staticmethod
-    def _update_cell_methods(result, cell_method_updates):
-        """
-        Modifies cell methods on the output cube in place
-
-        Args:
-            result (iris.cube.Cube):
-                Combined cube
-            cell_method_updates (dict):
-                Dictionary describing required changes to cell methods. Eg for
-                a 12 hour maximum temperature forecast constructed from 1 hour
-                maxima, the dictionary would take the form:
-                {"add": {"method": "max",
-                         "coords": "time",
-                         "intervals": "12 hours"},
-                 "remove": {"method": "max",
-                            "coords": "time",
-                            "intervals": "1 hour"}}
-        """
-        required_cell_methods = list(result.cell_methods)
-        for action, method_args in cell_method_updates.items():
-            cell_method = iris.coords.CellMethod(**method_args)
-            if action == "remove" and cell_method in result.cell_methods:
-                required_cell_methods.remove(cell_method)
-            if action == "add":
-                required_cell_methods.append(cell_method)
-        result.cell_methods = required_cell_methods
-
-    def process(self, cube_list, new_diagnostic_name,
-                cell_method_updates=None,
-                coords_to_expand=None):
+    def process(self, cube_list, new_diagnostic_name, coords_to_expand=None):
         """
         Create a combined cube.
 
@@ -142,11 +112,6 @@ class CubeCombiner(BasePlugin):
                 List of cubes to combine.
             new_diagnostic_name (str):
                 New name for the combined diagnostic.
-            cell_method_updates (dict or None):
-                Changes to cell methods for combined cube. Items have the form
-                "key": "value", where "key" is "add" or "remove" and "value" is
-                a dictionary of keyword arguments to the iris.coords.CellMethod
-                constructor.
             coords_to_expand (dict or None):
                 Coordinates to be expanded as a key, with the value
                 indicating whether the upper or mid point of the coordinate
@@ -173,11 +138,9 @@ class CubeCombiner(BasePlugin):
         if self.operation == 'mean':
             result.data = result.data / len(cube_list)
 
-        # update metadata on output cube
+        # update coordinate bounds and cube name
         if coords_to_expand is not None:
             result = expand_bounds(result, cube_list, coords_to_expand)
-        if cell_method_updates is not None:
-            self._update_cell_methods(result, cell_method_updates)
         result.rename(new_diagnostic_name)
 
         return result

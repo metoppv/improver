@@ -197,28 +197,6 @@ class Test_process(set_up_cubes):
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(cubelist, 'new_cube_name')
 
-    def test_cell_method_updates(self):
-        """Test plugin applies cell method adjustments correctly (adds, removes
-        and preserves)"""
-        cell_method_updates = {"add": {"method": "max",
-                                       "coords": "time",
-                                       "intervals": "12 hours"},
-                               "remove": {"method": "max",
-                                          "coords": "time",
-                                          "intervals": "1 hour"}}
-        cm_to_add = iris.coords.CellMethod(**cell_method_updates["add"])
-        cm_to_remove = iris.coords.CellMethod(**cell_method_updates["remove"])
-        cm_to_preserve = iris.coords.CellMethod(
-            method="mean", coords="forecast_period")
-        self.cube1.add_cell_method(cm_to_preserve)
-        self.cube1.add_cell_method(cm_to_remove)
-        plugin = CubeCombiner("add")
-        result = plugin.process([self.cube1, self.cube2], 'new_cube_name',
-                                cell_method_updates=cell_method_updates)
-        self.assertIn(cm_to_preserve, result.cell_methods)
-        self.assertIn(cm_to_add, result.cell_methods)
-        self.assertNotIn(cm_to_remove, result.cell_methods)
-
 
 if __name__ == '__main__':
     unittest.main()
