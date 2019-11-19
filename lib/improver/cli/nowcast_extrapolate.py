@@ -189,10 +189,7 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
         attributes_dict=attributes_dict)
     forecast_cubes = forecast_plugin.process(lead_time_interval, max_lead_time)
 
-    # filter out rate forecasts that are not required
-    lead_time_filter = lead_time_interval // lead_time_interval
-    forecast_to_return = forecast_cubes[::lead_time_filter].copy()
-    return merge_cubes(forecast_to_return)
+    return merge_cubes(forecast_cubes)
 
 
 if __name__ == "__main__":
