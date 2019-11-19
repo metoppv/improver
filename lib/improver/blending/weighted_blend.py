@@ -718,7 +718,8 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
             input_cube (iris.cube.Cube):
                 Cube to be blended
             cycletime (str or None):
-                The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z
+                The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
+                If None, the latest forecast reference time is used.
 
         Returns:
             numpy.int64:
