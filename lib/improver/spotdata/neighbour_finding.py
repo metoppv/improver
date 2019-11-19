@@ -37,12 +37,13 @@ import cartopy.crs as ccrs
 import numpy as np
 from scipy.spatial import cKDTree
 
+from improver import BasePlugin
 from improver.metadata.utilities import create_coordinate_hash
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
-class NeighbourSelection:
+class NeighbourSelection(BasePlugin):
     """
     For the selection of a grid point near an arbitrary coordinate, where the
     selection may be the nearest point, or a point that fulfils other
@@ -130,7 +131,8 @@ class NeighbourSelection:
                                       '_minimum_dz' if self.minimum_dz else '')
         return method_name
 
-    def _transform_sites_coordinate_system(self, x_points, y_points, cube):
+    def _transform_sites_coordinate_system(self, x_points, y_points,
+                                           target_crs):
         """
         Function to convert coordinate pairs that specify spot sites into the
         coordinate system of the model from which data will be extracted. Note
@@ -144,19 +146,17 @@ class NeighbourSelection:
             y_points (numpy.ndarray):
                 An array of y coordinates to be transformed in conjunction
                 with the corresponding x coordinates.
-            cube (iris.cube.Cube):
-                A cube from the model from which data will be extracted. This
-                provides the coordinate system onto which the spot site's
-                coordinates should be remapped.
+            target_crs (cartopy.crs):
+                Coordinate system to which the site coordinates should be
+                transformed. This should be the coordinate system of the model
+                from which data will be spot extracted.
         Returns:
             numpy.ndarray:
                 An array containing the x and y coordinates of the spot sites
                 in the target coordinate system, shaped as (n_sites, 2). The
                 z coordinate column is excluded from the return.
         """
-        target_coordinate_system = cube.coord_system().as_cartopy_crs()
-
-        return target_coordinate_system.transform_points(
+        return target_crs.transform_points(
             self.site_coordinate_system, x_points, y_points)[:, 0:2]
 
     def check_sites_are_within_domain(self, sites, site_coords, site_x_coords,
@@ -459,7 +459,8 @@ class NeighbourSelection:
         site_y_coords = np.array([site[self.site_y_coordinate]
                                   for site in sites])
         site_coords = self._transform_sites_coordinate_system(
-            site_x_coords, site_y_coords, orography)
+            site_x_coords, site_y_coords,
+            orography.coord_system().as_cartopy_crs())
 
         # Exclude any sites falling outside the domain given by the cube and
         # notify the user.
@@ -537,10 +538,21 @@ class NeighbourSelection:
                          vertical_displacements), axis=1)
         data = np.expand_dims(data, 1).astype(np.float32)
 
+        # Regardless of input sitelist coordinate system, the site coordinates
+        # are stored as latitudes and longitudes in the neighbour cube.
+        if self.site_coordinate_system != ccrs.PlateCarree():
+            lon_lats = self._transform_sites_coordinate_system(
+                site_x_coords, site_y_coords, ccrs.PlateCarree())
+            longitudes = lon_lats[:, 0]
+            latitudes = lon_lats[:, 1]
+        else:
+            longitudes = site_x_coords
+            latitudes = site_y_coords
+
         # Create a cube of neighbours
         neighbour_cube = build_spotdata_cube(
             data, 'grid_neighbours', 1, site_altitudes.astype(np.float32),
-            site_y_coords.astype(np.float32), site_x_coords.astype(np.float32),
+            latitudes.astype(np.float32), longitudes.astype(np.float32),
             wmo_ids, neighbour_methods=[method_name],
             grid_attributes=['x_index', 'y_index', 'vertical_displacement'])
 

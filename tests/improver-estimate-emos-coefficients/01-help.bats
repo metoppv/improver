@@ -43,6 +43,7 @@ usage: improver estimate-emos-coefficients [-h] [--profile]
                                            [--units UNITS]
                                            [--predictor_of_mean PREDICTOR_OF_MEAN]
                                            [--max_iterations MAX_ITERATIONS]
+                                           [--tolerance TOLERANCE]
                                            [--landsea_mask LANDSEA_MASK]
                                            DISTRIBUTION CYCLETIME
                                            OUTPUT_FILEPATH
@@ -129,6 +130,15 @@ optional arguments:
                         predictor_of_mean is "realizations", then the number
                         of iterations may require increasing, as there will be
                         more coefficients to solve for.
+  --tolerance TOLERANCE
+                        The tolerance for the Continuous Ranked Probability
+                        Score (CRPS) calculated by the minimisation. The CRPS
+                        is in the units of the variable being calibrated. The
+                        tolerance is therefore representative of how close to
+                        the actual value are we aiming to forecast for a
+                        particular variable. Once multiple iterations result
+                        in a CRPS equal to the same value within the specified
+                        tolerance, the minimisation will terminate.
   --landsea_mask LANDSEA_MASK
                         The netCDF file containing a land-sea mask on the same
                         domain as the historic forecast and truth data. Land

@@ -37,6 +37,7 @@ from iris.coord_systems import GeogCS
 from iris.coords import DimCoord
 from iris.cube import Cube
 
+from improver import BasePlugin
 from improver.utilities.cube_manipulation import compare_coords
 
 # Global coordinate reference system used in StaGE (GRS80)
@@ -44,7 +45,7 @@ GLOBAL_CRS = GeogCS(semi_major_axis=6378137.0,
                     inverse_flattening=298.257222101)
 
 
-class ResolveWindComponents(object):
+class ResolveWindComponents(BasePlugin):
     """
     Plugin to resolve wind components along an input cube's projection axes,
     given directions with respect to true North

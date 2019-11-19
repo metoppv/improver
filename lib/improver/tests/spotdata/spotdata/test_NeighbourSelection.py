@@ -195,7 +195,8 @@ class Test__transform_sites_coordinate_system(Test_NeighbourSelection):
         expected = [[0., 0.], [1111782.53516264, 0.],
                     [2189747.33076441, 1121357.32401753]]
         result = plugin._transform_sites_coordinate_system(
-            x_points, y_points, self.region_orography)
+            x_points, y_points,
+            self.region_orography.coord_system().as_cartopy_crs())
         self.assertArrayAlmostEqual(result, expected)
 
     def test_region_to_global(self):
@@ -209,7 +210,8 @@ class Test__transform_sites_coordinate_system(Test_NeighbourSelection):
         expected = [[0., 0.], [8.98315284e-06, 0.],
                     [1.79663057e-05, 9.04369476e-06]]
         result = plugin._transform_sites_coordinate_system(
-            x_points, y_points, self.global_orography)
+            x_points, y_points,
+            self.global_orography.coord_system().as_cartopy_crs())
         self.assertArrayAlmostEqual(result, expected)
 
     def test_global_to_global(self):
@@ -220,7 +222,8 @@ class Test__transform_sites_coordinate_system(Test_NeighbourSelection):
         y_points = np.array([0, 0, 10])
         expected = np.stack((x_points, y_points), axis=1)
         result = plugin._transform_sites_coordinate_system(
-            x_points, y_points, self.global_orography)
+            x_points, y_points,
+            self.global_orography.coord_system().as_cartopy_crs())
 
         self.assertArrayAlmostEqual(result, expected)
 
@@ -233,7 +236,8 @@ class Test__transform_sites_coordinate_system(Test_NeighbourSelection):
         y_points = np.array([0, 0, 1])
         expected = np.stack((x_points, y_points), axis=1)
         result = plugin._transform_sites_coordinate_system(
-            x_points, y_points, self.region_orography)
+            x_points, y_points,
+            self.region_orography.coord_system().as_cartopy_crs())
 
         self.assertArrayAlmostEqual(result, expected)
 
@@ -660,6 +664,27 @@ class Test_process(Test_NeighbourSelection):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.data, expected)
 
+    def test_global_returned_site_coordinates(self):
+        """Test that the site coordinates in the returned neighbour cube are
+        latitudes and longitudes. Here the input site list contains site
+        coordinates defined in latitudes and longitudes, so they should be
+        unchanged."""
+
+        latitude_expected = np.array([self.global_sites[0]['latitude']],
+                                     dtype=np.float32)
+        longitude_expected = np.array([self.global_sites[0]['longitude']],
+                                      dtype=np.float32)
+        plugin = NeighbourSelection()
+        result = plugin.process(self.global_sites, self.global_orography,
+                                self.global_land_mask)
+
+        self.assertIsNotNone(result.coord('latitude'))
+        self.assertIsNotNone(result.coord('longitude'))
+        self.assertArrayAlmostEqual(result.coord('latitude').points,
+                                    latitude_expected)
+        self.assertArrayAlmostEqual(result.coord('longitude').points,
+                                    longitude_expected)
+
     def test_global_land(self):
         """Test how the neighbour index changes when a land constraint is
         imposed. Here we expect to go 'west' to the first band of land
@@ -740,6 +765,27 @@ class Test_process(Test_NeighbourSelection):
 
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.data, expected)
+
+    def test_region_returned_site_coordinates(self):
+        """Test that the site coordinates in the returned neighbour cube are
+        latitudes and longitudes. Here the input site list contains site
+        coordinates defined in metres in an equal areas projection."""
+
+        plugin = NeighbourSelection(
+            site_coordinate_system=self.region_projection.as_cartopy_crs(),
+            site_x_coordinate='projection_x_coordinate',
+            site_y_coordinate='projection_y_coordinate')
+        result = plugin.process(self.region_sites, self.region_orography,
+                                self.region_land_mask)
+        latitude_expected = np.array([0], dtype=np.float32)
+        longitude_expected = np.array([-0.359327], dtype=np.float32)
+
+        self.assertIsNotNone(result.coord('latitude'))
+        self.assertIsNotNone(result.coord('longitude'))
+        self.assertArrayAlmostEqual(result.coord('latitude').points,
+                                    latitude_expected)
+        self.assertArrayAlmostEqual(result.coord('longitude').points,
+                                    longitude_expected)
 
     def test_region_land(self):
         """Test how the neighbour index changes when a land constraint is

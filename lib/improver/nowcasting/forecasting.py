@@ -39,12 +39,13 @@ import numpy as np
 from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 
+from improver import BasePlugin
 from improver.metadata.amend import (amend_attributes, set_history_attribute)
 from improver.nowcasting.optical_flow import check_input_coords
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
 
 
-class AdvectField():
+class AdvectField(BasePlugin):
     """
     Class to advect a 2D spatial field given velocities along the two vector
     dimensions
@@ -323,7 +324,7 @@ class AdvectField():
         return advected_cube
 
 
-class CreateExtrapolationForecast():
+class CreateExtrapolationForecast(BasePlugin):
     """
     Class to create a nowcast extrapolation forecast using advection.
     For precipitation rate forecasts, orographic enhancement must be used.

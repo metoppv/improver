@@ -32,12 +32,13 @@
 import iris
 import numpy as np
 
+from improver import BasePlugin
 from improver.psychrometric_calculations.psychrometric_calculations import \
     Utilities
 from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
 
 
-class OrographicAlphas(object):
+class OrographicAlphas(BasePlugin):
 
     """
     Class to generate alpha smoothing parameters for recursive filtering
@@ -218,7 +219,7 @@ class OrographicAlphas(object):
         return alpha_x, alpha_y
 
 
-class SaturatedVapourPressureTable(object):
+class SaturatedVapourPressureTable(BasePlugin):
 
     """
     Plugin to create a saturated vapour pressure lookup table.

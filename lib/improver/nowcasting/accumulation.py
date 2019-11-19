@@ -36,11 +36,12 @@ accumulations from shorter intervals.
 import iris
 import numpy as np
 
+from improver import BasePlugin
 from improver.metadata.check_datatypes import check_time_coordinate_metadata
 from improver.utilities.cube_manipulation import expand_bounds
 
 
-class Accumulation:
+class Accumulation(BasePlugin):
     """
     Class to calculate precipitation accumulations from radar rates fields
     provided at discrete time intervals. The plugin will calculate

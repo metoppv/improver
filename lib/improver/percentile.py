@@ -35,11 +35,12 @@ import iris
 import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 
+from improver import BasePlugin
 from improver.constants import DEFAULT_PERCENTILES
 from improver.metadata.probabilistic import find_percentile_coordinate
 
 
-class PercentileConverter(object):
+class PercentileConverter(BasePlugin):
 
     """Plugin for converting from a set of values to a PDF.
 

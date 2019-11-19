@@ -33,6 +33,7 @@
 import iris
 import numpy as np
 
+from improver import BasePlugin
 from improver.constants import DEFAULT_PERCENTILES
 from improver.nbhood.circular_kernel import (
     CircularNeighbourhood, GeneratePercentilesFromACircularNeighbourhood)
@@ -43,7 +44,7 @@ from improver.utilities.cube_manipulation import concatenate_cubes
 from improver.utilities.temporal import forecast_period_coord
 
 
-class BaseNeighbourhoodProcessing(object):
+class BaseNeighbourhoodProcessing(BasePlugin):
     """
     Apply a neighbourhood processing method to a thresholded cube. This is a
     base class for usage with a subclass that will inherit the functionality

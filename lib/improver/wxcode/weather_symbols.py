@@ -36,6 +36,7 @@ import copy
 import iris
 import numpy as np
 
+from improver import BasePlugin
 from improver.metadata.probabilistic import (
     extract_diagnostic_name, find_threshold_coordinate)
 from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
@@ -46,7 +47,7 @@ from improver.wxcode.wxcode_utilities import (add_wxcode_metadata,
                                               update_daynight)
 
 
-class WeatherSymbols(object):
+class WeatherSymbols(BasePlugin):
     """
     Definition and implementation of a weather symbol decision tree. This
     plugin uses a variety of diagnostic inputs and the decision tree logic
