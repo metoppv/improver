@@ -121,9 +121,9 @@ def main(argv=None):
     save_netcdf(result, args.output_filepath)
 
 
-def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
-            orographic_enhancement_cube=None, attributes_dict=None,
-            max_lead_time=360, lead_time_interval=15):
+def process(input_cube, u_cube=None, v_cube=None, speed_cube=None,
+            direction_cube=None, orographic_enhancement_cube=None,
+            attributes_dict=None, max_lead_time=360, lead_time_interval=15):
     """Module  to extrapolate input cubes given advection velocity fields.
 
     Args:
@@ -132,20 +132,20 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
         u_cube (iris.cube.Cube):
             Cube with the velocities in the x direction.
             Must be used with v_cube.
-            s_cube and d_cube must be None.
+            speed_cube and direction_cube must be None.
         v_cube (iris.cube.Cube):
             Cube with the velocities in the y direction.
             Must be used with u_cube.
-            s_cube and d_cube must be None.
+            speed_cube and direction_cube must be None.
         speed_cube (iris.cube.Cube):
             Cube containing advection speeds, usually wind speed.
-            Must be used with d_cube.
+            Must be used with direction_cube.
             u_cube and v_cube must be None.
         direction_cube (iris.cube.Cube):
             Cube from which advection speeds are coming. The directions
             should be on the same grid as the input speeds, including the same
             vertical levels.
-            Must be used with d_cube.
+            Must be used with speed_cube.
             u_cube and v_cube must be None.
         orographic_enhancement_cube (iris.cube.Cube):
             Cube containing the orographic enhancement fields. May have data
