@@ -98,13 +98,13 @@ def main(argv=None):
     orographic_enhancement_cube = load_cube(
         args.orographic_enhancement_filepaths, allow_none=True)
 
-    spath, dpath = (args.advection_speed_filepath,
-                    args.advection_direction_filepath)
+    s_path, d_path = (args.advection_speed_filepath,
+                      args.advection_direction_filepath)
     level_constraint = Constraint(pressure=args.pressure_level)
-    if spath and dpath:
+    if s_path and d_path:
         try:
-            speed_cube = load_cube(spath, constraints=level_constraint)
-            direction_cube = load_cube(dpath, constraints=level_constraint)
+            speed_cube = load_cube(s_path, constraints=level_constraint)
+            direction_cube = load_cube(d_path, constraints=level_constraint)
         except ValueError as err:
             raise ValueError(
                 '{} Unable to extract specified pressure level from given '
