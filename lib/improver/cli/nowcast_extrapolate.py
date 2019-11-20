@@ -98,13 +98,13 @@ def main(argv=None):
     orographic_enhancement_cube = load_cube(
         args.orographic_enhancement_filepaths, allow_none=True)
 
-    spath, dpath = (args.advection_speed_filepath,
-                    args.advection_direction_filepath)
+    s_path, d_path = (args.advection_speed_filepath,
+                      args.advection_direction_filepath)
     level_constraint = Constraint(pressure=args.pressure_level)
-    if spath and dpath:
+    if s_path and d_path:
         try:
-            speed_cube = load_cube(spath, constraints=level_constraint)
-            direction_cube = load_cube(dpath, constraints=level_constraint)
+            speed_cube = load_cube(s_path, constraints=level_constraint)
+            direction_cube = load_cube(d_path, constraints=level_constraint)
         except ValueError as err:
             raise ValueError(
                 '{} Unable to extract specified pressure level from given '
@@ -121,9 +121,9 @@ def main(argv=None):
     save_netcdf(result, args.output_filepath)
 
 
-def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
-            orographic_enhancement_cube=None, attributes_dict=None,
-            max_lead_time=360, lead_time_interval=15):
+def process(input_cube, u_cube=None, v_cube=None, speed_cube=None,
+            direction_cube=None, orographic_enhancement_cube=None,
+            attributes_dict=None, max_lead_time=360, lead_time_interval=15):
     """Module  to extrapolate input cubes given advection velocity fields.
 
     Args:
@@ -132,20 +132,20 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
         u_cube (iris.cube.Cube):
             Cube with the velocities in the x direction.
             Must be used with v_cube.
-            s_cube and d_cube must be None.
+            speed_cube and direction_cube must be None.
         v_cube (iris.cube.Cube):
             Cube with the velocities in the y direction.
             Must be used with u_cube.
-            s_cube and d_cube must be None.
+            speed_cube and direction_cube must be None.
         speed_cube (iris.cube.Cube):
             Cube containing advection speeds, usually wind speed.
-            Must be used with d_cube.
+            Must be used with direction_cube.
             u_cube and v_cube must be None.
         direction_cube (iris.cube.Cube):
             Cube from which advection speeds are coming. The directions
             should be on the same grid as the input speeds, including the same
             vertical levels.
-            Must be used with d_cube.
+            Must be used with speed_cube.
             u_cube and v_cube must be None.
         orographic_enhancement_cube (iris.cube.Cube):
             Cube containing the orographic enhancement fields. May have data
@@ -189,10 +189,7 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
         attributes_dict=attributes_dict)
     forecast_cubes = forecast_plugin.process(lead_time_interval, max_lead_time)
 
-    # filter out rate forecasts that are not required
-    lead_time_filter = lead_time_interval // lead_time_interval
-    forecast_to_return = forecast_cubes[::lead_time_filter].copy()
-    return merge_cubes(forecast_to_return)
+    return merge_cubes(forecast_cubes)
 
 
 if __name__ == "__main__":
