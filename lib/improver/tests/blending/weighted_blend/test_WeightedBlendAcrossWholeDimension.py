@@ -53,6 +53,8 @@ from improver.tests.set_up_test_cubes import (
 from improver.utilities.cube_manipulation import merge_cubes
 from improver.utilities.warnings_handler import ManageWarnings
 
+COORD_COLLAPSE_WARNING = "Collapsing a non-contiguous coordinate"
+
 
 def percentile_cube():
     """Create a percentile cube for testing."""
@@ -420,8 +422,7 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
 
     """Test the percentile_weighted_mean function."""
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_with_weights(self):
         """Test function when a data cube and a weights cube are provided."""
 
@@ -435,8 +436,7 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
         self.assertArrayAlmostEqual(result.data,
                                     BLENDED_PERCENTILE_DATA)
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_with_spatially_varying_weights(self):
         """Test function when a data cube and a multi dimensional weights cube
         are provided. This tests spatially varying weights, where each x-y
@@ -453,8 +453,7 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
         self.assertArrayAlmostEqual(result.data,
                                     BLENDED_PERCENTILE_DATA_SPATIAL_WEIGHTS)
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_without_weights(self):
         """Test function when a data cube is provided, but no weights cube
         which should result in equal weightings."""
@@ -469,8 +468,7 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
         self.assertArrayAlmostEqual(
             result.data, BLENDED_PERCENTILE_DATA_EQUAL_WEIGHTS)
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_percentiles_different_coordinate_orders(self):
         """Test the result of the percentile aggregation is the same
         regardless of the coordinate order in the input cube. Most
@@ -496,8 +494,7 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
         self.assertArrayAlmostEqual(result_time_leading.data,
                                     BLENDED_PERCENTILE_DATA_EQUAL_WEIGHTS)
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_percentiles_another_coordinate_order(self):
         """Test the result of the percentile aggregation is the same
         regardless of the coordinate order in the input cube. In this case a
@@ -523,8 +520,7 @@ class Test_weighted_mean(Test_weighted_blend):
 
     """Test the weighted_mean function."""
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_with_weights(self):
         """Test function when a data cube and a weights cube are provided."""
 
@@ -536,8 +532,7 @@ class Test_weighted_mean(Test_weighted_blend):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_with_spatially_varying_weights(self):
         """Test function when a data cube and a multi dimensional weights cube
         are provided. This tests spatially varying weights, where each x-y
@@ -552,8 +547,7 @@ class Test_weighted_mean(Test_weighted_blend):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_without_weights(self):
         """Test function when a data cube is provided, but no weights cube
         which should result in equal weightings."""
@@ -571,8 +565,7 @@ class Test_process(Test_weighted_blend):
 
     """Test the process method."""
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube with metadata that
         matches the input cube where appropriate."""
@@ -592,8 +585,7 @@ class Test_process(Test_weighted_blend):
         self.assertEqual(result.coord('forecast_period').points,
                          expected_forecast_period)
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_specific_cycletime(self):
         """Test that the plugin setup with a specific cycletime returns a cube
         in which the forecast reference time has been changed to match the
@@ -629,6 +621,7 @@ class Test_process(Test_weighted_blend):
         self.assertEqual(result.coord('time').points,
                          cube.coord('time').points)
 
+    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_cycletime_not_updated(self):
         """Test changes to forecast period and forecast reference time are not
         made when not blending over cycle or model."""
@@ -644,8 +637,7 @@ class Test_process(Test_weighted_blend):
         self.assertEqual(
             result.coord("forecast_period").points[0], expected_fp)
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate"])
+    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_attributes_dict(self):
         """Test updates to attributes on output cube"""
         attributes_dict = {"source": "IMPROVER", "history": "cycle blended"}
@@ -700,8 +692,7 @@ class Test_process(Test_weighted_blend):
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(self.cube, weights)
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_threshold_cube_with_weights_weighted_mean(self):
         """Test weighted_mean method works collapsing a cube with a threshold
         dimension when the blending is over a different coordinate. Note that
@@ -723,8 +714,7 @@ class Test_process(Test_weighted_blend):
         self.assertEqual(result.coord('forecast_period').points,
                          expected_forecast_period)
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_remove_unnecessary_scalar_coordinates(self):
         """Test model_id and model_configuration coordinates are both removed
         after model blending"""
