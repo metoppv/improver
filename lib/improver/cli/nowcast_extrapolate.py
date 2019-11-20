@@ -169,9 +169,6 @@ def process(input_cube, u_cube=None, v_cube=None, speed_cube=None,
         ValueError:
             can either use s_cube and d_cube or u_cube and v_cube.
             Therefore: (s and d)⊕(u and v)
-        ValueError:
-            If accumulation_fidelity is greater than 0 and max_lead_time is not
-            cleanly divisible by accumulation_fidelity.
     """
     if (speed_cube and direction_cube) and not (u_cube or v_cube):
         u_cube, v_cube = ResolveWindComponents().process(
