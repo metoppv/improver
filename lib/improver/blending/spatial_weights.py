@@ -91,7 +91,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         return result
 
     @staticmethod
-    def create_initial_weights_from_mask(cube):
+    def create_weights_from_mask(cube):
         """
         Generate a cube with weights generated from the mask of the input cube.
         Where the data is masked we set the weight to zero, otherwise the
@@ -361,7 +361,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         """
         template_cube = self.create_template_slice(
             cube_to_collapse, blend_coord)
-        weights_from_mask = self.create_initial_weights_from_mask(
+        weights_from_mask = self.create_weights_from_mask(
             template_cube)
         weights_from_mask = self.smooth_initial_weights(
             weights_from_mask)
