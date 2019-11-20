@@ -49,7 +49,8 @@ def main(argv=None):
     """Extrapolate data forward in time."""
 
     parser = ArgParser(
-        description="Extrapolate input data to required lead times.")
+        description="Extrapolate and accumulate the input data to required "
+                    "lead times.")
     parser.add_argument("input_filepath", metavar="INPUT_FILEPATH",
                         type=str, help="Path to input NetCDF file.")
     parser.add_argument("output_filepath", metavar="OUTPUT_FILEPATH",
@@ -83,16 +84,17 @@ def main(argv=None):
                         help="Maximum lead time required (mins).")
     parser.add_argument("--u_and_v_filepath", type=str, help="Path to u and v"
                         " cubelist.")
-    parser.add_argument(
-        "--accumulation_period", type=int, default=15,
-        help="The period over which the accumulation is calculated (mins). "
-        "Only full accumulation periods will be computed. At lead times "
-        "that are shorter than the accumulation period, no accumulation "
-        "output will be produced.")
-    parser.add_argument(
-        "--accumulation_units", type=str, default='m',
-        help="Desired units in which the accumulations should be expressed,"
-        "e.g. mm")
+    parser.add_argument("--lead_time_interval", type=int, default=15,
+                        help="Interval between required lead times (mins).")
+    parser.add_argument("--accumulation_period", type=int, default=15,
+                        help="The period over which the accumulation is "
+                        "calculated (mins). Only full accumulation "
+                        "periods will be computed. At lead times that "
+                        "are shorter than the accumulation period, no "
+                        "accumulation output will be produced.")
+    parser.add_argument("--accumulation_units", type=str, default='m',
+                        help="Desired units in which the accumulations should "
+                             "be expressed, e.g. mm")
 
     args = parser.parse_args(args=argv)
 
@@ -125,7 +127,8 @@ def main(argv=None):
     result = process(
         input_cube, u_cube, v_cube, speed_cube, direction_cube,
         orographic_enhancement_cube, attributes_dict, args.max_lead_time,
-        args.accumulation_period, args.accumulation_units)
+        args.lead_time_interval, args.accumulation_period,
+        args.accumulation_units)
 
     # Save Cube
     save_netcdf(result, args.output_filepath)
@@ -133,8 +136,9 @@ def main(argv=None):
 
 def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
             oe_cube=None, attributes_dict=None,
-            max_lead_time=360, accumulation_period=15, accumulation_units='m'):
-    """Module  to extrapolate input cubes given advection velocity fields.
+            max_lead_time=360, lead_time_interval=15, accumulation_period=15,
+            accumulation_units='m'):
+    """Module to extrapolate and accumulate the weather with 1 min fidelity.
 
     Args:
         input_cube (iris.cube.Cube):
@@ -167,6 +171,9 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
         max_lead_time (int):
             Maximum lead time required (mins).
             Default is 360.
+        lead_time_interval (int):
+            Interval between required lead times (mins).
+            Default is 15.
         accumulation_period (int):
             The period over which the accumulation is calculated (mins).
             Only full accumulation periods will be computed. At lead times
@@ -183,18 +190,20 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
 
     Raises:
         ValueError:
-            can either use s_cube and d_cube or u_cube and v_cube.
-            Therefore: (s and d)⊕(u and v)
+            can either use speed_cube and direction_cube or u_cube and v_cube.
     """
+    if (speed_cube or direction_cube) and (u_cube or v_cube):
+        raise ValueError('Cannot mix advection component velocities with speed'
+                         ' and direction')
+    if not (speed_cube and direction_cube) and not (u_cube and v_cube):
+        raise ValueError('Either speed and direction or u and v cubes '
+                         'are needed.')
+
     if (speed_cube and direction_cube) and not (u_cube or v_cube):
         u_cube, v_cube = ResolveWindComponents().process(
             speed_cube, direction_cube)
-    elif u_cube and v_cube and not (speed_cube or direction_cube):
-        pass
-    else:
-        raise ValueError('Cannot mix advection component velocities with speed'
-                         ' and direction')
-    # The accumulation
+
+    # The accumulation frequency in minutes.
     accumulation_fidelity = 1
 
     # extrapolate input data to required lead times
@@ -203,15 +212,16 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
         attributes_dict=attributes_dict)
     forecast_cubes = forecast_plugin.process(accumulation_fidelity,
                                              max_lead_time)
-    lead_times = (np.arange(accumulation_fidelity, max_lead_time + 1,
-                            accumulation_fidelity))
+    lead_times = (np.arange(lead_time_interval, max_lead_time + 1,
+                            lead_time_interval))
 
     plugin = Accumulation(
         accumulation_units=accumulation_units,
         accumulation_period=accumulation_period * 60,
         forecast_periods=lead_times * 60)
 
-    return plugin.process(forecast_cubes)
+    result = plugin.process(forecast_cubes)
+    return merge_cubes(result)
 
 
 if __name__ == "__main__":
