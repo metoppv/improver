@@ -56,6 +56,7 @@ below:
 * Mark Worsfold (Met Office, UK)
 * Bruno P. Kinoshita (NIWA, NZ)
 * Tom Gale (Bureau of Meteorology, Australia)
+* James Canvin (Bureau of Meteorology, Australia)
 * Tim Hume (Bureau of Meteorology, Australia)
 
 (All contributors on GitHub are identifiable with email addresses in the
