@@ -167,8 +167,7 @@ def process(input_cube, u_cube=None, v_cube=None, speed_cube=None,
 
     Raises:
         ValueError:
-            can either use s_cube and d_cube or u_cube and v_cube.
-            Therefore: (s and d)⊕(u and v)
+            can either use speed_cube and direction_cube or u_cube and v_cube.
     """
     if (speed_cube or direction_cube) and (u_cube or v_cube):
         raise ValueError('Cannot mix advection component velocities with speed'
