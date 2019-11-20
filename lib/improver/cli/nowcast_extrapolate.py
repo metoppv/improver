@@ -170,14 +170,16 @@ def process(input_cube, u_cube=None, v_cube=None, speed_cube=None,
             can either use s_cube and d_cube or u_cube and v_cube.
             Therefore: (s and d)⊕(u and v)
     """
+    if (speed_cube or direction_cube) and (u_cube or v_cube):
+        raise ValueError('Cannot mix advection component velocities with speed'
+                         ' and direction')
+    if not (speed_cube and direction_cube) and not (u_cube and v_cube):
+        raise ValueError('Either speed and direction or u and v cubes '
+                         'are needed.')
+
     if (speed_cube and direction_cube) and not (u_cube or v_cube):
         u_cube, v_cube = ResolveWindComponents().process(
             speed_cube, direction_cube)
-    elif u_cube and v_cube and not (speed_cube or direction_cube):
-        pass
-    else:
-        raise ValueError('Cannot mix advection component velocities with speed'
-                         ' and direction')
 
     # extrapolate input data to required lead times
     forecast_plugin = CreateExtrapolationForecast(
