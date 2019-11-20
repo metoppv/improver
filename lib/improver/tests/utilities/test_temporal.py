@@ -32,7 +32,6 @@
 
 import datetime
 import unittest
-from datetime import time
 from datetime import timedelta
 
 import iris
@@ -46,11 +45,10 @@ from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, add_coordinate)
 from improver.utilities.temporal import (
     cycletime_to_datetime, cycletime_to_number, datetime_to_cycletime,
-    forecast_period_coord,
-    iris_time_to_datetime, datetime_constraint,
-    extract_cube_at_time, set_utc_offset, get_forecast_times,
-    unify_forecast_reference_time, find_latest_cycletime,
-    extract_nearest_time_point, datetime_to_iris_time)
+    forecast_period_coord, iris_time_to_datetime, datetime_constraint,
+    extract_cube_at_time, set_utc_offset,
+    rebadge_forecasts_as_latest_cycle, unify_forecast_reference_time,
+    find_latest_cycletime, extract_nearest_time_point, datetime_to_iris_time)
 from improver.utilities.warnings_handler import ManageWarnings
 
 
@@ -458,95 +456,6 @@ class Test_set_utc_offset(IrisTest):
         self.assertArrayEqual(expected, result)
 
 
-class Test_get_forecast_times(IrisTest):
-
-    """Test the generation of forecast time using the function."""
-
-    def test_all_data_provided(self):
-        """Test setting up a forecast range when start date, start hour and
-        forecast length are all provided."""
-
-        forecast_start = datetime.datetime(2017, 6, 1, 9, 0)
-        forecast_date = forecast_start.strftime("%Y%m%d")
-        forecast_time = int(forecast_start.strftime("%H"))
-        forecast_length = 300
-        forecast_end = forecast_start + timedelta(hours=forecast_length)
-        result = get_forecast_times(forecast_length,
-                                    forecast_date=forecast_date,
-                                    forecast_time=forecast_time)
-        self.assertEqual(forecast_start, result[0])
-        self.assertEqual(forecast_end, result[-1])
-        self.assertEqual(timedelta(hours=1), result[1] - result[0])
-        self.assertEqual(timedelta(hours=3), result[-1] - result[-2])
-
-    def test_no_data_provided(self):
-        """Test setting up a forecast range when no data is provided. Expect a
-        range of times starting from last hour before now that was an interval
-        of 6 hours. Length set to 7 days (168 hours).
-
-        Note: this could fail if time between forecast_start being set and
-        reaching the get_forecast_times call bridges a 6-hour time
-        (00, 06, 12, 18). As such it is allowed two goes before
-        reporting a failure (slightly unconventional I'm afraid)."""
-
-        second_chance = 0
-        while second_chance < 2:
-            forecast_start = datetime.datetime.utcnow()
-            expected_date = forecast_start.date()
-            expected_hour = time(divmod(forecast_start.hour, 6)[0]*6)
-            forecast_date = None
-            forecast_time = None
-            forecast_length = 168
-            result = get_forecast_times(forecast_length,
-                                        forecast_date=forecast_date,
-                                        forecast_time=forecast_time)
-
-            check1 = (expected_date == result[0].date())
-            check2 = (expected_hour.hour == result[0].hour)
-            check3 = (timedelta(hours=168) == (result[-1] - result[0]))
-
-            if not all([check1, check2, check3]):
-                second_chance += 1
-                continue
-            else:
-                break
-
-        self.assertTrue(check1)
-        self.assertTrue(check2)
-        self.assertTrue(check3)
-
-    def test_partial_data_provided(self):
-        """Test setting up a forecast range when start hour and forecast length
-        are both provided, but no start date."""
-
-        forecast_start = datetime.datetime(2017, 6, 1, 15, 0)
-        forecast_date = None
-        forecast_time = int(forecast_start.strftime("%H"))
-        forecast_length = 144
-        expected_date = datetime.datetime.utcnow().date()
-        expected_start = datetime.datetime.combine(expected_date,
-                                                   time(forecast_time))
-        expected_end = expected_start + timedelta(hours=144)
-        result = get_forecast_times(forecast_length,
-                                    forecast_date=forecast_date,
-                                    forecast_time=forecast_time)
-
-        self.assertEqual(expected_start, result[0])
-        self.assertEqual(expected_end, result[-1])
-        self.assertEqual(timedelta(hours=1), result[1] - result[0])
-        self.assertEqual(timedelta(hours=3), result[-1] - result[-2])
-
-    def test_invalid_date_format(self):
-        """Test error is raised when a date is provided in an unexpected
-        format."""
-
-        forecast_date = '17MARCH2017'
-        msg = 'Date .* is in unexpected format'
-        with self.assertRaisesRegex(ValueError, msg):
-            get_forecast_times(144, forecast_date=forecast_date,
-                               forecast_time=6)
-
-
 class Test_extract_nearest_time_point(IrisTest):
 
     """Test the extract_nearest_time_point function."""
@@ -626,6 +535,68 @@ class Test_extract_nearest_time_point(IrisTest):
                                        time_name="forecast_period")
 
 
+class Test_rebadge_forecasts_as_latest_cycle(IrisTest):
+    """Test the rebadge_forecasts_as_latest_cycle function"""
+
+    def setUp(self):
+        """Set up some cubes with different cycle times"""
+        self.cycletime = '20190711T1200Z'
+        validity_time = datetime.datetime(2019, 7, 11, 14)
+        self.cube_early = set_up_variable_cube(
+            np.full((4, 4), 273.15, dtype=np.float32),
+            time=validity_time, frt=datetime.datetime(2019, 7, 11, 9))
+        self.cube_late = set_up_variable_cube(
+            np.full((4, 4), 273.15, dtype=np.float32),
+            time=validity_time, frt=datetime.datetime(2019, 7, 11, 10))
+
+    def test_cubelist(self):
+        """Test a list of cubes is returned with the latest frt"""
+        expected = self.cube_late.copy()
+        result = rebadge_forecasts_as_latest_cycle(
+            [self.cube_early, self.cube_late], None)
+        self.assertIsInstance(result, iris.cube.CubeList)
+        self.assertEqual(len(result), 2)
+        for cube in result:
+            for coord in ["forecast_reference_time", "forecast_period"]:
+                self.assertEqual(cube.coord(coord), expected.coord(coord))
+
+    def test_cycletime(self):
+        """Test a list of cubes using the cycletime argument"""
+        expected_frt_point = (
+            self.cube_late.coord("forecast_reference_time").points[0] + 2*3600)
+        expected_fp_point = (
+            self.cube_late.coord("forecast_period").points[0] - 2*3600)
+        result = rebadge_forecasts_as_latest_cycle(
+            [self.cube_early, self.cube_late], self.cycletime)
+        for cube in result:
+            self.assertEqual(cube.coord("forecast_reference_time").points[0],
+                             expected_frt_point)
+            self.assertEqual(cube.coord("forecast_period").points[0],
+                             expected_fp_point)
+
+    def test_single_cube(self):
+        """Test a single cube is returned unchanged if the cycletime argument
+        is not set"""
+        expected = self.cube_early.copy()
+        result, = rebadge_forecasts_as_latest_cycle([self.cube_early], None)
+        for coord in ["forecast_reference_time", "forecast_period"]:
+            self.assertEqual(result.coord(coord), expected.coord(coord))
+
+    def test_single_cube_with_cycletime(self):
+        """Test a single cube has its forecast reference time and period
+        updated if cycletime is specified"""
+        expected_frt_point = (
+            self.cube_late.coord("forecast_reference_time").points[0] + 2*3600)
+        expected_fp_point = (
+            self.cube_late.coord("forecast_period").points[0] - 2*3600)
+        result, = rebadge_forecasts_as_latest_cycle(
+            [self.cube_late], self.cycletime)
+        self.assertEqual(result.coord("forecast_reference_time").points[0],
+                         expected_frt_point)
+        self.assertEqual(result.coord("forecast_period").points[0],
+                         expected_fp_point)
+
+
 class Test_unify_forecast_reference_time(IrisTest):
 
     """Test the unify_forecast_reference_time function."""
@@ -687,7 +658,7 @@ class Test_unify_forecast_reference_time(IrisTest):
         self.assertIsInstance(result, iris.cube.CubeList)
         self.assertEqual(result, expected)
 
-    def test_cube_input(self):
+    def test_single_item_cubelist_input(self):
         """Test when supplying a cube representing a UK deterministic model
         configuration only. This effectively updates the
         forecast_reference_time on the cube to the specified cycletime."""
@@ -699,11 +670,11 @@ class Test_unify_forecast_reference_time(IrisTest):
         expected_uk_det.coord("forecast_period").points = (
             np.array([3, 5, 7]) * 3600)
         result = unify_forecast_reference_time(
-            self.cube_uk_det, self.cycletime)
+            [self.cube_uk_det], self.cycletime)
         self.assertIsInstance(result, iris.cube.CubeList)
         self.assertEqual(result[0], expected_uk_det)
 
-    def test_cube_input_no_forecast_period_coordinate(self):
+    def test_input_no_forecast_period_coordinate(self):
         """Test when supplying a cube representing a UK deterministic model
         configuration only. This forces a forecast_period coordinate to be
         created from a forecast_reference_time coordinate and a time
@@ -717,7 +688,7 @@ class Test_unify_forecast_reference_time(IrisTest):
             np.array([3, 5, 7]) * 3600)
         cube_uk_det = self.cube_uk_det.copy()
         cube_uk_det.remove_coord("forecast_period")
-        result = unify_forecast_reference_time(cube_uk_det, self.cycletime)
+        result = unify_forecast_reference_time([cube_uk_det], self.cycletime)
         self.assertIsInstance(result, iris.cube.CubeList)
         self.assertEqual(result[0], expected_uk_det)
 
