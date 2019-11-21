@@ -640,8 +640,8 @@ class FromMeanAndVariance():
                 require the specification of shape parameters to be able to
                 define the shape of the distribution. For the truncated normal
                 distribution, the shape parameters should be appropriate for
-                the mean and standard deviation used to describe the
-                distribution.
+                distribution constructed from the mean and standard deviation
+                provided.
                 Please note that for use with
                 :meth:`~improver.ensemble_calibration.ensemble_calibration.\
 ContinuousRankedProbabilityScoreMinimisers.calculate_truncated_normal_crps`,
@@ -678,8 +678,15 @@ ContinuousRankedProbabilityScoreMinimisers.calculate_truncated_normal_crps`,
         parameters are appropriate for a standard normal distribution. As the
         aim is to construct a distribution using specific values for the mean
         and standard deviation, the assumption of a standard normal
-        distribution is not appropriate. Please see
-        :data:`scipy.stats.truncnorm` for some further information.
+        distribution is not appropriate. Therefore the shape parameters are
+        rescaled using the equations:
+
+        .. math::
+          a\\_rescaled = (a - mean)/standard\\_deviation
+
+          b\\_rescaled = (b - mean)/standard\\_deviation
+
+        Please see :data:`scipy.stats.truncnorm` for some further information.
 
         Args:
             mean (numpy.ndarray):
