@@ -42,7 +42,8 @@
       "$IMPROVER_ACC_TEST_DIR//weighted_blending/non_mo_model/non_mo_det.nc" \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/non_mo_model/non_mo_ens.nc" \
       "$TEST_DIR/output.nc" \
-      --model_id_attr 'non_mo_model_config'
+      --model_id_attr 'non_mo_model_config' \
+      --attributes_dict "$IMPROVER_ACC_TEST_DIR/weighted_blending/non_mo_attributes.json"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

@@ -50,6 +50,6 @@ class BasePlugin(ABC):
         return self.process(*args, **kwargs)
 
     @abstractmethod
-    def process(self):
+    def process(self, *args, **kwargs):
         """Abstract class for rest to implement."""
         pass

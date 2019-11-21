@@ -65,6 +65,8 @@ IGNORED_MESSAGES = [
     "can't resolve package from",  # Originating from statsmodels
     "Minimisation did not result in convergence",  # From calibration code
     "The final iteration resulted in",  # From calibration code
+    "Invalid value encountered in",  # From calculating percentage change in
+                                     # calibration code
 ]
 WARNING_TYPES = [
     UserWarning,
@@ -73,6 +75,7 @@ WARNING_TYPES = [
     ImportWarning,
     UserWarning,
     UserWarning,
+    RuntimeWarning
 ]
 
 
@@ -155,22 +158,22 @@ class SetupExpectedCoefficients(IrisTest):
         super().setUp()
         # The expected coefficients for temperature in Kelvin.
         self.expected_mean_predictor_gaussian = (
-            np.array([-0., 0.4888, 23.4351, 0.9129], dtype=np.float32))
+            np.array([0.0013, 0.4675, 25.4302, 0.9058], dtype=np.float32))
         # The expected coefficients for wind speed in m s^-1.
         self.expected_mean_predictor_truncated_gaussian = (
-            np.array([-0., 1.5434, -0.514, 0.94], dtype=np.float32))
+            np.array([-0.0025, 1.5457, -0.5185, 0.9408], dtype=np.float32))
 
         self.expected_realizations_gaussian_statsmodels = (
-            np.array([-0.0003, 1.0023, -0.2831, -0.0774, 0.3893, 0.9168],
+            np.array([-0.0003, 1.0022, -0.2838, -0.0774, 0.3892, 0.9167],
                      dtype=np.float32))
         self.expected_realizations_gaussian_no_statsmodels = (
-            np.array([0.0226, 1.0567, -0.0039, 0.3432, 0.2542, 0.9026],
+            np.array([0.0001, 1.0227, -0., 0.5785, 0.578, 0.5733],
                      dtype=np.float32))
         self.expected_realizations_truncated_gaussian_statsmodels = (
-            np.array([-0.0070, 1.3360, -0.5012, -0.5295, 0.0003, 0.8128],
+            np.array([0.0003, 1.2571, -0.606, -0.0623, 0.3786, 0.9014],
                      dtype=np.float32))
         self.expected_realizations_truncated_gaussian_no_statsmodels = (
-            np.array([0.0810, 1.3406, -0.0310, 0.7003, -0.0036, 0.6083],
+            np.array([0.0007, 1.356, -0.0015, 0.7171, -0.0089, 0.585],
                      dtype=np.float32))
 
 
@@ -190,10 +193,11 @@ class Test__init__(SetupCubes):
         coefficient names."""
         expected = ["gamma", "delta", "alpha", "beta"]
         predictor_of_mean_flag = "mean"
+        tolerance = 10
         max_iterations = 10
         plugin = Plugin(self.distribution, self.desired_units,
                         predictor_of_mean_flag=predictor_of_mean_flag,
-                        max_iterations=max_iterations)
+                        tolerance=tolerance, max_iterations=max_iterations)
         self.assertEqual(plugin.coeff_names, expected)
 
     def test_invalid_distribution(self):
@@ -283,6 +287,7 @@ class Test__repr__(IrisTest):
                "ensemble_calibration."
                "ContinuousRankedProbabilityScoreMinimisers'>; "
                "coeff_names: ['gamma', 'delta', 'alpha', 'beta']; "
+               "tolerance: 0.01; "
                "max_iterations: 1000>")
         self.assertEqual(result, msg)
 
@@ -293,7 +298,7 @@ class Test__repr__(IrisTest):
         result = str(Plugin(
             self.distribution, self.current_cycle,
             desired_units="Kelvin", predictor_of_mean_flag="realizations",
-            max_iterations=10))
+            tolerance=10, max_iterations=10))
         msg = ("<EstimateCoefficientsForEnsembleCalibration: "
                "distribution: gaussian; "
                "current_cycle: 20171110T0000Z; "
@@ -303,6 +308,7 @@ class Test__repr__(IrisTest):
                "ensemble_calibration."
                "ContinuousRankedProbabilityScoreMinimisers'>; "
                "coeff_names: ['gamma', 'delta', 'alpha', 'beta']; "
+               "tolerance: 10; "
                "max_iterations: 10>")
         self.assertEqual(result, msg)
 
@@ -969,6 +975,7 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions,
         expected values for a Gaussian distribution for when the historic
         forecasts and truths input having some mismatches in validity time.
         """
+        expected = [0.0041, 0.4885, 23.4593, 0.9128]
         partial_historic_forecasts = (
             self.historic_forecasts[:2] +
             self.historic_forecasts[3:]).merge_cube()
@@ -976,8 +983,7 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions,
         plugin = Plugin(self.distribution, self.current_cycle)
         result = plugin.process(partial_historic_forecasts, partial_truth)
 
-        self.assertEMOSCoefficientsAlmostEqual(
-            result.data, self.expected_mean_predictor_gaussian)
+        self.assertEMOSCoefficientsAlmostEqual(result.data, expected)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, self.coeff_names)
 
@@ -986,10 +992,13 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions,
     def test_coefficients_gaussian_distribution_default_initial_guess(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
-        expected values for a Gaussian distribution, where the default
-        values for the initial guess are used, rather than using a linear
-        least-squares regression to construct an initial guess."""
-        expected = [-0.0002, 0.7977, 0.0004, 0.9973]
+        expected values for a Gaussian distribution, where the
+        default values for the initial guess are used, rather than using a
+        linear least-squares regression to construct an initial guess.
+        Reducing the value for the tolerance would result in the coefficients
+        more closely matching the coefficients created when using a linear
+        least-squares regression to construct the initial guess."""
+        expected = [0.0001, 1.0374, -0.0001, 0.9974]
         plugin = Plugin(self.distribution, self.current_cycle)
         plugin.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
         result = plugin.process(
@@ -1072,7 +1081,11 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions,
         expected values, and the coefficient names also match
         expected values for a truncated Gaussian distribution, where the
         default values for the initial guess are used, rather than using a
-        linear least-squares regression to construct an initial guess.."""
+        linear least-squares regression to construct an initial guess.
+        Reducing the value for the tolerance would result in the coefficients
+        more closely matching the coefficients created when using a linear
+        least-squares regression to construct the initial guess."""
+        expected = [-0.0013, 1.3785, -0.0002, 0.8557]
         distribution = "truncated_gaussian"
 
         plugin = Plugin(distribution, self.current_cycle)
@@ -1081,8 +1094,7 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions,
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
 
-        self.assertEMOSCoefficientsAlmostEqual(
-            result.data, self.expected_mean_predictor_truncated_gaussian)
+        self.assertEMOSCoefficientsAlmostEqual(result.data, expected)
         self.assertArrayEqual(
             result.coord("coefficient_name").points, self.coeff_names)
 
@@ -1102,6 +1114,7 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions,
         result = plugin.process(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
+
         self.assertEMOSCoefficientsAlmostEqual(
             result.data, self.expected_realizations_gaussian_statsmodels)
         self.assertArrayEqual(
@@ -1125,6 +1138,7 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions,
         result = plugin.process(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
+
         self.assertEMOSCoefficientsAlmostEqual(
             result.data, self.expected_realizations_gaussian_no_statsmodels)
         self.assertArrayEqual(

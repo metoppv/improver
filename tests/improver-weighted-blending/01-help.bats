@@ -38,6 +38,7 @@ usage: improver weighted-blending [-h] [--profile]
                                   [--wts_calc_method WEIGHTS_CALCULATION_METHOD]
                                   [--cycletime CYCLETIME]
                                   [--model_id_attr MODEL_ID_ATTR]
+                                  [--attributes_dict ATTR_DICT]
                                   [--spatial_weights_from_mask]
                                   [--fuzzy_length FUZZY_LENGTH]
                                   [--y0val LINEAR_STARTING_POINT]
@@ -85,6 +86,9 @@ optional arguments:
                         identify the source model for multi-model blends.
                         Default is None. Must be present on all input files if
                         blending over models.
+  --attributes_dict ATTR_DICT
+                        Filename for the json file containing required changes
+                        to attributes after blending. Defaults to None.
   --spatial_weights_from_mask
                         If set this option will result in the generation of
                         spatially varying weights based on the masks of the

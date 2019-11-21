@@ -34,12 +34,11 @@
   [[ "$status" -eq 2 ]]
   read -d '' expected <<'__TEXT__' || true
 usage: improver spot-extract [-h] [--profile] [--profile_file PROFILE_FILE]
+                             [--new_title NEW_TITLE]
                              [--apply_lapse_rate_correction]
                              [--land_constraint] [--minimum_dz]
                              [--extract_percentiles EXTRACT_PERCENTILES [EXTRACT_PERCENTILES ...]]
-                             [--ecc_bounds_warning]
-                             [--metadata_json METADATA_JSON]
-                             [--suppress_warnings]
+                             [--ecc_bounds_warning] [--suppress_warnings]
                              NEIGHBOUR_FILEPATH DIAGNOSTIC_FILEPATH
                              [LAPSE_RATE_FILEPATH] OUTPUT_FILEPATH
 __TEXT__
