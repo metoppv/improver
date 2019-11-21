@@ -65,7 +65,7 @@ class Test__init__(unittest.TestCase):
 class Test_process(IrisTest):
     """Test the process method. Complex regridded values are not tested here
     as this is covered by unit tests for the regridding routines
-    (iris.cube.Cube.regrid and improver.utilities.spatial.RegridLandAndSea).
+    (iris.cube.Cube.regrid and improver.standardise.RegridLandAndSea).
     """
 
     def setUp(self):
