@@ -132,6 +132,17 @@ class Test_process(IrisTest):
         self.assertDictEqual(
             result.attributes, self.target_grid.attributes)
 
+    def test_error_regrid_with_incorrect_landmask(self):
+        """Test an error is thrown if a landmask is provided that does not
+        match the source grid"""
+        landmask = self.target_grid.copy()
+        plugin = StandardiseGridAndMetadata(
+            regrid_mode='nearest-with-mask', landmask=landmask,
+            landmask_vicinity=90000)
+        msg = "Source landmask does not match input grid"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.process(self.cube, self.target_grid)
+
     def test_metadata_changes(self):
         """Test changes to cube name, coordinates and attributes without
         regridding"""

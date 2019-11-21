@@ -32,8 +32,12 @@
 """Plugin to regrid cube data and standardise metadata"""
 
 import warnings
+import numpy as np
+
+import iris
 from iris.analysis import Nearest, Linear
 from iris.exceptions import CoordinateNotFoundError
+from scipy.interpolate import griddata
 
 from improver import BasePlugin
 from improver.metadata.amend import amend_attributes
@@ -42,12 +46,18 @@ from improver.metadata.check_datatypes import (
 from improver.metadata.constants.time_types import (
     TIME_COORD_NAMES, TIME_REFERENCE_DTYPE, TIME_REFERENCE_UNIT,
     TIME_DTYPE, TIME_UNIT)
-from improver.utilities.spatial import RegridLandSea
+from improver.threshold import BasicThreshold
+from improver.utilities.cube_checker import spatial_coords_match
+from improver.utilities.spatial import OccurrenceWithinVicinity
 
 
 class StandardiseGridAndMetadata(BasePlugin):
 
     """Plugin to regrid cube data and standardise metadata"""
+
+    REGRID_REQUIRES_LANDMASK = {"bilinear": False,
+                                "nearest": False,
+                                "nearest-with-mask": True}
 
     def __init__(self, regrid_mode='bilinear', extrapolation_mode='nanmask',
                  landmask=None, landmask_vicinity=25000, grid_attributes=None):
@@ -117,11 +127,11 @@ class StandardiseGridAndMetadata(BasePlugin):
             iris.cube.Cube: Regridded cube with updated attributes
         """
         regridder = Linear(extrapolation_mode=self.extrapolation_mode)
-        if self.regrid_mode in ["nearest", "nearest-with-mask"]:
+        if "nearest" in self.regrid_mode:
             regridder = Nearest(extrapolation_mode=self.extrapolation_mode)
         cube = cube.regrid(target_grid, regridder)
 
-        if self.regrid_mode in ["nearest-with-mask"]:
+        if self.REGRID_REQUIRES_LANDMASK[self.regrid_mode]:
             cube = self._regrid_landsea(cube, target_grid)
 
         attributes_to_inherit = (
@@ -218,6 +228,12 @@ class StandardiseGridAndMetadata(BasePlugin):
         """
         # regridding
         if target_grid:
+            # if regridding using a land-sea mask, check this is provided on
+            # the source grid
+            if self.REGRID_REQUIRES_LANDMASK[self.regrid_mode]:
+                if not spatial_coords_match(cube, self.landmask_source_grid):
+                    raise ValueError(
+                        "Source landmask does not match input grid")
             cube = self._regrid_to_target(cube, target_grid)
 
         # standard metadata updates
@@ -237,3 +253,148 @@ class StandardiseGridAndMetadata(BasePlugin):
         check_cube_not_float64(cube, fix=fix_float64)
 
         return cube
+
+
+class RegridLandSea:
+    """
+    Replace data values at points where the nearest-regridding technique
+    selects a source grid-point with an opposite land-sea-mask value to the
+    target grid-point.
+    The replacement data values are selected from a vicinity of points on the
+    source-grid and the closest point of the correct mask is used.
+    Where no match is found within the vicinity, the data value is not changed.
+    """
+
+    def __init__(self, extrapolation_mode="nanmask", vicinity_radius=25000.):
+        """
+        Initialise class
+
+        Args:
+            extrapolation_mode (str):
+                Mode to use for extrapolating data into regions
+                beyond the limits of the source_data domain.
+                Available modes are documented in
+                `iris.analysis <https://scitools.org.uk/iris/docs/latest/iris/
+                iris/analysis.html#iris.analysis.Nearest>`_
+
+                Defaults to "nanmask".
+            vicinity_radius (float):
+                Distance in metres to search for a sea or land point.
+        """
+        self.input_land = None
+        self.nearest_cube = None
+        self.output_land = None
+        self.output_cube = None
+        self.regridder = Nearest(extrapolation_mode=extrapolation_mode)
+        self.vicinity = OccurrenceWithinVicinity(vicinity_radius)
+
+    def __repr__(self):
+        """
+        Print a human-readable representation of the instantiated object.
+        """
+        return "<RegridLandSea: regridder: {}; vicinity: {}>".format(
+            self.regridder, self.vicinity)
+
+    def correct_where_input_true(self, selector_val):
+        """
+        Replace points in the output_cube where output_land matches the
+        selector_val and the input_land does not match, but has matching
+        points in the vicinity, with the nearest matching point in the
+        vicinity in the original nearest_cube.
+
+        Updates self.output_cube.data
+
+        Args:
+            selector_val (int):
+                Value of mask to replace if needed.
+                Intended to be 1 for filling land points near the coast
+                and 0 for filling sea points near the coast.
+        """
+        # Find all points on output grid matching selector_val
+        use_points = np.where(self.input_land.data == selector_val)
+
+        # If there are no matching points on the input grid, no alteration can
+        # be made. This tests the size of the y-coordinate of use_points.
+        if use_points[0].size is 0:
+            return
+
+        # Get shape of output grid
+        ynum, xnum = self.output_land.shape
+
+        # Using only these points, extrapolate to fill domain using nearest
+        # neighbour. This will generate a grid where the non-selector_val
+        # points are filled with the nearest value in the same mask
+        # classification.
+        (y_points, x_points) = np.mgrid[0:ynum, 0:xnum]
+        selector_data = griddata(use_points,
+                                 self.nearest_cube.data[use_points],
+                                 (y_points, x_points), method="nearest")
+
+        # Identify nearby points on regridded input_land that match the
+        # selector_value
+        if selector_val > 0.5:
+            thresholder = BasicThreshold(0.5)
+        else:
+            thresholder = BasicThreshold(0.5, comparison_operator='<=')
+        in_vicinity = self.vicinity.process(
+            thresholder.process(self.input_land))
+
+        # Identify those points sourced from the opposite mask that are
+        # close to a source point of the correct mask
+        mismatch_points, = np.logical_and(
+            np.logical_and(self.output_land.data == selector_val,
+                           self.input_land.data != selector_val),
+            in_vicinity.data > 0.5)
+
+        # Replace these points with the filled-domain data
+        self.output_cube.data[mismatch_points] = (
+            selector_data[mismatch_points])
+
+    def process(self, cube, input_land, output_land):
+        """
+        Update cube.data so that output_land and sea points match an input_land
+        or sea point respectively so long as one is present within the
+        specified vicinity radius. Note that before calling this plugin the
+        input land mask MUST be checked against the source grid, to ensure
+        the grids match.
+
+        Args:
+            cube (iris.cube.Cube):
+                Cube of data to be updated (on same grid as output_land).
+            input_land (iris.cube.Cube):
+                Cube of land_binary_mask data on the grid from which "cube" has
+                been reprojected (it is expected that the iris.analysis.Nearest
+                method would have been used).
+                This is used to determine where the input model data is
+                representing land and sea points.
+            output_land (iris.cube.Cube):
+                Cube of land_binary_mask data on target grid.
+        """
+        # Check cube and output_land are on the same grid:
+        if not spatial_coords_match(cube, output_land):
+            raise ValueError('X and Y coordinates do not match for cubes {}'
+                             'and {}'.format(repr(cube), repr(output_land)))
+        self.output_land = output_land
+
+        # Regrid input_land to output_land grid.
+        self.input_land = input_land.regrid(self.output_land, self.regridder)
+
+        # Slice over x-y grids for multi-realization data.
+        result = iris.cube.CubeList()
+        for xyslice in cube.slices(
+                [cube.coord(axis='y'), cube.coord(axis='x')]):
+
+            # Store and copy cube ready for the output data
+            self.nearest_cube = xyslice
+            self.output_cube = self.nearest_cube.copy()
+
+            # Update sea points that were incorrectly sourced from land points
+            self.correct_where_input_true(0)
+
+            # Update land points that were incorrectly sourced from sea points
+            self.correct_where_input_true(1)
+
+            result.append(self.output_cube)
+
+        result = result.merge_cube()
+        return result

@@ -40,10 +40,10 @@ from iris.tests import IrisTest
 from iris.util import squeeze
 
 from improver.grids import ELLIPSOID
+from improver.standardise import RegridLandSea
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube)
-from improver.utilities.spatial import (
-    RegridLandSea, OccurrenceWithinVicinity)
+from improver.utilities.spatial import OccurrenceWithinVicinity
 from improver.utilities.warnings_handler import ManageWarnings
 
 
