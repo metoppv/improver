@@ -274,9 +274,9 @@ class Test_add_wxcode_metadata(IrisTest):
     def test_metadata_removes_bounds(self):
         """Test that the metadata removes bounds from cube."""
         cube = self.cube.copy()
-        p1 = cube.coord('time').points[0]
-        p2 = p1 - 60*60
-        cube.coord('time').bounds = [p2, p1]
+        upper_bound = cube.coord('time').points[0]
+        lower_bound = upper_bound - 60*60
+        cube.coord('time').bounds = [lower_bound, upper_bound]
         result = add_wxcode_metadata(cube)
         self.assertEqual(result.name(), 'weather_code')
         self.assertIsNone(result.coord('time').bounds)
