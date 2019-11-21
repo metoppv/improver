@@ -148,8 +148,7 @@ class Test_process(IrisTest):
         regridding"""
         new_name = "regridded_air_temperature"
         attribute_changes = {"institution": "Met Office",
-                             "mosg__grid_version": "delete"}
-        # TODO update on rebase: "delete" -> "remove"
+                             "mosg__grid_version": "remove"}
         expected_attributes = {"mosg__grid_domain": "global",
                                "mosg__grid_type": "standard",
                                "mosg__model_configuration": "gl_det",
@@ -169,8 +168,7 @@ class Test_process(IrisTest):
     def test_attribute_changes_with_regridding(self):
         """Test attributes can be manually updated after regridding"""
         attribute_changes = {"institution": "Met Office",
-                             "mosg__grid_version": "delete"}
-        # TODO update on rebase: "delete" -> "remove"
+                             "mosg__grid_version": "remove"}
         expected_attributes = {"mosg__grid_domain": "uk_extended",
                                "mosg__grid_type": "standard",
                                "mosg__model_configuration": "uk_det",
