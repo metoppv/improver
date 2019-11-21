@@ -977,8 +977,8 @@ class GenerateProbabilitiesFromMeanAndVariance(
             probability_cube_template).attributes['spp__relative_to_threshold']
 
         self._rescale_shape_parameters(
-            mean_values.data.flatten(),
-            np.sqrt(variance_values.data).flatten())
+            mean_values.data,
+            np.sqrt(variance_values.data))
 
         # Loop over thresholds, and use the specified distribution with the
         # mean and variance to calculate the probabilities relative to each
@@ -987,16 +987,15 @@ class GenerateProbabilitiesFromMeanAndVariance(
 
         distribution = self.distribution(
             *self.shape_parameters,
-            loc=mean_values.data.flatten(),
-            scale=np.sqrt(variance_values.data.flatten()))
+            loc=mean_values.data,
+            scale=np.sqrt(variance_values.data))
 
         probability_method = distribution.cdf
         if relative_to_threshold == 'above':
             probability_method = distribution.sf
 
         for index, threshold in enumerate(thresholds):
-            probabilities[index, ...] = np.reshape(
-                probability_method(threshold), probabilities.shape[1:])
+            probabilities[index, ...] = probability_method(threshold)
 
         probability_cube = probability_cube_template.copy(data=probabilities)
         return probability_cube
