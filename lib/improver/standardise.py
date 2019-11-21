@@ -51,6 +51,49 @@ from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.spatial import OccurrenceWithinVicinity
 
 
+def grid_contains_cutout(grid, cutout):
+    """
+    Check that a spatial cutout is contained within a given grid
+
+    Args:
+        grid (iris.cube.Cube):
+            A cube defining a data grid
+        cutout (iris.cube.Cube):
+            The cutout to search for within the grid
+
+    Returns:
+        bool:
+            True if cutout is contained within grid, False otherwise
+    """
+    if spatial_coords_match(grid, cutout):
+        return True
+
+    # check whether "cutout" coordinate points match a subset of "grid"
+    # points on both axes
+    for axis in ['x', 'y']:
+        grid_coord = grid.coord(axis=axis)
+        cutout_coord = cutout.coord(axis=axis)
+        if cutout_coord.name() != grid_coord.name():
+            return False
+        if cutout_coord.units != grid_coord.units:
+            return False
+        if cutout_coord.coord_system != grid_coord.coord_system:
+            return False
+
+        # search for cutout coordinate points in larger grid
+        cutout_start = cutout_coord.points[0]
+        if not np.any([np.isclose(cutout_start, grid_point)
+                       for grid_point in grid_coord.points]):
+            return False
+
+        si = list(grid_coord.points).index(cutout_start)
+        ei = si + len(cutout_coord.points)
+        if not np.allclose(cutout_coord.points, grid_coord.points[si:ei]):
+            return False
+
+    return True
+
+
 class StandardiseGridAndMetadata(BasePlugin):
 
     """Plugin to regrid cube data and standardise metadata"""
@@ -228,10 +271,10 @@ class StandardiseGridAndMetadata(BasePlugin):
         """
         # regridding
         if target_grid:
-            # if regridding using a land-sea mask, check this is provided on
-            # the source grid
+            # if regridding using a land-sea mask, check this covers the source
+            # grid in the required coordinates
             if self.REGRID_REQUIRES_LANDMASK[self.regrid_mode]:
-                if not spatial_coords_match(cube, self.landmask_source_grid):
+                if not grid_contains_cutout(self.landmask_source_grid, cube):
                     raise ValueError(
                         "Source landmask does not match input grid")
             cube = self._regrid_to_target(cube, target_grid)
