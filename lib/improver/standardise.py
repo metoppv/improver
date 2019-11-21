@@ -73,11 +73,10 @@ def grid_contains_cutout(grid, cutout):
     for axis in ['x', 'y']:
         grid_coord = grid.coord(axis=axis)
         cutout_coord = cutout.coord(axis=axis)
-        if cutout_coord.name() != grid_coord.name():
-            return False
-        if cutout_coord.units != grid_coord.units:
-            return False
-        if cutout_coord.coord_system != grid_coord.coord_system:
+        # check coordinate metadata
+        if (cutout_coord.name() != grid_coord.name() or
+                cutout_coord.units != grid_coord.units or
+                cutout_coord.coord_system != grid_coord.coord_system):
             return False
 
         # search for cutout coordinate points in larger grid
@@ -86,9 +85,9 @@ def grid_contains_cutout(grid, cutout):
                        for grid_point in grid_coord.points]):
             return False
 
-        si = list(grid_coord.points).index(cutout_start)
-        ei = si + len(cutout_coord.points)
-        if not np.allclose(cutout_coord.points, grid_coord.points[si:ei]):
+        start = list(grid_coord.points).index(cutout_start)
+        end = start + len(cutout_coord.points)
+        if not np.allclose(cutout_coord.points, grid_coord.points[start:end]):
             return False
 
     return True
