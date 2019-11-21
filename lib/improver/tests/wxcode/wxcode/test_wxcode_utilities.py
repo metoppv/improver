@@ -271,6 +271,16 @@ class Test_add_wxcode_metadata(IrisTest):
         self.assertEqual(result.attributes['weather_code_meaning'],
                          self.wxmeaning)
 
+    def test_metadata_removes_bounds(self):
+        """Test that the metadata removes bounds from cube."""
+        cube = self.cube.copy()
+        p1 = cube.coord('time').points[0]
+        p2 = p1 - 60*60
+        cube.coord('time').bounds = [p2, p1]
+        result = add_wxcode_metadata(cube)
+        self.assertEqual(result.name(), 'weather_code')
+        self.assertIsNone(result.coord('time').bounds)
+
     def test_metadata_saves(self):
         """Test that the metadata saves as NetCDF correctly."""
         cube = add_wxcode_metadata(self.cube)

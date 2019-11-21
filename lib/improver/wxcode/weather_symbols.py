@@ -376,8 +376,8 @@ class WeatherSymbols(BasePlugin):
                 constraint_str = (
                     "iris.Constraint(name='{diagnostic}', {threshold_name}="
                     "lambda cell: cell == 0.0 )".format(
-                        diagnostic=diagnostic, threshold_name=threshold_name,
-                        threshold_val=threshold_val))
+                        diagnostic=diagnostic,
+                        threshold_name=threshold_name))
             else:
                 constraint_str = (
                     "iris.Constraint(name='{diagnostic}', {threshold_name}="

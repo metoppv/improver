@@ -135,8 +135,7 @@ def set_up_wxcubes():
             forecast_thresholds=np.array([1000.0, 5000.0])))
     visibility.attributes['relative_to_threshold'] = 'below'
 
-    data_lightning = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                               0.0, 0.0, 0.0]).reshape(1, 1, 3, 3)
+    data_lightning = np.zeros((1, 1, 3, 3))
     lightning = (
         set_up_probability_threshold_cube(
             data_lightning,
@@ -680,8 +679,7 @@ class Test_process(IrisTest):
     def test_lightning(self):
         """Test process returns right values if all lightning. """
         plugin = WeatherSymbols()
-        data_lightning = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-                                   1.0, 1.0, 1.0]).reshape(1, 1, 3, 3)
+        data_lightning = np.ones((1, 1, 3, 3))
         cubes = self.cubes
         cubes[7].data = data_lightning
         result = plugin.process(self.cubes)
@@ -689,9 +687,9 @@ class Test_process(IrisTest):
         self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
         self.assertEqual(result.attributes['weather_code_meaning'],
                          self.wxmeaning)
-        expected_wxcode = np.array([29, 29, 29,
-                                    29, 30, 30,
-                                    29, 29, 30]).reshape(1, 3, 3)
+        expected_wxcode = np.ones((1, 3, 3)) * 29
+        expected_wxcode[0, 1, 1:] = 30
+        expected_wxcode[0, 2, 2] = 30
         self.assertArrayEqual(result.data,
                               expected_wxcode)
 
