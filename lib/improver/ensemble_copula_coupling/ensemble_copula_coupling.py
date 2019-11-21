@@ -638,7 +638,10 @@ class FromMeanAndVariance():
             shape_parameters (list or None):
                 For use with distributions in scipy.stats (e.g. truncnorm) that
                 require the specification of shape parameters to be able to
-                define the shape of the distribution.
+                define the shape of the distribution. For the truncated normal
+                distribution, the shape parameters should be appropriate for
+                the mean and standard deviation used to describe the
+                distribution.
                 Please note that for use with
                 :meth:`~improver.ensemble_calibration.ensemble_calibration.\
 ContinuousRankedProbabilityScoreMinimisers.calculate_truncated_normal_crps`,
@@ -667,7 +670,16 @@ ContinuousRankedProbabilityScoreMinimisers.calculate_truncated_normal_crps`,
     def _rescale_shape_parameters(self, mean, std):
         """
         Rescale the shape parameters for the desired mean and standard
-        deviation for the truncated normal distribution.
+        deviation for the truncated normal distribution. The shape parameters
+        for any other distribution will remain unchanged.
+
+        For the truncated normal distribution, if the shape parameters are not
+        rescaled, then :data:`scipy.stats.truncnorm` will assume that the shape
+        parameters are appropriate for a standard normal distribution. As the
+        aim is to construct a distribution using specific values for the mean
+        and standard deviation, the assumption of a standard normal
+        distribution is not appropriate. Please see
+        :data:`scipy.stats.truncnorm` for some further information.
 
         Args:
             mean (numpy.ndarray):
@@ -694,19 +706,6 @@ class GeneratePercentilesFromMeanAndVariance(BasePlugin, FromMeanAndVariance):
     In combination with the EnsembleReordering plugin, this is Ensemble
     Copula Coupling.
     """
-
-    def __init__(self, *args, **kwargs):
-        """
-        Initialise the class.
-
-        Args:
-            *args:
-                Variable length argument list.
-            **kwargs:
-                Arbitrary keyword arguments.
-
-        """
-        super().__init__(*args, **kwargs)
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -864,19 +863,6 @@ class GenerateProbabilitiesFromMeanAndVariance(
     Plugin to generate probabilities relative to given thresholds from the mean
     and variance of a distribution.
     """
-
-    def __init__(self, *args, **kwargs):
-        """
-        Initialise the class.
-
-        Args:
-            *args:
-                Variable length argument list.
-            **kwargs:
-                Arbitrary keyword arguments.
-
-        """
-        super().__init__(*args, **kwargs)
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
