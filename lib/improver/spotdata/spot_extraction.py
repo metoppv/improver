@@ -153,7 +153,7 @@ class SpotExtraction(BasePlugin):
             neighbour_cube.coord('wmo_id').points)
         return neighbour_cube
 
-    def process(self, neighbour_cube, diagnostic_cube):
+    def process(self, neighbour_cube, diagnostic_cube, new_title=None):
         """
         Create a spot data cube containing diagnostic data extracted at the
         coordinates provided by the neighbour cube.
@@ -168,6 +168,11 @@ class SpotExtraction(BasePlugin):
                 their grid point neighbours.
             diagnostic_cube (iris.cube.Cube):
                 A cube of diagnostic data from which spot data is being taken.
+            new_title (str or None):
+                New title for spot-extracted data.  If None, this attribute is
+                removed from the output cube, since it has no prescribed
+                standard and may therefore contain grid information that is no
+                longer correct after spot-extraction.
         Returns:
             iris.cube.Cube:
                 A cube containing diagnostic data for each spot site, as well
@@ -197,10 +202,14 @@ class SpotExtraction(BasePlugin):
         spotdata_cube = data_cubes.merge_cube()
 
         # Copy attributes from the diagnostic cube that describe the data's
-        # provenance.
+        # provenance, and update title if specified
         spotdata_cube.attributes = diagnostic_cube.attributes
         spotdata_cube.attributes['model_grid_hash'] = (
             neighbour_cube.attributes['model_grid_hash'])
+        if new_title is not None:
+            spotdata_cube.attributes["title"] = new_title
+        else:
+            spotdata_cube.attributes.pop("title", None)
 
         return spotdata_cube
 
