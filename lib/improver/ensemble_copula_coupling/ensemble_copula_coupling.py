@@ -642,9 +642,8 @@ class FromMeanAndVariance():
                 Please note that for use with
                 :meth:`~improver.ensemble_calibration.ensemble_calibration.\
 ContinuousRankedProbabilityScoreMinimisers.calculate_truncated_normal_crps`,
-                the shape parameters for a
-                truncated normal distribution with a lower bound of zero
-                should be [0, np.inf].
+                the shape parameters for a truncated normal distribution with
+                a lower bound of zero should be [0, np.inf].
 
         """
         try:

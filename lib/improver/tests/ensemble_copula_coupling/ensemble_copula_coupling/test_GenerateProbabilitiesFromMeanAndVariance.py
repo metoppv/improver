@@ -165,8 +165,8 @@ class Test__mean_and_variance_to_probabilities(IrisTest):
         self.variances.units = 'Celsius2'
 
     def test_threshold_above_cube(self):
-        """Test that the expected probabilites are returned for a cube in which
-        they are calculated above the thresholds."""
+        """Test that the expected probabilities are returned for a cube in
+        which they are calculated above the thresholds."""
 
         expected = (np.ones((3, 3, 3)) * [0.75, 0.5, 0.25]).T
         result = Plugin()._mean_and_variance_to_probabilities(
@@ -174,8 +174,8 @@ class Test__mean_and_variance_to_probabilities(IrisTest):
         np.testing.assert_allclose(result.data, expected, rtol=1.e-4)
 
     def test_threshold_above_cube_truncnorm(self):
-        """Test that the expected probabilites are returned for a cube in which
-        they are calculated above the thresholds using a truncated normal
+        """Test that the expected probabilities are returned for a cube in
+        which they are calculated above the thresholds using a truncated normal
         distribution."""
 
         expected = (np.ones((3, 3, 3)) * [0.8914245, 0.5942867, 0.2971489]).T

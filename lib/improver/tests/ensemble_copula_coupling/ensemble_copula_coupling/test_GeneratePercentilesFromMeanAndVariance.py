@@ -40,7 +40,6 @@ import numpy as np
 from iris.cube import Cube
 from iris.tests import IrisTest
 
-
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     GeneratePercentilesFromMeanAndVariance as Plugin)
 from improver.tests.ensemble_calibration.ensemble_calibration. \
