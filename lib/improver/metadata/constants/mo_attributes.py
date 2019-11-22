@@ -53,7 +53,7 @@ MOSG_GRID_DEFINITION = {
                'mosg__grid_version': STAGE_VERSION}
 }
 
-# Define correct v1.2.0 meta-data for v1.1.0 data.
+# Map correct metadata from StaGE v1.1.0
 GRID_ID_LOOKUP = {'enukx_standard_v1': 'uk_ens',
                   'engl_standard_v1': 'gl_ens',
                   'ukvx_standard_v1': 'uk_det',

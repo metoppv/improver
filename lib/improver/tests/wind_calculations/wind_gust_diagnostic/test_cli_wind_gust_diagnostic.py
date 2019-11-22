@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,24 +28,38 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""Tests for the wind-gust-diagnostic CLI"""
 
-. $IMPROVER_DIR/tests/lib/utils
+import pytest
 
-@test "spot-extract modifying output metadata with JSON file" {
-  improver_check_skip_acceptance
-  KGO="spot-extract/outputs/nearest_uk_temperatures_amended_metadata.nc"
+from improver.cli import wind_gust_diagnostic
+from improver.tests import acceptance as acc
 
-  # Run spot extract processing and check it passes.
-  run improver spot-extract \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/all_methods_uk.nc" \
-      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_temperature.nc" \
-      --metadata_json "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/metadata.json" \
-      "$TEST_DIR/output.nc"
-  [[ "$status" -eq 0 ]]
 
-  improver_check_recreate_kgo "output.nc" $KGO
+@pytest.mark.acc
+@acc.skip_if_kgo_missing
+def test_average_wind_gust(tmp_path):
+    """Test basic wind gust diagnostic processing"""
+    kgo_dir = acc.kgo_root() / "wind-gust-diagnostic/basic"
+    kgo_path = kgo_dir / "kgo_average_wind_gust.nc"
+    output_path = tmp_path / "output.nc"
+    args = [str(kgo_dir / "wind_gust_perc.nc"),
+            str(kgo_dir / "wind_speed_perc.nc"),
+            str(output_path)]
+    wind_gust_diagnostic.main(args)
+    acc.compare(output_path, kgo_path)
 
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
-}
+
+@pytest.mark.acc
+@acc.skip_if_kgo_missing
+def test_extreme_wind_gust(tmp_path):
+    """Test basic wind gust diagnostic processing"""
+    kgo_dir = acc.kgo_root() / "wind-gust-diagnostic/basic"
+    kgo_path = kgo_dir / "kgo_extreme_wind_gust.nc"
+    output_path = tmp_path / "output.nc"
+    args = ["--percentile_gust=95.0", "--percentile_ws=100.0",
+            str(kgo_dir / "wind_gust_perc.nc"),
+            str(kgo_dir / "wind_speed_perc.nc"),
+            str(output_path)]
+    wind_gust_diagnostic.main(args)
+    acc.compare(output_path, kgo_path)

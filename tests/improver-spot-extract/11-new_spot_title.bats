@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env bats
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,28 +28,24 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""
-Module defining attributes for IMPROVER blended data, nowcasts and spot
-forecasts.
 
-This module is exclusively for attributes which are NOT dependent on the
-centre running the IMPROVER code.  Other attributes can be user-defined
-through configurable dictionary arguments.
-"""
+. $IMPROVER_DIR/tests/lib/utils
 
-STANDARD_GRID_TITLE_STRING = "UK 2 km Standard Grid"
-UK_SPOT_TITLE_STRING = "UK Spot Values"
-GLOBAL_SPOT_TITLE_STRING = "Spot Values"
+@test "spot-extract modifying output metadata with JSON file" {
+  improver_check_skip_acceptance
+  KGO="spot-extract/outputs/nearest_uk_temperatures_amended_metadata.nc"
 
-DATASET_ATTRIBUTES = {
-    "nowcast": {
-        "source": "IMPROVER",
-        "title": "MONOW Extrapolation Nowcast",
-        "institution": "Met Office"
-    },
-    "multi-model blend": {
-        "source": "IMPROVER",
-        "title": "IMPROVER Post-Processed Multi-Model Blend",
-        "institution": "Met Office"
-    }
+  # Run spot extract processing and check it passes.
+  run improver spot-extract \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/all_methods_uk.nc" \
+      "$IMPROVER_ACC_TEST_DIR/spot-extract/inputs/ukvx_temperature.nc" \
+      --new_title "IMPROVER Spot Values" \
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 0 ]]
+
+  improver_check_recreate_kgo "output.nc" $KGO
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }
