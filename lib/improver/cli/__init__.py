@@ -184,7 +184,7 @@ def with_output(wrapped, *args, output=None, **kwargs):
     result = wrapped(*args, **kwargs)
     if output:
         save_netcdf(result, output)
-        return
+        return None
     return result
 
 

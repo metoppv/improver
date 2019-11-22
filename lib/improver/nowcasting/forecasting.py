@@ -31,6 +31,8 @@
 """
 This module defines plugins used to create nowcast extrapolation forecasts.
 """
+from __future__ import division
+
 import datetime
 import warnings
 

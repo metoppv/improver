@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain Psychrometric Calculations."""
 
+from __future__ import division
+
 import warnings
 
 import iris
