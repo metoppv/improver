@@ -82,7 +82,11 @@ def main(argv=None):
     parser.add_argument("--lead_time_interval", type=int, default=15,
                         help="Interval between required lead times (mins).")
     parser.add_argument("--u_and_v_filepath", type=str, help="Path to u and v"
-                        " cubelist.")
+                        " cubelist.  This cubelist contains eastward and "
+                        "northwards advection velocities. This can be "
+                        "extracted with the constraint "
+                        "'precipitation_advection_[x or y]_velocity'"
+                        " for x or y.'")
 
     args = parser.parse_args(args=argv)
 
@@ -176,7 +180,7 @@ def process(input_cube, u_cube=None, v_cube=None, speed_cube=None,
         raise ValueError('Either speed and direction or u and v cubes '
                          'are needed.')
 
-    if (speed_cube and direction_cube) and not (u_cube or v_cube):
+    if speed_cube and direction_cube:
         u_cube, v_cube = ResolveWindComponents().process(
             speed_cube, direction_cube)
 
