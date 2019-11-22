@@ -39,6 +39,7 @@
   run improver weighted-blending 'model_configuration' \
       --ynval 1 --y0val 1 --spatial_weights_from_mask \
       --model_id_attr mosg__model_configuration \
+      --attributes_dict "$IMPROVER_ACC_TEST_DIR/weighted_blending/attributes.json" \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/spatial_weights/nowcast_data/20181129T1000Z-PT0002H00M-lwe_precipitation_rate.nc" \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/spatial_weights/ukvx_data/20181129T1000Z-PT0002H00M-lwe_precipitation_rate.nc" \
       "$TEST_DIR/output.nc"

@@ -253,6 +253,27 @@ class Test_process(Test_SpotExtraction):
         self.assertDictEqual(result.attributes,
                              self.diagnostic_cube_xy.attributes)
 
+    def test_new_title(self):
+        """Test title is updated as expected"""
+        expected_attributes = self.diagnostic_cube_xy.attributes.copy()
+        expected_attributes["title"] = "IMPROVER Spot Forecast"
+        expected_keys = set(expected_attributes.keys())
+        expected_keys.add("model_grid_hash")
+        plugin = SpotExtraction(neighbour_selection_method='nearest_land')
+        result = plugin.process(self.neighbour_cube, self.diagnostic_cube_xy,
+                                new_title="IMPROVER Spot Forecast")
+        self.assertSetEqual(set(result.attributes.keys()), expected_keys)
+        result.attributes.pop('model_grid_hash')
+        self.assertDictEqual(result.attributes, expected_attributes)
+
+    def test_removed_title(self):
+        """Test title is removed from output if not user-specified"""
+        self.diagnostic_cube_xy.attributes["title"] = (
+            "MOGREPS-G Temperature Forecast on Global Grid")
+        plugin = SpotExtraction(neighbour_selection_method='nearest_land')
+        result = plugin.process(self.neighbour_cube, self.diagnostic_cube_xy)
+        self.assertNotIn("title", result.attributes)
+
     def test_cube_with_leading_dimensions(self):
         """Test that a cube with a leading dimension such as realization or
         probability results in a spotdata cube with the same leading
