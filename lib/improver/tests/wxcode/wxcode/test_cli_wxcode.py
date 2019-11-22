@@ -43,14 +43,14 @@ def test_basic(tmp_path):
     """Test basic wxcode processing"""
     kgo_dir = acc.kgo_root() / "wxcode/basic"
     kgo_path = kgo_dir / "kgo.nc"
-    params = ["lightning_flashes_per_unit_area_in_vicinity_above",
-              "cloud_area_fraction_above",
-              "rainfall_rate_above",
+    params = ["rainfall_rate_above",
               "rainfall_rate_in_vicinity_above",
               "lwe_snowfall_rate_above",
               "lwe_snowfall_rate_in_vicinity_above",
               "visibility_in_air_below",
-              "low_type_cloud_area_fraction_above"]
+              "cloud_area_fraction_above",
+              "low_type_cloud_area_fraction_above",
+              "lightning_flashes_per_unit_area_in_vicinity_above"]
     param_paths = [str(kgo_dir / f"probability_of_{p}_threshold.nc")
                    for p in params]
     output_path = tmp_path / "output.nc"
@@ -66,14 +66,14 @@ def test_native_units(tmp_path):
     kgo_dir = acc.kgo_root() / "wxcode/basic"
     input_dir = acc.kgo_root() / "wxcode/native_units"
     kgo_path = kgo_dir / "kgo.nc"
-    params = ["cloud_area_fraction_above",
-              "lightning_flashes_per_unit_area_in_vicinity_above",
-              "rainfall_rate_above",
+    params = ["rainfall_rate_above",
               "rainfall_rate_in_vicinity_above",
               "lwe_snowfall_rate_above",
               "lwe_snowfall_rate_in_vicinity_above",
               "visibility_in_air_below",
-              "low_type_cloud_area_fraction_above"]
+              "cloud_area_fraction_above",
+              "low_type_cloud_area_fraction_above",
+              "lightning_flashes_per_unit_area_in_vicinity_above"]
     param_paths = [str(input_dir / f"probability_of_{p}_threshold.nc")
                    for p in params]
     output_path = tmp_path / "output.nc"
