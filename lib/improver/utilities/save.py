@@ -174,5 +174,5 @@ def save_netcdf(cubelist, filename):
 
     cubelist = _append_metadata_cube(cubelist, global_keys)
     iris.fileformats.netcdf.save(cubelist, filename, local_keys=local_keys,
-                                 complevel=1, shuffle=True, zlib=False,
+                                 complevel=1, shuffle=True, zlib=True,
                                  chunksizes=chunksizes)
