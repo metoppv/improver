@@ -68,11 +68,11 @@ optional arguments:
   --lead_time_interval LEAD_TIME_INTERVAL
                         Interval between required lead times (mins).
   --u_and_v_filepath U_AND_V_FILEPATH
-                        Path to u and v cubelist. This cubelist contains
-                        eastward and northwards advection velocities. This can
-                        be extracted with the constraint
-                        'precipitation_advection_[x or y]_velocity' for x or
-                        y.'
+                        Path to u and v cubelist. This cubelist should
+                        contains eastward and northwards advection velocities.
+                        These advection velocities will be extracted with the
+                        constraint 'precipitation_advection_[x or y]_velocity'
+                        for x or y.'
 
 Advect using files containing speed and direction:
   --advection_speed_filepath ADVECTION_SPEED_FILEPATH

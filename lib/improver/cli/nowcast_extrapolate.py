@@ -82,9 +82,9 @@ def main(argv=None):
     parser.add_argument("--lead_time_interval", type=int, default=15,
                         help="Interval between required lead times (mins).")
     parser.add_argument("--u_and_v_filepath", type=str, help="Path to u and v"
-                        " cubelist.  This cubelist contains eastward and "
-                        "northwards advection velocities. This can be "
-                        "extracted with the constraint "
+                        " cubelist.  This cubelist should contains eastward "
+                        "and northwards advection velocities. These advection "
+                        "velocities will be extracted with the constraint "
                         "'precipitation_advection_[x or y]_velocity'"
                         " for x or y.'")
 
