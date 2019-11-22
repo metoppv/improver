@@ -40,7 +40,7 @@
   run improver apply-emos-coefficients \
       "$IMPROVER_ACC_TEST_DIR/apply-emos-coefficients/truncated_gaussian/input.nc" \
       "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/truncated_gaussian/kgo.nc" \
-      "$TEST_DIR/output.nc" --random_seed 0
+      "$TEST_DIR/output.nc" "truncnorm" --random_seed 0 --shape_parameters 0 "inf"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

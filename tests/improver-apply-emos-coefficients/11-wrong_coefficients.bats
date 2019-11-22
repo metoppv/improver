@@ -39,7 +39,7 @@
   run improver apply-emos-coefficients \
       "$IMPROVER_ACC_TEST_DIR/apply-emos-coefficients/gaussian/input.nc" \
       "$IMPROVER_ACC_TEST_DIR/apply-emos-coefficients/gaussian/input.nc" \
-      "$TEST_DIR/output.nc" --random_seed 0
+      "$TEST_DIR/output.nc" "norm" --random_seed 0
   [[ "$status" -eq 1 ]]
   # Check for error
   read -d '' expected <<'__TEXT__' || true

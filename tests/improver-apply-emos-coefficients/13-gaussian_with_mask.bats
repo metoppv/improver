@@ -40,7 +40,7 @@
   run improver apply-emos-coefficients \
       "$IMPROVER_ACC_TEST_DIR/apply-emos-coefficients/gaussian/input.nc" \
       "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/kgo.nc" \
-      "$TEST_DIR/output.nc" --random_seed 0 \
+      "$TEST_DIR/output.nc" "norm" --random_seed 0 \
       --landsea_mask "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/landmask.nc"
   [[ "$status" -eq 0 ]]
 

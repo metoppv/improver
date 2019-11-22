@@ -39,7 +39,7 @@
   run improver apply-emos-coefficients \
       "$IMPROVER_ACC_TEST_DIR/apply-emos-coefficients/probabilities/input.nc" \
       "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/gaussian/kgo.nc" \
-      "$TEST_DIR/output.nc" --num_realizations=18
+      "$TEST_DIR/output.nc" "norm" --num_realizations=18
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

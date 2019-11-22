@@ -39,7 +39,7 @@
   # and check that the calibrated forecast matches the kgo.
   run improver apply-emos-coefficients \
       "$IMPROVER_ACC_TEST_DIR/apply-emos-coefficients/gaussian/input.nc" \
-      "$TEST_DIR/output.nc" --random_seed 0
+      "$TEST_DIR/output.nc" "norm" --random_seed 0
   [[ "$status" -eq 0 ]]
 
   # Check for warning
