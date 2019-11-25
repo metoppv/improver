@@ -33,12 +33,12 @@
 
 import iris
 import numpy as np
+from iris.cube import CubeList
 
 from improver import cli
 from improver.nowcasting.accumulation import Accumulation
 from improver.nowcasting.forecasting import CreateExtrapolationForecast
 from improver.utilities.cube_manipulation import merge_cubes
-from improver.wind_calculations.wind_components import ResolveWindComponents
 
 
 @cli.clizefy
@@ -53,7 +53,7 @@ def process(input_cube: cli.inputcube, advection_cubes: cli.inputadvection,
         input_cube (iris.cube.Cube):
             The input Cube to be processed.
         advection_cubes (list of iris.cube.Cube):
-            Advection cubes in either (U and V) or (speed and direction).
+            Advection cubes of U and V.
             No other options are available.
         oe_cube (iris.cube.Cube):
             Cube containing the orographic enhancement fields. May have data
@@ -86,19 +86,8 @@ def process(input_cube: cli.inputcube, advection_cubes: cli.inputadvection,
         ValueError:
             can either use speed_cube and direction_cube or u_cube and v_cube.
     """
-    u_cube, v_cube, speed_cube, direction_cube = advection_cubes
-    oe_cube = merge_cubes(oe_cube)
-
-    if (speed_cube or direction_cube) and (u_cube or v_cube):
-        raise ValueError('Cannot mix advection component velocities with speed'
-                         ' and direction')
-    if not (speed_cube and direction_cube) and not (u_cube and v_cube):
-        raise ValueError('Either speed and direction or u and v cubes '
-                         'are needed.')
-
-    if (speed_cube and direction_cube) and not (u_cube or v_cube):
-        u_cube, v_cube = ResolveWindComponents().process(
-            speed_cube, direction_cube)
+    u_cube, v_cube = advection_cubes
+    oe_cube = merge_cubes(CubeList(oe_cube))
 
     # The accumulation frequency in minutes.
     accumulation_fidelity = 1

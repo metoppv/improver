@@ -90,10 +90,10 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
-    v_cube = load_cube(args.u_and_v_filepath,
-                       "precipitation_advection_y_velocity", allow_none=True)
     u_cube = load_cube(args.u_and_v_filepath,
                        "precipitation_advection_x_velocity", allow_none=True)
+    v_cube = load_cube(args.u_and_v_filepath,
+                       "precipitation_advection_y_velocity", allow_none=True)
 
     # Load Cubes and JSON
     speed_cube = direction_cube = None
@@ -127,7 +127,8 @@ def main(argv=None):
 
 def process(input_cube, u_cube=None, v_cube=None, speed_cube=None,
             direction_cube=None, orographic_enhancement_cube=None,
-            attributes_dict=None, max_lead_time=360, lead_time_interval=15):
+            attributes_dict=None, pressure_level=None,
+            max_lead_time=360, lead_time_interval=15):
     """Module  to extrapolate input cubes given advection velocity fields.
 
     Args:
