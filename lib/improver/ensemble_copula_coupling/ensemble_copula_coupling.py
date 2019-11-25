@@ -37,7 +37,7 @@ import warnings
 import iris
 import numpy as np
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
-from scipy.stats import norm
+from scipy import stats
 
 from improver import BasePlugin
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
@@ -622,22 +622,106 @@ class GeneratePercentilesFromProbabilities(BasePlugin):
         return forecast_at_percentiles
 
 
-class GeneratePercentilesFromMeanAndVariance(BasePlugin):
+class FromMeanAndVariance():
+    """
+    Base Class to support the plugins that compute percentiles and
+    probabilities from the mean and variance.
+    """
+
+    def __init__(self, distribution="norm", shape_parameters=None):
+        """
+        Initialise the class.
+
+        Args:
+            distribution (str):
+                Name of a distribution supported by scipy.stats.
+            shape_parameters (list or None):
+                For use with distributions in scipy.stats (e.g. truncnorm) that
+                require the specification of shape parameters to be able to
+                define the shape of the distribution. For the truncated normal
+                distribution, the shape parameters should be appropriate for
+                distribution constructed from the mean and standard deviation
+                provided.
+                Please note that for use with
+                :meth:`~improver.ensemble_calibration.ensemble_calibration.\
+ContinuousRankedProbabilityScoreMinimisers.calculate_truncated_normal_crps`,
+                the shape parameters for a truncated normal distribution with
+                a lower bound of zero should be [0, np.inf].
+
+        """
+        try:
+            self.distribution = getattr(stats, distribution)
+        except AttributeError as err:
+            msg = ("The distribution requested {} is not a valid distribution "
+                   "in scipy.stats. {}".format(distribution, err))
+            raise AttributeError(msg)
+
+        if shape_parameters is None:
+            shape_parameters = []
+        self.shape_parameters = shape_parameters
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = ('<FromMeanAndVariance: distribution: {}; '
+                  'shape_parameters: {}>')
+        return result.format(
+            self.distribution.name, self.shape_parameters)
+
+    def _rescale_shape_parameters(self, mean, std):
+        """
+        Rescale the shape parameters for the desired mean and standard
+        deviation for the truncated normal distribution. The shape parameters
+        for any other distribution will remain unchanged.
+
+        For the truncated normal distribution, if the shape parameters are not
+        rescaled, then :data:`scipy.stats.truncnorm` will assume that the shape
+        parameters are appropriate for a standard normal distribution. As the
+        aim is to construct a distribution using specific values for the mean
+        and standard deviation, the assumption of a standard normal
+        distribution is not appropriate. Therefore the shape parameters are
+        rescaled using the equations:
+
+        .. math::
+          a\\_rescaled = (a - mean)/standard\\_deviation
+
+          b\\_rescaled = (b - mean)/standard\\_deviation
+
+        Please see :data:`scipy.stats.truncnorm` for some further information.
+
+        Args:
+            mean (numpy.ndarray):
+                Mean to be used to scale the shape parameters.
+            std (numpy.ndarray):
+                Standard deviation to be used to scale the shape parameters.
+
+        """
+        if self.distribution.name == "truncnorm":
+            if self.shape_parameters:
+                rescaled_values = []
+                for value in self.shape_parameters:
+                    rescaled_values.append((value - mean) / std)
+                self.shape_parameters = rescaled_values
+            else:
+                msg = ("For the truncated normal distribution, "
+                       "shape parameters must be specified.")
+                raise ValueError(msg)
+
+
+class GeneratePercentilesFromMeanAndVariance(BasePlugin, FromMeanAndVariance):
     """
     Plugin focussing on generating percentiles from mean and variance.
     In combination with the EnsembleReordering plugin, this is Ensemble
     Copula Coupling.
     """
 
-    def __init__(self):
-        """
-        Initialise the class.
-        """
-        pass
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = ('<GeneratePercentilesFromMeanAndVariance: '
+                  'distribution: {}; shape_parameters: {}>')
+        return result.format(self.distribution.name, self.shape_parameters)
 
-    @staticmethod
     def _mean_and_variance_to_percentiles(
-            calibrated_forecast_predictor, calibrated_forecast_variance,
+            self, calibrated_forecast_predictor, calibrated_forecast_variance,
             percentiles):
         """
         Function returning percentiles based on the supplied
@@ -683,14 +767,21 @@ class GeneratePercentilesFromMeanAndVariance(BasePlugin):
                            calibrated_forecast_predictor_data.shape[0]),
                           dtype=np.float32)
 
-        # Loop over percentiles, and use a normal distribution with the mean
-        # and variance to calculate the values at each percentile.
+        self._rescale_shape_parameters(
+            calibrated_forecast_predictor_data,
+            np.sqrt(calibrated_forecast_variance_data))
+
+        percentile_method = self.distribution(
+            *self.shape_parameters,
+            loc=calibrated_forecast_predictor_data,
+            scale=np.sqrt(calibrated_forecast_variance_data))
+
+        # Loop over percentiles, and use the specified distribution with the
+        # mean and variance to calculate the values at each percentile.
         for index, percentile in enumerate(percentiles):
             percentile_list = np.repeat(
                 percentile, len(calibrated_forecast_predictor_data))
-            result[index, :] = norm.ppf(
-                percentile_list, loc=calibrated_forecast_predictor_data,
-                scale=np.sqrt(calibrated_forecast_variance_data))
+            result[index, :] = percentile_method.ppf(percentile_list)
             # If percent point function (PPF) returns NaNs, fill in
             # mean instead of NaN values. NaN will only be generated if the
             # variance is zero. Therefore, if the variance is zero, the mean
@@ -773,22 +864,18 @@ class GeneratePercentilesFromMeanAndVariance(BasePlugin):
         return calibrated_forecast_percentiles
 
 
-class GenerateProbabilitiesFromMeanAndVariance(BasePlugin):
+class GenerateProbabilitiesFromMeanAndVariance(
+        BasePlugin, FromMeanAndVariance):
     """
     Plugin to generate probabilities relative to given thresholds from the mean
     and variance of a distribution.
     """
 
-    def __init__(self):
-        """
-        Initialise the class.
-        """
-        pass
-
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        desc = '<GenerateProbabilitiesFromMeanAndVariance>'
-        return desc
+        result = ('<GenerateProbabilitiesFromMeanAndVariance: '
+                  'distribution: {}; shape_parameters: {}>')
+        return result.format(self.distribution.name, self.shape_parameters)
 
     @staticmethod
     def _check_template_cube(cube):
@@ -854,8 +941,7 @@ class GenerateProbabilitiesFromMeanAndVariance(BasePlugin):
                    'not equivalent/compatible.'.format(err))
             raise ValueError(msg)
 
-    @staticmethod
-    def _mean_and_variance_to_probabilities(mean_values, variance_values,
+    def _mean_and_variance_to_probabilities(self, mean_values, variance_values,
                                             probability_cube_template):
         """
         Function returning probabilities relative to provided thresholds based
@@ -883,18 +969,27 @@ class GenerateProbabilitiesFromMeanAndVariance(BasePlugin):
         relative_to_threshold = find_threshold_coordinate(
             probability_cube_template).attributes['spp__relative_to_threshold']
 
-        # Loop over thresholds, and use a normal distribution with the mean
-        # and variance to calculate the probabilities relative to each
+        self._rescale_shape_parameters(
+            mean_values.data.flatten(),
+            np.sqrt(variance_values.data).flatten())
+
+        # Loop over thresholds, and use the specified distribution with the
+        # mean and variance to calculate the probabilities relative to each
         # threshold.
         probabilities = np.empty_like(probability_cube_template.data)
-        distribution = norm(loc=mean_values.data,
-                            scale=np.sqrt(variance_values.data))
+
+        distribution = self.distribution(
+            *self.shape_parameters,
+            loc=mean_values.data.flatten(),
+            scale=np.sqrt(variance_values.data.flatten()))
+
         probability_method = distribution.cdf
         if relative_to_threshold == 'above':
             probability_method = distribution.sf
 
         for index, threshold in enumerate(thresholds):
-            probabilities[index, ...] = probability_method(threshold)
+            probabilities[index, ...] = np.reshape(
+                probability_method(threshold), probabilities.shape[1:])
 
         probability_cube = probability_cube_template.copy(data=probabilities)
         return probability_cube

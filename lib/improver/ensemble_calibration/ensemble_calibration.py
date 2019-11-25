@@ -319,7 +319,8 @@ class ContinuousRankedProbabilityScoreMinimisers:
             self, initial_guess, forecast_predictor, truth, forecast_var,
             sqrt_pi, predictor_of_mean_flag):
         """
-        Calculate the CRPS for a truncated normal distribution.
+        Calculate the CRPS for a truncated normal distribution with zero
+        as the lower bound.
 
         Scientific Reference:
         Thorarinsdottir, T.L. & Gneiting, T., 2010.
