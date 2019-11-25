@@ -82,6 +82,10 @@ def main(argv=None):
                              'multi-model blends. Default is None. '
                              'Must be present on all input '
                              'files if blending over models.')
+    parser.add_argument("--attributes_dict", metavar="ATTR_DICT", default=None,
+                        help="Filename for the json file containing "
+                        "required changes to attributes after blending. "
+                        "Defaults to None.", type=str)
     parser.add_argument('--spatial_weights_from_mask',
                         action='store_true', default=False,
                         help='If set this option will result in the generation'
@@ -174,22 +178,23 @@ def main(argv=None):
     if (args.wts_calc_method == "dict") and not args.wts_dict:
         parser.error('Dictionary is required if --wts_calc_method="dict"')
 
+    # Load dictionaries and cubes to be blended
     weights_dict = load_json_or_none(args.wts_dict)
-
-    # Load cubes to be blended.
+    attributes_dict = load_json_or_none(args.attributes_dict)
     cubelist = load_cubelist(args.input_filepaths)
 
     result = process(cubelist, args.wts_calc_method, args.coordinate,
                      args.cycletime, args.weighting_coord, weights_dict,
-                     args.y0val, args.ynval, args.cval, args.model_id_attr,
+                     attributes_dict, args.y0val, args.ynval, args.cval,
+                     args.model_id_attr,
                      args.spatial_weights_from_mask, args.fuzzy_length)
 
     save_netcdf(result, args.output_filepath)
 
 
 def process(cubelist, wts_calc_method, coordinate, cycletime, weighting_coord,
-            weights_dict=None, y0val=None, ynval=None, cval=None,
-            model_id_attr='mosg__model_configuration',
+            weights_dict, attributes_dict, y0val=None, ynval=None,
+            cval=None, model_id_attr='mosg__model_configuration',
             spatial_weights_from_mask=False, fuzzy_length=20000.0):
     """Module to run weighted blending.
 
@@ -216,10 +221,12 @@ def process(cubelist, wts_calc_method, coordinate, cycletime, weighting_coord,
         weighting_coord (str):
             Name of coordinate over which linear weights should be scaled.
             This coordinate must be available in the weights dictionary.
-        weights_dict (dict):
+        weights_dict (dict or None):
             Dictionary from which to calculate blending weights. Dictionary
-            format is as specified in the
+            format is as specified in
             improver.blending.weights.ChoosingWeightsLinear
+        attributes_dict (dict or None):
+            Dictionary describing required changes to attributes after blending
         y0val (float):
             The relative value of the weighting start point (lowest value of
             blend coord) for choosing default linear weights.
@@ -272,7 +279,6 @@ def process(cubelist, wts_calc_method, coordinate, cycletime, weighting_coord,
         RuntimeError:
             If calc_method is dict and weights_dict is None.
     """
-
     if (wts_calc_method == "linear") and cval:
         raise RuntimeError('Method: linear does not accept arguments: cval')
     elif (wts_calc_method == "nonlinear") and np.any([y0val, ynval]):
@@ -286,10 +292,9 @@ def process(cubelist, wts_calc_method, coordinate, cycletime, weighting_coord,
         weighting_coord=weighting_coord, wts_dict=weights_dict,
         y0val=y0val, ynval=ynval, cval=cval)
     result = plugin.process(
-        cubelist, cycletime=cycletime,
-        model_id_attr=model_id_attr,
-        spatial_weights=spatial_weights_from_mask,
-        fuzzy_length=fuzzy_length)
+        cubelist, cycletime=cycletime, model_id_attr=model_id_attr,
+        spatial_weights=spatial_weights_from_mask, fuzzy_length=fuzzy_length,
+        attributes_dict=attributes_dict)
     return result
 
 

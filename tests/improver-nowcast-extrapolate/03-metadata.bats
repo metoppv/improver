@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env bats
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,28 +28,31 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""
-Module defining attributes for IMPROVER blended data, nowcasts and spot
-forecasts.
 
-This module is exclusively for attributes which are NOT dependent on the
-centre running the IMPROVER code.  Other attributes can be user-defined
-through configurable dictionary arguments.
-"""
+. $IMPROVER_DIR/tests/lib/utils
 
-STANDARD_GRID_TITLE_STRING = "UK 2 km Standard Grid"
-UK_SPOT_TITLE_STRING = "UK Spot Values"
-GLOBAL_SPOT_TITLE_STRING = "Spot Values"
+@test "extrapolate with json file" {
+  improver_check_skip_acceptance
+  KGO="nowcast-extrapolate/extrapolate/kgo_with_metadata.nc"
 
-DATASET_ATTRIBUTES = {
-    "nowcast": {
-        "source": "IMPROVER",
-        "title": "MONOW Extrapolation Nowcast",
-        "institution": "Met Office"
-    },
-    "multi-model blend": {
-        "source": "IMPROVER",
-        "title": "IMPROVER Post-Processed Multi-Model Blend",
-        "institution": "Met Office"
-    }
+  UVCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/kgo.nc"
+  INFILE="201811031600_radar_rainrate_composite_UK_regridded.nc"
+  JSONFILE="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/metadata/precip.json"
+  OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
+
+  # Run processing and check it passes
+  run improver nowcast-extrapolate \
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$INFILE" \
+    "$TEST_DIR/output.nc" \
+    --json_file "$JSONFILE" --max_lead_time 30 \
+    --u_and_v_filepath "$UVCOMP" \
+    --orographic_enhancement_filepaths \
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1"
+  [[ "$status" -eq 0 ]]
+
+  improver_check_recreate_kgo "output.nc" $KGO
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

@@ -129,7 +129,7 @@ class Test_amend_attributes(IrisTest):
             attributes={"mosg__grid_version": "1.3.0",
                         "mosg__model_configuration": "uk_det"})
         self.metadata_dict = {
-            "mosg__grid_version": "delete",
+            "mosg__grid_version": "remove",
             "source": "IMPROVER unit tests",
             "mosg__model_configuration": "other_model"}
 

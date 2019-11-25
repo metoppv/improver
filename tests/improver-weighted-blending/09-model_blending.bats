@@ -39,6 +39,7 @@
   # passes.
   run improver weighted-blending 'model_configuration' \
       --ynval 1 --y0val 1 --model_id_attr mosg__model_configuration \
+      --attributes_dict "$IMPROVER_ACC_TEST_DIR/weighted_blending/attributes.json" \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/model/ukv_input.nc" \
       "$IMPROVER_ACC_TEST_DIR/weighted_blending/model/enuk_input.nc" \
       "$TEST_DIR/output.nc"
