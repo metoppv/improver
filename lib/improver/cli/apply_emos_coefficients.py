@@ -42,10 +42,10 @@ from improver.argparser import ArgParser
 from improver.ensemble_calibration.ensemble_calibration import (
     ApplyCoefficientsFromEnsembleCalibration)
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+    ConvertLocationAndScaleParametersToPercentiles,
+    ConvertLocationAndScaleParametersToProbabilities,
     EnsembleReordering,
-    GeneratePercentilesFromMeanAndVariance,
     GeneratePercentilesFromProbabilities,
-    GenerateProbabilitiesFromMeanAndVariance,
     RebadgePercentilesAsRealizations,
     ResamplePercentiles)
 from improver.metadata.probabilistic import find_percentile_coordinate
@@ -297,18 +297,18 @@ def process(current_forecast, coeffs, landsea_mask, num_realizations=None,
     # If input forecast is percentiles, convert output into percentiles.
     # If input forecast is realizations, convert output into realizations.
     if input_forecast_type == "probabilities":
-        result = GenerateProbabilitiesFromMeanAndVariance().process(
+        result = ConvertLocationAndScaleParametersToProbabilities().process(
             calibrated_predictor, calibrated_variance,
             original_current_forecast)
     elif input_forecast_type == "percentiles":
         perc_coord = find_percentile_coordinate(original_current_forecast)
-        result = GeneratePercentilesFromMeanAndVariance().process(
+        result = ConvertLocationAndScaleParametersToPercentiles().process(
             calibrated_predictor, calibrated_variance,
             percentiles=perc_coord.points)
     elif input_forecast_type == "realizations":
         # Ensemble Copula Coupling to generate realizations
-        # from mean and variance.
-        percentiles = GeneratePercentilesFromMeanAndVariance().process(
+        # from the location and scale parameter.
+        percentiles = ConvertLocationAndScaleParametersToPercentiles().process(
             calibrated_predictor, calibrated_variance,
             no_of_percentiles=num_realizations)
         result = EnsembleReordering().process(

@@ -405,8 +405,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         Args:
             distribution (str):
-                Name of distribution. Assume that the current forecast can be
-                represented using this distribution.
+                Name of distribution. Assume that a calibrated version of the
+                current forecast could be represented using this distribution.
             current_cycle (str):
                 The current cycle in YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
                 This is used to create a forecast_reference_time coordinate
@@ -920,7 +920,9 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
 
         Args:
             predictor_of_mean_flag (str):
-                String to specify the input to calculate the calibrated mean.
+                String to specify the input to calculate the calibrated
+                location parameter, where the location parameter indicates
+                where a probability distribution function is centred.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
         """
@@ -1008,7 +1010,7 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         Returns:
             (tuple): tuple containing:
                 **predicted_mean** (numpy.ndarray):
-                    Calibrated mean values in a flattened array.
+                    Calibrated location parameter values in a flattened array.
                 **forecast_predictor** (iris.cube.Cube):
                     The forecast predictors, mean values taken by collapsing
                     the realization coordinate.
@@ -1147,14 +1149,19 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
 
         Returns:
             (tuple): tuple containing:
-                **calibrated_forecast_predictor** (iris.cube.Cube):
+                **calibrated_location_parameter** (iris.cube.Cube):
                     Cube containing the calibrated version of the
-                    ensemble predictor, either the ensemble mean or
-                    the ensemble realizations.
-                **calibrated_forecast_variance** (iris.cube.Cube):
+                    ensemble predictor, where the input was either the
+                    ensemble mean or the ensemble realizations. The location
+                    parameter represents the point at which a resulting
+                    PDF would be centred.
+                **calibrated_scale_parameter** (iris.cube.Cube):
                     Cube containing the calibrated version of the
-                    ensemble variance, either the ensemble mean or
-                    the ensemble realizations.
+                    ensemble variance, where the input was either the
+                    ensemble mean or the ensemble realizations. The scale
+                    parameter represents the statistical dispersion of the
+                    resulting PDF, so a larger scale parameter will result in
+                    a broader PDF.
         """
         self.current_forecast = current_forecast
         self.coefficients_cube = coefficients_cube

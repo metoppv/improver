@@ -622,10 +622,10 @@ class GeneratePercentilesFromProbabilities(BasePlugin):
         return forecast_at_percentiles
 
 
-class FromMeanAndVariance():
+class FromLocationAndScaleParameters():
     """
     Base Class to support the plugins that compute percentiles and
-    probabilities from the mean and variance.
+    probabilities from the location and scale parameters.
     """
 
     def __init__(self, distribution="norm", shape_parameters=None):
@@ -640,7 +640,7 @@ class FromMeanAndVariance():
                 require the specification of shape parameters to be able to
                 define the shape of the distribution. For the truncated normal
                 distribution, the shape parameters should be appropriate for
-                distribution constructed from the mean and standard deviation
+                distribution constructed from the location and shape parameters
                 provided.
                 Please note that for use with
                 :meth:`~improver.ensemble_calibration.ensemble_calibration.\
@@ -662,15 +662,15 @@ ContinuousRankedProbabilityScoreMinimisers.calculate_truncated_normal_crps`,
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<FromMeanAndVariance: distribution: {}; '
+        result = ('<FromLocationAndScaleParameters: distribution: {}; '
                   'shape_parameters: {}>')
         return result.format(
             self.distribution.name, self.shape_parameters)
 
     def _rescale_shape_parameters(self, mean, std):
         """
-        Rescale the shape parameters for the desired mean and standard
-        deviation for the truncated normal distribution. The shape parameters
+        Rescale the shape parameters for the desired location and scale
+        parameters for the truncated normal distribution. The shape parameters
         for any other distribution will remain unchanged.
 
         For the truncated normal distribution, if the shape parameters are not
@@ -707,7 +707,8 @@ ContinuousRankedProbabilityScoreMinimisers.calculate_truncated_normal_crps`,
                 raise ValueError(msg)
 
 
-class GeneratePercentilesFromMeanAndVariance(BasePlugin, FromMeanAndVariance):
+class ConvertLocationAndScaleParametersToPercentiles(
+        BasePlugin, FromLocationAndScaleParameters):
     """
     Plugin focussing on generating percentiles from mean and variance.
     In combination with the EnsembleReordering plugin, this is Ensemble
@@ -716,7 +717,7 @@ class GeneratePercentilesFromMeanAndVariance(BasePlugin, FromMeanAndVariance):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<GeneratePercentilesFromMeanAndVariance: '
+        result = ('<ConvertLocationAndScaleParametersToPercentiles: '
                   'distribution: {}; shape_parameters: {}>')
         return result.format(self.distribution.name, self.shape_parameters)
 
@@ -864,8 +865,8 @@ class GeneratePercentilesFromMeanAndVariance(BasePlugin, FromMeanAndVariance):
         return calibrated_forecast_percentiles
 
 
-class GenerateProbabilitiesFromMeanAndVariance(
-        BasePlugin, FromMeanAndVariance):
+class ConvertLocationAndScaleParametersToProbabilities(
+        BasePlugin, FromLocationAndScaleParameters):
     """
     Plugin to generate probabilities relative to given thresholds from the mean
     and variance of a distribution.
@@ -873,7 +874,7 @@ class GenerateProbabilitiesFromMeanAndVariance(
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<GenerateProbabilitiesFromMeanAndVariance: '
+        result = ('<ConvertLocationAndScaleParametersToProbabilities: '
                   'distribution: {}; shape_parameters: {}>')
         return result.format(self.distribution.name, self.shape_parameters)
 
@@ -894,9 +895,10 @@ class GenerateProbabilitiesFromMeanAndVariance(
         """
         check_for_x_and_y_axes(cube, require_dim_coords=True)
         dim_coords = [coord.name() for coord in cube.coords(dim_coords=True)]
-        msg = ('GenerateProbabilitiesFromMeanAndVariance expects a cube with '
-               'only a leading threshold dimension, followed by spatial (y/x) '
-               'dimensions. Got dimensions: {}'.format(dim_coords))
+        msg = ('ConvertLocationAndScaleParametersToProbabilities expects a '
+               'cube with only a leading threshold dimension, followed by '
+               'spatial (y/x) dimensions. Got dimensions: {}'.format(
+                    dim_coords))
 
         try:
             threshold_coord = find_threshold_coordinate(cube)
@@ -910,8 +912,9 @@ class GenerateProbabilitiesFromMeanAndVariance(
         raise ValueError(msg)
 
     @staticmethod
-    def _check_unit_compatibility(mean_values, variance_values,
-                                  probability_cube_template):
+    def _check_unit_compatibility(
+            location_parameter_values, scale_parameter_values,
+            probability_cube_template):
         """
         The mean, variance, and threshold values come from three different
         cubes. They should all be in the same units, but this is a sanity check
@@ -920,10 +923,10 @@ class GenerateProbabilitiesFromMeanAndVariance(
         are comparing squared units in the case of the variance.
 
         Args:
-            mean_values (iris.cube.Cube):
-                Cube of mean values.
-            variance_values (iris.cube.Cube):
-                Cube of variance values.
+            location_parameter_values (iris.cube.Cube):
+                Cube of location parameter values.
+            scale_parameter_values (iris.cube.Cube):
+                Cube of scale parameter values.
             probability_cube_template (iris.cube.Cube):
                 Cube containing threshold values.
         Raises:
@@ -933,25 +936,27 @@ class GenerateProbabilitiesFromMeanAndVariance(
             find_threshold_coordinate(probability_cube_template).units)
 
         try:
-            mean_values.convert_units(threshold_units)
-            variance_values.convert_units(threshold_units**2)
+            location_parameter_values.convert_units(threshold_units)
+            scale_parameter_values.convert_units(threshold_units**2)
         except ValueError as err:
             msg = ('Error: {} This is likely because the mean '
                    'variance and template cube threshold units are '
                    'not equivalent/compatible.'.format(err))
             raise ValueError(msg)
 
-    def _mean_and_variance_to_probabilities(self, mean_values, variance_values,
-                                            probability_cube_template):
+    def _location_and_scale_parameters_to_probabilities(
+            self, location_parameter_values, scale_parameter_values,
+            probability_cube_template):
         """
         Function returning probabilities relative to provided thresholds based
-        on the supplied mean and variance. A Gaussian distribution is assumed.
+        on the supplied location and scale parameters.
 
         Args:
-            mean_values (iris.cube.Cube):
-                Predictor for the calibrated forecast i.e. the mean.
-            variance_values (iris.cube.Cube):
-                Variance for the calibrated forecast.
+            location_parameter_values (iris.cube.Cube):
+                Predictor for the calibrated forecast location parameter
+                i.e. the mean.
+            scale_parameter_values (iris.cube.Cube):
+                Scale parameter for the calibrated forecast i.e. the variance.
             probability_cube_template (iris.cube.Cube):
                 A probability cube that has a threshold coordinate, where the
                 probabilities are defined as above or below the threshold by
@@ -970,8 +975,8 @@ class GenerateProbabilitiesFromMeanAndVariance(
             probability_cube_template).attributes['spp__relative_to_threshold']
 
         self._rescale_shape_parameters(
-            mean_values.data.flatten(),
-            np.sqrt(variance_values.data).flatten())
+            location_parameter_values.data.flatten(),
+            np.sqrt(scale_parameter_values.data).flatten())
 
         # Loop over thresholds, and use the specified distribution with the
         # mean and variance to calculate the probabilities relative to each
@@ -980,8 +985,8 @@ class GenerateProbabilitiesFromMeanAndVariance(
 
         distribution = self.distribution(
             *self.shape_parameters,
-            loc=mean_values.data.flatten(),
-            scale=np.sqrt(variance_values.data.flatten()))
+            loc=location_parameter_values.data.flatten(),
+            scale=np.sqrt(scale_parameter_values.data.flatten()))
 
         probability_method = distribution.cdf
         if relative_to_threshold == 'above':
@@ -994,16 +999,18 @@ class GenerateProbabilitiesFromMeanAndVariance(
         probability_cube = probability_cube_template.copy(data=probabilities)
         return probability_cube
 
-    def process(self, mean_values, variance_values, probability_cube_template):
+    def process(self, location_parameter_values, scale_parameter_values,
+                probability_cube_template):
         """
-        Generate probabilities from the mean and variance of distribution.
+        Generate probabilities from the location and scale parameters of the
+        distribution.
 
         Args:
-            mean_values (iris.cube.Cube):
-                Cube containing the distribution mean values of a diagnostic,
-                e.g. the mean over realizations.
-            variance_values (iris.cube.Cube):
-                Cube containing the distribution variance values of a
+            location_parameter_values (iris.cube.Cube):
+                Cube containing the distribution location parameter values of
+                a diagnostic, e.g. the mean over realizations.
+            scale_parameter_values (iris.cube.Cube):
+                Cube containing the distribution scale parameter values of a
                 diagnostic, e.g. the variance across realizations.
             probability_cube_template (iris.cube.Cube):
                 A probability cube that has a threshold coordinate, where the
@@ -1017,11 +1024,14 @@ class GenerateProbabilitiesFromMeanAndVariance(
                 to the thresholds found in the probability_cube_template.
         """
         self._check_template_cube(probability_cube_template)
-        self._check_unit_compatibility(mean_values, variance_values,
-                                       probability_cube_template)
+        self._check_unit_compatibility(
+            location_parameter_values, scale_parameter_values,
+            probability_cube_template)
 
-        probability_cube = self._mean_and_variance_to_probabilities(
-            mean_values, variance_values, probability_cube_template)
+        probability_cube = (
+            self._location_and_scale_parameters_to_probabilities(
+                location_parameter_values, scale_parameter_values,
+                probability_cube_template))
 
         return probability_cube
 
