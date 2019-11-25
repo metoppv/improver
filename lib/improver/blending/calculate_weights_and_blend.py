@@ -29,15 +29,16 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Plugin to calculate blend weights and blend data across a dimension"""
+
 from improver import BasePlugin
 from improver.blending.spatial_weights import (
     SpatiallyVaryingWeightsFromMask)
 from improver.blending.weighted_blend import (
-    MergeCubesForWeightedBlending, conform_metadata,
-    WeightedBlendAcrossWholeDimension)
+    MergeCubesForWeightedBlending, WeightedBlendAcrossWholeDimension)
 from improver.blending.weights import (
     ChooseWeightsLinear, ChooseDefaultWeightsLinear,
     ChooseDefaultWeightsNonLinear)
+from improver.metadata.amend import amend_attributes
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells)
 
@@ -151,7 +152,8 @@ class WeightAndBlend(BasePlugin):
         return weights
 
     def process(self, cubelist, cycletime=None, model_id_attr=None,
-                spatial_weights=False, fuzzy_length=20000):
+                spatial_weights=False, fuzzy_length=20000,
+                attributes_dict=None):
         """
         Merge a cubelist, calculate appropriate blend weights and compute the
         weighted mean. Returns a single cube collapsed over the dimension
@@ -172,6 +174,9 @@ class WeightAndBlend(BasePlugin):
             fuzzy_length (float):
                 Distance (in metres) over which to smooth spatial weights.
                 Default is 20 km.
+            attributes_dict (dict or None):
+                Changes to cube attributes to be applied after blending
+
         """
         # Prepare cubes for weighted blending, including creating model_id and
         # model_configuration coordinates for multi-model blending. The merged
@@ -183,13 +188,14 @@ class WeightAndBlend(BasePlugin):
         cube = merger.process(cubelist, cycletime=cycletime)
 
         # if blend_coord has only one value, or is not present (case where only
-        # one model has been provided for a model blend) update metadata only
+        # one model has been provided for a model blend), update attributes
+        # only
         coord_names = [coord.name() for coord in cube.coords()]
         if (self.blend_coord not in coord_names or
                 len(cube.coord(self.blend_coord).points) == 1):
             result = cube.copy()
-            conform_metadata(
-                result, cube, self.blend_coord, cycletime=cycletime)
+            if attributes_dict is not None:
+                amend_attributes(result, attributes_dict)
 
         # otherwise, calculate weights and blend across specified dimension
         else:
@@ -205,7 +211,9 @@ class WeightAndBlend(BasePlugin):
 
             # blend across specified dimension
             BlendingPlugin = WeightedBlendAcrossWholeDimension(
-                self.blend_coord, cycletime=cycletime)
-            result = BlendingPlugin.process(cube, weights=weights)
+                self.blend_coord)
+            result = BlendingPlugin.process(
+                cube, weights=weights, cycletime=cycletime,
+                attributes_dict=attributes_dict)
 
         return result

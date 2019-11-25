@@ -34,9 +34,7 @@ import numpy as np
 
 from improver import BasePlugin
 from improver.utilities.cube_manipulation import concatenate_cubes
-from improver.utilities.temporal import (
-    unify_forecast_reference_time, cycletime_to_datetime,
-    find_latest_cycletime)
+from improver.utilities.temporal import rebadge_forecasts_as_latest_cycle
 
 
 class GenerateTimeLaggedEnsemble(BasePlugin):
@@ -80,11 +78,7 @@ class GenerateTimeLaggedEnsemble(BasePlugin):
             4. Merge cubes into one cube, removing any metadata that
                doesn't match.
         """
-        if self.cycletime is None:
-            cycletime = find_latest_cycletime(cubelist)
-        else:
-            cycletime = cycletime_to_datetime(self.cycletime)
-        cubelist = unify_forecast_reference_time(cubelist, cycletime)
+        cubelist = rebadge_forecasts_as_latest_cycle(cubelist, self.cycletime)
 
         # Take all the realizations from all the input cube and
         # put in one array

@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,39 +28,38 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""Tests for the wind-gust-diagnostic CLI"""
 
-. $IMPROVER_DIR/tests/lib/utils
+import pytest
 
-@test "extrapolate to create accumulations calculated with 5 minute fidelity" {
-  improver_check_skip_acceptance
-  KGO0="nowcast-extrapolate/accumulation/kgo0_5_minute_fidelity.nc"
-  KGO1="nowcast-extrapolate/accumulation/kgo1_5_minute_fidelity.nc"
+from improver.cli import wind_gust_diagnostic
+from improver.tests import acceptance as acc
 
-  UCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/ucomp_kgo.nc"
-  VCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/vcomp_kgo.nc"
-  INFILE="201811031600_radar_rainrate_composite_UK_regridded.nc"
-  OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
 
-  # Run processing and check it passes
-  run improver nowcast-extrapolate \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$INFILE" \
-    --output_dir "$TEST_DIR" --max_lead_time 30 \
-    --eastward_advection "$UCOMP" \
-    --northward_advection "$VCOMP" \
-    --orographic_enhancement_filepaths \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1" \
-    --accumulation_fidelity 5
-  [[ "$status" -eq 0 ]]
+@pytest.mark.acc
+@acc.skip_if_kgo_missing
+def test_average_wind_gust(tmp_path):
+    """Test basic wind gust diagnostic processing"""
+    kgo_dir = acc.kgo_root() / "wind-gust-diagnostic/basic"
+    kgo_path = kgo_dir / "kgo_average_wind_gust.nc"
+    output_path = tmp_path / "output.nc"
+    args = [str(kgo_dir / "wind_gust_perc.nc"),
+            str(kgo_dir / "wind_speed_perc.nc"),
+            str(output_path)]
+    wind_gust_diagnostic.main(args)
+    acc.compare(output_path, kgo_path)
 
-  T0="20181103T1615Z-PT0000H15M-lwe_thickness_of_precipitation_amount.nc"
-  T1="20181103T1630Z-PT0000H30M-lwe_thickness_of_precipitation_amount.nc"
 
-  improver_check_recreate_kgo "$T0" $KGO0
-  improver_check_recreate_kgo "$T1" $KGO1
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/$T0" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO0"
-  improver_compare_output "$TEST_DIR/$T1" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO1"
-}
+@pytest.mark.acc
+@acc.skip_if_kgo_missing
+def test_extreme_wind_gust(tmp_path):
+    """Test basic wind gust diagnostic processing"""
+    kgo_dir = acc.kgo_root() / "wind-gust-diagnostic/basic"
+    kgo_path = kgo_dir / "kgo_extreme_wind_gust.nc"
+    output_path = tmp_path / "output.nc"
+    args = ["--percentile_gust=95.0", "--percentile_ws=100.0",
+            str(kgo_dir / "wind_gust_perc.nc"),
+            str(kgo_dir / "wind_speed_perc.nc"),
+            str(output_path)]
+    wind_gust_diagnostic.main(args)
+    acc.compare(output_path, kgo_path)

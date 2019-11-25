@@ -30,10 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Provide support utilities for making temporal calculations."""
 
-import re
 import warnings
-from datetime import datetime, timedelta, timezone
-from datetime import time as dt_time
+from datetime import datetime, timezone
 
 import cf_units as unit
 import iris
@@ -169,7 +167,6 @@ def forecast_period_coord(
             [c.point for c in fr_coord.cells()])
         required_lead_times = (
             time_points - forecast_reference_time_points)
-        # Convert the timedeltas to a total in seconds.
         required_lead_times = np.array(
             [x.total_seconds() for x in required_lead_times]).astype(fr_type)
         if t_coord.bounds is not None:
@@ -177,7 +174,6 @@ def forecast_period_coord(
                 [c.bound for c in t_coord.cells()])
             required_lead_bounds = (
                 time_bounds - forecast_reference_time_points)
-            # Convert the timedeltas to a total in seconds.
             required_lead_bounds = np.array(
                 [[b.total_seconds() for b in x]
                  for x in required_lead_bounds]).astype(fr_type)
@@ -319,104 +315,68 @@ def set_utc_offset(longitudes):
     when no more rigorous source of timeszone information is provided.
 
     Args:
-        longitudes (list):
-            List of longitudes.
+        longitudes (list or np.ndarray):
+            List of longitudes in degrees
 
     Returns:
         numpy.ndarray:
-            List of utc_offsets calculated using longitude.
+            List of utc_offsets in hours
     """
     return np.floor((np.array(longitudes) + 7.5)/15.)
 
 
-def get_forecast_times(forecast_length, forecast_date=None,
-                       forecast_time=None):
+def rebadge_forecasts_as_latest_cycle(cubes, cycletime):
     """
-    Generate a list of python datetime objects specifying the desired forecast
-    times. This list will be created from input specifications if provided.
-    Otherwise defaults are to start today at the most recent 6-hourly interval
-    (00, 06, 12, 18) and to run out to T+144 hours.
+    Function to update the forecast_reference_time and forecast_period
+    on a list of input forecasts to match either a given cycletime, or
+    the most recent forecast in the list (proxy for the current cycle).
 
     Args:
-        forecast_length (int):
-            An integer giving the desired length of the forecast output in
-            hours (e.g. 48 for a two day forecast period).
-        forecast_date (str):
-            A string of format YYYYMMDD defining the start date for which
-            forecasts are required. If unset it defaults to today in UTC.
-        forecast_time (int):
-            An integer giving the hour on the forecast_date at which to start
-            the forecast output; 24hr clock such that 17 = 17Z for example. If
-            unset it defaults to the latest 6 hour cycle as a start time.
+        cubes (iris.cube.CubeList):
+            Cubes that will have their forecast_reference_time and
+            forecast_period updated.
+        cycletime (str or None):
+            Required forecast reference time in a YYYYMMDDTHHMMZ format
+            e.g. 20171122T0100Z. If None, the latest forecast reference
+            time is used.
 
     Returns:
-        list of datetime.datetime:
-            A list of python datetime.datetime objects that represent the
-            times at which diagnostic data should be extracted.
-
-    Raises:
-        ValueError : raised if the input date is not in the expected format.
+        iris.cube.CubeList:
+            Updated cubes
     """
-    date_format = re.compile('[0-9]{8}')
-
-    if forecast_date is None:
-        start_date = datetime.utcnow().date()
-    else:
-        if date_format.match(forecast_date) and len(forecast_date) == 8:
-            start_date = datetime.strptime(forecast_date,
-                                           "%Y%m%d").date()
-        else:
-            raise ValueError('Date {} is in unexpected format; should be '
-                             'YYYYMMDD.'.format(forecast_date))
-
-    if forecast_time is None:
-        # If no start hour provided, go back to the nearest multiple of 6
-        # hours (e.g. utcnow = 11Z --> 06Z).
-        forecast_start_time = datetime.combine(
-            start_date, dt_time(divmod(datetime.utcnow().hour, 6)[0]*6))
-    else:
-        forecast_start_time = datetime.combine(start_date,
-                                               dt_time(forecast_time))
-
-    # Generate forecast times. Hourly to T+48, 3 hourly to T+forecast_length.
-    forecast_times = [forecast_start_time + timedelta(hours=x) for x in
-                      range(min(forecast_length, 49))]
-    forecast_times = (forecast_times +
-                      [forecast_start_time + timedelta(hours=x) for x in
-                       range(51, forecast_length+1, 3)])
-
-    return forecast_times
+    if cycletime is None and len(cubes) == 1:
+        return cubes
+    cycle_datetime = (find_latest_cycletime(cubes) if cycletime is None
+                      else cycletime_to_datetime(cycletime))
+    return unify_forecast_reference_time(cubes, cycle_datetime)
 
 
 def unify_forecast_reference_time(cubes, cycletime):
-    """Function to unify the forecast_reference_time across the input cubes
-    provided. The cycletime specified is used as the forecast_reference_time.
-    This function is intended for use in grid blending, where the models
-    being blended may not have been run at the same cycle time, but should
-    be given the same forecast period weightings.
+    """
+    Function to unify the forecast_reference_time and update forecast_period.
+    The cycletime specified is used as the forecast_reference_time, and the
+    forecast_period is recalculated using the time coordinate and updated
+    forecast_reference_time.
 
     Args:
-        cubes (iris.cube.CubeList or iris.cube.Cube):
-            Cubes that will have their forecast_reference_time unified.
-            If a single cube is provided the forecast_reference_time will be
-            updated. Any bounds on the forecast_reference_time coord will be
-            discarded.
+        cubes (iris.cube.CubeList):
+            Cubes that will have their forecast_reference_time and
+            forecast_period updated. Any bounds on the forecast_reference_time
+            coordinate will be discarded.
         cycletime (datetime.datetime):
             Datetime for the cycletime that will be used to replace the
             forecast_reference_time on the individual cubes.
 
     Returns:
         iris.cube.CubeList:
-            Cubes that have had their forecast_reference_time unified.
+            Updated cubes
 
     Raises:
         ValueError: if forecast_reference_time is a dimension coordinate
     """
-    if isinstance(cubes, iris.cube.Cube):
-        cubes = iris.cube.CubeList([cubes])
-
     result_cubes = iris.cube.CubeList([])
     for cube in cubes:
+        cube = cube.copy()
         frt_units = cube.coord('forecast_reference_time').units
         frt_type = cube.coord('forecast_reference_time').dtype
         new_frt_units = Unit('seconds since 1970-01-01 00:00:00')
@@ -431,8 +391,7 @@ def unify_forecast_reference_time(cubes, cycletime):
         cube.remove_coord("forecast_reference_time")
         cube.add_aux_coord(frt_coord, data_dims=None)
 
-        # If a forecast period coordinate already exists on a cube, replace
-        # this coordinate, otherwise create a new coordinate.
+        # Update the forecast period for consistency within each cube
         fp_units = "seconds"
         if cube.coords("forecast_period"):
             fp_units = cube.coord("forecast_period").units
