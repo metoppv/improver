@@ -127,8 +127,7 @@ def main(argv=None):
 
 def process(input_cube, u_cube=None, v_cube=None, speed_cube=None,
             direction_cube=None, orographic_enhancement_cube=None,
-            attributes_dict=None, pressure_level=None,
-            max_lead_time=360, lead_time_interval=15):
+            attributes_dict=None, max_lead_time=360, lead_time_interval=15):
     """Module  to extrapolate input cubes given advection velocity fields.
 
     Args:
