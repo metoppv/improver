@@ -220,6 +220,8 @@ def iris_time_to_datetime(time_coord, point_or_bound="point"):
     Args:
         time_coord (iris.coords.Coord):
             Iris time coordinate element(s).
+        point_or_bound (str):
+            String to choose if the time_coord is a point or a bound.
 
     Returns:
         list of datetime.datetime:

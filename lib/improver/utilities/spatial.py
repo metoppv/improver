@@ -60,7 +60,7 @@ def check_if_grid_is_equal_area(cube, require_equal_xy_spacing=True):
     Args:
         cube (iris.cube.Cube):
             Cube with coordinates that will be checked.
-        require_equal_spacing (bool):
+        require_equal_xy_spacing (bool):
             Flag to require the grid is equally spaced in the two spatial
             dimensions (not strictly required for equal-area criterion).
 
