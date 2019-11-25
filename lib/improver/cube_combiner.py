@@ -52,7 +52,7 @@ class CubeCombiner(BasePlugin):
         "multiply": np.multiply,
         "max": np.maximum,
         "min": np.minimum,
-        "mean": np.add}
+        "mean": np.add}  # mean is calculated in two steps: sum and normalise
 
     def __init__(self, operation, warnings_on=False):
         """
@@ -100,8 +100,9 @@ class CubeCombiner(BasePlugin):
             coords = cube.coords(dim_coords=True)
             compare = [a == b for a, b in zip(coords, ref_coords)]
             if not np.all(compare):
+                msg = "Cannot combine cubes with different dimensions:\n{}"
                 raise ValueError(
-                    "Cannot combine cubes with different dimensions")
+                    msg.format(iris.cube.CubeList([cube_list[0], cube])))
 
     def process(self, cube_list, new_diagnostic_name, coords_to_expand=None):
         """

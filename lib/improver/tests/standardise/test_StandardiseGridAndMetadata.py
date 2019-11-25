@@ -32,6 +32,7 @@
 
 import unittest
 import numpy as np
+import iris
 from iris.tests import IrisTest
 
 from improver.standardise import StandardiseGridAndMetadata
@@ -92,7 +93,8 @@ class Test_process(IrisTest):
     def test_null(self):
         """Test process method with default arguments returns an unchanged
         cube"""
-        result = StandardiseGridAndMetadata().process(self.cube)
+        result = StandardiseGridAndMetadata().process(self.cube.copy())
+        self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, self.cube.data)
         self.assertEqual(result.metadata, self.cube.metadata)
 
@@ -101,7 +103,7 @@ class Test_process(IrisTest):
         and updated grid-defining attributes"""
         expected_data = 282*np.ones((12, 12), dtype=np.float32)
         result = StandardiseGridAndMetadata().process(
-            self.cube, self.target_grid)
+            self.cube, self.target_grid.copy())
         self.assertArrayAlmostEqual(result.data, expected_data)
         for axis in ['x', 'y']:
             self.assertEqual(
@@ -124,7 +126,8 @@ class Test_process(IrisTest):
         expected_data = 282*np.ones((12, 12), dtype=np.float32)
         result = StandardiseGridAndMetadata(
             regrid_mode='nearest-with-mask', landmask=self.landmask,
-            landmask_vicinity=90000).process(self.cube, self.target_grid)
+            landmask_vicinity=90000).process(
+                self.cube, self.target_grid.copy())
         self.assertArrayAlmostEqual(result.data, expected_data)
         for axis in ['x', 'y']:
             self.assertEqual(
@@ -165,7 +168,31 @@ class Test_process(IrisTest):
         self.assertNotIn(
             "forecast_period", [coord.name() for coord in result.coords()])
 
-    def test_attribute_changes_with_regridding(self):
+    def test_automatic_attribute_changes_with_regridding(self):
+        """Test attributes inherited on regridding"""
+        expected_attributes = self.cube.attributes
+        for attr in ["mosg__grid_domain", "mosg__grid_type",
+                     "mosg__grid_version", "mosg__model_configuration"]:
+            expected_attributes[attr] = self.target_grid.attributes[attr]
+        result = StandardiseGridAndMetadata().process(
+            self.cube, self.target_grid)
+        self.assertDictEqual(result.attributes, expected_attributes)
+
+    def test_configurable_attribute_changes_with_regridding(self):
+        """Test attributes to inherit can be manually configured using the
+        "grid_attributes" argument"""
+        self.target_grid.attributes["source"] = "UKV"
+        self.target_grid.attributes["institution"] = "Met Office"
+        grid_attributes = ["institution", "source", "mosg__grid_domain"]
+        expected_attributes = self.cube.attributes
+        for attr in grid_attributes:
+            expected_attributes[attr] = self.target_grid.attributes[attr]
+        result = StandardiseGridAndMetadata(
+            grid_attributes=grid_attributes).process(
+                self.cube, self.target_grid)
+        self.assertDictEqual(result.attributes, expected_attributes)
+
+    def test_attribute_changes_after_regridding(self):
         """Test attributes can be manually updated after regridding"""
         attribute_changes = {"institution": "Met Office",
                              "mosg__grid_version": "remove"}

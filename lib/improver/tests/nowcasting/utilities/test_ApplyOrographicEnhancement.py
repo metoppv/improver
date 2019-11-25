@@ -451,6 +451,14 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result[0].data, expected0)
         self.assertArrayAlmostEqual(result[1].data, expected1)
 
+    def test_exception(self):
+        """Test that an exception is raised if the operation requested is
+        not a valid choice."""
+        plugin = ApplyOrographicEnhancement("multiply")
+        msg = "Operation 'multiply' not supported for"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.process(self.precip_cubes, self.oe_cube)
+
     def test_add_with_mask(self):
         """Test the addition of cubelists containing cubes of
         precipitation rate and orographic enhancement, where a mask has

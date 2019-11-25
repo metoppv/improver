@@ -81,13 +81,20 @@ def grid_contains_cutout(grid, cutout):
 
         # search for cutout coordinate points in larger grid
         cutout_start = cutout_coord.points[0]
-        if not np.any([np.isclose(cutout_start, grid_point)
-                       for grid_point in grid_coord.points]):
+        find_start = [np.isclose(cutout_start, grid_point)
+                      for grid_point in grid_coord.points]
+        if not np.any(find_start):
             return False
 
-        start = list(grid_coord.points).index(cutout_start)
+        start = find_start.index(True)
         end = start + len(cutout_coord.points)
-        if not np.allclose(cutout_coord.points, grid_coord.points[start:end]):
+        try:
+            if not np.allclose(cutout_coord.points,
+                               grid_coord.points[start:end]):
+                return False
+        except ValueError:
+            # raised by np.allclose if "end" index overshoots edge of grid
+            # domain - slicing does not raise IndexError
             return False
 
     return True
@@ -120,6 +127,9 @@ class StandardiseGridAndMetadata(BasePlugin):
                 List of attribute names to inherit from the target grid cube,
                 eg mosg__model_configuration, that describe the new grid. If
                 None, a list of Met Office-specific attributes is used.
+
+        Raises:
+            ValueError: If a landmask is required but not passed in
         """
         if landmask is None and "nearest-with-mask" in regrid_mode:
             msg = ("An argument has been specified that requires an input "
