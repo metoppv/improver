@@ -32,110 +32,19 @@
 """Script to extrapolate input data given advection velocity fields."""
 
 import iris
-from iris import Constraint
 import numpy as np
 
-from improver.argparser import ArgParser
+from improver import cli
 from improver.nowcasting.accumulation import Accumulation
 from improver.nowcasting.forecasting import CreateExtrapolationForecast
-from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.cube_manipulation import merge_cubes
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
 from improver.wind_calculations.wind_components import ResolveWindComponents
 
 
-def main(argv=None):
-    """Extrapolate data forward in time."""
-
-    parser = ArgParser(
-        description="Extrapolate and accumulate the input data to required "
-                    "lead times.")
-    parser.add_argument("input_filepath", metavar="INPUT_FILEPATH",
-                        type=str, help="Path to input NetCDF file.")
-    parser.add_argument("output_filepath", metavar="OUTPUT_FILEPATH",
-                        help="The output path for the resulting NetCDF")
-
-    speed = parser.add_argument_group('Advect using files containing speed and'
-                                      ' direction')
-    speed.add_argument("--advection_speed_filepath", type=str, help="Path"
-                       " to input file containing advection speeds,"
-                       " usually wind speeds, on multiple pressure levels.")
-    speed.add_argument("--advection_direction_filepath", type=str,
-                       help="Path to input file containing the directions from"
-                       " which advection speeds are coming (180 degrees from"
-                       " the direction in which the speed is directed). The"
-                       " directions should be on the same grid as the input"
-                       " speeds, including the same vertical levels.")
-    speed.add_argument("--pressure_level", type=int, default=75000, help="The"
-                       " pressure level in Pa to extract from the multi-level"
-                       " advection_speed and advection_direction files. The"
-                       " velocities at this level are used for advection.")
-    parser.add_argument("--orographic_enhancement_filepaths", nargs="+",
-                        type=str, default=None, help="List or wildcarded "
-                        "file specification to the input orographic "
-                        "enhancement files. Orographic enhancement files are "
-                        "compulsory for precipitation fields.")
-    parser.add_argument("--json_file", metavar="JSON_FILE", default=None,
-                        help="Filename for the json file containing "
-                        "required changes to the attributes. "
-                        "Defaults to None.", type=str)
-    parser.add_argument("--max_lead_time", type=int, default=360,
-                        help="Maximum lead time required (mins).")
-    parser.add_argument("--u_and_v_filepath", type=str, help="Path to u and v"
-                        " cubelist.")
-    parser.add_argument("--lead_time_interval", type=int, default=15,
-                        help="Interval between required lead times (mins).")
-    parser.add_argument("--accumulation_period", type=int, default=15,
-                        help="The period over which the accumulation is "
-                        "calculated (mins). Only full accumulation "
-                        "periods will be computed. At lead times that "
-                        "are shorter than the accumulation period, no "
-                        "accumulation output will be produced.")
-    parser.add_argument("--accumulation_units", type=str, default='m',
-                        help="Desired units in which the accumulations should "
-                             "be expressed, e.g. mm")
-
-    args = parser.parse_args(args=argv)
-
-    v_cube = load_cube(args.u_and_v_filepath,
-                       "precipitation_advection_y_velocity", allow_none=True)
-    u_cube = load_cube(args.u_and_v_filepath,
-                       "precipitation_advection_x_velocity", allow_none=True)
-
-    # Load Cubes and JSON
-    speed_cube = direction_cube = None
-
-    input_cube = load_cube(args.input_filepath)
-    orographic_enhancement_cube = load_cube(
-        args.orographic_enhancement_filepaths, allow_none=True)
-
-    s_path, d_path = (args.advection_speed_filepath,
-                      args.advection_direction_filepath)
-    level_constraint = Constraint(pressure=args.pressure_level)
-    if s_path and d_path:
-        try:
-            speed_cube = load_cube(s_path, constraints=level_constraint)
-            direction_cube = load_cube(d_path, constraints=level_constraint)
-        except ValueError as err:
-            raise ValueError(
-                '{} Unable to extract specified pressure level from given '
-                'speed and direction files.'.format(err))
-
-    attributes_dict = load_json_or_none(args.json_file)
-    # Process Cubes
-    result = process(
-        input_cube, u_cube, v_cube, speed_cube, direction_cube,
-        orographic_enhancement_cube, attributes_dict, args.max_lead_time,
-        args.lead_time_interval, args.accumulation_period,
-        args.accumulation_units)
-
-    # Save Cube
-    save_netcdf(result, args.output_filepath)
-
-
-def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
-            oe_cube=None, attributes_dict=None,
+@cli.clizefy
+@cli.with_output
+def process(input_cube: cli.inputcube, advection_cubes: cli.inputadvection,
+            *oe_cube: cli.inputcube, attributes_dict: cli.inputjson = None,
             max_lead_time=360, lead_time_interval=15, accumulation_period=15,
             accumulation_units='m'):
     """Module to extrapolate and accumulate the weather with 1 min fidelity.
@@ -143,24 +52,9 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
     Args:
         input_cube (iris.cube.Cube):
             The input Cube to be processed.
-        u_cube (iris.cube.Cube):
-            Cube with the velocities in the x direction.
-            Must be used with v_cube.
-            speed_cube and direction_cube must be None.
-        v_cube (iris.cube.Cube):
-            Cube with the velocities in the y direction.
-            Must be used with u_cube.
-            speed_cube and direction_cube must be None.
-        speed_cube (iris.cube.Cube):
-            Cube containing advection speeds, usually wind speed.
-            Must be used with direction_cube.
-            u_cube and v_cube must be None.
-        direction_cube (iris.cube.Cube):
-            Cube from which advection speeds are coming. The directions
-            should be on the same grid as the input speeds, including the same
-            vertical levels.
-            Must be used with speed_cube.
-            u_cube and v_cube must be None.
+        advection_cubes (list of iris.cube.Cube):
+            Advection cubes in either (U and V) or (speed and direction).
+            No other options are available.
         oe_cube (iris.cube.Cube):
             Cube containing the orographic enhancement fields. May have data
             for multiple times in the cube.
@@ -192,6 +86,9 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
         ValueError:
             can either use speed_cube and direction_cube or u_cube and v_cube.
     """
+    u_cube, v_cube, speed_cube, direction_cube = advection_cubes
+    oe_cube = merge_cubes(oe_cube)
+
     if (speed_cube or direction_cube) and (u_cube or v_cube):
         raise ValueError('Cannot mix advection component velocities with speed'
                          ' and direction')
@@ -222,7 +119,3 @@ def process(input_cube, u_cube, v_cube, speed_cube, direction_cube,
 
     result = plugin.process(forecast_cubes)
     return merge_cubes(result)
-
-
-if __name__ == "__main__":
-    main()

@@ -42,11 +42,10 @@
   # Run processing and check it passes
   run improver nowcast-accumulate \
     "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$INFILE" \
-    "$TEST_DIR/output.nc" \
-    --max_lead_time 30 \
-    --u_and_v_filepath "$UVCOMP" \
-    --orographic_enhancement_filepaths \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1"
+    "$UVCOMP" \
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1" \
+    --output "$TEST_DIR/output.nc" \
+    --max-lead-time 30
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
