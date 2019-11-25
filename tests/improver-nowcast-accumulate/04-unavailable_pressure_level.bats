@@ -34,21 +34,18 @@
 @test "Unavailable pressure level" {
   improver_check_skip_acceptance
 
-  WSPEED="$IMPROVER_ACC_TEST_DIR/nowcast-extrapolate/model_winds/20181103T1600Z-PT0001H00M-wind_speed_on_pressure_levels.nc"
-  WDIR="$IMPROVER_ACC_TEST_DIR/nowcast-extrapolate/model_winds/20181103T1600Z-PT0001H00M-wind_direction_on_pressure_levels.nc"
+  WSPEED="$IMPROVER_ACC_TEST_DIR/nowcast-accumulate/model_winds/20181103T1600Z-PT0001H00M-wind_speed_and_direction_on_pressure_levels.nc"
   INFILE="201811031600_radar_rainrate_composite_UK_regridded.nc"
   OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
 
   # Run processing and check it passes
   run improver nowcast-accumulate \
     "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$INFILE" \
-    "$TEST_DIR/output.nc" \
+    "$WSPEED" \
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1" \
+    --output "$TEST_DIR/output.nc" \
     --max_lead_time 30 \
-    --advection_speed_filepath "$WSPEED" \
-    --advection_direction_filepath "$WDIR" \
-    --pressure_level 1234 \
-    --orographic_enhancement_filepaths \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1"
+    --pressure_level 1234
   [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
 Unable to extract specified pressure level

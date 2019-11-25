@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "accumulations calculated with 1 minute fidelity" {
+@test "accumulations basics" {
   improver_check_skip_acceptance
   KGO="nowcast-accumulate/basic/kgo.nc"
 
