@@ -31,7 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to extrapolate input data given advection velocity fields."""
 
-import iris
 import numpy as np
 from iris.cube import CubeList
 
