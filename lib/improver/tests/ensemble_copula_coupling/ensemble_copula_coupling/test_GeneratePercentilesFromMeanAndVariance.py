@@ -111,7 +111,7 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
         ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_simple_data_truncnorm_distribution(self):
         """
-        Test that the plugin returns an Iris.cube.Cube matching the expected
+        Test that the plugin returns an iris.cube.Cube matching the expected
         data values when a cube containing mean and variance is passed in.
         The resulting data values are the percentiles, which have been
         generated using a truncated normal distribution.
