@@ -54,10 +54,8 @@ class Test__init__(unittest.TestCase):
         self.assertIsNone(plugin.landmask_source_grid)
         self.assertIsNone(plugin.landmask_vicinity)
         self.assertEqual(plugin.landmask_name, 'land_binary_mask')
-        self.assertSequenceEqual(
-            plugin.grid_attributes,
-            ['mosg__grid_version', 'mosg__grid_domain', 'mosg__grid_type',
-             'mosg__model_configuration', 'institution'])
+        self.assertSequenceEqual(plugin.grid_attributes, [
+            'mosg__grid_version', 'mosg__grid_domain', 'mosg__grid_type'])
 
     def test_error_missing_landmask(self):
         """Test an error is thrown if no mask is provided for masked
@@ -197,14 +195,17 @@ class Test_process_regrid_options(IrisTest):
         """Test default regridding arguments return expected dimensionality
         and updated grid-defining attributes"""
         expected_data = 282*np.ones((12, 12), dtype=np.float32)
+        expected_attributes = {"mosg__model_configuration": "gl_det"}
+        for attr in ["mosg__grid_domain", "mosg__grid_type",
+                     "mosg__grid_version"]:
+            expected_attributes[attr] = self.target_grid.attributes[attr]
         result = StandardiseGridAndMetadata().process(
             self.cube, self.target_grid.copy())
         self.assertArrayAlmostEqual(result.data, expected_data)
         for axis in ['x', 'y']:
             self.assertEqual(
                 result.coord(axis=axis), self.target_grid.coord(axis=axis))
-        self.assertDictEqual(
-            result.attributes, self.target_grid.attributes)
+        self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_access_regrid_with_landmask(self):
         """Test the RegridLandAndSea module is correctly called when using
@@ -219,6 +220,10 @@ class Test_process_regrid_options(IrisTest):
         """Test masked regridding (same expected values as basic, since input
         points are all equal)"""
         expected_data = 282*np.ones((12, 12), dtype=np.float32)
+        expected_attributes = {"mosg__model_configuration": "gl_det"}
+        for attr in ["mosg__grid_domain", "mosg__grid_type",
+                     "mosg__grid_version"]:
+            expected_attributes[attr] = self.target_grid.attributes[attr]
         result = StandardiseGridAndMetadata(
             regrid_mode='nearest-with-mask', landmask=self.landmask,
             landmask_vicinity=90000).process(
@@ -227,8 +232,7 @@ class Test_process_regrid_options(IrisTest):
         for axis in ['x', 'y']:
             self.assertEqual(
                 result.coord(axis=axis), self.target_grid.coord(axis=axis))
-        self.assertDictEqual(
-            result.attributes, self.target_grid.attributes)
+        self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_error_regrid_with_incorrect_landmask(self):
         """Test an error is thrown if a landmask is provided that does not
@@ -270,7 +274,7 @@ class Test_process_regrid_options(IrisTest):
         """Test attributes inherited on regridding"""
         expected_attributes = self.cube.attributes
         for attr in ["mosg__grid_domain", "mosg__grid_type",
-                     "mosg__grid_version", "mosg__model_configuration"]:
+                     "mosg__grid_version"]:
             expected_attributes[attr] = self.target_grid.attributes[attr]
         result = StandardiseGridAndMetadata().process(
             self.cube, self.target_grid)
@@ -296,7 +300,7 @@ class Test_process_regrid_options(IrisTest):
                              "mosg__grid_version": "remove"}
         expected_attributes = {"mosg__grid_domain": "uk_extended",
                                "mosg__grid_type": "standard",
-                               "mosg__model_configuration": "uk_det",
+                               "mosg__model_configuration": "gl_det",
                                "institution": "Met Office"}
         result = StandardiseGridAndMetadata().process(
             self.cube, self.target_grid, attributes_dict=attribute_changes)

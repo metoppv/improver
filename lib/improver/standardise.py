@@ -145,8 +145,7 @@ class StandardiseGridAndMetadata(BasePlugin):
         self.grid_attributes = grid_attributes
         if self.grid_attributes is None:
             self.grid_attributes = [
-                'mosg__grid_version', 'mosg__grid_domain', 'mosg__grid_type',
-                'mosg__model_configuration', 'institution']
+                'mosg__grid_version', 'mosg__grid_domain', 'mosg__grid_type']
 
     def _regrid_landsea(self, cube, target_grid):
         """
