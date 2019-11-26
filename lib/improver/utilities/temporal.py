@@ -141,23 +141,6 @@ def datetime_to_iris_time(dt_in):
     return np.int64(result)
 
 
-def set_utc_offset(longitudes):
-    """
-    Simplistic timezone setting for unset sites that uses 15 degree bins
-    centred on 0 degrees longitude. Used for on the fly site generation
-    when no more rigorous source of timeszone information is provided.
-
-    Args:
-        longitudes (list or np.ndarray):
-            List of longitudes in degrees
-
-    Returns:
-        numpy.ndarray:
-            List of utc_offsets in hours
-    """
-    return np.floor((np.array(longitudes) + 7.5)/15.)
-
-
 def datetime_constraint(time_in, time_max=None):
     """
     Constructs an iris equivalence constraint from a python datetime object.

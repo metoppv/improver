@@ -40,7 +40,7 @@ from iris.tests import IrisTest
 
 from improver.metadata.forecast_times import (
     forecast_period_coord, rebadge_forecasts_as_latest_cycle,
-    unify_forecast_reference_time, find_latest_cycletime)
+    unify_cycletime, find_latest_cycletime)
 from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, add_coordinate)
 from improver.utilities.warnings_handler import ManageWarnings
@@ -231,9 +231,9 @@ class Test_rebadge_forecasts_as_latest_cycle(IrisTest):
                          expected_fp_point)
 
 
-class Test_unify_forecast_reference_time(IrisTest):
+class Test_unify_cycletime(IrisTest):
 
-    """Test the unify_forecast_reference_time function."""
+    """Test the unify_cycletime function."""
 
     def setUp(self):
         """Set up a UK deterministic cube for testing."""
@@ -287,7 +287,7 @@ class Test_unify_forecast_reference_time(IrisTest):
         expected = iris.cube.CubeList([expected_uk_det, expected_uk_ens])
 
         cubes = iris.cube.CubeList([self.cube_uk_det, cube_uk_ens])
-        result = unify_forecast_reference_time(cubes, self.cycletime)
+        result = unify_cycletime(cubes, self.cycletime)
 
         self.assertIsInstance(result, iris.cube.CubeList)
         self.assertEqual(result, expected)
@@ -303,8 +303,7 @@ class Test_unify_forecast_reference_time(IrisTest):
         expected_uk_det.coord("forecast_reference_time").points = frt_points
         expected_uk_det.coord("forecast_period").points = (
             np.array([3, 5, 7]) * 3600)
-        result = unify_forecast_reference_time(
-            [self.cube_uk_det], self.cycletime)
+        result = unify_cycletime([self.cube_uk_det], self.cycletime)
         self.assertIsInstance(result, iris.cube.CubeList)
         self.assertEqual(result[0], expected_uk_det)
 
@@ -322,7 +321,7 @@ class Test_unify_forecast_reference_time(IrisTest):
             np.array([3, 5, 7]) * 3600)
         cube_uk_det = self.cube_uk_det.copy()
         cube_uk_det.remove_coord("forecast_period")
-        result = unify_forecast_reference_time([cube_uk_det], self.cycletime)
+        result = unify_cycletime([cube_uk_det], self.cycletime)
         self.assertIsInstance(result, iris.cube.CubeList)
         self.assertEqual(result[0], expected_uk_det)
 

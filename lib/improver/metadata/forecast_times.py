@@ -169,10 +169,10 @@ def rebadge_forecasts_as_latest_cycle(cubes, cycletime):
         return cubes
     cycle_datetime = (find_latest_cycletime(cubes) if cycletime is None
                       else cycletime_to_datetime(cycletime))
-    return unify_forecast_reference_time(cubes, cycle_datetime)
+    return unify_cycletime(cubes, cycle_datetime)
 
 
-def unify_forecast_reference_time(cubes, cycletime):
+def unify_cycletime(cubes, cycletime):
     """
     Function to unify the forecast_reference_time and update forecast_period.
     The cycletime specified is used as the forecast_reference_time, and the

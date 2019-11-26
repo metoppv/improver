@@ -44,8 +44,8 @@ from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, add_coordinate)
 from improver.utilities.temporal import (
     cycletime_to_datetime, cycletime_to_number, datetime_to_cycletime,
-    iris_time_to_datetime, datetime_to_iris_time, set_utc_offset,
-    datetime_constraint, extract_cube_at_time, extract_nearest_time_point)
+    iris_time_to_datetime, datetime_to_iris_time, datetime_constraint,
+    extract_cube_at_time, extract_nearest_time_point)
 from improver.utilities.warnings_handler import ManageWarnings
 
 
@@ -207,22 +207,6 @@ class Test_datetime_to_iris_time(IrisTest):
         expected = 1487311200.0
         self.assertIsInstance(result, np.int64)
         self.assertEqual(result, expected)
-
-
-class Test_set_utc_offset(IrisTest):
-    """
-    Test setting of UTC_offsets with longitudes using crude 15 degree bins.
-    """
-
-    def test_output(self):
-        """
-        Test full span of crude timezones from UTC-12 to UTC+12. Note the
-        degeneracy at +-180.
-        """
-        longitudes = np.arange(-180, 185, 15)
-        expected = np.arange(-12, 13, 1)
-        result = set_utc_offset(longitudes)
-        self.assertArrayEqual(expected, result)
 
 
 class Test_datetime_constraint(IrisTest):
