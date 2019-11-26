@@ -76,6 +76,7 @@ def wxcode_decision_tree():
         'lightning': {
             'succeed': 'lightning_cloud',
             'fail': 'heavy_precipitation',
+            'diagnostic_missing_action': 'fail',
             'probability_thresholds': [0.5],
             'threshold_condition': '>=',
             'condition_combination': '',

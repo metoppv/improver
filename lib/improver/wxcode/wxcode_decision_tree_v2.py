@@ -100,6 +100,7 @@ def wxcode_decision_tree():
         'lightning_continuous': {
             'succeed': 30,
             'fail': 'heavy_sleet_continuous',
+            'diagnostic_missing_action': 'fail',
             'probability_thresholds': [0.5],
             'threshold_condition': '>=',
             'condition_combination': '',
@@ -112,6 +113,7 @@ def wxcode_decision_tree():
         'lightning_shower': {
             'succeed': 29,
             'fail': 'heavy_sleet_shower',
+            'diagnostic_missing_action': 'fail',
             'probability_thresholds': [0.5],
             'threshold_condition': '>=',
             'condition_combination': '',
@@ -448,6 +450,7 @@ def wxcode_decision_tree():
         'lightning_continuous_in_vicinity': {
             'succeed': 30,
             'fail': 15,
+            'diagnostic_missing_action': 'fail',
             'probability_thresholds': [0.5],
             'threshold_condition': '>=',
             'condition_combination': '',
@@ -471,6 +474,7 @@ def wxcode_decision_tree():
         'lightning_shower_in_vicinity': {
             'succeed': 29,
             'fail': 14,
+            'diagnostic_missing_action': 'fail',
             'probability_thresholds': [0.5],
             'threshold_condition': '>=',
             'condition_combination': '',

@@ -260,8 +260,10 @@ class Test_check_input_cubes(IrisTest):
     def test_no_lightning(self):
         """Test check_input_cubes raises no error if lightning missing"""
         plugin = WeatherSymbols()
-        self.assertEqual(plugin.check_input_cubes(self.cubes_no_lightning),
-                         'without_lightning')
+        result = plugin.check_input_cubes(self.cubes_no_lightning)
+        self.assertIsInstance(result, dict)
+        self.assertEqual(len(result), 1)
+        self.assertTrue('lightning' in result)
 
     def test_raises_error_missing_cubes(self):
         """Test check_input_cubes method raises error if data is missing"""
@@ -579,7 +581,7 @@ class Test_find_all_routes(IrisTest):
         self.assertListEqual(result, expected_nodes)
 
     def test_multiple_routes(self):
-        """Test find_all_routes finds multiple routes."""
+        """Test finds multiple routes."""
         plugin = WeatherSymbols()
         result = plugin.find_all_routes(self.test_graph,
                                         'start_node',
@@ -591,6 +593,64 @@ class Test_find_all_routes(IrisTest):
                           ['start_node',
                            'fail_0',
                            'success_0_1',
+                           1]]
+        self.assertIsInstance(result, list)
+        self.assertListEqual(result, expected_nodes)
+
+    def test_missing_nodes_top_node(self):
+        """Test find_all_routes where missing node is top node."""
+        missing_nodes = {'start_node': 'success_1'}
+        plugin = WeatherSymbols()
+        result = plugin.find_all_routes(self.test_graph,
+                                        'start_node',
+                                        1,
+                                        missing_nodes=missing_nodes,)
+        expected_nodes = [['success_1',
+                           'success_1_1',
+                           1]]
+        self.assertIsInstance(result, list)
+        self.assertListEqual(result, expected_nodes)
+
+    def test_missing_nodes_midtree(self):
+        """Test find_all_routes where missing_node is mid tree."""
+        missing_nodes = {'success_1': 'success_1_1'}
+        plugin = WeatherSymbols()
+        result = plugin.find_all_routes(self.test_graph,
+                                        'start_node',
+                                        1,
+                                        missing_nodes=missing_nodes,)
+        expected_nodes = [['start_node',
+                           'success_1_1',
+                           1],
+                          ['start_node',
+                           'fail_0',
+                           'success_0_1',
+                           1]]
+        self.assertIsInstance(result, list)
+        self.assertListEqual(result, expected_nodes)
+
+    def test_missing_nodes_blocked(self):
+        """Test find_all_routes where missing node is no longer accessible."""
+        missing_nodes = {'fail_0': 3}
+        plugin = WeatherSymbols()
+        result = plugin.find_all_routes(self.test_graph,
+                                        'start_node',
+                                        5,
+                                        missing_nodes=missing_nodes,)
+        expected_nodes = []
+        self.assertIsInstance(result, list)
+        self.assertListEqual(result, expected_nodes)
+
+    def test_missing_nodes_multi(self):
+        """Test find_all_routes where multiple missing node."""
+        missing_nodes = {'fail_0': 3, 'success_1': 'success_1_1'}
+        plugin = WeatherSymbols()
+        result = plugin.find_all_routes(self.test_graph,
+                                        'start_node',
+                                        1,
+                                        missing_nodes=missing_nodes,)
+        expected_nodes = [['start_node',
+                           'success_1_1',
                            1]]
         self.assertIsInstance(result, list)
         self.assertListEqual(result, expected_nodes)
@@ -664,8 +724,6 @@ class Test_process(IrisTest):
         """Test process returns right values if no lightning. """
         plugin = WeatherSymbols()
         result = plugin.process(self.cubes_no_lightning)
-        msg = '<WeatherSymbols tree=high_resolution_without_lightning>'
-        self.assertEqual(str(plugin), msg)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
         self.assertEqual(result.attributes['weather_code_meaning'],

@@ -42,8 +42,6 @@ from improver.metadata.probabilistic import (
 from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
 from improver.wxcode.wxcode_decision_tree_global import (
     wxcode_decision_tree_global)
-from improver.wxcode.wxcode_decision_tree_without_lightning import (
-    wxcode_decision_tree_without_lightning)
 from improver.wxcode.wxcode_utilities import (add_wxcode_metadata,
                                               expand_nested_lists,
                                               update_daynight)
@@ -102,16 +100,19 @@ class WeatherSymbols(BasePlugin):
                 A CubeList containing the input diagnostic cubes.
 
         Returns:
-            None or str:
-            Optional data missing e.g. lightning
+            dict or None:
+                A dictionary of (keyword) nodes names where the diagnostic
+                data is missing and (values) node associated with
+                diagnostic_missing_action.
 
         Raises:
             IOError:
                 Raises an IOError if any of the required input data is missing.
                 The error includes details of which fields are missing.
         """
+        optional_node_data_missing = {}
         missing_data = []
-        for query in self.queries.values():
+        for key, query in self.queries.items():
             diagnostics = expand_nested_lists(query, 'diagnostic_fields')
             thresholds = expand_nested_lists(query, 'diagnostic_thresholds')
             conditions = expand_nested_lists(query, 'diagnostic_conditions')
@@ -123,7 +124,11 @@ class WeatherSymbols(BasePlugin):
                 test_condition = (iris.Constraint(name=diagnostic))
                 matched_cube = cubes.extract(test_condition)
                 if not matched_cube:
-                    missing_data.append([diagnostic, threshold, condition])
+                    if 'diagnostic_missing_action' in query:
+                        optional_node_data_missing.update(
+                            {key: query[query['diagnostic_missing_action']]})
+                    else:
+                        missing_data.append([diagnostic, threshold, condition])
                     continue
                 else:
                     cube_threshold_units = (
@@ -173,26 +178,19 @@ class WeatherSymbols(BasePlugin):
                 if not matched_threshold:
                     missing_data.append([diagnostic, threshold, condition])
 
-        optional_data_missing = None
         if missing_data:
-            not_optional_data = len(missing_data)
-            lightning_name = ('probability_of_number_of_lightning_'
-                              'flashes_per_unit_area_in_vicinity_'
-                              'above_threshold')
             msg = ('Weather Symbols input cubes are missing'
                    ' the following required'
                    ' input fields:\n')
             dyn_msg = ('name: {}, threshold: {}, '
                        'spp__relative_to_threshold: {}\n')
             for item in missing_data:
-                if item[0] == lightning_name:
-                    optional_data_missing = 'without_lightning'
-                    not_optional_data = not_optional_data - 1
-                else:
-                    msg = msg + dyn_msg.format(*item)
-            if not_optional_data > 0:
-                raise IOError(msg)
-        return optional_data_missing
+                msg = msg + dyn_msg.format(*item)
+            raise IOError(msg)
+
+        if len(optional_node_data_missing) == 0:
+            optional_node_data_missing = None
+        return optional_node_data_missing
 
     @staticmethod
     def invert_condition(test_conditions):
@@ -419,7 +417,7 @@ class WeatherSymbols(BasePlugin):
         return constraint
 
     @staticmethod
-    def find_all_routes(graph, start, end, route=None):
+    def find_all_routes(graph, start, end, missing_nodes=None, route=None):
         """
         Function to trace all routes through the decision tree.
 
@@ -432,6 +430,10 @@ class WeatherSymbols(BasePlugin):
                 heavy_precipitation).
             end (int):
                 The weather symbol code to which we are tracing all routes.
+            missing_nodes (dict) or None:
+                A dictionary of (keyword) nodes names where the diagnostic
+                data is missing and (values) node associated with
+                diagnostic_missing_action.
             route (list):
                 A list of node names found so far.
 
@@ -447,6 +449,13 @@ class WeatherSymbols(BasePlugin):
         if route is None:
             route = []
 
+        if missing_nodes is not None:
+            start_not_valid = True
+            while start_not_valid:
+                if start in missing_nodes:
+                    start = missing_nodes[start]
+                else:
+                    start_not_valid = False
         route = route + [start]
         if start == end:
             return [route]
@@ -456,8 +465,10 @@ class WeatherSymbols(BasePlugin):
         routes = []
         for node in graph[start]:
             if node not in route:
-                newroutes = WeatherSymbols.find_all_routes(graph, node, end,
-                                                           route)
+                newroutes = WeatherSymbols.find_all_routes(
+                    graph, node, end,
+                    missing_nodes=missing_nodes,
+                    route=route)
                 routes.extend(newroutes)
         return routes
 
@@ -500,19 +511,11 @@ class WeatherSymbols(BasePlugin):
                 A cube of weather symbols.
         """
         # Check input cubes contain required data
-        missing_optional_data = self.check_input_cubes(cubes)
+        optional_node_data_missing = self.check_input_cubes(cubes)
 
         start_node = 'lightning'
         if self.wxtree == 'global':
             start_node = 'heavy_precipitation'
-        elif missing_optional_data is not None:
-            if (self.wxtree != 'global' and
-                    missing_optional_data == 'without_lightning'):
-                start_node = 'heavy_precipitation'
-                self.queries = wxcode_decision_tree_without_lightning()
-                self.wxtree = '{}_{}'.format(self.wxtree,
-                                             missing_optional_data)
-                self.check_input_cubes(cubes)
 
         # Construct graph nodes dictionary
         graph = {key: [self.queries[key]['succeed'], self.queries[key]['fail']]
@@ -533,30 +536,33 @@ class WeatherSymbols(BasePlugin):
 
             # In current decision tree
             # start node is heavy_precipitation
-            routes = self.find_all_routes(graph, start_node,
-                                          symbol_code)
+            routes = self.find_all_routes(
+                graph, start_node,
+                symbol_code,
+                missing_nodes=optional_node_data_missing)
             # Loop over possible routes from root to leaf
-            for route in routes:
-                conditions = []
-                for i_node in range(len(route)-1):
-                    current_node = route[i_node]
-                    current = copy.copy(self.queries[current_node])
-                    try:
-                        next_node = route[i_node+1]
-                    except KeyError:
-                        next_node = symbol_code
+            if len(routes) > 0:
+                for route in routes:
+                    conditions = []
+                    for i_node in range(len(route)-1):
+                        current_node = route[i_node]
+                        current = copy.copy(self.queries[current_node])
+                        try:
+                            next_node = route[i_node+1]
+                        except KeyError:
+                            next_node = symbol_code
 
-                    if current['fail'] == next_node:
-                        (current['threshold_condition'],
-                         current['condition_combination']) = (
-                             self.invert_condition(current))
+                        if current['fail'] == next_node:
+                            (current['threshold_condition'],
+                             current['condition_combination']) = (
+                                 self.invert_condition(current))
 
-                    conditions.extend(self.create_condition_chain(current))
+                        conditions.extend(self.create_condition_chain(current))
 
-                test_chain = self.format_condition_chain(conditions)
+                    test_chain = self.format_condition_chain(conditions)
 
-                # Set grid locations to suitable weather symbol
-                symbols.data[np.where(eval(test_chain))] = symbol_code
+                    # Set grid locations to suitable weather symbol
+                    symbols.data[np.where(eval(test_chain))] = symbol_code
         # Update symbols for day or night.
         symbols = update_daynight(symbols)
         return symbols
