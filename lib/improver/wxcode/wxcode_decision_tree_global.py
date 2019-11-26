@@ -32,6 +32,9 @@
 
 from iris.coords import AuxCoord
 
+# Start node for the Global wxcode decision tree.
+START_NODE_GLOBAL = 'heavy_precipitation'
+
 
 def wxcode_decision_tree_global():
     """

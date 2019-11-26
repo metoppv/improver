@@ -234,13 +234,13 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(WeatherSymbols())
-        msg = '<WeatherSymbols tree=high_resolution>'
+        msg = '<WeatherSymbols tree=high_resolution start_node=lightning>'
         self.assertEqual(result, msg)
 
     def test_global(self):
         """Test that the __repr__ returns right string for global tree."""
         result = str(WeatherSymbols(wxtree='global'))
-        msg = '<WeatherSymbols tree=global>'
+        msg = '<WeatherSymbols tree=global start_node=heavy_precipitation>'
         self.assertEqual(result, msg)
 
 

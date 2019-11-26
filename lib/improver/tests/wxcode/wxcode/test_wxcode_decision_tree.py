@@ -34,7 +34,8 @@ import unittest
 
 from iris.tests import IrisTest
 
-from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
+from improver.wxcode.wxcode_decision_tree import (
+    wxcode_decision_tree, START_NODE)
 from improver.wxcode.wxcode_utilities import expand_nested_lists
 
 REQUIRED_KEY_WORDS = ['succeed',
@@ -73,6 +74,11 @@ class Test_wxcode_decision_tree(IrisTest):
         for node in tree:
             for entry in tree[node]:
                 self.assertEqual(entry in all_key_words, True)
+
+    def test_start_node_in_tree(self):
+        """Test that the start node is in the tree"""
+        tree = wxcode_decision_tree()
+        self.assertTrue(START_NODE in tree)
 
     def test_keywords_diagnostic_missing(self):
         """Test only set keywords are used in diagnostic_missing_action."""

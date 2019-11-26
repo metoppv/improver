@@ -32,6 +32,9 @@
 
 from iris.coords import AuxCoord
 
+# Start node for the high resolution wxcode decision tree.
+START_NODE = 'lightning'
+
 
 def wxcode_decision_tree():
     """
@@ -42,6 +45,10 @@ def wxcode_decision_tree():
               satisfies the current query.
         * fail: The next query to call if the diagnostic being queried
               does not satisfy the current query.
+        * diagnostic_missing_action: For optional diagnostic data
+              What to do if the diagnostic is missing.
+              It can take the keywords succeed or fail. The logic will then
+              follow that path if the diagnostic is missing.
         * probability_thresholds: A list of probability thresholds that the
               query requires. One entry is provided for each diagnostic
               field being tested.

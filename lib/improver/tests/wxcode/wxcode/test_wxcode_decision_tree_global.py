@@ -34,8 +34,8 @@ import unittest
 
 from iris.tests import IrisTest
 
-from improver.wxcode.wxcode_decision_tree_global \
-    import wxcode_decision_tree_global
+from improver.wxcode.wxcode_decision_tree_global import (
+    wxcode_decision_tree_global, START_NODE_GLOBAL)
 from improver.wxcode.wxcode_utilities import expand_nested_lists
 
 REQUIRED_KEY_WORDS = ['succeed',
@@ -70,6 +70,11 @@ class Test_wxcode_decision_tree_global(IrisTest):
         for node in tree:
             for entry in tree[node]:
                 self.assertEqual(entry in all_key_words, True)
+
+    def test_start_node_in_tree(self):
+        """Test that the start node is in the tree"""
+        tree = wxcode_decision_tree_global()
+        self.assertTrue(START_NODE_GLOBAL in tree)
 
     def test_condition_combination(self):
         """Test only permissible values are used in condition_combination."""

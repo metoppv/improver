@@ -39,9 +39,10 @@ import numpy as np
 from improver import BasePlugin
 from improver.metadata.probabilistic import (
     extract_diagnostic_name, find_threshold_coordinate)
-from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
+from improver.wxcode.wxcode_decision_tree import (
+    wxcode_decision_tree, START_NODE)
 from improver.wxcode.wxcode_decision_tree_global import (
-    wxcode_decision_tree_global)
+    wxcode_decision_tree_global, START_NODE_GLOBAL)
 from improver.wxcode.wxcode_utilities import (add_wxcode_metadata,
                                               expand_nested_lists,
                                               update_daynight)
@@ -73,8 +74,10 @@ class WeatherSymbols(BasePlugin):
         self.wxtree = wxtree
         if wxtree == 'global':
             self.queries = wxcode_decision_tree_global()
+            self.start_node = START_NODE_GLOBAL
         else:
             self.queries = wxcode_decision_tree()
+            self.start_node = START_NODE
         self.float_tolerance = 0.01
         # flag to indicate whether to expect "threshold" as a coordinate name
         # (defaults to False, checked on reading input cubes)
@@ -85,7 +88,8 @@ class WeatherSymbols(BasePlugin):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        return '<WeatherSymbols tree={}>'.format(self.wxtree)
+        return '<WeatherSymbols tree={} start_node={}>'.format(self.wxtree,
+                                                               self.start_node)
 
     def check_input_cubes(self, cubes):
         """
@@ -513,10 +517,6 @@ class WeatherSymbols(BasePlugin):
         # Check input cubes contain required data
         optional_node_data_missing = self.check_input_cubes(cubes)
 
-        start_node = 'lightning'
-        if self.wxtree == 'global':
-            start_node = 'heavy_precipitation'
-
         # Construct graph nodes dictionary
         graph = {key: [self.queries[key]['succeed'], self.queries[key]['fail']]
                  for key in self.queries.keys()}
@@ -537,7 +537,7 @@ class WeatherSymbols(BasePlugin):
             # In current decision tree
             # start node is heavy_precipitation
             routes = self.find_all_routes(
-                graph, start_node,
+                graph, self.start_node,
                 symbol_code,
                 missing_nodes=optional_node_data_missing)
             # Loop over possible routes from root to leaf
