@@ -158,10 +158,14 @@ def inputadvection(to_convert):
     """
     from improver.utilities.load import load_cube
 
-    u_cube = maybe_coerce_with(load_cube, to_convert,
-                          constraints="precipitation_advection_x_velocity")
-    v_cube = maybe_coerce_with(load_cube, to_convert,
-                          constraints="precipitation_advection_y_velocity")
+    u_cube = maybe_coerce_with(
+        load_cube, to_convert,
+        constraints="precipitation_advection_x_velocity")
+    v_cube = maybe_coerce_with(
+        load_cube, to_convert,
+        constraints="precipitation_advection_y_velocity")
+    if u_cube is None or v_cube is None:
+        raise TypeError()
 
     return u_cube, v_cube
 
