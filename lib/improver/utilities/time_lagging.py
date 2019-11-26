@@ -33,8 +33,8 @@
 import numpy as np
 
 from improver import BasePlugin
+from improver.metadata.forecast_times import rebadge_forecasts_as_latest_cycle
 from improver.utilities.cube_manipulation import concatenate_cubes
-from improver.utilities.temporal import rebadge_forecasts_as_latest_cycle
 
 
 class GenerateTimeLaggedEnsemble(BasePlugin):

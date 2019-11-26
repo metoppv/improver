@@ -38,10 +38,10 @@ from improver.constants import DEFAULT_PERCENTILES
 from improver.nbhood.circular_kernel import (
     CircularNeighbourhood, GeneratePercentilesFromACircularNeighbourhood)
 from improver.nbhood.square_kernel import SquareNeighbourhood
+from improver.metadata.forecast_times import forecast_period_coord
 from improver.utilities.cube_checker import (
     check_cube_coordinates, find_dimension_coordinate_mismatch)
 from improver.utilities.cube_manipulation import concatenate_cubes
-from improver.utilities.temporal import forecast_period_coord
 
 
 class BaseNeighbourhoodProcessing(BasePlugin):
