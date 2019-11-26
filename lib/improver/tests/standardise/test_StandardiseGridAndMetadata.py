@@ -248,6 +248,7 @@ class Test_process_regrid_options(IrisTest):
     @ManageWarnings(record=True)
     def test_warning_source_not_landmask(self, warning_list=None):
         """Test warning is raised if landmask_source_grid is not a landmask"""
+        expected_data = 282*np.ones((12, 12), dtype=np.float32)
         self.landmask.rename("not_a_landmask")
         result = StandardiseGridAndMetadata(
             regrid_mode='nearest-with-mask', landmask=self.landmask,
@@ -256,10 +257,12 @@ class Test_process_regrid_options(IrisTest):
         self.assertTrue(any([msg in str(warning) for warning in warning_list]))
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
+        self.assertArrayAlmostEqual(result.data, expected_data)
 
     @ManageWarnings(record=True)
     def test_warning_target_not_landmask(self, warning_list=None):
         """Test warning is raised if target_grid is not a landmask"""
+        expected_data = 282*np.ones((12, 12), dtype=np.float32)
         self.target_grid.rename("not_a_landmask")
         self.landmask.rename("not_a_landmask")
         result = StandardiseGridAndMetadata(
@@ -269,6 +272,7 @@ class Test_process_regrid_options(IrisTest):
         self.assertTrue(any([msg in str(warning) for warning in warning_list]))
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
+        self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_automatic_attribute_changes_with_regridding(self):
         """Test attributes inherited on regridding"""
