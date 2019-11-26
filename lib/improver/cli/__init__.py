@@ -39,6 +39,7 @@ from clize.help import (
     ClizeHelp)
 from clize.parser import value_converter
 from clize.runner import Clize
+from iris.cube import CubeList
 from sigtools.wrappers import decorator
 
 # Imports are done in their functions to make calls to -h quicker.
@@ -142,6 +143,27 @@ def inputcube(to_convert):
     """
     from improver.utilities.load import load_cube
     return maybe_coerce_with(load_cube, to_convert)
+
+
+@value_converter
+def inputvector(to_convert):
+    """Loads 2 vector cubes from a cubelist
+
+    Args:
+        to_convert (string or iris.cube.Cube):
+            File name or Cube object.
+
+    Returns:
+        Loaded cube or passed object.
+
+    """
+    from improver.utilities.load import load_cube
+
+    speed_cube = maybe_coerce_with(load_cube, to_convert,
+                                   constraints="wind_speed")
+    direction_cube = maybe_coerce_with(load_cube, to_convert,
+                                       constraints="wind_from_direction")
+    return CubeList([speed_cube, direction_cube])
 
 
 @value_converter
