@@ -157,13 +157,13 @@ class StandardiseGridAndMetadata(BasePlugin):
             iris.cube.Cube: Regridded cube
         """
         if self.landmask_name not in self.landmask_source_grid.name():
-            msg = ("Expected land_binary_mask in input_landmask cube "
-                   "but found {}".format(repr(self.landmask_source_grid)))
+            msg = ("Expected {} in input_landmask cube but found {}".format(
+                self.landmask_name, repr(self.landmask_source_grid)))
             warnings.warn(msg)
 
         if self.landmask_name not in target_grid.name():
-            msg = ("Expected land_binary_mask in target_grid cube "
-                   "but found {}".format(repr(target_grid)))
+            msg = ("Expected {} in target_grid cube but found {}".format(
+                self.landmask_name, repr(target_grid)))
             warnings.warn(msg)
 
         # adjust regridded cube data using differences in high resolution vs

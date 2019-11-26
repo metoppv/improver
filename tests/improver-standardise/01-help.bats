@@ -79,7 +79,7 @@ optional arguments:
                         the non-standard input.
   --new_name NEW_NAME   New dataset name.
   --new_units NEW_UNITS
-                        New dataset units.
+                        Units to convert to.
 
 Regridding options:
   --target_grid_filepath TARGET_GRID

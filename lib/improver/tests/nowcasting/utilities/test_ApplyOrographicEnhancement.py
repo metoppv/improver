@@ -454,8 +454,8 @@ class Test_process(IrisTest):
     def test_exception(self):
         """Test that an exception is raised if the operation requested is
         not a valid choice."""
-        plugin = ApplyOrographicEnhancement("multiply")
-        msg = "Operation 'multiply' not supported for"
+        plugin = ApplyOrographicEnhancement("invalid")
+        msg = "Operation 'invalid' not supported for"
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(self.precip_cubes, self.oe_cube)
 

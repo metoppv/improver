@@ -138,7 +138,7 @@ def main(argv=None):
     parser.add_argument("--new_name", metavar="NEW_NAME", type=str,
                         default=None, help="New dataset name.")
     parser.add_argument("--new_units", metavar="NEW_UNITS", type=str,
-                        default=None, help="New dataset units.")
+                        default=None, help="Units to convert to.")
 
     args = parser.parse_args(args=argv)
 

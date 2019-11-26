@@ -31,12 +31,16 @@
 """Unit tests for the standardise.StandardiseGridAndMetadata plugin."""
 
 import unittest
+from datetime import datetime
+
 import numpy as np
 import iris
+from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
 from improver.standardise import StandardiseGridAndMetadata
 from improver.tests.set_up_test_cubes import set_up_variable_cube
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test__init__(unittest.TestCase):
@@ -63,10 +67,109 @@ class Test__init__(unittest.TestCase):
             StandardiseGridAndMetadata(regrid_mode='nearest-with-mask')
 
 
-class Test_process(IrisTest):
-    """Test the process method. Complex regridded values are not tested here
-    as this is covered by unit tests for the regridding routines
-    (iris.cube.Cube.regrid and improver.standardise.RegridLandAndSea).
+class Test_process_no_regrid(IrisTest):
+    """Test the process method without regridding options."""
+
+    def setUp(self):
+        """Set up input cube"""
+        self.cube = set_up_variable_cube(
+            282*np.ones((5, 5), dtype=np.float32), spatial_grid='latlon',
+            standard_grid_metadata='gl_det', time=datetime(2019, 10, 11),
+            time_bounds=[datetime(2019, 10, 10, 23), datetime(2019, 10, 11)],
+            frt=datetime(2019, 10, 10, 18))
+        self.plugin = StandardiseGridAndMetadata()
+
+    def test_null(self):
+        """Test process method with default arguments returns an unchanged
+        cube"""
+        result = self.plugin.process(self.cube.copy())
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(result.data, self.cube.data)
+        self.assertEqual(result.metadata, self.cube.metadata)
+
+    def test_standardise_time_coords(self):
+        """Test incorrect time-type coordinates are cast to the correct
+        datatypes and units"""
+        for coord in ["time", "forecast_period"]:
+            self.cube.coord(coord).points = (
+                self.cube.coord(coord).points.astype(np.float64))
+            self.cube.coord(coord).bounds = (
+                self.cube.coord(coord).bounds.astype(np.float64))
+        self.cube.coord("forecast_period").convert_units("hours")
+        result = self.plugin.process(self.cube)
+        self.assertEqual(result.coord("forecast_period").units, "seconds")
+        self.assertEqual(
+            result.coord("forecast_period").points.dtype, np.int32)
+        self.assertEqual(
+            result.coord("forecast_period").bounds.dtype, np.int32)
+        self.assertEqual(result.coord("time").points.dtype, np.int64)
+        self.assertEqual(result.coord("time").bounds.dtype, np.int64)
+
+    def test_standardise_time_coords_missing_fp(self):
+        """Test a missing time-type coordinate does not cause an error when
+        standardisation is required"""
+        self.cube.coord("time").points = (
+            self.cube.coord("time").points.astype(np.float64))
+        self.cube.remove_coord("forecast_period")
+        result = self.plugin.process(self.cube)
+        self.assertEqual(result.coord("time").points.dtype, np.int64)
+
+    def test_collapse_scalar_dimensions(self):
+        """Test scalar dimension is collapsed"""
+        cube = iris.util.new_axis(self.cube, "time")
+        result = self.plugin.process(cube)
+        dim_coord_names = [coord.name() for coord in
+                           result.coords(dim_coords=True)]
+        aux_coord_names = [coord.name() for coord in
+                           result.coords(dim_coords=False)]
+        self.assertSequenceEqual(result.shape, (5, 5))
+        self.assertNotIn("time", dim_coord_names)
+        self.assertIn("time", aux_coord_names)
+
+    def test_realization_not_collapsed(self):
+        """Test scalar realization coordinate is preserved"""
+        realization = AuxCoord([1], "realization")
+        self.cube.add_aux_coord(realization)
+        cube = iris.util.new_axis(self.cube, "realization")
+        result = self.plugin.process(cube)
+        dim_coord_names = [coord.name() for coord in
+                           result.coords(dim_coords=True)]
+        self.assertSequenceEqual(result.shape, (1, 5, 5))
+        self.assertIn("realization", dim_coord_names)
+
+    def test_metadata_changes(self):
+        """Test changes to cube name, coordinates and attributes without
+        regridding"""
+        new_name = "regridded_air_temperature"
+        attribute_changes = {"institution": "Met Office",
+                             "mosg__grid_version": "remove"}
+        expected_attributes = {"mosg__grid_domain": "global",
+                               "mosg__grid_type": "standard",
+                               "mosg__model_configuration": "gl_det",
+                               "institution": "Met Office"}
+        expected_data = self.cube.data.copy() - 273.15
+        result = self.plugin.process(
+            self.cube, new_name=new_name, new_units="degC",
+            coords_to_remove=["forecast_period"],
+            attributes_dict=attribute_changes)
+        self.assertEqual(result.name(), new_name)
+        self.assertEqual(result.units, "degC")
+        self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
+        self.assertDictEqual(result.attributes, expected_attributes)
+        self.assertNotIn(
+            "forecast_period", [coord.name() for coord in result.coords()])
+
+    def test_fix_float64(self):
+        """Test precision de-escalation"""
+        self.cube.data = self.cube.data.astype(np.float64)
+        result = self.plugin.process(self.cube, fix_float64=True)
+        self.assertEqual(result.data.dtype, np.float32)
+
+
+class Test_process_regrid_options(IrisTest):
+    """Test the process method with regridding options. Regridded values
+    are not tested here as this is covered by unit tests for the regridding
+    routines (iris.cube.Cube.regrid and improver.standardise.RegridLandAndSea).
     """
 
     def setUp(self):
@@ -89,14 +192,6 @@ class Test_process(IrisTest):
             spatial_grid='equalarea', standard_grid_metadata='uk_det')
         for coord in ["time", "forecast_reference_time", "forecast_period"]:
             self.target_grid.remove_coord(coord)
-
-    def test_null(self):
-        """Test process method with default arguments returns an unchanged
-        cube"""
-        result = StandardiseGridAndMetadata().process(self.cube.copy())
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, self.cube.data)
-        self.assertEqual(result.metadata, self.cube.metadata)
 
     def test_basic_regrid(self):
         """Test default regridding arguments return expected dimensionality
@@ -146,27 +241,30 @@ class Test_process(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(self.cube, self.target_grid)
 
-    def test_metadata_changes(self):
-        """Test changes to cube name, coordinates and attributes without
-        regridding"""
-        new_name = "regridded_air_temperature"
-        attribute_changes = {"institution": "Met Office",
-                             "mosg__grid_version": "remove"}
-        expected_attributes = {"mosg__grid_domain": "global",
-                               "mosg__grid_type": "standard",
-                               "mosg__model_configuration": "gl_det",
-                               "institution": "Met Office"}
-        expected_data = self.cube.data.copy() - 273.15
-        result = StandardiseGridAndMetadata().process(
-            self.cube, new_name=new_name, new_units="degC",
-            coords_to_remove=["forecast_period"],
-            attributes_dict=attribute_changes)
-        self.assertEqual(result.name(), new_name)
-        self.assertEqual(result.units, "degC")
-        self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
-        self.assertDictEqual(result.attributes, expected_attributes)
-        self.assertNotIn(
-            "forecast_period", [coord.name() for coord in result.coords()])
+    @ManageWarnings(record=True)
+    def test_warning_source_not_landmask(self, warning_list=None):
+        """Test warning is raised if landmask_source_grid is not a landmask"""
+        self.landmask.rename("not_a_landmask")
+        result = StandardiseGridAndMetadata(
+            regrid_mode='nearest-with-mask', landmask=self.landmask,
+            landmask_vicinity=90000).process(self.cube, self.target_grid)
+        msg = "Expected land_binary_mask in input_landmask cube"
+        self.assertTrue(any([msg in str(warning) for warning in warning_list]))
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+
+    @ManageWarnings(record=True)
+    def test_warning_target_not_landmask(self, warning_list=None):
+        """Test warning is raised if target_grid is not a landmask"""
+        self.target_grid.rename("not_a_landmask")
+        self.landmask.rename("not_a_landmask")
+        result = StandardiseGridAndMetadata(
+            regrid_mode='nearest-with-mask', landmask=self.landmask,
+            landmask_vicinity=90000).process(self.cube, self.target_grid)
+        msg = "Expected land_binary_mask in target_grid cube"
+        self.assertTrue(any([msg in str(warning) for warning in warning_list]))
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
 
     def test_automatic_attribute_changes_with_regridding(self):
         """Test attributes inherited on regridding"""
@@ -203,13 +301,6 @@ class Test_process(IrisTest):
         result = StandardiseGridAndMetadata().process(
             self.cube, self.target_grid, attributes_dict=attribute_changes)
         self.assertDictEqual(result.attributes, expected_attributes)
-
-    def test_fix_float64(self):
-        """Test precision de-escalation"""
-        self.cube.data = self.cube.data.astype(np.float64)
-        result = StandardiseGridAndMetadata().process(
-            self.cube, fix_float64=True)
-        self.assertEqual(result.data.dtype, np.float32)
 
 
 if __name__ == '__main__':

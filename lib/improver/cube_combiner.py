@@ -100,9 +100,9 @@ class CubeCombiner(BasePlugin):
             coords = cube.coords(dim_coords=True)
             compare = [a == b for a, b in zip(coords, ref_coords)]
             if not np.all(compare):
-                msg = "Cannot combine cubes with different dimensions:\n{}"
-                raise ValueError(
-                    msg.format(iris.cube.CubeList([cube_list[0], cube])))
+                msg = ("Cannot combine cubes with different dimensions:\n"
+                       "{} and {}".format(repr(cube_list[0]), repr(cube)))
+                raise ValueError(msg)
 
     def process(self, cube_list, new_diagnostic_name, coords_to_expand=None):
         """
