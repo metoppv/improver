@@ -31,10 +31,10 @@
 """Unit tests for forecast time coordinate utilities"""
 
 import unittest
-import numpy as np
 from datetime import datetime, timedelta
 
 import iris
+import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
