@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the RegridLandSea class"""
+"""Unit tests for the AdjustLandSeaPoints class"""
 
 import unittest
 
@@ -40,7 +40,7 @@ from iris.tests import IrisTest
 from iris.util import squeeze
 
 from improver.grids import ELLIPSOID
-from improver.standardise import RegridLandSea
+from improver.standardise import AdjustLandSeaPoints
 from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube)
 from improver.utilities.spatial import OccurrenceWithinVicinity
@@ -48,7 +48,7 @@ from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test__init__(IrisTest):
-    """Tests for the initiation of the RegridLandSea class."""
+    """Tests for the initiation of the AdjustLandSeaPoints class."""
 
     def test_basic(self):
         """Test that instantiating the class results in an object with
@@ -57,7 +57,7 @@ class Test__init__(IrisTest):
                             'input_land': None,
                             'output_land': None,
                             'output_cube': None}
-        result = RegridLandSea()
+        result = AdjustLandSeaPoints()
         members = {attr: getattr(result, attr) for attr in dir(result)
                    if not callable(getattr(result, attr)) and
                    not attr.startswith("__")}
@@ -69,7 +69,7 @@ class Test__init__(IrisTest):
 
     def test_extrap_arg(self):
         """Test with extrapolation_mode argument."""
-        result = RegridLandSea(extrapolation_mode="mask")
+        result = AdjustLandSeaPoints(extrapolation_mode="mask")
         regridder = getattr(result, 'regridder')
         self.assertTrue(isinstance(regridder, iris.analysis.Nearest))
 
@@ -77,11 +77,11 @@ class Test__init__(IrisTest):
         """Test with invalid extrapolation_mode argument."""
         msg = "Extrapolation mode 'not_valid' not supported"
         with self.assertRaisesRegex(ValueError, msg):
-            RegridLandSea(extrapolation_mode="not_valid")
+            AdjustLandSeaPoints(extrapolation_mode="not_valid")
 
     def test_vicinity_arg(self):
         """Test with vicinity_radius argument."""
-        result = RegridLandSea(vicinity_radius=30000.)
+        result = AdjustLandSeaPoints(vicinity_radius=30000.)
         vicinity = getattr(result, 'vicinity')
         self.assertTrue(isinstance(vicinity, OccurrenceWithinVicinity))
         self.assertEqual(vicinity.distance, 30000.)
@@ -94,18 +94,19 @@ class Test__init__(IrisTest):
 
 
 class Test__repr__(IrisTest):
-    """Tests the __repr__ method of the RegridLandSea class."""
+    """Tests the __repr__ method of the AdjustLandSeaPoints class."""
 
     def test_basic(self):
         """Test that the expected string is returned."""
-        expected = ("<RegridLandSea: regridder: Nearest('nanmask'); "
+        expected = ("<AdjustLandSeaPoints: regridder: Nearest('nanmask'); "
                     "vicinity: <OccurrenceWithinVicinity: distance: 25000.0>>")
-        result = repr(RegridLandSea())
+        result = repr(AdjustLandSeaPoints())
         self.assertEqual(result, expected)
 
 
 class Test_correct_where_input_true(IrisTest):
-    """Tests the correct_where_input_true method of the RegridLandSea class."""
+    """Tests the correct_where_input_true method of the AdjustLandSeaPoints
+    class."""
 
     def setUp(self):
         """Create a class-object containing the necessary cubes.
@@ -116,7 +117,7 @@ class Test_correct_where_input_true(IrisTest):
         this allows it to be used in place of input_land to trigger the
         expected behaviour in the function.
         """
-        self.plugin = RegridLandSea(vicinity_radius=2200.)
+        self.plugin = AdjustLandSeaPoints(vicinity_radius=2200.)
         cube = squeeze(
             set_up_cube(num_grid_points=3,
                         zero_point_indices=((0, 0, 1, 1),)))
@@ -190,7 +191,7 @@ class Test_correct_where_input_true(IrisTest):
         # Define 5 x 5 arrays with output sea point at [1, 1] and input sea
         # point at [4, 4]. The alternative value of 0.5 at [4, 4] should not
         # be selected with a small vicinity_radius.
-        self.plugin = RegridLandSea(vicinity_radius=2200.)
+        self.plugin = AdjustLandSeaPoints(vicinity_radius=2200.)
         cube = squeeze(
             set_up_cube(num_grid_points=5,
                         zero_point_indices=((0, 0, 1, 1),)))
@@ -229,7 +230,7 @@ class Test_correct_where_input_true(IrisTest):
 
 
 class Test_process(IrisTest):
-    """Tests the process method of the RegridLandSea class."""
+    """Tests the process method of the AdjustLandSeaPoints class."""
 
     def setUp(self):
         """Create a class-object containing the necessary cubes.
@@ -240,7 +241,7 @@ class Test_process(IrisTest):
         input_cube: 0. at [1, 1]; 0.5 at [0, 1]; 0.1 at [4, 4]
         These should trigger all the behavior we expect.
         """
-        self.plugin = RegridLandSea(vicinity_radius=2200.)
+        self.plugin = AdjustLandSeaPoints(vicinity_radius=2200.)
 
         self.output_land = squeeze(
             set_up_cube(num_grid_points=5,

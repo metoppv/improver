@@ -142,13 +142,15 @@ class StandardiseGridAndMetadata(BasePlugin):
         self.grid_attributes = [
             'mosg__grid_version', 'mosg__grid_domain', 'mosg__grid_type']
 
-    def _regrid_landsea(self, cube, target_grid):
+    def _adjust_landsea(self, cube, target_grid):
         """
-        Apply land-sea masking to the regridded cube. Raise warnings if
-        landmask metadata is not as expected.
+        Adjust regridded data using differences between the target landmask
+        and that obtained by regridding the source grid landmask, to ensure
+        that the "land" or "sea" nature of the points in the regridded cube
+        matches that of the target grid.
 
         Returns:
-            iris.cube.Cube: Regridded cube
+            iris.cube.Cube: Adjusted cube
         """
         if self.landmask_name not in self.landmask_source_grid.name():
             msg = ("Expected {} in input_landmask cube but found {}".format(
@@ -160,10 +162,8 @@ class StandardiseGridAndMetadata(BasePlugin):
                 self.landmask_name, repr(target_grid)))
             warnings.warn(msg)
 
-        # adjust regridded cube data using differences in high resolution vs
-        # regridded land masks
-        return RegridLandSea(vicinity_radius=self.landmask_vicinity).process(
-            cube, self.landmask_source_grid, target_grid)
+        plugin = AdjustLandSeaPoints(vicinity_radius=self.landmask_vicinity)
+        return plugin.process(cube, self.landmask_source_grid, target_grid)
 
     def _regrid_to_target(self, cube, target_grid):
         """
@@ -178,7 +178,7 @@ class StandardiseGridAndMetadata(BasePlugin):
         cube = cube.regrid(target_grid, regridder)
 
         if self.REGRID_REQUIRES_LANDMASK[self.regrid_mode]:
-            cube = self._regrid_landsea(cube, target_grid)
+            cube = self._adjust_landsea(cube, target_grid)
 
         attributes_to_inherit = (
             {key: val for (key, val) in target_grid.attributes.items()
@@ -301,7 +301,7 @@ class StandardiseGridAndMetadata(BasePlugin):
         return cube
 
 
-class RegridLandSea:
+class AdjustLandSeaPoints:
     """
     Replace data values at points where the nearest-regridding technique
     selects a source grid-point with an opposite land-sea-mask value to the
@@ -338,7 +338,7 @@ class RegridLandSea:
         """
         Print a human-readable representation of the instantiated object.
         """
-        return "<RegridLandSea: regridder: {}; vicinity: {}>".format(
+        return "<AdjustLandSeaPoints: regridder: {}; vicinity: {}>".format(
             self.regridder, self.vicinity)
 
     def correct_where_input_true(self, selector_val):
