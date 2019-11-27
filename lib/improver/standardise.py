@@ -109,7 +109,7 @@ class StandardiseGridAndMetadata(BasePlugin):
                                 "nearest-with-mask": True}
 
     def __init__(self, regrid_mode='bilinear', extrapolation_mode='nanmask',
-                 landmask=None, landmask_vicinity=25000, grid_attributes=None):
+                 landmask=None, landmask_vicinity=25000):
         """
         Initialise regridding parameters
 
@@ -123,10 +123,6 @@ class StandardiseGridAndMetadata(BasePlugin):
                 Required for "nearest-with-mask" regridding option.
             landmask_vicinity (float):
                 Radius of vicinity to search for a coastline, in metres
-            grid_attributes (list of str or None):
-                List of attribute names to inherit from the target grid cube,
-                eg mosg__model_configuration, that describe the new grid. If
-                None, a list of Met Office-specific attributes is used.
 
         Raises:
             ValueError: If a landmask is required but not passed in
@@ -142,10 +138,9 @@ class StandardiseGridAndMetadata(BasePlugin):
             None if landmask is None else landmask_vicinity)
         self.landmask_name = "land_binary_mask"
 
-        self.grid_attributes = grid_attributes
-        if self.grid_attributes is None:
-            self.grid_attributes = [
-                'mosg__grid_version', 'mosg__grid_domain', 'mosg__grid_type']
+        # set attributes to inherit from the target grid
+        self.grid_attributes = [
+            'mosg__grid_version', 'mosg__grid_domain', 'mosg__grid_type']
 
     def _regrid_landsea(self, cube, target_grid):
         """
@@ -186,8 +181,8 @@ class StandardiseGridAndMetadata(BasePlugin):
             cube = self._regrid_landsea(cube, target_grid)
 
         attributes_to_inherit = (
-            {k: v for (k, v) in target_grid.attributes.items()
-             if k in self.grid_attributes})
+            {key: val for (key, val) in target_grid.attributes.items()
+             if key in self.grid_attributes})
         amend_attributes(cube, attributes_to_inherit)
 
         return cube

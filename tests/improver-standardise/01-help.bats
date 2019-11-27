@@ -40,7 +40,6 @@ usage: improver standardise [-h] [--profile] [--profile_file PROFILE_FILE]
                             [--extrapolation_mode EXTRAPOLATION_MODE]
                             [--input_landmask_filepath INPUT_LANDMASK_FILE]
                             [--landmask_vicinity LANDMASK_VICINITY]
-                            [--grid_attributes GRID_ATTRIBUTES [GRID_ATTRIBUTES ...]]
                             [--fix_float64] [--json_file JSON_FILE]
                             [--coords_to_remove COORDS_TO_REMOVE [COORDS_TO_REMOVE ...]]
                             [--new_name NEW_NAME] [--new_units NEW_UNITS]
@@ -114,9 +113,6 @@ Regridding options:
   --landmask_vicinity LANDMASK_VICINITY
                         Radius of vicinity to search for a coastline, in
                         metres. Default value; 25000 m
-  --grid_attributes GRID_ATTRIBUTES [GRID_ATTRIBUTES ...]
-                        List of grid-describing attributes to inherit from the
-                        target grid.
 __HELP__
   [[ "$output" == "$expected" ]]
 }

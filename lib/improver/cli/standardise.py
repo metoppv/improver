@@ -117,11 +117,6 @@ def main(argv=None):
         help=("Radius of vicinity to search for a coastline, in metres. "
               "Default value; 25000 m"))
 
-    regrid_group.add_argument(
-        "--grid_attributes", nargs="+", type=str, default=None,
-        help="List of grid-describing attributes to inherit from the target "
-             "grid.")
-
     # metadata standardisation
     parser.add_argument("--fix_float64", action='store_true', default=False,
                         help="Check and fix cube for float64 data. Without "
@@ -177,7 +172,7 @@ def main(argv=None):
     # Process Cube
     output_data = process(output_data, target_grid, args.regrid_mode,
                           args.extrapolation_mode, source_landsea,
-                          args.landmask_vicinity, args.grid_attributes,
+                          args.landmask_vicinity,
                           attributes_dict, args.coords_to_remove,
                           args.new_name, args.new_units, args.fix_float64)
 
@@ -188,7 +183,7 @@ def main(argv=None):
 
 def process(output_data, target_grid=None, regrid_mode='bilinear',
             extrapolation_mode='nanmask', source_landsea=None,
-            landmask_vicinity=25000, grid_attributes=None,
+            landmask_vicinity=25000,
             attributes_dict=None, coords_to_remove=None, new_name=None,
             new_units=None, fix_float64=False):
     """Standardises a cube by one or more of regridding, updating meta-data etc
@@ -237,9 +232,6 @@ def process(output_data, target_grid=None, regrid_mode='bilinear',
         landmask_vicinity (float):
             Radius of vicinity to search for a coastline, in metres.
             Defaults is 25000 m
-        grid_attributes (list of str or None):
-            List of grid-describing attributes to inherit from target grid. If
-            None, defaults are set by the StandardiseGridAndMetadata plugin.
         attributes_dict (dict or None):
             Dictionary containing required changes that will be applied to
             the attributes. Default is None.
@@ -287,8 +279,7 @@ def process(output_data, target_grid=None, regrid_mode='bilinear',
 
     plugin = StandardiseGridAndMetadata(
         regrid_mode=regrid_mode, extrapolation_mode=extrapolation_mode,
-        landmask=source_landsea, landmask_vicinity=landmask_vicinity,
-        grid_attributes=grid_attributes)
+        landmask=source_landsea, landmask_vicinity=landmask_vicinity)
     output_data = plugin.process(
         output_data, target_grid, new_name=new_name, new_units=new_units,
         coords_to_remove=coords_to_remove, attributes_dict=attributes_dict,

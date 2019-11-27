@@ -274,7 +274,7 @@ class Test_process_regrid_options(IrisTest):
                             for item in warning_list))
         self.assertArrayAlmostEqual(result.data, expected_data)
 
-    def test_automatic_attribute_changes_with_regridding(self):
+    def test_attribute_changes_with_regridding(self):
         """Test attributes inherited on regridding"""
         expected_attributes = self.cube.attributes
         for attr in ["mosg__grid_domain", "mosg__grid_type",
@@ -282,20 +282,6 @@ class Test_process_regrid_options(IrisTest):
             expected_attributes[attr] = self.target_grid.attributes[attr]
         result = StandardiseGridAndMetadata().process(
             self.cube, self.target_grid)
-        self.assertDictEqual(result.attributes, expected_attributes)
-
-    def test_configurable_attribute_changes_with_regridding(self):
-        """Test attributes to inherit can be manually configured using the
-        "grid_attributes" argument"""
-        self.target_grid.attributes["source"] = "UKV"
-        self.target_grid.attributes["institution"] = "Met Office"
-        grid_attributes = ["institution", "source", "mosg__grid_domain"]
-        expected_attributes = self.cube.attributes
-        for attr in grid_attributes:
-            expected_attributes[attr] = self.target_grid.attributes[attr]
-        result = StandardiseGridAndMetadata(
-            grid_attributes=grid_attributes).process(
-                self.cube, self.target_grid)
         self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_attribute_changes_after_regridding(self):
