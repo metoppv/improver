@@ -31,20 +31,14 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "probabilities-to-realizations --rebadging input output --raw_forecast_filepath input" {
+@test "probabilities-to-realizations --rebadging input raw_forecast --output output" {
 
-  run improver probabilities-to-realizations --rebadging --random_seed 0 \
+  run improver probabilities-to-realizations --rebadging \
       "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/basic/input.nc" \
-      "$TEST_DIR/output.nc" --raw_forecast_filepath "raw_file.nc"
-  [[ "$status" -eq 2 ]]
+      "raw_file.nc" \
+      --output "$TEST_DIR/output.nc"
+  [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver probabilities-to-realizations [-h] [--profile]
-                                              [--profile_file PROFILE_FILE]
-                                              [--no_of_realizations NUMBER_OF_REALIZATIONS]
-                                              (--reordering | --rebadging)
-                                              [--raw_forecast_filepath RAW_FORECAST_FILE]
-                                              [--random_seed RANDOM_SEED]
-                                              INPUT_FILE OUTPUT_FILE
-improver probabilities-to-realizations: error: Method: rebadging does not accept arguments: raw_forecast_filepath, random_seed
+RuntimeError: rebadging cannot be used with raw_forecast.
 __TEXT__
 }

@@ -31,15 +31,14 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "probabilities-to-realizations --reordering --ecc_bounds_warning raw_ens input output" {
+@test "probabilities-to-realizations --reordering --ecc-bounds-warning input raw_ens --output output" {
   improver_check_skip_acceptance
   KGO="probabilities-to-realizations/ecc_bounds_warning/kgo.nc"
 
-  run improver probabilities-to-realizations --reordering --ecc_bounds_warning --random_seed 0 \
-      --raw_forecast_filepath \
-      "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/ecc_bounds_warning/raw_ens.nc" \
+  run improver probabilities-to-realizations --reordering --ecc-bounds-warning --random-seed 0 \
       "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/ecc_bounds_warning/input.nc" \
-      "$TEST_DIR/output.nc"
+      "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/ecc_bounds_warning/raw_ens.nc" \
+      --output "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

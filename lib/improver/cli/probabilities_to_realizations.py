@@ -31,117 +31,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to convert from probabilities to ensemble realization data."""
 
-from iris.exceptions import CoordinateNotFoundError
-
-from improver.argparser import ArgParser
-from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-    GeneratePercentilesFromProbabilities, RebadgePercentilesAsRealizations,
-    EnsembleReordering)
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
+from improver import cli
 
 
-def main(argv=None):
-    """Convert from probabilities to ensemble realizations via a CLI."""
-
-    cli_specific_arguments = [
-        (['--no_of_realizations'],
-         {'metavar': 'NUMBER_OF_REALIZATIONS', 'default': None, 'type': int,
-          'help': (
-              "Optional definition of the number of ensemble realizations to "
-              "be generated. These are generated through an intermediate "
-              "percentile representation. These percentiles will be "
-              "distributed regularly with the aim of dividing into blocks of "
-              "equal probability. If the reordering option is specified and "
-              "the number of realizations is not given then the number of "
-              "realizations is taken from the number of realizations in the "
-              "raw forecast NetCDF file.")
-          })]
-
-    cli_definition = {'central_arguments': ('input_file', 'output_file'),
-                      'specific_arguments': cli_specific_arguments,
-                      'description': ('Convert a dataset containing '
-                                      'probabilities into one containing '
-                                      'ensemble realizations.')}
-    parser = ArgParser(**cli_definition)
-    # add mutually exclusive options rebadge and reorder.
-    # If reordering add option for raw ensemble - raise error if
-    # raw ens missing.
-    group = parser.add_mutually_exclusive_group(required=True)
-
-    group.add_argument('--reordering', default=False, action='store_true',
-                       help='The option used to create ensemble realizations '
-                       'from percentiles by reordering the input '
-                       'percentiles based on the order of the '
-                       'raw ensemble forecast.')
-    group.add_argument('--rebadging', default=False, action='store_true',
-                       help='The option used to create ensemble realizations '
-                       'from percentiles by rebadging the input '
-                       'percentiles.')
-
-    # If reordering, we need a raw ensemble forecast.
-    reordering = parser.add_argument_group(
-        'Reordering options', 'Options for reordering the input percentiles '
-        'using the raw ensemble forecast as required to create ensemble '
-        'realizations.')
-    reordering.add_argument('--raw_forecast_filepath',
-                            metavar='RAW_FORECAST_FILE',
-                            help='A path to an raw forecast NetCDF file to be '
-                            'processed. This option is compulsory, if the '
-                            'reordering option is selected.')
-    reordering.add_argument(
-        '--random_seed', default=None,
-        help='Option to specify a value for the random seed for testing '
-             'purposes, otherwise, the default random seed behaviour is '
-             'utilised. The random seed is used in the generation of the '
-             'random numbers used for splitting tied values '
-             'within the raw ensemble, so that the values from the input '
-             'percentiles can be ordered to match the raw ensemble.')
-    reordering.add_argument(
-        '--ecc_bounds_warning', default=False, action='store_true',
-        help='If True, where percentiles (calculated as an intermediate '
-             'output before realizations) exceed the ECC bounds range, raise '
-             'a warning rather than an exception.')
-
-    args = parser.parse_args(args=argv)
-
-    # CLI argument checking:
-    # Can only do one of reordering or rebadging: if options are passed which
-    # correspond to the opposite method, raise an exception.
-    # Note: Shouldn't need to check that both/none are set, since they are
-    # defined as mandatory, but mutually exclusive, options.
-    if args.rebadging:
-        if ((args.raw_forecast_filepath is not None) or
-                (args.random_seed is not None)):
-            parser.wrong_args_error(
-                'raw_forecast_filepath, random_seed', 'rebadging')
-
-    # Load Cube
-    cube = load_cube(args.input_filepath)
-    raw_forecast = None
-    if args.reordering:
-        raw_forecast = load_cube(args.raw_forecast_filepath, allow_none=True)
-        if raw_forecast is None:
-            message = ("You must supply a raw forecast filepath if using the "
-                       "reordering option.")
-            raise ValueError(message)
-        else:
-            try:
-                raw_forecast.coord("realization")
-            except CoordinateNotFoundError:
-                message = ("The netCDF file from the raw_forecast_filepath "
-                           "must have a realization coordinate.")
-                raise ValueError(message)
-
-    cube = process(cube, raw_forecast, args.no_of_realizations,
-                   args.reordering, args.rebadging, args.random_seed,
-                   args.ecc_bounds_warning)
-
-    save_netcdf(cube, args.output_filepath)
-
-
-def process(cube, raw_forecast=None, no_of_realizations=None, reordering=False,
-            rebadging=False, random_seed=None, ecc_bounds_warning=False):
+@cli.clizefy
+@cli.with_output
+def process(cube: cli.inputcube,
+            raw_forecast: cli.inputcube = None,
+            *,
+            no_of_realizations: int = None,
+            reordering=False,
+            rebadging=False,
+            random_seed: int = None,
+            ecc_bounds_warning=False):
     """Convert from probabilities to ensemble realizations.
 
     Args:
@@ -188,29 +90,39 @@ def process(cube, raw_forecast=None, no_of_realizations=None, reordering=False,
             Processed result Cube.
 
     Raises:
-        TypeError:
+        RuntimeError:
             If rebadging is used with raw_forecast.
-        TypeError:
+        RuntimeError:
             If rebadging is used with random_seed.
-        ValueError:
+        RuntimeError:
             If raw_forecast isn't supplied when using reordering.
     """
+    from iris.exceptions import CoordinateNotFoundError
+    from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+        GeneratePercentilesFromProbabilities, RebadgePercentilesAsRealizations,
+        EnsembleReordering)
+
     if rebadging:
         if raw_forecast is not None:
-            raise TypeError('rebadging cannot be used with raw_forecast.')
+            raise RuntimeError('rebadging cannot be used with raw_forecast.')
         if random_seed is not None:
-            raise TypeError('rebadging cannot be used with random_seed.')
+            raise RuntimeError('rebadging cannot be used with random_seed.')
 
     if reordering:
         no_of_realizations = no_of_realizations
         # If no_of_realizations is not given, take the number from the raw
         # ensemble cube.
         if no_of_realizations is None:
-            no_of_realizations = len(raw_forecast.coord("realization").points)
             if raw_forecast is None:
                 message = ("You must supply a raw forecast cube if using the "
                            "reordering option.")
-                raise ValueError(message)
+                raise RuntimeError(message)
+            try:
+                no_of_realizations = len(
+                    raw_forecast.coord("realization").points)
+            except CoordinateNotFoundError:
+                raise RuntimeError('The raw forecast must have a realization '
+                                   'coordinate.')
 
         cube = GeneratePercentilesFromProbabilities(
             ecc_bounds_warning=ecc_bounds_warning).process(
@@ -223,7 +135,3 @@ def process(cube, raw_forecast=None, no_of_realizations=None, reordering=False,
             cube, no_of_percentiles=no_of_realizations)
         result = RebadgePercentilesAsRealizations().process(cube)
     return result
-
-
-if __name__ == '__main__':
-    main()

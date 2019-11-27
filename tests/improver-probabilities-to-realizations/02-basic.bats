@@ -31,13 +31,13 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "probabilities-to-realizations --rebadging input output" {
+@test "probabilities-to-realizations --rebadging input --output output" {
   improver_check_skip_acceptance
   KGO="probabilities-to-realizations/basic/kgo.nc"
 
   run improver probabilities-to-realizations --rebadging \
       "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/basic/input.nc" \
-      "$TEST_DIR/output.nc"
+      --output "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
