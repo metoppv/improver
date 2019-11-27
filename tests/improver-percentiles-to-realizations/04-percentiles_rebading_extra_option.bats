@@ -31,7 +31,7 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "percentiles-to-realizations --sampling_method 'quantile' --no_of_percentiles 12 --rebadging input output --realization_numbers $(seq 100 1 111) " {
+@test "percentiles-to-realizations --sampling-method 'quantile' --no-of-percentiles 12 --rebadging --realization-numbers $(seq -s ',' 100 1 111) input --output output " {
   improver_check_skip_acceptance
   KGO="percentiles-to-realizations/percentiles_rebadging_extra_option/kgo.nc"
 
@@ -39,9 +39,10 @@
   # set of percentiles, and then rebadge the percentiles to be ensemble
   # realizations.
   run improver percentiles-to-realizations \
+      --sampling-method 'quantile' --no-of-percentiles 12 \
+      --rebadging --realization-numbers $(seq -s ',' 100 1 111) \
       "$IMPROVER_ACC_TEST_DIR/percentiles-to-realizations/percentiles_rebadging/multiple_percentiles_wind_cube.nc" \
-      "$TEST_DIR/output.nc" --sampling_method 'quantile' --no_of_percentiles 12 \
-      --rebadging --realization_numbers $(seq 100 1 111)
+      --output  "$TEST_DIR/output.nc"
 
   [[ "$status" -eq 0 ]]
 

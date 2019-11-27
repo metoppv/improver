@@ -31,19 +31,19 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "percentiles-to-realizations --sampling_method 'quantile' --no_of_percentiles 12 --reordering --raw_forecast_filepath raw_forecast --random_seed 0 input output" {
+@test "percentiles-to-realizations --sampling-method 'quantile' --no-of-percentiles 12 --reordering --random-seed 0 input raw_forecast --output output" {
   improver_check_skip_acceptance
   KGO="percentiles-to-realizations/percentiles_reordering/kgo.nc"
 
   # Run Ensemble Copula Coupling to convert one set of percentiles to another
   # set of percentiles, and then reorder the ensemble using the raw ensemble
   # realizations.
-  run improver percentiles-to-realizations  --sampling_method 'quantile' --no_of_percentiles 12 \
+  run improver percentiles-to-realizations  --sampling-method 'quantile' --no-of-percentiles 12 \
       --reordering \
-      --raw_forecast_filepath="$IMPROVER_ACC_TEST_DIR/percentiles-to-realizations/percentiles_reordering/raw_forecast.nc"\
-      --random_seed 0 \
+      --random-seed 0 \
       "$IMPROVER_ACC_TEST_DIR/percentiles-to-realizations/percentiles_reordering/multiple_percentiles_wind_cube.nc" \
-      "$TEST_DIR/output.nc"
+      "$IMPROVER_ACC_TEST_DIR/percentiles-to-realizations/percentiles_reordering/raw_forecast.nc" \
+      --output "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
