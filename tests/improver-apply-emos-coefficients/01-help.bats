@@ -33,13 +33,13 @@
   run improver apply-emos-coefficients -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-  usage: improver apply-emos-coefficients [-h] [--profile]
+usage: improver apply-emos-coefficients [-h] [--profile]
                                         [--profile_file PROFILE_FILE]
                                         [--num_realizations NUMBER_OF_REALIZATIONS]
                                         [--random_ordering]
                                         [--random_seed RANDOM_SEED]
                                         [--ecc_bounds_warning]
-                                        [--predictor_of_mean PREDICTOR_OF_MEAN]
+                                        [--predictor PREDICTOR]
                                         [--landsea_mask LANDSEA_MASK]
                                         FORECAST_FILEPATH
                                         [COEFFICIENTS_FILEPATH]
@@ -99,11 +99,13 @@ optional arguments:
                         probabilities and is converted to percentiles, as part
                         of converting the input probabilities into
                         realizations.
-  --predictor_of_mean PREDICTOR_OF_MEAN
-                        String to specify the predictor used to calibrate the
-                        forecast mean. Currently the ensemble mean ("mean")
-                        and the ensemble realizations ("realizations") are
-                        supported as options. Default: "mean".
+  --predictor PREDICTOR
+                        String to specify the form of the predictor used to
+                        calculate the location parameter when estimating the
+                        EMOS coefficients. Currently the ensemble mean
+                        ("mean") and the ensemble realizations
+                        ("realizations") are supported as options. Default:
+                        "mean".
   --landsea_mask LANDSEA_MASK
                         The netCDF file containing a land-sea mask on the same
                         domain as the forecast that is to be calibrated. Land
@@ -111,7 +113,6 @@ optional arguments:
                         specified by zeros. Supplying this file will enable
                         land-only calibration, in which sea points are
                         returned without the application of calibration.
-
 __HELP__
   [[ "$output" == "$expected" ]]
 }

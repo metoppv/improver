@@ -40,7 +40,7 @@
                                            [--historic_forecast_identifier HISTORIC_FORECAST_IDENTIFIER]
                                            [--truth_identifier TRUTH_IDENTIFIER]
                                            [--units UNITS]
-                                           [--predictor_of_mean PREDICTOR_OF_MEAN]
+                                           [--predictor PREDICTOR]
                                            [--max_iterations MAX_ITERATIONS]
                                            [--tolerance TOLERANCE]
                                            [--landsea_mask LANDSEA_MASK]

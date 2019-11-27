@@ -47,7 +47,7 @@
       "$IMPROVER_ACC_TEST_DIR/apply-emos-coefficients/gaussian/input.nc" \
       "$IMPROVER_ACC_TEST_DIR/$COEFFS" \
       "$TEST_DIR/output.nc" \
-      --predictor_of_mean 'realizations' --random_seed 0
+      --predictor 'realizations' --random_seed 0
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

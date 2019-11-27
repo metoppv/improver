@@ -124,10 +124,11 @@ def main(argv=None):
              'converted to percentiles, as part of converting the input '
              'probabilities into realizations.')
     parser.add_argument(
-        '--predictor_of_mean', metavar='PREDICTOR_OF_MEAN',
+        '--predictor', metavar='PREDICTOR',
         choices=['mean', 'realizations'], default='mean',
-        help='String to specify the predictor used to calibrate the forecast '
-             'mean. Currently the ensemble mean ("mean") and the ensemble '
+        help='String to specify the form of the predictor used to calculate '
+             'the location parameter when estimating the EMOS coefficients. '
+             'Currently the ensemble mean ("mean") and the ensemble '
              'realizations ("realizations") are supported as options. '
              'Default: "mean".')
     parser.add_argument(
@@ -148,14 +149,14 @@ def main(argv=None):
     result = process(current_forecast, coeffs, landsea_mask,
                      args.num_realizations, args.random_ordering,
                      args.random_seed, args.ecc_bounds_warning,
-                     args.predictor_of_mean)
+                     args.predictor)
     # Save Cube
     save_netcdf(result, args.output_filepath)
 
 
 def process(current_forecast, coeffs, landsea_mask, num_realizations=None,
             random_ordering=False, random_seed=None,
-            ecc_bounds_warning=False, predictor_of_mean='mean'):
+            ecc_bounds_warning=False, predictor='mean'):
     """Applying coefficients for Ensemble Model Output Statistics.
 
     Load in arguments for applying coefficients for Ensemble Model Output
@@ -209,11 +210,12 @@ def process(current_forecast, coeffs, landsea_mask, num_realizations=None,
             converted to percentiles, as part of converting the input
             probabilities into realizations.
             Default is False.
-        predictor_of_mean (str):
-            String to specify the predictor used to calibrate the forecast
-            mean. Currently the ensemble mean "mean" as the ensemble
-            realization "realization" are supported as options.
-            Default is 'mean'
+        predictor (str):
+            String to specify the form of the predictor used to calculate
+            the location parameter when estimating the EMOS coefficients.
+            Currently the ensemble mean ("mean") and the ensemble
+            realizations ("realizations") are supported as the predictors.
+            Default is "mean".
 
     Returns:
         iris.cube.Cube:
@@ -288,8 +290,7 @@ def process(current_forecast, coeffs, landsea_mask, num_realizations=None,
             current_forecast.coord('realization').points)
 
     # Apply coefficients as part of Ensemble Model Output Statistics (EMOS).
-    ac = ApplyCoefficientsFromEnsembleCalibration(
-        predictor_of_mean_flag=predictor_of_mean)
+    ac = ApplyCoefficientsFromEnsembleCalibration(predictor=predictor)
     calibrated_predictor, calibrated_variance = ac.process(
         current_forecast, coeffs, landsea_mask=landsea_mask)
 

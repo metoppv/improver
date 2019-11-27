@@ -47,7 +47,7 @@
       "$IMPROVER_ACC_TEST_DIR/apply-emos-coefficients/gaussian/input.nc" \
       "$IMPROVER_ACC_TEST_DIR/$COEFFS" \
       "$TEST_DIR/output.nc" \
-      --predictor_of_mean 'realizations' --random_seed 0 \
+      --predictor 'realizations' --random_seed 0 \
       --landsea_mask "$IMPROVER_ACC_TEST_DIR/estimate-emos-coefficients/landmask.nc"
   [[ "$status" -eq 0 ]]
 

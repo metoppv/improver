@@ -41,7 +41,7 @@ usage: improver estimate-emos-coefficients [-h] [--profile]
                                            [--historic_forecast_identifier HISTORIC_FORECAST_IDENTIFIER]
                                            [--truth_identifier TRUTH_IDENTIFIER]
                                            [--units UNITS]
-                                           [--predictor_of_mean PREDICTOR_OF_MEAN]
+                                           [--predictor PREDICTOR]
                                            [--max_iterations MAX_ITERATIONS]
                                            [--tolerance TOLERANCE]
                                            [--landsea_mask LANDSEA_MASK]
@@ -114,11 +114,13 @@ optional arguments:
   --units UNITS         The units that calibration should be undertaken in.
                         The historical forecast and truth will be converted as
                         required.
-  --predictor_of_mean PREDICTOR_OF_MEAN
-                        String to specify the predictor used to calibrate the
-                        forecast mean. Currently the ensemble mean ("mean")
-                        and the ensemble realizations ("realizations") are
-                        supported as options. Default: "mean".
+  --predictor PREDICTOR
+                        String to specify the form of the predictor used to
+                        calculate the location parameter when estimating the
+                        EMOS coefficients. Currently the ensemble mean
+                        ("mean") and the ensemble realizations
+                        ("realizations") are supported as options. Default:
+                        "mean".
   --max_iterations MAX_ITERATIONS
                         The maximum number of iterations allowed until the
                         minimisation has converged to a stable solution. If
@@ -127,8 +129,8 @@ optional arguments:
                         solution, then the available solution is used anyway,
                         and a warning is raised.This may be modified for
                         testing purposes but otherwise kept fixed. If the
-                        predictor_of_mean is "realizations", then the number
-                        of iterations may require increasing, as there will be
+                        predictor is "realizations", then the number of
+                        iterations may require increasing, as there will be
                         more coefficients to solve for.
   --tolerance TOLERANCE
                         The tolerance for the Continuous Ranked Probability

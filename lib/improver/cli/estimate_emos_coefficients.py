@@ -139,13 +139,14 @@ def main(argv=None):
                         help='The units that calibration should be undertaken '
                              'in. The historical forecast and truth will be '
                              'converted as required.')
-    parser.add_argument('--predictor_of_mean', metavar='PREDICTOR_OF_MEAN',
+    parser.add_argument('--predictor', metavar='PREDICTOR',
                         choices=['mean', 'realizations'], default='mean',
-                        help='String to specify the predictor used to '
-                             'calibrate the forecast mean. Currently the '
-                             'ensemble mean ("mean") and the ensemble '
-                             'realizations ("realizations") are supported as '
-                             'options. Default: "mean".')
+                        help='String to specify the form of the predictor '
+                             'used to calculate the location parameter '
+                             'when estimating the EMOS coefficients. '
+                             'Currently the ensemble mean ("mean") and the '
+                             'ensemble realizations ("realizations") are '
+                             'supported as options. Default: "mean".')
     parser.add_argument('--max_iterations', metavar='MAX_ITERATIONS',
                         type=np.int32, default=1000,
                         help='The maximum number of iterations allowed '
@@ -157,10 +158,9 @@ def main(argv=None):
                              'is used anyway, and a warning is raised.'
                              'This may be modified for testing purposes '
                              'but otherwise kept fixed. If the '
-                             'predictor_of_mean is "realizations", '
-                             'then the number of iterations may require '
-                             'increasing, as there will be more coefficients '
-                             'to solve for.')
+                             'predictor is "realizations", then the number of '
+                             'iterations may require increasing, as there '
+                             'will be more coefficients to solve for.')
     parser.add_argument('--tolerance', metavar='TOLERANCE',
                         type=np.float32, default=0.01,
                         help='The tolerance for the Continuous Ranked '
@@ -195,8 +195,8 @@ def main(argv=None):
     coefficients = process(historic_forecast, truth, combined,
                            historic_forecast_dict, truth_dict,
                            args.distribution, args.cycletime, landsea_mask,
-                           args.units, args.predictor_of_mean,
-                           args.tolerance, args.max_iterations)
+                           args.units, args.predictor, args.tolerance,
+                           args.max_iterations)
     # Save Cube
     # Check whether a coefficients cube has been created. If the historic
     # forecasts and truths provided did not match in validity time, then
@@ -207,7 +207,7 @@ def main(argv=None):
 
 def process(historic_forecast, truth, combined, historic_forecast_dict,
             truth_dict, distribution, cycletime, landsea_mask, units=None,
-            predictor_of_mean='mean', tolerance=1, max_iterations=1000):
+            predictor='mean', tolerance=1, max_iterations=1000):
     """Module for estimate coefficients for Ensemble Model Output Statistics.
 
     Loads in arguments for estimating coefficients for Ensemble Model
@@ -260,11 +260,12 @@ def process(historic_forecast, truth, combined, historic_forecast_dict,
             The units that calibration should be undertaken in. The historical
             forecast and truth will be converted as required.
             Default is None.
-        predictor_of_mean (str):
-            String to specify the input to calculate the calibrated mean.
+        predictor (str):
+            String to specify the form of the predictor used to calculate the
+            location parameter when estimating the EMOS coefficients.
             Currently the ensemble mean ("mean") and the ensemble realizations
             ("realizations") are supported as the predictors.
-            Default is 'mean'.
+             Default is "mean".
         tolerance (float):
             The tolerance for the Continuous Ranked Probability Score (CRPS)
             calculated by the minimisation. Once multiple iterations result in
@@ -276,10 +277,9 @@ def process(historic_forecast, truth, combined, historic_forecast_dict,
             is reached but the minimisation has not yet converged to a stable
             solution, then the available solution is used anyway, and a warning
             is raised.
-            If the predictor_of_mean is "realizations", then the number of
-            iterations may require increasing, as there will be more
-            coefficients to solve.
-            Default is 1000.
+            If the predictor is "realizations", then the number of iterations
+            may require increasing, as there will be more coefficients to
+            solve. Default is 1000.
 
     Returns:
         iris.cube.Cube or None:
@@ -354,8 +354,8 @@ def process(historic_forecast, truth, combined, historic_forecast_dict,
     else:
         result = EstimateCoefficientsForEnsembleCalibration(
             distribution, cycletime, desired_units=units,
-            predictor_of_mean_flag=predictor_of_mean,
-            tolerance=tolerance, max_iterations=max_iterations).process(
+            predictor=predictor, tolerance=tolerance,
+            max_iterations=max_iterations).process(
                 historic_forecast, truth, landsea_mask=landsea_mask)
 
     return result
