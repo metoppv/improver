@@ -37,7 +37,7 @@ import numpy as np
 
 from improver.argparser import ArgParser
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
-    GeneratePercentilesFromProbabilities
+    ConvertProbabilitiesToPercentiles
 from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
     import choose_set_of_percentiles
 from improver.percentile import PercentileConverter
@@ -158,7 +158,7 @@ def process(cube, coordinates=None, ecc_bounds_warning=False,
                                                 sampling="quantile")
     # TODO: Correct when formal cf-standards exists
     if 'probability_of_' in cube.name():
-        result = GeneratePercentilesFromProbabilities(
+        result = ConvertProbabilitiesToPercentiles(
             ecc_bounds_warning=ecc_bounds_warning).process(
             cube, percentiles=percentiles)
         if coordinates:

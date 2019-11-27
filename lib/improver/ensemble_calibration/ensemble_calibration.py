@@ -1013,10 +1013,9 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
 
         Formally, the result of applying the calibration coefficients is
         interpreted as a location parameter. If a Gaussian distribution, the
-        location parameter and the mean of the distribution would be expected
-        to be the same. However, for other distributions, the result of
-        applying the EMOS coefficients should only be interpreted as a
-        location parameter.
+        location parameter and the mean of the distribution are the same.
+        However, for other distributions, the result of applying the EMOS
+        coefficients should only be interpreted as a location parameter.
 
         .. Further information is available in:
         .. include:: extended_documentation/ensemble_calibration/

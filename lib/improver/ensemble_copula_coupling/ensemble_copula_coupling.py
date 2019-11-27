@@ -326,7 +326,7 @@ class ResamplePercentiles(BasePlugin):
         return forecast_at_percentiles
 
 
-class GeneratePercentilesFromProbabilities(BasePlugin):
+class ConvertProbabilitiesToPercentiles(BasePlugin):
     """
     Class for generating percentiles from probabilities.
     In combination with the Ensemble Reordering plugin, this is a variant
@@ -578,7 +578,7 @@ class GeneratePercentilesFromProbabilities(BasePlugin):
         if no_of_percentiles is not None and percentiles is not None:
             raise ValueError(
                 "Cannot specify both no_of_percentiles and percentiles to "
-                "GeneratePercentilesFromProbabilities")
+                "{}".format(self.__class__.__name__))
 
         threshold_coord = find_threshold_coordinate(forecast_probabilities)
 
@@ -622,7 +622,7 @@ class GeneratePercentilesFromProbabilities(BasePlugin):
         return forecast_at_percentiles
 
 
-class FromLocationAndScaleParameters():
+class ConvertLocationAndScaleParameters():
     """
     Base Class to support the plugins that compute percentiles and
     probabilities from the location and scale parameters.
@@ -634,7 +634,7 @@ class FromLocationAndScaleParameters():
 
         .. Further information is available in:
         .. include:: extended_documentation/ensemble_copula_coupling/
-           ensemble_copula_coupling/FromLocationAndScaleParameters.rst
+           ensemble_copula_coupling/ConvertLocationAndScaleParameters.rst
 
         Args:
             distribution (str):
@@ -666,7 +666,7 @@ ContinuousRankedProbabilityScoreMinimisers.calculate_truncated_normal_crps`,
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<FromLocationAndScaleParameters: distribution: {}; '
+        result = ('<ConvertLocationAndScaleParameters: distribution: {}; '
                   'shape_parameters: {}>')
         return result.format(
             self.distribution.name, self.shape_parameters)
@@ -712,7 +712,7 @@ ContinuousRankedProbabilityScoreMinimisers.calculate_truncated_normal_crps`,
 
 
 class ConvertLocationAndScaleParametersToPercentiles(
-        BasePlugin, FromLocationAndScaleParameters):
+        BasePlugin, ConvertLocationAndScaleParameters):
     """
     Plugin focussing on generating percentiles from mean and variance.
     In combination with the EnsembleReordering plugin, this is Ensemble
@@ -870,7 +870,7 @@ class ConvertLocationAndScaleParametersToPercentiles(
 
 
 class ConvertLocationAndScaleParametersToProbabilities(
-        BasePlugin, FromLocationAndScaleParameters):
+        BasePlugin, ConvertLocationAndScaleParameters):
     """
     Plugin to generate probabilities relative to given thresholds from the mean
     and variance of a distribution.

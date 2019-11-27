@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Unit tests for FromLocationAndScaleParameters
+Unit tests for ConvertLocationAndScaleParameters
 
 """
 import unittest
@@ -39,7 +39,7 @@ from scipy import stats
 from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-    FromLocationAndScaleParameters as Plugin)
+    ConvertLocationAndScaleParameters as Plugin)
 
 
 class Test__init__(IrisTest):
@@ -71,7 +71,7 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test string representation"""
-        expected_string = ("<FromLocationAndScaleParameters: "
+        expected_string = ("<ConvertLocationAndScaleParameters: "
                            "distribution: norm; shape_parameters: []>")
         result = str(Plugin())
         self.assertEqual(result, expected_string)

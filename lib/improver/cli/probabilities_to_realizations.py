@@ -35,7 +35,7 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver.argparser import ArgParser
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-    GeneratePercentilesFromProbabilities, RebadgePercentilesAsRealizations,
+    ConvertProbabilitiesToPercentiles, RebadgePercentilesAsRealizations,
     EnsembleReordering)
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
@@ -212,13 +212,13 @@ def process(cube, raw_forecast=None, no_of_realizations=None, reordering=False,
                            "reordering option.")
                 raise ValueError(message)
 
-        cube = GeneratePercentilesFromProbabilities(
+        cube = ConvertProbabilitiesToPercentiles(
             ecc_bounds_warning=ecc_bounds_warning).process(
             cube, no_of_percentiles=no_of_realizations)
         result = EnsembleReordering().process(
             cube, raw_forecast, random_ordering=False, random_seed=random_seed)
     elif rebadging:
-        cube = GeneratePercentilesFromProbabilities(
+        cube = ConvertProbabilitiesToPercentiles(
             ecc_bounds_warning=ecc_bounds_warning).process(
             cube, no_of_percentiles=no_of_realizations)
         result = RebadgePercentilesAsRealizations().process(cube)

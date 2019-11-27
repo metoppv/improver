@@ -44,8 +44,8 @@ from improver.ensemble_calibration.ensemble_calibration import (
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ConvertLocationAndScaleParametersToPercentiles,
     ConvertLocationAndScaleParametersToProbabilities,
+    ConvertProbabilitiesToPercentiles,
     EnsembleReordering,
-    GeneratePercentilesFromProbabilities,
     RebadgePercentilesAsRealizations,
     ResamplePercentiles)
 from improver.metadata.probabilistic import find_percentile_coordinate
@@ -255,7 +255,7 @@ def process(current_forecast, coeffs, landsea_mask, num_realizations=None,
     if current_forecast.name().startswith("probability_of"):
         input_forecast_type = "probabilities"
         # If probabilities, convert to percentiles.
-        conversion_plugin = GeneratePercentilesFromProbabilities(
+        conversion_plugin = ConvertProbabilitiesToPercentiles(
             ecc_bounds_warning=ecc_bounds_warning)
     elif input_forecast_type == "percentiles":
         # If percentiles, resample percentiles so that the percentiles are
