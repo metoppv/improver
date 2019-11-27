@@ -211,8 +211,7 @@ class Test_datetime_to_iris_time(IrisTest):
 
 class Test_datetime_constraint(IrisTest):
     """
-    Test construction of an iris.Constraint from a python.datetime
-    object.
+    Test construction of an iris.Constraint from a python datetime object.
     """
     def setUp(self):
         """Set up test cubes"""
