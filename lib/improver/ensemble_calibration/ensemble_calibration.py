@@ -157,9 +157,10 @@ class ContinuousRankedProbabilityScoreMinimisers:
             forecast_var (iris.cube.Cube):
                 Cube containg the field containing the ensemble variance.
             predictor_of_mean_flag (str):
-                String to specify the input to calculate the calibrated mean.
-                Currently the ensemble mean ("mean") and the ensemble
-                realizations ("realizations") are supported as the predictors.
+                String to specify the input to CRPS minimisation for computing
+                the EMOS coefficients. Currently the ensemble mean ("mean") and
+                the ensemble realizations ("realizations") are supported as
+                the predictors.
             distribution (str):
                 String used to access the appropriate function for use in the
                 minimisation within self.minimisation_dict.
@@ -281,9 +282,10 @@ class ContinuousRankedProbabilityScoreMinimisers:
             sqrt_pi (numpy.ndarray):
                 Square root of Pi
             predictor_of_mean_flag (str):
-                String to specify the input to calculate the calibrated mean.
-                Currently the ensemble mean ("mean") and the ensemble
-                realizations ("realizations") are supported as the predictors.
+                String to specify the input to CRPS minimisation for computing
+                the EMOS coefficients. Currently the ensemble mean ("mean") and
+                the ensemble realizations ("realizations") are supported as
+                the predictors.
 
         Returns:
             float:
@@ -343,9 +345,10 @@ class ContinuousRankedProbabilityScoreMinimisers:
             sqrt_pi (numpy.ndarray):
                 Square root of Pi
             predictor_of_mean_flag (str):
-                String to specify the input to calculate the calibrated mean.
-                Currently the ensemble mean ("mean") and the ensemble
-                realizations ("realizations") are supported as the predictors.
+                String to specify the input to CRPS minimisation for computing
+                the EMOS coefficients. Currently the ensemble mean ("mean") and
+                the ensemble realizations ("realizations") are supported as
+                the predictors.
 
         Returns:
             float:
@@ -403,6 +406,10 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         Regression, calculates coefficients based on historical forecasts and
         applies the coefficients to the current forecast.
 
+        .. Further information is available in:
+        .. include:: extended_documentation/ensemble_calibration/
+           ensemble_calibration/EstimateCoefficientsForEnsembleCalibration.rst
+
         Args:
             distribution (str):
                 Name of distribution. Assume that a calibrated version of the
@@ -416,9 +423,10 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 in. The current forecast, historical forecast and truth will be
                 converted as required.
             predictor_of_mean_flag (str):
-                String to specify the input to calculate the calibrated mean.
-                Currently the ensemble mean ("mean") and the ensemble
-                realizations ("realizations") are supported as the predictors.
+                String to specify the input to CRPS minimisation for computing
+                the EMOS coefficients. Currently the ensemble mean ("mean") and
+                the ensemble realizations ("realizations") are supported as
+                the predictors.
             tolerance (float):
                 The tolerance for the Continuous Ranked Probability
                 Score (CRPS) calculated by the minimisation. The CRPS is in
@@ -661,9 +669,10 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 Cube containing the fields to be used as the predictor,
                 either the ensemble mean or the ensemble realizations.
             predictor_of_mean_flag (str):
-                String to specify the input to calculate the calibrated mean.
-                Currently the ensemble mean ("mean") and the ensemble
-                realizations ("realizations") are supported as the predictors.
+                String to specify the input to CRPS minimisation for computing
+                the EMOS coefficients. Currently the ensemble mean ("mean") and
+                the ensemble realizations ("realizations") are supported as
+                the predictors.
             estimate_coefficients_from_linear_model_flag (bool):
                 Flag whether coefficients should be estimated from
                 the linear regression, or static estimates should be used.
@@ -920,11 +929,11 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
 
         Args:
             predictor_of_mean_flag (str):
-                String to specify the input to calculate the calibrated
-                location parameter, where the location parameter indicates
-                where a probability distribution function is centred.
-                Currently the ensemble mean ("mean") and the ensemble
-                realizations ("realizations") are supported as the predictors.
+                String to specify the input that was used for the CRPS
+                minimisation for computing the EMOS coefficients. Currently
+                the ensemble mean ("mean") and the ensemble realizations
+                ("realizations") are supported as the predictors.
+
         """
         check_predictor_of_mean_flag(predictor_of_mean_flag)
         self.predictor_of_mean_flag = predictor_of_mean_flag
@@ -1002,6 +1011,17 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         Function to get calibrated forecast_predictors when the predictor of
         mean used is the ensemble mean.
 
+        Formally, the result of applying the calibration coefficients is
+        interpreted as a location parameter. If a Gaussian distribution, the
+        location parameter and the mean of the distribution would be expected
+        to be the same. However, for other distributions, the result of
+        applying the EMOS coefficients should only be interpreted as a
+        location parameter.
+
+        .. Further information is available in:
+        .. include:: extended_documentation/ensemble_calibration/
+           ensemble_calibration/_get_calibrated_forecast_predictors_mean.rst
+
         Args:
             optimised_coeffs (dict):
                 A dictionary containing the calibration coefficient names as
@@ -1009,11 +1029,11 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
 
         Returns:
             (tuple): tuple containing:
-                **predicted_mean** (numpy.ndarray):
+                **predicted_location_parameter** (numpy.ndarray):
                     Calibrated location parameter values in a flattened array.
                 **forecast_predictor** (iris.cube.Cube):
-                    The forecast predictors, mean values taken by collapsing
-                    the realization coordinate.
+                    The forecast predictors, location parameter values taken
+                    by collapsing the realization coordinate.
         """
         forecast_predictor = self.current_forecast.collapsed(
             "realization", iris.analysis.MEAN)
@@ -1026,9 +1046,9 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
             np.ones(forecast_predictor_flat.shape, dtype=np.float32))
         ones_and_mean = (
             np.column_stack((col_of_ones, forecast_predictor_flat)))
-        predicted_mean = np.dot(ones_and_mean, a_and_b)
+        predicted_location_parameter = np.dot(ones_and_mean, a_and_b)
 
-        return predicted_mean, forecast_predictor
+        return predicted_location_parameter, forecast_predictor
 
     def _get_calibrated_forecast_predictors_realizations(
             self, optimised_coeffs, forecast_vars):
@@ -1051,7 +1071,7 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         Returns:
             (tuple): tuple containing:
                 **predicted_mean** (numpy.ndarray):
-                    Calibrated mean values in a flattened array.
+                    Calibrated location parameter values in a flattened array.
                 **forecast_predictor** (iris.cube.Cube):
                     The forecast predictors, mean values taken by collapsing
                     the realization coordinate.

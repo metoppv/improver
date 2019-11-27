@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """
 Unit tests for the
-`ensemble_copula_coupling.GeneratePercentilesFromProbabilities` class.
+`ensemble_copula_coupling.ConvertProbabilitiesToPercentiles` class.
 
 """
 import unittest
@@ -57,7 +57,7 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
 
     """
     Test the _add_bounds_to_thresholds_and_probabilities method of the
-    GeneratePercentilesFromProbabilities.
+    ConvertProbabilitiesToPercentiles.
     """
 
     def setUp(self):
@@ -163,7 +163,7 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
 class Test__probabilities_to_percentiles(IrisTest):
 
     """Test the _probabilities_to_percentiles method of the
-    GeneratePercentilesFromProbabilities plugin."""
+    ConvertProbabilitiesToPercentiles plugin."""
 
     def setUp(self):
         """Set up temperature cube."""
@@ -555,8 +555,7 @@ class Test__probabilities_to_percentiles(IrisTest):
 class Test_process(IrisTest):
 
     """
-    Test the process method of the GeneratePercentilesFromProbabilities
-    plugin.
+    Test the process method of the ConvertProbabilitiesToPercentiles plugin.
     """
 
     def setUp(self):

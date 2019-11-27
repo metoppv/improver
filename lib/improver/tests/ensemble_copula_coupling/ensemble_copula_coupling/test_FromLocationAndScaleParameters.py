@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Unit tests for FromMeanAndVariance
+Unit tests for FromLocationAndScaleParameters
 
 """
 import unittest
@@ -39,7 +39,7 @@ from scipy import stats
 from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-    FromMeanAndVariance as Plugin)
+    FromLocationAndScaleParameters as Plugin)
 
 
 class Test__init__(IrisTest):
@@ -71,7 +71,7 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test string representation"""
-        expected_string = ("<FromMeanAndVariance: "
+        expected_string = ("<FromLocationAndScaleParameters: "
                            "distribution: norm; shape_parameters: []>")
         result = str(Plugin())
         self.assertEqual(result, expected_string)

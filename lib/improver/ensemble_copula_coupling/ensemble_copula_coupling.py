@@ -632,6 +632,10 @@ class FromLocationAndScaleParameters():
         """
         Initialise the class.
 
+        .. Further information is available in:
+        .. include:: extended_documentation/ensemble_copula_coupling/
+           ensemble_copula_coupling/FromLocationAndScaleParameters.rst
+
         Args:
             distribution (str):
                 Name of a distribution supported by scipy.stats.
@@ -721,7 +725,7 @@ class ConvertLocationAndScaleParametersToPercentiles(
                   'distribution: {}; shape_parameters: {}>')
         return result.format(self.distribution.name, self.shape_parameters)
 
-    def _mean_and_variance_to_percentiles(
+    def _location_and_scale_parameters_to_percentiles(
             self, calibrated_forecast_predictor, calibrated_forecast_variance,
             percentiles):
         """
@@ -857,7 +861,7 @@ class ConvertLocationAndScaleParametersToPercentiles(
         if no_of_percentiles:
             percentiles = choose_set_of_percentiles(no_of_percentiles)
         calibrated_forecast_percentiles = (
-            self._mean_and_variance_to_percentiles(
+            self._location_and_scale_parameters_to_percentiles(
                 calibrated_forecast_predictor,
                 calibrated_forecast_variance,
                 percentiles))
@@ -878,8 +882,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
                   'distribution: {}; shape_parameters: {}>')
         return result.format(self.distribution.name, self.shape_parameters)
 
-    @staticmethod
-    def _check_template_cube(cube):
+    def _check_template_cube(self, cube):
         """
         The template cube is expected to contain a leading threshold dimension
         followed by spatial (y/x) dimensions. This check raises an error if
@@ -895,10 +898,10 @@ class ConvertLocationAndScaleParametersToProbabilities(
         """
         check_for_x_and_y_axes(cube, require_dim_coords=True)
         dim_coords = [coord.name() for coord in cube.coords(dim_coords=True)]
-        msg = ('ConvertLocationAndScaleParametersToProbabilities expects a '
-               'cube with only a leading threshold dimension, followed by '
-               'spatial (y/x) dimensions. Got dimensions: {}'.format(
-                    dim_coords))
+        msg = ('{} expects a cube with only a leading threshold dimension, '
+               'followed by spatial (y/x) dimensions. '
+               'Got dimensions: {}'.format(
+                    self.__class__.__name__, dim_coords))
 
         try:
             threshold_coord = find_threshold_coordinate(cube)
