@@ -66,7 +66,8 @@ positional arguments:
                         match the distribution used for minimising the
                         Continuous Ranked Probability Score when estimating
                         the EMOS coefficients. The distributions available are
-                        those supported by scipy.stats.
+                        those supported by scipy.stats. Currently tested
+                        distributions are: 'norm', 'truncnorm'.
 
 optional arguments:
   -h, --help            show this help message and exit

@@ -90,7 +90,8 @@ def main(argv=None):
              "probabilities. This should typically match the distribution "
              "used for minimising the Continuous Ranked Probability Score "
              "when estimating the EMOS coefficients. The distributions "
-             "available are those supported by scipy.stats.")
+             "available are those supported by scipy.stats. Currently "
+             "tested distributions are: 'norm', 'truncnorm'.")
     # Optional arguments.
     parser.add_argument(
         '--num_realizations', metavar='NUMBER_OF_REALIZATIONS',
@@ -146,7 +147,7 @@ def main(argv=None):
              "sea points are returned without the application of calibration.")
     parser.add_argument(
         '--shape_parameters', metavar="SHAPE_PARAMETERS", nargs="*",
-        default=None,
+        default=None, type=float,
         help="The shape parameters required for defining the distribution "
              "specified by the distribution argument. The shape parameters "
              "should either be a number or 'inf' or '-inf' to represent "
@@ -327,15 +328,6 @@ def process(current_forecast, coeffs, landsea_mask, distribution,
         predictor_of_mean_flag=predictor_of_mean)
     calibrated_predictor, calibrated_variance = ac.process(
         current_forecast, coeffs, landsea_mask=landsea_mask)
-
-    # Handle numbers or inf as shape parameters.
-    if shape_parameters:
-        accepted_params = {"inf": np.inf, "-inf": -np.inf}
-        for param_index, param in enumerate(shape_parameters):
-            if param in accepted_params.keys():
-                shape_parameters[param_index] = accepted_params[param]
-            else:
-                shape_parameters[param_index] = float(param)
 
     # If input forecast is probabilities, convert output into probabilities.
     # If input forecast is percentiles, convert output into percentiles.
