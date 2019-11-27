@@ -32,6 +32,7 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "percentiles-to-realizations --rebadging input raw_forecast --output output " {
+  improver_check_skip_acceptance
 
   # Test that the right error is raised when the wrong options are passed in.
   # pass input again as "raw_forecast"

@@ -32,6 +32,7 @@
 . $IMPROVER_DIR/tests/lib/utils
 
 @test "percentiles-to-realizations --reordering --realization_numbers $(seq -s ',' 100 1 111) input --output output " {
+  improver_check_skip_acceptance
 
   # Test that the right error is raised when the wrong options are passed in.
   run improver percentiles-to-realizations \
