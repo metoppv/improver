@@ -210,7 +210,7 @@ def process(cubelist, wts_calc_method, coordinate, cycletime, weighting_coord,
             "linear" (default): calculate linearly varying blending weights.
             "nonlinear": calculate blending weights that decrease
             exponentially with increasing blending coordinates.
-            "dicts": calculate weights using a dictionary passed in.
+            "dict": calculate weights using a dictionary passed in.
         coordinate (str):
             The coordinate over which the blending will be applied.
         cycletime (str):
