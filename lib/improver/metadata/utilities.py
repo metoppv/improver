@@ -103,28 +103,22 @@ def create_new_diagnostic_cube(
     return cube
 
 
-def generate_mandatory_attributes(diagnostic_cubes, title=None):
+def generate_mandatory_attributes(diagnostic_cubes):
     """
-    Function to generate values for the mandatory source, title and
-    institution attributes for new diagnostics that are generated using
-    several different model diagnostics.
+    Function to generate mandatory attributes for new diagnostics that are
+    generated using several different model diagnostics as input to the
+    calculation.  If all input diagnostics have the same attribute use this,
+    otherwise set a default value.
 
     Args:
         diagnostic_cubes (list):
             List of diagnostic cubes used in calculating the new diagnostic
-        title (str or None):
-            String value for the "title" attribute
 
     Returns:
         dict: Dictionary of mandatory attribute "key": "value" pairs.
     """
-    attributes = MANDATORY_ATTRIBUTE_DEFAULTS
-    if title is not None:
-        attributes["title"] = title
-
-    attribute_names = MANDATORY_ATTRIBUTES
-    attribute_names.remove("title")
-    for attr in attribute_names:
+    attributes = MANDATORY_ATTRIBUTE_DEFAULTS.copy()
+    for attr in MANDATORY_ATTRIBUTES:
         try:
             values = [cube.attributes[attr] for cube in diagnostic_cubes]
         except KeyError:
