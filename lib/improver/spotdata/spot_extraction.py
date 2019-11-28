@@ -35,7 +35,9 @@ import iris
 import numpy as np
 
 from improver import BasePlugin
-from improver.metadata.utilities import create_coordinate_hash
+from improver.metadata.utilities import (
+    create_coordinate_hash, MANDATORY_ATTRIBUTE_DEFAULTS)
+from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
@@ -206,10 +208,13 @@ class SpotExtraction(BasePlugin):
         spotdata_cube.attributes = diagnostic_cube.attributes
         spotdata_cube.attributes['model_grid_hash'] = (
             neighbour_cube.attributes['model_grid_hash'])
-        if new_title is not None:
-            spotdata_cube.attributes["title"] = new_title
-        else:
-            spotdata_cube.attributes.pop("title", None)
+
+        # remove grid attributes and update title
+        for attr in MOSG_GRID_ATTRIBUTES:
+            spotdata_cube.attributes.pop(attr, None)
+        spotdata_cube.attributes["title"] = (
+            MANDATORY_ATTRIBUTE_DEFAULTS["title"]
+            if new_title is None else new_title)
 
         return spotdata_cube
 
