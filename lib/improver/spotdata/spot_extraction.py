@@ -204,12 +204,12 @@ class SpotExtraction(BasePlugin):
         spotdata_cube = data_cubes.merge_cube()
 
         # Copy attributes from the diagnostic cube that describe the data's
-        # provenance, and update title if specified
+        # provenance
         spotdata_cube.attributes = diagnostic_cube.attributes
         spotdata_cube.attributes['model_grid_hash'] = (
             neighbour_cube.attributes['model_grid_hash'])
 
-        # remove grid attributes and update title
+        # Remove grid attributes and update title
         for attr in MOSG_GRID_ATTRIBUTES:
             spotdata_cube.attributes.pop(attr, None)
         spotdata_cube.attributes["title"] = (

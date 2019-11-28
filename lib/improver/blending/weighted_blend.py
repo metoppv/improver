@@ -41,6 +41,8 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
 from improver.metadata.amend import amend_attributes
+from improver.metadata.constants.attributes import (
+    MANDATORY_ATTRIBUTES, MANDATORY_ATTRIBUTE_DEFAULTS)
 from improver.metadata.probabilistic import find_percentile_coordinate
 from improver.metadata.forecast_times import (
     forecast_period_coord, rebadge_forecasts_as_latest_cycle)
@@ -781,6 +783,7 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
         - Remove scalar coordinates that were previously associated with the
         blend dimension
         - Update attributes as specified via process arguments
+        - Set any remaining mandatory arguments to their default values
         Modifies cube in place.
 
         Args:
@@ -793,6 +796,10 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
             blended_cube.remove_coord(coord)
         if attributes_dict is not None:
             amend_attributes(blended_cube, attributes_dict)
+        for attr in MANDATORY_ATTRIBUTES:
+            if attr not in blended_cube.attributes:
+                blended_cube.attributes[attr] = (
+                    MANDATORY_ATTRIBUTE_DEFAULTS[attr])
 
     def process(self, cube, weights=None,
                 cycletime=None, attributes_dict=None):

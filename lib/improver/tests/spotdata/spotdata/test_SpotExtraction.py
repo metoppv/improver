@@ -294,7 +294,6 @@ class Test_process(Test_SpotExtraction):
         self.assertArrayEqual(result.coord('longitude').points,
                               self.longitudes)
         self.assertEqual(result.coord('realization'), expected_coord)
-        #result.attributes.pop('model_grid_hash')
         self.assertDictEqual(result.attributes, self.expected_attributes)
 
 

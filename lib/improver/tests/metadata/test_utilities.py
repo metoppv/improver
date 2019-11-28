@@ -53,7 +53,7 @@ class Test_create_new_diagnostic_cube(unittest.TestCase):
         self.template_cube.add_cell_method('time (max): 1 hour')
         self.name = "lwe_precipitation_rate"
         self.units = "mm h-1"
-        self.mandatory_attributes = MANDATORY_ATTRIBUTE_DEFAULTS
+        self.mandatory_attributes = MANDATORY_ATTRIBUTE_DEFAULTS.copy()
 
     def test_basic(self):
         """Test result is a cube that inherits coordinates only"""
@@ -143,6 +143,7 @@ class Test_generate_mandatory_attributes(unittest.TestCase):
             "title": "UKV Model Forecast on 20 km Global Grid"}
         result = generate_mandatory_attributes(
             [self.t_cube, self.p_cube, self.rh_cube])
+        print(result)
         self.assertDictEqual(result, MANDATORY_ATTRIBUTE_DEFAULTS)
 
     def test_missing_attribute(self):
