@@ -597,28 +597,28 @@ class Test_find_all_routes(IrisTest):
         self.assertIsInstance(result, list)
         self.assertListEqual(result, expected_nodes)
 
-    def test_missing_nodes_top_node(self):
-        """Test find_all_routes where missing node is top node."""
-        missing_nodes = {'start_node': 'success_1'}
+    def test_omit_nodes_top_node(self):
+        """Test find_all_routes where omit node is top node."""
+        omit_nodes = {'start_node': 'success_1'}
         plugin = WeatherSymbols()
         result = plugin.find_all_routes(self.test_graph,
                                         'start_node',
                                         1,
-                                        missing_nodes=missing_nodes,)
+                                        omit_nodes=omit_nodes,)
         expected_nodes = [['success_1',
                            'success_1_1',
                            1]]
         self.assertIsInstance(result, list)
         self.assertListEqual(result, expected_nodes)
 
-    def test_missing_nodes_midtree(self):
-        """Test find_all_routes where missing_node is mid tree."""
-        missing_nodes = {'success_1': 'success_1_1'}
+    def test_omit_nodes_midtree(self):
+        """Test find_all_routes where omit node is mid tree."""
+        omit_nodes = {'success_1': 'success_1_1'}
         plugin = WeatherSymbols()
         result = plugin.find_all_routes(self.test_graph,
                                         'start_node',
                                         1,
-                                        missing_nodes=missing_nodes,)
+                                        omit_nodes=omit_nodes,)
         expected_nodes = [['start_node',
                            'success_1_1',
                            1],
@@ -629,26 +629,26 @@ class Test_find_all_routes(IrisTest):
         self.assertIsInstance(result, list)
         self.assertListEqual(result, expected_nodes)
 
-    def test_missing_nodes_blocked(self):
-        """Test find_all_routes where missing node is no longer accessible."""
-        missing_nodes = {'fail_0': 3}
+    def test_omit_nodes_blocked(self):
+        """Test find_all_routes where omitted node is no longer accessible."""
+        omit_nodes = {'fail_0': 3}
         plugin = WeatherSymbols()
         result = plugin.find_all_routes(self.test_graph,
                                         'start_node',
                                         5,
-                                        missing_nodes=missing_nodes,)
+                                        omit_nodes=omit_nodes,)
         expected_nodes = []
         self.assertIsInstance(result, list)
         self.assertListEqual(result, expected_nodes)
 
-    def test_missing_nodes_multi(self):
-        """Test find_all_routes where multiple missing node."""
-        missing_nodes = {'fail_0': 3, 'success_1': 'success_1_1'}
+    def test_omit_nodes_multi(self):
+        """Test find_all_routes where multiple omitted nodes."""
+        omit_nodes = {'fail_0': 3, 'success_1': 'success_1_1'}
         plugin = WeatherSymbols()
         result = plugin.find_all_routes(self.test_graph,
                                         'start_node',
                                         1,
-                                        missing_nodes=missing_nodes,)
+                                        omit_nodes=omit_nodes,)
         expected_nodes = [['start_node',
                            'success_1_1',
                            1]]

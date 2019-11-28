@@ -421,7 +421,7 @@ class WeatherSymbols(BasePlugin):
         return constraint
 
     @staticmethod
-    def find_all_routes(graph, start, end, missing_nodes=None, route=None):
+    def find_all_routes(graph, start, end, omit_nodes=None, route=None):
         """
         Function to trace all routes through the decision tree.
 
@@ -434,7 +434,7 @@ class WeatherSymbols(BasePlugin):
                 heavy_precipitation).
             end (int):
                 The weather symbol code to which we are tracing all routes.
-            missing_nodes (dict) or None:
+            omit_nodes (dict) or None:
                 A dictionary of (keyword) nodes names where the diagnostic
                 data is missing and (values) node associated with
                 diagnostic_missing_action.
@@ -453,11 +453,11 @@ class WeatherSymbols(BasePlugin):
         if route is None:
             route = []
 
-        if missing_nodes is not None:
+        if omit_nodes:
             start_not_valid = True
             while start_not_valid:
-                if start in missing_nodes:
-                    start = missing_nodes[start]
+                if start in omit_nodes:
+                    start = omit_nodes[start]
                 else:
                     start_not_valid = False
         route = route + [start]
@@ -471,7 +471,7 @@ class WeatherSymbols(BasePlugin):
             if node not in route:
                 newroutes = WeatherSymbols.find_all_routes(
                     graph, node, end,
-                    missing_nodes=missing_nodes,
+                    omit_nodes=omit_nodes,
                     route=route)
                 routes.extend(newroutes)
         return routes
@@ -539,30 +539,30 @@ class WeatherSymbols(BasePlugin):
             routes = self.find_all_routes(
                 graph, self.start_node,
                 symbol_code,
-                missing_nodes=optional_node_data_missing)
+                omit_nodes=optional_node_data_missing)
             # Loop over possible routes from root to leaf
-            if len(routes) > 0:
-                for route in routes:
-                    conditions = []
-                    for i_node in range(len(route)-1):
-                        current_node = route[i_node]
-                        current = copy.copy(self.queries[current_node])
-                        try:
-                            next_node = route[i_node+1]
-                        except KeyError:
-                            next_node = symbol_code
 
-                        if current['fail'] == next_node:
-                            (current['threshold_condition'],
-                             current['condition_combination']) = (
-                                 self.invert_condition(current))
+            for route in routes:
+                conditions = []
+                for i_node in range(len(route)-1):
+                    current_node = route[i_node]
+                    current = copy.copy(self.queries[current_node])
+                    try:
+                        next_node = route[i_node+1]
+                    except KeyError:
+                        next_node = symbol_code
 
-                        conditions.extend(self.create_condition_chain(current))
+                    if current['fail'] == next_node:
+                        (current['threshold_condition'],
+                         current['condition_combination']) = (
+                             self.invert_condition(current))
 
-                    test_chain = self.format_condition_chain(conditions)
+                    conditions.extend(self.create_condition_chain(current))
 
-                    # Set grid locations to suitable weather symbol
-                    symbols.data[np.where(eval(test_chain))] = symbol_code
+                test_chain = self.format_condition_chain(conditions)
+
+                # Set grid locations to suitable weather symbol
+                symbols.data[np.where(eval(test_chain))] = symbol_code
         # Update symbols for day or night.
         symbols = update_daynight(symbols)
         return symbols
