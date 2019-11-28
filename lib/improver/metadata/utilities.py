@@ -81,6 +81,37 @@ def create_new_diagnostic_cube(
     return cube
 
 
+def generate_mandatory_attributes(diagnostic_cubes, title=None):
+    """
+    Function to generate values for the mandatory source, title and
+    institution attributes for new diagnostics that are generated using
+    several different model diagnostics.
+
+    Args:
+        diagnostic_cubes (list):
+            List of diagnostic cubes used in calculating the new diagnostic
+        title (str or None):
+            String value for the "title" attribute
+
+    Returns:
+        dict: Dictionary of mandatory attribute "key": "value" pairs.
+    """
+    attributes = {}
+    attributes["title"] = "unknown" if title is None else title
+
+    # for "source" and "institution", inherit attributes from input cubes
+    # if all are from the same source; otherwise set a default value
+    default_values = {"source": "IMPROVER", "institution": "unknown"}
+    for attr in ["source", "institution"]:
+        values = [cube.attributes[attr] for cube in diagnostic_cubes]
+        unique_values = np.unique(values)
+        if len(unique_values) == 1:
+            attributes[attr] = unique_values[0]
+        else:
+            attributes[attr] = default_values[attr]
+    return attributes
+
+
 def generate_hash(data_in):
     """
     Generate a hash from the data_in that can be used to uniquely identify
