@@ -35,9 +35,9 @@ import iris
 import numpy as np
 
 from improver import BasePlugin
-from improver.metadata.utilities import (
-    create_coordinate_hash, MANDATORY_ATTRIBUTE_DEFAULTS)
+from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
+from improver.metadata.utilities import create_coordinate_hash
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 

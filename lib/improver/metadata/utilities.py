@@ -37,13 +37,8 @@ import iris
 import dask.array as da
 import numpy as np
 
-MANDATORY_ATTRIBUTE_DEFAULTS = {
-    "title": "unknown",
-    "source": "IMPROVER",
-    "institution": "unknown"
-}
-
-MANDATORY_ATTRIBUTES = MANDATORY_ATTRIBUTE_DEFAULTS.keys()
+from improver.metadata.constants.attributes import (
+    MANDATORY_ATTRIBUTES, MANDATORY_ATTRIBUTE_DEFAULTS)
 
 
 def create_new_diagnostic_cube(
@@ -127,7 +122,9 @@ def generate_mandatory_attributes(diagnostic_cubes, title=None):
     if title is not None:
         attributes["title"] = title
 
-    for attr in ["source", "institution"]:
+    attribute_names = MANDATORY_ATTRIBUTES
+    attribute_names.remove("title")
+    for attr in attribute_names:
         try:
             values = [cube.attributes[attr] for cube in diagnostic_cubes]
         except KeyError:
