@@ -35,7 +35,8 @@ import iris
 import numpy as np
 
 from improver.metadata.utilities import (
-    create_new_diagnostic_cube, generate_hash, create_coordinate_hash)
+    create_new_diagnostic_cube, generate_hash, create_coordinate_hash,
+    MANDATORY_ATTRIBUTE_DEFAULTS)
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
@@ -51,11 +52,13 @@ class Test_create_new_diagnostic_cube(unittest.TestCase):
         self.template_cube.add_cell_method('time (max): 1 hour')
         self.name = "lwe_precipitation_rate"
         self.units = "mm h-1"
+        self.mandatory_attributes = MANDATORY_ATTRIBUTE_DEFAULTS
 
     def test_basic(self):
         """Test result is a cube that inherits coordinates only"""
         result = create_new_diagnostic_cube(
-            self.name, self.units, self.template_cube)
+            self.name, self.units, self.template_cube,
+            self.mandatory_attributes)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.standard_name, "lwe_precipitation_rate")
         self.assertEqual(result.units, "mm h-1")
@@ -64,34 +67,42 @@ class Test_create_new_diagnostic_cube(unittest.TestCase):
         self.assertSequenceEqual(result.coords(dim_coords=False),
                                  self.template_cube.coords(dim_coords=False))
         self.assertFalse(np.allclose(result.data, self.template_cube.data))
-        self.assertFalse(result.attributes)
+        self.assertDictEqual(result.attributes, self.mandatory_attributes)
         self.assertFalse(result.cell_methods)
         self.assertEqual(result.data.dtype, np.float32)
 
     def test_attributes(self):
-        """Test attributes can be set on the output cube"""
-        attributes = {"source": "IMPROVER"}
+        """Test optional attributes can be set on the output cube, and override
+        the values in mandatory_attributes"""
+        attributes = {"source": "Mars", "mosg__model_configuration": "uk_det"}
+        expected_attributes = self.mandatory_attributes
+        for attr in attributes:
+            expected_attributes[attr] = attributes[attr]
         result = create_new_diagnostic_cube(
-            self.name, self.units, self.template_cube, attributes=attributes)
-        self.assertDictEqual(result.attributes, attributes)
+            self.name, self.units, self.template_cube,
+            self.mandatory_attributes, optional_attributes=attributes)
+        self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_data(self):
         """Test data can be set on the output cube"""
         data = np.arange(3*5*5).reshape((3, 5, 5)).astype(np.float32)
         result = create_new_diagnostic_cube(
-            self.name, self.units, self.template_cube, data=data)
+            self.name, self.units, self.template_cube,
+            self.mandatory_attributes, data=data)
         self.assertTrue(np.allclose(result.data, data))
 
     def test_dtype(self):
         """Test dummy data of a different type can be set"""
         result = create_new_diagnostic_cube(
-            self.name, self.units, self.template_cube, dtype=np.int32)
+            self.name, self.units, self.template_cube,
+            self.mandatory_attributes, dtype=np.int32)
         self.assertEqual(result.data.dtype, np.int32)
 
     def test_non_standard_name(self):
         """Test cube can be created with a non-CF-standard name"""
         result = create_new_diagnostic_cube(
-            "RainRate Composite", self.units, self.template_cube)
+            "RainRate Composite", self.units, self.template_cube,
+            self.mandatory_attributes)
         self.assertEqual(result.long_name, "RainRate Composite")
         self.assertIsNone(result.standard_name)
 
