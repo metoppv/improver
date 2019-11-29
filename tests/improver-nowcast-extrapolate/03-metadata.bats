@@ -38,7 +38,7 @@
   UVCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/kgo.nc"
   INFILE="201811031600_radar_rainrate_composite_UK_regridded.nc"
   JSONFILE="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/metadata/precip.json"
-  OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
+  OE1="20181103T1600Z-PT0003H00M-orographic_enhancement_standard_resolution.nc"
 
   # Run processing and check it passes
   run improver nowcast-extrapolate \
