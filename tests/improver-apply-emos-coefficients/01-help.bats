@@ -33,7 +33,7 @@
   run improver apply-emos-coefficients -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-  usage: improver apply-emos-coefficients [-h] [--profile]
+usage: improver apply-emos-coefficients [-h] [--profile]
                                         [--profile_file PROFILE_FILE]
                                         [--num_realizations NUMBER_OF_REALIZATIONS]
                                         [--random_ordering]
@@ -41,9 +41,10 @@
                                         [--ecc_bounds_warning]
                                         [--predictor_of_mean PREDICTOR_OF_MEAN]
                                         [--landsea_mask LANDSEA_MASK]
+                                        [--shape_parameters [SHAPE_PARAMETERS [SHAPE_PARAMETERS ...]]]
                                         FORECAST_FILEPATH
                                         [COEFFICIENTS_FILEPATH]
-                                        OUTPUT_FILEPATH
+                                        OUTPUT_FILEPATH DISTRIBUTION
 
 Apply coefficients for Ensemble Model Output Statistics (EMOS), otherwise
 known as Non-homogeneous Gaussian Regression (NGR). The supported input
@@ -60,6 +61,13 @@ positional arguments:
                         the coefficients used for calibration. If this file is
                         not provided the input forecast is returned unchanged.
   OUTPUT_FILEPATH       The output path for the processed NetCDF
+  DISTRIBUTION          The distribution for constructing realizations,
+                        percentiles or probabilities. This should typically
+                        match the distribution used for minimising the
+                        Continuous Ranked Probability Score when estimating
+                        the EMOS coefficients. The distributions available are
+                        those supported by scipy.stats. Currently tested
+                        distributions are: 'norm', 'truncnorm'.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -111,6 +119,16 @@ optional arguments:
                         specified by zeros. Supplying this file will enable
                         land-only calibration, in which sea points are
                         returned without the application of calibration.
+  --shape_parameters [SHAPE_PARAMETERS [SHAPE_PARAMETERS ...]]
+                        The shape parameters required for defining the
+                        distribution specified by the distribution argument.
+                        The shape parameters should either be a number or
+                        'inf' or '-inf' to represent infinity. Further details
+                        about appropriate shape parameters are available in
+                        scipy.stats. For the truncated normal distribution
+                        with a lower bound of zero, as available when
+                        estimating EMOS coefficients, the appropriate shape
+                        parameters are 0 and inf.
 
 __HELP__
   [[ "$output" == "$expected" ]]
