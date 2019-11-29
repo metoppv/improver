@@ -28,49 +28,18 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""ver_stream_processing"""
-from improver.argparser import ArgParser
-from improver.cli import (percentiles_to_realizations,
-                          probabilities_to_realizations, extract)
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
+"""Convert NetCDF files to realizations."""
+
+from improver import cli
 
 
-def main(argv=None):
-    """Convert Cubes to realizations."""
-    parser = ArgParser(
-        description='Converts a cube into realizations')
-    parser.add_argument(
-        'input_filepath', metavar='INPUT_FILE',
-        help='A path to an input NetCDF file containing the current forecast '
-             'to be processed. The file provided could have the coordinates '
-             '"percentile", "threshold" or "height" and "wind speed".')
-    parser.add_argument(
-        'output_filepath', metavar='OUTPUT_FILE',
-        help='The output path for the processed NetCDF.')
-    parser.add_argument(
-        'no_of_realizations', metavar='NUMBER_OF_REALIZATIONS',
-        help='The number of percentiles to be generated. This is equal to '
-             'the number of ensemble realizations that will be generated.')
-    parser.add_argument(
-        '--ecc_bounds_warning', default=False,
-        action='store_true',
-        help='If True, where calculated percentiles are '
-             'outside the ECC bounds range, raise a warning '
-             'rather than an exception.')
-
-    args = parser.parse_args(args=argv)
-
-    # Load Cube
-    cube = load_cube(args.input_filepath)
-    # Process Cube
-    result = process(cube, args.no_of_realizations, args.ecc_bounds_warning)
-    # Save Cube
-    save_netcdf(result, args.output_filepath)
-
-
-def process(cube, no_of_realizations, ecc_bounds_warning):
-    """Converts a cube into a realizations.
+@cli.clizefy
+@cli.with_output
+def process(cube: cli.inputcube,
+            *,
+            no_of_realizations: int = None,
+            ecc_bounds_warning=False):
+    """Converts an incoming cube into one containing realizations.
 
     Args:
         cube (iris.cube.Cube):
@@ -84,8 +53,10 @@ def process(cube, no_of_realizations, ecc_bounds_warning):
 
     Returns:
         cube (iris.cube.Cube):
-            A processed cube.
+            The processed cube.
     """
+    from improver.cli import (percentiles_to_realizations,
+                              probabilities_to_realizations, extract)
 
     if cube.coords('percentile'):
         cube = percentiles_to_realizations.process(
@@ -95,11 +66,4 @@ def process(cube, no_of_realizations, ecc_bounds_warning):
         cube = probabilities_to_realizations.process(
             cube, no_of_realizations=no_of_realizations, rebadging=True,
             ecc_bounds_warning=ecc_bounds_warning)
-    elif cube.coords('height') and cube.name('wind_speed'):
-        cube = extract.process(cube, 'height=10')
-
     return cube
-
-
-if __name__ == '__main__':
-    main()
