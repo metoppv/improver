@@ -48,7 +48,7 @@ class Test_grid_contains_cutout(unittest.TestCase):
         self.assertTrue(grid_contains_cutout(grid, cutout))
 
     def test_success_equal_area(self):
-        """Test success for an equal area cube creating by subsetting another
+        """Test success for an equal area cube created by subsetting another
         cube"""
         grid = set_up_variable_cube(
             np.ones((10, 10), dtype=np.float32), spatial_grid='equalarea')
@@ -56,7 +56,7 @@ class Test_grid_contains_cutout(unittest.TestCase):
         self.assertTrue(grid_contains_cutout(grid, cutout))
 
     def test_success_latlon(self):
-        """Test success for a lat/lon cube creating by subsetting another
+        """Test success for a lat/lon cube created by subsetting another
         cube"""
         grid = set_up_variable_cube(
             np.ones((10, 10), dtype=np.float32), spatial_grid='latlon')
@@ -77,6 +77,17 @@ class Test_grid_contains_cutout(unittest.TestCase):
         cutout = grid.copy()
         for axis in ['x', 'y']:
             cutout.coord(axis=axis).convert_units('feet')
+        self.assertFalse(grid_contains_cutout(grid, cutout))
+
+    def test_failure_outside_domain(self):
+        """Test failure if the cutout begins outside the grid domain"""
+        grid = set_up_variable_cube(
+            np.ones((10, 10), dtype=np.float32), spatial_grid='equalarea')
+        cutout = grid.copy()
+        grid_spacing = calculate_grid_spacing(
+            cutout, cutout.coord(axis='x').units)
+        cutout.coord(axis='x').points = (
+            cutout.coord(axis='x').points - 10*grid_spacing)
         self.assertFalse(grid_contains_cutout(grid, cutout))
 
     def test_failure_partial_overlap(self):

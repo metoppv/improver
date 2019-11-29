@@ -239,6 +239,8 @@ def process(output_data, target_grid=None, regrid_mode='bilinear',
             List of names of scalar coordinates to remove.
         new_name (str or None):
             Name of output cube.
+        new_units (str or None):
+            Units to convert to.
         fix_float64 (bool):
             If True, checks and fixes cube for float64 data. Without this
             option an exception will be raised if float64 data is found but no

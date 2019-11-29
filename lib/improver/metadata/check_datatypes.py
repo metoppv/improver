@@ -36,7 +36,7 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver.metadata.constants.time_types import (
     TIME_COORD_NAMES, TIME_REFERENCE_DTYPE, TIME_REFERENCE_UNIT,
-    TIME_DTYPE, TIME_UNIT)
+    TIME_INTERVAL_DTYPE, TIME_INTERVAL_UNIT)
 
 
 def check_cube_not_float64(cube, fix=False):
@@ -217,8 +217,8 @@ def check_time_coordinate_metadata(cube):
             required_unit = TIME_REFERENCE_UNIT
             required_dtype = TIME_REFERENCE_DTYPE
         else:
-            required_unit = TIME_UNIT
-            required_dtype = TIME_DTYPE
+            required_unit = TIME_INTERVAL_UNIT
+            required_dtype = TIME_INTERVAL_DTYPE
 
         if not _check_units_and_dtype(coord, required_unit, required_dtype):
             msg = ('Coordinate {} does not match required '

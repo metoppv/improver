@@ -45,7 +45,7 @@ from improver.metadata.check_datatypes import (
     check_cube_not_float64, check_time_coordinate_metadata)
 from improver.metadata.constants.time_types import (
     TIME_COORD_NAMES, TIME_REFERENCE_DTYPE, TIME_REFERENCE_UNIT,
-    TIME_DTYPE, TIME_UNIT)
+    TIME_INTERVAL_DTYPE, TIME_INTERVAL_UNIT)
 from improver.threshold import BasicThreshold
 from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.spatial import OccurrenceWithinVicinity
@@ -128,9 +128,8 @@ class StandardiseGridAndMetadata(BasePlugin):
             ValueError: If a landmask is required but not passed in
         """
         if landmask is None and "nearest-with-mask" in regrid_mode:
-            msg = ("An argument has been specified that requires an input "
-                   "landmask cube but none has been provided")
-            raise ValueError(msg)
+            msg = ("Regrid mode {} requires an input landmask cube")
+            raise ValueError(msg.format(regrid_mode))
         self.regrid_mode = regrid_mode
         self.extrapolation_mode = extrapolation_mode
         self.landmask_source_grid = landmask
@@ -148,6 +147,12 @@ class StandardiseGridAndMetadata(BasePlugin):
         and that obtained by regridding the source grid landmask, to ensure
         that the "land" or "sea" nature of the points in the regridded cube
         matches that of the target grid.
+
+        Args:
+            cube (iris.cube.Cube):
+                Cube after initial regridding
+            target_grid (iris.cube.Cube):
+                Cube containing landmask data on the target grid
 
         Returns:
             iris.cube.Cube: Adjusted cube
@@ -168,6 +173,14 @@ class StandardiseGridAndMetadata(BasePlugin):
     def _regrid_to_target(self, cube, target_grid):
         """
         Regrid cube to target_grid and inherit appropriate grid attributes
+
+        Args:
+            cube (iris.cube.Cube):
+                Cube to be regridded
+            target_grid (iris.cube.Cube):
+                Data on the target grid. If regridding with mask, this cube
+                should contain land-sea mask data to be used in adjusting land
+                and sea points after regridding.
 
         Returns:
             iris.cube.Cube: Regridded cube with updated attributes
@@ -201,10 +214,10 @@ class StandardiseGridAndMetadata(BasePlugin):
                 if coord.bounds is not None:
                     coord.bounds = coord.bounds.astype(TIME_REFERENCE_DTYPE)
             else:
-                coord.convert_units(TIME_UNIT)
-                coord.points = coord.points.astype(TIME_DTYPE)
+                coord.convert_units(TIME_INTERVAL_UNIT)
+                coord.points = coord.points.astype(TIME_INTERVAL_DTYPE)
                 if coord.bounds is not None:
-                    coord.bounds = coord.bounds.astype(TIME_DTYPE)
+                    coord.bounds = coord.bounds.astype(TIME_INTERVAL_DTYPE)
 
         # check all time coordinates; if check fails, update them all
         try:
@@ -237,7 +250,7 @@ class StandardiseGridAndMetadata(BasePlugin):
 
     @staticmethod
     def _remove_scalar_coords(cube, coords_to_remove):
-        """Removes named coordinates from the cube."""
+        """Removes named coordinates from the input cube."""
         for coord in coords_to_remove:
             try:
                 cube.remove_coord(coord)
@@ -256,7 +269,8 @@ class StandardiseGridAndMetadata(BasePlugin):
             target_grid (iris.cube.Cube or None):
                 Cube on the required grid. For "nearest-with-mask" regridding,
                 this cube should contain a binary land-sea mask
-                ("land_binary_mask").
+                ("land_binary_mask"). If target_grid is None, no regridding is
+                performed.
             new_name (str or None):
                 Optional rename for output cube
             new_units (str or None):
@@ -322,7 +336,6 @@ class AdjustLandSeaPoints:
                 Available modes are documented in
                 `iris.analysis <https://scitools.org.uk/iris/docs/latest/iris/
                 iris/analysis.html#iris.analysis.Nearest>`_
-
                 Defaults to "nanmask".
             vicinity_radius (float):
                 Distance in metres to search for a sea or land point.

@@ -170,14 +170,6 @@ class Test_process(set_up_cubes):
         self.assertArrayAlmostEqual(result.data.data, expected_data)
         self.assertArrayEqual(result.data.mask, mask)
 
-    def test_exception_for_cube_passed_in(self):
-        """Test that the plugin raises an exception if something other than a
-        cubelist is passed in."""
-        plugin = CubeCombiner('-')
-        msg = "object of type 'Cube'"
-        with self.assertRaisesRegex(TypeError, msg):
-            plugin.process(self.cube1, 'new_cube_name')
-
     def test_exception_mismatched_dimensions(self):
         """Test an error is raised if dimension coordinates do not match"""
         self.cube2.coord("lwe_thickness_of_precipitation_amount").rename(
@@ -192,7 +184,6 @@ class Test_process(set_up_cubes):
         only one cube is passed in."""
         plugin = CubeCombiner('-')
         msg = "Expecting 2 or more cubes in cube_list"
-
         cubelist = iris.cube.CubeList([self.cube1])
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(cubelist, 'new_cube_name')

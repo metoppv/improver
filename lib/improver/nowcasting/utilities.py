@@ -107,7 +107,7 @@ class ApplyOrographicEnhancement(BasePlugin):
 
         Args:
             operation (str):
-                Operation (+, add, -, subtract) to apply to the incoming cubes.
+                Operation ("add" or "subtract") to apply to the incoming cubes.
 
         Raises:
             ValueError: Operation not supported.
