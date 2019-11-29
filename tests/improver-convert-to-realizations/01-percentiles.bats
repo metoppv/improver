@@ -31,15 +31,14 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "percentiles-to-realizations --sampling-method 'quantile' --no-of-percentiles 12 --rebadging input --output output" {
+@test "convert-to-realizations --no-of-realizations 12 input --output output" {
   improver_check_skip_acceptance
   KGO="percentiles-to-realizations/percentiles_rebadging/kgo.nc"
 
   # Run Ensemble Copula Coupling to convert one set of percentiles to another
   # set of percentiles, and then rebadge the percentiles to be ensemble
   # realizations.
-  run improver percentiles-to-realizations  --sampling-method 'quantile' --no-of-percentiles 12 \
-      --rebadging \
+  run improver convert-to-realizations --no-of-realizations 12 \
       "$IMPROVER_ACC_TEST_DIR/percentiles-to-realizations/percentiles_rebadging/multiple_percentiles_wind_cube.nc" \
       --output "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
