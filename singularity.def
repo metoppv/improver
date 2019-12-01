@@ -1,0 +1,85 @@
+Bootstrap: yum
+OSVersion: 7
+MirrorURL: http://mirror.centos.org/centos-%{OSVERSION}/%{OSVERSION}/os/$basearch/
+Include: yum
+
+%post
+
+yum -y update
+yum -y install epel-release
+yum -y install \
+    autoconf automake \
+    cmake \
+    gcc gcc-c++ gcc-gfortran \
+    git \
+    make \
+    patch patchutils \
+    which
+yum -y install \
+    antlr antlr-C++ \
+    gsl gsl-devel \
+    hdf5 hdf5-devel \
+    curl libcurl-devel \
+    libgomp \
+    udunits2 udunits2-devel \
+    zlib-devel
+
+pushd /root
+
+NC_VERSION=4.7.3
+curl -L -O https://github.com/Unidata/netcdf-c/archive/v"${NC_VERSION}".tar.gz
+tar -xf v"${NC_VERSION}".tar.gz
+pushd netcdf-c-"${NC_VERSION}"
+./configure
+make -j8
+make install
+popd
+
+NCCMP_VERSION=1.8.5.0
+curl -L -O https://gitlab.com/remikz/nccmp/-/archive/"${NCCMP_VERSION}"/nccmp-"${NCCMP_VERSION}".tar.gz
+tar -xf nccmp-"${NCCMP_VERSION}".tar.gz
+pushd nccmp-"${NCCMP_VERSION}"
+./configure --with-netcdf=/root/netcdf-c-"${NC_VERSION}"
+make -j8
+make install
+popd
+
+rm -r nccmp-"${NCCMP_VERSION}".tar.gz nccmp-"${NCCMP_VERSION}"
+rm -r v"${NC_VERSION}".tar.gz netcdf-c-"${NC_VERSION}"
+ln -v -s /usr/local/lib/libnetcdf.* /usr/lib64
+popd
+
+cd /opt
+CONDA_BASE=https://repo.continuum.io/miniconda/Miniconda
+curl -L -o miniconda.sh ${CONDA_BASE}3-latest-Linux-x86_64.sh
+bash miniconda.sh -b -p /opt/conda
+rm miniconda.sh
+
+eval "$(/opt/conda/bin/conda shell.bash hook)"
+
+conda config --add channels defaults
+conda config --set always_yes yes --set changeps1 no
+conda config --set show_channel_urls True
+conda update --quiet conda
+
+conda install python=3.6
+conda install -c conda-forge iris=2.2 cftime=1.0.1 numpy=1.15.4
+conda install -c conda-forge astroid=2.1.0 filelock mock netcdf4=1.4.1 numpy=1.15.4 pycodestyle=2.3.1 pylint=2.1.1 pandas=0.23.4 python-stratify=0.1 sphinx=1.8.1 coverage pytest
+pip install codacy-coverage codecov clize sigtools
+
+%test
+
+nc-config --all
+nccmp -V
+eval "$(/opt/conda/bin/conda shell.bash hook)"
+python -c 'import iris; print(iris.__version__)'
+
+%environment
+
+export PATH="/opt/conda/bin:$PATH"
+eval "$(/opt/conda/bin/conda shell.bash hook)"
+
+%help
+
+Container setup similar to the .travis.yml from IMPROVER repository
+but with nccmp tool added
