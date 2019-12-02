@@ -103,10 +103,10 @@ class Test_process(IrisTest):
         self.rain_cube = _make_initial_rain_cube(analysis_time)
 
         self.interval = 15
-        max_lead_time = 120
+        self.max_lead_time = 120
         self.orogenh_cube = _make_orogenh_cube(
-            analysis_time, self.interval, max_lead_time)
-        self.plugin = PystepsExtrapolate(self.interval, max_lead_time)
+            analysis_time, self.interval, self.max_lead_time)
+        self.plugin = PystepsExtrapolate(self.interval, self.max_lead_time)
 
         # set up all grids with 3.6 km spacing (1 m/s = 3.6 km/h,
         # using a 15 minute time step this is one grid square per step)
@@ -138,6 +138,24 @@ class Test_process(IrisTest):
         self.assertEqual(
             result[0].attributes['title'],
             'MONOW Extrapolation Nowcast on UK 2 km Standard Grid')
+        expected_history = (r'[0-9]{4}-[0-9]{2}-[0-9]{2}T'
+                            r'[0-9]{2}:[0-9]{2}:[0-9]{2}Z: Nowcast')
+        self.assertRegex(result[0].attributes['history'], expected_history)
+
+    def test_set_attributes(self):
+        """Test plugin returns a cube with the specified attributes."""
+        attributes_dict = {
+            "mosg__grid_version": "1.0.0",
+            "mosg__model_configuration": "nc_det",
+            "source": "Met Office Nowcast",
+            "institution": "Met Office",
+            "title": "Nowcast on UK 2 km Standard Grid"}
+        plugin = PystepsExtrapolate(self.interval, self.max_lead_time,
+                                    attributes_dict=attributes_dict.copy())
+        result = plugin.process(
+            self.rain_cube, self.ucube, self.vcube, self.orogenh_cube)
+        result[0].attributes.pop("history")
+        self.assertEqual(result[0].attributes, attributes_dict)
 
     def test_time_coordinates(self):
         """Test cubelist has correct time metadata"""

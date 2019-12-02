@@ -36,6 +36,7 @@ from datetime import timedelta
 from iris.coords import AuxCoord
 from pysteps.extrapolation.semilagrangian import extrapolate
 
+from improver.metadata.amend import (amend_attributes, set_history_attribute)
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area, calculate_grid_spacing)
 from improver.utilities.temporal import (
@@ -50,7 +51,7 @@ class PystepsExtrapolate(object):
         https://pysteps.readthedocs.io/en/latest/generated/
         pysteps.extrapolation.semilagrangian.extrapolate.html
     """
-    def __init__(self, interval, max_lead_time):
+    def __init__(self, interval, max_lead_time, attributes_dict=None):
         """
         Initialise the plugin
 
@@ -59,9 +60,17 @@ class PystepsExtrapolate(object):
                 Lead time interval, in minutes
             max_lead_time (int):
                 Maximum lead time required, in minutes
+            attributes_dict (dict):
+                Dictionary containing information for amending the attributes
+                of the output cube.
         """
         self.interval = interval
         self.num_timesteps = max_lead_time // interval
+
+        # Initialise metadata dictionary.
+        if attributes_dict is None:
+            attributes_dict = {}
+        self.attributes_dict = attributes_dict
 
     def _get_precip_rate(self):
         """
@@ -205,6 +214,10 @@ class PystepsExtrapolate(object):
             if self.orogenh:
                 cube, = ApplyOrographicEnhancement("add").process(
                     cube, self.orogenh)
+
+            # Update meta-data
+            amend_attributes(cube, self.attributes_dict)
+            set_history_attribute(cube, "Nowcast")
             forecast_cubes.append(cube)
         return forecast_cubes
 
