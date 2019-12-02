@@ -31,36 +31,22 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "extrapolate to create accumulations calculated with 1 minute fidelity" {
+@test "Invalid amount of cubes" {
   improver_check_skip_acceptance
-  KGO0="nowcast-extrapolate/accumulation/kgo0_1_minute_fidelity.nc"
-  KGO1="nowcast-extrapolate/accumulation/kgo1_1_minute_fidelity.nc"
 
-  UCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/ucomp_kgo.nc"
-  VCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/vcomp_kgo.nc"
+  WDIR="$IMPROVER_ACC_TEST_DIR/nowcast-extrapolate/model_winds/20181103T1600Z-PT0001H00M-wind_direction_on_pressure_levels.nc"
   INFILE="201811031600_radar_rainrate_composite_UK_regridded.nc"
-  OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
 
   # Run processing and check it passes
   run improver nowcast-extrapolate \
     "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$INFILE" \
-    --output_dir "$TEST_DIR" --max_lead_time 30 \
-    --eastward_advection "$UCOMP" \
-    --northward_advection "$VCOMP" \
-    --orographic_enhancement_filepaths \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1" \
-    --accumulation_fidelity 1
-  [[ "$status" -eq 0 ]]
+    "$TEST_DIR/output.nc" \
+    --max_lead_time 30 \
+    --advection_direction_filepath "$WDIR"
+  [[ "$status" -eq 1 ]]
+  read -d '' expected <<'__TEXT__' || true
+ValueError: Either speed and direction or u and v cubes
+__TEXT__
+  [[ "$output" =~ "$expected" ]]
 
-  T0="20181103T1615Z-PT0000H15M-lwe_thickness_of_precipitation_amount.nc"
-  T1="20181103T1630Z-PT0000H30M-lwe_thickness_of_precipitation_amount.nc"
-
-  improver_check_recreate_kgo "$T0" $KGO0
-  improver_check_recreate_kgo "$T1" $KGO1
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/$T0" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO0"
-  improver_compare_output "$TEST_DIR/$T1" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO1"
 }

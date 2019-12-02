@@ -52,7 +52,8 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test string representation"""
-        expected_string = "<GenerateProbabilitiesFromMeanAndVariance>"
+        expected_string = ("<GenerateProbabilitiesFromMeanAndVariance: "
+                           "distribution: norm; shape_parameters: []>")
         result = str(Plugin())
         self.assertEqual(result, expected_string)
 
@@ -155,8 +156,8 @@ class Test__mean_and_variance_to_probabilities(IrisTest):
         # Thresholds such that we obtain probabilities of 75%, 50%, and 25% for
         # the mean and variance values set here.
         threshold_coord = find_threshold_coordinate(self.template_cube)
-        threshold_coord.points = [8.65105, 10., 11.34895]
-        mean_values = np.ones((3, 3)) * 10
+        threshold_coord.points = [0.65105, 2., 3.34895]
+        mean_values = np.ones((3, 3)) * 2
         variance_values = np.ones((3, 3)) * 4
         self.means = self.template_cube[0, :, :].copy(data=mean_values)
         self.means.units = 'Celsius'
@@ -164,11 +165,22 @@ class Test__mean_and_variance_to_probabilities(IrisTest):
         self.variances.units = 'Celsius2'
 
     def test_threshold_above_cube(self):
-        """Test that the expected probabilites are returned for a cube in which
-        they are calculated above the thresholds."""
+        """Test that the expected probabilities are returned for a cube in
+        which they are calculated above the thresholds."""
 
         expected = (np.ones((3, 3, 3)) * [0.75, 0.5, 0.25]).T
         result = Plugin()._mean_and_variance_to_probabilities(
+            self.means, self.variances, self.template_cube)
+        np.testing.assert_allclose(result.data, expected, rtol=1.e-4)
+
+    def test_threshold_above_cube_truncnorm(self):
+        """Test that the expected probabilities are returned for a cube in
+        which they are calculated above the thresholds using a truncated normal
+        distribution."""
+
+        expected = (np.ones((3, 3, 3)) * [0.8914245, 0.5942867, 0.2971489]).T
+        plugin = Plugin(distribution="truncnorm", shape_parameters=[0, np.inf])
+        result = plugin._mean_and_variance_to_probabilities(
             self.means, self.variances, self.template_cube)
         np.testing.assert_allclose(result.data, expected, rtol=1.e-4)
 

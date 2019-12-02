@@ -31,40 +31,27 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "extrapolate using model winds on pressure levels" {
+@test "extrapolate basic no orographic enhancement" {
   improver_check_skip_acceptance
-  KGO0="nowcast-extrapolate/model_winds/kgo0.nc"
-  KGO1="nowcast-extrapolate/model_winds/kgo1.nc"
-  KGO2="nowcast-extrapolate/model_winds/kgo2.nc"
+  KGO="nowcast-extrapolate/extrapolate_no_orographic_enhancement/kgo.nc"
 
-  WSPEED="$IMPROVER_ACC_TEST_DIR/nowcast-extrapolate/model_winds/20181103T1600Z-PT0001H00M-wind_speed_on_pressure_levels.nc"
-  WDIR="$IMPROVER_ACC_TEST_DIR/nowcast-extrapolate/model_winds/20181103T1600Z-PT0001H00M-wind_direction_on_pressure_levels.nc"
+  UVCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/kgo.nc"
   INFILE="201811031600_radar_rainrate_composite_UK_regridded.nc"
-  OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
 
-  # Run processing and check it passes
+  # Run processing and check it passes when the input files are not
+  # specifically precipitation. In this case, the input radar precipitation
+  # files and fields have been renamed as rainfall_rate to be able to test the
+  # CLIs function as intended for a field not recognised as precipitation.
   run improver nowcast-extrapolate \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$INFILE" \
-    --output_dir "$TEST_DIR" --max_lead_time 30 \
-    --advection_speed_filepath "$WSPEED" \
-    --advection_direction_filepath "$WDIR" \
-    --orographic_enhancement_filepaths \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1"
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic_no_orographic_enhancement/$INFILE" \
+    "$TEST_DIR/output.nc" \
+    --max_lead_time 30 \
+    --u_and_v_filepath "$UVCOMP"
   [[ "$status" -eq 0 ]]
 
-  T0="20181103T1600Z-PT0000H00M-lwe_precipitation_rate.nc"
-  T1="20181103T1615Z-PT0000H15M-lwe_precipitation_rate.nc"
-  T2="20181103T1630Z-PT0000H30M-lwe_precipitation_rate.nc"
-
-  improver_check_recreate_kgo "$T0" $KGO0
-  improver_check_recreate_kgo "$T1" $KGO1
-  improver_check_recreate_kgo "$T2" $KGO2
+  improver_check_recreate_kgo "output.nc" $KGO
 
   # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/$T0" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO0"
-  improver_compare_output "$TEST_DIR/$T1" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO1"
-  improver_compare_output "$TEST_DIR/$T2" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO2"
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

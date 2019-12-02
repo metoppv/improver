@@ -35,9 +35,6 @@
   read -d '' expected <<'__TEXT__' || true
 usage: improver nowcast-extrapolate [-h] [--profile]
                                     [--profile_file PROFILE_FILE]
-                                    [--output_dir OUTPUT_DIR | --output_filepaths OUTPUT_FILEPATHS [OUTPUT_FILEPATHS ...]]
-                                    [--eastward_advection_filepath EASTWARD_ADVECTION_FILEPATH]
-                                    [--northward_advection_filepath NORTHWARD_ADVECTION_FILEPATH]
                                     [--advection_speed_filepath ADVECTION_SPEED_FILEPATH]
                                     [--advection_direction_filepath ADVECTION_DIRECTION_FILEPATH]
                                     [--pressure_level PRESSURE_LEVEL]
@@ -45,26 +42,20 @@ usage: improver nowcast-extrapolate [-h] [--profile]
                                     [--json_file JSON_FILE]
                                     [--max_lead_time MAX_LEAD_TIME]
                                     [--lead_time_interval LEAD_TIME_INTERVAL]
-                                    [--accumulation_fidelity ACCUMULATION_FIDELITY]
-                                    [--accumulation_period ACCUMULATION_PERIOD]
-                                    [--accumulation_units ACCUMULATION_UNITS]
-                                    INPUT_FILEPATH
+                                    [--u_and_v_filepath U_AND_V_FILEPATH]
+                                    INPUT_FILEPATH OUTPUT_FILEPATH
 
 Extrapolate input data to required lead times.
 
 positional arguments:
   INPUT_FILEPATH        Path to input NetCDF file.
+  OUTPUT_FILEPATH       The output path for the resulting NetCDF
 
 optional arguments:
   -h, --help            show this help message and exit
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
-  --output_dir OUTPUT_DIR
-                        Directory to write output files.
-  --output_filepaths OUTPUT_FILEPATHS [OUTPUT_FILEPATHS ...]
-                        List of full paths to output nowcast files, in order
-                        of increasing lead time.
   --orographic_enhancement_filepaths OROGRAPHIC_ENHANCEMENT_FILEPATHS [OROGRAPHIC_ENHANCEMENT_FILEPATHS ...]
                         List or wildcarded file specification to the input
                         orographic enhancement files. Orographic enhancement
@@ -76,14 +67,12 @@ optional arguments:
                         Maximum lead time required (mins).
   --lead_time_interval LEAD_TIME_INTERVAL
                         Interval between required lead times (mins).
-
-Advect using files containing the x  and y components of the velocity:
-  --eastward_advection_filepath EASTWARD_ADVECTION_FILEPATH
-                        Path to input file containing Eastward advection
-                        velocities.
-  --northward_advection_filepath NORTHWARD_ADVECTION_FILEPATH
-                        Path to input file containing Northward advection
-                        velocities.
+  --u_and_v_filepath U_AND_V_FILEPATH
+                        Path to u and v cubelist. This cubelist should
+                        contains eastward and northwards advection velocities.
+                        These advection velocities will be extracted with the
+                        constraint 'precipitation_advection_[x or y]_velocity'
+                        for x or y.'
 
 Advect using files containing speed and direction:
   --advection_speed_filepath ADVECTION_SPEED_FILEPATH
@@ -99,24 +88,6 @@ Advect using files containing speed and direction:
                         The pressure level in Pa to extract from the multi-
                         level advection_speed and advection_direction files.
                         The velocities at this level are used for advection.
-
-Calculate accumulations from advected fields:
-  --accumulation_fidelity ACCUMULATION_FIDELITY
-                        If set, this CLI will additionally return
-                        accumulations calculated from the advected fields.
-                        This fidelity specifies the time interval in minutes
-                        between advected fields that is used to calculate
-                        these accumulations. This interval must be a factor of
-                        the lead_time_interval.
-  --accumulation_period ACCUMULATION_PERIOD
-                        The period over which the accumulation is calculated
-                        (mins). Only full accumulation periods will be
-                        computed. At lead times that are shorter than the
-                        accumulation period, no accumulation output will be
-                        produced.
-  --accumulation_units ACCUMULATION_UNITS
-                        Desired units in which the accumulations should be
-                        expressed,e.g. mm
 __TEXT__
   [[ "$output" =~ "$expected" ]]
 }

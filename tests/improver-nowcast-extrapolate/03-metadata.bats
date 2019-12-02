@@ -31,26 +31,28 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "extrapolate to create accumulations calculated with 5 minute fidelity" {
+@test "extrapolate with json file" {
   improver_check_skip_acceptance
+  KGO="nowcast-extrapolate/extrapolate/kgo_with_metadata.nc"
 
-  UCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/ucomp_kgo.nc"
-  VCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/vcomp_kgo.nc"
+  UVCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/kgo.nc"
   INFILE="201811031600_radar_rainrate_composite_UK_regridded.nc"
-  OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
+  JSONFILE="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/metadata/precip.json"
+  OE1="20181103T1600Z-PT0003H00M-orographic_enhancement_standard_resolution.nc"
 
   # Run processing and check it passes
   run improver nowcast-extrapolate \
     "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$INFILE" \
-    --output_dir "$TEST_DIR" --max_lead_time 30 \
-    --eastward_advection "$UCOMP" \
-    --northward_advection "$VCOMP" \
+    "$TEST_DIR/output.nc" \
+    --json_file "$JSONFILE" --max_lead_time 30 \
+    --u_and_v_filepath "$UVCOMP" \
     --orographic_enhancement_filepaths \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1" \
-    --accumulation_fidelity 9
-  [[ "$status" -eq 1 ]]
-  read -d '' expected <<'__TEXT__' || true
-ValueError: The specified lead_time_interval
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1"
+  [[ "$status" -eq 0 ]]
+
+  improver_check_recreate_kgo "output.nc" $KGO
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }
