@@ -34,7 +34,6 @@ import numpy as np
 from datetime import timedelta
 
 from iris.coords import AuxCoord
-from pysteps.extrapolation.semilagrangian import extrapolate
 
 from improver.metadata.amend import (amend_attributes, set_history_attribute)
 from improver.utilities.spatial import (
@@ -42,6 +41,11 @@ from improver.utilities.spatial import (
 from improver.utilities.temporal import (
     iris_time_to_datetime, datetime_to_iris_time)
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
+from improver.utilities.stdout_trap import Capture_StdOut
+
+# PySteps is so proud of itself - trap the routine StdOut message on import
+with Capture_StdOut() as _:
+    from pysteps.extrapolation.semilagrangian import extrapolate
 
 
 class PystepsExtrapolate(object):
