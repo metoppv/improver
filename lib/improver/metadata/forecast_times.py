@@ -37,12 +37,14 @@ from cf_units import Unit
 import iris
 from iris.exceptions import CoordinateNotFoundError
 
+from improver.metadata.constants.time_types import (
+    TIME_INTERVAL_DTYPE, TIME_INTERVAL_UNIT, TIME_REFERENCE_UNIT)
 from improver.utilities.cube_manipulation import build_coordinate
 from improver.utilities.temporal import cycletime_to_datetime
 
 
-def forecast_period_coord(
-        cube, force_lead_time_calculation=False, result_units="seconds"):
+def forecast_period_coord(cube, force_lead_time_calculation=False,
+                          result_units=TIME_INTERVAL_UNIT):
     """
     Return or calculate the lead time coordinate (forecast_period)
     within a cube, either by reading the forecast_period coordinate,
@@ -73,7 +75,7 @@ def forecast_period_coord(
     if cube.coords("forecast_period"):
         fp_type = cube.coord("forecast_period").dtype
     else:
-        fp_type = np.int32
+        fp_type = TIME_INTERVAL_DTYPE
 
     if cube.coords("forecast_period") and not force_lead_time_calculation:
         result_coord = cube.coord("forecast_period").copy()
@@ -200,7 +202,7 @@ def unify_cycletime(cubes, cycletime):
         cube = cube.copy()
         frt_units = cube.coord('forecast_reference_time').units
         frt_type = cube.coord('forecast_reference_time').dtype
-        new_frt_units = Unit('seconds since 1970-01-01 00:00:00')
+        new_frt_units = Unit(TIME_REFERENCE_UNIT)
         frt_points = np.round(
             [new_frt_units.date2num(cycletime)]).astype(frt_type)
         frt_coord = build_coordinate(
@@ -213,7 +215,7 @@ def unify_cycletime(cubes, cycletime):
         cube.add_aux_coord(frt_coord, data_dims=None)
 
         # Update the forecast period for consistency within each cube
-        fp_units = "seconds"
+        fp_units = TIME_INTERVAL_UNIT
         if cube.coords("forecast_period"):
             fp_units = cube.coord("forecast_period").units
             cube.remove_coord("forecast_period")
@@ -252,6 +254,5 @@ def find_latest_cycletime(cubelist):
         next_coord.convert_units(frt_coord.units)
         if next_coord.points[0] > frt_coord.points[0]:
             frt_coord = next_coord
-    cycletime, = frt_coord.units.num2date(
-        frt_coord.points)
+    cycletime, = frt_coord.units.num2date(frt_coord.points)
     return cycletime
