@@ -72,8 +72,13 @@ class PystepsExtrapolate(object):
             np.ndarray:
                 2D precipitation rate array in mm h-1
         """
-        self.analysis_cube, = ApplyOrographicEnhancement("subtract").process(
-            self.analysis_cube, self.orogenh)
+        if self.orogenh:
+            self.analysis_cube, = ApplyOrographicEnhancement(
+                "subtract").process(self.analysis_cube, self.orogenh)
+        elif "precipitation_rate" in self.analysis_cube.name():
+            msg = ("For precipitation fields, orographic enhancement "
+                   "cube must be supplied.")
+            raise ValueError(msg)
         self.analysis_cube.convert_units('mm h-1')
         return np.ma.filled(self.analysis_cube.data, np.nan)
 
@@ -197,8 +202,9 @@ class PystepsExtrapolate(object):
         forecast_cubes = []
         for cube in timestamped_cubes:
             cube.convert_units(self.required_units)
-            cube, = ApplyOrographicEnhancement("add").process(
-                cube, self.orogenh)
+            if self.orogenh:
+                cube, = ApplyOrographicEnhancement("add").process(
+                    cube, self.orogenh)
             forecast_cubes.append(cube)
         return forecast_cubes
 
