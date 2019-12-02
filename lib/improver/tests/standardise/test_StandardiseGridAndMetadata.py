@@ -59,8 +59,6 @@ class Test__init__(unittest.TestCase):
         self.assertIsNone(plugin.landmask_source_grid)
         self.assertIsNone(plugin.landmask_vicinity)
         self.assertEqual(plugin.landmask_name, 'land_binary_mask')
-        self.assertSequenceEqual(plugin.grid_attributes, [
-            'mosg__grid_version', 'mosg__grid_domain', 'mosg__grid_type'])
 
     def test_error_missing_landmask(self):
         """Test an error is thrown if no mask is provided for masked

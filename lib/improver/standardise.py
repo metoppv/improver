@@ -44,6 +44,7 @@ from improver.metadata.amend import amend_attributes
 from improver.metadata.check_datatypes import (
     check_cube_not_float64, check_time_coordinate_metadata)
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
+from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
 from improver.metadata.constants.time_types import (
     TIME_COORD_NAMES, TIME_REFERENCE_DTYPE, TIME_REFERENCE_UNIT,
     TIME_INTERVAL_DTYPE, TIME_INTERVAL_UNIT)
@@ -138,10 +139,6 @@ class StandardiseGridAndMetadata(BasePlugin):
             None if landmask is None else landmask_vicinity)
         self.landmask_name = "land_binary_mask"
 
-        # set attributes to inherit from the target grid
-        self.grid_attributes = [
-            'mosg__grid_version', 'mosg__grid_domain', 'mosg__grid_type']
-
     def _adjust_landsea(self, cube, target_grid):
         """
         Adjust regridded data using differences between the target landmask
@@ -199,7 +196,7 @@ class StandardiseGridAndMetadata(BasePlugin):
 
         attributes_to_inherit = (
             {key: val for (key, val) in target_grid.attributes.items()
-             if key in self.grid_attributes})
+             if key in MOSG_GRID_ATTRIBUTES})
         amend_attributes(cube, attributes_to_inherit)
 
         cube.attributes["title"] = (
@@ -286,7 +283,7 @@ class StandardiseGridAndMetadata(BasePlugin):
             regridded_title (str or None):
                 New title attribute to be applied after regridding. If not set,
                 the title attribute is set to a default value if the field is
-                regridded, as "title" may contain grid information. 
+                regridded, as "title" may contain grid information.
             coords_to_remove (list of str or None):
                 Optional list of scalar coordinates to remove from output cube
             attributes_dict (dict or None):

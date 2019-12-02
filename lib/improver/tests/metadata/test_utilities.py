@@ -143,7 +143,6 @@ class Test_generate_mandatory_attributes(unittest.TestCase):
             "title": "UKV Model Forecast on 20 km Global Grid"}
         result = generate_mandatory_attributes(
             [self.t_cube, self.p_cube, self.rh_cube])
-        print(result)
         self.assertDictEqual(result, MANDATORY_ATTRIBUTE_DEFAULTS)
 
     def test_missing_attribute(self):
