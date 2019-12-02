@@ -30,11 +30,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to convert wind vector cubeList to a cubeList of U and V"""
-from iris import Constraint
-from iris.cube import CubeList
 
 from improver import cli
-from improver.wind_calculations.wind_components import ResolveWindComponents
 
 
 @cli.clizefy
@@ -50,6 +47,12 @@ def process(wind_vector_cubes: cli.inputvector):
         iris.cube.Cubelist:
             A cubelist of the speed and direction as U and V cubes.
     """
+    from iris import Constraint
+    from iris.cube import CubeList
+
+    from improver.wind_calculations.wind_components import (
+        ResolveWindComponents)
+
     speed = wind_vector_cubes.extract(Constraint("wind_speed"), True)
     direction = wind_vector_cubes.extract(Constraint("wind_from_direction"),
                                           True)
