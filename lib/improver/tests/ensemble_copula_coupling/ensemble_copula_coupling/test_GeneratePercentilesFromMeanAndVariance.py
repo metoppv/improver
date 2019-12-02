@@ -49,6 +49,18 @@ from improver.tests.ensemble_calibration.ensemble_calibration. \
 from improver.utilities.warnings_handler import ManageWarnings
 
 
+class Test__repr__(IrisTest):
+
+    """Test string representation of plugin."""
+
+    def test_basic(self):
+        """Test string representation"""
+        expected_string = ("<GeneratePercentilesFromMeanAndVariance: "
+                           "distribution: norm; shape_parameters: []>")
+        result = str(Plugin())
+        self.assertEqual(result, expected_string)
+
+
 class Test__mean_and_variance_to_percentiles(IrisTest):
 
     """Test the _mean_and_variance_to_percentiles plugin."""
@@ -94,6 +106,49 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             percentiles)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, data)
+
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_simple_data_truncnorm_distribution(self):
+        """
+        Test that the plugin returns an iris.cube.Cube matching the expected
+        data values when a cube containing mean and variance is passed in.
+        The resulting data values are the percentiles, which have been
+        generated using a truncated normal distribution.
+        """
+        data = np.array([[[[1, 1, 1],
+                           [1, 1, 1],
+                           [1, 1, 1]]],
+                         [[[2, 2, 2],
+                           [2, 2, 2],
+                           [2, 2, 2]]],
+                         [[[3, 3, 3],
+                           [3, 3, 3],
+                           [3, 3, 3]]]])
+
+        result_data = np.array([[[[0.827385, 0.827385, 0.827385],
+                                  [0.827385, 0.827385, 0.827385],
+                                  [0.827385, 0.827385, 0.827385]]],
+                                [[[2.028517, 2.028517, 2.028517],
+                                  [2.028517, 2.028517, 2.028517],
+                                  [2.028517, 2.028517, 2.028517]]],
+                                [[[3.2946239, 3.2946239, 3.2946239],
+                                  [3.2946239, 3.2946239, 3.2946239],
+                                  [3.2946239, 3.2946239, 3.2946239]]]])
+
+        cube = self.current_temperature_forecast_cube
+        cube.data = data
+        current_forecast_predictor = cube.collapsed(
+            "realization", iris.analysis.MEAN)
+        current_forecast_variance = cube.collapsed(
+            "realization", iris.analysis.VARIANCE)
+        percentiles = [10, 50, 90]
+        plugin = Plugin(distribution="truncnorm", shape_parameters=[0, np.inf])
+        result = plugin._mean_and_variance_to_percentiles(
+            current_forecast_predictor, current_forecast_variance,
+            percentiles)
+        self.assertIsInstance(result, Cube)
+        self.assertArrayAlmostEqual(result.data, result_data)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])

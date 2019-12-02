@@ -403,6 +403,7 @@ intersphinx_mapping = {
     'https://scitools.org.uk/cartopy/docs/latest/': None,
     'https://scitools.org.uk/cf-units/docs/latest/': None,
     'https://docs.scipy.org/doc/numpy/': None,
+    'https://docs.scipy.org/doc/scipy/reference/': None,
 }
 
 # Get napoleon to document constructor methods.

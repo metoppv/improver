@@ -37,16 +37,18 @@
 
   UVCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/kgo.nc"
   INFILE="201811031600_radar_rainrate_composite_UK_regridded.nc"
-  OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
+  OE1="20181103T1600Z-PT0003H00M-orographic_enhancement_standard_resolution.nc"
+  OE2="20181103T1700Z-PT0004H00M-orographic_enhancement_standard_resolution.nc"
 
   # Run processing and check it passes
   run improver nowcast-extrapolate \
     "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$INFILE" \
     "$TEST_DIR/output.nc" \
-    --max_lead_time 30 \
+    --max_lead_time 90 \
     --u_and_v_filepath "$UVCOMP" \
     --orographic_enhancement_filepaths \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1"
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE1" \
+    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/$OE2"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
