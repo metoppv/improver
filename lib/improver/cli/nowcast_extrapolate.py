@@ -185,7 +185,7 @@ def process(input_cube, u_cube=None, v_cube=None, speed_cube=None,
             speed_cube, direction_cube)
 
     # extrapolate input data to required lead times
-    forecast_plugin = PystepsExtrapolate(time_interval, max_lead_time)
+    forecast_plugin = PystepsExtrapolate(lead_time_interval, max_lead_time)
     forecast_cubes = forecast_plugin.process(input_cube, u_cube, v_cube,
                                              orographic_enhancement_cube)
 
