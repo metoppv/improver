@@ -528,7 +528,7 @@ class Test_construct_extract_constraint(IrisTest):
                                                      threshold, False)
         expected = ("iris.Constraint("
                     "name='probability_of_rainfall_rate_above_threshold', "
-                    "rainfall_rate=lambda cell: cell == 0.0 )")
+                    "rainfall_rate=lambda cell:  -1e-12 < cell < 1e-12)")
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 

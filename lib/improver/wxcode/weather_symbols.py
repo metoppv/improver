@@ -70,6 +70,9 @@ class WeatherSymbols(BasePlugin):
 
         float_tolerance defines the tolerance when matching thresholds to allow
         for the difficulty of float comparisons.
+        float_abs_tolerance defines the tolerance for when the threshold
+        is zero. It has to be sufficiently small that a valid rainfall rate
+        or snowfall rate could not trigger it.
         """
         self.wxtree = wxtree
         if wxtree == 'global':
@@ -79,6 +82,7 @@ class WeatherSymbols(BasePlugin):
             self.queries = wxcode_decision_tree()
             self.start_node = START_NODE
         self.float_tolerance = 0.01
+        self.float_abs_tolerance = 1e-12
         # flag to indicate whether to expect "threshold" as a coordinate name
         # (defaults to False, checked on reading input cubes)
         self.coord_named_threshold = False
@@ -156,28 +160,25 @@ class WeatherSymbols(BasePlugin):
                         not self.coord_named_threshold):
                     self.coord_named_threshold = True
 
-                if threshold == 0.0:
-                    test_condition = (
-                        iris.Constraint(
-                            coord_values={threshold_name: lambda cell: (
-                                cell == 0)},
-                            cube_func=lambda cube: (
-                                find_threshold_coordinate(
-                                    cube
-                                ).attributes['spp__relative_to_threshold'] ==
-                                condition)))
+                # Check threshold == 0.0
+                if abs(threshold) < self.float_abs_tolerance:
+                    coord_constraint = {threshold_name: lambda cell: (
+                        - self.float_abs_tolerance <
+                        cell <
+                        self.float_abs_tolerance)}
                 else:
-                    test_condition = (
-                        iris.Constraint(
-                            coord_values={threshold_name: lambda cell: (
-                                threshold * (1. - self.float_tolerance) <
-                                cell <
-                                threshold * (1. + self.float_tolerance))},
-                            cube_func=lambda cube: (
-                                find_threshold_coordinate(
-                                    cube
-                                ).attributes['spp__relative_to_threshold'] ==
-                                condition)))
+                    coord_constraint = {threshold_name: lambda cell: (
+                        threshold * (1. - self.float_tolerance) <
+                        cell <
+                        threshold * (1. + self.float_tolerance))}
+                test_condition = (
+                    iris.Constraint(
+                        coord_values=coord_constraint,
+                        cube_func=lambda cube: (
+                            find_threshold_coordinate(
+                                cube
+                            ).attributes['spp__relative_to_threshold'] ==
+                            condition)))
                 matched_threshold = matched_cube.extract(test_condition)
                 if not matched_threshold:
                     missing_data.append([diagnostic, threshold, condition])
@@ -192,7 +193,7 @@ class WeatherSymbols(BasePlugin):
                 msg = msg + dyn_msg.format(*item)
             raise IOError(msg)
 
-        if len(optional_node_data_missing) == 0:
+        if not optional_node_data_missing:
             optional_node_data_missing = None
         return optional_node_data_missing
 
@@ -374,21 +375,23 @@ class WeatherSymbols(BasePlugin):
                     Value of threshold coordinate required
             Returns: (str)
             """
-            if threshold_val == 0:
-                constraint_str = (
-                    "iris.Constraint(name='{diagnostic}', {threshold_name}="
-                    "lambda cell: cell == 0.0 )".format(
-                        diagnostic=diagnostic,
-                        threshold_name=threshold_name))
+            if abs(threshold_val) < WeatherSymbols().float_abs_tolerance:
+                cell_constraint_str = (
+                    " -{float_abs_tol} < cell < "
+                    "{float_abs_tol}".format(
+                        float_abs_tol=WeatherSymbols().float_abs_tolerance))
             else:
-                constraint_str = (
-                    "iris.Constraint(name='{diagnostic}', {threshold_name}="
-                    "lambda cell: {threshold_val} * {float_min} < cell < "
-                    "{threshold_val} * {float_max})".format(
-                        diagnostic=diagnostic, threshold_name=threshold_name,
+                cell_constraint_str = (
+                    "{threshold_val} * {float_min} < cell < "
+                    "{threshold_val} * {float_max}".format(
                         threshold_val=threshold_val,
                         float_min=(1. - WeatherSymbols().float_tolerance),
                         float_max=(1. + WeatherSymbols().float_tolerance)))
+            constraint_str = (
+                    "iris.Constraint(name='{diagnostic}', {threshold_name}="
+                    "lambda cell: {cell_constraint})".format(
+                        diagnostic=diagnostic, threshold_name=threshold_name,
+                        cell_constraint=cell_constraint_str))
             return constraint_str
 
         # if input is list, loop over and return a list of strings
