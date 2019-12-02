@@ -40,7 +40,8 @@
       "$IMPROVER_ACC_TEST_DIR/standardise/regrid-basic/global_cutout_multi_realization.nc" \
       --target_grid_filepath "$IMPROVER_ACC_TEST_DIR/standardise/regrid-landmask/ukvx_landmask.nc" \
       --input_landmask_filepath "$IMPROVER_ACC_TEST_DIR/standardise/regrid-landmask/glm_landmask.nc" \
-      --output_filepath "$TEST_DIR/output.nc" --regrid_mode="nearest-with-mask"
+      --output_filepath "$TEST_DIR/output.nc" --regrid_mode="nearest-with-mask" \
+      --regridded_title "Global Model Forecast on UK 2 km Standard Grid"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

@@ -173,7 +173,7 @@ class StandardiseGridAndMetadata(BasePlugin):
 
     def _regrid_to_target(self, cube, target_grid, regridded_title):
         """
-        Regrid cube to target_grid and inherit appropriate grid attributes
+        Regrid cube to target_grid, inherit grid attributes and update title
 
         Args:
             cube (iris.cube.Cube):
@@ -202,10 +202,9 @@ class StandardiseGridAndMetadata(BasePlugin):
              if key in self.grid_attributes})
         amend_attributes(cube, attributes_to_inherit)
 
-        if regridded_title is None:
-            cube.attributes["title"] = MANDATORY_ATTRIBUTE_DEFAULTS["title"]
-        else:
-            cube.attributes["title"] = regridded_title
+        cube.attributes["title"] = (
+            MANDATORY_ATTRIBUTE_DEFAULTS["title"]
+            if regridded_title is None else regridded_title)
 
         return cube
 
