@@ -170,8 +170,7 @@ def find_percentile_coordinate(cube):
             msg = ('No percentile coord found on {0:s} data'.format(
                 standard_name))
             raise CoordinateNotFoundError(msg)
-        else:
-            msg = ('Too many percentile coords found on {0:s} data'.format(
-                standard_name))
-            raise ValueError(msg)
+        msg = ('Too many percentile coords found on {0:s} data'.format(
+            standard_name))
+        raise ValueError(msg)
     return perc_coord

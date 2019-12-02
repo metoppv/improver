@@ -87,7 +87,7 @@ def circular_kernel(fullranges, ranges, weighted_mode):
     return kernel
 
 
-class CircularNeighbourhood(object):
+class CircularNeighbourhood:
 
     """
     Methods for use in the calculation and application of a circular
@@ -214,7 +214,7 @@ class CircularNeighbourhood(object):
         return cube
 
 
-class GeneratePercentilesFromACircularNeighbourhood(object):
+class GeneratePercentilesFromACircularNeighbourhood:
     """
     Methods for use in calculating percentiles from a 2D circular
     neighbourhood.

@@ -115,7 +115,7 @@ def apply_gridded_lapse_rate(temperature, lapse_rate, source_orog, dest_orog):
     return iris.cube.CubeList(adjusted_temperature).merge_cube()
 
 
-class SaveNeighbourhood(object):
+class SaveNeighbourhood:
     """Saves the neighbourhood around each central point.
 
     The "generic_filter" module extracts the neighbourhood around each

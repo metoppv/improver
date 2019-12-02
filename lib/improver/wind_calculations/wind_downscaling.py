@@ -119,7 +119,7 @@ class FrictionVelocity(BasePlugin):
         return ustar
 
 
-class RoughnessCorrectionUtilities(object):
+class RoughnessCorrectionUtilities:
     """Class to calculate the height and roughness wind corrections.
 
     This holds functions to calculate the roughness and height
