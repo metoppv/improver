@@ -69,8 +69,7 @@ def main(argv=None):
     parser.add_argument("--metadata_jsonfile", metavar="METADATA_JSONFILE",
                         default=None,
                         help="Filename for the json file containing "
-                        "required changes to the metadata. "
-                        " default=None", type=str)
+                        "information for bounds expansion.", type=str)
     parser.add_argument('--warnings_on', action='store_true',
                         help="If warnings_on is set (i.e. True), "
                         "Warning messages where metadata do not match "
@@ -122,7 +121,7 @@ def process(*cubelist: cli.inputcube,
         new_name (str):
             New name for the resulting dataset.
         new_metadata (dict):
-            Dictionary of required changes to the metadata.
+            Dictionary containing information on coordinates to expand.
         warnings_on (bool):
             If True, warning messages where metadata do not match will be
             given.
@@ -133,24 +132,16 @@ def process(*cubelist: cli.inputcube,
     """
     from improver.cube_combiner import CubeCombiner
     from iris.cube import CubeList
-    # Load the metadata changes if required
-    new_coords = None
-    new_attr = None
-    expanded_coord = None
-    if new_metadata:
-        if 'coordinates' in new_metadata:
-            new_coords = new_metadata['coordinates']
-        if 'attributes' in new_metadata:
-            new_attr = new_metadata['attributes']
-        if 'expanded_coord' in new_metadata:
-            expanded_coord = new_metadata['expanded_coord']
+    coords_to_expand = None
+    if new_metadata and 'expanded_coord' in new_metadata:
+        coords_to_expand = new_metadata['expanded_coord']
     if not cubelist:
         raise TypeError("A cube is needed to be combined.")
     if new_name is None:
         new_name = cubelist[0].name()
     result = CubeCombiner(operation, warnings_on=warnings_on).process(
-        CubeList(cubelist), new_name, revised_coords=new_coords,
-        revised_attributes=new_attr, expanded_coord=expanded_coord)
+        CubeList(cubelist), new_name, coords_to_expand=coords_to_expand)
+
     return result
 
 

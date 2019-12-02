@@ -61,8 +61,8 @@ optional arguments:
   --new-name NEW_NAME   New name for the resulting dataset. Will default to
                         the name of the first dataset if not set.
   --metadata_jsonfile METADATA_JSONFILE
-                        Filename for the json file containing required changes
-                        to the metadata. default=None
+                        Filename for the json file containing information for
+                        bounds expansion.
   --warnings_on         If warnings_on is set (i.e. True), Warning messages
                         where metadata do not match will be given.
                         Default=False
