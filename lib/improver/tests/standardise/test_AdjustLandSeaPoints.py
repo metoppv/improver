@@ -46,6 +46,10 @@ from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
 from improver.utilities.spatial import OccurrenceWithinVicinity
 from improver.utilities.warnings_handler import ManageWarnings
 
+# The warning messages are internal to the iris.analysis module v2.2.0
+IGNORED_MESSAGES = ["Using a non-tuple sequence for multidimensional indexing"]
+WARNING_TYPES = [FutureWarning]
+
 
 class Test__init__(IrisTest):
     """Tests for the initiation of the AdjustLandSeaPoints class."""
@@ -275,7 +279,6 @@ class Test_process(IrisTest):
                                   dim_coords_and_dims=[(y_coord, 0),
                                                        (x_coord, 1)])
 
-    # The warning messages are internal to the iris.analysis module v2.2.0.
     @ManageWarnings(ignored_messages=["Using a non-tuple sequence for "],
                     warning_types=[FutureWarning])
     def test_basic(self):
@@ -298,8 +301,8 @@ class Test_process(IrisTest):
         self.assertDictEqual(result.attributes, self.cube.attributes)
         self.assertEqual(result.name(), self.cube.name())
 
-    @ManageWarnings(ignored_messages=["Using a non-tuple sequence for "],
-                    warning_types=[FutureWarning])
+    @ManageWarnings(ignored_messages=IGNORED_MESSAGES,
+                    warning_types=WARNING_TYPES)
     def test_with_regridding(self):
         """Test when input grid is on a different projection."""
         self.input_land = self.input_land_ll
@@ -321,8 +324,8 @@ class Test_process(IrisTest):
         self.assertDictEqual(result.attributes, self.cube.attributes)
         self.assertEqual(result.name(), self.cube.name())
 
-    @ManageWarnings(ignored_messages=["Using a non-tuple sequence for "],
-                    warning_types=[FutureWarning])
+    @ManageWarnings(ignored_messages=IGNORED_MESSAGES,
+                    warning_types=WARNING_TYPES)
     def test_multi_realization(self):
         """Test that the expected changes occur and meta-data are unchanged
         when handling a multi-realization cube."""

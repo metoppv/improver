@@ -42,6 +42,10 @@ from improver.standardise import StandardiseGridAndMetadata
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
+# The warning messages are internal to the iris.analysis module v2.2.0
+IGNORED_MESSAGES = ["Using a non-tuple sequence for multidimensional indexing"]
+WARNING_TYPES = [FutureWarning]
+
 
 class Test__init__(unittest.TestCase):
     """Test initialisation"""
@@ -207,6 +211,8 @@ class Test_process_regrid_options(IrisTest):
                 result.coord(axis=axis), self.target_grid.coord(axis=axis))
         self.assertDictEqual(result.attributes, expected_attributes)
 
+    @ManageWarnings(ignored_messages=IGNORED_MESSAGES,
+                    warning_types=WARNING_TYPES)
     def test_access_regrid_with_landmask(self):
         """Test the RegridLandAndSea module is correctly called when using
         landmask arguments. Diagnosed by identifiable error."""
@@ -214,8 +220,11 @@ class Test_process_regrid_options(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             StandardiseGridAndMetadata(
                 regrid_mode='nearest-with-mask', landmask=self.landmask,
-                landmask_vicinity=10000).process(self.cube, self.target_grid)
+                landmask_vicinity=10000).process(
+                    self.cube, target_grid=self.target_grid)
 
+    @ManageWarnings(ignored_messages=IGNORED_MESSAGES,
+                    warning_types=WARNING_TYPES)
     def test_run_regrid_with_landmask(self):
         """Test masked regridding (same expected values as basic, since input
         points are all equal)"""
@@ -227,7 +236,7 @@ class Test_process_regrid_options(IrisTest):
         result = StandardiseGridAndMetadata(
             regrid_mode='nearest-with-mask', landmask=self.landmask,
             landmask_vicinity=90000).process(
-                self.cube, self.target_grid.copy())
+                self.cube, target_grid=self.target_grid.copy())
         self.assertArrayAlmostEqual(result.data, expected_data)
         for axis in ['x', 'y']:
             self.assertEqual(
@@ -243,7 +252,7 @@ class Test_process_regrid_options(IrisTest):
             landmask_vicinity=90000)
         msg = "Source landmask does not match input grid"
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(self.cube, self.target_grid)
+            plugin.process(self.cube, target_grid=self.target_grid)
 
     @ManageWarnings(record=True)
     def test_warning_source_not_landmask(self, warning_list=None):
@@ -252,7 +261,8 @@ class Test_process_regrid_options(IrisTest):
         self.landmask.rename("not_a_landmask")
         result = StandardiseGridAndMetadata(
             regrid_mode='nearest-with-mask', landmask=self.landmask,
-            landmask_vicinity=90000).process(self.cube, self.target_grid)
+            landmask_vicinity=90000).process(
+                self.cube, target_grid=self.target_grid)
         msg = "Expected land_binary_mask in input_landmask cube"
         self.assertTrue(any([msg in str(warning) for warning in warning_list]))
         self.assertTrue(any(item.category == UserWarning
@@ -267,7 +277,8 @@ class Test_process_regrid_options(IrisTest):
         self.landmask.rename("not_a_landmask")
         result = StandardiseGridAndMetadata(
             regrid_mode='nearest-with-mask', landmask=self.landmask,
-            landmask_vicinity=90000).process(self.cube, self.target_grid)
+            landmask_vicinity=90000).process(
+                self.cube, target_grid=self.target_grid)
         msg = "Expected land_binary_mask in target_grid cube"
         self.assertTrue(any([msg in str(warning) for warning in warning_list]))
         self.assertTrue(any(item.category == UserWarning
@@ -281,7 +292,7 @@ class Test_process_regrid_options(IrisTest):
                      "mosg__grid_version"]:
             expected_attributes[attr] = self.target_grid.attributes[attr]
         result = StandardiseGridAndMetadata().process(
-            self.cube, self.target_grid)
+            self.cube, target_grid=self.target_grid)
         self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_attribute_changes_after_regridding(self):
@@ -293,7 +304,8 @@ class Test_process_regrid_options(IrisTest):
                                "mosg__model_configuration": "gl_det",
                                "institution": "Met Office"}
         result = StandardiseGridAndMetadata().process(
-            self.cube, self.target_grid, attributes_dict=attribute_changes)
+            self.cube, target_grid=self.target_grid,
+            attributes_dict=attribute_changes)
         self.assertDictEqual(result.attributes, expected_attributes)
 
 
