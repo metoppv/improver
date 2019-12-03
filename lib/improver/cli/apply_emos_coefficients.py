@@ -271,12 +271,10 @@ def process(current_forecast, coeffs, landsea_mask, distribution,
                "uncalibrated forecast will be returned.")
         warnings.warn(msg)
         return current_forecast
-
-    elif coeffs.name() != 'emos_coefficients':
+    if coeffs.name() != 'emos_coefficients':
         msg = ("The current coefficients cube does not have the "
                "name 'emos_coefficients'")
         raise ValueError(msg)
-
     if current_forecast.name() == 'emos_coefficients':
         msg = "The current forecast cube has the name 'emos_coefficients'"
         raise ValueError(msg)

@@ -191,26 +191,24 @@ class AdvectField(BasePlugin):
         cond_pt = point_in_bounds(xsrc_point_frac, ysrc_point_frac, xdim, ydim)
         adv_field[cond_pt] = 0
 
-        # Find the integer points surrounding the fractional source coordinates
-        xsrc_point_lower = xsrc_point_frac.astype(int)
-        ysrc_point_lower = ysrc_point_frac.astype(int)
-        x_points = [xsrc_point_lower, xsrc_point_lower + 1]
-        y_points = [ysrc_point_lower, ysrc_point_lower + 1]
-
-        # Calculate the distance-weighted fractional contribution of points
-        # surrounding the source coordinates
-        x_weight_upper = xsrc_point_frac - xsrc_point_lower.astype(float)
-        y_weight_upper = ysrc_point_frac - ysrc_point_lower.astype(float)
-        x_weights = np.array([1. - x_weight_upper, x_weight_upper],
-                             dtype=np.float32)
-        y_weights = np.array([1. - y_weight_upper, y_weight_upper],
-                             dtype=np.float32)
-
         # Check whether the input data is masked - if so substitute NaNs for
         # the masked data.  Note there is an implicit type conversion here: if
         # data is of integer type this unmasking will convert it to float.
         if isinstance(data, np.ma.MaskedArray):
             data = np.where(data.mask, np.nan, data.data)
+
+        # Find the integer points surrounding the fractional source coordinates
+        xsrc_point_lower = xsrc_point_frac.astype(int)
+        x_points = [xsrc_point_lower, xsrc_point_lower + 1]
+        x_weight_upper = xsrc_point_frac - xsrc_point_lower.astype(float)
+        x_weights = np.array([1. - x_weight_upper, x_weight_upper],
+                             dtype=np.float32)
+
+        ysrc_point_lower = ysrc_point_frac.astype(int)
+        y_points = [ysrc_point_lower, ysrc_point_lower + 1]
+        y_weight_upper = ysrc_point_frac - ysrc_point_lower.astype(float)
+        y_weights = np.array([1. - y_weight_upper, y_weight_upper],
+                             dtype=np.float32)
 
         # Advect data from each of the four source points onto the output grid
         for xpt, xwt in zip(x_points, x_weights):

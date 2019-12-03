@@ -102,8 +102,7 @@ def create_constraint(value):
 
     if np.issubdtype(np.array(value).dtype, np.number):
         return lambda cell: any(np.isclose(cell.point, value))
-    else:
-        return value
+    return value
 
 
 def parse_constraint_list(constraints, units=None):

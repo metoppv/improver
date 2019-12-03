@@ -99,16 +99,14 @@ def process(cubes):
                       'no effect.')
         return cubes[0]
     # Raises an error if the validity times do not match
-    else:
-        for i, this_cube in enumerate(cubes):
-            for later_cube in cubes[i+1:]:
-                if this_cube.coord('time') == later_cube.coord('time'):
-                    continue
-                else:
-                    msg = ("Cubes with mismatched validity times are not "
-                           "compatible.")
-                    raise ValueError(msg)
-        return GenerateTimeLaggedEnsemble().process(cubes)
+    for i, this_cube in enumerate(cubes):
+        for later_cube in cubes[i+1:]:
+            if this_cube.coord('time') == later_cube.coord('time'):
+                continue
+            msg = ("Cubes with mismatched validity times are not "
+                   "compatible.")
+            raise ValueError(msg)
+    return GenerateTimeLaggedEnsemble().process(cubes)
 
 
 if __name__ == "__main__":

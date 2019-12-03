@@ -203,7 +203,7 @@ class WindGustDiagnostic(BasePlugin):
             raise ValueError(msg)
 
         # Check times are compatible.
-        msg = ('Could not match time coordinate')
+        msg = 'Could not match time coordinate'
         wg_time = req_cube_gust.coords('time')
         ws_time = req_cube_ws.coords('time')
         if len(wg_time) == 0 or len(ws_time) == 0:
@@ -214,15 +214,13 @@ class WindGustDiagnostic(BasePlugin):
             if point != ws_time.points[i]:
                 if wg_time.bounds is None:
                     raise ValueError(msg)
-                if len(wg_time.bounds) >= i:
-                    if len(wg_time.bounds[i]) == 2:
-                        if ws_time.points[i] < wg_time.bounds[i][0]:
-                            raise ValueError(msg)
-                        elif ws_time.points[i] > wg_time.bounds[i][1]:
-                            raise ValueError(msg)
-                    else:
-                        raise ValueError(msg)
-                else:
+                if len(wg_time.bounds) < i:
+                    raise ValueError(msg)
+                if len(wg_time.bounds[i]) != 2:
+                    raise ValueError(msg)
+                if ws_time.points[i] < wg_time.bounds[i][0]:
+                    raise ValueError(msg)
+                if ws_time.points[i] > wg_time.bounds[i][1]:
                     raise ValueError(msg)
 
         # Add metadata to gust cube
