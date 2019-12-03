@@ -146,27 +146,6 @@ def inputcube(to_convert):
 
 
 @value_converter
-def inputvector(to_convert):
-    """Loads 2 vector cubes from a cubelist
-
-    Args:
-        to_convert (string or iris.cube.Cube):
-            File name or Cube object.
-
-    Returns:
-        Loaded cube or passed object.
-
-    """
-    from improver.utilities.load import load_cube
-
-    speed_cube = maybe_coerce_with(load_cube, to_convert,
-                                   constraints="wind_speed")
-    direction_cube = maybe_coerce_with(load_cube, to_convert,
-                                       constraints="wind_from_direction")
-    return CubeList([speed_cube, direction_cube])
-
-
-@value_converter
 def inputjson(to_convert):
     """Loads json from file or returns passed object.
 
@@ -227,6 +206,36 @@ def with_intermediate_output(wrapped, *args, intermediate_output=None,
     if intermediate_output:
         save_netcdf(intermediate_result, intermediate_output)
     return result
+
+
+def create_constrainded_input_cube_converter(*constraints):
+    """Makes a list of functions with different constraints.
+
+    Args:
+        *constraints (string):
+            contraints to be used in the loading of cubes against a cubeList
+
+    Returns:
+        list of function:
+            A list of functions with different constraints.
+    """
+    @value_converter
+    def constrainedinputcube_converter(to_convert):
+        """Passes the cube and constraints onto maybe coerce with.
+
+        Args (iris.cube.Cube):
+            To cube to be passed forward for returning or loading.
+
+        Returns:
+            iris.cube.CubeList:
+                The loaded cubelist of constrained cubes.
+        """
+        from improver.utilities.load import load_cube
+        import iris
+        return iris.cube.CubeList([maybe_coerce_with(
+            load_cube, to_convert, constraints=j) for j in constraints])
+
+    return constrainedinputcube_converter
 
 
 # cli object creation
