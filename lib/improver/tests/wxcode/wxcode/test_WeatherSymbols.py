@@ -135,11 +135,27 @@ def set_up_wxcubes():
             forecast_thresholds=np.array([1000.0, 5000.0])))
     visibility.attributes['relative_to_threshold'] = 'below'
 
+    data_lightning = np.zeros((1, 1, 3, 3))
+    lightning = (
+        set_up_probability_threshold_cube(
+            data_lightning,
+            'number_of_lightning_flashes_per_unit_area_in_vicinity',
+            'm-2',
+            spp__relative_to_threshold='above',
+            forecast_thresholds=np.array([0.0])))
+
     cubes = iris.cube.CubeList([snowfall_rate, rainfall_rate,
                                 snowfall_vicinity, rainfall_vicinity,
                                 cloud, cloud_low,
-                                visibility])
-    return cubes
+                                visibility, lightning])
+
+    cubes_no_lightning = iris.cube.CubeList([snowfall_rate, rainfall_rate,
+                                             snowfall_vicinity,
+                                             rainfall_vicinity,
+                                             cloud, cloud_low,
+                                             visibility])
+
+    return cubes, cubes_no_lightning
 
 
 def set_up_wxcubes_global():
@@ -218,13 +234,13 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(WeatherSymbols())
-        msg = '<WeatherSymbols tree=high_resolution>'
+        msg = '<WeatherSymbols tree=high_resolution start_node=lightning>'
         self.assertEqual(result, msg)
 
     def test_global(self):
         """Test that the __repr__ returns right string for global tree."""
         result = str(WeatherSymbols(wxtree='global'))
-        msg = '<WeatherSymbols tree=global>'
+        msg = '<WeatherSymbols tree=global start_node=heavy_precipitation>'
         self.assertEqual(result, msg)
 
 
@@ -234,12 +250,20 @@ class Test_check_input_cubes(IrisTest):
 
     def setUp(self):
         """ Setup for testing """
-        self.cubes = set_up_wxcubes()
+        self.cubes, self.cubes_no_lightning = set_up_wxcubes()
 
     def test_basic(self):
         """Test check_input_cubes method raises no error if the data is OK"""
         plugin = WeatherSymbols()
         self.assertEqual(plugin.check_input_cubes(self.cubes), None)
+
+    def test_no_lightning(self):
+        """Test check_input_cubes raises no error if lightning missing"""
+        plugin = WeatherSymbols()
+        result = plugin.check_input_cubes(self.cubes_no_lightning)
+        self.assertIsInstance(result, dict)
+        self.assertEqual(len(result), 1)
+        self.assertTrue('lightning' in result)
 
     def test_raises_error_missing_cubes(self):
         """Test check_input_cubes method raises error if data is missing"""
@@ -495,6 +519,19 @@ class Test_construct_extract_constraint(IrisTest):
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
+    def test_zero_threshold(self):
+        """Test construct_extract_constraint when threshold is zero."""
+        plugin = WeatherSymbols()
+        diagnostic = 'probability_of_rainfall_rate_above_threshold'
+        threshold = AuxCoord(0.0, units='mm hr-1')
+        result = plugin.construct_extract_constraint(diagnostic,
+                                                     threshold, False)
+        expected = ("iris.Constraint("
+                    "name='probability_of_rainfall_rate_above_threshold', "
+                    "rainfall_rate=lambda cell:  -1e-12 < cell < 1e-12)")
+        self.assertIsInstance(result, str)
+        self.assertEqual(result, expected)
+
     def test_list_of_constraints(self):
         """Test construct_extract_constraint returns a list
            of iris.Constraint."""
@@ -544,7 +581,7 @@ class Test_find_all_routes(IrisTest):
         self.assertListEqual(result, expected_nodes)
 
     def test_multiple_routes(self):
-        """Test find_all_routes finds multiple routes."""
+        """Test finds multiple routes."""
         plugin = WeatherSymbols()
         result = plugin.find_all_routes(self.test_graph,
                                         'start_node',
@@ -556,6 +593,64 @@ class Test_find_all_routes(IrisTest):
                           ['start_node',
                            'fail_0',
                            'success_0_1',
+                           1]]
+        self.assertIsInstance(result, list)
+        self.assertListEqual(result, expected_nodes)
+
+    def test_omit_nodes_top_node(self):
+        """Test find_all_routes where omit node is top node."""
+        omit_nodes = {'start_node': 'success_1'}
+        plugin = WeatherSymbols()
+        result = plugin.find_all_routes(self.test_graph,
+                                        'start_node',
+                                        1,
+                                        omit_nodes=omit_nodes,)
+        expected_nodes = [['success_1',
+                           'success_1_1',
+                           1]]
+        self.assertIsInstance(result, list)
+        self.assertListEqual(result, expected_nodes)
+
+    def test_omit_nodes_midtree(self):
+        """Test find_all_routes where omit node is mid tree."""
+        omit_nodes = {'success_1': 'success_1_1'}
+        plugin = WeatherSymbols()
+        result = plugin.find_all_routes(self.test_graph,
+                                        'start_node',
+                                        1,
+                                        omit_nodes=omit_nodes,)
+        expected_nodes = [['start_node',
+                           'success_1_1',
+                           1],
+                          ['start_node',
+                           'fail_0',
+                           'success_0_1',
+                           1]]
+        self.assertIsInstance(result, list)
+        self.assertListEqual(result, expected_nodes)
+
+    def test_omit_nodes_blocked(self):
+        """Test find_all_routes where omitted node is no longer accessible."""
+        omit_nodes = {'fail_0': 3}
+        plugin = WeatherSymbols()
+        result = plugin.find_all_routes(self.test_graph,
+                                        'start_node',
+                                        5,
+                                        omit_nodes=omit_nodes,)
+        expected_nodes = []
+        self.assertIsInstance(result, list)
+        self.assertListEqual(result, expected_nodes)
+
+    def test_omit_nodes_multi(self):
+        """Test find_all_routes where multiple omitted nodes."""
+        omit_nodes = {'fail_0': 3, 'success_1': 'success_1_1'}
+        plugin = WeatherSymbols()
+        result = plugin.find_all_routes(self.test_graph,
+                                        'start_node',
+                                        1,
+                                        omit_nodes=omit_nodes,)
+        expected_nodes = [['start_node',
+                           'success_1_1',
                            1]]
         self.assertIsInstance(result, list)
         self.assertListEqual(result, expected_nodes)
@@ -594,7 +689,7 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """ Set up wxcubes for testing. """
-        self.cubes = set_up_wxcubes()
+        self.cubes, self.cubes_no_lightning = set_up_wxcubes()
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
 
@@ -622,6 +717,37 @@ class Test_process(IrisTest):
         expected_wxcode = np.array([0, 2, 5,
                                     6, 7, 8,
                                     9, 11, 12]).reshape(1, 3, 3)
+        self.assertArrayEqual(result.data,
+                              expected_wxcode)
+
+    def test_no_lightning(self):
+        """Test process returns right values if no lightning. """
+        plugin = WeatherSymbols()
+        result = plugin.process(self.cubes_no_lightning)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
+        self.assertEqual(result.attributes['weather_code_meaning'],
+                         self.wxmeaning)
+        expected_wxcode = np.array([1, 3, 5,
+                                    6, 7, 8,
+                                    10, 11, 12]).reshape(1, 3, 3)
+        self.assertArrayEqual(result.data,
+                              expected_wxcode)
+
+    def test_lightning(self):
+        """Test process returns right values if all lightning. """
+        plugin = WeatherSymbols()
+        data_lightning = np.ones((1, 1, 3, 3))
+        cubes = self.cubes
+        cubes[7].data = data_lightning
+        result = plugin.process(self.cubes)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
+        self.assertEqual(result.attributes['weather_code_meaning'],
+                         self.wxmeaning)
+        expected_wxcode = np.ones((1, 3, 3)) * 29
+        expected_wxcode[0, 1, 1:] = 30
+        expected_wxcode[0, 2, 2] = 30
         self.assertArrayEqual(result.data,
                               expected_wxcode)
 

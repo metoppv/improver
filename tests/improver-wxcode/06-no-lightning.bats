@@ -31,20 +31,19 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "wxcode <input files - decision tree native units>" {
+@test "wxcode <input files - decision tree units>" {
   improver_check_skip_acceptance
-  KGO="wxcode/basic/kgo.nc"
+  KGO="wxcode/basic/kgo_no_lightning.nc"
 
   # Run wxcode processing and check it passes.
   run improver wxcode \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/native_units/probability_of_rainfall_rate_above_threshold.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/native_units/probability_of_rainfall_rate_in_vicinity_above_threshold.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/native_units/probability_of_lwe_snowfall_rate_above_threshold.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/native_units/probability_of_lwe_snowfall_rate_in_vicinity_above_threshold.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/native_units/probability_of_visibility_in_air_below_threshold.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/native_units/probability_of_cloud_area_fraction_above_threshold.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/native_units/probability_of_low_type_cloud_area_fraction_above_threshold.nc" \
-      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_rainfall_rate_above_threshold.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_rainfall_rate_in_vicinity_above_threshold.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_lwe_snowfall_rate_above_threshold.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_lwe_snowfall_rate_in_vicinity_above_threshold.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_visibility_in_air_below_threshold.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_cloud_area_fraction_above_threshold.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_low_type_cloud_area_fraction_above_threshold.nc" \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
