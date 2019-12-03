@@ -70,7 +70,7 @@ class Test_calculate_feels_like_temperature(IrisTest):
 
         # create cube with metadata and values suitable for pressure.
         pressure_data = (
-            np.tile(np.linspace(100000, 110000, 9), 3).reshape(3, 3, 3))
+            np.tile(np.linspace(100000, 110000, 9), 3).reshape((3, 3, 3)))
         pressure_data[0] -= 2
         pressure_data[1] += 2
         pressure_data[2] += 4
@@ -79,7 +79,7 @@ class Test_calculate_feels_like_temperature(IrisTest):
 
         # create cube with metadata and values suitable for relative humidity.
         relative_humidity_data = (
-            np.tile(np.linspace(0, 0.6, 9), 3).reshape(3, 3, 3))
+            np.tile(np.linspace(0, 0.6, 9), 3).reshape((3, 3, 3)))
         relative_humidity_data[0] += 0
         relative_humidity_data[1] += 0.2
         relative_humidity_data[2] += 0.4
@@ -128,7 +128,7 @@ class Test_calculate_feels_like_temperature(IrisTest):
         temperatures 10 degrees Celcius and 20 degrees Celcius"""
 
         temperature_cube = self.temperature_cube[0]
-        data = np.linspace(-10, 30, 9).reshape(3, 3)
+        data = np.linspace(-10, 30, 9).reshape((3, 3))
         data = data + 273.15
         temperature_cube.data = data
         expected_result = np.array(

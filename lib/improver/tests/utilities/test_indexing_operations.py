@@ -45,8 +45,8 @@ class Test_choose(IrisTest):
 
     def setUp(self):
         """Set up the data arrays."""
-        self.data = np.arange(132).reshape(33, 2, 2) + 1
-        self.small_data = np.arange(12).reshape(3, 2, 2) + 1
+        self.data = np.arange(132).reshape((33, 2, 2)) + 1
+        self.small_data = np.arange(12).reshape((3, 2, 2)) + 1
 
     def test_3D_index_array_test1(self):
         """Test that a 3D array of indices with a shape matching the data array

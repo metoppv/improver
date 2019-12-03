@@ -77,7 +77,7 @@ class Test_merge_cubes(IrisTest):
         # Using a simple temperature data array, one cube set is setup
         # as a deterministic model, the other as an ensemble.
         self.data = (
-            np.linspace(275.0, 284.0, 12).reshape(3, 4).astype(np.float32))
+            np.linspace(275.0, 284.0, 12).reshape((3, 4)).astype(np.float32))
         self.data_3d = np.array([self.data, self.data, self.data])
 
         self.cube_non_mo_det = set_up_variable_cube(self.data)

@@ -110,7 +110,7 @@ class Test_common_functions(IrisTest):
                                          (longitude, 2)],
                     units="K")
 
-        long_cube = Cube(np.arange(3456).reshape(24, 12, 12),
+        long_cube = Cube(np.arange(3456).reshape((24, 12, 12)),
                          long_name="air_temperature",
                          dim_coords_and_dims=[(long_time_coord, 0),
                                               (latitude, 1),
@@ -432,9 +432,9 @@ class Test_transform_grid_to_lat_lon(IrisTest):
         Test transformation of grid
         """
         expected_lons = np.array([-17.11712928, 9.21255933,
-                                  -24.5099247, 15.27976922]).reshape(2, 2)
+                                  -24.5099247, 15.27976922]).reshape((2, 2))
         expected_lats = np.array([44.51715281, 44.899873,
-                                  61.31885886, 61.9206868]).reshape(2, 2)
+                                  61.31885886, 61.9206868]).reshape((2, 2))
         plugin = transform_grid_to_lat_lon
         result_lats, result_lons = plugin(self.cube)
         self.assertIsInstance(result_lats, np.ndarray)

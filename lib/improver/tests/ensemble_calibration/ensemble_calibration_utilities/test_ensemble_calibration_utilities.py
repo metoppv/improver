@@ -79,7 +79,7 @@ class Test_convert_cube_data_to_2d(IrisTest):
         Test that the utility returns the expected data values
         when the cube is sliced along the longitude dimension.
         """
-        data = self.data.flatten().reshape(9, 3).T.reshape(9, 3)
+        data = self.data.flatten().reshape((9, 3)).T.reshape((9, 3))
 
         result = convert_cube_data_to_2d(
             self.cube, coord="longitude")
@@ -252,7 +252,7 @@ class Test_flatten_ignoring_masked_data(IrisTest):
     def test_4D_input_not_masked_preserve_leading_dim(self):
         """Test input array is unchanged when input in 4D.
            This should give the same answer as the corresponding 3D array."""
-        data_array = self.data_array.reshape(3, 2, 2, 2)
+        data_array = self.data_array.reshape((3, 2, 2, 2))
         result = flatten_ignoring_masked_data(
             data_array, preserve_leading_dimension=True)
         self.assertArrayAlmostEqual(

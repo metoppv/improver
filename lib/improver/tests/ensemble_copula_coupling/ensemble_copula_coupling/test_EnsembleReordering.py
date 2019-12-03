@@ -61,7 +61,7 @@ class Test__recycle_raw_ensemble_realizations(IrisTest):
         percentile coordinate with forecast_reference_time and
         forecast_period coordinates.
         """
-        data = np.tile(np.linspace(5, 10, 9), 3).reshape(3, 1, 3, 3)
+        data = np.tile(np.linspace(5, 10, 9), 3).reshape((3, 1, 3, 3))
         data[0] -= 1
         data[1] += 1
         data[2] += 3
@@ -213,7 +213,7 @@ class Test__recycle_raw_ensemble_realizations(IrisTest):
         percentiles is greater than the length of the realizations, check
         that the points of the realization coordinate is as expected.
         """
-        data = np.tile(np.linspace(5, 10, 9), 9).reshape(9, 1, 3, 3)
+        data = np.tile(np.linspace(5, 10, 9), 9).reshape((9, 1, 3, 3))
         data[0] -= 1
         data[1] += 1
         data[2] += 3

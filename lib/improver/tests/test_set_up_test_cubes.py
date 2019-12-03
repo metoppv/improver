@@ -160,7 +160,7 @@ class test_set_up_variable_cube(IrisTest):
     def setUp(self):
         """Set up simple temperature data array"""
         self.data = (
-            np.linspace(275.0, 284.0, 12).reshape(3, 4).astype(np.float32))
+            np.linspace(275.0, 284.0, 12).reshape((3, 4)).astype(np.float32))
         self.data_3d = np.array([self.data, self.data, self.data])
 
     def test_defaults(self):

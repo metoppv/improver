@@ -54,7 +54,7 @@ class Test_get_filtered_attributes(IrisTest):
             'mosg__grid_version': '1.2.0',
             'mosg__model_configuration': 'uk_det'}
 
-        data = np.arange(25).reshape(5, 5).astype(np.float32)
+        data = np.arange(25).reshape((5, 5)).astype(np.float32)
         self.cube = set_up_variable_cube(data,
                                          attributes=self.attributes,
                                          spatial_grid="equalarea")

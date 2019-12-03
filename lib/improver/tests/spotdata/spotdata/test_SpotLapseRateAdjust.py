@@ -80,7 +80,7 @@ class Test_SpotLapseRateAdjust(IrisTest):
 
         """
         # Set up lapse rate cube
-        lapse_rate_data = np.ones(9).reshape(3, 3).astype(np.float32) * DALR
+        lapse_rate_data = np.ones(9).reshape((3, 3)).astype(np.float32) * DALR
         lapse_rate_data[0, 2] = 2 * DALR
         lapse_rate_data[1, 1] = 2 * DALR
         lapse_rate_data[2, 0] = 2 * DALR

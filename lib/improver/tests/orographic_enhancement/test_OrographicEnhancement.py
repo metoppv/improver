@@ -183,7 +183,7 @@ class Test__regrid_variable(IrisTest):
 
     def setUp(self):
         """Set up input cubes"""
-        temperature = np.arange(6).reshape(2, 3)
+        temperature = np.arange(6).reshape((2, 3))
         self.temperature_cube = set_up_variable_cube(temperature)
         orography = np.array([[20., 30., 40., 30., 25., 25.],
                               [30., 50., 80., 60., 50., 45.],
@@ -248,11 +248,11 @@ class DataCubeTest(IrisTest):
 
     def setUp(self):
         """Set up input cubes"""
-        temperature = np.arange(6).reshape(2, 3)
+        temperature = np.arange(6).reshape((2, 3))
         self.temperature = set_up_variable_cube(temperature)
-        humidity = np.arange(0.75, 0.86, 0.02).reshape(2, 3)
+        humidity = np.arange(0.75, 0.86, 0.02).reshape((2, 3))
         self.humidity = set_up_variable_cube(humidity, 'relhumidity', '1')
-        pressure = np.arange(820, 921, 20).reshape(2, 3)
+        pressure = np.arange(820, 921, 20).reshape((2, 3))
         self.pressure = set_up_variable_cube(pressure, 'pressure', 'hPa')
         uwind = np.full((2, 3), 20., dtype=np.float32)
         self.uwind = set_up_variable_cube(uwind, 'wind-u', 'knots')
@@ -444,7 +444,7 @@ class Test__get_point_distances(IrisTest):
     def setUp(self):
         """Define input matrices and plugin"""
         self.wind_speed = np.ones((3, 4), dtype=np.float32)
-        sin_wind_dir = np.linspace(0, 1, 12).reshape(3, 4)
+        sin_wind_dir = np.linspace(0, 1, 12).reshape((3, 4))
         cos_wind_dir = np.sqrt(1. - np.square(sin_wind_dir))
         self.max_sin_cos = np.where(abs(sin_wind_dir) > abs(cos_wind_dir),
                                     abs(sin_wind_dir), abs(cos_wind_dir))

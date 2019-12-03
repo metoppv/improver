@@ -507,7 +507,7 @@ class Test_restore_non_probabilistic_dimensions(IrisTest):
                               [[6.85714286, 7.57142857],
                                [8.28571429, 9.]]]])
 
-        data = np.tile(np.linspace(5, 10, 8), 3).reshape(3, 2, 2, 2)
+        data = np.tile(np.linspace(5, 10, 8), 3).reshape((3, 2, 2, 2))
         data[0] -= 1
         data[1] += 1
         data[2] += 3

@@ -69,7 +69,7 @@ def set_up_percentiles_cube():
 def set_up_threshold_cube():
     """Set up 2D cube with "orography" data on which to threshold
     percentiles"""
-    test_data = 50*np.arange(16).reshape(4, 4)
+    test_data = 50*np.arange(16).reshape((4, 4))
     grid_x = DimCoord(np.arange(4), standard_name="projection_x_coordinate",
                       units="km")
     grid_y = DimCoord(np.arange(4), standard_name="projection_y_coordinate",
@@ -87,7 +87,7 @@ def set_reference_probabilities():
     reference_array[:4] = 0.
     reference_array[4:12] = np.linspace(0., 0.875, 8)
     reference_array[12:] = 1.
-    return reference_array.reshape(4, 4)
+    return reference_array.reshape((4, 4))
 
 
 class Test__init__(IrisTest):

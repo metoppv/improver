@@ -49,7 +49,7 @@ from improver.utilities.save import (
 def set_up_test_cube():
     """ Set up a temperature cube with additional global attributes. """
     data = np.linspace(
-        -45.0, 45.0, 9, dtype=np.float32).reshape(1, 3, 3) + 273.15
+        -45.0, 45.0, 9, dtype=np.float32).reshape((1, 3, 3)) + 273.15
 
     attributes = {
         'um_version': '10.4',

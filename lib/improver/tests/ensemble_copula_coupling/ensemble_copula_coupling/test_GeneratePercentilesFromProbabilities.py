@@ -71,7 +71,7 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
     def test_basic(self):
         """Test that the plugin returns two numpy arrays."""
         cube = self.current_temperature_forecast_cube
-        probabilities_for_cdf = cube.data.reshape(3, 9)
+        probabilities_for_cdf = cube.data.reshape((3, 9))
         bounds_pairing = (-40, 50)
         plugin = Plugin()
         result = plugin._add_bounds_to_thresholds_and_probabilities(
@@ -86,7 +86,7 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         the bounds_pairing.
         """
         cube = self.current_temperature_forecast_cube
-        probabilities_for_cdf = cube.data.reshape(3, 9)
+        probabilities_for_cdf = cube.data.reshape((3, 9))
         bounds_pairing = (-40, 50)
         plugin = Plugin()
         result = plugin._add_bounds_to_thresholds_and_probabilities(
@@ -101,7 +101,7 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         represent the extreme ends of the Cumulative Distribution Function.
         """
         cube = self.current_temperature_forecast_cube
-        probabilities_for_cdf = cube.data.reshape(3, 9)
+        probabilities_for_cdf = cube.data.reshape((3, 9))
         zero_array = np.zeros(probabilities_for_cdf[:, 0].shape)
         one_array = np.ones(probabilities_for_cdf[:, 0].shape)
         bounds_pairing = (-40, 50)

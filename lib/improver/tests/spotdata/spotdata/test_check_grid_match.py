@@ -48,7 +48,7 @@ class Test_check_grid_match(IrisTest):
     def setUp(self):
         """Set up cubes for use in testing."""
 
-        data = np.ones(9).reshape(3, 3).astype(np.float32)
+        data = np.ones(9).reshape((3, 3)).astype(np.float32)
         self.reference_cube = set_up_variable_cube(data,
                                                    spatial_grid="equalarea")
         self.cube1 = self.reference_cube.copy()

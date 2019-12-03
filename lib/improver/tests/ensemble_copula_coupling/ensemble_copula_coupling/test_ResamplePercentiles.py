@@ -54,7 +54,7 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
 
     def setUp(self):
         """Set up realization and percentile cubes for testing."""
-        data = np.tile(np.linspace(5, 10, 9), 3).reshape(3, 1, 3, 3)
+        data = np.tile(np.linspace(5, 10, 9), 3).reshape((3, 1, 3, 3))
         data[0] -= 1
         data[1] += 1
         data[2] += 3
@@ -71,7 +71,7 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         """Test that the plugin returns two numpy arrays."""
         cube = self.percentile_cube
         percentiles = cube.coord("percentile").points
-        forecast_at_percentiles = cube.data.reshape(3, 9)
+        forecast_at_percentiles = cube.data.reshape((3, 9))
         bounds_pairing = (-40, 50)
         plugin = Plugin()
         result = plugin._add_bounds_to_percentiles_and_forecast_at_percentiles(
@@ -86,7 +86,7 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         """
         cube = self.percentile_cube
         percentiles = cube.coord("percentile").points
-        forecast_at_percentiles = cube.data.reshape(3, 9)
+        forecast_at_percentiles = cube.data.reshape((3, 9))
         bounds_pairing = (-40, 50)
         plugin = Plugin()
         result = plugin._add_bounds_to_percentiles_and_forecast_at_percentiles(
@@ -102,7 +102,7 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         """
         cube = self.percentile_cube
         percentiles = cube.coord("percentile").points
-        forecast_at_percentiles = cube.data.reshape(3, 9)
+        forecast_at_percentiles = cube.data.reshape((3, 9))
         bounds_pairing = (-40, 50)
         lower_array = np.full(
             forecast_at_percentiles[:, 0].shape, bounds_pairing[0],
@@ -193,7 +193,7 @@ class Test__interpolate_percentiles(IrisTest):
 
     def setUp(self):
         """Set up percentile cube and spot percentile cube."""
-        data = np.tile(np.linspace(5, 10, 9), 3).reshape(3, 1, 3, 3)
+        data = np.tile(np.linspace(5, 10, 9), 3).reshape((3, 1, 3, 3))
         data[0] -= 1
         data[1] += 1
         data[2] += 3
@@ -211,7 +211,7 @@ class Test__interpolate_percentiles(IrisTest):
         spot_cube.coord("realization").rename(self.perc_coord)
         spot_cube.coord(self.perc_coord).points = (
             np.array([10, 50, 90]))
-        spot_cube.data = np.tile(np.linspace(5, 10, 3), 9).reshape(3, 1, 9)
+        spot_cube.data = np.tile(np.linspace(5, 10, 3), 9).reshape((3, 1, 9))
         self.spot_percentile_cube = spot_cube
 
     def test_basic(self):
@@ -318,7 +318,7 @@ class Test__interpolate_percentiles(IrisTest):
                               [[10.35714286, 11.07142857],
                                [11.78571429, 12.5]]]])
 
-        data = np.tile(np.linspace(5, 10, 8), 3).reshape(3, 2, 2, 2)
+        data = np.tile(np.linspace(5, 10, 8), 3).reshape((3, 2, 2, 2))
         data[0] -= 1
         data[1] += 1
         data[2] += 3
@@ -483,7 +483,7 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up percentile cube."""
-        data = np.tile(np.linspace(5, 10, 9), 3).reshape(3, 1, 3, 3)
+        data = np.tile(np.linspace(5, 10, 9), 3).reshape((3, 1, 3, 3))
         data[0] -= 1
         data[1] += 1
         data[2] += 3

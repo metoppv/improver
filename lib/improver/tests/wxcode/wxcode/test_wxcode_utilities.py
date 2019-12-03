@@ -243,7 +243,7 @@ class Test_add_wxcode_metadata(IrisTest):
         data = np.array(
             [0, 1, 5, 11, 20, 5, 9, 10, 4, 2, 0, 1, 29, 30, 1, 5, 6, 6],
             dtype=np.int32
-        ).reshape(2, 1, 3, 3)
+        ).reshape((2, 1, 3, 3))
         self.cube = set_up_cube(data, 'air_temperature', 'K',
                                 realizations=np.array([0, 1], dtype=np.int32))
         self.wxcode = np.array(list(WX_DICT.keys()))
