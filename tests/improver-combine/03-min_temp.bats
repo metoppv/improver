@@ -31,15 +31,15 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "combine maximum value" {
+@test "combine minimum value" {
   improver_check_skip_acceptance
-  KGO="combine/bounds/kgo_max.nc"
+  KGO="combine/bounds/kgo_min.nc"
 
   # Run cube-combiner processing and check it passes.
   run improver combine \
-      --operation='max' \
-      --metadata_jsonfile="$IMPROVER_ACC_TEST_DIR/combine/bounds/time_bound.json" \
-      $IMPROVER_ACC_TEST_DIR/combine/bounds/*H-temperature_at_screen_level_max.nc \
+      --operation='min' \
+      --metadata_jsonfile="$IMPROVER_ACC_TEST_DIR/combine/metadata.json" \
+      $IMPROVER_ACC_TEST_DIR/combine/bounds/*H-temperature_at_screen_level_min.nc \
       "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 

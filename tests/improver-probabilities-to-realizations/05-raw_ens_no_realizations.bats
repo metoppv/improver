@@ -31,17 +31,17 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "probabilities-to-realizations --reordering --raw_forecast_filepath input input output" {
+@test "probabilities-to-realizations --reordering input raw_forecast --output output" {
   improver_check_skip_acceptance
 
+  # repeat input to simulate raw_forecast being passed in
   run improver probabilities-to-realizations --reordering \
-      --raw_forecast_filepath \
       "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/basic/input.nc" \
       "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/basic/input.nc" \
-      "$TEST_DIR/output.nc"
+      --output "$TEST_DIR/output.nc"
   [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-ValueError: The netCDF file from the raw_forecast_filepath must have a realization coordinate.
+RuntimeError: The raw forecast must have a realization coordinate. 
 __TEXT__
-  [[ "$output" =~ "$expected" ]]
+  [[ "$output" =~ .*"$expected" ]]
 }

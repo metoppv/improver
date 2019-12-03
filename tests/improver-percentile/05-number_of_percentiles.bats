@@ -31,14 +31,15 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "percentile input output --coordinates realization --no_of_percentiles 3" {
+@test "percentile --coordinates realization --no-of-percentiles 3 input --output output" {
   improver_check_skip_acceptance
   KGO="percentile/basic/kgo.nc"
 
   # Run percentile processing and check it passes.
   run improver percentile \
-      "$IMPROVER_ACC_TEST_DIR/percentile/basic/input.nc" "$TEST_DIR/output.nc" \
-      --coordinates realization --no-of-percentiles 3
+      --coordinates realization --no-of-percentiles 3 \
+      "$IMPROVER_ACC_TEST_DIR/percentile/basic/input.nc" \
+      --output "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

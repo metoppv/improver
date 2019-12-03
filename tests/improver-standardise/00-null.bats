@@ -41,6 +41,8 @@ usage: improver standardise [-h] [--profile] [--profile_file PROFILE_FILE]
                             [--input_landmask_filepath INPUT_LANDMASK_FILE]
                             [--landmask_vicinity LANDMASK_VICINITY]
                             [--fix_float64] [--json_file JSON_FILE]
+                            [--coords_to_remove COORDS_TO_REMOVE [COORDS_TO_REMOVE ...]]
+                            [--new_name NEW_NAME] [--new_units NEW_UNITS]
                             SOURCE_DATA
 __TEXT__
   [[ "$output" =~ "$expected" ]]

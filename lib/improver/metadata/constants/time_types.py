@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,24 +28,15 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""Expected datatypes and units for time-type coordinates"""
 
-. $IMPROVER_DIR/tests/lib/utils
+import numpy as np
 
-@test "combine mean value" {
-  improver_check_skip_acceptance
-  KGO="combine/bounds/kgo_mean.nc"
+TIME_COORD_NAMES = ["time", "forecast_reference_time", "forecast_period"]
 
-  # Run cube-combiner processing and check it passes.
-  run improver combine \
-      --operation='mean' \
-      --metadata_jsonfile="$IMPROVER_ACC_TEST_DIR/combine/bounds/time_bound.json" \
-      $IMPROVER_ACC_TEST_DIR/combine/bounds/20180101T0?00Z-PT000?H-temperature_at_screen_level.nc \
-      "$TEST_DIR/output.nc"
-  [[ "$status" -eq 0 ]]
+TIME_REFERENCE_CALENDAR = "gregorian"
+TIME_REFERENCE_DTYPE = np.int64
+TIME_REFERENCE_UNIT = "seconds since 1970-01-01 00:00:00"
 
-  improver_check_recreate_kgo "output.nc" $KGO
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
-}
+TIME_INTERVAL_DTYPE = np.int32
+TIME_INTERVAL_UNIT = "seconds"

@@ -34,7 +34,9 @@ import numpy as np
 from cf_units import Unit
 from iris.exceptions import CoordinateNotFoundError
 
-TIME_REFERENCE_DTYPE = np.int64
+from improver.metadata.constants.time_types import (
+    TIME_COORD_NAMES, TIME_REFERENCE_DTYPE, TIME_REFERENCE_UNIT,
+    TIME_INTERVAL_DTYPE, TIME_INTERVAL_UNIT)
 
 
 def check_cube_not_float64(cube, fix=False):
@@ -204,18 +206,18 @@ def check_time_coordinate_metadata(cube):
             to the standard datatypes and units
     """
     error_string = ''
-    for time_coord in ["time", "forecast_reference_time", "forecast_period"]:
+    for time_coord in TIME_COORD_NAMES:
         try:
             coord = cube.coord(time_coord)
         except CoordinateNotFoundError:
             continue
 
         if coord.units.is_time_reference():
-            required_unit = "seconds since 1970-01-01 00:00:00"
+            required_unit = TIME_REFERENCE_UNIT
             required_dtype = TIME_REFERENCE_DTYPE
         else:
-            required_unit = "seconds"
-            required_dtype = np.int32
+            required_unit = TIME_INTERVAL_UNIT
+            required_dtype = TIME_INTERVAL_DTYPE
 
         if not _check_units_and_dtype(coord, required_unit, required_dtype):
             msg = ('Coordinate {} does not match required '

@@ -31,28 +31,18 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "percentiles-to-realizations --sampling_method 'quantile' --reordering input output --realization_numbers $(seq 100 1 111) " {
+@test "percentiles-to-realizations --reordering --realization_numbers $(seq -s ',' 100 1 111) input --output output " {
+  improver_check_skip_acceptance
 
   # Test that the right error is raised when the wrong options are passed in.
   run improver percentiles-to-realizations \
+      --reordering --realization-numbers $(seq -s ',' 100 1 111) \
       "$IMPROVER_ACC_TEST_DIR/percentiles-to-realizations/percentiles_rebadging/multiple_percentiles_wind_cube.nc" \
-      "$TEST_DIR/output.nc" --sampling_method 'quantile' --no_of_percentiles 12 \
-      --reordering --realization_numbers $(seq 100 1 111)
+      --output "$TEST_DIR/output.nc"
 
-  [[ "$status" -eq 2 ]]
+  [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver percentiles-to-realizations [-h] [--profile]
-                                            [--profile_file PROFILE_FILE]
-                                            [--no_of_percentiles NUMBER_OF_PERCENTILES]
-                                            [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
-                                            [--ecc_bounds_warning]
-                                            (--reordering | --rebadging)
-                                            [--raw_forecast_filepath RAW_FORECAST_FILE]
-                                            [--random_ordering]
-                                            [--random_seed RANDOM_SEED]
-                                            [--realization_numbers REALIZATION_NUMBERS [REALIZATION_NUMBERS ...]]
-                                            INPUT_FILE OUTPUT_FILE
-improver percentiles-to-realizations: error: Method: reordering does not accept arguments: realization_numbers
+RuntimeError: realization_numbers cannot be used with reordering.
 __TEXT__
-  [[ "$output" =~ "$expected" ]]
+  [[ "$output" =~ .*"$expected" ]]
 }

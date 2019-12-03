@@ -32,7 +32,7 @@
 
 import pytest
 
-from improver.cli import percentile
+from improver import cli
 from improver.tests import acceptance as acc
 
 
@@ -44,10 +44,11 @@ def test_basic(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     perc_input = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [str(perc_input), str(output_path),
+    args = ["improver", "percentile",
+            str(perc_input), "--output", str(output_path),
             "--coordinates", "realization",
-            "--percentiles", "25.0", "50", "75.0"]
-    percentile.main(args)
+            "--percentiles", "25.0,50,75.0"]
+    cli.run_main(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -61,10 +62,11 @@ def test_probconvert(tmp_path, count):
     kgo_path = kgo_dir / f"{count}_realization_kgo.nc"
     prob_input = kgo_dir / f"{count}_realization.nc"
     output_path = tmp_path / "output.nc"
-    args = [str(prob_input), str(output_path),
+    args = ["improver", "percentile",
+            str(prob_input), "--output", str(output_path),
             "--coordinates", "realization",
-            "--percentiles", "25", "50", "75"]
-    percentile.main(args)
+            "--percentiles", "25,50,75"]
+    cli.run_main(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -76,10 +78,11 @@ def test_num_percentiles(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     perc_input = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [str(perc_input), str(output_path),
+    args = ["improver", "percentile",
+            str(perc_input), "--output", str(output_path),
             "--coordinates", "realization",
             "--no-of-percentiles", "3"]
-    percentile.main(args)
+    cli.run_main(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -91,10 +94,11 @@ def test_masked(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     perc_input = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [str(perc_input), str(output_path),
+    args = ["improver", "percentile",
+            str(perc_input), "--output", str(output_path),
             "--coordinates", "realization",
-            "--percentiles", "25.0", "50", "75.0"]
-    percentile.main(args)
+            "--percentiles", "25.0,50,75.0"]
+    cli.run_main(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -107,9 +111,10 @@ def test_eccbounds(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     perc_input = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [str(perc_input), str(output_path),
+    args = ["improver", "percentile",
+            str(perc_input), "--output", str(output_path),
             "--coordinates", "realization",
-            "--percentiles", "25", "50", "75",
-            "--ecc_bounds_warning"]
-    percentile.main(args)
+            "--percentiles", "25,50,75",
+            "--ecc-bounds-warning"]
+    cli.run_main(args)
     acc.compare(output_path, kgo_path)
