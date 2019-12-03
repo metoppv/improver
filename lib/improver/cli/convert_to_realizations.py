@@ -56,7 +56,7 @@ def process(cube: cli.inputcube,
             The processed cube.
     """
     from improver.cli import (percentiles_to_realizations,
-                              probabilities_to_realizations, extract)
+                              probabilities_to_realizations)
 
     if cube.coords('percentile'):
         cube = percentiles_to_realizations.process(
