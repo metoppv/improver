@@ -5,9 +5,7 @@ name: improver
 channels:
   - conda-forge
 dependencies:
-  - python=3
+  - python=3.6
   - iris=2.1
-  - numpy
   - cf_units
-  - sphinx
   - python-stratify
