@@ -98,7 +98,6 @@ def main(argv=None):
     cube_of_ones.data = np.ones((cube_of_ones.shape), dtype="float32")
     cubelist.insert(0, cube_of_ones)
     # Process Cube
-    # pylint: disable=E1123
     process(*cubelist, operation=args.operation, new_name=new_cube_name,
             new_metadata=new_metadata, warnings_on=args.warnings_on,
             output=args.output_filepath)
