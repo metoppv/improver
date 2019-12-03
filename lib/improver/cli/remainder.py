@@ -96,7 +96,7 @@ def main(argv=None):
                 warnings.warn(msg)
     cube_of_ones = cubelist[0].copy()
     cube_of_ones.data = np.ones((cube_of_ones.shape), dtype="float32")
-    cubelist.insert(0, cube_of_ones) 
+    cubelist.insert(0, cube_of_ones)
     # Process Cube
     # pylint: disable=E1123
     process(*cubelist, operation=args.operation, new_name=new_cube_name,
