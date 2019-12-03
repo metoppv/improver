@@ -43,6 +43,7 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
+from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.tests.blending.weighted_blend.test_PercentileBlendingAggregator \
     import (PERCENTILE_DATA, BLENDED_PERCENTILE_DATA,
             BLENDED_PERCENTILE_DATA_EQUAL_WEIGHTS,
@@ -120,7 +121,9 @@ class Test_weighted_blend(IrisTest):
         self.cube.data[0][:][:] = 1.0
         self.cube.data[1][:][:] = 2.0
         self.cube.data[2][:][:] = 3.0
-        self.attributes = self.cube.attributes
+        self.expected_attributes = MANDATORY_ATTRIBUTE_DEFAULTS.copy()
+        for attr in self.cube.attributes:
+            self.expected_attributes[attr] = self.cube.attributes[attr]
 
         cube_threshold = set_up_probability_cube(
             np.zeros((2, 2, 2), dtype=np.float32),
@@ -579,7 +582,7 @@ class Test_process(Test_weighted_blend):
             self.cube.coord('forecast_period').points[-1])
 
         self.assertIsInstance(result, Cube)
-        self.assertEqual(result.attributes, self.attributes)
+        self.assertEqual(result.attributes, self.expected_attributes)
         self.assertEqual(result.coord('forecast_reference_time').points,
                          expected_frt)
         self.assertEqual(result.coord('forecast_period').points,
@@ -644,9 +647,10 @@ class Test_process(Test_weighted_blend):
         for key in self.cube.attributes:
             if "mosg__" in key:
                 attributes_dict[key] = "remove"
-        expected_attributes = {"source": "IMPROVER",
-                               "history": "cycle blended",
-                               "title": self.cube.attributes["title"]}
+        expected_attributes = {
+            "source": "IMPROVER", "history": "cycle blended",
+            "title": self.cube.attributes["title"],
+            "institution": MANDATORY_ATTRIBUTE_DEFAULTS["institution"]}
         coord = "forecast_reference_time"
         plugin = WeightedBlendAcrossWholeDimension(coord)
         result = plugin.process(self.cube, attributes_dict=attributes_dict)
@@ -709,7 +713,7 @@ class Test_process(Test_weighted_blend):
             self.cube.coord('forecast_period').points[-1])
 
         self.assertArrayAlmostEqual(result.data, expected_result_array)
-        self.assertEqual(result.attributes, self.attributes)
+        self.assertEqual(result.attributes, self.expected_attributes)
         self.assertEqual(result.coord('time').points, expected_frt)
         self.assertEqual(result.coord('forecast_period').points,
                          expected_forecast_period)

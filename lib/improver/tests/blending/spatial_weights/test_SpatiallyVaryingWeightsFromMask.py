@@ -61,7 +61,7 @@ class Test__repr__(IrisTest):
 
 class Test_create_initial_weights_from_mask(IrisTest):
 
-    """Test the create_weights_from_mask method """
+    """Test the create_initial_weights_from_mask method """
 
     def setUp(self):
         """Set up an example cube to test with"""
@@ -86,7 +86,7 @@ class Test_create_initial_weights_from_mask(IrisTest):
         expected_data = np.ones((3, 2, 3), dtype=np.float32)
         message = ("Input cube to SpatiallyVaryingWeightsFromMask "
                    "must be masked")
-        result = self.plugin.create_weights_from_mask(self.cube)
+        result = self.plugin.create_initial_weights_from_mask(self.cube)
         self.assertTrue(any(message in str(item)
                             for item in warning_list))
         self.assertArrayEqual(result.data, expected_data)
@@ -116,7 +116,7 @@ class Test_create_initial_weights_from_mask(IrisTest):
                              [[1, 1, 1],
                               [1, 1, 1]]],
                             dtype=np.float32)
-        result = self.plugin.create_weights_from_mask(self.cube)
+        result = self.plugin.create_initial_weights_from_mask(self.cube)
         self.assertArrayEqual(result.data, expected)
         self.assertEqual(result.dtype, np.float32)
         self.assertEqual(result.name(), "weights")
@@ -139,7 +139,7 @@ class Test_create_initial_weights_from_mask(IrisTest):
         self.cube.data = input_data
         message = ("Input cube to SpatiallyVaryingWeightsFromMask "
                    "must be masked")
-        result = self.plugin.create_weights_from_mask(self.cube)
+        result = self.plugin.create_initial_weights_from_mask(self.cube)
         self.assertTrue(any(message in str(item)
                             for item in warning_list))
         self.assertArrayEqual(result.data, expected_data)
@@ -163,7 +163,7 @@ class Test_create_initial_weights_from_mask(IrisTest):
                              [[0, 0, 0],
                               [0, 0, 0]]],
                             dtype=np.float32)
-        result = self.plugin.create_weights_from_mask(self.cube)
+        result = self.plugin.create_initial_weights_from_mask(self.cube)
         self.assertArrayEqual(result.data, expected)
         self.assertEqual(result.dtype, np.float32)
         self.assertEqual(result.name(), "weights")
