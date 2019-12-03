@@ -38,7 +38,7 @@ from iris.tests import IrisTest
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     SplitHistoricForecastAndTruth)
-from improver.tests.ensemble_calibration.ensemble_calibration.\
+from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import SetupCubes
 
 

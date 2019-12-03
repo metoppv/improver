@@ -37,7 +37,7 @@ import iris
 import numpy as np
 from iris.tests import IrisTest
 
-from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
+from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions \
     import add_forecast_reference_time_and_forecast_period
 from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
     set_up_cube)

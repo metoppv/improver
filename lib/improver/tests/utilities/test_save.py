@@ -35,9 +35,9 @@ import unittest
 from tempfile import mkdtemp
 
 import iris
+import numpy as np
 from iris.coords import CellMethod
 from iris.tests import IrisTest
-import numpy as np
 from netCDF4 import Dataset
 
 from improver.tests.set_up_test_cubes import set_up_variable_cube

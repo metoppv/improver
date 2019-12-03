@@ -36,7 +36,6 @@ import unittest
 
 import iris
 import numpy as np
-from cf_units import Unit
 from iris.coords import AuxCoord, DimCoord
 
 from improver.tests.set_up_test_cubes import set_up_variable_cube

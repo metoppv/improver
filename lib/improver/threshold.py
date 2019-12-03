@@ -32,6 +32,7 @@
 
 
 import operator
+
 import iris
 import numpy as np
 from cf_units import Unit

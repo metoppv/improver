@@ -33,12 +33,10 @@ Unit tests for the function "cube_manipulation.concatenate_cubes".
 """
 
 import unittest
+from datetime import datetime
 
 import iris
 import numpy as np
-from cf_units import Unit
-from datetime import datetime
-from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.exceptions import ConcatenateError
 from iris.tests import IrisTest

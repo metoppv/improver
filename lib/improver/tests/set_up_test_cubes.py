@@ -43,8 +43,8 @@ from iris.coords import DimCoord
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
-from improver.metadata.constants.mo_attributes import MOSG_GRID_DEFINITION
 from improver.metadata.check_datatypes import check_cube_not_float64
+from improver.metadata.constants.mo_attributes import MOSG_GRID_DEFINITION
 from improver.metadata.forecast_times import forecast_period_coord
 
 TIME_UNIT = "seconds since 1970-01-01 00:00:00"

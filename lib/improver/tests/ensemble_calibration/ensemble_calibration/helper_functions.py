@@ -34,12 +34,12 @@ Functions for use within unit tests for `ensemble_calibration` plugins.
 import datetime
 
 import cf_units
-from cf_units import Unit
 import iris
+import numpy as np
+from cf_units import Unit
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
-import numpy as np
 
 from improver.metadata.probabilistic import extract_diagnostic_name
 from improver.tests.set_up_test_cubes import set_up_variable_cube

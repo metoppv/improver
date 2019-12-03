@@ -31,6 +31,7 @@
 """Tests for the improver.metadata.utilities module"""
 
 import unittest
+
 import iris
 import numpy as np
 

@@ -36,7 +36,6 @@ from datetime import datetime
 import iris
 import numpy as np
 from iris.cube import Cube, CubeList
-from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 from iris.time import PartialDateTime
 

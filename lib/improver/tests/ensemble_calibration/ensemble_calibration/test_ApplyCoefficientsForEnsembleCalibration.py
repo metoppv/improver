@@ -38,8 +38,8 @@ import unittest
 
 import iris
 import numpy as np
-from numpy.testing import assert_array_almost_equal
 from iris.tests import IrisTest
+from numpy.testing import assert_array_almost_equal
 
 from improver.ensemble_calibration.ensemble_calibration import (
     ApplyCoefficientsFromEnsembleCalibration as Plugin)
@@ -47,9 +47,9 @@ from improver.ensemble_calibration.ensemble_calibration import (
     EstimateCoefficientsForEnsembleCalibration)
 from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import SetupCubes, EnsembleCalibrationAssertions
-from improver.tests.ensemble_calibration.ensemble_calibration.\
+from improver.tests.ensemble_calibration.ensemble_calibration. \
     test_EstimateCoefficientsForEnsembleCalibration import (
-        SetupExpectedCoefficients)
+    SetupExpectedCoefficients)
 from improver.utilities.warnings_handler import ManageWarnings
 
 

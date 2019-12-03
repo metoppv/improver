@@ -31,7 +31,6 @@
 """Tests for the improver.metadata.amend module"""
 
 import unittest
-from copy import copy, deepcopy
 from datetime import datetime as dt
 
 import iris

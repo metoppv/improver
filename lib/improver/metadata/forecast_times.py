@@ -31,10 +31,10 @@
 """Utilities to manipulate forecast time coordinates"""
 
 import warnings
-import numpy as np
-from cf_units import Unit
 
 import iris
+import numpy as np
+from cf_units import Unit
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.cube_manipulation import build_coordinate

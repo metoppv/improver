@@ -42,9 +42,9 @@ from improver.ensemble_calibration.ensemble_calibration import (
     EstimateCoefficientsForEnsembleCalibration)
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     SplitHistoricForecastAndTruth)
-from improver.utilities.load import load_cube, load_cubelist
 from improver.utilities.cli_utilities import (
     load_json_or_none)
+from improver.utilities.load import load_cube, load_cubelist
 from improver.utilities.save import save_netcdf
 
 

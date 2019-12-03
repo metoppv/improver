@@ -33,8 +33,8 @@ Unit tests for the function "cube_manipulation.clip_cube_data".
 """
 
 import unittest
-import numpy as np
 
+import numpy as np
 from iris.cube import Cube
 from iris.tests import IrisTest
 

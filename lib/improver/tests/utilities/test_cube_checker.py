@@ -31,10 +31,10 @@
 """Unit tests for the cube_checker utility."""
 
 import unittest
+from datetime import datetime
 
 import iris
 import numpy as np
-from datetime import datetime
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest

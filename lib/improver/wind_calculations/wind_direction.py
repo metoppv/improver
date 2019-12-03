@@ -35,8 +35,8 @@ import numpy as np
 from iris.coords import CellMethod
 
 from improver import BasePlugin
-from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.metadata.check_datatypes import check_cube_not_float64
+from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.cube_checker import check_cube_coordinates
 
 

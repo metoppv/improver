@@ -31,13 +31,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to create neighbour cubes for extracting spot data."""
 
-from argparse import RawDescriptionHelpFormatter
 import json
+from argparse import RawDescriptionHelpFormatter
 from textwrap import wrap
 
-import numpy as np
 import cartopy.crs as ccrs
 import iris
+import numpy as np
 
 from improver.argparser import ArgParser
 from improver.spotdata.neighbour_finding import NeighbourSelection

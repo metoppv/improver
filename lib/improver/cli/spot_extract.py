@@ -45,7 +45,6 @@ from improver.percentile import PercentileConverter
 from improver.spotdata.apply_lapse_rate import SpotLapseRateAdjust
 from improver.spotdata.neighbour_finding import NeighbourSelection
 from improver.spotdata.spot_extraction import SpotExtraction
-from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.cube_extraction import extract_subcube
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf

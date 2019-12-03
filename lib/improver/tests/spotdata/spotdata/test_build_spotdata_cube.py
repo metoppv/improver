@@ -31,12 +31,10 @@
 """Unit tests for the build_spotdata_cube function"""
 
 import unittest
+from datetime import datetime
 
 import iris
 import numpy as np
-from cf_units import Unit
-from datetime import datetime
-from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube

@@ -31,8 +31,8 @@
 """Unit tests for weather code utilities."""
 
 import datetime
-import pathlib
 import os
+import pathlib
 import unittest
 from tempfile import mkdtemp
 

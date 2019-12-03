@@ -33,9 +33,9 @@ Unit tests for the function "cube_manipulation.enforce_coordinate_ordering".
 """
 
 import unittest
-import numpy as np
 
 import iris
+import numpy as np
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest

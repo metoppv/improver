@@ -33,8 +33,8 @@
 import hashlib
 import pprint
 
-import iris
 import dask.array as da
+import iris
 import numpy as np
 
 

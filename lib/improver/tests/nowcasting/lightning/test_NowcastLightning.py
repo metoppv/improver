@@ -41,8 +41,8 @@ from iris.exceptions import CoordinateNotFoundError, ConstraintMismatchError
 from iris.tests import IrisTest
 from iris.util import squeeze
 
-from improver.nowcasting.lightning import NowcastLightning as Plugin
 from improver.metadata.probabilistic import find_threshold_coordinate
+from improver.nowcasting.lightning import NowcastLightning as Plugin
 from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, set_up_probability_cube)
 from improver.utilities.cube_checker import find_dimension_coordinate_mismatch

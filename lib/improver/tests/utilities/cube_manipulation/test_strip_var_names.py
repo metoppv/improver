@@ -33,9 +33,9 @@ Unit tests for the function "cube_manipulation.strip_var_names".
 """
 
 import unittest
-import numpy as np
 
 import iris
+import numpy as np
 
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import strip_var_names

@@ -31,14 +31,14 @@
 """Tests for the OccurrenceBetweenThresholds plugin"""
 
 import unittest
-import numpy as np
 
 import iris
+import numpy as np
 from iris.tests import IrisTest
 
+from improver.between_thresholds import OccurrenceBetweenThresholds
 from improver.tests.set_up_test_cubes import (
     set_up_probability_cube, set_up_percentile_cube)
-from improver.between_thresholds import OccurrenceBetweenThresholds
 
 
 class Test_process(IrisTest):

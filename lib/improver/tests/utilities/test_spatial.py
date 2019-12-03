@@ -31,7 +31,6 @@
 """Unit tests for the convert_distance_into_number_of_grid_cells function from
  spatial.py."""
 
-import unittest
 from datetime import datetime as dt
 
 import cartopy.crs as ccrs

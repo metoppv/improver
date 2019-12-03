@@ -30,8 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """ Unit tests for cube extraction utilities """
 
-import unittest
 import collections
+import unittest
 
 import iris
 import numpy as np
@@ -39,10 +39,10 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.metadata.probabilistic import find_threshold_coordinate
+from improver.tests.set_up_test_cubes import set_up_probability_cube
 from improver.utilities.cube_extraction import (
     create_range_constraint, apply_extraction, extract_subcube,
     is_complex_parsing_required, create_constraint, parse_constraint_list)
-from improver.tests.set_up_test_cubes import set_up_probability_cube
 
 
 def islambda(function):

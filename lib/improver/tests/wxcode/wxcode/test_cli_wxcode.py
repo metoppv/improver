@@ -31,6 +31,7 @@
 """Tests for the wxcode CLI"""
 
 import argparse
+
 import pytest
 
 from improver.cli import wxcode

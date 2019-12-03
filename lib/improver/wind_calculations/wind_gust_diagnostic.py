@@ -31,9 +31,9 @@
 """Module containing plugin for WindGustDiagnostic."""
 
 import warnings
-import numpy as np
 
 import iris
+import numpy as np
 
 from improver import BasePlugin
 from improver.metadata.probabilistic import find_percentile_coordinate
