@@ -224,7 +224,7 @@ def create_constrained_inputcube_converter(*constraints):
     """Makes a list of functions with different constraints.
 
     Args:
-        *constraints (string):
+        *constraints (str):
             constraints to be used in the loading of cubes against a cubeList
 
     Returns:
