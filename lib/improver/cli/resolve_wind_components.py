@@ -53,7 +53,7 @@ def process(wind_speed: cli.inputcube, wind_from_direction: cli.inputcube):
     from improver.wind_calculations.wind_components import (
         ResolveWindComponents)
 
-    if wind_speed is None or wind_from_direction is None:
+    if not (wind_speed and wind_from_direction):
         raise TypeError(
             "Neither wind_speed or wind_from_direction can be none")
 
