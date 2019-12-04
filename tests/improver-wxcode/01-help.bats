@@ -41,13 +41,16 @@ Calculate gridded weather symbol codes.
 This plugin requires a specific set of input diagnostics, where data
 may be in any units to which the thresholds given below can
 be converted:
+ - probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold; thresholds: 0.0 (m-2)
+ - probability_of_cloud_area_fraction_above_threshold; thresholds: 0.1875 (1), 0.8125 (1)
  - probability_of_rainfall_rate_above_threshold; thresholds: 0.03 (mm hr-1), 0.1 (mm hr-1), 1.0 (mm hr-1)
  - probability_of_lwe_snowfall_rate_above_threshold; thresholds: 0.1 (mm hr-1), 1.0 (mm hr-1)
- - probability_of_cloud_area_fraction_above_threshold; thresholds: 0.1875 (1), 0.8125 (1)
  - probability_of_visibility_in_air_below_threshold; thresholds: 1000.0 (m), 5000.0 (m)
  - probability_of_low_type_cloud_area_fraction_above_threshold; thresholds: 0.85 (1)
  - probability_of_rainfall_rate_in_vicinity_above_threshold; thresholds: 0.1 (mm hr-1), 1.0 (mm hr-1)
  - probability_of_lwe_snowfall_rate_in_vicinity_above_threshold; thresholds: 0.1 (mm hr-1), 1.0 (mm hr-1)
+
+ (probability_of_number_of_lightning_flashes data is optional)
 
  or for global data
 

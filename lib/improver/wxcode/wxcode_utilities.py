@@ -92,6 +92,14 @@ def add_wxcode_metadata(cube):
     cube.attributes.update({'weather_code': wx_keys})
     wxstring = " ".join(WX_DICT.values())
     cube.attributes.update({'weather_code_meaning': wxstring})
+    # If forecast_period or time have bounds remove them
+    # as the weather code cube is not considered to be over a period.
+    for coord_name in ['forecast_period', 'time']:
+        try:
+            if cube.coord(coord_name).bounds is not None:
+                cube.coord(coord_name).bounds = None
+        except iris.exceptions.CoordinateNotFoundError:
+            continue
     return cube
 
 

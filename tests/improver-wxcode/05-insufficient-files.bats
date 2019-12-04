@@ -44,7 +44,7 @@
   echo "status = ${status}"
   [[ "$status" -eq 1 ]]
    read -d '' expected <<'__TEXT__' || true
-   argparse.ArgumentTypeError: Incorrect number of inputs: files .* gave 4 cubes, 5 required
+   OSError: Weather Symbols input cubes are missing the following required input fields
 __TEXT__
   [[ "$output" =~ $expected ]]
 
