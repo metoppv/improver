@@ -55,7 +55,6 @@ def dummy_function(first, second=0, third=2):
         (iris.cube.Cube)
 
     """
-
     first = int(first)
     return first + first
 
