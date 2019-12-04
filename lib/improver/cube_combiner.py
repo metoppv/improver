@@ -34,7 +34,6 @@ import iris
 import numpy as np
 
 from improver import BasePlugin
-from improver.metadata.amend import amend_metadata, resolve_metadata_diff
 from improver.utilities.cube_manipulation import expand_bounds
 
 
@@ -43,6 +42,17 @@ class CubeCombiner(BasePlugin):
     """Plugin for combining cubes.
 
     """
+
+    COMBINE_OPERATORS = {
+        "+": np.add,
+        "add": np.add,
+        "-": np.subtract,
+        "subtract": np.subtract,
+        "*": np.multiply,
+        "multiply": np.multiply,
+        "max": np.maximum,
+        "min": np.minimum,
+        "mean": np.add}  # mean is calculated in two steps: sum and normalise
 
     def __init__(self, operation, warnings_on=False):
         """
@@ -58,16 +68,12 @@ class CubeCombiner(BasePlugin):
             ValueError: Unknown operation.
 
         """
-        possible_operations = ['+', 'add',
-                               '-', 'subtract',
-                               '*', 'multiply',
-                               'max', 'min', 'mean']
-
-        if operation in possible_operations:
-            self.operation = operation
-        else:
+        try:
+            self.operator = self.COMBINE_OPERATORS[operation]
+        except KeyError:
             msg = 'Unknown operation {}'.format(operation)
             raise ValueError(msg)
+        self.operation = operation
         self.warnings_on = warnings_on
 
     def __repr__(self):
@@ -77,51 +83,37 @@ class CubeCombiner(BasePlugin):
                                                self.warnings_on))
         return desc
 
-    def combine(self, cube1, cube2):
+    @staticmethod
+    def _check_dimensions_match(cube_list):
         """
-        Combine cube data
+        Check all coordinate dimensions on the input cubes are equal
 
         Args:
-            cube1 (iris.cube.Cube):
-                Cube containing data to be combined.
-            cube2 (iris.cube.Cube):
-                Cube containing data to be combined.
-        Returns:
-            iris.cube.Cube:
-                Cube containing the combined data.
+            cube_list (iris.cube.CubeList or list):
+                List of cubes to compare
+
+        Raises:
+            ValueError: If dimension coordinates do not match
         """
-        result = cube1
-        if (self.operation == '+' or self.operation == 'add' or
-                self.operation == 'mean'):
-            result.data = cube1.data + cube2.data
-        elif self.operation == '-' or self.operation == 'subtract':
-            result.data = cube1.data - cube2.data
-        elif self.operation == '*' or self.operation == 'multiply':
-            result.data = cube1.data * cube2.data
-        elif self.operation == 'min':
-            result.data = np.minimum(cube1.data, cube2.data)
-        elif self.operation == 'max':
-            result.data = np.maximum(cube1.data, cube2.data)
+        ref_coords = cube_list[0].coords(dim_coords=True)
+        for cube in cube_list[1:]:
+            coords = cube.coords(dim_coords=True)
+            compare = [a == b for a, b in zip(coords, ref_coords)]
+            if not np.all(compare):
+                msg = ("Cannot combine cubes with different dimensions:\n"
+                       "{} and {}".format(repr(cube_list[0]), repr(cube)))
+                raise ValueError(msg)
 
-        return result
-
-    def process(self, cube_list, new_diagnostic_name,
-                revised_coords=None,
-                revised_attributes=None,
-                expanded_coord=None):
+    def process(self, cube_list, new_diagnostic_name, coords_to_expand=None):
         """
         Create a combined cube.
 
         Args:
-            cube_list (iris.cube.CubeList):
-                Cube List contain the cubes to combine.
+            cube_list (iris.cube.CubeList or list):
+                List of cubes to combine.
             new_diagnostic_name (str):
                 New name for the combined diagnostic.
-            revised_coords (dict or None):
-                Revised coordinates for combined cube.
-            revised_attributes (dict or None):
-                Revised attributes for combined cube.
-            expanded_coord (dict or None):
+            coords_to_expand (dict or None):
                 Coordinates to be expanded as a key, with the value
                 indicating whether the upper or mid point of the coordinate
                 should be used as the point value, e.g.
@@ -130,40 +122,26 @@ class CubeCombiner(BasePlugin):
             iris.cube.Cube:
                 Cube containing the combined data.
         Raises:
-            TypeError: If cube_list is not an iris.cube.CubeList.
             ValueError: If the cubelist contains only one cube.
         """
-        if not isinstance(cube_list, iris.cube.CubeList):
-            msg = ('Expecting data to be an instance of iris.cube.CubeList '
-                   'but is {}.'.format(type(cube_list)))
-            raise TypeError(msg)
         if len(cube_list) < 2:
             msg = 'Expecting 2 or more cubes in cube_list'
             raise ValueError(msg)
 
-        # resulting cube will be based on the first cube.
-        data_type = cube_list[0].dtype
+        self._check_dimensions_match(cube_list)
+
+        # perform operation (add, subtract, min, max, multiply) cumulatively
         result = cube_list[0].copy()
+        for cube in cube_list[1:]:
+            result.data = self.operator(result.data, cube.data)
 
-        for ind in range(1, len(cube_list)):
-            cube1, cube2 = (
-                resolve_metadata_diff(result.copy(),
-                                      cube_list[ind].copy(),
-                                      warnings_on=self.warnings_on))
-            result = self.combine(cube1, cube2)
-
+        # normalise mean (for which self.operator is np.add)
         if self.operation == 'mean':
             result.data = result.data / len(cube_list)
 
-        # If cube has coord bounds that we want to expand
-        if expanded_coord:
-            result = expand_bounds(result, cube_list, expanded_coord)
-
-        result = amend_metadata(result,
-                                new_diagnostic_name,
-                                data_type,
-                                revised_coords,
-                                revised_attributes,
-                                warnings_on=self.warnings_on)
+        # update coordinate bounds and cube name
+        if coords_to_expand is not None:
+            result = expand_bounds(result, cube_list, coords_to_expand)
+        result.rename(new_diagnostic_name)
 
         return result

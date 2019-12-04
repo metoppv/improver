@@ -29,18 +29,23 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "probabilities-to-realizations no arguments" {
-  run improver probabilities-to-realizations
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver probabilities-to-realizations [-h] [--profile]
-                                              [--profile_file PROFILE_FILE]
-                                              [--no_of_realizations NUMBER_OF_REALIZATIONS]
-                                              (--reordering | --rebadging)
-                                              [--raw_forecast_filepath RAW_FORECAST_FILE]
-                                              [--random_seed RANDOM_SEED]
-                                              [--ecc_bounds_warning]
-                                              INPUT_FILE OUTPUT_FILE
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "combine maximum value" {
+  improver_check_skip_acceptance
+  KGO="combine/bounds/kgo_max.nc"
+
+  # Run cube-combiner processing and check it passes.
+  run improver combine \
+      --operation='max' \
+      --metadata_jsonfile="$IMPROVER_ACC_TEST_DIR/combine/metadata.json" \
+      $IMPROVER_ACC_TEST_DIR/combine/bounds/*H-temperature_at_screen_level_max.nc \
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 0 ]]
+
+  improver_check_recreate_kgo "output.nc" $KGO
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

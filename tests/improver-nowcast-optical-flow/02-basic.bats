@@ -39,7 +39,7 @@
   COMP2="201811031545_radar_rainrate_composite_UK_regridded.nc"
   COMP3="201811031600_radar_rainrate_composite_UK_regridded.nc"
 
-  OE1="20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
+  OE1="20181103T1600Z-PT0003H00M-orographic_enhancement_standard_resolution.nc"
 
   # Run processing and check it passes
   run improver nowcast-optical-flow \

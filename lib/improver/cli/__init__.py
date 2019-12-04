@@ -161,6 +161,19 @@ def inputjson(to_convert):
     return maybe_coerce_with(load_json_or_none, to_convert)
 
 
+@value_converter
+def comma_separated_list(to_convert):
+    """Converts comma separated string to list or returns passed object.
+
+    Args:
+        to_convert (string or list)
+            comma separated string or list
+
+    Returns:
+       list
+    """
+    return maybe_coerce_with(lambda s: s.split(','), to_convert)
+
 # output handling
 
 

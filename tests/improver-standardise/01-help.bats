@@ -41,6 +41,8 @@ usage: improver standardise [-h] [--profile] [--profile_file PROFILE_FILE]
                             [--input_landmask_filepath INPUT_LANDMASK_FILE]
                             [--landmask_vicinity LANDMASK_VICINITY]
                             [--fix_float64] [--json_file JSON_FILE]
+                            [--coords_to_remove COORDS_TO_REMOVE [COORDS_TO_REMOVE ...]]
+                            [--new_name NEW_NAME] [--new_units NEW_UNITS]
                             SOURCE_DATA
 
 Standardise a source data cube. Three main options are available; fixing
@@ -69,8 +71,14 @@ optional arguments:
                         found but no fix applied.
   --json_file JSON_FILE
                         Filename for the json file containing required changes
-                        that will be applied to the metadata. Defaults to
+                        that will be applied to the attributes. Defaults to
                         None.
+  --coords_to_remove COORDS_TO_REMOVE [COORDS_TO_REMOVE ...]
+                        List of names of scalar coordinates to be removed from
+                        the non-standard input.
+  --new_name NEW_NAME   New dataset name.
+  --new_units NEW_UNITS
+                        Units to convert to.
 
 Regridding options:
   --target_grid_filepath TARGET_GRID
