@@ -1,5 +1,5 @@
 conda:
-    file: environment.yml
+    file: doc/rtd_environment.yml
 build:
     image: latest
 python:

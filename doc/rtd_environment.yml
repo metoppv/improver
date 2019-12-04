@@ -1,5 +1,6 @@
 # Use this file to create a conda environment using:
 # conda create -n <name> --file environment.yml
+# This is for use with Read the Docs.
 
 name: improver
 channels:
