@@ -1,4 +1,5 @@
-#!/usr/bin/env bats
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,22 +29,33 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""Convert wind speed and direction into individual velocity components."""
 
-. $IMPROVER_DIR/tests/lib/utils
+from improver import cli
 
-@test "wind-vector-to-uv basics" {
-  improver_check_skip_acceptance
-  KGO="wind-vector-to-uv/basic/kgo.nc"
 
-  # Run wind-vector-to-uv
-  run improver wind-vector-to-uv \
-      "$IMPROVER_ACC_TEST_DIR/wind-vector-to-uv/basic/wind_speed_direction_vector.nc" \
-      --output "$TEST_DIR/output.nc"
-  [[ "$status" -eq 0 ]]
+@cli.clizefy
+@cli.with_output
+def process(wind_speed: cli.inputcube, wind_from_direction: cli.inputcube):
+    """Converts speed and direction individual velocity components.
 
-  improver_check_recreate_kgo "output.nc" $KGO
+    Args:
+        wind_speed (iris.cube.Cube):
+            A cube of wind speed.
+        wind_from_direction (iris.cube.Cube):
+            A cube of wind from direction.
 
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
-}
+    Returns:
+        iris.cube.Cubelist:
+            A cubelist of the speed and direction as U and V cubes.
+    """
+    from iris.cube import CubeList
+    from improver.wind_calculations.wind_components import (
+        ResolveWindComponents)
+    if wind_speed is None or wind_from_direction is None:
+        raise TypeError(
+            "Neither wind_speed or wind_from_direction can be none")
+
+    u_cube, v_cube = ResolveWindComponents().process(
+        wind_speed, wind_from_direction)
+    return CubeList([u_cube, v_cube])

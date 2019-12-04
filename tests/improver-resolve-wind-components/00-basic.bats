@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env bats
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -29,37 +28,25 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Convert wind speed and direction into individual velocity components."""
 
-from improver import cli
+. $IMPROVER_DIR/tests/lib/utils
 
+@test "resolve-wind-components basics" {
+  improver_check_skip_acceptance
+  KGO="resolve-wind-components/basic/kgo.nc"
 
-inputvector = cli.create_constrained_inputcube_converter('wind_speed',
-                                                         'wind_from_direction')
+  WSPEED="$IMPROVER_ACC_TEST_DIR/nowcast-extrapolate/model_winds/20181103T1600Z-PT0001H00M-wind_speed_on_pressure_levels.nc"
+  WDIR="$IMPROVER_ACC_TEST_DIR/nowcast-extrapolate/model_winds/20181103T1600Z-PT0001H00M-wind_direction_on_pressure_levels.nc"
 
+  # Run wind-vector-to-uv
+  run improver resolve-wind-components \
+    $WSPEED $WDIR \
+    --output "$TEST_DIR/output.nc"
+  [[ "$status" -eq 0 ]]
 
-@cli.clizefy
-@cli.with_output
-def process(wind_vector_cubes: inputvector):
-    """
+  improver_check_recreate_kgo "output.nc" $KGO
 
-    Args:
-        wind_vector_cubes (iris.cube.CubeList):
-            A cubeList of a speed cube and a direction cube.
-
-    Returns:
-        iris.cube.Cubelist:
-            A cubelist of the speed and direction as U and V cubes.
-    """
-    from iris import Constraint
-    from iris.cube import CubeList
-
-    from improver.wind_calculations.wind_components import (
-        ResolveWindComponents)
-
-    speed = wind_vector_cubes.extract(Constraint("wind_speed"), True)
-    direction = wind_vector_cubes.extract(Constraint("wind_from_direction"),
-                                          True)
-
-    u_cube, v_cube = ResolveWindComponents().process(speed, direction)
-    return CubeList([u_cube, v_cube])
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
+}
