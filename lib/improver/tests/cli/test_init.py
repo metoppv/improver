@@ -38,7 +38,6 @@ from improver.cli import (
     docutilize, unbracket,
     maybe_coerce_with, inputcube, inputjson, with_output,
     with_intermediate_output)
-from improver.utilities.load import load_cube
 
 
 def dummy_function(first, second=0, third=2):
@@ -78,7 +77,6 @@ class Test_docutilize(unittest.TestCase):
     """Test the docutilize function."""
 
     def setUp(self):
-        """Sets up the expected numpy style docstring"""
         self.expected = """A dummy function for testing clize usage.
 
 :param first: The first argument.
