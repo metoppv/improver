@@ -39,7 +39,6 @@ from clize.help import (
     ClizeHelp)
 from clize.parser import value_converter
 from clize.runner import Clize
-from iris.cube import CubeList
 from sigtools.wrappers import decorator
 
 # Imports are done in their functions to make calls to -h quicker.
