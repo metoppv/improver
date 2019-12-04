@@ -37,7 +37,7 @@ import improver
 from improver.cli import (
     docutilize, unbracket,
     maybe_coerce_with, inputcube, inputjson, with_output,
-    with_intermediate_output, create_constrained_inputcube_converter)
+    with_intermediate_output)
 from improver.utilities.load import load_cube
 
 
