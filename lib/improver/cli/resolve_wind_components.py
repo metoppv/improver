@@ -52,6 +52,7 @@ def process(wind_speed: cli.inputcube, wind_from_direction: cli.inputcube):
     from iris.cube import CubeList
     from improver.wind_calculations.wind_components import (
         ResolveWindComponents)
+
     if wind_speed is None or wind_from_direction is None:
         raise TypeError(
             "Neither wind_speed or wind_from_direction can be none")
