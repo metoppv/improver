@@ -221,19 +221,19 @@ def with_intermediate_output(wrapped, *args, intermediate_output=None,
     return result
 
 
-def create_constrainded_input_cube_converter(*constraints):
+def create_constrained_inputcube_converter(*constraints):
     """Makes a list of functions with different constraints.
 
     Args:
         *constraints (string):
-            contraints to be used in the loading of cubes against a cubeList
+            constraints to be used in the loading of cubes against a cubeList
 
     Returns:
         list of function:
             A list of functions with different constraints.
     """
     @value_converter
-    def constrainedinputcube_converter(to_convert):
+    def constrained_inputcube_converter(to_convert):
         """Passes the cube and constraints onto maybe coerce with.
 
         Args (iris.cube.Cube):
@@ -248,7 +248,7 @@ def create_constrainded_input_cube_converter(*constraints):
         return iris.cube.CubeList([maybe_coerce_with(
             load_cube, to_convert, constraints=j) for j in constraints])
 
-    return constrainedinputcube_converter
+    return constrained_inputcube_converter
 
 
 # cli object creation

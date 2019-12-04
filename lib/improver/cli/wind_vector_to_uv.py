@@ -34,7 +34,8 @@
 from improver import cli
 
 
-inputvector = cli.create_constrainded_input_cube_converter('wind_speed', 'wind_from_direction')
+inputvector = cli.create_constrained_inputcube_converter('wind_speed',
+                                                         'wind_from_direction')
 
 
 @cli.clizefy
