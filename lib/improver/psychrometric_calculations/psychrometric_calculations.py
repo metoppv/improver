@@ -531,18 +531,15 @@ class WetBulbTemperature(BasePlugin):
 
 
 class WetBulbTemperatureIntegral(BasePlugin):
-    """Calculate  a wet-bulb temperature integral."""
+    """Calculate a wet-bulb temperature integral."""
 
-    def __init__(self, precision=0.005, coord_name_to_integrate="height",
+    def __init__(self, coord_name_to_integrate="height",
                  start_point=None, end_point=None,
                  direction_of_integration="negative"):
         """
         Initialise class.
 
         Args:
-            precision (float):
-                The precision to which the Newton iterator must converge
-                before returning wet bulb temperatures.
             coord_name_to_integrate (str):
                 Name of the coordinate to be integrated.
             start_point (float or None):
@@ -561,8 +558,6 @@ class WetBulbTemperatureIntegral(BasePlugin):
                 'negative' corresponds to the values within the array
                 decreasing as the array index increases.
         """
-        self.wet_bulb_temperature_plugin = (
-            WetBulbTemperature(precision=precision))
         self.integration_plugin = Integration(
             coord_name_to_integrate, start_point=start_point,
             end_point=end_point,
@@ -576,35 +571,21 @@ class WetBulbTemperatureIntegral(BasePlugin):
             self.integration_plugin))
         return result
 
-    def process(self, temperature, relative_humidity, pressure):
+    def process(self, wet_bulb_temperature):
         """
-        Calculate the wet bulb temperature integral by firstly calculating
-        the wet bulb temperature from the inputs provided, and then
-        calculating the vertical integral of the wet bulb temperature.
+        Calculate the vertical integal of wet bulb temperature from the input
+        wet bulb temperatures on height levels.
 
         Args:
-            temperature (iris.cube.Cube):
-                Cube of air temperatures (K).
-            relative_humidity (iris.cube.Cube):
-                Cube of relative humidities (%, converted to fractional).
-            pressure (iris.cube.Cube):
-                Cube of air pressures (Pa).
+            wet_bulb_temperature (iris.cube.Cube):
+                Cube on wet bulb temperatures of height levels.
 
         Returns:
-            (tuple): tuple containing:
-                **wet_bulb_temperature** (iris.cube.Cube) - Cube on wet bulb
-                temperatures on height levels (celsius)
-
-                **wet_bulb_temperature_integral** (iris.cube.Cube) - Cube of
-                wet bulb temperature integral (Kelvin-metres).
-
+            wet_bulb_temperature_integral (iris.cube.Cube):
+                Cube of wet bulb temperature integral (Kelvin-metres).
         """
-        # Calculate wet-bulb temperature.
-        wet_bulb_temperature = (
-            self.wet_bulb_temperature_plugin.process(
-                temperature, relative_humidity, pressure))
         # Convert to Celsius
-        wet_bulb_temperature.convert_units('celsius')
+        wet_bulb_temperature.convert_units('celsius')  ##WHY??
         # Integrate.
         wet_bulb_temperature_integral = (
             self.integration_plugin.process(wet_bulb_temperature))
@@ -612,21 +593,18 @@ class WetBulbTemperatureIntegral(BasePlugin):
         units_string = "K {}".format(
             wet_bulb_temperature.coord(self.coord_name_to_integrate).units)
         wet_bulb_temperature_integral.units = Unit(units_string)
-        return wet_bulb_temperature, wet_bulb_temperature_integral
+        return wet_bulb_temperature_integral
 
 
 class FallingSnowLevel(BasePlugin):
     """Calculate a field of continuous falling snow level."""
 
-    def __init__(self, precision=0.005, falling_level_threshold=90.0,
+    def __init__(self, falling_level_threshold=90.0,
                  grid_point_radius=2):
         """
         Initialise class.
 
         Args:
-            precision (float):
-                The precision to which the Newton iterator must converge
-                before returning wet bulb temperatures.
             falling_level_threshold (float):
                 The cutoff threshold for the Wet-bulb integral used
                 to calculate the falling snow level.We are integrating to the
@@ -639,19 +617,14 @@ class FallingSnowLevel(BasePlugin):
                 calculation.
 
         """
-        self.precision = precision
-        self.wet_bulb_integral_plugin = (
-            WetBulbTemperatureIntegral(precision=precision))
         self.falling_level_threshold = falling_level_threshold
         self.missing_data = -300.0
         self.grid_point_radius = grid_point_radius
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<FallingSnowLevel: precision:'
-                  '{}, falling_level_threshold:{}, '
+        result = ('<FallingSnowLevel: falling_level_threshold:{}, '
                   'grid_point_radius: {}>'.format(
-                      self.precision,
                       self.falling_level_threshold,
                       self.grid_point_radius))
         return result
@@ -1037,23 +1010,21 @@ class FallingSnowLevel(BasePlugin):
             radius_in_metres).process(orography_cube)
         return max_in_nbhood_orog
 
-    def process(self, temperature, relative_humidity, pressure, orog,
+    def process(self, wet_bulb_temperature, wet_bulb_integral, orog,
                 land_sea_mask):
         """
-        Calculate the wet bulb temperature integral by firstly calculating
-        the wet bulb temperature from the inputs provided, and then
-        calculating the vertical integral of the wet bulb temperature.
-        Find the falling_snow_level by finding the height above sea level
-        corresponding to the falling_level_threshold in the integral data.
-        Fill in missing data appropriately.
+        Use the wet bulb temperature integral to find the altitude at which a
+        phase change occurs (e.g. snow to sleet). This is achieved by finding
+        the height above sea level at which the integral matches an empirical
+        threshold that is expected to correspond with the phase change. This
+        empirical threshold is the falling_level_threshold. Fill in missing
+        data appropriately.
 
         Args:
-            temperature (iris.cube.Cube):
-                Cube of air temperatures (K).
-            relative_humidity (iris.cube.Cube):
-                Cube of relative humidities (%, converted to fractional).
-            pressure (iris.cube.Cube):
-                Cube of air pressures (Pa).
+            wet_bulb_temperature (iris.cube.Cube):
+                Cube of wet bulb temperatures on height levels (celsius)
+            wet_bulb_integral (iris.cube.Cube):
+                Cube of wet bulb temperature integral (Kelvin-metres).
             orog (iris.cube.Cube):
                 Cube of orography (m).
             land_sea_mask (iris.cube.Cube):
@@ -1063,15 +1034,9 @@ class FallingSnowLevel(BasePlugin):
             iris.cube.Cube:
                 Cube of Falling Snow Level above sea level (asl).
         """
-
-        # Calculate wet-bulb temperature integral.
-        wet_bulb_temperature, wet_bulb_integral = (
-            self.wet_bulb_integral_plugin.process(
-                temperature, relative_humidity, pressure))
         # Find highest height from height bounds.
-        # If these are set to None then use the heights in temperature.
         height_bounds = wet_bulb_integral.coord('height').bounds
-        heights = temperature.coord('height').points
+        heights = wet_bulb_temperature.coord('height').points
         if height_bounds is None:
             highest_height = heights[-1]
         else:
