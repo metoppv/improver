@@ -33,7 +33,7 @@
 
 @test "extrapolate basic" {
   improver_check_skip_acceptance
-  KGO="nowcast-extrapolate/extrapolate/kgo.nc"
+  KGO="nowcast-feature-branch/nowcast-extrapolate/kgo.nc"
 
   UVCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/kgo.nc"
   INFILE="201811031600_radar_rainrate_composite_UK_regridded.nc"
