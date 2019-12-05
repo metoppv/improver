@@ -489,7 +489,7 @@ class Test_process(IrisTest):
 
 
         self.height_points = [5., 195., 200.]
-        height_attribute = {"positive": "down"}
+        height_attribute = {"positive": "up"}
 
         wet_bulb_temperature = set_up_variable_cube(
             data, spatial_grid='equalarea', name='wet_bulb_temperature')
@@ -500,6 +500,7 @@ class Test_process(IrisTest):
             coord_units='m', attributes=height_attribute)
         self.wet_bulb_temperature_cube.data = wbt_data
 
+        height_attribute = {"positive": "down"}
         wet_bulb_integral = set_up_variable_cube(
             data, spatial_grid='equalarea',
             name='wet_bulb_temperature_integral', units='K m',)
