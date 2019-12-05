@@ -142,7 +142,7 @@ def nccmp(output_path, kgo_path,
            str(output_path), str(kgo_root() / kgo_path)]
     print(" ".join(cmd))
     completion = subprocess.run(cmd,
-                                timeout=15,
+                                timeout=30,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT)
     print(completion.stdout.decode())

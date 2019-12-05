@@ -29,18 +29,27 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "probabilities-to-realizations no arguments" {
-  run improver probabilities-to-realizations
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver probabilities-to-realizations [-h] [--profile]
-                                              [--profile_file PROFILE_FILE]
-                                              [--no_of_realizations NUMBER_OF_REALIZATIONS]
-                                              (--reordering | --rebadging)
-                                              [--raw_forecast_filepath RAW_FORECAST_FILE]
-                                              [--random_seed RANDOM_SEED]
-                                              [--ecc_bounds_warning]
-                                              INPUT_FILE OUTPUT_FILE
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "wxcode <input files - decision tree units>" {
+  improver_check_skip_acceptance
+  KGO="wxcode/basic/kgo_no_lightning.nc"
+
+  # Run wxcode processing and check it passes.
+  run improver wxcode \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_rainfall_rate_above_threshold.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_rainfall_rate_in_vicinity_above_threshold.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_lwe_snowfall_rate_above_threshold.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_lwe_snowfall_rate_in_vicinity_above_threshold.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_visibility_in_air_below_threshold.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_cloud_area_fraction_above_threshold.nc" \
+      "$IMPROVER_ACC_TEST_DIR/wxcode/basic/probability_of_low_type_cloud_area_fraction_above_threshold.nc" \
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 0 ]]
+
+  improver_check_recreate_kgo "output.nc" $KGO
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

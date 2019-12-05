@@ -31,15 +31,15 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "probabilities-to-realizations --reordering input output" {
+@test "probabilities-to-realizations --reordering input --output output" {
   improver_check_skip_acceptance
 
   run improver probabilities-to-realizations --reordering \
       "$IMPROVER_ACC_TEST_DIR/probabilities-to-realizations/basic/input.nc" \
-      "$TEST_DIR/output.nc"
+      --output "$TEST_DIR/output.nc"
   [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-ValueError: You must supply a raw forecast filepath if using the reordering option.
+RuntimeError: You must supply a raw forecast cube if using the reordering option.
 __TEXT__
-  [[ "$output" =~ "$expected" ]]
+  [[ "$output" =~ .*"$expected" ]]
 }
