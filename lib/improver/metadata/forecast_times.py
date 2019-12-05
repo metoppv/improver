@@ -72,8 +72,11 @@ def forecast_period_coord(cube, force_lead_time_calculation=False,
             DimCoord and this coord does not need changing, otherwise
             it will be an AuxCoord. Units are result_units.
     """
+    create_dim_coord = False
     if cube.coords("forecast_period"):
         fp_type = cube.coord("forecast_period").dtype
+        if isinstance(cube.coord("forecast_period"), iris.coords.DimCoord):
+            create_dim_coord = True
     else:
         fp_type = TIME_INTERVAL_DTYPE
 
@@ -85,55 +88,13 @@ def forecast_period_coord(cube, force_lead_time_calculation=False,
             msg = "For forecast_period: {}".format(err)
             raise ValueError(msg)
 
-    # Try to return forecast_reference_time - time coordinate.
     elif cube.coords("time") and cube.coords("forecast_reference_time"):
-        time_units = cube.coord("time").units
-        t_coord = cube.coord("time")
-        fr_coord = cube.coord("forecast_reference_time")
-        fr_type = fr_coord.dtype
-        try:
-            fr_coord.convert_units(time_units)
-        except ValueError as err:
-            msg = "For forecast_reference_time: {}".format(err)
-            raise ValueError(msg)
-        time_points = np.array(
-            [c.point for c in t_coord.cells()])
-        forecast_reference_time_points = np.array(
-            [c.point for c in fr_coord.cells()])
-        required_lead_times = (
-            time_points - forecast_reference_time_points)
-        required_lead_times = np.array(
-            [x.total_seconds() for x in required_lead_times]).astype(fr_type)
-        if t_coord.bounds is not None:
-            time_bounds = np.array(
-                [c.bound for c in t_coord.cells()])
-            required_lead_bounds = (
-                time_bounds - forecast_reference_time_points)
-            required_lead_bounds = np.array(
-                [[b.total_seconds() for b in x]
-                 for x in required_lead_bounds]).astype(fr_type)
-        else:
-            required_lead_bounds = None
-        coord_type = iris.coords.AuxCoord
-        if cube.coords("forecast_period"):
-            if isinstance(
-                    cube.coord("forecast_period"), iris.coords.DimCoord):
-                coord_type = iris.coords.DimCoord
-        result_coord = coord_type(
-            required_lead_times,
-            standard_name='forecast_period',
-            bounds=required_lead_bounds,
-            units="seconds")
-        result_coord.convert_units(result_units)
-        if np.any(result_coord.points < 0):
-            msg = ("The values for the time {} and "
-                   "forecast_reference_time {} coordinates from the "
-                   "input cube have produced negative values for the "
-                   "forecast_period. A forecast does not generate "
-                   "values in the past.").format(
-                       cube.coord("time").points,
-                       cube.coord("forecast_reference_time").points)
-            warnings.warn(msg)
+        # Try to calculate forecast period from forecast reference time and
+        # time coordinates
+        result_coord = _calculate_forecast_period(
+            cube.coord("time"), cube.coord("forecast_reference_time"),
+            result_units, dim_coord=create_dim_coord)
+
     else:
         msg = ("The forecast period coordinate is not available within {}."
                "The time coordinate and forecast_reference_time "
@@ -144,6 +105,72 @@ def forecast_period_coord(cube, force_lead_time_calculation=False,
     result_coord.points = result_coord.points.astype(fp_type)
     if result_coord.bounds is not None:
         result_coord.bounds = result_coord.bounds.astype(fp_type)
+
+    return result_coord
+
+
+def _calculate_forecast_period(time_coord, frt_coord, fp_units, dim_coord=False):
+    """
+    Calculate a forecast period from existing time and forecast reference
+    time coordinates, and return in the required units.
+
+    Args:
+        time_coord (iris.coords.Coord):
+            Time coordinate
+        frt_coord (iris.coords.Coord):
+            Forecast reference coordinate
+        fp_units (cf_units.Unit or str):
+            Required units of forecast period coordinate
+        dim_coord (bool):
+            If true, create an iris.coords.DimCoord instance.  Default is to
+            create an iris.coords.AuxCoord.
+
+    Returns:
+        iris.coords.Coord:
+            Forecast period coordinate corresponding to the input times and
+            forecast reference times specified
+
+    Warns:
+        UserWarning: If any calculated forecast periods are negative
+    """
+    time_units = time_coord.units
+    frt_type = frt_coord.dtype
+
+    # use cell() access method to get datetime.datetime instances
+    time_points = np.array([c.point for c in time_coord.cells()])
+    forecast_reference_time_points = np.array(
+        [c.point for c in frt_coord.cells()])
+    required_lead_times = (
+        time_points - forecast_reference_time_points)
+    required_lead_times = np.array(
+        [x.total_seconds() for x in required_lead_times]).astype(frt_type)
+
+    if time_coord.bounds is not None:
+        time_bounds = np.array([c.bound for c in time_coord.cells()])
+        required_lead_time_bounds = (
+            time_bounds - forecast_reference_time_points)
+        required_lead_time_bounds = np.array(
+            [[b.total_seconds() for b in x]
+             for x in required_lead_time_bounds]).astype(frt_type)
+    else:
+        required_lead_time_bounds = None
+
+    coord_type = iris.coords.DimCoord if dim_coord else iris.coords.AuxCoord
+    result_coord = coord_type(
+        required_lead_times,
+        standard_name='forecast_period',
+        bounds=required_lead_time_bounds,
+        units="seconds")
+    result_coord.convert_units(fp_units)
+
+    if np.any(result_coord.points < 0):
+        msg = ("The values for the time {} and "
+               "forecast_reference_time {} coordinates from the "
+               "input cube have produced negative values for the "
+               "forecast_period. A forecast does not generate "
+               "values in the past.").format(time_coord.points,
+                                             frt_coord.points)
+        warnings.warn(msg)
 
     return result_coord
 

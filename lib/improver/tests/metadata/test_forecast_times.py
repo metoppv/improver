@@ -116,11 +116,13 @@ class Test_forecast_period_coord(IrisTest):
 
     def test_check_time_unit_conversion(self):
         """Test that the data within the coord is as expected with the
-        expected units, when the input cube has a time coordinate with units
-        other than the usual units of seconds since 1970-01-01 00:00:00.
+        expected units, when the input cube time and forecast reference time
+        coordinates in different units.
         """
         expected_result = self.cube.coord("forecast_period")
         self.cube.coord("time").convert_units(
+            "seconds since 1970-01-01 00:00:00")
+        self.cube.coord("forecast_reference_time").convert_units(
             "hours since 1970-01-01 00:00:00")
         result = forecast_period_coord(
             self.cube, force_lead_time_calculation=True)
