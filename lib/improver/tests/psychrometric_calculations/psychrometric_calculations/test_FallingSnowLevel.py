@@ -473,22 +473,25 @@ class Test_process(IrisTest):
                [275.0666 , 274.4207 , 275.0666 ],
                [275.0666 , 275.0666 , 275.0666 ]]]], dtype=np.float32)
 
+        # Note the values below are ordered at [5, 195] m. This is reversed
+        # within the PhaseChangeLevel plugin to give the correct descending
+        # order.
+
         wbti_data = np.array(
-            [[[[7.9681854, 7.9681854, 7.9681854],
-               [7.9681854, 3.176712, 7.9681854],
-               [7.9681854, 7.9681854, 7.9681854]],
-              [[7.9681854, 7.9681854, 7.9681854],
-               [7.9681854, 3.176712, 7.9681854],
-               [7.9681854, 7.9681854, 7.9681854]]],
-             [[[128.68324, 128.68324, 128.68324],
+            [[[[128.68324, 128.68324, 128.68324],
                [128.68324, 3.176712, 128.68324],
                [128.68324, 128.68324, 128.68324]],
               [[128.68324, 128.68324, 128.68324],
                [128.68324, 3.176712, 128.68324],
-               [128.68324, 128.68324, 128.68324]]]], dtype=np.float32)
+               [128.68324, 128.68324, 128.68324]]],
+             [[[7.9681854, 7.9681854, 7.9681854],
+               [7.9681854, 3.176712, 7.9681854],
+               [7.9681854, 7.9681854, 7.9681854]],
+              [[7.9681854, 7.9681854, 7.9681854],
+               [7.9681854, 3.176712, 7.9681854],
+               [7.9681854, 7.9681854, 7.9681854]]]], dtype=np.float32)
 
-
-        self.height_points = [5., 195., 200.]
+        height_points = [5., 195., 200.]
         height_attribute = {"positive": "up"}
 
         wet_bulb_temperature = set_up_variable_cube(
@@ -496,23 +499,27 @@ class Test_process(IrisTest):
         wet_bulb_temperature = add_coordinate(
             wet_bulb_temperature, [0, 1], 'realization')
         self.wet_bulb_temperature_cube = add_coordinate(
-            wet_bulb_temperature, self.height_points, 'height',
+            wet_bulb_temperature, height_points, 'height',
             coord_units='m', attributes=height_attribute)
         self.wet_bulb_temperature_cube.data = wbt_data
 
+        # Note that the iris cubelist merge_cube operation sorts the coordinate
+        # being merged into ascending order. The cube created below is thus
+        # in the incorrect height order, i.e. [5, 195] instead of [195, 5].
+        # There is a function in the the PhaseChangeLevel plugin that ensures
+        # the height coordinate is in descending order.
+
         height_attribute = {"positive": "down"}
+
         wet_bulb_integral = set_up_variable_cube(
             data, spatial_grid='equalarea',
             name='wet_bulb_temperature_integral', units='K m',)
         wet_bulb_integral = add_coordinate(
             wet_bulb_integral, [0, 1], 'realization')
         self.wet_bulb_integral_cube = add_coordinate(
-            wet_bulb_integral, self.height_points[0:2], 'height',
+            wet_bulb_integral, height_points[0:2], 'height',
             coord_units='m', attributes=height_attribute)
         self.wet_bulb_integral_cube.data = wbti_data
-
-        print(self.wet_bulb_temperature_cube.data)
-        print(self.wet_bulb_integral_cube.data)
 
     def test_basic(self):
         """Test that process returns a cube with the right name and units."""

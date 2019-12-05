@@ -47,6 +47,7 @@ from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.mathematical_operations import Integration
 from improver.utilities.spatial import (
     OccurrenceWithinVicinity, convert_number_of_grid_cells_into_distance)
+from improver.utilities.cube_manipulation import sort_coord_in_cube
 
 
 class Utilities(object):
@@ -1048,6 +1049,12 @@ class PhaseChangeLevel(BasePlugin):
         """
         wet_bulb_temperature.convert_units('celsius')
         wet_bulb_integral.convert_units('K m')
+
+        # Ensure the wet bulb integral cube's height coordinate is in
+        # descending order
+        wet_bulb_integral = sort_coord_in_cube(wet_bulb_integral, 'height',
+                                               order='descending')
+
         # Find highest height from height bounds.
         height_bounds = wet_bulb_integral.coord('height').bounds
         heights = wet_bulb_temperature.coord('height').points
