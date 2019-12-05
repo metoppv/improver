@@ -596,8 +596,9 @@ class WetBulbTemperatureIntegral(BasePlugin):
         return wet_bulb_temperature_integral
 
 
-class FallingSnowLevel(BasePlugin):
-    """Calculate a field of continuous falling snow level."""
+class PhaseChangeLevel(BasePlugin):
+    """Calculate a continuous field of heights relative to sea level at which
+    a phase change of precipitation is expected."""
 
     def __init__(self, falling_level_threshold=90.0,
                  grid_point_radius=2):
@@ -607,15 +608,15 @@ class FallingSnowLevel(BasePlugin):
         Args:
             falling_level_threshold (float):
                 The cutoff threshold for the Wet-bulb integral used
-                to calculate the falling snow level.We are integrating to the
+                to calculate the phase change level. We are integrating to the
                 threshold that is presumed to indicate
-                the level at which snow has melted back to rain. Above
-                this level we should have falling snow.
+                the level at which the phase change occurs, e.g. snow has
+                partially melted to become sleet, or sleet has melted to
+                become rain.
             grid_point_radius (int):
                 The radius in grid points used to calculate the maximum
                 height of the orography in a neighbourhood as part of this
                 calculation.
-
         """
         self.falling_level_threshold = falling_level_threshold
         self.missing_data = -300.0
@@ -623,7 +624,7 @@ class FallingSnowLevel(BasePlugin):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<FallingSnowLevel: falling_level_threshold:{}, '
+        result = ('<PhaseChangeLevel: falling_level_threshold:{}, '
                   'grid_point_radius: {}>'.format(
                       self.falling_level_threshold,
                       self.grid_point_radius))
@@ -631,7 +632,7 @@ class FallingSnowLevel(BasePlugin):
 
     def find_falling_level(self, wb_int_data, orog_data, height_points):
         """
-        Find the falling snow level by finding the level of the wet-bulb
+        Find the phase change level by finding the level of the wet-bulb
         integral data at the required threshold. Wet-bulb integral data
         is only available above ground level and there may be an insufficient
         number of levels in the input data, in which case the required
@@ -648,7 +649,7 @@ class FallingSnowLevel(BasePlugin):
 
         Returns:
             numpy.ndarray:
-                Falling snow level data asl.
+                Phase change level data asl.
 
         """
         # Create cube of heights above sea level for each height in
@@ -657,26 +658,27 @@ class FallingSnowLevel(BasePlugin):
         for i, height in enumerate(height_points):
             asl[i, ::] = orog_data + height
 
-        # Calculate falling snow level above sea level by
+        # Calculate phase change level above sea level by
         # finding the level corresponding to the falling_level_threshold.
-        # Interpolate returns an array with height indice
-        #  for falling_level_threshold so we take the 0 index
-        snow_level_data = interpolate(np.array([self.falling_level_threshold]),
-                                      wb_int_data, asl, axis=0)[0]
+        # Interpolate returns an array with height indices
+        # for falling_level_threshold so we take the 0 index
+        phase_change_level_data = interpolate(
+            np.array([self.falling_level_threshold]),
+            wb_int_data, asl, axis=0)[0]
 
-        return snow_level_data
+        return phase_change_level_data
 
-    def fill_in_high_snow_falling_levels(
-            self, snow_level_data, orog_data, highest_wb_int_data,
+    def fill_in_high_phase_change_falling_levels(
+            self, phase_change_level_data, orog_data, highest_wb_int_data,
             highest_height):
         """
-        Fill in any data in the snow falling level where the whole wet bulb
+        Fill in any data in the phase change level where the whole wet bulb
         temperature integral is above the the threshold.
         Set these points to the highest height level + orography.
 
         Args:
-            snow_level_data (numpy.ndarray):
-                Falling snow level data (m).
+            phase_change_level_data (numpy.ndarray):
+                Phase change level data (m).
             orog_data (numpy.ndarray):
                 Orographic data (m)
             highest_wb_int_data (numpy.ndarray):
@@ -685,34 +687,34 @@ class FallingSnowLevel(BasePlugin):
                 Highest height at which the integral starts (m).
         """
         points_not_freezing = np.where(
-            np.isnan(snow_level_data) &
+            np.isnan(phase_change_level_data) &
             (highest_wb_int_data > self.falling_level_threshold))
-        snow_level_data[points_not_freezing] = (
+        phase_change_level_data[points_not_freezing] = (
             highest_height + orog_data[points_not_freezing])
 
     def find_extrapolated_falling_level(self, max_wb_integral, gradient,
-                                        intercept, snow_falling_level,
+                                        intercept, phase_change_level_data,
                                         sea_points):
         r"""
-        Find the snow falling level below sea level using the linear
+        Find the phase change level below sea level using the linear
         extrapolation of the wet bulb temperature integral and update the
-        snow falling level array with these values.
+        phase change level array with these values.
 
 
-        The snow falling level is calculated from finding the point where the
+        The phase change level is calculated from finding the point where the
         integral of wet bulb temperature crosses the falling level threshold.
 
         In cases where the wet bulb temperature integral has not reached the
         threshold by the time we reach sea level, we can find a fit to the wet
         bulb temperature profile near the surface, and use this to estimate
-        where the snow falling level would be below sea level.
+        where the phase change level would be below sea level.
 
         The difference between the wet bulb temperature integral at the
         threshold and the wet bulb integral at the surface is equal to the
         integral of the wet bulb temperature between sea level and
-        the negative height corresponding to the snow falling level. As we are
+        the negative height corresponding to the phase change level. As we are
         using a simple linear fit, we can integrate this to find an expression
-        for the extrapolated snow falling level.
+        for the extrapolated phase change level.
 
         The form of this expression depends on whether the linear fit of wet
         bulb temperature crosses the height axis above or below zero altitude.
@@ -726,20 +728,20 @@ class FallingSnowLevel(BasePlugin):
         above sea level.
 
         If it crosses above zero, then the limits on the integral
-        are the snow falling level and zero and we find the following
-        expression for the snow falling level:
+        are the phase change level and zero and we find the following
+        expression for the phase change level:
 
         .. math::
-            {{snow\:falling\:level} = \frac{c \pm \sqrt{
+            {{phase\:change\:level} = \frac{c \pm \sqrt{
             c^2-2 m (threshold-I)}}{-m}}
 
         If the linear fit crosses below zero the limits on our integral are
-        the snow falling level and the point where the linear fit crosses the
+        the phase change level and the point where the linear fit crosses the
         height axis, as only positive wet bulb temperatures count towards the
-        integral. In this case our expression for the snow falling level is:
+        integral. In this case our expression for the phase change level is:
 
         .. math::
-            {{snow\:falling\:level} = \frac{c \pm \sqrt{
+            {{phase\:change\:level} = \frac{c \pm \sqrt{
             2 m (I-threshold)}}{-m}}
 
         Args:
@@ -751,9 +753,9 @@ class FallingSnowLevel(BasePlugin):
             intercept (numpy.ndarray):
                 The intercept of the line of best fit we are using in the
                 extrapolation.
-            snow_falling_level (numpy.ndarray):
-                The snow falling level array with values filled in with snow
-                falling levels calculated through extrapolation.
+            phase_change_level_data (numpy.ndarray):
+                The phase change level array with values filled in with phase
+                change levels calculated through extrapolation.
             sea_points (numpy.ndarray):
                 A boolean array with True where the points are sea points.
 
@@ -764,14 +766,14 @@ class FallingSnowLevel(BasePlugin):
         gradient = gradient[index]
         intercept = intercept[index]
         max_wb_int = max_wb_integral[index]
-        snow_fl = snow_falling_level[index]
+        phase_cl = phase_change_level_data[index]
 
         # For points where -intercept/gradient is greater than zero:
         index2 = (-intercept/gradient >= 0.0)
         inside_sqrt = (
             intercept[index2]**2 - 2*gradient[index2]*(
                 self.falling_level_threshold - max_wb_int[index2]))
-        snow_fl[index2] = (
+        phase_cl[index2] = (
             (intercept[index2] - np.sqrt(inside_sqrt))/-gradient[index2])
 
         # For points where -intercept/gradient is less than zero:
@@ -779,12 +781,12 @@ class FallingSnowLevel(BasePlugin):
         inside_sqrt = (
             2*gradient[index2]*(
                 max_wb_int[index2] - self.falling_level_threshold))
-        snow_fl[index2] = (
+        phase_cl[index2] = (
             (intercept[index2] - np.sqrt(inside_sqrt))/-gradient[index2])
-        # Update the snow falling level. Clip to ignore extremely negative
-        # snow falling levels.
-        snow_fl = np.clip(snow_fl, -2000, np.inf)
-        snow_falling_level[index] = snow_fl
+        # Update the phase change level. Clip to ignore extremely negative
+        # phase change levels.
+        phase_cl = np.clip(phase_cl, -2000, np.inf)
+        phase_change_level_data[index] = phase_cl
 
     @staticmethod
     def linear_wet_bulb_fit(wet_bulb_temperature, heights, sea_points,
@@ -855,24 +857,24 @@ class FallingSnowLevel(BasePlugin):
         return gradient, intercept
 
     def fill_in_sea_points(
-            self, snow_level_data, land_sea_data, max_wb_integral,
+            self, phase_change_level_data, land_sea_data, max_wb_integral,
             wet_bulb_temperature, heights):
         """
-        Fill in any sea points where we have not found a snow falling level
+        Fill in any sea points where we have not found a phase change level
         by the time we get to sea level, i.e. where the whole wet bulb
         temperature integral is below the threshold.
 
         This function finds a linear fit to the wet bulb temperature close to
         sea level and uses this to find where an extrapolated wet bulb
         temperature integral would cross the threshold. This results in
-        snow falling levels below sea level for points where we have applied
+        phase change levels below sea level for points where we have applied
         the extrapolation.
 
         Assumes that height is the first axis in the wet_bulb_integral array.
 
         Args:
-            snow_level_data(numpy.ndarray):
-                The snow falling level array, filled with values for points
+            phase_change_level_data(numpy.ndarray):
+                The phase change level array, filled with values for points
                 whose wet bulb temperature integral crossed the theshold.
             land_sea_data (numpy.ndarray):
                 The binary land-sea mask
@@ -889,7 +891,7 @@ class FallingSnowLevel(BasePlugin):
 
         """
         sea_points = (
-            np.isnan(snow_level_data) & (land_sea_data < 1.0) &
+            np.isnan(phase_change_level_data) & (land_sea_data < 1.0) &
             (max_wb_integral < self.falling_level_threshold))
         if np.all(sea_points is False):
             return
@@ -897,42 +899,42 @@ class FallingSnowLevel(BasePlugin):
         gradient, intercept = self.linear_wet_bulb_fit(wet_bulb_temperature,
                                                        heights, sea_points)
 
-        self.find_extrapolated_falling_level(max_wb_integral, gradient,
-                                             intercept, snow_level_data,
-                                             sea_points)
+        self.find_extrapolated_falling_level(
+            max_wb_integral, gradient, intercept, phase_change_level_data,
+            sea_points)
 
     @staticmethod
     def fill_in_by_horizontal_interpolation(
-            snow_level_data, max_in_nbhood_orog, orog_data):
+            phase_change_level_data, max_in_nbhood_orog, orog_data):
         """
-        Fill in any remaining unset areas in the snow falling level by using
-        linear horizontal interpolation across the grid. As snow falling levels
+        Fill in any remaining unset areas in the phase change level by using
+        linear horizontal interpolation across the grid. As phase change levels
         at the highest height levels will be filled in by this point any
-        points that still don't have a valid snow falling level have the snow
-        falling level at or below the surface orography.
+        points that still don't have a valid phase change level have the phase
+        change level at or below the surface orography.
         This function uses the following steps to help ensure that the filled
         in values are above or below the orography:
 
-        1. Fill in the snow-level for points with no value yet
+        1. Fill in the phase change level for points with no value yet
            set using horizontal interpolation from surrounding set points.
-           Only interpolate from surrounding set points at which the snow
-           falling level is below the maximum orography height in the region
+           Only interpolate from surrounding set points at which the phase
+           change level is below the maximum orography height in the region
            around the unset point. This helps us avoid spreading very high
-           snow falling levels across areas where we had missing data.
+           phase change levels across areas where we had missing data.
         2. Fill any gaps that still remain where the linear interpolation has
            not been able to find a value because there is not enough
            data (e.g at the corners of the domain). Use nearest neighbour
            interpolation.
         3. Check whether despite our efforts we have still filled in some
-           of the missing points with snow falling levels above the orography.
+           of the missing points with phase change levels above the orography.
            In these cases set the missing points to the height of orography.
 
         We then return the filled in array, which hopefully has no more
         missing data.
 
         Args:
-            snow_level_data (numpy.ndarray):
-                The snow falling level array, filled with values for points
+            phase_change_level_data (numpy.ndarray):
+                The phase change level array, filled with values for points
                 whose wet bulb temperature integral crossed the theshold.
             max_in_nbhood_orog (numpy.ndarray):
                 The array containing maximum of the orography field in
@@ -941,53 +943,53 @@ class FallingSnowLevel(BasePlugin):
                 The array containing the orography data.
         Returns:
             numpy.ndarray:
-                The snow falling level array with missing data filled by
+                The phase change level array with missing data filled by
                 horizontal interpolation.
         """
         # Interpolate linearly across the remaining points
-        index = ~np.isnan(snow_level_data)
+        index = ~np.isnan(phase_change_level_data)
         index_valid_data = (
-            snow_level_data[index] <= max_in_nbhood_orog[index])
+            phase_change_level_data[index] <= max_in_nbhood_orog[index])
         index[index] = index_valid_data
-        snow_filled = snow_level_data
+        phase_cl_filled = phase_change_level_data
         if np.any(index):
-            ynum, xnum = snow_level_data.shape
+            ynum, xnum = phase_change_level_data.shape
             (y_points, x_points) = np.mgrid[0:ynum, 0:xnum]
-            values = snow_level_data[index]
+            values = phase_change_level_data[index]
             # Try to do the horizontal interpolation to fill in any gaps,
             # but if there are not enough points or the points are not arranged
             # in a way that allows the horizontal interpolation, skip
             # and use nearest neighbour intead.
             try:
-                snow_level_data_updated = griddata(
+                phase_change_level_data_updated = griddata(
                     np.where(index), values, (y_points, x_points),
                     method='linear')
             except QhullError:
-                snow_level_data_updated = snow_level_data
+                phase_change_level_data_updated = phase_change_level_data
             else:
-                snow_filled = snow_level_data_updated
+                phase_cl_filled = phase_change_level_data_updated
             # Fill in any remaining missing points using nearest neighbour.
             # This normally only impact points at the corners of the domain,
             # where the linear fit doesn't reach.
-            index = ~np.isnan(snow_filled)
+            index = ~np.isnan(phase_cl_filled)
             index_valid_data = (
-                snow_filled[index] <= max_in_nbhood_orog[index])
+                phase_cl_filled[index] <= max_in_nbhood_orog[index])
             index[index] = index_valid_data
             if np.any(index):
-                values = snow_level_data_updated[index]
-                snow_level_data_updated_2 = griddata(
+                values = phase_change_level_data_updated[index]
+                phase_change_level_data_updated_2 = griddata(
                     np.where(index), values, (y_points, x_points),
                     method='nearest')
-                snow_filled = snow_level_data_updated_2
+                phase_cl_filled = phase_change_level_data_updated_2
 
-        # Set the snow falling level at any points that have been filled with
-        # snow falling levels that are above the orography back to the
+        # Set the phase change level at any points that have been filled with
+        # phase change levels that are above the orography back to the
         # height of the orography.
-        index = (~np.isfinite(snow_level_data))
-        snow_level_above_orog = (snow_filled[index] > orog_data[index])
-        index[index] = snow_level_above_orog
-        snow_filled[index] = orog_data[index]
-        return snow_filled
+        index = (~np.isfinite(phase_change_level_data))
+        phase_cl_above_orog = (phase_cl_filled[index] > orog_data[index])
+        index[index] = phase_cl_above_orog
+        phase_cl_filled[index] = orog_data[index]
+        return phase_cl_filled
 
     def find_max_in_nbhood_orography(self, orography_cube):
         """
@@ -1022,7 +1024,7 @@ class FallingSnowLevel(BasePlugin):
 
         Args:
             wet_bulb_temperature (iris.cube.Cube):
-                Cube of wet bulb temperatures on height levels (celsius)
+                Cube of wet bulb temperatures on height levels.
             wet_bulb_integral (iris.cube.Cube):
                 Cube of wet bulb temperature integral (Kelvin-metres).
             orog (iris.cube.Cube):
@@ -1032,8 +1034,10 @@ class FallingSnowLevel(BasePlugin):
 
         Returns:
             iris.cube.Cube:
-                Cube of Falling Snow Level above sea level (asl).
+                Cube of phase change level above sea level (asl).
         """
+        wet_bulb_temperature.convert_units('celsius')
+        wet_bulb_integral.convert_units('K m')
         # Find highest height from height bounds.
         height_bounds = wet_bulb_integral.coord('height').bounds
         heights = wet_bulb_temperature.coord('height').points
@@ -1049,37 +1053,36 @@ class FallingSnowLevel(BasePlugin):
         orog_data = orography.data
         land_sea_data = next(land_sea_mask.slices([y_coord, x_coord])).data
 
-        snow = iris.cube.CubeList([])
+        phase_change = iris.cube.CubeList([])
         slice_list = ['height', y_coord, x_coord]
         for wb_integral, wet_bulb_temp in zip(
                 wet_bulb_integral.slices(slice_list),
                 wet_bulb_temperature.slices(slice_list)):
             height_points = wb_integral.coord('height').points
-            # Calculate falling snow level above sea level.
-            snow_cube = wb_integral[0]
-            snow_cube.rename('falling_snow_level_asl')
-            snow_cube.units = 'm'
-            snow_cube.remove_coord('height')
+            # Calculate phase change level above sea level.
+            phase_change_cube = wb_integral[0]
+            phase_change_cube.rename('falling_snow_level_asl')
+            phase_change_cube.units = 'm'
+            phase_change_cube.remove_coord('height')
 
-            snow_cube.data = self.find_falling_level(wb_integral.data,
-                                                     orog_data,
-                                                     height_points)
+            phase_change_cube.data = self.find_falling_level(
+                wb_integral.data, orog_data, height_points)
             # Fill in missing data
-            self.fill_in_high_snow_falling_levels(
-                snow_cube.data, orog_data, wb_integral.data.max(axis=0),
-                highest_height)
+            self.fill_in_high_phase_change_falling_levels(
+                phase_change_cube.data, orog_data,
+                wb_integral.data.max(axis=0), highest_height)
             self.fill_in_sea_points(
-                snow_cube.data, land_sea_data, wb_integral.data.max(axis=0),
-                wet_bulb_temp.data,  heights)
+                phase_change_cube.data, land_sea_data,
+                wb_integral.data.max(axis=0), wet_bulb_temp.data,  heights)
             max_nbhood_orog = self.find_max_in_nbhood_orography(orography)
-            updated_snow_level = self.fill_in_by_horizontal_interpolation(
-                snow_cube.data, max_nbhood_orog.data, orog_data)
-            points = np.where(~np.isfinite(snow_cube.data))
-            snow_cube.data[points] = updated_snow_level[points]
+            updated_phase_cl = self.fill_in_by_horizontal_interpolation(
+                phase_change_cube.data, max_nbhood_orog.data, orog_data)
+            points = np.where(~np.isfinite(phase_change_cube.data))
+            phase_change_cube.data[points] = updated_phase_cl[points]
             # Fill in any remaining points with missing data:
-            remaining_points = np.where(np.isnan(snow_cube.data))
-            snow_cube.data[remaining_points] = self.missing_data
-            snow.append(snow_cube)
+            remaining_points = np.where(np.isnan(phase_change_cube.data))
+            phase_change_cube.data[remaining_points] = self.missing_data
+            phase_change.append(phase_change_cube)
 
-        falling_snow_level = snow.merge_cube()
-        return falling_snow_level
+        phase_change_level = phase_change.merge_cube()
+        return phase_change_level
