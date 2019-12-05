@@ -109,7 +109,8 @@ def forecast_period_coord(cube, force_lead_time_calculation=False,
     return result_coord
 
 
-def _calculate_forecast_period(time_coord, frt_coord, fp_units, dim_coord=False):
+def _calculate_forecast_period(time_coord, frt_coord, fp_units,
+                               dim_coord=False):
     """
     Calculate a forecast period from existing time and forecast reference
     time coordinates, and return in the required units.
@@ -133,7 +134,6 @@ def _calculate_forecast_period(time_coord, frt_coord, fp_units, dim_coord=False)
     Warns:
         UserWarning: If any calculated forecast periods are negative
     """
-    time_units = time_coord.units
     frt_type = frt_coord.dtype
 
     # use cell() access method to get datetime.datetime instances
