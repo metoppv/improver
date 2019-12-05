@@ -1,12 +1,11 @@
-
 # Iris setup credit to github.com/SciTools/iris 07bbaf4.
 #
 
+version: ~> 1.0
 language: python
 python:
   - 3.6.6
-sudo: false
-
+os: linux
 git:
   depth: 10000
 
