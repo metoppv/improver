@@ -48,6 +48,7 @@
   "$TEST_DIR/wbti.nc"
 
   run improver phase-change-level \
+  "snow-sleet" \
   "$TEST_DIR/wbt.nc" \
   "$TEST_DIR/wbti.nc" \
   "$IMPROVER_ACC_TEST_DIR/snow-falling-level/basic/orog.nc" \

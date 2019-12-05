@@ -45,6 +45,12 @@ def main(argv=None):
         description="Calculate a continuous phase change level. This is an "
             "altitude at which precipitation is expected to change phase, "
             "e.g. snow to sleet.")
+    parser.add_argument("phase_change",
+                        metavar="PHASE_CHANGE", type=str,
+                        help=("The desired phase change for which the altitude"
+                        "should be returned. Options are: 'snow-sleet', the "
+                        "melting of snow to sleet; sleet-rain - the melting of"
+                        " sleet to rain."))
     parser.add_argument("wet_bulb_temperature", metavar="WBT",
                         help="Path to a NetCDF file of wet bulb temperatures "
                         "on height levels.")
@@ -65,17 +71,7 @@ def main(argv=None):
                         "points are set to 0.")
     parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
                         help="The output path for the processed NetCDF")
-    parser.add_argument("--falling_level_threshold",
-                        metavar="FALLING_LEVEL_THRESHOLD",
-                        default=90.0, type=float,
-                        help=("Cutoff threshold for the wet-bulb integral used"
-                              " to calculate the phase change level. This "
-                              "threshold indicates the level at which falling "
-                              "precipitation is deemed to have melted to have "
-                              "changed to a new phase."
-                              "The default value is 90.0, an empirically "
-                              "derived value for the transition from snow to "
-                              "sleet."))
+
     args = parser.parse_args(args=argv)
 
     # Load Cubes
@@ -86,50 +82,50 @@ def main(argv=None):
     land_sea = load_cube(args.land_sea_mask, no_lazy_load=True)
 
     # Process Cube
-    result = process(wet_bulb_temperature, wet_bulb_integral, orog, land_sea,
-                     args.falling_level_threshold)
+    result = process(args.phase_change, wet_bulb_temperature,
+                     wet_bulb_integral, orog, land_sea)
 
     # Save Cube
     save_netcdf(result, args.output_filepath)
 
 
-def process(wet_bulb_temperature, wet_bulb_integral, orog, land_sea,
-            falling_level_threshold=90.0):
-    """Module to calculate continuous snow falling level.
+def process(phase_change, wet_bulb_temperature, wet_bulb_integral, orog,
+            land_sea):
+    """Module to calculate a continuous field of heights relative to sea level
+    at which a phase change of precipitation is expected.
 
-    Use wet-bulb temperature integrals to generate a snow falling level.
-    This is found by finding the height above sea level corresponding to the
-    falling_level_threshold in the integral data.
+    This is achieved by finding the height above sea level at which the
+    integral of wet bulb temperature matches an empirical threshold that is
+    expected to correspond with the phase change.
 
     Args:
+        phase_change (str):
+            The desired phase change for which the altitude should be
+            returned. Options are:
+
+                snow-sleet - the melting of snow to sleet.
+                sleet-rain - the melting of sleet to rain.
         wet_bulb_temperature (iris.cube.Cube):
             Cube of wet bulb temperatures on height levels.
         wet_bulb_integral (iris.cube.Cube):
             Cube of wet bulb temperature integrals calculated vertically "
             "downwards to height levels.
         orog (iris.cube.Cube):
-            Cube of the orography height in m of the terrain over which the
-            continuous falling snow level is being calculated.
+            Cube of the orography height in m.
         land_sea (iris.cube.Cube):
-            Cube containing the binary land-sea mask for the points for which
-            the continuous falling snow level is being calculated. Land points
-            are set to 1, sea points are set to 0.
+            Cube containing the binary land-sea mask. Land points are set to 1,
+            sea points are set to 0.
         precision (float):
             Precision to which the wet-bulb temperature is required: This is
             used by the Newton iteration.
             Default is 0.005.
-        falling_level_threshold (float):
-            Cutoff threshold for the wet-bulb integral used to calculate the
-            falling snow level. This threshold indicates the level at which
-            falling snow is deemed to have melted to become rain.
-            Default is 90.0.
 
     Returns:
         iris.cube.Cube:
-            Processed Cube of falling snow level above sea level.
+            Processed Cube of phase change altitude relative to sea level.
     """
     result = PhaseChangeLevel(
-        falling_level_threshold=falling_level_threshold).process(
+        phase_change=phase_change).process(
         wet_bulb_temperature, wet_bulb_integral, orog, land_sea)
     return result
 

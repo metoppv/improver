@@ -566,8 +566,7 @@ class WetBulbTemperatureIntegral(BasePlugin):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<WetBulbTemperatureIntegral: {}, {}>'.format(
-            self.wet_bulb_temperature_plugin,
+        result = ('<WetBulbTemperatureIntegral: {}>'.format(
             self.integration_plugin))
         return result
 
@@ -585,7 +584,7 @@ class WetBulbTemperatureIntegral(BasePlugin):
                 Cube of wet bulb temperature integral (Kelvin-metres).
         """
         # Convert to Celsius
-        wet_bulb_temperature.convert_units('celsius')  ##WHY??
+        wet_bulb_temperature.convert_units('celsius')
         # Integrate.
         wet_bulb_temperature_integral = (
             self.integration_plugin.process(wet_bulb_temperature))
@@ -600,25 +599,36 @@ class PhaseChangeLevel(BasePlugin):
     """Calculate a continuous field of heights relative to sea level at which
     a phase change of precipitation is expected."""
 
-    def __init__(self, falling_level_threshold=90.0,
-                 grid_point_radius=2):
+    def __init__(self, phase_change, grid_point_radius=2):
         """
         Initialise class.
 
         Args:
-            falling_level_threshold (float):
-                The cutoff threshold for the Wet-bulb integral used
-                to calculate the phase change level. We are integrating to the
-                threshold that is presumed to indicate
-                the level at which the phase change occurs, e.g. snow has
-                partially melted to become sleet, or sleet has melted to
-                become rain.
+            phase_change (str):
+                The desired phase change for which the altitude should be
+                returned. Options are:
+
+                    snow-sleet - the melting of snow to sleet.
+                    sleet-rain - the melting of sleet to rain.
+
             grid_point_radius (int):
                 The radius in grid points used to calculate the maximum
                 height of the orography in a neighbourhood as part of this
                 calculation.
         """
-        self.falling_level_threshold = falling_level_threshold
+        phase_changes = {'snow-sleet': {'threshold': 90.,
+                                        'name': 'snow_falling'},
+                         'sleet-rain': {'threshold': 202.5,
+                                        'name': 'rain_falling'}}
+        try:
+            phase_change_def = phase_changes[phase_change]
+        except KeyError:
+            msg = ("Unknown phase change '{}' requested.\nAvailable options "
+                   "are: {}".format(phase_change, phase_changes.keys()))
+            raise ValueError(msg)
+
+        self.falling_level_threshold = phase_change_def['threshold']
+        self.phase_change_name = phase_change_def['name']
         self.missing_data = -300.0
         self.grid_point_radius = grid_point_radius
 
@@ -1061,7 +1071,8 @@ class PhaseChangeLevel(BasePlugin):
             height_points = wb_integral.coord('height').points
             # Calculate phase change level above sea level.
             phase_change_cube = wb_integral[0]
-            phase_change_cube.rename('falling_snow_level_asl')
+            phase_change_cube.rename(
+                'altitude_of_{}_level'.format(self.phase_change_name))
             phase_change_cube.units = 'm'
             phase_change_cube.remove_coord('height')
 
