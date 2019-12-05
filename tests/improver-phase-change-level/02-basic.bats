@@ -31,30 +31,18 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "snowfall-level with data" {
+@test "phase-change-level with data" {
   improver_check_skip_acceptance
-  KGO="snow-falling-level/basic/kgo.nc"
+  KGO="phase-change-level/basic/kgo.nc"
 
-  # Run snow-falling-level processing and check it passes.
-  run improver wet-bulb-temperature \
-  "$IMPROVER_ACC_TEST_DIR/snow-falling-level/basic/temperature.nc" \
-  "$IMPROVER_ACC_TEST_DIR/snow-falling-level/basic/relative_humidity.nc" \
-  "$IMPROVER_ACC_TEST_DIR/snow-falling-level/basic/pressure.nc" \
-  "$TEST_DIR/wbt.nc" \
-  --convergence_condition 0.005
-
-  run improver wet-bulb-temperature-integral \
-  "$TEST_DIR/wbt.nc" \
-  "$TEST_DIR/wbti.nc"
-
+  # Run phase-change-level processing and check it passes.
   run improver phase-change-level \
   "snow-sleet" \
-  "$TEST_DIR/wbt.nc" \
-  "$TEST_DIR/wbti.nc" \
-  "$IMPROVER_ACC_TEST_DIR/snow-falling-level/basic/orog.nc" \
-  "$IMPROVER_ACC_TEST_DIR/snow-falling-level/basic/land_mask.nc" \
+  "$IMPROVER_ACC_TEST_DIR/wet-bulb-temperature/multi_level/kgo.nc" \
+  "$IMPROVER_ACC_TEST_DIR/wet-bulb-temperature-integral/basic/kgo.nc" \
+  "$IMPROVER_ACC_TEST_DIR/phase-change-level/basic/orog.nc" \
+  "$IMPROVER_ACC_TEST_DIR/phase-change-level/basic/land_mask.nc" \
   "$TEST_DIR/output.nc"
-
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

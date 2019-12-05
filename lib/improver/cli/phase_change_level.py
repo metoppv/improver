@@ -43,14 +43,14 @@ def main(argv=None):
     """Load in arguments and get going."""
     parser = ArgParser(
         description="Calculate a continuous phase change level. This is an "
-            "altitude at which precipitation is expected to change phase, "
-            "e.g. snow to sleet.")
+        "altitude at which precipitation is expected to change phase, "
+        "e.g. snow to sleet.")
     parser.add_argument("phase_change",
                         metavar="PHASE_CHANGE", type=str,
-                        help=("The desired phase change for which the altitude"
+                        help="The desired phase change for which the altitude"
                         "should be returned. Options are: 'snow-sleet', the "
                         "melting of snow to sleet; sleet-rain - the melting of"
-                        " sleet to rain."))
+                        " sleet to rain.")
     parser.add_argument("wet_bulb_temperature", metavar="WBT",
                         help="Path to a NetCDF file of wet bulb temperatures "
                         "on height levels.")

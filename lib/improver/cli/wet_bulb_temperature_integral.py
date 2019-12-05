@@ -52,7 +52,7 @@ def main(argv=None):
 
     # Load Cubes
     wet_bulb_temperature = load_cube(args.wet_bulb_temperature,
-        no_lazy_load=True)
+                                     no_lazy_load=True)
 
     # Process Cube
     result = process(wet_bulb_temperature)

@@ -29,14 +29,12 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "snow-falling-level no arguments" {
-  run improver snow-falling-level
+@test "phase-change-level no arguments" {
+  run improver phase-change-level
   [[ "$status" -eq 2 ]]
-  expected="usage: improver snow-falling-level [-h] [--profile]
+  expected="usage: improver phase-change-level [-h] [--profile]
                                    [--profile_file PROFILE_FILE]
-                                   [--precision NEWTON_PRECISION]
-                                   [--falling_level_threshold FALLING_LEVEL_THRESHOLD]
-                                   TEMPERATURE RELATIVE_HUMIDITY PRESSURE
-                                   OROGRAPHY LAND_SEA_MASK OUTPUT_FILE"
+                                   PHASE_CHANGE WBT WBTI OROGRAPHY
+                                   LAND_SEA_MASK OUTPUT_FILE"
   [[ "$output" =~ "$expected" ]]
 }

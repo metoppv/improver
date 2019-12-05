@@ -29,36 +29,35 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "snowfall-level -h" {
-  run improver snow-falling-level -h
+@test "phase-change-level -h" {
+  run improver phase-change-level -h
   [[ "$status" -eq 0 ]]
   read -d '' expected <<'__HELP__' || true
-usage: improver snow-falling-level [-h] [--profile]
+usage: improver phase-change-level [-h] [--profile]
                                    [--profile_file PROFILE_FILE]
-                                   [--precision NEWTON_PRECISION]
-                                   [--falling_level_threshold FALLING_LEVEL_THRESHOLD]
-                                   TEMPERATURE RELATIVE_HUMIDITY PRESSURE
-                                   OROGRAPHY LAND_SEA_MASK OUTPUT_FILE
+                                   PHASE_CHANGE WBT WBTI OROGRAPHY
+                                   LAND_SEA_MASK OUTPUT_FILE
 
-Calculate the continuous falling snow level
+Calculate a continuous phase change level. This is an altitude at which
+precipitation is expected to change phase, e.g. snow to sleet.
 
 positional arguments:
-  TEMPERATURE           Path to a NetCDF file of air temperatures at heights
-                        (m) at the points for which the continuous falling
-                        snow level is being calculated.
-  RELATIVE_HUMIDITY     Path to a NetCDF file of relative_humidities at
-                        heights (m) at the points for which the continuous
-                        falling snow level is being calculated.
-  PRESSURE              Path to a NetCDF file of air pressures at heights (m)
-                        at the points for which the continuous falling snow
-                        level is being calculated.
+  PHASE_CHANGE          The desired phase change for which the altitudeshould
+                        be returned. Options are: 'snow-sleet', the melting of
+                        snow to sleet; sleet-rain - the melting of sleet to
+                        rain.
+  WBT                   Path to a NetCDF file of wet bulb temperatures on
+                        height levels.
+  WBTI                  Path to a NetCDF file of wet bulb temperature
+                        integrals calculated vertically downwards to height
+                        levels.
   OROGRAPHY             Path to a NetCDF file containing the orography height
-                        in m of the terrain over which the continuous falling
-                        snow level is being calculated.
+                        in m of the terrain over which the continuous phase
+                        change level is being calculated.
   LAND_SEA_MASK         Path to a NetCDF file containing the binary land-sea
-                        mask for the points for which the continuous falling
-                        snow level is being calculated. Land points are set to
-                        1, sea points are set to 0.
+                        mask for the points for which the continuous phase
+                        change level is being calculated. Land points are set
+                        to 1, sea points are set to 0.
   OUTPUT_FILE           The output path for the processed NetCDF
 
 optional arguments:
@@ -66,16 +65,6 @@ optional arguments:
   --profile             Switch on profiling information.
   --profile_file PROFILE_FILE
                         Dump profiling info to a file. Implies --profile.
-  --precision NEWTON_PRECISION
-                        Precision to which the wet bulb temperature is
-                        required: This is used by the Newton iteration default
-                        value is 0.005
-  --falling_level_threshold FALLING_LEVEL_THRESHOLD
-                        Cutoff threshold for the wet-bulb integral used to
-                        calculate the falling snow level. This threshold
-                        indicates the level at which falling snow is deemed to
-                        have melted to become rain. The default value is 90.0,
-                        an empirically derived value.
 __HELP__
   [[ "$output" == "$expected" ]]
 }
