@@ -34,7 +34,7 @@
 from improver.argparser import ArgParser
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
-    FallingSnowLevel)
+    PhaseChangeLevel)
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 
@@ -128,7 +128,7 @@ def process(wet_bulb_temperature, wet_bulb_integral, orog, land_sea,
         iris.cube.Cube:
             Processed Cube of falling snow level above sea level.
     """
-    result = FallingSnowLevel(
+    result = PhaseChangeLevel(
         falling_level_threshold=falling_level_threshold).process(
         wet_bulb_temperature, wet_bulb_integral, orog, land_sea)
     return result
