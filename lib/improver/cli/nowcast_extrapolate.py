@@ -184,11 +184,14 @@ def process(input_cube, u_cube=None, v_cube=None, speed_cube=None,
         u_cube, v_cube = ResolveWindComponents().process(
             speed_cube, direction_cube)
 
+    if not attributes_dict:
+        attributes_dict = {}
+
     # extrapolate input data to required lead times
-    forecast_plugin = PystepsExtrapolate(lead_time_interval, max_lead_time,
-                                         attributes_dict=attributes_dict)
+    forecast_plugin = PystepsExtrapolate(lead_time_interval, max_lead_time)
     forecast_cubes = forecast_plugin.process(input_cube, u_cube, v_cube,
-                                             orographic_enhancement_cube)
+                                             orographic_enhancement_cube,
+                                             attributes_dict=attributes_dict)
 
     return merge_cubes(forecast_cubes)
 

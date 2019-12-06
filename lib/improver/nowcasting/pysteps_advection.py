@@ -55,7 +55,7 @@ class PystepsExtrapolate(object):
         https://pysteps.readthedocs.io/en/latest/generated/
         pysteps.extrapolation.semilagrangian.extrapolate.html
     """
-    def __init__(self, interval, max_lead_time, attributes_dict=None):
+    def __init__(self, interval, max_lead_time):
         """
         Initialise the plugin
 
@@ -64,17 +64,9 @@ class PystepsExtrapolate(object):
                 Lead time interval, in minutes
             max_lead_time (int):
                 Maximum lead time required, in minutes
-            attributes_dict (dict):
-                Dictionary containing information for amending the attributes
-                of the output cube.
         """
         self.interval = interval
         self.num_timesteps = max_lead_time // interval
-
-        # Initialise metadata dictionary.
-        if attributes_dict is None:
-            attributes_dict = {}
-        self.attributes_dict = attributes_dict
 
     def _get_precip_rate(self):
         """
@@ -189,7 +181,7 @@ class PystepsExtrapolate(object):
             forecast_cubes.append(new_cube)
         return forecast_cubes
 
-    def _generate_forecast_cubes(self, all_forecasts):
+    def _generate_forecast_cubes(self, all_forecasts, attributes_dict):
         """
         Convert forecast arrays into IMPROVER output cubes with re-added
         orographic enhancement
@@ -197,6 +189,9 @@ class PystepsExtrapolate(object):
         Args:
             all_forecasts (np.ndarray):
                 Array of 2D forecast fields returned by extrapolation function
+            attributes_dict (dict):
+                Dictionary containing information for amending the attributes
+                of the output cube.
 
         Returns:
             forecast_cubes (list):
@@ -220,12 +215,13 @@ class PystepsExtrapolate(object):
                     cube, self.orogenh)
 
             # Update meta-data
-            amend_attributes(cube, self.attributes_dict)
+            amend_attributes(cube, attributes_dict)
             set_history_attribute(cube, "Nowcast")
             forecast_cubes.append(cube)
         return forecast_cubes
 
-    def process(self, initial_cube, ucube, vcube, orographic_enhancement):
+    def process(self, initial_cube, ucube, vcube, orographic_enhancement,
+                attributes_dict={}):
         """
         Extrapolate the initial precipitation field using the velocities
         provided to the required forecast lead times
@@ -240,6 +236,9 @@ class PystepsExtrapolate(object):
             orographic_enhancement (iris.cube.Cube):
                 Cube containing orographic enhancement fields at all required
                 lead times
+            attributes_dict (dict):
+                Dictionary containing information for amending the attributes
+                of the output cube.
 
         Returns:
             forecast_cubes (list):
@@ -268,6 +267,7 @@ class PystepsExtrapolate(object):
             allow_nonfinite_values=True)
 
         # repackage data as IMPROVER masked cubes
-        forecast_cubes = self._generate_forecast_cubes(all_forecasts)
+        forecast_cubes = self._generate_forecast_cubes(
+            all_forecasts, attributes_dict)
 
         return forecast_cubes

@@ -150,10 +150,10 @@ class Test_process(IrisTest):
             "source": "Met Office Nowcast",
             "institution": "Met Office",
             "title": "Nowcast on UK 2 km Standard Grid"}
-        plugin = PystepsExtrapolate(self.interval, self.max_lead_time,
-                                    attributes_dict=attributes_dict.copy())
+        plugin = PystepsExtrapolate(self.interval, self.max_lead_time)
         result = plugin.process(
-            self.rain_cube, self.ucube, self.vcube, self.orogenh_cube)
+            self.rain_cube, self.ucube, self.vcube, self.orogenh_cube,
+            attributes_dict=attributes_dict.copy())
         result[0].attributes.pop("history")
         self.assertEqual(result[0].attributes, attributes_dict)
 
