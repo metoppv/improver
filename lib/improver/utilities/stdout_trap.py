@@ -28,13 +28,14 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Contains a class to trap stdout"""
+"""Contains a class to trap stdout. Deprecated from PySteps v1.1.0 in favour
+of adding "silent_import=True" to the pyconfig file."""
 
 from io import StringIO
 import sys
 
 
-class Capture_StdOut(list):
+class Capture_Stdout(list):
     """Simple class to trap stdout messages such as "print()".
 
     Usage:

@@ -41,10 +41,12 @@ from improver.utilities.spatial import (
 from improver.utilities.temporal import (
     iris_time_to_datetime, datetime_to_iris_time)
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
-from improver.utilities.stdout_trap import Capture_StdOut
+from improver.utilities.stdout_trap import Capture_Stdout
 
-# PySteps is so proud of itself - trap the routine StdOut message on import
-with Capture_StdOut() as _:
+# PySteps prints a message on import to stdout - trap this
+# This should be removed for PySteps v1.1.0 which has a configuration setting
+# for this
+with Capture_Stdout() as _:
     from pysteps.extrapolation.semilagrangian import extrapolate
 
 
@@ -189,7 +191,7 @@ class PystepsExtrapolate(object):
         Args:
             all_forecasts (np.ndarray):
                 Array of 2D forecast fields returned by extrapolation function
-            attributes_dict (dict):
+            attributes_dict (dict or None):
                 Dictionary containing information for amending the attributes
                 of the output cube.
 
@@ -199,6 +201,9 @@ class PystepsExtrapolate(object):
                 required lead times, and conforming to the IMPROVER metadata
                 standard.
         """
+        if not attributes_dict:
+            attributes_dict = {}
+
         # re-mask forecast data
         all_forecasts = np.ma.masked_invalid(all_forecasts)
 
@@ -221,7 +226,7 @@ class PystepsExtrapolate(object):
         return forecast_cubes
 
     def process(self, initial_cube, ucube, vcube, orographic_enhancement,
-                attributes_dict={}):
+                attributes_dict=None):
         """
         Extrapolate the initial precipitation field using the velocities
         provided to the required forecast lead times
@@ -236,7 +241,7 @@ class PystepsExtrapolate(object):
             orographic_enhancement (iris.cube.Cube):
                 Cube containing orographic enhancement fields at all required
                 lead times
-            attributes_dict (dict):
+            attributes_dict (dict or None):
                 Dictionary containing information for amending the attributes
                 of the output cube.
 
