@@ -134,8 +134,6 @@ def _calculate_forecast_period(time_coord, frt_coord, fp_units,
     Warns:
         UserWarning: If any calculated forecast periods are negative
     """
-    frt_type = frt_coord.dtype
-
     # use cell() access method to get datetime.datetime instances
     time_points = np.array([c.point for c in time_coord.cells()])
     forecast_reference_time_points = np.array(
@@ -143,7 +141,7 @@ def _calculate_forecast_period(time_coord, frt_coord, fp_units,
     required_lead_times = (
         time_points - forecast_reference_time_points)
     required_lead_times = np.array(
-        [x.total_seconds() for x in required_lead_times]).astype(frt_type)
+        [x.total_seconds() for x in required_lead_times])
 
     if time_coord.bounds is not None:
         time_bounds = np.array([c.bound for c in time_coord.cells()])
@@ -151,7 +149,7 @@ def _calculate_forecast_period(time_coord, frt_coord, fp_units,
             time_bounds - forecast_reference_time_points)
         required_lead_time_bounds = np.array(
             [[b.total_seconds() for b in x]
-             for x in required_lead_time_bounds]).astype(frt_type)
+             for x in required_lead_time_bounds])
     else:
         required_lead_time_bounds = None
 
