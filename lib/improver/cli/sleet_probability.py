@@ -1,4 +1,5 @@
-#!/usr/bin/env bats
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,25 +29,40 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""Script to calculate sleet probability."""
 
-. $IMPROVER_DIR/tests/lib/utils
+import warnings
 
-@test "remainder" {
-  improver_check_skip_acceptance
-  KGO="remainder/two_files/kgo.nc"
- 
-  # Run remainder processing and check it passes.
-  run improver remainder \
-      --operation='-' \
-      "$IMPROVER_ACC_TEST_DIR/remainder/two_files/half_prob_snow_falling_level.nc" \
-      "$IMPROVER_ACC_TEST_DIR/remainder/two_files/tenth_prob_snow_falling_level.nc" \
-      "$TEST_DIR/output.nc"
-  [[ "$status" -eq 0 ]]
+from improver import cli
 
-  improver_check_recreate_kgo "output.nc" $KGO
 
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
-}
+@cli.clizefy
+@cli.with_output
+def process(snow: cli.inputcube, rain: cli.inputcube):
+    """Calculate sleet probability.
 
+    Calculates the sleet probability using the
+    calculate_sleet_probability plugin.
+
+    Args:
+        snow (iris.cube.Cube):
+            An iris Cube of the probability of falling snow level at
+            or below surface > threshold (currently 0.8)
+        rain (iris.cube.Cube):
+            An iris Cube of the probability of falling rain level at
+            or above surface > threshold (currently 0.8)
+
+
+    Returns:
+        iris.cube.Cube:
+            Returns a cube with the probability of sleet at the surface.
+    """
+
+    from improver.calculate_sleet_prob import calculate_sleet_probability
+    result = calculate_sleet_probability(snow, rain)
+
+    return result
+
+
+if __name__ == "__main__":
+    main()

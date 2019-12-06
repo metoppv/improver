@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -10,7 +10,7 @@
 #   list of conditions and the following disclaimer.
 #
 # * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
+#   this list of conditions and the following disclaimer in the documentatio
 #   and/or other materials provided with the distribution.
 #
 # * Neither the name of the copyright holder nor the names of its
@@ -28,17 +28,34 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""A plugin to calculate probability of sleet"""
 
-@test "remainder no arguments" {
-  run improver remainder
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver remainder [-h] [--profile] [--profile_file PROFILE_FILE]
-                          [--operation OPERATION] [--new-name NEW_NAME]
-                          [--metadata_jsonfile METADATA_JSONFILE]
-                          [--warnings_on]
-                          INPUT_FILENAMES [INPUT_FILENAMES ...] OUTPUT_FILE
-improver remainder: error: the following arguments are required: INPUT_FILENAMES, OUTPUT_FILE
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
-}
+import numpy as np
+from improver.metadata.utilities import create_new_diagnostic_cube
+
+
+def calculate_sleet_probability(prob_of_snow,
+                                prob_of_rain):
+    """
+    This calculates the probability of sleet using the calculation:
+    prob(sleet) = 1 - (prob(falling_snow_level at or below surface > 0.8) +
+                       prob(falling_rain_level at or above surface > 0.8))
+
+    Args:
+      prob_of_snow_falling_level (iris.cube.Cube):
+        Cube of snow falling level probabilities
+
+      prob_of_rain_falling_level (iris.cube.Cube):
+        Cube of rain falling level probabilities
+
+    Returns:
+      iris.cube.Cube:
+        Cube of the probability of sleet
+    """
+    ones = np.ones((prob_of_snow.shape), dtype="float32")
+    sleet_prob = (ones - (prob_of_snow.data + prob_of_rain.data))
+    probability_of_sleet = create_new_diagnostic_cube(
+        'probability_of_sleet', '1', prob_of_snow,
+        attributes=prob_of_snow.attributes, data=sleet_prob)
+
+    return probability_of_sleet

@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,24 +28,41 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""Unit tests for the calculate_sleet_probability plugin."""
 
-. $IMPROVER_DIR/tests/lib/utils
+import unittest
 
-@test "remainder" {
-  improver_check_skip_acceptance
-  KGO="remainder/basic/kgo.nc"
+import numpy as np
+from iris.tests import IrisTest
+from improver.calculate_sleet_prob import calculate_sleet_probability
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 
-  # Run remainder processing and check it passes.
-  run improver remainder \
-      --operation='-' \
-      "$IMPROVER_ACC_TEST_DIR/remainder/basic/prob_of_snow_falling_level.nc" \
-      "$TEST_DIR/output.nc"
-  [[ "$status" -eq 0 ]]
 
-  improver_check_recreate_kgo "output.nc" $KGO
+class Test_calculate_sleet_probability(IrisTest):
+    """ Tests the calculate sleet probability function."""
 
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
-}
+    def setUp(self):
+        """Create cubes to input into the function."""
 
+        rain_prob = np.array([[0.5, 0.1, 1.0],
+                              [0.0, 0.2, 0.5],
+                              [0.1, 0.1, 0.3]], dtype=np.float32)
+        self.rain_prob_cube = set_up_variable_cube(rain_prob)
+
+        snow_prob = np.array([[0.0, 0.4, 0.0],
+                              [0.5, 0.3, 0.1],
+                              [0.0, 0.4, 0.3]], dtype=np.float32)
+        self.snow_prob_cube = set_up_variable_cube(snow_prob)
+
+    def test_basic_calculation(self):
+        """Test the basic sleet calculation works."""
+        expected_result = np.array([[0.5, 0.5, 0.0],
+                                    [0.5, 0.5, 0.4],
+                                    [0.9, 0.5, 0.4]], dtype=np.float32)
+        result = calculate_sleet_probability(
+            self.rain_prob_cube, self.snow_prob_cube)
+        self.assertArrayAlmostEqual(result.data, expected_result)
+
+
+if __name__ == '__main__':
+    unittest.main()
