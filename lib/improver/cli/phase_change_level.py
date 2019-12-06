@@ -126,7 +126,7 @@ def process(phase_change, wet_bulb_temperature, wet_bulb_integral, orog,
     """
     result = PhaseChangeLevel(
         phase_change=phase_change).process(
-        wet_bulb_temperature, wet_bulb_integral, orog, land_sea)
+            wet_bulb_temperature, wet_bulb_integral, orog, land_sea)
     return result
 
 

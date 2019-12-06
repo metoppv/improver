@@ -29,11 +29,12 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for psychrometric_calculations PhaseChangeLevel."""
+
 import unittest
 
-import iris
 import numpy as np
 from cf_units import Unit
+import iris
 from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (

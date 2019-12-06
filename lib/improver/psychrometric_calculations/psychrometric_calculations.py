@@ -50,7 +50,7 @@ from improver.utilities.spatial import (
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 
 
-class Utilities(object):
+class Utilities:
 
     """
     Utilities for psychrometric calculations.
@@ -60,7 +60,6 @@ class Utilities(object):
         """
         Initialise class.
         """
-        pass
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -1092,7 +1091,7 @@ class PhaseChangeLevel(BasePlugin):
                 wb_integral.data.max(axis=0), highest_height)
             self.fill_in_sea_points(
                 phase_change_cube.data, land_sea_data,
-                wb_integral.data.max(axis=0), wet_bulb_temp.data,  heights)
+                wb_integral.data.max(axis=0), wet_bulb_temp.data, heights)
             max_nbhood_orog = self.find_max_in_nbhood_orography(orography)
             updated_phase_cl = self.fill_in_by_horizontal_interpolation(
                 phase_change_cube.data, max_nbhood_orog.data, orog_data)
