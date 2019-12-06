@@ -32,6 +32,9 @@
 
 from iris.coords import AuxCoord
 
+# Start node for the high resolution wxcode decision tree.
+START_NODE = 'lightning'
+
 
 def wxcode_decision_tree():
     """
@@ -42,6 +45,10 @@ def wxcode_decision_tree():
               satisfies the current query.
         * fail: The next query to call if the diagnostic being queried
               does not satisfy the current query.
+        * diagnostic_missing_action: For optional diagnostic data
+              What to do if the diagnostic is missing.
+              It can take the keywords succeed or fail. The logic will then
+              follow that path if the diagnostic is missing.
         * probability_thresholds: A list of probability thresholds that the
               query requires. One entry is provided for each diagnostic
               field being tested.
@@ -72,6 +79,30 @@ def wxcode_decision_tree():
             tree.
     """
     queries = {
+
+        'lightning': {
+            'succeed': 'lightning_cloud',
+            'fail': 'heavy_precipitation',
+            'diagnostic_missing_action': 'fail',
+            'probability_thresholds': [0.5],
+            'threshold_condition': '>=',
+            'condition_combination': '',
+            'diagnostic_fields':
+                ['probability_of_number_of_lightning_flashes_'
+                 'per_unit_area_in_vicinity_above_threshold'],
+            'diagnostic_thresholds': [AuxCoord(0.0, units="m-2")],
+            'diagnostic_conditions': ['above']},
+
+        'lightning_cloud': {
+            'succeed': 30,
+            'fail': 29,
+            'probability_thresholds': [0.5],
+            'threshold_condition': '>=',
+            'condition_combination': '',
+            'diagnostic_fields':
+                ['probability_of_cloud_area_fraction_above_threshold'],
+            'diagnostic_thresholds': [AuxCoord(0.8125, units=1)],
+            'diagnostic_conditions': ['above']},
 
         'heavy_precipitation': {
             'succeed': 'heavy_precipitation_cloud',

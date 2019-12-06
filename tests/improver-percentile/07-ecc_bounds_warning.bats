@@ -31,14 +31,15 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "percentile input output --percentiles 25 50 75 --ecc_bounds_warning" {
+@test "percentile --coordinates realization --percentiles 25,50,75 --ecc-bounds-warning input --output output" {
   improver_check_skip_acceptance
   KGO="percentile/ecc_bounds_warning/kgo.nc"
 
   # Run percentile processing and check it passes.
   run improver percentile \
-      "$IMPROVER_ACC_TEST_DIR/percentile/ecc_bounds_warning/input.nc" "$TEST_DIR/output.nc" \
-      --coordinates realization --percentiles 25 50 75 --ecc_bounds_warning
+      --coordinates realization --percentiles 25,50,75 --ecc-bounds-warning \
+      "$IMPROVER_ACC_TEST_DIR/percentile/ecc_bounds_warning/input.nc" \
+      --output "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

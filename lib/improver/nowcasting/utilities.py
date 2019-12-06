@@ -36,7 +36,6 @@ import numpy as np
 from cf_units import Unit
 
 from improver import BasePlugin
-from improver.cube_combiner import CubeCombiner
 from improver.utilities.temporal import (
     extract_nearest_time_point, iris_time_to_datetime)
 
@@ -108,7 +107,7 @@ class ApplyOrographicEnhancement(BasePlugin):
 
         Args:
             operation (str):
-                Operation (+, add, -, subtract) to apply to the incoming cubes.
+                Operation ("add" or "subtract") to apply to the incoming cubes.
 
         Raises:
             ValueError: Operation not supported.
@@ -117,16 +116,7 @@ class ApplyOrographicEnhancement(BasePlugin):
         # A minimum precipitation rate in mm/h that will be used as a lower
         # precipitation rate threshold.
         self.min_precip_rate_mmh = 1/32.
-
-        possible_operations = ['+', 'add', '-', 'subtract']
-
-        if operation in possible_operations:
-            self.operation = operation
-        else:
-            msg = ("Operation '{}' not supported for combining "
-                   "precipitation rate and "
-                   "orographic enhancement.".format(operation))
-            raise ValueError(msg)
+        self.operation = operation
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -201,10 +191,18 @@ class ApplyOrographicEnhancement(BasePlugin):
         with np.errstate(invalid='ignore'):
             oe_cube.data[precip_cube.data < threshold_in_cube_units] = 0.
 
-        # Use CubeCombiner to combine the cubes.
-        temp_cubelist = iris.cube.CubeList([precip_cube, oe_cube])
-        cube = CubeCombiner(self.operation).process(
-            temp_cubelist, precip_cube.name())
+        # Add / subtract orographic enhancement where data is not masked
+        cube = precip_cube.copy()
+        if self.operation == "add":
+            cube.data = cube.data + oe_cube.data
+        elif self.operation == "subtract":
+            cube.data = cube.data - oe_cube.data
+        else:
+            msg = ("Operation '{}' not supported for combining "
+                   "precipitation rate and "
+                   "orographic enhancement.".format(self.operation))
+            raise ValueError(msg)
+
         return cube
 
     def _apply_minimum_precip_rate(self, precip_cube, cube):

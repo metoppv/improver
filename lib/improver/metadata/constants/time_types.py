@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,24 +28,15 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""Expected datatypes and units for time-type coordinates"""
 
-@test "percentiles-to-realizations no arguments" {
-  run improver percentiles-to-realizations
-  [[ "$status" -eq 2 ]]
-  read -d '' expected <<'__TEXT__' || true
-usage: improver percentiles-to-realizations [-h] [--profile]
-                                            [--profile_file PROFILE_FILE]
-                                            [--no_of_percentiles NUMBER_OF_PERCENTILES]
-                                            [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
-                                            [--ecc_bounds_warning]
-                                            (--reordering | --rebadging)
-                                            [--raw_forecast_filepath RAW_FORECAST_FILE]
-                                            [--random_ordering]
-                                            [--random_seed RANDOM_SEED]
-                                            [--realization_numbers REALIZATION_NUMBERS [REALIZATION_NUMBERS ...]]
-                                            INPUT_FILE OUTPUT_FILE
-improver percentiles-to-realizations: error: the following arguments are required: INPUT_FILE, OUTPUT_FILE
-__TEXT__
-  [[ "$output" =~ "$expected" ]]
-}
+import numpy as np
 
+TIME_COORD_NAMES = ["time", "forecast_reference_time", "forecast_period"]
+
+TIME_REFERENCE_CALENDAR = "gregorian"
+TIME_REFERENCE_DTYPE = np.int64
+TIME_REFERENCE_UNIT = "seconds since 1970-01-01 00:00:00"
+
+TIME_INTERVAL_DTYPE = np.int32
+TIME_INTERVAL_UNIT = "seconds"

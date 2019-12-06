@@ -29,14 +29,23 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "percentile no arguments" {
-  run improver percentile
-  [[ "$status" -eq 2 ]]
-  expected="usage: improver percentile [-h] [--profile] [--profile_file PROFILE_FILE]
-                           [--coordinates COORDINATES_TO_COLLAPSE [COORDINATES_TO_COLLAPSE ...]]
-                           [--ecc_bounds_warning]
-                           [--percentiles PERCENTILES [PERCENTILES ...] |
-                           --no-of-percentiles NUMBER_OF_PERCENTILES]
-                           INPUT_FILE OUTPUT_FILE"
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "combine minimum value" {
+  improver_check_skip_acceptance
+  KGO="combine/bounds/kgo_min.nc"
+
+  # Run cube-combiner processing and check it passes.
+  run improver combine \
+      --operation='min' \
+      --metadata_jsonfile="$IMPROVER_ACC_TEST_DIR/combine/metadata.json" \
+      $IMPROVER_ACC_TEST_DIR/combine/bounds/*H-temperature_at_screen_level_min.nc \
+      "$TEST_DIR/output.nc"
+  [[ "$status" -eq 0 ]]
+
+  improver_check_recreate_kgo "output.nc" $KGO
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

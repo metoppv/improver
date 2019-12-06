@@ -31,28 +31,18 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "percentiles-to-realizations --sampling_method 'quantile' --rebadging input output --random_ordering " {
+@test "percentiles-to-realizations --rebadging --random-ordering input --output output " {
+  improver_check_skip_acceptance
 
   # Test that the right error is raised when the wrong options are passed in.
   run improver percentiles-to-realizations \
+      --rebadging --random-ordering \
       "$IMPROVER_ACC_TEST_DIR/percentiles-to-realizations/percentiles_rebadging/multiple_percentiles_wind_cube.nc" \
-      "$TEST_DIR/output.nc" --sampling_method 'quantile' \
-      --rebadging --random_ordering
+      --output "$TEST_DIR/output.nc"
 
-  [[ "$status" -eq 2 ]]
+  [[ "$status" -eq 1 ]]
   read -d '' expected <<'__TEXT__' || true
-usage: improver percentiles-to-realizations [-h] [--profile]
-                                            [--profile_file PROFILE_FILE]
-                                            [--no_of_percentiles NUMBER_OF_PERCENTILES]
-                                            [--sampling_method [PERCENTILE_SAMPLING_METHOD]]
-                                            [--ecc_bounds_warning]
-                                            (--reordering | --rebadging)
-                                            [--raw_forecast_filepath RAW_FORECAST_FILE]
-                                            [--random_ordering]
-                                            [--random_seed RANDOM_SEED]
-                                            [--realization_numbers REALIZATION_NUMBERS [REALIZATION_NUMBERS ...]]
-                                            INPUT_FILE OUTPUT_FILE
-improver percentiles-to-realizations: error: Method: rebadging does not accept arguments: raw_forecast_filepath, random_ordering
+RuntimeError: rebadging cannot be used with random_ordering.
 __TEXT__
-  [[ "$output" =~ "$expected" ]]
+  [[ "$output" =~ .*"$expected" ]]
 }
