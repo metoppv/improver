@@ -37,7 +37,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(wind_speed: cli.inputcube, wind_from_direction: cli.inputcube):
-    """Converts speed and direction individual velocity components.
+    """Converts speed and direction into individual velocity components.
 
     Args:
         wind_speed (iris.cube.Cube):
