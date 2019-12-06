@@ -625,7 +625,8 @@ class PhaseChangeLevel(BasePlugin):
             phase_change_def = phase_changes[phase_change]
         except KeyError:
             msg = ("Unknown phase change '{}' requested.\nAvailable options "
-                   "are: {}".format(phase_change, phase_changes.keys()))
+                   "are: {}".format(phase_change,
+                                    ', '.join(phase_changes.keys())))
             raise ValueError(msg)
 
         self.falling_level_threshold = phase_change_def['threshold']

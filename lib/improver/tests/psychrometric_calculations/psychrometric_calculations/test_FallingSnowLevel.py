@@ -38,8 +38,49 @@ from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
     PhaseChangeLevel)
+from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.tests.set_up_test_cubes import (set_up_variable_cube,
                                               add_coordinate)
+
+
+class Test__init__(IrisTest):
+
+    """Test the init method."""
+
+    def test_snow_sleet(self):
+        """Test that the __init__ method configures the plugin as expected
+        for the snow-sleet phase change."""
+
+        phase_change = 'snow-sleet'
+        plugin = PhaseChangeLevel(phase_change, grid_point_radius=3)
+
+        self.assertEqual(plugin.falling_level_threshold, 90.)
+        self.assertEqual(plugin.phase_change_name, 'snow_falling')
+        self.assertEqual(plugin.missing_data, -300.)
+        self.assertEqual(plugin.grid_point_radius, 3)
+
+    def test_sleet_rain(self):
+        """Test that the __init__ method configures the plugin as expected
+        for the sleet_rain phase change."""
+
+        phase_change = 'sleet-rain'
+        plugin = PhaseChangeLevel(phase_change, grid_point_radius=3)
+
+        self.assertEqual(plugin.falling_level_threshold, 202.5)
+        self.assertEqual(plugin.phase_change_name, 'rain_falling')
+        self.assertEqual(plugin.missing_data, -300.)
+        self.assertEqual(plugin.grid_point_radius, 3)
+
+    def test_unknown_phase_change(self):
+        """Test that the __init__ method raised an exception for an unknown
+        phase change argument."""
+
+        phase_change = 'kittens-puppies'
+        msg = ("Unknown phase change 'kittens-puppies' requested.\n"
+               "Available options are: snow-sleet, sleet-rain")
+
+        with self.assertRaisesRegex(ValueError, msg):
+            PhaseChangeLevel(phase_change)
 
 
 class Test__repr__(IrisTest):
@@ -473,9 +514,7 @@ class Test_process(IrisTest):
                [275.0666, 274.4207, 275.0666],
                [275.0666, 275.0666, 275.0666]]]], dtype=np.float32)
 
-        # Note the values below are ordered at [5, 195] m. This is reversed
-        # within the PhaseChangeLevel plugin to give the correct descending
-        # order.
+        # Note the values below are ordered at [5, 195] m.
 
         wbti_data = np.array(
             [[[[128.68324, 128.68324, 128.68324],
@@ -507,7 +546,8 @@ class Test_process(IrisTest):
         # being merged into ascending order. The cube created below is thus
         # in the incorrect height order, i.e. [5, 195] instead of [195, 5].
         # There is a function in the the PhaseChangeLevel plugin that ensures
-        # the height coordinate is in descending order.
+        # the height coordinate is in descending order. This is tested here by
+        # creating test cubes with both orders.
 
         height_attribute = {"positive": "down"}
 
@@ -516,10 +556,12 @@ class Test_process(IrisTest):
             name='wet_bulb_temperature_integral', units='K m',)
         wet_bulb_integral = add_coordinate(
             wet_bulb_integral, [0, 1], 'realization')
-        self.wet_bulb_integral_cube = add_coordinate(
+        self.wet_bulb_integral_cube_inverted = add_coordinate(
             wet_bulb_integral, height_points[0:2], 'height',
             coord_units='m', attributes=height_attribute)
-        self.wet_bulb_integral_cube.data = wbti_data
+        self.wet_bulb_integral_cube_inverted.data = wbti_data
+        self.wet_bulb_integral_cube = sort_coord_in_cube(
+            self.wet_bulb_integral_cube_inverted, 'height', order='descending')
 
     def test_basic(self):
         """Test that process returns a cube with the right name and units."""
@@ -531,6 +573,18 @@ class Test_process(IrisTest):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), "altitude_of_snow_falling_level")
         self.assertEqual(result.units, Unit('m'))
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_inverted_input_cube(self):
+        """Test that the falling snow level process returns a cube
+        containing the expected data when the height coordinate is in
+        ascending order rather than the expected descending order."""
+        self.orog.data[1, 1] = 100.0
+        result = PhaseChangeLevel(phase_change='snow-sleet').process(
+            self.wet_bulb_temperature_cube,
+            self.wet_bulb_integral_cube_inverted,
+            self.orog, self.land_sea)
+        expected = np.ones((2, 3, 3), dtype=np.float32) * 66.88566
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_data(self):
