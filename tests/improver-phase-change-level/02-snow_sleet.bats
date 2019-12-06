@@ -31,9 +31,9 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "phase-change-level with data" {
+@test "phase-change-level snow-sleet with data" {
   improver_check_skip_acceptance
-  KGO="phase-change-level/basic/kgo.nc"
+  KGO="phase-change-level/basic/snow_sleet_kgo.nc"
 
   # Run phase-change-level processing and check it passes.
   run improver phase-change-level \

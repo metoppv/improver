@@ -228,7 +228,7 @@ class Test_find_extrapolated_falling_level(IrisTest):
         level. Some of the straight line fits of wet bulb temperature will
         cross the height axis above zero and some below.
         """
-        self.snow_falling_level = np.ones((3, 3))*np.nan
+        self.phase_change_level = np.ones((3, 3))*np.nan
         self.max_wb_integral = np.array([[0.0, 0.0, 0.0],
                                          [0.0, 0.0, 0.0],
                                          [10.0, 10.0, 10.0]])
@@ -241,7 +241,7 @@ class Test_find_extrapolated_falling_level(IrisTest):
         self.intercepts = np.array([[-10, 0.0, 20.0],
                                     [0.0, 0.0, 0.0],
                                     [-10, 0.0, 20.0]])
-        self.expected_snow_falling_level = np.array(
+        self.expected_phase_change_level = np.array(
             [[-27.5, -15.0, -4.154759],
              [np.nan, np.nan, np.nan],
              [-26.642136, -14.142136, -3.722813]])
@@ -252,9 +252,9 @@ class Test_find_extrapolated_falling_level(IrisTest):
 
         plugin.find_extrapolated_falling_level(
             self.max_wb_integral, self.gradients, self.intercepts,
-            self.snow_falling_level, self.sea_points)
-        self.assertArrayAlmostEqual(self.expected_snow_falling_level,
-                                    self.snow_falling_level)
+            self.phase_change_level, self.sea_points)
+        self.assertArrayAlmostEqual(self.expected_phase_change_level,
+                                    self.phase_change_level)
 
     def test_gradients_zero(self):
         """Test we do nothing if all gradients are zero"""
@@ -262,10 +262,10 @@ class Test_find_extrapolated_falling_level(IrisTest):
         gradients = np.zeros((3, 3))
         plugin.find_extrapolated_falling_level(
             self.max_wb_integral, gradients, self.intercepts,
-            self.snow_falling_level, self.sea_points)
-        expected_snow_falling_level = np.ones((3, 3))*np.nan
-        self.assertArrayAlmostEqual(expected_snow_falling_level,
-                                    self.snow_falling_level)
+            self.phase_change_level, self.sea_points)
+        expected_phase_change_level = np.ones((3, 3))*np.nan
+        self.assertArrayAlmostEqual(expected_phase_change_level,
+                                    self.phase_change_level)
 
 
 class Test_fill_sea_points(IrisTest):
@@ -274,7 +274,7 @@ class Test_fill_sea_points(IrisTest):
 
     def setUp(self):
         """ Set up arrays for testing."""
-        self.snow_falling_level = np.ones((3, 3))*np.nan
+        self.phase_change_level = np.ones((3, 3))*np.nan
         self.max_wb_integral = np.array([[0.0, 0.0, 0.0],
                                          [0.0, 0.0, 0.0],
                                          [10.0, 10.0, 10.0]])
@@ -289,7 +289,7 @@ class Test_fill_sea_points(IrisTest):
         data[:, :, 0] = data[:, :, 0] - 10
         data[:, :, 2] = data[:, :, 2] + 20
         self.wet_bulb_temperature = data
-        self.expected_snow_falling_level = np.array(
+        self.expected_phase_change_level = np.array(
             [[-27.5, -15.0, -4.154759],
              [np.nan, np.nan, np.nan],
              [-26.642136, -14.142136, -3.722813]])
@@ -297,42 +297,42 @@ class Test_fill_sea_points(IrisTest):
     def test_basic(self):
         """Test it fills in the points it's meant to."""
         plugin = PhaseChangeLevel(phase_change='snow-sleet')
-        plugin.fill_in_sea_points(self.snow_falling_level, self.land_sea,
+        plugin.fill_in_sea_points(self.phase_change_level, self.land_sea,
                                   self.max_wb_integral,
                                   self.wet_bulb_temperature, self.heights)
-        self.assertArrayAlmostEqual(self.snow_falling_level.data,
-                                    self.expected_snow_falling_level)
+        self.assertArrayAlmostEqual(self.phase_change_level.data,
+                                    self.expected_phase_change_level)
 
     def test_no_sea(self):
         """Test it only fills in sea points, and ignores a land point"""
         plugin = PhaseChangeLevel(phase_change='snow-sleet')
         expected = np.ones((3, 3))*np.nan
         land_sea = np.ones((3, 3))
-        plugin.fill_in_sea_points(self.snow_falling_level, land_sea,
+        plugin.fill_in_sea_points(self.phase_change_level, land_sea,
                                   self.max_wb_integral,
                                   self.wet_bulb_temperature, self.heights)
-        self.assertArrayAlmostEqual(self.snow_falling_level.data, expected)
+        self.assertArrayAlmostEqual(self.phase_change_level.data, expected)
 
     def test_all_above_threshold(self):
         """Test it doesn't change points that are all above the threshold"""
         plugin = PhaseChangeLevel(phase_change='snow-sleet')
         self.max_wb_integral[0, 1] = 100
-        self.snow_falling_level[0, 1] = 100
-        self.expected_snow_falling_level[0, 1] = 100
-        plugin.fill_in_sea_points(self.snow_falling_level, self.land_sea,
+        self.phase_change_level[0, 1] = 100
+        self.expected_phase_change_level[0, 1] = 100
+        plugin.fill_in_sea_points(self.phase_change_level, self.land_sea,
                                   self.max_wb_integral,
                                   self.wet_bulb_temperature, self.heights)
-        self.assertArrayAlmostEqual(self.snow_falling_level.data,
-                                    self.expected_snow_falling_level)
+        self.assertArrayAlmostEqual(self.phase_change_level.data,
+                                    self.expected_phase_change_level)
 
 
 class Test_fill_in_by_horizontal_interpolation(IrisTest):
     """Test the fill_in_by_horizontal_interpolation method"""
     def setUp(self):
         """ Set up arrays for testing."""
-        self.snow_level_data = np.array([[1.0, 1.0, 2.0],
-                                        [1.0, np.nan, 2.0],
-                                        [1.0, 2.0, 2.0]])
+        self.phase_change_level_data = np.array([[1.0, 1.0, 2.0],
+                                                 [1.0, np.nan, 2.0],
+                                                 [1.0, 2.0, 2.0]])
         self.orog_data = np.array([[6.0, 6.0, 6.0],
                                    [6.0, 7.0, 6.0],
                                    [6.0, 6.0, 6.0]])
@@ -343,29 +343,33 @@ class Test_fill_in_by_horizontal_interpolation(IrisTest):
 
     def test_basic(self):
         """Test when all the points around the missing data are the same."""
-        snow_level_data = np.ones((3, 3))
-        snow_level_data[1, 1] = np.nan
+        phase_change_level_data = np.ones((3, 3))
+        phase_change_level_data[1, 1] = np.nan
         expected = np.array([[1.0, 1.0, 1.0],
                              [1.0, 1.0, 1.0],
                              [1.0, 1.0, 1.0]])
-        snow_level_updated = self.plugin.fill_in_by_horizontal_interpolation(
-            snow_level_data, self.max_in_nbhood_orog, self.orog_data)
-        self.assertArrayEqual(snow_level_updated, expected)
+        phase_change_level_updated = (
+            self.plugin.fill_in_by_horizontal_interpolation(
+                phase_change_level_data, self.max_in_nbhood_orog,
+                self.orog_data))
+        self.assertArrayEqual(phase_change_level_updated, expected)
 
     def test_not_enough_points_to_fill(self):
         """Test when there are not enough points to fill the gaps.
            This raises a QhullError if there are less than 3 points available
            to use for the interpolation. The QhullError is different to the one
            raised by test_badly_arranged_valid_data"""
-        snow_level_data = np.array([[np.nan, 1, np.nan],
-                                    [np.nan, np.nan, np.nan],
-                                    [np.nan, 1, np.nan]])
+        phase_change_level_data = np.array([[np.nan, 1, np.nan],
+                                            [np.nan, np.nan, np.nan],
+                                            [np.nan, 1, np.nan]])
         expected = np.array([[1.0, 1.0, 1.0],
                              [1.0, 1.0, 1.0],
                              [1.0, 1.0, 1.0]])
-        snow_level_updated = self.plugin.fill_in_by_horizontal_interpolation(
-            snow_level_data, self.max_in_nbhood_orog, self.orog_data)
-        self.assertArrayEqual(snow_level_updated, expected)
+        phase_change_level_updated = (
+            self.plugin.fill_in_by_horizontal_interpolation(
+                phase_change_level_data, self.max_in_nbhood_orog,
+                self.orog_data))
+        self.assertArrayEqual(phase_change_level_updated, expected)
 
     def test_badly_arranged_valid_data(self):
         """Test when there are enough points but they aren't arranged in a
@@ -373,15 +377,17 @@ class Test_fill_in_by_horizontal_interpolation(IrisTest):
            QhullError that we want to ignore and use nearest neighbour
            interpolation instead. This QhullError is different to the one
            raised by test_not_enough_points_to_fill."""
-        snow_level_data = np.array([[np.nan, 1, np.nan],
-                                    [np.nan, 1, np.nan],
-                                    [np.nan, 1, np.nan]])
+        phase_change_level_data = np.array([[np.nan, 1, np.nan],
+                                            [np.nan, 1, np.nan],
+                                            [np.nan, 1, np.nan]])
         expected = np.array([[1.0, 1.0, 1.0],
                              [1.0, 1.0, 1.0],
                              [1.0, 1.0, 1.0]])
-        snow_level_updated = self.plugin.fill_in_by_horizontal_interpolation(
-            snow_level_data, self.max_in_nbhood_orog, self.orog_data)
-        self.assertArrayEqual(snow_level_updated, expected)
+        phase_change_level_updated = (
+            self.plugin.fill_in_by_horizontal_interpolation(
+                phase_change_level_data, self.max_in_nbhood_orog,
+                self.orog_data))
+        self.assertArrayEqual(phase_change_level_updated, expected)
 
     def test_different_data(self):
         """Test when the points around the missing data have different
@@ -389,39 +395,44 @@ class Test_fill_in_by_horizontal_interpolation(IrisTest):
         expected = np.array([[1.0, 1.0, 2.0],
                              [1.0, 1.5, 2.0],
                              [1.0, 2.0, 2.0]])
-        snow_level_updated = self.plugin.fill_in_by_horizontal_interpolation(
-            self.snow_level_data, self.max_in_nbhood_orog, self.orog_data)
-        self.assertArrayEqual(snow_level_updated, expected)
+        phase_change_level_updated = (
+            self.plugin.fill_in_by_horizontal_interpolation(
+                self.phase_change_level_data, self.max_in_nbhood_orog,
+                self.orog_data))
+        self.assertArrayEqual(phase_change_level_updated, expected)
 
     def test_lots_missing(self):
         """Test when there's an extra missing value at the corner
            of the grid. This point can't be filled in by linear interpolation,
            but is instead filled by nearest neighbour extrapolation."""
-        self.snow_level_data[2, 2] = np.nan
+        self.phase_change_level_data[2, 2] = np.nan
         expected = np.array([[1.0, 1.0, 2.0],
                              [1.0, 1.5, 2.0],
                              [1.0, 2.0, 2.0]])
-        snow_level_updated = self.plugin.fill_in_by_horizontal_interpolation(
-            self.snow_level_data, self.max_in_nbhood_orog, self.orog_data)
-        self.assertArrayEqual(snow_level_updated, expected)
+        phase_change_level_updated = (
+            self.plugin.fill_in_by_horizontal_interpolation(
+                self.phase_change_level_data, self.max_in_nbhood_orog,
+                self.orog_data))
+        self.assertArrayEqual(phase_change_level_updated, expected)
 
     def test_all_above_max_orography(self):
-        """Test that nothing is filled in if all the snow falling levels are
+        """Test that nothing is filled in if all the phase change levels are
            above the maximum orography"""
         max_in_nbhood_orog = np.zeros((3, 3))
         orography = np.zeros((3, 3))
         expected = np.array([[1.0, 1.0, 2.0],
                              [1.0, np.nan, 2.0],
                              [1.0, 2.0, 2.0]])
-        snow_level_updated = self.plugin.fill_in_by_horizontal_interpolation(
-            self.snow_level_data, max_in_nbhood_orog, orography)
-        self.assertArrayEqual(snow_level_updated, expected)
+        phase_change_level_updated = (
+            self.plugin.fill_in_by_horizontal_interpolation(
+                self.phase_change_level_data, max_in_nbhood_orog, orography))
+        self.assertArrayEqual(phase_change_level_updated, expected)
 
     def test_set_to_orography(self):
-        """Test when the linear interpolation gives values that are higher
-           than the orography the snow falling level is set back to the
+        """Test that when the linear interpolation gives values that are higher
+           than the orography the phase change level is set back to the
            orography"""
-        snow_falling_level = np.array([[10.0, np.nan, np.nan, np.nan, 20.0],
+        phase_change_level = np.array([[10.0, np.nan, np.nan, np.nan, 20.0],
                                        [10.0, np.nan, np.nan, np.nan, 20.0],
                                        [10.0, np.nan, np.nan, np.nan, 20.0],
                                        [10.0, np.nan, np.nan, np.nan, 20.0],
@@ -439,9 +450,10 @@ class Test_fill_in_by_horizontal_interpolation(IrisTest):
                              [10.0, 12.5, 12.0, 17.5, 20.0],
                              [10.0, 12.5, 12.0, 17.5, 20.0],
                              [10.0, 12.5, 12.0, 17.5, 20.0]])
-        snow_level_updated = self.plugin.fill_in_by_horizontal_interpolation(
-            snow_falling_level, max_in_nbhood_orog, orography)
-        self.assertArrayEqual(snow_level_updated, expected)
+        phase_change_level_updated = (
+            self.plugin.fill_in_by_horizontal_interpolation(
+                phase_change_level, max_in_nbhood_orog, orography))
+        self.assertArrayEqual(phase_change_level_updated, expected)
 
 
 class Test_find_max_in_nbhood_orography(IrisTest):
@@ -487,7 +499,6 @@ class Test_process(IrisTest):
         levels."""
 
         data = np.ones((3, 3), dtype=np.float32)
-        relh_data = np.ones((3, 3), dtype=np.float32) * 0.65
 
         self.orog = set_up_variable_cube(
             data, name='surface_altitude', units='m', spatial_grid='equalarea')
@@ -576,7 +587,7 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_inverted_input_cube(self):
-        """Test that the falling snow level process returns a cube
+        """Test that the phase change level process returns a cube
         containing the expected data when the height coordinate is in
         ascending order rather than the expected descending order."""
         self.orog.data[1, 1] = 100.0
@@ -588,7 +599,7 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_data(self):
-        """Test that the falling snow level process returns a cube
+        """Test that the phase change level process returns a cube
         containing the expected data when points at sea-level."""
         expected = np.ones((2, 3, 3), dtype=np.float32) * 65.88566
         orog = self.orog
