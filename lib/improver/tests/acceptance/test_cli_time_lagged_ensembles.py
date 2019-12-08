@@ -42,6 +42,7 @@ pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 T2M = "temperature_at_surface"
 
 
+@pytest.mark.slow
 def test_basic(tmp_path):
     """Test basic time lagging"""
     kgo_dir = acc.kgo_root() / "time-lagged-ens/same_validity"

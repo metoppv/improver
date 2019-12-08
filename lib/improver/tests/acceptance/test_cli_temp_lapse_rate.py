@@ -77,6 +77,7 @@ def test_basic(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+@pytest.mark.slow
 def test_realizations(tmp_path):
     """Test temperature lapse rate with realizations"""
     kgo_dir = acc.kgo_root() / "temp-lapse-rate/realizations"

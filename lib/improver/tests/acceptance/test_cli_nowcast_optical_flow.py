@@ -69,7 +69,7 @@ def test_metadata(tmp_path):
                    for hhmm in ("1530", "1545", "1600")]
     oe_path = kgo_dir / OE
     # TODO: the BATS test does not call improver with the metadata file
-    metadata_path = kgo_dir / "../metadata/precip.json"
+    # metadata_path = kgo_dir / "../metadata/precip.json"
     output_path = tmp_path / "output.nc"
     args = [*input_paths, output_path,
             "--orographic_enhancement_filepaths", oe_path]

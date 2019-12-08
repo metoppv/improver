@@ -52,6 +52,7 @@ def test_basic(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+@pytest.mark.slow
 def test_n_realizations(tmp_path):
     """Test specified number of realizations"""
     kgo_dir = acc.kgo_root() / "probabilities-to-realizations/12_realizations"

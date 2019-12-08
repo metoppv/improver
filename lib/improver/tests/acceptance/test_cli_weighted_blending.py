@@ -42,6 +42,7 @@ pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 PRECIP = "lwe_precipitation_rate"
 
 
+@pytest.mark.slow
 def test_basic_nonlin(tmp_path):
     """Test basic non linear weights"""
     kgo_dir = acc.kgo_root() / "weighted_blending/basic_nonlin"
@@ -58,6 +59,7 @@ def test_basic_nonlin(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+@pytest.mark.slow
 def test_basic_lin(tmp_path):
     """Test basic linear weights"""
     kgo_dir = acc.kgo_root() / "weighted_blending/basic_lin"
@@ -132,6 +134,7 @@ def test_percentile(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+@pytest.mark.slow
 def test_cycletime(tmp_path):
     """Test cycletime blending"""
     kgo_dir = acc.kgo_root() / "weighted_blending/cycletime"
@@ -167,6 +170,7 @@ def test_model(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+@pytest.mark.slow
 def test_realization_collapse(tmp_path):
     """Test realization collapsing"""
     kgo_dir = acc.kgo_root() / "weighted_blending/realizations"
@@ -259,6 +263,7 @@ def test_non_mo_model(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+@pytest.mark.slow
 def test_nowcast_cycle_blending(tmp_path):
     """Test blending nowcast cycles"""
     kgo_dir = acc.kgo_root() / "weighted_blending/spatial_weights"
@@ -277,6 +282,7 @@ def test_nowcast_cycle_blending(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+@pytest.mark.slow
 def test_spatial_model_blending(tmp_path):
     """Test spatial model blending"""
     kgo_dir = acc.kgo_root() / "weighted_blending/spatial_weights"
@@ -298,6 +304,7 @@ def test_spatial_model_blending(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+@pytest.mark.slow
 def test_nowcast_cycle_no_fuzzy(tmp_path):
     """Test blending nowcast cycles"""
     kgo_dir = acc.kgo_root() / "weighted_blending/spatial_weights"
@@ -317,6 +324,7 @@ def test_nowcast_cycle_no_fuzzy(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+@pytest.mark.slow
 def test_spatial_model_no_fuzzy(tmp_path):
     """Test spatial model blending"""
     kgo_dir = acc.kgo_root() / "weighted_blending/spatial_weights"
@@ -339,6 +347,7 @@ def test_spatial_model_no_fuzzy(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+@pytest.mark.slow
 def test_three_model_blending(tmp_path):
     """Test blending three models"""
     kgo_dir = acc.kgo_root() / "weighted_blending/three_models"

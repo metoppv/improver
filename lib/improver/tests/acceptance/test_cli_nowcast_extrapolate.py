@@ -100,6 +100,7 @@ def test_basic_no_orographic(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+@pytest.mark.slow
 def test_model_winds(tmp_path):
     """Test extrapolation using model winds on pressure levels"""
     kgo_dir = acc.kgo_root() / "nowcast-extrapolate/model_winds"

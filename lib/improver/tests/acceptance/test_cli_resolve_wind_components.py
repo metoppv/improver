@@ -41,6 +41,7 @@ pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 run_cli = acc.RunCLI("resolve-wind-components")
 
 
+@pytest.mark.slow
 def test_basic(tmp_path):
     """Test basic wind speed/direction to u/v vector conversion"""
     kgo_dir = acc.kgo_root() / "resolve-wind-components/basic"

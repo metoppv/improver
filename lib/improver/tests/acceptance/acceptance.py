@@ -142,7 +142,7 @@ def nccmp_available():
 def statsmodels_available():
     """True if statsmodels library is importable"""
     try:
-        import statsmodels  # pylint: disable=E402
+        import statsmodels  # pylint: disable=C0413
         _ = statsmodels
         return True
     except ImportError:

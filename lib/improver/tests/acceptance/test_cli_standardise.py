@@ -146,6 +146,7 @@ def test_no_output_path():
         standardise.main(acc.stringify(args))
 
 
+@pytest.mark.slow
 def test_regrid_nearest_landmask(tmp_path):
     """Test nearest neighbour regridding with land sea mask"""
     kgo_dir = acc.kgo_root() / "standardise/regrid-landmask"
@@ -163,6 +164,7 @@ def test_regrid_nearest_landmask(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+@pytest.mark.slow
 def test_regrid_check_landmask(tmp_path):
     """Test land sea mask output matches other test"""
     # KGO for this test is the same as test_basic above
@@ -226,6 +228,7 @@ def test_args_error_no_landmask(tmp_path):
         standardise.main(acc.stringify(args))
 
 
+@pytest.mark.slow
 def test_regrid_nearest_landmask_multi_realization(tmp_path):
     """Test nearest neighbour with land sea mask and realizations"""
     kgo_dir = acc.kgo_root() / "standardise/regrid-landmask"
