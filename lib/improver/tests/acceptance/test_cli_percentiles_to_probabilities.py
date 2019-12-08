@@ -28,35 +28,26 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the wind direction CLI"""
+"""
+Tests for the percentiles-to-probabilities CLI
+"""
 
 import pytest
 
-from improver.cli import wind_direction
-from improver.tests import acceptance as acc
+from improver.cli import percentiles_to_probabilities
+from improver.tests.acceptance import acceptance as acc
+
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 
 
-@pytest.mark.acc
-@pytest.mark.slow
-@acc.skip_if_kgo_missing
 def test_basic(tmp_path):
-    """Test basic wind direction operation"""
-    kgo_dir = acc.kgo_root() / "wind_direction/basic"
+    """Test basic percentile to probability conversion"""
+    kgo_dir = acc.kgo_root() / "percentiles-to-probabilities/basic"
     kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "../snow_level.nc"
+    orography_path = kgo_dir / "../enukx_orography.nc"
     output_path = tmp_path / "output.nc"
-    wind_direction.main([str(kgo_dir / "input.nc"),
-                         str(output_path)])
-    acc.compare(output_path, kgo_path)
-
-
-@pytest.mark.acc
-@acc.skip_if_kgo_missing
-def test_global(tmp_path):
-    """Test global wind direction operation"""
-    kgo_dir = acc.kgo_root() / "wind_direction/global"
-    kgo_path = kgo_dir / "kgo.nc"
-    output_path = tmp_path / "output.nc"
-    wind_direction.main(["--backup_method=first_realization",
-                         str(kgo_dir / "input.nc"),
-                         str(output_path)])
+    args = [input_path, orography_path, output_path,
+            "probability_of_snow_falling_level_below_ground_level"]
+    percentiles_to_probabilities.main(acc.stringify(args))
     acc.compare(output_path, kgo_path)

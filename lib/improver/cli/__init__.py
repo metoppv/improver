@@ -431,4 +431,4 @@ def run_main(argv=None):
     if argv is None:
         argv = sys.argv[:]
         argv[0] = 'improver'
-    run(main, args=argv)  # pylint: disable=E1124
+    run(main, exit=False, args=argv)  # pylint: disable=E1124

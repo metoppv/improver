@@ -28,38 +28,28 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the wind-gust-diagnostic CLI"""
+"""
+Tests for the resolve-wind-components CLI
+"""
 
 import pytest
 
-from improver.cli import wind_gust_diagnostic
-from improver.tests import acceptance as acc
+from improver.tests.acceptance import acceptance as acc
+from improver.tests.acceptance.test_cli_nowcast_extrapolate import WSPD, WDIR
+
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+run_cli = acc.RunCLI("resolve-wind-components")
 
 
-@pytest.mark.acc
-@acc.skip_if_kgo_missing
-def test_average_wind_gust(tmp_path):
-    """Test basic wind gust diagnostic processing"""
-    kgo_dir = acc.kgo_root() / "wind-gust-diagnostic/basic"
-    kgo_path = kgo_dir / "kgo_average_wind_gust.nc"
+def test_basic(tmp_path):
+    """Test basic wind speed/direction to u/v vector conversion"""
+    kgo_dir = acc.kgo_root() / "resolve-wind-components/basic"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_dir = acc.kgo_root() / "nowcast-extrapolate/model_winds"
+    wspd_path = input_dir / f"20181103T1600Z-PT0001H00M-{WSPD}.nc"
+    wdir_path = input_dir / f"20181103T1600Z-PT0001H00M-{WDIR}.nc"
     output_path = tmp_path / "output.nc"
-    args = [str(kgo_dir / "wind_gust_perc.nc"),
-            str(kgo_dir / "wind_speed_perc.nc"),
-            str(output_path)]
-    wind_gust_diagnostic.main(args)
-    acc.compare(output_path, kgo_path)
-
-
-@pytest.mark.acc
-@acc.skip_if_kgo_missing
-def test_extreme_wind_gust(tmp_path):
-    """Test basic wind gust diagnostic processing"""
-    kgo_dir = acc.kgo_root() / "wind-gust-diagnostic/basic"
-    kgo_path = kgo_dir / "kgo_extreme_wind_gust.nc"
-    output_path = tmp_path / "output.nc"
-    args = ["--percentile_gust=95.0", "--percentile_ws=100.0",
-            str(kgo_dir / "wind_gust_perc.nc"),
-            str(kgo_dir / "wind_speed_perc.nc"),
-            str(output_path)]
-    wind_gust_diagnostic.main(args)
-    acc.compare(output_path, kgo_path)
+    args = [wspd_path, wdir_path,
+            "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path, rtol=None)
