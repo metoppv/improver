@@ -106,7 +106,12 @@ def kgo_recreate():
 
 def kgo_root():
     """Path to the root of the KGO directories"""
-    return pathlib.Path(os.environ["IMPROVER_ACC_TEST_DIR"])
+    try:
+        test_dir = os.environ["IMPROVER_ACC_TEST_DIR"]
+    except KeyError:
+        pytest.skip()
+        return pathlib.Path("/")
+    return pathlib.Path(test_dir)
 
 
 def kgo_exists():
