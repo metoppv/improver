@@ -30,11 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Setup and checking of known good output for CLI tests"""
 
+import importlib
 import os
 import pathlib
 import shlex
 import shutil
 import subprocess
+import tempfile
 
 import pytest
 
@@ -134,6 +136,38 @@ def recreate_if_needed(output_path, kgo_path):
     return
 
 
+def temporary_copy():
+    """True if using temporary copy of output/KGO files"""
+    return "IMPROVER_ACC_TEST_TEMP" in os.environ
+
+
+def dechunk_temporary(prefix, input_path, temp_dir):
+    """
+    Create a copy of a netcdf file, with compression and chunking removed.
+    There is no cleanup here - code calling this function should do that.
+
+    Args:
+        prefix (str): Filename prefix
+        input_path (pathlib.Path): Path to input file
+        temp_dir (pathlib.Path): Path to directory where output will be placed
+
+    Returns:
+        pathlib.Path: Path to created file in temp_dir
+    """
+    temp_file = tempfile.mkstemp(prefix=prefix, suffix='.nc',
+                                 dir=temp_dir)[1]
+    temp_path = pathlib.Path(temp_file)
+    cmd = ["ncks", "-O", "-4", "--cnk_plc=unchunk", "--dfl_lvl=0",
+           str(input_path), str(temp_path)]
+    stringify(cmd)
+    completion = subprocess.run(cmd, timeout=15, check=False,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
+    print(completion.stdout.decode())
+    assert completion.returncode == 0
+    return temp_path
+
+
 def nccmp_available():
     """True if nccmp tool is available in path"""
     return shutil.which("nccmp") is not None
@@ -141,12 +175,9 @@ def nccmp_available():
 
 def statsmodels_available():
     """True if statsmodels library is importable"""
-    try:
-        import statsmodels  # pylint: disable=C0413
-        _ = statsmodels
+    if importlib.util.find_spec('statsmodels'):
         return True
-    except ImportError:
-        return False
+    return False
 
 
 def nccmp(output_path, kgo_path, exclude_dims=None, options=None,
@@ -177,7 +208,6 @@ def nccmp(output_path, kgo_path, exclude_dims=None, options=None,
     else:
         rtol_args = []
     # nccmp options:
-    #    -B buffer variable in memory, avoids issues with compression/packing
     #    -d means compare data
     #    -m also compare metadata
     #    -N ignore NaN comparisons
@@ -185,7 +215,7 @@ def nccmp(output_path, kgo_path, exclude_dims=None, options=None,
     #    -g compares global attributes in the file
     #    -b verbose output
     if options is None:
-        options = "-BdmNsg"
+        options = "-dmNsg"
     if exclude_dims is not None:
         exclude_args = [f"--exclude={x}" for x in exclude_dims]
     else:
@@ -226,7 +256,14 @@ def compare(output_path, kgo_path, recreate=True, **kwargs):
     assert kgo_path.is_absolute()
     if recreate:
         recreate_if_needed(output_path, kgo_path)
-    nccmp(output_path, kgo_path, **kwargs)
+    if temporary_copy():
+        temporary_kgo = dechunk_temporary(
+            "kgo-", kgo_path, output_path.parent)
+        temporary_output = dechunk_temporary(
+            "out-", output_path, output_path.parent)
+        nccmp(temporary_output, temporary_kgo, **kwargs)
+    else:
+        nccmp(output_path, kgo_path, **kwargs)
 
 
 # Pytest decorator to skip tests if KGO is not available for use
