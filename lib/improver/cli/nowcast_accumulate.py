@@ -102,7 +102,7 @@ def process(input_cube: cli.inputcube,
 
     if not (u_cube and v_cube):
         raise TypeError(
-            "Neither u_cube or v_cube can be none")
+             "Neither u_cube or v_cube can be None")
     oe_cube = merge_cubes(CubeList(oe_cube))
 
     # extrapolate input data to required lead times
