@@ -35,7 +35,7 @@ import unittest
 import numpy as np
 from iris.tests import IrisTest
 from improver.calculate_sleet_prob import calculate_sleet_probability
-from improver.tests.set_up_test_cubes import set_up_variable_cube
+from improver.tests.set_up_test_cubes import set_up_probability_cube
 
 
 class Test_calculate_sleet_probability(IrisTest):
@@ -44,38 +44,62 @@ class Test_calculate_sleet_probability(IrisTest):
     def setUp(self):
         """Create cubes to input into the function."""
 
-        rain_prob = np.array([[0.5, 0.1, 1.0],
-                              [0.0, 0.2, 0.5],
-                              [0.1, 0.1, 0.3]], dtype=np.float32)
-        self.rain_prob_cube = set_up_variable_cube(rain_prob)
+        self.thresholds = np.array([276, 277], dtype=np.float32)
 
-        snow_prob = np.array([[0.0, 0.4, 0.0],
-                              [0.5, 0.3, 0.1],
-                              [0.0, 0.4, 0.3]], dtype=np.float32)
-        self.snow_prob_cube = set_up_variable_cube(snow_prob)
+        rain_prob = np.array([[[0.5, 0.1, 1.0],
+                               [0.0, 0.2, 0.5],
+                               [0.1, 0.1, 0.3]], 
+                              [[0.5, 0.1, 1.0],
+                               [0.0, 0.2, 0.5],
+                               [0.1, 0.1, 0.3]]], dtype=np.float32)
+        self.rain_prob_cube = set_up_probability_cube(rain_prob,
+            self.thresholds)
 
-        high_prob = np.array([[1.0, 0.7, 0.2],
-                              [0.8, 0.8, 0.7],
-                              [0.9, 0.9, 0.7]], dtype=np.float32)
-        self.high_prob_cube = set_up_variable_cube(high_prob)
+        snow_prob = np.array([[[0.0, 0.4, 0.0],
+                               [0.5, 0.3, 0.1],
+                               [0.0, 0.4, 0.3]],
+                              [[0.0, 0.4, 0.0],
+                               [0.5, 0.3, 0.1],
+                               [0.0, 0.4, 0.3]]], dtype=np.float32)
+        self.snow_prob_cube = set_up_probability_cube(snow_prob,
+            self.thresholds)
+
+        high_prob = np.array([[[1.0, 0.7, 0.2],
+                               [0.8, 0.8, 0.7],
+                               [0.9, 0.9, 0.7]],
+                              [[1.0, 0.7, 0.2],
+                               [0.8, 0.8, 0.7],
+                               [0.9, 0.9, 0.7]]], dtype=np.float32)
+        self.high_prob_cube = set_up_probability_cube(high_prob,
+            self.thresholds)
 
     def test_basic_calculation(self):
         """Test the basic sleet calculation works."""
-        expected_result = np.array([[0.5, 0.5, 0.0],
-                                    [0.5, 0.5, 0.4],
-                                    [0.9, 0.5, 0.4]], dtype=np.float32)
+        expected_result = np.array([[[0.5, 0.5, 0.0],
+                                     [0.5, 0.5, 0.4],
+                                     [0.9, 0.5, 0.4]], 
+                                    [[0.5, 0.5, 0.0],
+                                     [0.5, 0.5, 0.4],
+                                     [0.9, 0.5, 0.4]]], dtype=np.float32)
         result = calculate_sleet_probability(
             self.rain_prob_cube, self.snow_prob_cube)
         self.assertArrayAlmostEqual(result.data, expected_result)
 
     def test_negative_values(self):
-        """Test that there is a warning for negative values in
-        the cube. """
+        """Test that an exception is raised for negative values of
+        probability_of_sleet in the cube."""
         rain = self.rain_prob_cube
         high_prob = self.high_prob_cube
-        msg = "Error - Negative values found in cube"
+        msg = "Negative values of sleet probability have been calculated."
         with self.assertRaisesRegex(ValueError, msg):
             calculate_sleet_probability(rain, high_prob)
+
+    def test_name_of_cube(self):
+        """Test that the name has been changed to sleet_probability"""
+        result = calculate_sleet_probability(self.snow_prob_cube,
+            self.rain_prob_cube)
+        name = 'probability_of_sleet'
+        self.assertEqual(result.long_name, name)
 
 
 if __name__ == '__main__':
