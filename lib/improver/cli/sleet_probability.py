@@ -31,8 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to calculate sleet probability."""
 
-import warnings
-
 from improver import cli
 
 

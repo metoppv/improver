@@ -54,6 +54,11 @@ class Test_calculate_sleet_probability(IrisTest):
                               [0.0, 0.4, 0.3]], dtype=np.float32)
         self.snow_prob_cube = set_up_variable_cube(snow_prob)
 
+        high_prob = np.array([[1.0, 0.7, 0.2],
+                              [0.8, 0.8, 0.7],
+                              [0.9, 0.9, 0.7]], dtype=np.float32)
+        self.high_prob_cube = set_up_variable_cube(high_prob)
+
     def test_basic_calculation(self):
         """Test the basic sleet calculation works."""
         expected_result = np.array([[0.5, 0.5, 0.0],
@@ -62,6 +67,15 @@ class Test_calculate_sleet_probability(IrisTest):
         result = calculate_sleet_probability(
             self.rain_prob_cube, self.snow_prob_cube)
         self.assertArrayAlmostEqual(result.data, expected_result)
+
+    def test_negative_values(self):
+        """Test that there is a warning for negative values in
+        the cube. """
+        rain = self.rain_prob_cube
+        high_prob = self.high_prob_cube
+        msg = "Error - Negative values found in cube"
+        with self.assertRaisesRegex(ValueError, msg):
+            calculate_sleet_probability(rain, high_prob)
 
 
 if __name__ == '__main__':

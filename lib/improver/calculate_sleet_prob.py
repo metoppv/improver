@@ -10,7 +10,7 @@
 #   list of conditions and the following disclaimer.
 #
 # * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentatio
+#   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
 # * Neither the name of the copyright holder nor the names of its
@@ -51,11 +51,17 @@ def calculate_sleet_probability(prob_of_snow,
     Returns:
       iris.cube.Cube:
         Cube of the probability of sleet
+
+        Raises:
+            ValueError: If the cube contains.
     """
     ones = np.ones((prob_of_snow.shape), dtype="float32")
     sleet_prob = (ones - (prob_of_snow.data + prob_of_rain.data))
-    probability_of_sleet = create_new_diagnostic_cube(
-        'probability_of_sleet', '1', prob_of_snow,
-        attributes=prob_of_snow.attributes, data=sleet_prob)
-
-    return probability_of_sleet
+    if np.any(sleet_prob < 0.0):
+        msg = ("Error - Negative values found in cube")
+        raise ValueError(msg)
+    else:
+        probability_of_sleet = create_new_diagnostic_cube(
+            'probability_of_sleet', '1', prob_of_snow,
+            attributes=prob_of_snow.attributes, data=sleet_prob)
+        return probability_of_sleet
