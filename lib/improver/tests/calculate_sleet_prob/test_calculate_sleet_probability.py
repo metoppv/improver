@@ -48,7 +48,7 @@ class Test_calculate_sleet_probability(IrisTest):
 
         rain_prob = np.array([[[0.5, 0.1, 1.0],
                                [0.0, 0.2, 0.5],
-                               [0.1, 0.1, 0.3]], 
+                               [0.1, 0.1, 0.3]],
                               [[0.5, 0.1, 1.0],
                                [0.0, 0.2, 0.5],
                                [0.1, 0.1, 0.3]]], dtype=np.float32)
@@ -77,7 +77,7 @@ class Test_calculate_sleet_probability(IrisTest):
         """Test the basic sleet calculation works."""
         expected_result = np.array([[[0.5, 0.5, 0.0],
                                      [0.5, 0.5, 0.4],
-                                     [0.9, 0.5, 0.4]], 
+                                     [0.9, 0.5, 0.4]],
                                     [[0.5, 0.5, 0.0],
                                      [0.5, 0.5, 0.4],
                                      [0.9, 0.5, 0.4]]], dtype=np.float32)
