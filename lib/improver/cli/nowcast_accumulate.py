@@ -41,7 +41,8 @@ inputadvection = cli.create_constrained_inputcubelist_converter(
 @cli.with_output
 def process(input_cube: cli.inputcube,
             advection_cubes: inputadvection,
-            *oe_cube: cli.inputcube,
+            oe_cube: cli.inputcube,
+            *,
             attributes_dict: cli.inputjson = None,
             max_lead_time=360,
             lead_time_interval=15,
@@ -103,7 +104,6 @@ def process(input_cube: cli.inputcube,
     if not (u_cube and v_cube):
         raise TypeError(
              "Neither u_cube or v_cube can be None")
-    oe_cube = merge_cubes(CubeList(oe_cube))
 
     # extrapolate input data to required lead times
     forecast_cubes = CreateExtrapolationForecast(
