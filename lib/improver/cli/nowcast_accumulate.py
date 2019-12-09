@@ -86,11 +86,15 @@ def process(input_cube: cli.inputcube,
             If advection_cubes doesn't contain an x velocity and a y velocity.
     """
     from iris import Constraint
-    import numpy as np
     from iris.cube import CubeList
+    import numpy as np
     from improver.nowcasting.accumulation import Accumulation
     from improver.nowcasting.forecasting import CreateExtrapolationForecast
     from improver.utilities.cube_manipulation import merge_cubes
+
+    # The accumulation frequency in minutes.
+    ACCUMULATION_FIDELITY = 1
+
     u_cube = advection_cubes.extract(
         Constraint("precipitation_advection_x_velocity"), True)
     v_cube = advection_cubes.extract(
@@ -98,16 +102,13 @@ def process(input_cube: cli.inputcube,
 
     if not (u_cube and v_cube):
         raise TypeError(
-            "Neither u_cube or v_cube can be none")
+             "Neither u_cube or v_cube can be None")
     oe_cube = merge_cubes(CubeList(oe_cube))
-
-    # The accumulation frequency in minutes.
-    accumulation_fidelity = 1
 
     # extrapolate input data to required lead times
     forecast_cubes = CreateExtrapolationForecast(
         input_cube, u_cube, v_cube, orographic_enhancement_cube=oe_cube,
-        attributes_dict=attributes_dict).process(accumulation_fidelity,
+        attributes_dict=attributes_dict).process(ACCUMULATION_FIDELITY,
                                                  max_lead_time)
 
     lead_times = (np.arange(lead_time_interval, max_lead_time + 1,
