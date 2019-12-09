@@ -37,7 +37,8 @@ import improver
 from improver.cli import (
     docutilize, unbracket,
     maybe_coerce_with, inputcube, inputjson, with_output,
-    with_intermediate_output)
+    with_intermediate_output, create_constrained_inputcubelist_converter)
+from improver.utilities.load import load_cube
 
 
 def dummy_function(first, second=0, third=2):
@@ -183,6 +184,20 @@ class Test_with_intermediate_output(unittest.TestCase):
         result = wrapped_with_intermediate_output(2, intermediate_output="foo")
         m.assert_called_with(True, 'foo')
         self.assertEqual(result, 4)
+
+
+class Test_create_constrained_inputcube_converter(unittest.TestCase):
+    """Tests the creature constraint inputcube converter"""
+
+    @patch('improver.cli.maybe_coerce_with', return_value='return')
+    def test_basic(self, m):
+        """Tests that it returns a function which itself returns 2 cubes"""
+        result = create_constrained_inputcubelist_converter(
+            'wind_speed', 'wind_from_direction')
+        result("foo")
+        m.assert_any_call(load_cube, "foo", constraints='wind_speed')
+        m.assert_any_call(load_cube, "foo", constraints='wind_from_direction')
+        self.assertEqual(m.call_count, 2)
 
 
 class Test_unbracket(unittest.TestCase):

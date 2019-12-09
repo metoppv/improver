@@ -173,6 +173,36 @@ def comma_separated_list(to_convert):
     """
     return maybe_coerce_with(lambda s: s.split(','), to_convert)
 
+
+def create_constrained_inputcubelist_converter(*constraints):
+    """Makes a list of functions with different constraints.
+
+    Args:
+        *constraints (str):
+            constraints to be used in the loading of cubes against a cubeList
+
+    Returns:
+        list of function:
+            A list of functions with different constraints.
+    """
+    @value_converter
+    def constrained_inputcubelist_converter(to_convert):
+        """Passes the cube and constraints onto maybe coerce with.
+
+        Args (string or iris.cube.CubeList):
+            To cube to be passed forward for returning or loading.
+
+        Returns:
+            iris.cube.CubeList:
+                The loaded cubelist of constrained cubes.
+        """
+        from improver.utilities.load import load_cube
+        from iris.cube import CubeList
+        return CubeList([maybe_coerce_with(
+            load_cube, to_convert, constraints=j) for j in constraints])
+
+    return constrained_inputcubelist_converter
+
 # output handling
 
 
