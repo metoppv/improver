@@ -88,7 +88,6 @@ def process(input_cube: cli.inputcube,
     from iris import Constraint
     from iris.cube import CubeList
     import numpy as np
-    
     from improver.nowcasting.accumulation import Accumulation
     from improver.nowcasting.forecasting import CreateExtrapolationForecast
     from improver.utilities.cube_manipulation import merge_cubes
