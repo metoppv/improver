@@ -228,7 +228,7 @@ def nccmp(output_path, kgo_path, exclude_dims=None, options=None,
     cmd = ["nccmp", options, *exclude_args, *atol_args, *rtol_args,
            str(output_path), str(kgo_root() / kgo_path)]
     s_cmd = stringify(cmd)
-    completion = subprocess.run(s_cmd, timeout=60, check=False,
+    completion = subprocess.run(s_cmd, timeout=300, check=False,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT)
     print(completion.stdout.decode())
