@@ -41,6 +41,7 @@ OE = "orographic_enhancement_high_resolution"
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
+
 @pytest.mark.slow
 def test_basic(tmp_path):
     """Test basic orographic enhancement"""
