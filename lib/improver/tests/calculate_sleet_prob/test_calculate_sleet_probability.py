@@ -45,6 +45,8 @@ class Test_calculate_sleet_probability(IrisTest):
         """Create cubes to input into the function."""
 
         self.thresholds = np.array([276, 277], dtype=np.float32)
+        self.rain_name = 'probability_of_falling_rain_level_above_surface'
+        self.snow_name = 'probability_of_falling_snow_level_below_surface'
 
         rain_prob = np.array([[[0.5, 0.1, 1.0],
                                [0.0, 0.2, 0.5],
@@ -53,8 +55,7 @@ class Test_calculate_sleet_probability(IrisTest):
                                [0.0, 0.2, 0.5],
                                [0.1, 0.1, 0.3]]], dtype=np.float32)
         self.rain_prob_cube = set_up_probability_cube(
-            rain_prob, self.thresholds, variable_name=
-            'probability_of_falling_rain_level_above_surface')
+            rain_prob, self.thresholds, variable_name=self.rain_name)
 
         snow_prob = np.array([[[0.0, 0.4, 0.0],
                                [0.5, 0.3, 0.1],
@@ -63,8 +64,7 @@ class Test_calculate_sleet_probability(IrisTest):
                                [0.5, 0.3, 0.1],
                                [0.0, 0.4, 0.3]]], dtype=np.float32)
         self.snow_prob_cube = set_up_probability_cube(
-            snow_prob, self.thresholds, variable_name=
-            'probability_of_falling_snow_level_below_surface')
+            snow_prob, self.thresholds, variable_name=self.snow_name)
 
         high_prob = np.array([[[1.0, 0.7, 0.2],
                                [0.8, 0.8, 0.7],
@@ -73,8 +73,7 @@ class Test_calculate_sleet_probability(IrisTest):
                                [0.8, 0.8, 0.7],
                                [0.9, 0.9, 0.7]]], dtype=np.float32)
         self.high_prob_cube = set_up_probability_cube(
-            high_prob, self.thresholds, variable_name=
-            'probability_of_falling_snow_level_below_surface')
+            high_prob, self.thresholds, variable_name=self.snow_name)
 
     def test_basic_calculation(self):
         """Test the basic sleet calculation works."""
