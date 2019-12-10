@@ -60,6 +60,7 @@ def calculate_sleet_probability(prob_of_snow,
         msg = ("Negative values of sleet probability have been calculated.")
         raise ValueError(msg)
 
+# In this case we want to copy all the attributes from the prob_of_snow cube
     probability_of_sleet = create_new_diagnostic_cube(
         'probability_of_sleet', '1', prob_of_snow,
         attributes=prob_of_snow.attributes, data=sleet_prob)
