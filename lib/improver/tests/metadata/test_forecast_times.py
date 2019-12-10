@@ -89,20 +89,6 @@ class Test_forecast_period_coord(IrisTest):
         self.assertArrayEqual(result.points, expected_points)
         self.assertEqual(result.units, expected_units)
 
-    def test_check_coordinate_in_hours_force_lead_time_calculation(self):
-        """Test that the data within the coord is as expected with the
-        expected units, when the input cube has a forecast_period coordinate.
-        """
-        fp_coord = self.cube.coord("forecast_period").copy()
-        fp_coord.convert_units("hours")
-        expected_points = fp_coord.points
-        expected_units = str(fp_coord.units)
-        result = forecast_period_coord(
-            self.cube, force_lead_time_calculation=True,
-            result_units=fp_coord.units)
-        self.assertArrayEqual(result.points, expected_points)
-        self.assertEqual(result.units, expected_units)
-
     def test_check_coordinate_without_forecast_period(self):
         """Test that the data within the coord is as expected with the
         expected units, when the input cube has a time coordinate and a
