@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,25 +28,12 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""Defaults for mandatory attributes"""
 
-. $IMPROVER_DIR/tests/lib/utils
-
-@test "standardise with land-mask" {
-  improver_check_skip_acceptance
-  KGO="standardise/regrid-landmask/kgo.nc"
-
-  # Run cube regrid processing with iris nearest option and check it passes.
-  run improver standardise \
-      "$IMPROVER_ACC_TEST_DIR/standardise/regrid-basic/global_cutout.nc" \
-      --target_grid_filepath "$IMPROVER_ACC_TEST_DIR/standardise/regrid-landmask/ukvx_landmask.nc" \
-      --input_landmask_filepath "$IMPROVER_ACC_TEST_DIR/standardise/regrid-landmask/glm_landmask.nc" \
-      --output_filepath "$TEST_DIR/output.nc" --regrid_mode="nearest-with-mask" \
-      --regridded_title "Global Model Forecast on UK 2 km Standard Grid"
-  [[ "$status" -eq 0 ]]
-
-  improver_check_recreate_kgo "output.nc" $KGO
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
+MANDATORY_ATTRIBUTE_DEFAULTS = {
+    "title": "unknown",
+    "source": "IMPROVER",
+    "institution": "unknown"
 }
+
+MANDATORY_ATTRIBUTES = ["title", "source", "institution"]

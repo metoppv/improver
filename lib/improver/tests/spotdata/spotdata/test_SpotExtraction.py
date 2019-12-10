@@ -37,6 +37,7 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.metadata.utilities import create_coordinate_hash
+from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.spotdata.spot_extraction import SpotExtraction
 
@@ -67,6 +68,8 @@ class Test_SpotExtraction(IrisTest):
         ycoord = iris.coords.DimCoord(
             np.linspace(0, 40, 5), standard_name='latitude', units='degrees')
 
+        # Grid attributes must be included in diagnostic cubes so their removal
+        # can be tested
         attributes = {
             'mosg__grid_domain': 'global',
             'mosg__grid_type': 'standard'}
@@ -117,6 +120,13 @@ class Test_SpotExtraction(IrisTest):
         self.neighbours = neighbours
         self.neighbour_cube = neighbour_cube
         self.coordinate_cube = coordinate_cube
+
+        self.expected_attributes = self.diagnostic_cube_xy.attributes
+        for attr in MOSG_GRID_ATTRIBUTES:
+            self.expected_attributes.pop(attr, None)
+        self.expected_attributes["title"] = "unknown"
+        self.expected_attributes["model_grid_hash"] = (
+            self.neighbour_cube.attributes['model_grid_hash'])
 
 
 class Test__repr__(IrisTest):
@@ -233,9 +243,7 @@ class Test_process(Test_SpotExtraction):
         self.assertArrayEqual(result.coord('latitude').points, self.latitudes)
         self.assertArrayEqual(result.coord('longitude').points,
                               self.longitudes)
-        result.attributes.pop('model_grid_hash')
-        self.assertDictEqual(result.attributes,
-                             self.diagnostic_cube_xy.attributes)
+        self.assertDictEqual(result.attributes, self.expected_attributes)
 
     def test_returned_cube_nearest_land(self):
         """Test that data within the returned cube is as expected for the
@@ -249,30 +257,16 @@ class Test_process(Test_SpotExtraction):
         self.assertArrayEqual(result.coord('latitude').points, self.latitudes)
         self.assertArrayEqual(result.coord('longitude').points,
                               self.longitudes)
-        result.attributes.pop('model_grid_hash')
-        self.assertDictEqual(result.attributes,
-                             self.diagnostic_cube_xy.attributes)
+        self.assertDictEqual(result.attributes, self.expected_attributes)
 
     def test_new_title(self):
         """Test title is updated as expected"""
-        expected_attributes = self.diagnostic_cube_xy.attributes.copy()
+        expected_attributes = self.expected_attributes
         expected_attributes["title"] = "IMPROVER Spot Forecast"
-        expected_keys = set(expected_attributes.keys())
-        expected_keys.add("model_grid_hash")
         plugin = SpotExtraction(neighbour_selection_method='nearest_land')
         result = plugin.process(self.neighbour_cube, self.diagnostic_cube_xy,
                                 new_title="IMPROVER Spot Forecast")
-        self.assertSetEqual(set(result.attributes.keys()), expected_keys)
-        result.attributes.pop('model_grid_hash')
         self.assertDictEqual(result.attributes, expected_attributes)
-
-    def test_removed_title(self):
-        """Test title is removed from output if not user-specified"""
-        self.diagnostic_cube_xy.attributes["title"] = (
-            "MOGREPS-G Temperature Forecast on Global Grid")
-        plugin = SpotExtraction(neighbour_selection_method='nearest_land')
-        result = plugin.process(self.neighbour_cube, self.diagnostic_cube_xy)
-        self.assertNotIn("title", result.attributes)
 
     def test_cube_with_leading_dimensions(self):
         """Test that a cube with a leading dimension such as realization or
@@ -302,8 +296,7 @@ class Test_process(Test_SpotExtraction):
         self.assertArrayEqual(result.coord('longitude').points,
                               self.longitudes)
         self.assertEqual(result.coord('realization'), expected_coord)
-        result.attributes.pop('model_grid_hash')
-        self.assertDictEqual(result.attributes, cube.attributes)
+        self.assertDictEqual(result.attributes, self.expected_attributes)
 
 
 if __name__ == '__main__':

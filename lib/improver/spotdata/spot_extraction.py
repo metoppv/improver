@@ -35,6 +35,8 @@ import iris
 import numpy as np
 
 from improver import BasePlugin
+from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
+from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
 from improver.metadata.utilities import create_coordinate_hash
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
@@ -170,9 +172,9 @@ class SpotExtraction(BasePlugin):
                 A cube of diagnostic data from which spot data is being taken.
             new_title (str or None):
                 New title for spot-extracted data.  If None, this attribute is
-                removed from the output cube, since it has no prescribed
-                standard and may therefore contain grid information that is no
-                longer correct after spot-extraction.
+                reset to a default value, since it has no prescribed standard
+                and may therefore contain grid information that is no longer
+                correct after spot-extraction.
         Returns:
             iris.cube.Cube:
                 A cube containing diagnostic data for each spot site, as well
@@ -202,14 +204,17 @@ class SpotExtraction(BasePlugin):
         spotdata_cube = data_cubes.merge_cube()
 
         # Copy attributes from the diagnostic cube that describe the data's
-        # provenance, and update title if specified
+        # provenance
         spotdata_cube.attributes = diagnostic_cube.attributes
         spotdata_cube.attributes['model_grid_hash'] = (
             neighbour_cube.attributes['model_grid_hash'])
-        if new_title is not None:
-            spotdata_cube.attributes["title"] = new_title
-        else:
-            spotdata_cube.attributes.pop("title", None)
+
+        # Remove grid attributes and update title
+        for attr in MOSG_GRID_ATTRIBUTES:
+            spotdata_cube.attributes.pop(attr, None)
+        spotdata_cube.attributes["title"] = (
+            MANDATORY_ATTRIBUTE_DEFAULTS["title"]
+            if new_title is None else new_title)
 
         return spotdata_cube
 

@@ -38,6 +38,7 @@ import iris
 from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
+from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.standardise import StandardiseGridAndMetadata
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
@@ -58,8 +59,6 @@ class Test__init__(unittest.TestCase):
         self.assertIsNone(plugin.landmask_source_grid)
         self.assertIsNone(plugin.landmask_vicinity)
         self.assertEqual(plugin.landmask_name, 'land_binary_mask')
-        self.assertSequenceEqual(plugin.grid_attributes, [
-            'mosg__grid_version', 'mosg__grid_domain', 'mosg__grid_type'])
 
     def test_error_missing_landmask(self):
         """Test an error is thrown if no mask is provided for masked
@@ -199,7 +198,8 @@ class Test_process_regrid_options(IrisTest):
         """Test default regridding arguments return expected dimensionality
         and updated grid-defining attributes"""
         expected_data = 282*np.ones((12, 12), dtype=np.float32)
-        expected_attributes = {"mosg__model_configuration": "gl_det"}
+        expected_attributes = {"mosg__model_configuration": "gl_det",
+                               "title": MANDATORY_ATTRIBUTE_DEFAULTS["title"]}
         for attr in ["mosg__grid_domain", "mosg__grid_type",
                      "mosg__grid_version"]:
             expected_attributes[attr] = self.target_grid.attributes[attr]
@@ -229,7 +229,8 @@ class Test_process_regrid_options(IrisTest):
         """Test masked regridding (same expected values as basic, since input
         points are all equal)"""
         expected_data = 282*np.ones((12, 12), dtype=np.float32)
-        expected_attributes = {"mosg__model_configuration": "gl_det"}
+        expected_attributes = {"mosg__model_configuration": "gl_det",
+                               "title": MANDATORY_ATTRIBUTE_DEFAULTS["title"]}
         for attr in ["mosg__grid_domain", "mosg__grid_type",
                      "mosg__grid_version"]:
             expected_attributes[attr] = self.target_grid.attributes[attr]
@@ -288,11 +289,24 @@ class Test_process_regrid_options(IrisTest):
     def test_attribute_changes_with_regridding(self):
         """Test attributes inherited on regridding"""
         expected_attributes = self.cube.attributes
+        expected_attributes["title"] = MANDATORY_ATTRIBUTE_DEFAULTS["title"]
         for attr in ["mosg__grid_domain", "mosg__grid_type",
                      "mosg__grid_version"]:
             expected_attributes[attr] = self.target_grid.attributes[attr]
         result = StandardiseGridAndMetadata().process(
             self.cube, target_grid=self.target_grid)
+        self.assertDictEqual(result.attributes, expected_attributes)
+
+    def test_new_title(self):
+        """Test new title can be set on regridding"""
+        new_title = "Global Model Forecast on UK 2km Standard Grid"
+        expected_attributes = self.cube.attributes
+        expected_attributes["title"] = new_title
+        for attr in ["mosg__grid_domain", "mosg__grid_type",
+                     "mosg__grid_version"]:
+            expected_attributes[attr] = self.target_grid.attributes[attr]
+        result = StandardiseGridAndMetadata().process(
+            self.cube, target_grid=self.target_grid, regridded_title=new_title)
         self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_attribute_changes_after_regridding(self):
@@ -302,7 +316,8 @@ class Test_process_regrid_options(IrisTest):
         expected_attributes = {"mosg__grid_domain": "uk_extended",
                                "mosg__grid_type": "standard",
                                "mosg__model_configuration": "gl_det",
-                               "institution": "Met Office"}
+                               "institution": "Met Office",
+                               "title": MANDATORY_ATTRIBUTE_DEFAULTS["title"]}
         result = StandardiseGridAndMetadata().process(
             self.cube, target_grid=self.target_grid,
             attributes_dict=attribute_changes)
