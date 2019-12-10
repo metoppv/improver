@@ -37,7 +37,8 @@ from improver.metadata.utilities import create_new_diagnostic_cube
 def calculate_sleet_probability(prob_of_snow,
                                 prob_of_rain):
     """
-    This calculates the probability of sleet
+    This calculates the probability of sleet using the calculation:
+    prob(sleet) = 1 - (prob(snow) + prob(rain))
 
     Args:
       prob_of_snow (iris.cube.Cube):
