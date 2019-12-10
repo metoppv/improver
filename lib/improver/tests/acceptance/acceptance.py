@@ -30,17 +30,56 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Setup and checking of known good output for CLI tests"""
 
+import importlib
 import os
 import pathlib
+import shlex
 import shutil
 import subprocess
 import tempfile
 
 import pytest
 
-TIGHT_TOLERANCE = 1e-5
-DEFAULT_TOLERANCE = 1e-4
-LOOSE_TOLERANCE = 1e-2
+from improver import cli
+
+TIGHT_TOLERANCE = 1e-4
+DEFAULT_TOLERANCE = 1e-2
+LOOSE_TOLERANCE = 1e-1
+
+
+def run_cli(cli_name):
+    """
+    Prepare a function for running clize CLIs.
+    Use of the returned function avoids writing "improver" and the CLI name in
+    each test function.
+
+    Args:
+        cli_name (str): name of the CLI
+
+    Returns:
+        Callable([Iterable[str], None]): function to run the specified CLI
+    """
+    def run_function(args):
+        cli_args = ["improver", "--verbose", cli_name, *args]
+        cli.run_main(cli_args)
+    return run_function
+
+
+def cli_name_with_dashes(dunder_file):
+    """
+    Convert an acceptance test module name to the corresponding CLI
+
+    Args:
+        dunder_file (str): test module name retrieved from __file__
+
+    Returns:
+        str: CLI name
+    """
+    module_name = str(pathlib.Path(dunder_file).stem)
+    if module_name.startswith("test_"):
+        module_name = module_name[5:]
+    module_dashes = module_name.replace("_", "-")
+    return module_dashes
 
 
 def kgo_recreate():
@@ -50,7 +89,12 @@ def kgo_recreate():
 
 def kgo_root():
     """Path to the root of the KGO directories"""
-    return pathlib.Path(os.environ["IMPROVER_ACC_TEST_DIR"])
+    try:
+        test_dir = os.environ["IMPROVER_ACC_TEST_DIR"]
+    except KeyError:
+        pytest.skip()
+        return pathlib.Path("/")
+    return pathlib.Path(test_dir)
 
 
 def kgo_exists():
@@ -76,7 +120,7 @@ def recreate_if_needed(output_path, kgo_path):
     if kgo_root() not in kgo_path.parents:
         raise IOError("Provided KGO path is not within KGO root directory")
     kgo_path.parent.mkdir(exist_ok=True)
-    shutil.copyfile(output_path, kgo_path)
+    shutil.copyfile(str(output_path), str(kgo_path))
     return
 
 
@@ -103,9 +147,11 @@ def dechunk_temporary(prefix, input_path, temp_dir):
     temp_path = pathlib.Path(temp_file)
     cmd = ["ncks", "-O", "-4", "--cnk_plc=unchunk", "--dfl_lvl=0",
            str(input_path), str(temp_path)]
-    completion = subprocess.run(cmd, timeout=15,
+    print(' '.join([shlex.quote(x) for x in cmd]))
+    completion = subprocess.run(cmd, timeout=15, check=False,
                                 stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
+                                stderr=subprocess.STDOUT)
+    print(completion.stdout.decode())
     assert completion.returncode == 0
     return temp_path
 
@@ -115,7 +161,14 @@ def nccmp_available():
     return shutil.which("nccmp") is not None
 
 
-def nccmp(output_path, kgo_path,
+def statsmodels_available():
+    """True if statsmodels library is importable"""
+    if importlib.util.find_spec('statsmodels'):
+        return True
+    return False
+
+
+def nccmp(output_path, kgo_path, exclude_dims=None, options=None,
           atol=DEFAULT_TOLERANCE, rtol=DEFAULT_TOLERANCE):
     """
     Compare output and KGO using nccmp command line tool.
@@ -124,12 +177,24 @@ def nccmp(output_path, kgo_path,
     Args:
         output_path (pathlib.Path): Path to output produced by test
         kgo_path (pathlib.Path): Path to KGO file
-        atol (float): absolute tolerance
-        rtol (float): relative tolerance
+        exclude_dims (Optional[List[str]]): dimensions to exclude
+        options (Optional[str]): comparison options
+        atol (Optional[float]): absolute tolerance
+        rtol (Optional[float]): relative tolerance
 
     Returns:
         None
     """
+    # don't show this function in pytest tracebacks
+    __tracebackhide__ = True  # pylint: disable=unused-variable
+    if atol is not None:
+        atol_args = ["-t", str(atol)]
+    else:
+        atol_args = []
+    if rtol is not None:
+        rtol_args = ["-T", str(rtol)]
+    else:
+        rtol_args = []
     # nccmp options:
     #    -d means compare data
     #    -m also compare metadata
@@ -137,22 +202,24 @@ def nccmp(output_path, kgo_path,
     #    -s report 'Files X and Y are identical' if they really are.
     #    -g compares global attributes in the file
     #    -b verbose output
-
-    cmd = ["nccmp", "-dmNsgb", "-t", str(atol), "-T", str(rtol),
+    if options is None:
+        options = "-dmNsg"
+    if exclude_dims is not None:
+        exclude_args = [f"--exclude={x}" for x in exclude_dims]
+    else:
+        exclude_args = []
+    cmd = ["nccmp", options, *exclude_args, *atol_args, *rtol_args,
            str(output_path), str(kgo_root() / kgo_path)]
-    print(" ".join(cmd))
-    completion = subprocess.run(cmd,
-                                timeout=30,
+    print(' '.join([shlex.quote(x) for x in cmd]))
+    completion = subprocess.run(cmd, timeout=300, check=False,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT)
     print(completion.stdout.decode())
     assert completion.returncode == 0
     assert b"are identical." in completion.stdout
-    return
 
 
-def compare(output_path, kgo_path,
-            atol=DEFAULT_TOLERANCE, rtol=DEFAULT_TOLERANCE):
+def compare(output_path, kgo_path, recreate=True, **kwargs):
     """
     Compare output against expected using KGO file with absolute and
     relative tolerances. Also recreates KGO if that setting is enabled.
@@ -160,24 +227,31 @@ def compare(output_path, kgo_path,
     Args:
         output_path (pathlib.Path): Path to output produced by test
         kgo_path (pathlib.Path): Path to KGO file
-        atol (float): absolute tolerance
-        rtol (float): relative tolerance
+        recreate (bool): False to disable KGO recreation, compare only
+
+    Keyword Args:
+        exclude_dims (Optional[List[str]]): dimensions to exclude
+        options (Optional[str]): comparison options
+        atol (Optional[float]): absolute tolerance
+        rtol (Optional[float]): relative tolerance
 
     Returns:
         None
     """
+    # don't show this function in pytest tracebacks
+    __tracebackhide__ = True  # pylint: disable=unused-variable
     assert output_path.is_absolute()
     assert kgo_path.is_absolute()
-    recreate_if_needed(output_path, kgo_path)
+    if recreate:
+        recreate_if_needed(output_path, kgo_path)
     if temporary_copy():
         temporary_kgo = dechunk_temporary(
-            "kgo", kgo_path, output_path.parent)
+            "kgo-", kgo_path, output_path.parent)
         temporary_output = dechunk_temporary(
-            "out", output_path, output_path.parent)
-        nccmp(temporary_output, temporary_kgo, atol, rtol)
+            "out-", output_path, output_path.parent)
+        nccmp(temporary_output, temporary_kgo, **kwargs)
     else:
-        nccmp(output_path, kgo_path, atol, rtol)
-    return
+        nccmp(output_path, kgo_path, **kwargs)
 
 
 # Pytest decorator to skip tests if KGO is not available for use
@@ -185,3 +259,14 @@ def compare(output_path, kgo_path,
 skip_if_kgo_missing = pytest.mark.skipif(
     not kgo_exists() and nccmp_available(),
     reason="KGO files and nccmp tool required")
+
+
+# Pytest decorator to skip tests if statsmodels is available
+# pylint: disable=invalid-name
+skip_if_statsmodels = pytest.mark.skipif(
+    statsmodels_available(), reason="statsmodels library is available")
+
+# Pytest decorator to skip tests if statsmodels is not available
+# pylint: disable=invalid-name
+skip_if_no_statsmodels = pytest.mark.skipif(
+    not statsmodels_available(), reason="statsmodels library is not available")
