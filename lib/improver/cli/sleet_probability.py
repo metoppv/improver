@@ -44,16 +44,14 @@ def process(snow: cli.inputcube, rain: cli.inputcube):
 
     Args:
         snow (iris.cube.Cube):
-            An iris Cube of the probability of falling snow level at
-            or below surface > threshold (currently 0.8)
+            An iris Cube of the probability of snow.
         rain (iris.cube.Cube):
-            An iris Cube of the probability of falling rain level at
-            or above surface > threshold (currently 0.8)
+            An iris Cube of the probability of rain.
 
 
     Returns:
         iris.cube.Cube:
-            Returns a cube with the probability of sleet at the surface.
+            Returns a cube with the probability of sleet.
     """
 
     from improver.calculate_sleet_prob import calculate_sleet_probability

@@ -37,20 +37,18 @@ from improver.metadata.utilities import create_new_diagnostic_cube
 def calculate_sleet_probability(prob_of_snow,
                                 prob_of_rain):
     """
-    This calculates the probability of sleet using the calculation:
-    prob(sleet) = 1 - (prob(falling_snow_level at or below surface > 0.8) +
-                       prob(falling_rain_level at or above surface > 0.8))
+    This calculates the probability of sleet
 
     Args:
-      prob_of_snow_falling_level (iris.cube.Cube):
-        Cube of snow falling level probabilities
+      prob_of_snow (iris.cube.Cube):
+        Cube of the probability of snow.
 
-      prob_of_rain_falling_level (iris.cube.Cube):
-        Cube of rain falling level probabilities
+      prob_of_rain (iris.cube.Cube):
+        Cube of the probability of rain.
 
     Returns:
       iris.cube.Cube:
-        Cube of the probability of sleet
+        Cube of the probability of sleet.
 
         Raises:
             ValueError: If the cube contains negative values for the the
