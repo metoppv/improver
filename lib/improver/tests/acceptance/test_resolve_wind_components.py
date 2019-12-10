@@ -35,10 +35,10 @@ Tests for the resolve-wind-components CLI
 import pytest
 
 from improver.tests.acceptance import acceptance as acc
-from improver.tests.acceptance.test_cli_nowcast_extrapolate import WSPD, WDIR
+from improver.tests.acceptance.test_nowcast_extrapolate import WSPD, WDIR
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-run_cli = acc.RunCLI("resolve-wind-components")
+run_cli = acc.run_cli("resolve-wind-components")
 
 
 @pytest.mark.slow

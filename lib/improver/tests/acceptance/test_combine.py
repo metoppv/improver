@@ -35,7 +35,7 @@ import pytest
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-run_cli = acc.RunCLI("combine")
+run_cli = acc.run_cli("combine")
 
 
 def test_basic(tmp_path):

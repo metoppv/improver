@@ -47,56 +47,22 @@ DEFAULT_TOLERANCE = 1e-2
 LOOSE_TOLERANCE = 1e-1
 
 
-# pylint: disable=too-few-public-methods
-class RunCLI():
+def run_cli(cli_name):
     """
-    Wrapper for run_improver_cli to avoid repetition of the CLI name in each
-    call.
-    Equivalent to functools.partial, but nicer to read and avoids functools
-    import for once off use in all test modules.
-    """
-    def __init__(self, cli_name):
-        self.cli_name = cli_name
-
-    def __call__(self, args):
-        run_improver_cli(self.cli_name, args)
-
-
-def run_improver_cli(cli_name, args):
-    """
-    Run an IMPROVER CLI in an acceptance test.
-    Converts arguments to strings and prints the command line for easy
-    re-running by copy-pasting from test output.
+    Prepare a function for running clize CLIs.
+    Use of the returned function avoids writing "improver" and the CLI name in
+    each test function.
 
     Args:
-        cli_name (str): name of the command line interface to run
-        args (Iterable[Object]): command line arguments, will be converted
-            to a list of strings before passing to CLI functions
+        cli_name (str): name of the CLI
 
     Returns:
-        None
+        Callable([Iterable[str], None]): function to run the specified CLI
     """
-    args_strings = stringify(args, print_copyable=False)
-    cli_args = ["improver", cli_name, *args_strings]
-    print(' '.join([shlex.quote(str(x)) for x in cli_args]))
-    cli.run_main(cli_args)
-
-
-def stringify(itr, print_copyable=True):
-    """
-    Convert iterable to a list of strings.
-
-    Args:
-        itr (Iterable[Object]): iterable of generic objects
-        print_copyable (bool): prints a copy-pastable string into test logs
-
-    Returns:
-        List[str]: list of items as strings
-    """
-    it_str = [str(x) for x in itr]
-    if print_copyable:
-        print(' '.join([shlex.quote(str(x)) for x in it_str]))
-    return it_str
+    def run_function(args):
+        cli_args = ["improver", "--verbose", cli_name, *args]
+        cli.run_main(cli_args)
+    return run_function
 
 
 def kgo_recreate():
@@ -164,7 +130,7 @@ def dechunk_temporary(prefix, input_path, temp_dir):
     temp_path = pathlib.Path(temp_file)
     cmd = ["ncks", "-O", "-4", "--cnk_plc=unchunk", "--dfl_lvl=0",
            str(input_path), str(temp_path)]
-    stringify(cmd)
+    print(' '.join([shlex.quote(x) for x in cmd]))
     completion = subprocess.run(cmd, timeout=15, check=False,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT)
@@ -227,8 +193,8 @@ def nccmp(output_path, kgo_path, exclude_dims=None, options=None,
         exclude_args = []
     cmd = ["nccmp", options, *exclude_args, *atol_args, *rtol_args,
            str(output_path), str(kgo_root() / kgo_path)]
-    s_cmd = stringify(cmd)
-    completion = subprocess.run(s_cmd, timeout=300, check=False,
+    print(' '.join([shlex.quote(x) for x in cmd]))
+    completion = subprocess.run(cmd, timeout=300, check=False,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.STDOUT)
     print(completion.stdout.decode())

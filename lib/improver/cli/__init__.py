@@ -31,6 +31,7 @@
 """init for cli and clize"""
 
 from collections import OrderedDict
+import shlex
 
 import clize
 from clize import parameters
@@ -360,13 +361,17 @@ def execute_command(dispatcher, prog_name, *args,
             arg = ObjectAsStr(arg)
         args[i] = arg
 
+    if verbose or dry_run:
+        cmd = [prog_name, *args]
+        print(' '.join([shlex.quote(x) for x in cmd]))
+        print(cmd)
+
     if dry_run:
         result = args
     else:
         result = dispatcher(prog_name, *args)
-
-    if verbose or dry_run:
-        print(prog_name, *args, ' -> ', ObjectAsStr.obj_to_name(result))
+        if verbose:
+            print(result)
 
     return result
 
@@ -431,4 +436,4 @@ def run_main(argv=None):
     if argv is None:
         argv = sys.argv[:]
         argv[0] = 'improver'
-    run(main, exit=False, args=argv)  # pylint: disable=E1124
+    run(main, args=argv, exit=False)  # pylint: disable=E1124
