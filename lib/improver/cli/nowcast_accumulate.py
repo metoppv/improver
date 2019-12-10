@@ -33,6 +33,10 @@
 
 from improver import cli
 
+# The accumulation frequency in minutes.
+ACCUMULATION_FIDELITY = 1
+
+# Creates the value_converter that clize needs.
 inputadvection = cli.create_constrained_inputcubelist_converter(
     'precipitation_advection_x_velocity', 'precipitation_advection_y_velocity')
 
@@ -87,14 +91,12 @@ def process(input_cube: cli.inputcube,
             If advection_cubes doesn't contain an x velocity and a y velocity.
     """
     from iris import Constraint
-    from iris.cube import CubeList
+
     import numpy as np
+
     from improver.nowcasting.accumulation import Accumulation
     from improver.nowcasting.forecasting import CreateExtrapolationForecast
     from improver.utilities.cube_manipulation import merge_cubes
-
-    # The accumulation frequency in minutes.
-    ACCUMULATION_FIDELITY = 1
 
     u_cube = advection_cubes.extract(
         Constraint("precipitation_advection_x_velocity"), True)
@@ -102,8 +104,7 @@ def process(input_cube: cli.inputcube,
         Constraint("precipitation_advection_y_velocity"), True)
 
     if not (u_cube and v_cube):
-        raise TypeError(
-             "Neither u_cube or v_cube can be None")
+        raise TypeError("Neither u_cube or v_cube can be None")
 
     # extrapolate input data to required lead times
     forecast_cubes = CreateExtrapolationForecast(
@@ -114,6 +115,7 @@ def process(input_cube: cli.inputcube,
     lead_times = (np.arange(lead_time_interval, max_lead_time + 1,
                             lead_time_interval))
 
+    # Accumulate high frequency rate into desired accumulation intervals.
     result = Accumulation(
         accumulation_units=accumulation_units,
         accumulation_period=accumulation_period * 60,

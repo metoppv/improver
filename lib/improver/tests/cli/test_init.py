@@ -186,8 +186,8 @@ class Test_with_intermediate_output(unittest.TestCase):
         self.assertEqual(result, 4)
 
 
-class Test_create_constrained_inputcube_converter(unittest.TestCase):
-    """Tests the creature constraint inputcube converter"""
+class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
+    """Tests the creature constraint_inputcubelist_converter"""
 
     @patch('improver.cli.maybe_coerce_with', return_value='return')
     def test_basic(self, m):

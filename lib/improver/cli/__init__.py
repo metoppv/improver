@@ -175,22 +175,31 @@ def comma_separated_list(to_convert):
 
 
 def create_constrained_inputcubelist_converter(*constraints):
-    """Makes a list of functions with different constraints.
+    """Makes function that the input constraints are used in a loop.
+
+    The function is value_converter, this means it is used by clize to convert
+    strings into objects.
+    This is a way of not using the IMPROVER load_cube which will try to merge
+    cubes. Iris load on the other hand won't deal with meta data properly.
+    So an example if you wanted to load an X cube and a Y cube from a cubelist
+    of 2. You call this function with a list of constraints.
+    These cubes get loaded and returned as a CubeList.
 
     Args:
         *constraints (str):
-            constraints to be used in the loading of cubes against a cubeList
+            constraints to be used in the loading of cubes against a cubeList.
 
     Returns:
-        list of function:
-            A list of functions with different constraints.
+        function:
+            A function with the constraints used for a list comprehension.
     """
     @value_converter
     def constrained_inputcubelist_converter(to_convert):
-        """Passes the cube and constraints onto maybe coerce with.
+        """Passes the cube and constraints onto maybe_coerce_with.
 
-        Args (string or iris.cube.CubeList):
-            To cube to be passed forward for returning or loading.
+        Args:
+            to_convert (string or iris.cube.CubeList):
+                The cube to be passed forward for returning or loading.
 
         Returns:
             iris.cube.CubeList:
