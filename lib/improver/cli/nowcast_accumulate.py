@@ -106,7 +106,7 @@ def process(input_cube: cli.inputcube,
     if not (u_cube and v_cube):
         raise TypeError("Neither u_cube or v_cube can be None")
 
-    # extrapolate input data to required lead times
+    # extrapolate input data to the maximum required lead time
     forecast_cubes = CreateExtrapolationForecast(
         input_cube, u_cube, v_cube, orographic_enhancement_cube=oe_cube,
         attributes_dict=attributes_dict).process(ACCUMULATION_FIDELITY,
