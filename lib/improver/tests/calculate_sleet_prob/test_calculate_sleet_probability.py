@@ -52,8 +52,8 @@ class Test_calculate_sleet_probability(IrisTest):
                               [[0.5, 0.1, 1.0],
                                [0.0, 0.2, 0.5],
                                [0.1, 0.1, 0.3]]], dtype=np.float32)
-        self.rain_prob_cube = set_up_probability_cube(rain_prob,
-            self.thresholds)
+        self.rain_prob_cube = set_up_probability_cube(
+            rain_prob, self.thresholds)
 
         snow_prob = np.array([[[0.0, 0.4, 0.0],
                                [0.5, 0.3, 0.1],
@@ -61,8 +61,8 @@ class Test_calculate_sleet_probability(IrisTest):
                               [[0.0, 0.4, 0.0],
                                [0.5, 0.3, 0.1],
                                [0.0, 0.4, 0.3]]], dtype=np.float32)
-        self.snow_prob_cube = set_up_probability_cube(snow_prob,
-            self.thresholds)
+        self.snow_prob_cube = set_up_probability_cube(
+            snow_prob, self.thresholds)
 
         high_prob = np.array([[[1.0, 0.7, 0.2],
                                [0.8, 0.8, 0.7],
@@ -70,8 +70,8 @@ class Test_calculate_sleet_probability(IrisTest):
                               [[1.0, 0.7, 0.2],
                                [0.8, 0.8, 0.7],
                                [0.9, 0.9, 0.7]]], dtype=np.float32)
-        self.high_prob_cube = set_up_probability_cube(high_prob,
-            self.thresholds)
+        self.high_prob_cube = set_up_probability_cube(
+            high_prob, self.thresholds)
 
     def test_basic_calculation(self):
         """Test the basic sleet calculation works."""
@@ -96,8 +96,8 @@ class Test_calculate_sleet_probability(IrisTest):
 
     def test_name_of_cube(self):
         """Test that the name has been changed to sleet_probability"""
-        result = calculate_sleet_probability(self.snow_prob_cube,
-            self.rain_prob_cube)
+        result = calculate_sleet_probability(
+            self.snow_prob_cube, self.rain_prob_cube)
         name = 'probability_of_sleet'
         self.assertEqual(result.long_name, name)
 
