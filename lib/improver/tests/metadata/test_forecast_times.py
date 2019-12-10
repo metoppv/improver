@@ -147,7 +147,7 @@ class Test__calculate_forecast_period(IrisTest):
         new_time_coord = self.time_coord.copy(new_time_points)
         fp_point = self.fp_coord.points[0]
         expected_fp_points = [fp_point, fp_point + 3600, fp_point + 7200]
-        result = _calculate_forecast_period(new_time_coord, self.frt_coord)     
+        result = _calculate_forecast_period(new_time_coord, self.frt_coord)
         self.assertArrayAlmostEqual(result.points, expected_fp_points)
 
     def test_check_time_unit_conversion(self):
