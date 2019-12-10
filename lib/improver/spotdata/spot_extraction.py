@@ -172,9 +172,9 @@ class SpotExtraction(BasePlugin):
                 A cube of diagnostic data from which spot data is being taken.
             new_title (str or None):
                 New title for spot-extracted data.  If None, this attribute is
-                removed from the output cube, since it has no prescribed
-                standard and may therefore contain grid information that is no
-                longer correct after spot-extraction.
+                reset to a default value, since it has no prescribed standard
+                and may therefore contain grid information that is no longer
+                correct after spot-extraction.
         Returns:
             iris.cube.Cube:
                 A cube containing diagnostic data for each spot site, as well

@@ -117,7 +117,7 @@ class Test_forecast_period_coord(IrisTest):
     def test_check_time_unit_conversion(self):
         """Test that the data within the coord is as expected with the
         expected units, when the input cube time and forecast reference time
-        coordinates in different units.
+        coordinates are in different units.
         """
         expected_result = self.cube.coord("forecast_period")
         self.cube.coord("time").convert_units(

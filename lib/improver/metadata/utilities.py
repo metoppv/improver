@@ -75,9 +75,7 @@ def create_new_diagnostic_cube(
     """
     attributes = mandatory_attributes
     if optional_attributes is not None:
-        for attr in optional_attributes:
-            # overrides mandatory_attributes
-            attributes[attr] = optional_attributes[attr]
+        attributes.update(optional_attributes)
 
     error_msg = ""
     for attr in MANDATORY_ATTRIBUTES:

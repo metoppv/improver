@@ -783,7 +783,7 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
         - Remove scalar coordinates that were previously associated with the
         blend dimension
         - Update attributes as specified via process arguments
-        - Set any remaining mandatory arguments to their default values
+        - Set any missing mandatory arguments to their default values
         Modifies cube in place.
 
         Args:
