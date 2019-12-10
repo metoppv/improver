@@ -34,10 +34,11 @@ Tests for the nbhood CLI
 
 import pytest
 
-from improver.cli import nbhood
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
 def test_basic_circular(tmp_path):
@@ -48,7 +49,7 @@ def test_basic_circular(tmp_path):
     output_path = tmp_path / "output.nc"
     args = ["probabilities", "circular", "--radius=20000",
             "--weighted_mode", input_path, output_path]
-    nbhood.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -60,7 +61,7 @@ def test_basic_square(tmp_path):
     output_path = tmp_path / "output.nc"
     args = ["probabilities", "square", "--radius=20000",
             "--weighted_mode", input_path, output_path]
-    nbhood.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -72,7 +73,7 @@ def test_masked_square(tmp_path):
     output_path = tmp_path / "output.nc"
     args = ["probabilities", "square", "--radius=20000",
             "--weighted_mode", input_path, output_path]
-    nbhood.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -85,7 +86,7 @@ def test_circular_percentile(tmp_path):
     output_path = tmp_path / "output.nc"
     args = ["percentiles", "circular", input_path, output_path,
             "--radius=20000", "--percentiles", "25", "50", "75"]
-    nbhood.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -98,7 +99,7 @@ def test_masked_square_external(tmp_path):
     output_path = tmp_path / "output.nc"
     args = ["probabilities", "square", input_path, output_path,
             "--radius=20000", "--input_mask_filepath", mask_path]
-    nbhood.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -111,7 +112,7 @@ def test_masked_square_remask(tmp_path):
     output_path = tmp_path / "output.nc"
     args = ["probabilities", "square", input_path, output_path,
             "--radius=20000", "--input_mask_filepath", mask_path, "--re_mask"]
-    nbhood.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -125,7 +126,7 @@ def test_recfilter_alpha_basic(tmp_path):
             input_path, output_path,
             "--apply-recursive-filter", "--alpha_x=0.5", "--alpha_y=0.5",
             "--iterations=2"]
-    nbhood.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -143,7 +144,7 @@ def test_recfilter_alphas(tmp_path):
             f"--input_filepath_alphas_x_cube={alphax_path}",
             f"--input_filepath_alphas_y_cube={alphay_path}",
             "--iterations=2"]
-    nbhood.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -157,7 +158,7 @@ def test_recfilter_alpha_remask(tmp_path):
             input_path, output_path,
             "--apply-recursive-filter", "--re_mask",
             "--alpha_x=0.5", "--alpha_y=0.5", "--iterations=2"]
-    nbhood.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -171,7 +172,7 @@ def test_recfilter_alpha_noremask(tmp_path):
             input_path, output_path,
             "--apply-recursive-filter",
             "--alpha_x=0.5", "--alpha_y=0.5", "--iterations=2"]
-    nbhood.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -188,7 +189,7 @@ def test_recfilter_alpha_external_remask(tmp_path):
             "--apply-recursive-filter", "--re_mask",
             "--alpha_x=0.5", "--alpha_y=0.5", "--iterations=2",
             "--input_mask_filepath", mask_path]
-    nbhood.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -205,7 +206,7 @@ def test_recfilter_alpha_external_noremask(tmp_path):
             "--apply-recursive-filter",
             "--alpha_x=0.5", "--alpha_y=0.5", "--iterations=2",
             "--input_mask_filepath", mask_path]
-    nbhood.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -217,7 +218,7 @@ def test_wind_direction(tmp_path):
     output_path = tmp_path / "output.nc"
     args = ["probabilities", "square", "--radius=20000",
             input_path, output_path, "--degrees_as_complex"]
-    nbhood.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -229,5 +230,5 @@ def test_halo_radius(tmp_path):
     output_path = tmp_path / "output.nc"
     args = ["probabilities", "square", "--radius=20000", "--weighted_mode",
             "--halo_radius=162000", input_path, output_path]
-    nbhood.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)

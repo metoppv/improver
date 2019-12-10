@@ -32,10 +32,11 @@
 
 import pytest
 
-from improver.cli import blend_adjacent_points
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
 def test_basic_mean(tmp_path):
@@ -46,7 +47,7 @@ def test_basic_mean(tmp_path):
     output_path = tmp_path / "output.nc"
     args = ["forecast_period", "2", "--units", "hours", "--width", "3.0",
             *multi_prob, output_path]
-    blend_adjacent_points.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -58,7 +59,7 @@ def test_time_bounds(tmp_path):
     output_path = tmp_path / "output.nc"
     args = ["forecast_period", "4", "--units", "hours", "--width", "2",
             *multi_prob, output_path]
-    blend_adjacent_points.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -71,7 +72,7 @@ def test_mismatched_bounds_ranges(tmp_path):
             "--blend_time_using_forecast_period",
             *multi_prob, output_path]
     with pytest.raises(ValueError, match=".*mismatching time bounds.*"):
-        blend_adjacent_points.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_mismatched_args(tmp_path):
@@ -83,7 +84,7 @@ def test_mismatched_args(tmp_path):
             "--blend_time_using_forecast_period",
             *multi_prob, output_path]
     with pytest.raises(ValueError, match=".*blend_time_using_forecast.*"):
-        blend_adjacent_points.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_time(tmp_path):
@@ -96,4 +97,4 @@ def test_time(tmp_path):
             "--width", "7200",
             *multi_prob, output_path]
     with pytest.raises(ValueError, match=".*Cannot blend over time.*"):
-        blend_adjacent_points.main(acc.stringify(args))
+        run_cli(args)

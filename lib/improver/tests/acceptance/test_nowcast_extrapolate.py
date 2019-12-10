@@ -34,10 +34,11 @@ Tests for the nowcast-extrapolate CLI
 
 import pytest
 
-from improver.cli import nowcast_extrapolate
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 RAINRATE_NC = "201811031600_radar_rainrate_composite_UK_regridded.nc"
 OE = "orographic_enhancement_standard_resolution"
@@ -59,7 +60,7 @@ def test_basic(tmp_path):
             "--max_lead_time", "90",
             "--u_and_v_filepath", uv_path,
             "--orographic_enhancement_filepaths", *oe_paths]
-    nowcast_extrapolate.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -79,7 +80,7 @@ def test_metadata(tmp_path):
             "--max_lead_time", "30",
             "--u_and_v_filepath", uv_path,
             "--orographic_enhancement_filepaths", *oe_paths]
-    nowcast_extrapolate.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -96,7 +97,7 @@ def test_basic_no_orographic(tmp_path):
             output_path,
             "--max_lead_time", "30",
             "--u_and_v_filepath", uv_path]
-    nowcast_extrapolate.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -117,7 +118,7 @@ def test_model_winds(tmp_path):
             "--advection_speed_filepath", wspd_path,
             "--advection_direction_filepath", wdir_path,
             "--orographic_enhancement_filepaths", *oe_paths]
-    nowcast_extrapolate.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -137,7 +138,7 @@ def test_invalid_advection(tmp_path):
             "--advection_direction_filepath", wdir_path,
             "--u_and_v_filepath", uv_path]
     with pytest.raises(ValueError, match=".*mix advection.*"):
-        nowcast_extrapolate.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_unavailable_pressure_level(tmp_path):
@@ -157,7 +158,7 @@ def test_unavailable_pressure_level(tmp_path):
             "--pressure_level", "1234",
             "--orographic_enhancement_filepaths", *oe_paths]
     with pytest.raises(ValueError, match=".*specified pressure level.*"):
-        nowcast_extrapolate.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_invalid_cubes(tmp_path):
@@ -172,4 +173,4 @@ def test_invalid_cubes(tmp_path):
             "--max_lead_time", "30",
             "--advection_direction_filepath", wdir_path]
     with pytest.raises(ValueError, match=".*speed and direction.*u and v.*"):
-        nowcast_extrapolate.main(acc.stringify(args))
+        run_cli(args)

@@ -34,10 +34,11 @@ Tests for the percentiles-to-probabilities CLI
 
 import pytest
 
-from improver.cli import percentiles_to_probabilities
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
 def test_basic(tmp_path):
@@ -49,5 +50,5 @@ def test_basic(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [input_path, orography_path, output_path,
             "probability_of_snow_falling_level_below_ground_level"]
-    percentiles_to_probabilities.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)

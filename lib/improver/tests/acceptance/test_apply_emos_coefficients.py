@@ -32,10 +32,11 @@
 
 import pytest
 
-from improver.cli import apply_emos_coefficients
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
 def test_gaussian(tmp_path):
@@ -48,7 +49,7 @@ def test_gaussian(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [input_path, emos_est_path, output_path,
             "norm", "--random_seed", "0"]
-    apply_emos_coefficients.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path,
                 atol=acc.LOOSE_TOLERANCE, rtol=None)
 
@@ -64,7 +65,7 @@ def test_truncated_gaussian(tmp_path):
     args = [input_path, emos_est_path, output_path,
             "truncnorm", "--random_seed", "0",
             "--shape_parameters", "0", "inf"]
-    apply_emos_coefficients.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path,
                 atol=acc.LOOSE_TOLERANCE, rtol=None)
 
@@ -80,7 +81,7 @@ def predictor_of_mean(tmp_path, status):
     args = [input_path, emos_est_path, output_path,
             "norm", "--predictor_of_mean", "realizations",
             "--random_seed", "0"]
-    apply_emos_coefficients.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path,
                 atol=acc.LOOSE_TOLERANCE, rtol=None)
 
@@ -109,7 +110,7 @@ def test_probabilities(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [input_path, emos_est_path, output_path,
             "norm", "--num_realizations=18"]
-    apply_emos_coefficients.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path,
                 atol=acc.LOOSE_TOLERANCE, rtol=None)
 
@@ -123,7 +124,7 @@ def test_probabilities_error(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [input_path, emos_est_path, output_path, "norm"]
     with pytest.raises(ValueError, match=".*provided as probabilities.*"):
-        apply_emos_coefficients.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_percentiles(tmp_path):
@@ -136,7 +137,7 @@ def test_percentiles(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [input_path, emos_est_path, output_path,
             "norm", "--num_realizations=18"]
-    apply_emos_coefficients.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path,
                 atol=acc.LOOSE_TOLERANCE, rtol=None)
 
@@ -150,7 +151,7 @@ def test_percentiles_error(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [input_path, emos_est_path, output_path, "norm"]
     with pytest.raises(ValueError):
-        apply_emos_coefficients.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_rebadged_percentiles(tmp_path):
@@ -164,7 +165,7 @@ def test_rebadged_percentiles(tmp_path):
             emos_est_path,
             output_path,
             "norm", "--num_realizations=18"]
-    apply_emos_coefficients.main(acc.stringify(args))
+    run_cli(args)
     # The known good output in this case is the same as when passing in
     # percentiles directly, apart from a difference in the coordinates, such
     # that the percentile input will have a percentile coordinate, whilst the
@@ -181,7 +182,7 @@ def test_no_coefficients(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [input_path, output_path, "norm", "--random_seed", "0"]
     with pytest.warns(UserWarning, match=".*no coefficients provided.*"):
-        apply_emos_coefficients.main(acc.stringify(args))
+        run_cli(args)
     acc.compare(output_path, input_path, recreate=False,
                 atol=acc.LOOSE_TOLERANCE, rtol=None)
 
@@ -193,7 +194,7 @@ def test_wrong_coefficients(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [input_path, input_path, output_path, "norm", "--random_seed", "0"]
     with pytest.raises(ValueError, match=".*coefficients cube.*"):
-        apply_emos_coefficients.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_wrong_forecast(tmp_path):
@@ -203,4 +204,4 @@ def test_wrong_forecast(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [kgo_path, kgo_path, output_path, "norm", "--random_seed", "0"]
     with pytest.raises(ValueError, match=".*forecast cube.*"):
-        apply_emos_coefficients.main(acc.stringify(args))
+        run_cli(args)

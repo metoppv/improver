@@ -34,13 +34,12 @@ Tests for the orographic-enhancement CLI
 
 import pytest
 
-from improver.cli import orographic_enhancement
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-
 OE = "orographic_enhancement_high_resolution"
-
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 @pytest.mark.slow
 def test_basic(tmp_path):
@@ -52,7 +51,7 @@ def test_basic(tmp_path):
                    "wind_speed", "wind_direction",
                    "orography_uk-standard_1km")]
     args = [*input_args, tmp_path]
-    orographic_enhancement.main(acc.stringify(args))
+    run_cli(args)
     output_path = tmp_path / f"20180810T1200Z-PT0006H00M-{OE}.nc"
     acc.compare(output_path, kgo_path, rtol=acc.LOOSE_TOLERANCE)
 
@@ -69,7 +68,7 @@ def test_boundary_height(tmp_path):
                    "orography_uk-standard_1km")]
     args = [*input_args, tmp_path,
             "--boundary_height=500.", "--boundary_height_units=m"]
-    orographic_enhancement.main(acc.stringify(args))
+    run_cli(args)
     output_path = tmp_path / f"20180810T1200Z-PT0006H00M-{OE}.nc"
     acc.compare(output_path, kgo_path, rtol=acc.LOOSE_TOLERANCE)
 
@@ -86,7 +85,7 @@ def test_boundary_height_units(tmp_path):
                    "orography_uk-standard_1km")]
     args = [*input_args, tmp_path,
             "--boundary_height=1640.41994751", "--boundary_height_units=ft"]
-    orographic_enhancement.main(acc.stringify(args))
+    run_cli(args)
     output_path = tmp_path / f"20180810T1200Z-PT0006H00M-{OE}.nc"
     acc.compare(output_path, kgo_path, rtol=acc.LOOSE_TOLERANCE)
 
@@ -102,4 +101,4 @@ def test_invalid_boundary_height(tmp_path):
     args = [*input_args, tmp_path,
             "--boundary_height=500000.", "--boundary_height_units=m"]
     with pytest.raises(ValueError, match=".*height.*"):
-        orographic_enhancement.main(acc.stringify(args))
+        run_cli(args)

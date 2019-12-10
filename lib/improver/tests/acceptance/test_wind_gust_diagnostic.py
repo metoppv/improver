@@ -32,10 +32,11 @@
 
 import pytest
 
-from improver.cli import wind_gust_diagnostic
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
 def test_average_wind_gust(tmp_path):
@@ -46,7 +47,7 @@ def test_average_wind_gust(tmp_path):
     args = [kgo_dir / "wind_gust_perc.nc",
             kgo_dir / "wind_speed_perc.nc",
             output_path]
-    wind_gust_diagnostic.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -59,5 +60,5 @@ def test_extreme_wind_gust(tmp_path):
             kgo_dir / "wind_gust_perc.nc",
             kgo_dir / "wind_speed_perc.nc",
             output_path]
-    wind_gust_diagnostic.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)

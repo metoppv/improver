@@ -38,10 +38,11 @@ which expand directory names in addition to filenames.
 
 import pytest
 
-from improver.cli import estimate_emos_coefficients
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
 @pytest.mark.slow
@@ -58,7 +59,7 @@ def test_gaussian(tmp_path):
     args = ["gaussian", "20170605T0300Z", output_path,
             "--historic_filepath", history_path,
             "--truth_filepath", truth_path]
-    estimate_emos_coefficients.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path,
                 atol=acc.LOOSE_TOLERANCE, rtol=None)
 
@@ -77,7 +78,7 @@ def test_trunc_gaussian(tmp_path):
     args = ["truncated_gaussian", "20170605T0300Z", output_path,
             "--historic_filepath", history_path,
             "--truth_filepath", truth_path]
-    estimate_emos_coefficients.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path,
                 atol=acc.LOOSE_TOLERANCE, rtol=None)
 
@@ -94,7 +95,7 @@ def test_units(tmp_path):
             "--historic_filepath", history_path,
             "--truth_filepath", truth_path,
             "--units", "K", "--max_iterations", "600"]
-    estimate_emos_coefficients.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path,
                 atol=acc.LOOSE_TOLERANCE, rtol=None)
 
@@ -113,7 +114,7 @@ def test_predictor_of_mean_no_sm(tmp_path):
             "--historic_filepath", history_path,
             "--truth_filepath", truth_path,
             "--max_iterations", "150"]
-    estimate_emos_coefficients.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path,
                 atol=acc.LOOSE_TOLERANCE, rtol=None)
 
@@ -131,7 +132,7 @@ def test_predictor_of_mean_sm(tmp_path):
             "--historic_filepath", history_path,
             "--truth_filepath", truth_path,
             "--max_iterations", "150"]
-    estimate_emos_coefficients.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path,
                 atol=acc.LOOSE_TOLERANCE, rtol=None)
 
@@ -149,7 +150,7 @@ def test_combined_inputs(tmp_path):
             "--combined_filepath", combined_path,
             "--historic_forecast_identifier", historic_path,
             "--truth_identifier", truth_path]
-    estimate_emos_coefficients.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path,
                 atol=acc.LOOSE_TOLERANCE, rtol=None)
 
@@ -163,7 +164,7 @@ def test_only_truth_dataset(tmp_path):
             "--truth_filepath", truth_path]
     with pytest.raises(ValueError,
                        match=".*historic_filepath.*truth_filepath.*"):
-        estimate_emos_coefficients.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_too_many_inputs(tmp_path):
@@ -179,7 +180,7 @@ def test_too_many_inputs(tmp_path):
             "--combined_filepath", combined_path]
     with pytest.raises(ValueError,
                        match=".*historic_filepath.*truth_filepath.*"):
-        estimate_emos_coefficients.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_too_few_combined(tmp_path):
@@ -193,7 +194,7 @@ def test_too_few_combined(tmp_path):
     args = ["gaussian", "20170605T0300Z", output_path,
             "--combined_filepath", gaussian_all_path]
     with pytest.raises(ValueError, match=".*combined.*"):
-        estimate_emos_coefficients.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_mismatching_validity_times(tmp_path):
@@ -210,7 +211,7 @@ def test_mismatching_validity_times(tmp_path):
             "--historic_forecast_identifier", historic_path,
             "--truth_identifier", truth_path]
     with pytest.warns(UserWarning, match=".*metadata to identify.*"):
-        estimate_emos_coefficients.main(acc.stringify(args))
+        run_cli(args)
 
 
 @pytest.mark.slow
@@ -227,6 +228,6 @@ def test_land_points_only(tmp_path):
             "--truth_filepath", truth_path,
             "--landsea_mask", lsmask_path,
             "--tolerance", "1e-4"]
-    estimate_emos_coefficients.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path,
                 atol=acc.LOOSE_TOLERANCE, rtol=None)

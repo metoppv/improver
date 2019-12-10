@@ -34,10 +34,11 @@ Tests for the generate-landmask-ancillary CLI
 
 import pytest
 
-from improver.cli import generate_landmask_ancillary
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
 def test_basic(tmp_path):
@@ -47,5 +48,5 @@ def test_basic(tmp_path):
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, output_path]
-    generate_landmask_ancillary.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)

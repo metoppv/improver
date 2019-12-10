@@ -34,10 +34,11 @@ Tests for the extend-radar-mask CLI
 
 import pytest
 
-from improver.cli import extend_radar_mask
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
 def test_basic(tmp_path):
@@ -49,7 +50,7 @@ def test_basic(tmp_path):
     arc_path = kgo_dir / f"{nimrod_prefix}_arc_composite_2km_UK.nc"
     output_path = tmp_path / "output.nc"
     args = [rainrate_path, arc_path, output_path]
-    extend_radar_mask.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -62,5 +63,5 @@ def test_float64(tmp_path):
     coverage_path = kgo_dir / f"{radar_prefix}_coverage_composite_2km.nc"
     output_path = tmp_path / "output.nc"
     args = [preciprate_path, coverage_path, output_path, "--fix_float64"]
-    extend_radar_mask.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)

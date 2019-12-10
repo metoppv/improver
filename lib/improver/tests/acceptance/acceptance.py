@@ -65,6 +65,23 @@ def run_cli(cli_name):
     return run_function
 
 
+def cli_name_with_dashes(dunder_file):
+    """
+    Convert an acceptance test module name to the corresponding CLI
+
+    Args:
+        dunder_file (str): test module name retrieved from __file__
+
+    Returns:
+        str: CLI name
+    """
+    module_name = str(pathlib.Path(dunder_file).stem)
+    if module_name.startswith("test_"):
+        module_name = module_name[5:]
+    module_dashes = module_name.replace("_", "-")
+    return module_dashes
+
+
 def kgo_recreate():
     """True if KGO should be re-created"""
     return "RECREATE_KGO" in os.environ

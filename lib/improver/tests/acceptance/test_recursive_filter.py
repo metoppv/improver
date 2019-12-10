@@ -34,10 +34,11 @@ Tests for the recursive-filter CLI
 
 import pytest
 
-from improver.cli import recursive_filter
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
 def test_basic_alpha(tmp_path):
@@ -48,7 +49,7 @@ def test_basic_alpha(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [input_path, output_path,
             "--alpha_x=0.5", "--alpha_y=0.5", "--iterations=2"]
-    recursive_filter.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -64,7 +65,7 @@ def test_alpha_files(tmp_path):
             f"--input_filepath_alphas_x={alphasx_path}",
             f"--input_filepath_alphas_y={alphasy_path}",
             "--iterations=2"]
-    recursive_filter.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path, rtol=None)
 
 
@@ -80,7 +81,7 @@ def test_external_mask_with_remask(tmp_path):
             "--alpha_x=0.5", "--alpha_y=0.5", "--iterations=2",
             f"--input_mask_filepath={mask_path}",
             "--re_mask"]
-    recursive_filter.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -95,7 +96,7 @@ def test_external_mask_with_no_remask(tmp_path):
     args = [input_path, output_path,
             "--alpha_x=0.5", "--alpha_y=0.5", "--iterations=2",
             f"--input_mask_filepath={mask_path}"]
-    recursive_filter.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -107,7 +108,7 @@ def test_internal_mask_with_remask(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [input_path, output_path,
             "--alpha_x=0.5", "--alpha_y=0.5", "--iterations=2", "--re_mask"]
-    recursive_filter.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -119,5 +120,5 @@ def test_internal_mask_with_no_remask(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [input_path, output_path,
             "--alpha_x=0.5", "--alpha_y=0.5", "--iterations=2"]
-    recursive_filter.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)

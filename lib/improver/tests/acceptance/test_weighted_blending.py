@@ -34,12 +34,12 @@ Tests for the weighted-blending CLI
 
 import pytest
 
-from improver.cli import weighted_blending
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-
 PRECIP = "lwe_precipitation_rate"
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
 @pytest.mark.slow
@@ -55,7 +55,7 @@ def test_basic_nonlin(tmp_path):
             "--cval", "0.85",
             *input_paths,
             output_path]
-    weighted_blending.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -71,7 +71,7 @@ def test_basic_lin(tmp_path):
             "--ynval", "2.0",
             *input_paths,
             output_path]
-    weighted_blending.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -85,7 +85,7 @@ def test_bothoptions_fail(tmp_path):
             *input_paths,
             output_path]
     with pytest.raises(SystemExit):
-        weighted_blending.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_invalid_lin_nonlin(tmp_path):
@@ -99,7 +99,7 @@ def test_invalid_lin_nonlin(tmp_path):
             *input_paths,
             output_path]
     with pytest.raises(SystemExit):
-        weighted_blending.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_invalid_nonlin_lin(tmp_path):
@@ -114,7 +114,7 @@ def test_invalid_nonlin_lin(tmp_path):
             *input_paths,
             output_path]
     with pytest.raises(SystemExit):
-        weighted_blending.main(acc.stringify(args))
+        run_cli(args)
 
 
 @pytest.mark.xfail(reason="takes ~5 minutes to run")
@@ -130,7 +130,7 @@ def test_percentile(tmp_path):
             input_path,
             output_path]
     pytest.fail()
-    weighted_blending.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -147,7 +147,7 @@ def test_cycletime(tmp_path):
             "--cycletime", "20171129T0900Z",
             input_path,
             output_path]
-    weighted_blending.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -166,7 +166,7 @@ def test_model(tmp_path):
             "--attributes_dict", attr_path,
             ukv_path, enuk_path,
             output_path]
-    weighted_blending.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -182,7 +182,7 @@ def test_realization_collapse(tmp_path):
             "--y0val=1",
             input_path,
             output_path]
-    weighted_blending.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -203,7 +203,7 @@ def test_weights_dict(tmp_path):
             "--attributes_dict", attr_path,
             ukv_path, enuk_path,
             output_path]
-    weighted_blending.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -224,7 +224,7 @@ def test_percentile_weights_dict(tmp_path):
             ukv_path, enuk_path,
             output_path]
     pytest.fail()
-    weighted_blending.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -239,7 +239,7 @@ def test_accum_cycle_blend(tmp_path):
             "--ynval=1",
             *input_paths,
             output_path]
-    weighted_blending.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path, rtol=None)
 
 
@@ -259,7 +259,7 @@ def test_non_mo_model(tmp_path):
             output_path,
             "--model_id_attr", "non_mo_model_config",
             "--attributes_dict", attr_path]
-    weighted_blending.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -278,7 +278,7 @@ def test_nowcast_cycle_blending(tmp_path):
             "--spatial_weights_from_mask",
             *input_files,
             output_path]
-    weighted_blending.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -300,7 +300,7 @@ def test_spatial_model_blending(tmp_path):
             "--attributes_dict", attr_path,
             *input_files,
             output_path]
-    weighted_blending.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -320,7 +320,7 @@ def test_nowcast_cycle_no_fuzzy(tmp_path):
             "--fuzzy_length", "1",
             *input_files,
             output_path]
-    weighted_blending.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -343,7 +343,7 @@ def test_spatial_model_no_fuzzy(tmp_path):
             "--attributes_dict", attr_path,
             *input_files,
             output_path]
-    weighted_blending.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -368,5 +368,5 @@ def test_three_model_blending(tmp_path):
             "--wts_dict", dict_path,
             *input_files,
             output_path]
-    weighted_blending.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)

@@ -35,40 +35,36 @@ generate-topography-bands-weights CLIs.
 
 import pytest
 
-from improver.cli import generate_topography_bands_mask
-from improver.cli import generate_topography_bands_weights
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 
 # Parameterisation to test generation of masks and weights with appropriate
 # classes and KGO directories
-MASK_WEIGHT = [(generate_topography_bands_mask,
-                "generate-topography-bands-mask"),
-               (generate_topography_bands_weights,
-                "generate-topography-bands-weights")]
+MASK_WEIGHT = ["generate-topography-bands-mask",
+               "generate-topography-bands-weights"]
 BASIC_MULTI = ["basic", "multi_realization"]
 
 
-@pytest.mark.parametrize("mw_cls,mw_dir", MASK_WEIGHT)
+@pytest.mark.parametrize("maskweight", MASK_WEIGHT)
 @pytest.mark.parametrize("realizations", BASIC_MULTI)
-def test_basic(tmp_path, mw_cls, mw_dir, realizations):
+def test_basic(tmp_path, maskweight, realizations):
     """Test basic generation of topography bands"""
-    kgo_dir = acc.kgo_root() / f"{mw_dir}/{realizations}"
+    kgo_dir = acc.kgo_root() / f"{maskweight}/{realizations}"
     kgo_path = kgo_dir / "kgo.nc"
     orography_path = kgo_dir / "input_orog.nc"
     landmask_path = kgo_dir / "input_land.nc"
     output_path = tmp_path / "output.nc"
     args = [orography_path, output_path,
             "--input_filepath_landmask", landmask_path]
-    mw_cls.main(acc.stringify(args))
+    acc.run_cli(maskweight)(args)
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.parametrize("mw_cls,mw_dir", MASK_WEIGHT)
-def test_bounds_json(tmp_path, mw_cls, mw_dir):
+@pytest.mark.parametrize("maskweight", MASK_WEIGHT)
+def test_bounds_json(tmp_path, maskweight):
     """Test generation of topography bands mask with bounds"""
-    kgo_dir = acc.kgo_root() / f"{mw_dir}/basic"
+    kgo_dir = acc.kgo_root() / f"{maskweight}/basic"
     kgo_path = kgo_dir / "kgo_from_json_bounds.nc"
     orography_path = kgo_dir / "input_orog.nc"
     landmask_path = kgo_dir / "input_land.nc"
@@ -77,30 +73,30 @@ def test_bounds_json(tmp_path, mw_cls, mw_dir):
     args = [orography_path, output_path,
             "--input_filepath_landmask", landmask_path,
             "--thresholds_filepath", bounds_path]
-    mw_cls.main(acc.stringify(args))
+    acc.run_cli(maskweight)(args)
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.parametrize("mw_cls,mw_dir", MASK_WEIGHT)
-def test_missing_land(tmp_path, mw_cls, mw_dir):
+@pytest.mark.parametrize("maskweight", MASK_WEIGHT)
+def test_missing_land(tmp_path, maskweight):
     """Test missing land mask error"""
-    kgo_dir = acc.kgo_root() / f"{mw_dir}/basic"
+    kgo_dir = acc.kgo_root() / f"{maskweight}/basic"
     orography_path = kgo_dir / "input_orog.nc"
     landmask_path = kgo_dir / "missing.nc"
     output_path = tmp_path / "output.nc"
     args = [orography_path, output_path,
             "--input_filepath_landmask", landmask_path]
     with pytest.raises(OSError, match=".*land mask.*"):
-        mw_cls.main(acc.stringify(args))
+        acc.run_cli(maskweight)(args)
 
 
-@pytest.mark.parametrize("mw_cls,mw_dir", MASK_WEIGHT)
-def test_basic_nolandsea(tmp_path, mw_cls, mw_dir):
+@pytest.mark.parametrize("maskweight", MASK_WEIGHT)
+def test_basic_nolandsea(tmp_path, maskweight):
     """Test basic generation of topography bands mask without land/sea"""
-    kgo_dir = acc.kgo_root() / f"{mw_dir}/basic_no_landsea_mask"
+    kgo_dir = acc.kgo_root() / f"{maskweight}/basic_no_landsea_mask"
     kgo_path = kgo_dir / "kgo.nc"
     orography_path = kgo_dir / "../basic/input_orog.nc"
     output_path = tmp_path / "output.nc"
     args = [orography_path, output_path]
-    mw_cls.main(acc.stringify(args))
+    acc.run_cli(maskweight)(args)
     acc.compare(output_path, kgo_path)

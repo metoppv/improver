@@ -31,6 +31,7 @@
 """init for cli and clize"""
 
 from collections import OrderedDict
+import pathlib
 import shlex
 
 import clize
@@ -357,22 +358,25 @@ def execute_command(dispatcher, prog_name, *args,
             # process nested commands recursively
             arg = execute_command(dispatcher, prog_name, *arg,
                                   verbose=verbose, dry_run=dry_run)
-        if not isinstance(arg, str):
+        if isinstance(arg, pathlib.PurePath):
+            arg = str(arg)
+        elif not isinstance(arg, str):
             arg = ObjectAsStr(arg)
         args[i] = arg
 
     if verbose or dry_run:
-        cmd = [prog_name, *args]
-        print(' '.join([shlex.quote(x) for x in cmd]))
-        print(cmd)
-
+        print(" ".join([shlex.quote(x) for x in (prog_name, *args)]))
     if dry_run:
-        result = args
-    else:
-        result = dispatcher(prog_name, *args)
-        if verbose:
-            print(result)
+        return args
 
+    try:
+        result = dispatcher(prog_name, *args)
+    except Exception as exc:
+        print(exc)
+        raise exc
+
+    if verbose:
+        print(ObjectAsStr.obj_to_name(result))
     return result
 
 

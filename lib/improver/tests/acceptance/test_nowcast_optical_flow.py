@@ -34,10 +34,11 @@ Tests for the nowcast-optical-flow CLI
 
 import pytest
 
-from improver.cli import nowcast_optical_flow
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 RADAR_REGRID = "radar_rainrate_composite_UK_regridded"
 RADAR_REMASK = "radar_rainrate_remasked_composite_2km_UK"
@@ -56,7 +57,7 @@ def test_basic(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [*input_paths, output_path,
             "--orographic_enhancement_filepaths", oe_path]
-    nowcast_optical_flow.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -73,7 +74,7 @@ def test_metadata(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [*input_paths, output_path,
             "--orographic_enhancement_filepaths", oe_path]
-    nowcast_optical_flow.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -85,7 +86,7 @@ def test_no_orographic_error(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [*input_paths, output_path]
     with pytest.raises(ValueError, match=".*orographic enhancement.*"):
-        nowcast_optical_flow.main(acc.stringify(args))
+        run_cli(args)
 
 
 @pytest.mark.slow
@@ -98,7 +99,7 @@ def test_basic_no_orographic(tmp_path):
                    for hhmm in ("1530", "1545", "1600")]
     output_path = tmp_path / "output.nc"
     args = [*input_paths, output_path]
-    nowcast_optical_flow.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -111,5 +112,5 @@ def test_remasked(tmp_path):
                    for hhmm in ("1330", "1345", "1400")]
     output_path = tmp_path / "output.nc"
     args = [*input_paths, output_path]
-    nowcast_optical_flow.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)

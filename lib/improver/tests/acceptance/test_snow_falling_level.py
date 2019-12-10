@@ -34,10 +34,11 @@ Tests for the snow-falling-level CLI
 
 import pytest
 
-from improver.cli import snow_falling_level
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
 @pytest.mark.slow
@@ -50,5 +51,5 @@ def test_basic(tmp_path):
                   ("temperature", "relative_humidity", "pressure",
                    "orog", "land_mask")]
     args = [*input_args, output_path]
-    snow_falling_level.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)

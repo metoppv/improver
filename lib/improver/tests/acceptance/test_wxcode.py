@@ -32,10 +32,11 @@
 
 import pytest
 
-from improver.cli import wxcode
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
 @pytest.mark.slow
@@ -55,7 +56,7 @@ def test_basic(tmp_path):
                    for p in params]
     output_path = tmp_path / "output.nc"
     args = [*param_paths, output_path]
-    wxcode.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -77,7 +78,7 @@ def test_native_units(tmp_path):
                    for p in params]
     output_path = tmp_path / "output.nc"
     args = [*param_paths, output_path]
-    wxcode.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -94,7 +95,7 @@ def test_global(tmp_path):
                    for p in params]
     output_path = tmp_path / "output.nc"
     args = ["--wxtree=global", *param_paths, output_path]
-    wxcode.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -110,7 +111,7 @@ def test_insufficent_files(tmp_path):
     output_path = tmp_path / "output.nc"
     args = ["--wxtree=global", *param_paths, output_path]
     with pytest.raises(OSError):
-        wxcode.main(acc.stringify(args))
+        run_cli(args)
 
 
 @pytest.mark.slow
@@ -129,5 +130,5 @@ def test_no_lightning(tmp_path):
                    for p in params]
     output_path = tmp_path / "output.nc"
     args = [*param_paths, output_path]
-    wxcode.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)

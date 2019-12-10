@@ -34,10 +34,11 @@ Tests for the extract CLI
 
 import pytest
 
-from improver.cli import extract
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
 def test_basic(tmp_path):
@@ -47,7 +48,7 @@ def test_basic(tmp_path):
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, output_path, "realization=1"]
-    extract.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -58,7 +59,7 @@ def test_change_units(tmp_path):
     input_path = kgo_dir / "../basic/input.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, output_path, "wind_speed=10000", "--units", "mm s-1"]
-    extract.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -69,7 +70,7 @@ def test_multiple_constraints(tmp_path):
     input_path = kgo_dir / "../basic/input.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, output_path, "wind_speed=20", "realization=2"]
-    extract.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -82,7 +83,7 @@ def test_multiple_constraints_units(tmp_path):
     args = [input_path, output_path,
             "wind_speed=20000", "realization=2",
             "--units", "mm s-1", "None"]
-    extract.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -93,7 +94,7 @@ def test_invalid_constraints(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [input_path, output_path, "realization=6"]
     with pytest.raises(ValueError, match=".*Constraint.*"):
-        extract.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_list_constraints(tmp_path):
@@ -103,7 +104,7 @@ def test_list_constraints(tmp_path):
     input_path = kgo_dir / "../basic/input.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, output_path, "wind_speed=[20, 30]"]
-    extract.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -113,5 +114,5 @@ def test_range_constraints(tmp_path):
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, output_path, "percentile=10", "--ignore-failure"]
-    extract.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, input_path, recreate=False)

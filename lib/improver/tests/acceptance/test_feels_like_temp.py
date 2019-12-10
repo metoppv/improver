@@ -34,10 +34,11 @@ Tests for the feels-like-temp CLI
 
 import pytest
 
-from improver.cli import feels_like_temp
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
 def test_basic(tmp_path):
@@ -52,5 +53,5 @@ def test_basic(tmp_path):
                    for param in params]
     output_path = tmp_path / "output.nc"
     args = [*input_paths, output_path]
-    feels_like_temp.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)

@@ -28,53 +28,40 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""
-Tests for the nbhood-iterate-with-mask CLI
-"""
+"""Tests for the apply-lapse-rate CLI"""
 
 import pytest
 
-from improver.cli import nbhood_iterate_with_mask
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
-@pytest.mark.slow
 def test_basic(tmp_path):
-    """Test basic iterate with mask"""
-    kgo_dir = acc.kgo_root() / "nbhood-iterate-with-mask/basic"
-    kgo_path = kgo_dir / "kgo_basic.nc"
-    input_path = kgo_dir / "input.nc"
-    mask_path = kgo_dir / "mask.nc"
+    """Test lapse rate adjustment for a deterministic cube"""
+    kgo_dir = acc.kgo_root() / "apply-lapse-rate/basic"
+    kgo_path = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"
-    args = ["topographic_zone", input_path, mask_path, output_path,
-            "--radius=20000"]
-    nbhood_iterate_with_mask.main(acc.stringify(args))
+    args = [kgo_dir / "ukvx_temperature.nc",
+            kgo_dir / "ukvx_lapse_rate.nc",
+            kgo_dir / "ukvx_orography.nc",
+            kgo_dir / "../highres_orog.nc",
+            output_path]
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.slow
-@pytest.mark.parametrize("intermediate", (True, False))
-def test_collapse_bands(tmp_path, intermediate):
-    """Test with collapsing orographic bands"""
-    kgo_dir = acc.kgo_root() / "nbhood-iterate-with-mask/basic_collapse_bands"
-    kgo_path = kgo_dir / "kgo_collapsed.nc"
-    kgo_intermediate_path = kgo_dir / \
-        "../collapse_store_intermediate/kgo_pre_collapse.nc"
-    input_path = kgo_dir / "thresholded_input.nc"
-    mask_path = kgo_dir / "orographic_bands_mask.nc"
-    weights_path = kgo_dir / "orographic_bands_weights.nc"
+def test_realizations(tmp_path):
+    """Test lapse rate adjustment for a deterministic cube"""
+    kgo_dir = acc.kgo_root() / "apply-lapse-rate/realizations"
+    kgo_path = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"
-    output_intermediate_path = tmp_path / "intermediate.nc"
-    if intermediate:
-        im_args = ["--intermediate_filepath", output_intermediate_path]
-    else:
-        im_args = []
-    args = ["topographic_zone", input_path, mask_path, output_path,
-            "--radius", "10000", "--collapse_dimension",
-            "--weights_for_collapsing_dim", weights_path, *im_args]
-    nbhood_iterate_with_mask.main(acc.stringify(args))
+    args = [kgo_dir / "enukx_temperature.nc",
+            kgo_dir / "enukx_lapse_rate.nc",
+            kgo_dir / "enukx_orography.nc",
+            kgo_dir / "../highres_orog.nc",
+            output_path]
+    run_cli(args)
     acc.compare(output_path, kgo_path)
-    if intermediate:
-        acc.compare(output_intermediate_path, kgo_intermediate_path)

@@ -36,10 +36,11 @@ import json
 
 import pytest
 
-from improver.cli import neighbour_finding
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 UK_GLOBAL = [("uk", "ukvx"), ("global", "global")]
 
@@ -54,7 +55,7 @@ def test_nearest(tmp_path, domain, model):
     landmask_path = kgo_dir / f"inputs/{model}_landmask.nc"
     output_path = tmp_path / "output.nc"
     args = [sites_path, orography_path, landmask_path, output_path]
-    neighbour_finding.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -69,7 +70,7 @@ def test_nearest_land(tmp_path, domain, model):
     output_path = tmp_path / "output.nc"
     args = [sites_path, orography_path, landmask_path, output_path,
             "--land_constraint"]
-    neighbour_finding.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -85,7 +86,7 @@ def test_nearest_minimum_dz(tmp_path, domain, model):
     output_path = tmp_path / "output.nc"
     args = [sites_path, orography_path, landmask_path, output_path,
             "--minimum_dz", "--search_radius", "50000"]
-    neighbour_finding.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -105,7 +106,7 @@ def test_nearest_land_minimum_dz(tmp_path, domain, model):
             "--search_radius", "50000"]
     if domain == "uk":
         args += ["--node_limit", "100"]
-    neighbour_finding.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -121,7 +122,7 @@ def test_all_methods(tmp_path, domain, model):
     output_path = tmp_path / "output.nc"
     args = [sites_path, orography_path, landmask_path, output_path,
             "--all_methods"]
-    neighbour_finding.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -147,7 +148,7 @@ def test_alternative_coordinate_system(tmp_path):
             "--site_coordinate_options", coord_opts_json,
             "--site_x_coordinate", "projection_x_coordinate",
             "--site_y_coordinate", "projection_y_coordinate"]
-    neighbour_finding.main(acc.stringify(args))
+    run_cli(args)
     # Note this is a special case. The site coordinates are different, but the
     # data (neighbour indices and vertical displacements) should be identical
     # to the test_nearest on global domain in which sites were defined with
@@ -165,7 +166,7 @@ def test_incompatible_constraints(tmp_path):
     args = [sites_path, orography_path, landmask_path, output_path,
             "--land_constraint", "--all_methods"]
     with pytest.raises(ValueError, match=".*all_methods.*"):
-        neighbour_finding.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_invalid_site(tmp_path):
@@ -178,7 +179,7 @@ def test_invalid_site(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [sites_path, orography_path, landmask_path, output_path]
     with pytest.warns(UserWarning, match=".*outside the grid.*"):
-        neighbour_finding.main(acc.stringify(args))
+        run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -191,7 +192,7 @@ def test_coord_beyond_bounds(tmp_path):
     landmask_path = kgo_dir / "inputs/global_landmask.nc"
     output_path = tmp_path / "output.nc"
     args = [sites_path, orography_path, landmask_path, output_path]
-    neighbour_finding.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path, exclude_dims=["longitude"])
 
 
@@ -204,5 +205,5 @@ def test_unset_wmo_ids(tmp_path):
     landmask_path = kgo_dir / "inputs/ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
     args = [sites_path, orography_path, landmask_path, output_path]
-    neighbour_finding.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)

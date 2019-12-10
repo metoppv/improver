@@ -32,10 +32,11 @@
 
 import pytest
 
-from improver.cli import wet_bulb_temperature
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
 def test_basic(tmp_path):
@@ -46,7 +47,7 @@ def test_basic(tmp_path):
                    for p in ("temperature", "relative_humidity", "pressure")]
     output_path = tmp_path / "output.nc"
     args = [*input_paths, output_path]
-    wet_bulb_temperature.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -58,7 +59,7 @@ def test_multilevel(tmp_path):
                    for p in ("temperature", "relative_humidity", "pressure")]
     output_path = tmp_path / "output.nc"
     args = [*input_paths, output_path]
-    wet_bulb_temperature.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -70,5 +71,5 @@ def test_global(tmp_path):
                    for p in ("temperature", "relative_humidity", "pressure")]
     output_path = tmp_path / "output.nc"
     args = [*input_paths, output_path]
-    wet_bulb_temperature.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)

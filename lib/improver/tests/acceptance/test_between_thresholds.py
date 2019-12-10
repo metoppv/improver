@@ -28,14 +28,15 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the apply-lapse-rate CLI"""
+"""Tests for the between-thresholds CLI"""
 
 import pytest
 
-from improver.cli import between_thresholds
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
 def test_basic(tmp_path):
@@ -46,7 +47,7 @@ def test_basic(tmp_path):
     args = [kgo_dir / "input.nc",
             output_path,
             kgo_dir / "threshold_ranges_m.json"]
-    between_thresholds.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -59,5 +60,5 @@ def test_units(tmp_path):
             output_path,
             kgo_dir / "threshold_ranges_km.json",
             "--threshold_units", "km"]
-    between_thresholds.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)

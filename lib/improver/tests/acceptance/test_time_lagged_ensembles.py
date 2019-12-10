@@ -34,12 +34,12 @@ Tests for the time-lagged-ensembles CLI
 
 import pytest
 
-from improver.cli import time_lagged_ensembles
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-
 T2M = "temperature_at_surface"
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
 @pytest.mark.slow
@@ -52,7 +52,7 @@ def test_basic(tmp_path):
                    for l in range(5, 11)]
     output_path = tmp_path / "output.nc"
     args = [*input_paths, output_path]
-    time_lagged_ensembles.main(acc.stringify(args))
+    run_cli(args)
     pytest.fail("comparison of output and KGO is very slow")
     acc.compare(output_path, kgo_path)
 
@@ -65,7 +65,7 @@ def test_validity_error(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [*input_paths, output_path]
     with pytest.raises(ValueError, match=".*validity times.*"):
-        time_lagged_ensembles.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_single_cube(tmp_path):
@@ -75,7 +75,7 @@ def test_single_cube(tmp_path):
     input_paths = [kgo_dir / f"20180924T1300Z-PT0005H00M-{T2M}.nc"]
     output_path = tmp_path / "output.nc"
     args = [*input_paths, output_path]
-    time_lagged_ensembles.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -88,5 +88,5 @@ def test_renumbered_realizations(tmp_path):
                    input_dir / f"20180924T1300Z-PT0005H00M-{T2M}.nc"]
     output_path = tmp_path / "output.nc"
     args = [*input_paths, output_path]
-    time_lagged_ensembles.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)

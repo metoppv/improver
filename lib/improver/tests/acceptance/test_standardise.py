@@ -34,10 +34,11 @@ Tests for the standardise CLI
 
 import pytest
 
-from improver.cli import standardise
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
 def test_regrid_basic(tmp_path):
@@ -51,7 +52,7 @@ def test_regrid_basic(tmp_path):
     args = [input_path,
             "--target_grid_filepath", target_path,
             "--output_filepath", output_path]
-    standardise.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -66,7 +67,7 @@ def test_regrid_nearest(tmp_path):
             "--target_grid_filepath", target_path,
             "--output_filepath", output_path,
             "--regrid_mode=nearest"]
-    standardise.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -82,7 +83,7 @@ def test_regrid_extrapolate(tmp_path):
             "--output_filepath", output_path,
             "--regrid_mode=nearest",
             "--extrapolation_mode", "extrapolate"]
-    standardise.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -96,7 +97,7 @@ def test_regrid_json(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [input_path, "--target_grid_filepath", target_path,
             "--output_filepath", output_path, "--json_file", metadata_path]
-    standardise.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -113,7 +114,7 @@ def test_change_metadata(tmp_path):
             "--new_units", "m s-1",
             "--json_file", metadata_path,
             "--coords_to_remove", "height"]
-    standardise.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -124,7 +125,7 @@ def test_fix_float64(tmp_path):
     input_path = kgo_dir / "float64_data.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, "--output_filepath", output_path, "--fix_float64"]
-    standardise.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -134,7 +135,7 @@ def test_check_float64():
     input_path = kgo_dir / "float64_data.nc"
     args = [input_path]
     with pytest.raises(TypeError, match=".*64 bit.*"):
-        standardise.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_no_output_path():
@@ -143,7 +144,7 @@ def test_no_output_path():
     input_path = kgo_dir / "float64_data.nc"
     args = [input_path, "--fix_float64"]
     with pytest.raises(ValueError, match=".*output.*"):
-        standardise.main(acc.stringify(args))
+        run_cli(args)
 
 
 @pytest.mark.slow
@@ -160,7 +161,7 @@ def test_regrid_nearest_landmask(tmp_path):
             "--input_landmask_filepath", landmask_path,
             "--output_filepath", output_path,
             "--regrid_mode=nearest-with-mask"]
-    standardise.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -180,7 +181,7 @@ def test_regrid_check_landmask(tmp_path):
             "--output_filepath", output_path,
             "--regrid_mode=nearest-with-mask"]
     with pytest.warns(UserWarning, match=".*land_binary_mask.*"):
-        standardise.main(acc.stringify(args))
+        run_cli(args)
     # Don't recreate output as it is the same as other test
     acc.compare(output_path, kgo_path, recreate=False)
 
@@ -197,7 +198,7 @@ def test_args_error_landmask(tmp_path):
             "--input_landmask_filepath", landmask_path,
             "--output_filepath", output_path]
     with pytest.raises(ValueError, match=".*nearest-with-mask.*"):
-        standardise.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_args_error_no_target_with_landmask(tmp_path):
@@ -211,7 +212,7 @@ def test_args_error_no_target_with_landmask(tmp_path):
             "--output_filepath", output_path,
             "--regrid_mode=nearest-with-mask"]
     with pytest.raises(ValueError, match=".target_grid.*"):
-        standardise.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_args_error_no_landmask(tmp_path):
@@ -225,7 +226,7 @@ def test_args_error_no_landmask(tmp_path):
             "--output_filepath", output_path,
             "--regrid_mode=nearest-with-mask"]
     with pytest.raises(ValueError, match=".*input landmask.*"):
-        standardise.main(acc.stringify(args))
+        run_cli(args)
 
 
 @pytest.mark.slow
@@ -242,5 +243,5 @@ def test_regrid_nearest_landmask_multi_realization(tmp_path):
             "--input_landmask_filepath", landmask_path,
             "--output_filepath", output_path,
             "--regrid_mode=nearest-with-mask"]
-    standardise.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)

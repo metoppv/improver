@@ -34,10 +34,11 @@ Tests for the spot-extract CLI
 
 import pytest
 
-from improver.cli import spot_extract
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
 @pytest.mark.parametrize(
@@ -52,7 +53,7 @@ def test_nearest_uk(tmp_path, extra_args, kgo_file):
     kgo_path = kgo_dir / f"outputs/{kgo_file}"
     output_path = tmp_path / "output.nc"
     args = [neighbour_path, diag_path, output_path, *extra_args]
-    spot_extract.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -66,7 +67,7 @@ def test_lapse_rate_adjusted_uk(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [neighbour_path, diag_path, lapse_path, output_path,
             "--apply_lapse_rate_correction"]
-    spot_extract.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -78,7 +79,7 @@ def test_global_extract_on_uk_grid(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [neighbour_path, diag_path, output_path]
     with pytest.raises(ValueError, match=".*same grid.*"):
-        spot_extract.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_nearest_minimum_dz_unavailable(tmp_path):
@@ -89,7 +90,7 @@ def test_nearest_minimum_dz_unavailable(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [neighbour_path, diag_path, output_path, "--minimum_dz"]
     with pytest.raises(ValueError, match=".*neighbour_selection_method.*"):
-        spot_extract.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_lapse_rate_mismatch(tmp_path):
@@ -103,7 +104,7 @@ def test_lapse_rate_mismatch(tmp_path):
     args = [neighbour_path, diag_path, lapse_path, output_path,
             "--apply_lapse_rate_correction"]
     with pytest.warns(UserWarning, match=".*height.*not adjusted.*"):
-        spot_extract.main(acc.stringify(args))
+        run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -117,7 +118,7 @@ def test_lapse_rate_wrong_height(tmp_path):
     args = [neighbour_path, diag_path, lapse_path, output_path,
             "--apply_lapse_rate_correction"]
     with pytest.raises(ValueError, match=".*single valued height.*"):
-        spot_extract.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_new_spot_title(tmp_path):
@@ -130,7 +131,7 @@ def test_new_spot_title(tmp_path):
     args = [neighbour_path, diag_path,
             "--new_title", "IMPROVER Spot Values",
             output_path]
-    spot_extract.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -144,7 +145,7 @@ def test_lapse_rate_non_temperature(tmp_path):
     args = [neighbour_path, diag_path, lapse_path, output_path,
             "--apply_lapse_rate_correction"]
     with pytest.raises(ValueError, match=".*not air temperature.*"):
-        spot_extract.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_multiple_constraints(tmp_path):
@@ -156,7 +157,7 @@ def test_multiple_constraints(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [neighbour_path, diag_path, output_path,
             "--minimum_dz", "--land_constraint"]
-    spot_extract.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -169,7 +170,7 @@ def test_percentile_thresholded_input(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [neighbour_path, threshold_path, output_path,
             "--extract_percentiles", "50"]
-    spot_extract.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -182,7 +183,7 @@ def test_percentile_percentile_input(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [neighbour_path, threshold_path, output_path,
             "--extract_percentiles", "50"]
-    spot_extract.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -195,7 +196,7 @@ def test_percentile_unavailable(tmp_path):
     args = [neighbour_path, threshold_path, output_path,
             "--extract_percentiles", "45"]
     with pytest.raises(ValueError, match=".*percentile.*"):
-        spot_extract.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_percentile_deterministic(tmp_path):
@@ -208,7 +209,7 @@ def test_percentile_deterministic(tmp_path):
     args = [neighbour_path, diag_path, output_path,
             "--extract_percentiles", "50"]
     with pytest.warns(None):
-        spot_extract.main(acc.stringify(args))
+        run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -222,7 +223,7 @@ def test_percentile_deterministic_quiet(tmp_path):
     args = [neighbour_path, diag_path, output_path,
             "--extract_percentiles", "50", "--suppress_warnings"]
     with pytest.warns(None) as collected_warns:
-        spot_extract.main(acc.stringify(args))
+        run_cli(args)
     # check that no warning is collected
     assert len(collected_warns) == 0
     acc.compare(output_path, kgo_path)
@@ -237,7 +238,7 @@ def test_multiple_percentile_thresholded_input(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [neighbour_path, threshold_path, output_path,
             "--extract_percentiles", "25", "50", "75"]
-    spot_extract.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -250,7 +251,7 @@ def test_multiple_percentile_percentile_input(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [neighbour_path, threshold_path, output_path,
             "--extract_percentiles", "25", "50", "75"]
-    spot_extract.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -263,7 +264,7 @@ def test_percentile_realization_input(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [neighbour_path, realization_path, output_path,
             "--extract_percentiles", "50"]
-    spot_extract.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -276,7 +277,7 @@ def test_multiple_percentile_realization_input(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [neighbour_path, realization_path, output_path,
             "--extract_percentiles", "25", "50", "75"]
-    spot_extract.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -290,7 +291,7 @@ def test_invalid_lapse_rate(tmp_path):
     args = [neighbour_path, diag_path, lapse_path, output_path,
             "--apply_lapse_rate_correction"]
     with pytest.raises(ValueError, match=".*lapse rate.*"):
-        spot_extract.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_no_lapse_rate_data(tmp_path):
@@ -302,4 +303,4 @@ def test_no_lapse_rate_data(tmp_path):
     args = [neighbour_path, diag_path, output_path,
             "--apply_lapse_rate_correction"]
     with pytest.warns(UserWarning, match=".*lapse rate.*"):
-        spot_extract.main(acc.stringify(args))
+        run_cli(args)

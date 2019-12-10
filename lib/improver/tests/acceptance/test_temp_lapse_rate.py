@@ -34,10 +34,11 @@ Tests for the temp-lapse-rate CLI
 
 import pytest
 
-from improver.cli import temp_lapse_rate
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
 @pytest.mark.parametrize(
@@ -58,7 +59,7 @@ def test_bad_params(tmp_path, extra, match):
             *extra,
             output_path]
     with pytest.raises(ValueError, match=f".*{match}.*"):
-        temp_lapse_rate.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_basic(tmp_path):
@@ -73,7 +74,7 @@ def test_basic(tmp_path):
             "--orography_filepath", orography_path,
             "--land_sea_mask_filepath", landmask_path,
             output_path]
-    temp_lapse_rate.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -90,7 +91,7 @@ def test_realizations(tmp_path):
             "--orography_filepath", orography_path,
             "--land_sea_mask_filepath", landmask_path,
             output_path]
-    temp_lapse_rate.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path, atol=acc.DEFAULT_TOLERANCE, rtol=None)
 
 
@@ -111,7 +112,7 @@ def test_options(tmp_path):
             "--max_lapse_rate=0.06",
             "--min_lapse_rate=-0.01",
             output_path]
-    temp_lapse_rate.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -125,5 +126,5 @@ def test_dalr(tmp_path):
     args = [input_path,
             "--return_dalr",
             output_path]
-    temp_lapse_rate.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)

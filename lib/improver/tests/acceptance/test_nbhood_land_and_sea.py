@@ -34,10 +34,11 @@ Tests for the nbhood-land-and-sea CLI
 
 import pytest
 
-from improver.cli import nbhood_land_and_sea
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
 def test_basic(tmp_path):
@@ -48,7 +49,7 @@ def test_basic(tmp_path):
     mask_path = kgo_dir / "ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, mask_path, output_path, "--radius=20000"]
-    nbhood_land_and_sea.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -70,7 +71,7 @@ def test_topographic_bands(tmp_path, intermediate):
         im_args = []
     args = [input_path, bands_path, output_path, "--radius=20000",
             "--weights", weights_path, *im_args]
-    nbhood_land_and_sea.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
     if intermediate:
         acc.compare(land_output_path, land_kgo_path)
@@ -86,7 +87,7 @@ def test_unnecessary_weights(tmp_path):
     args = [input_path, mask_path, output_path, "--radius=20000",
             "--weights", weights_path]
     with pytest.warns(UserWarning, match=".*weights cube.*"):
-        nbhood_land_and_sea.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_missing_weights(tmp_path):
@@ -97,7 +98,7 @@ def test_missing_weights(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [input_path, mask_path, output_path, "--radius=20000"]
     with pytest.raises(OSError, match=".*weights cube.*"):
-        nbhood_land_and_sea.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_incorrect_weights(tmp_path):
@@ -110,7 +111,7 @@ def test_incorrect_weights(tmp_path):
     args = [input_path, mask_path, output_path, "--radius=20000",
             "--weights", weights_path]
     with pytest.raises(ValueError, match=".*weights cube.*"):
-        nbhood_land_and_sea.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_topographic_sea(tmp_path):
@@ -123,7 +124,7 @@ def test_topographic_sea(tmp_path):
     args = [input_path, mask_path, output_path, "--radius=20000",
             "--weights", weights_path]
     with pytest.raises(ValueError, match=".*mask cube.*"):
-        nbhood_land_and_sea.main(acc.stringify(args))
+        run_cli(args)
 
 
 @pytest.mark.parametrize("landsea", ["land", "sea"])
@@ -136,7 +137,7 @@ def test_landsea_only(tmp_path, landsea):
     mask_path = kgo_dir / "ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, mask_path, output_path, "--radius=20000"]
-    nbhood_land_and_sea.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -151,5 +152,5 @@ def test_topographic_bands_probabilities(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [input_path, mask_path, output_path, "--radius=20000",
             "--weights", weights_path]
-    nbhood_land_and_sea.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)

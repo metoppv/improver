@@ -32,10 +32,11 @@
 
 import pytest
 
-from improver.cli import wind_downscaling
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
 @pytest.mark.slow
@@ -48,7 +49,7 @@ def test_basic(tmp_path):
                              "highres_orog", "standard_orog")]
     output_path = tmp_path / "output.nc"
     args = [*input_paths, "1500", output_path]
-    wind_downscaling.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -64,7 +65,7 @@ def test_vegetation(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [*input_paths, "1500", output_path,
             "--veg_roughness_filepath", veg_path]
-    wind_downscaling.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -78,7 +79,7 @@ def test_realization(tmp_path):
                              "highres_orog", "standard_orog")]
     output_path = tmp_path / "output.nc"
     args = [*input_paths, "1500", output_path]
-    wind_downscaling.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -93,7 +94,7 @@ def test_single_level_output(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [*input_paths, "1500", output_path,
             "--output_height_level", "10"]
-    wind_downscaling.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -108,7 +109,7 @@ def test_unavailable_level(tmp_path):
             "--output_height_level", "9",
             "--output_height_level_units", "m"]
     with pytest.raises(ValueError, match=".*height level.*"):
-        wind_downscaling.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_single_level_units(tmp_path):
@@ -123,5 +124,5 @@ def test_single_level_units(tmp_path):
     args = [*input_paths, "1500", output_path,
             "--output_height_level", "1000",
             "--output_height_level_units", "cm"]
-    wind_downscaling.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)

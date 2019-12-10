@@ -34,12 +34,12 @@ Tests for the temporal-interpolate CLI
 
 import pytest
 
-from improver.cli import temporal_interpolate
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-
 T2M = "temperature_at_screen_level"
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
 def test_basic(tmp_path):
@@ -52,7 +52,7 @@ def test_basic(tmp_path):
     args = [*input_paths,
             "--times", "20190116T1000Z",
             "--output_files", output_path]
-    temporal_interpolate.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -66,7 +66,7 @@ def test_linear_interval(tmp_path):
     args = [*input_paths,
             "--interval_in_mins=60",
             "--output_files", *output_paths]
-    temporal_interpolate.main(acc.stringify(args))
+    run_cli(args)
     for out, kgo in zip(output_paths, kgo_paths):
         acc.compare(out, kgo)
 
@@ -81,7 +81,7 @@ def test_error_file_names(tmp_path):
             "--interval_in_mins=60",
             "--output_files", *output_paths]
     with pytest.raises(ValueError, match=".*cubes created.*"):
-        temporal_interpolate.main(acc.stringify(args))
+        run_cli(args)
 
 
 def test_solar_uv_index(tmp_path):
@@ -95,7 +95,7 @@ def test_solar_uv_index(tmp_path):
             "--times", "20181220T1000Z",
             "--interpolation_method=solar",
             "--output_files", output_path]
-    temporal_interpolate.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -110,5 +110,5 @@ def test_daynight(tmp_path):
             "--times", "20181220T1000Z",
             "--interpolation_method=daynight",
             "--output_files", output_path]
-    temporal_interpolate.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)

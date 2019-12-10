@@ -32,10 +32,11 @@
 
 import pytest
 
-from improver.cli import create_grid_with_halo
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
 def test_basic(tmp_path):
@@ -45,7 +46,7 @@ def test_basic(tmp_path):
     input_path = kgo_dir / "source_grid.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, output_path]
-    create_grid_with_halo.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -56,5 +57,5 @@ def test_halo_size(tmp_path):
     input_path = kgo_dir / "../basic/source_grid.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, output_path, "--halo_radius", "75000"]
-    create_grid_with_halo.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)

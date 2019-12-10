@@ -36,10 +36,11 @@ import shutil
 
 import pytest
 
-from improver.cli import update_grid_metadata
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
 def test_basic(tmp_path):
@@ -49,7 +50,7 @@ def test_basic(tmp_path):
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, output_path]
-    update_grid_metadata.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -59,7 +60,7 @@ def test_no_change(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"
     args = [kgo_path, output_path]
-    update_grid_metadata.main(acc.stringify(args))
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
@@ -73,7 +74,7 @@ def test_file_not_updated(tmp_path):
     shutil.copy(kgo_path, input_path)
     before_mtime = input_path.stat().st_mtime
     args = [input_path, input_path]
-    update_grid_metadata.main(acc.stringify(args))
+    run_cli(args)
     after_mtime = input_path.stat().st_mtime
     assert after_mtime == before_mtime
 
@@ -88,6 +89,6 @@ def test_basic_file_updated(tmp_path):
     shutil.copy(orig_input_path, input_path)
     before_mtime = input_path.stat().st_mtime
     args = [input_path, input_path]
-    update_grid_metadata.main(acc.stringify(args))
+    run_cli(args)
     after_mtime = input_path.stat().st_mtime
     assert after_mtime > before_mtime
