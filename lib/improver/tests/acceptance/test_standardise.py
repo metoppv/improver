@@ -37,6 +37,8 @@ import pytest
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+GLOBAL_UK_TITLE = "Global Model Forecast on UK 2 km Standard Grid"
+UKV_GLOBAL_TITLE = "UKV Model Forecast on Global 10 km Standard Grid"
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
@@ -66,7 +68,8 @@ def test_regrid_nearest(tmp_path):
     args = [input_path,
             "--target_grid_filepath", target_path,
             "--output_filepath", output_path,
-            "--regrid_mode=nearest"]
+            "--regrid_mode=nearest",
+            "--regridded_title", GLOBAL_UK_TITLE]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -82,7 +85,8 @@ def test_regrid_extrapolate(tmp_path):
             "--target_grid_filepath", target_path,
             "--output_filepath", output_path,
             "--regrid_mode=nearest",
-            "--extrapolation_mode", "extrapolate"]
+            "--extrapolation_mode", "extrapolate",
+            "--regridded_title", UKV_GLOBAL_TITLE]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -96,7 +100,9 @@ def test_regrid_json(tmp_path):
     metadata_path = kgo_dir / "metadata.json"
     output_path = tmp_path / "output.nc"
     args = [input_path, "--target_grid_filepath", target_path,
-            "--output_filepath", output_path, "--json_file", metadata_path]
+            "--output_filepath", output_path,
+            "--json_file", metadata_path,
+            "--regridded_title", GLOBAL_UK_TITLE]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -160,7 +166,8 @@ def test_regrid_nearest_landmask(tmp_path):
             "--target_grid_filepath", target_path,
             "--input_landmask_filepath", landmask_path,
             "--output_filepath", output_path,
-            "--regrid_mode=nearest-with-mask"]
+            "--regrid_mode=nearest-with-mask",
+            "--regridded_title", GLOBAL_UK_TITLE]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -179,7 +186,8 @@ def test_regrid_check_landmask(tmp_path):
             "--target_grid_filepath", target_path,
             "--input_landmask_filepath", landmask_path,
             "--output_filepath", output_path,
-            "--regrid_mode=nearest-with-mask"]
+            "--regrid_mode=nearest-with-mask",
+            "--regridded_title", GLOBAL_UK_TITLE]
     with pytest.warns(UserWarning, match=".*land_binary_mask.*"):
         run_cli(args)
     # Don't recreate output as it is the same as other test
@@ -242,6 +250,7 @@ def test_regrid_nearest_landmask_multi_realization(tmp_path):
             "--target_grid_filepath", target_path,
             "--input_landmask_filepath", landmask_path,
             "--output_filepath", output_path,
-            "--regrid_mode=nearest-with-mask"]
+            "--regrid_mode=nearest-with-mask",
+            "--regridded_title", GLOBAL_UK_TITLE]
     run_cli(args)
     acc.compare(output_path, kgo_path)
