@@ -187,7 +187,7 @@ class Test_with_intermediate_output(unittest.TestCase):
 
 
 class Test_create_constrained_inputcube_converter(unittest.TestCase):
-    """Tests the creature constraint inputcube converter"""
+    """Tests the create_constrained_inputcube_converter"""
 
     @patch('improver.cli.maybe_coerce_with', return_value='return')
     def test_basic(self, m):
