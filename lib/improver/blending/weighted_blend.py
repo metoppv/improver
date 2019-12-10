@@ -823,7 +823,8 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
             attributes_dict (dict or None):
                 Changes to cube attributes to be applied after blending. See
                 :func:`~improver.metadata.amend.amend_attributes` for required
-                format.
+                format. If mandatory attributes are not set here, default
+                values are used.
 
         Returns:
             iris.cube.Cube:

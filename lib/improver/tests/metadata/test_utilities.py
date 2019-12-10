@@ -77,8 +77,7 @@ class Test_create_new_diagnostic_cube(unittest.TestCase):
         the values in mandatory_attributes"""
         attributes = {"source": "Mars", "mosg__model_configuration": "uk_det"}
         expected_attributes = self.mandatory_attributes
-        for attr in attributes:
-            expected_attributes[attr] = attributes[attr]
+        expected_attributes.update(attributes)
         result = create_new_diagnostic_cube(
             self.name, self.units, self.template_cube,
             self.mandatory_attributes, optional_attributes=attributes)

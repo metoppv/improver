@@ -122,8 +122,7 @@ class Test_weighted_blend(IrisTest):
         self.cube.data[1][:][:] = 2.0
         self.cube.data[2][:][:] = 3.0
         self.expected_attributes = MANDATORY_ATTRIBUTE_DEFAULTS.copy()
-        for attr in self.cube.attributes:
-            self.expected_attributes[attr] = self.cube.attributes[attr]
+        self.expected_attributes.update(self.cube.attributes)
 
         cube_threshold = set_up_probability_cube(
             np.zeros((2, 2, 2), dtype=np.float32),

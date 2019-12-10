@@ -68,6 +68,8 @@ class Test_SpotExtraction(IrisTest):
         ycoord = iris.coords.DimCoord(
             np.linspace(0, 40, 5), standard_name='latitude', units='degrees')
 
+        # Grid attributes must be included in diagnostic cubes so their removal
+        # can be tested
         attributes = {
             'mosg__grid_domain': 'global',
             'mosg__grid_type': 'standard'}
