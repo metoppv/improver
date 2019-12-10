@@ -86,10 +86,6 @@ def forecast_period_coord(cube, force_lead_time_calculation=False):
                "the forecast_period.".format(cube))
         raise CoordinateNotFoundError(msg)
 
-    result_coord.points = result_coord.points.astype(TIME_INTERVAL_DTYPE)
-    if result_coord.bounds is not None:
-        result_coord.bounds = result_coord.bounds.astype(TIME_INTERVAL_DTYPE)
-
     return result_coord
 
 
@@ -141,6 +137,10 @@ def _calculate_forecast_period(time_coord, frt_coord, dim_coord=False):
         bounds=required_lead_time_bounds,
         units="seconds")
     result_coord.convert_units(TIME_INTERVAL_UNIT)
+
+    result_coord.points = result_coord.points.astype(TIME_INTERVAL_DTYPE)
+    if result_coord.bounds is not None:
+        result_coord.bounds = result_coord.bounds.astype(TIME_INTERVAL_DTYPE)
 
     if np.any(result_coord.points < 0):
         msg = ("The values for the time {} and "
