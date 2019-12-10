@@ -32,118 +32,20 @@
 """Script to run neighbourhooding processing over areas of land and sea
 separately before combining them to return unified fields. Topographic zones
 may also be employed, with the sea area being treated as a distinct zone."""
-
-import warnings
-
-import numpy as np
-
-from improver.argparser import ArgParser
-from improver.nbhood.nbhood import NeighbourhoodProcessing
-from improver.nbhood.use_nbhood import (
-    ApplyNeighbourhoodProcessingWithAMask,
-    CollapseMaskedNeighbourhoodCoordinate)
-from improver.utilities.cli_utilities import radius_or_radii_and_lead
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
+from improver import cli
 
 
-def main(argv=None):
-    """Load in arguments for applying neighbourhood processing when using a
-    mask."""
-    parser = ArgParser(
-        description='Neighbourhood the input dataset over two distinct regions'
-        ' of land and sea. If performed as a single level neighbourhood, a '
-        'land-sea mask should be provided. If instead topographic_zone '
-        'neighbourhooding is being employed, the mask should be one of '
-        'topographic zones. In the latter case a weights array is also needed'
-        ' to collapse the topographic_zone coordinate. These weights are '
-        'created with the improver generate-topography-bands-weights CLI and '
-        'should be made using a land-sea mask, which will then be employed '
-        'within this code to draw the distinction between the two surface '
-        'types.')
-
-    parser.add_argument('input_filepath', metavar='INPUT_FILE',
-                        help='A path to an input NetCDF file to be processed.')
-    parser.add_argument('input_mask_filepath', metavar='INPUT_MASK',
-                        help=('A path to an input NetCDF file containing '
-                              'either a mask of topographic zones over land '
-                              'or a land-sea mask.'))
-    parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
-                        help='The output path for the processed NetCDF.')
-
-    mask_group = parser.add_argument_group(
-        'Collapse weights - required if using a topographic zones mask')
-    mask_group.add_argument('--weights_for_collapsing_dim', metavar='WEIGHTS',
-                            default=None,
-                            help='A path to an weights NetCDF file containing '
-                            'the weights which are used for collapsing the '
-                            'dimension gained through masking. These weights '
-                            'must have been created using a land-sea mask.')
-
-    radius_group = parser.add_argument_group(
-        'Neighbourhooding Radius - Set only one of the options')
-    group = radius_group.add_mutually_exclusive_group()
-    group.add_argument('--radius', metavar='RADIUS', type=float,
-                       help='The radius (in m) for neighbourhood processing.')
-    group.add_argument('--radii-by-lead-time',
-                       metavar=('RADII_BY_LEAD_TIME', 'LEAD_TIME_IN_HOURS'),
-                       nargs=2,
-                       help='The radii for neighbourhood processing '
-                       'and the associated lead times at which the radii are '
-                       'valid. The radii are in metres whilst the lead time '
-                       'has units of hours. The radii and lead times are '
-                       'expected as individual comma-separated lists with '
-                       'the list of radii given first followed by a list of '
-                       'lead times to indicate at what lead time each radii '
-                       'should be used. For example: 10000,12000,14000 1,2,3 '
-                       'where a lead time of 1 hour uses a radius of 10000m, '
-                       'a lead time of 2 hours uses a radius of 12000m, etc.')
-    parser.add_argument('--sum_or_fraction', default="fraction",
-                        choices=["sum", "fraction"],
-                        help='The neighbourhood output can either be in the '
-                        'form of a sum of the neighbourhood, or a '
-                        'fraction calculated by dividing the sum of the '
-                        'neighbourhood by the neighbourhood area. '
-                        '"fraction" is the default option.')
-    parser.add_argument('--intermediate_filepath', default=None,
-                        help='Intermediate filepath for results following '
-                        'topographic masked neighbourhood processing of '
-                        'land points and prior to collapsing the '
-                        'topographic_zone coordinate. Intermediate files '
-                        'will not be produced if no topographic masked '
-                        'neighbourhood processing occurs.')
-
-    args = parser.parse_args(args=argv)
-
-    cube = load_cube(args.input_filepath)
-    mask = load_cube(args.input_mask_filepath, no_lazy_load=True)
-    weights = None
-    if any(['topographic_zone' in coord.name()
-            for coord in mask.coords(dim_coords=True)]):
-
-        if mask.attributes['topographic_zones_include_seapoints'] == 'True':
-            raise ValueError('The topographic zones mask cube must have been '
-                             'masked to exclude sea points, but '
-                             'topographic_zones_include_seapoints = True')
-
-        if not args.weights_for_collapsing_dim:
-            raise IOError('A weights cube must be provided if using a mask '
-                          'of topographic zones to collapse the resulting '
-                          'vertical dimension.')
-
-        weights = load_cube(args.weights_for_collapsing_dim, no_lazy_load=True)
-
-    result, intermediate_cube = process(
-        cube, mask, args.radius, args.radii_by_lead_time,
-        weights, args.sum_or_fraction, args.intermediate_filepath)
-
-    save_netcdf(result, args.output_filepath)
-    if args.intermediate_filepath:
-        save_netcdf(intermediate_cube, args.intermediate_filepath)
-
-
-def process(cube, mask, radius=None, radii_by_lead_time=None, weights=None,
-            sum_or_fraction="fraction", return_intermediate=False):
+@cli.clizefy
+@cli.with_output
+@cli.with_intermediate_output
+def process(cube: cli.inputcube,
+            mask: cli.inputcube,
+            weights: cli.inputcube = None,
+            *,
+            radius: float = None,
+            radii_by_lead_time=None,
+            sum_or_fraction="fraction",
+            return_intermediate=False):
     """ Module to process land and sea separately before combining them.
 
     Neighbourhood the input dataset over two distinct regions of land and sea.
@@ -161,6 +63,11 @@ def process(cube, mask, radius=None, radii_by_lead_time=None, weights=None,
         mask (iris.cube.Cube):
             A cube containing either a mask of topographic zones over land or
             a land-sea mask.
+        weights (iris.cube.Cube):
+            A cube containing the weights which are used for collapsing the
+            dimension gained through masking. These weights must have been
+            created using a land-sea mask.
+            Default is None.
         radius (float):
             The radius in metres of the neighbourhood to apply.
             Rounded up to convert into integer number of grid points east and
@@ -173,11 +80,6 @@ def process(cube, mask, radius=None, radii_by_lead_time=None, weights=None,
             the radii within 'radii' are defined. The lead times are expected
             in hours.
             Default is None
-        weights (iris.cube.Cube):
-            A cube containing the weights which are used for collapsing the
-            dimension gained through masking. These weights must have been
-            created using a land-sea mask.
-            Default is None.
         sum_or_fraction (str):
             The neighbourhood output can either be in the form of a sum of the
             neighbourhood, or a fraction calculated by dividing the sum of the
@@ -213,6 +115,16 @@ def process(cube, mask, radius=None, radii_by_lead_time=None, weights=None,
             A weights cube has been provided but no topographic zone.
 
     """
+    import warnings
+
+    import numpy as np
+
+    from improver.nbhood.nbhood import NeighbourhoodProcessing
+    from improver.nbhood.use_nbhood import (
+        ApplyNeighbourhoodProcessingWithAMask,
+        CollapseMaskedNeighbourhoodCoordinate)
+    from improver.utilities.cli_utilities import radius_or_radii_and_lead
+
     masking_coordinate = intermediate_cube = None
     if any(['topographic_zone' in coord.name()
             for coord in mask.coords(dim_coords=True)]):
@@ -243,7 +155,7 @@ def process(cube, mask, radius=None, radii_by_lead_time=None, weights=None,
         sea_only = landmask.copy(data=landmask.data.astype(int))
 
     else:
-        if weights is None:
+        if weights is not None:
             warnings.warn('A weights cube has been provided but will not be '
                           'used as there is no topographic zone coordinate '
                           'to collapse.')
