@@ -1,0 +1,19 @@
+name: Tests
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install dependencies
+      run: |
+        $CONDA/bin/conda env update --file environment.yml --name base
+        $CONDA/bin/conda list
+        $CONDA/bin/pip install clize
+    - name: Pytest
+      run: |
+        $CONDA/bin/pytest
