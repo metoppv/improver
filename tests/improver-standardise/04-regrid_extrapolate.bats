@@ -40,7 +40,8 @@
       "$IMPROVER_ACC_TEST_DIR/standardise/regrid-basic/ukvx_grid.nc" \
       --target_grid_filepath "$IMPROVER_ACC_TEST_DIR/standardise/regrid-basic/global_cutout.nc" \
       --output_filepath "$TEST_DIR/output.nc" \
-      --regrid_mode="nearest" --extrapolation_mode extrapolate
+      --regrid_mode="nearest" --extrapolation_mode extrapolate \
+      --regridded_title "UKV Model Forecast on Global 10 km Standard Grid"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO

@@ -37,10 +37,13 @@ import iris
 import dask.array as da
 import numpy as np
 
+from improver.metadata.constants.attributes import (
+    MANDATORY_ATTRIBUTES, MANDATORY_ATTRIBUTE_DEFAULTS)
+
 
 def create_new_diagnostic_cube(
-        name, units, coordinate_template, attributes=None, data=None,
-        dtype=np.float32):
+        name, units, coordinate_template, mandatory_attributes,
+        optional_attributes=None, data=None, dtype=np.float32):
     """
     Creates a template for a new diagnostic cube with suitable metadata.
 
@@ -51,8 +54,14 @@ def create_new_diagnostic_cube(
             Units for output cube
         coordinate_template (iris.cube.Cube):
             Cube from which to copy dimensional and auxiliary coordinates
-        attributes (dict or None):
-            Dictionary of attribute names and values
+        mandatory_attributes (dict):
+            Dictionary containing values for the mandatory attributes
+            "title", "source" and "institution".  These are overridden by
+            values in the optional_attributes dictionary, if specified.
+        optional_attributes (dict or None):
+            Dictionary of optional attribute names and values.  If values for
+            mandatory attributes are included in this dictionary they override
+            the values of mandatory_attributes.
         data (numpy.ndarray or None):
             Data array.  If not set, cube is filled with zeros using a lazy
             data object, as this will be overwritten later by the caller
@@ -64,6 +73,17 @@ def create_new_diagnostic_cube(
         iris.cube.Cube:
             Cube with correct metadata to accommodate new diagnostic field
     """
+    attributes = mandatory_attributes
+    if optional_attributes is not None:
+        attributes.update(optional_attributes)
+
+    error_msg = ""
+    for attr in MANDATORY_ATTRIBUTES:
+        if attr not in attributes:
+            error_msg += "{} attribute is required\n".format(attr)
+    if error_msg:
+        raise ValueError(error_msg)
+
     if data is None:
         data = da.zeros_like(coordinate_template.core_data(), dtype=dtype)
 
@@ -79,6 +99,34 @@ def create_new_diagnostic_cube(
     cube.rename(name)
 
     return cube
+
+
+def generate_mandatory_attributes(diagnostic_cubes):
+    """
+    Function to generate mandatory attributes for new diagnostics that are
+    generated using several different model diagnostics as input to the
+    calculation.  If all input diagnostics have the same attribute use this,
+    otherwise set a default value.
+
+    Args:
+        diagnostic_cubes (list):
+            List of diagnostic cubes used in calculating the new diagnostic
+
+    Returns:
+        dict: Dictionary of mandatory attribute "key": "value" pairs.
+    """
+    attributes = MANDATORY_ATTRIBUTE_DEFAULTS.copy()
+    for attr in MANDATORY_ATTRIBUTES:
+        try:
+            values = [cube.attributes[attr] for cube in diagnostic_cubes]
+        except KeyError:
+            # if not all input cubes have this attribute, retain default
+            pass
+        else:
+            unique_values = np.unique(values)
+            if len(unique_values) == 1:
+                attributes[attr] = unique_values[0]
+    return attributes
 
 
 def generate_hash(data_in):

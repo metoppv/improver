@@ -148,9 +148,8 @@ function improver_test_unit {
     if [[ -n $DEBUG_OPT ]]; then
         VERBOSE_OPT='-v'
     fi
-    if type -f coverage 1>/dev/null 2>&1; then
-        coverage run -m unittest discover ${VERBOSE_OPT:-}
-        coverage xml
+    if [[ -n "${CODACY_PROJECT_TOKEN:-}" || -n "${CODECOV_TOKEN:-}" ]]; then
+        pytest -m 'not acc' --cov=lib/improver --cov-report xml:coverage.xml ${VERBOSE_OPT:-}
         if [[ -n "${CODACY_PROJECT_TOKEN:-}" ]]; then
             # Report coverage to Codacy if possible.
             python-codacy-coverage -r coverage.xml
@@ -160,50 +159,26 @@ function improver_test_unit {
             codecov
         fi
     else
-        python -m unittest discover ${VERBOSE_OPT:-}
+        pytest -m 'not acc' ${VERBOSE_OPT:-}
     fi
     echo_ok "Unit tests"
 }
 
 function improver_test_cli {
     # CLI testing.
-    PATH="$IMPROVER_DIR/tests/bin/:$PATH"
 
-    if [[ -n ${RECREATE_BATS_KGO:-} ]]; then
-        echo -e "\nSet to recreate KGO at path $RECREATE_BATS_KGO"
-        echo -e "To unset this use: unset RECREATE_BATS_KGO \n\n"
+    if [[ -n ${RECREATE_KGO:-} ]]; then
+        echo -e "\nSet to recreate KGO at path $RECREATE_KGO"
+        echo -e "To unset this use: unset RECREATE_KGO \n\n"
         read -p "Press enter to continue"
     fi
 
-    for SUBTEST in $CLISUBTEST; do
-        if [[ -e "$IMPROVER_DIR/tests/improver-$SUBTEST" ]]; then
-            # A shorthand path.
-            TEST_TARGET="$IMPROVER_DIR/tests/improver-$SUBTEST"
-        elif [[ -e "$TEST_INPUT_PWD/$SUBTEST" ]]; then
-            # A relative path to a file or directory.
-            TEST_TARGET="$TEST_INPUT_PWD/$SUBTEST"
-        else
-            # Assume a full path to a file or directory.
-            TEST_TARGET="$SUBTEST"
-        fi
-        if [[ -z $BATS_OPT ]] && type prove &>/dev/null; then
-            PROVE_VERBOSE_OPT=
-            PROVE_PARALLEL_OPT='-j 4'
-            if [[ -n $DEBUG_OPT ]]; then
-                PROVE_VERBOSE_OPT='-v'
-                PROVE_PARALLEL_OPT=
-            fi
-            prove $PROVE_VERBOSE_OPT --directives -r $PROVE_PARALLEL_OPT \
-                -e "bats --tap" --ext ".bats" --timer $TEST_TARGET
-        else
-            if [[ -f "$TEST_TARGET" ]]; then
-                # A particular file rather than a directory.
-                bats "$TEST_TARGET"
-            else
-                bats $(find "$TEST_TARGET" -name "*.bats")
-            fi
-        fi
-    done
+    if [[ -n $DEBUG_OPT ]]; then
+        VERBOSE_OPT='-v'
+    fi
+
+    pytest -m acc ${VERBOSE_OPT:-}
+
     echo_ok "CLI tests"
 }
 
@@ -215,7 +190,6 @@ improver tests [OPTIONS] [SUBTEST...] [SUBCLI...]
 Run pycodestyle, pylint, documentation, unit and CLI acceptance tests.
 
 Optional arguments:
-    --bats          Run CLI tests using BATS instead of the default prove
     --debug         Run in verbose mode (may take longer for CLI)
     -h, --help      Show this message and exit
 
@@ -224,25 +198,6 @@ Arguments:
                     Valid names are: pycodestyle, pylint, pylintE, licence,
                     doc, unit, cli. pycodestyle, pylintE, licence, doc, unit,
                     and cli are the default tests.
-    SUBCLI          Name(s) of cli tests to run without running the rest.
-                    Valid names are either:
-                     * directory names which appear in tests/ minus the
-                       "improver-" prefix, e.g. 'nbhood'
-                     * as above, but also including a bats file, e.g.
-                       'nbhood/01-help.bats'
-                     * full or relative paths to directories or individual BATS
-                       test files, e.g.
-                       'tests/improver-nbhood/01-help.bats' or
-                       '$HOME/improver/tests/improver-nbhood/'.
-                    The default is to run all cli tests in the tests/
-                    directory. If a directory is given, all tests within the
-                    directory will be run. If a specific BATS file is given,
-                    only that will be run. For example,
-                    'improver tests cli nbhood'
-                    will run neighbourhood processing cli tests in
-                    tests/improver-nbhood/*.bats.
-                    'improver tests cli ~/improver/tests/improver-nbhood/01-help.bats'
-                    will only run that specific nbhood CLI test.
 __USAGE__
 }
 
@@ -261,18 +216,13 @@ for i in $opts; do
     cli_tasks+="*/${fname}?(/)|"
   fi
 done
-cli_tasks+='*.bats|'
 cli_tasks+=')'
 
-BATS_OPT=
 DEBUG_OPT=
 SUBTESTS=
 SUBCLI=
 for arg in "$@"; do
     case $arg in
-        --bats)
-        BATS_OPT='--bats'
-        ;;
         --debug)
         DEBUG_OPT='--debug'
         ;;

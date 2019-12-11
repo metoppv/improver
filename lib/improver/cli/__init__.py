@@ -31,6 +31,8 @@
 """init for cli and clize"""
 
 from collections import OrderedDict
+import pathlib
+import shlex
 
 import clize
 from clize import parameters
@@ -356,18 +358,25 @@ def execute_command(dispatcher, prog_name, *args,
             # process nested commands recursively
             arg = execute_command(dispatcher, prog_name, *arg,
                                   verbose=verbose, dry_run=dry_run)
-        if not isinstance(arg, str):
+        if isinstance(arg, pathlib.PurePath):
+            arg = str(arg)
+        elif not isinstance(arg, str):
             arg = ObjectAsStr(arg)
         args[i] = arg
 
-    if dry_run:
-        result = args
-    else:
-        result = dispatcher(prog_name, *args)
-
     if verbose or dry_run:
-        print(prog_name, *args, ' -> ', ObjectAsStr.obj_to_name(result))
+        print(" ".join([shlex.quote(x) for x in (prog_name, *args)]))
+    if dry_run:
+        return args
 
+    try:
+        result = dispatcher(prog_name, *args)
+    except Exception as exc:
+        print(exc)
+        raise exc
+
+    if verbose:
+        print(ObjectAsStr.obj_to_name(result))
     return result
 
 
@@ -431,4 +440,4 @@ def run_main(argv=None):
     if argv is None:
         argv = sys.argv[:]
         argv[0] = 'improver'
-    run(main, args=argv)  # pylint: disable=E1124
+    run(main, args=argv, exit=False)  # pylint: disable=E1124
