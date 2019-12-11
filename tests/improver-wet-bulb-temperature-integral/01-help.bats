@@ -29,24 +29,26 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-. $IMPROVER_DIR/tests/lib/utils
-
-@test "wet-bulb-temperature input1 input2 input3 output" {
-  improver_check_skip_acceptance
-  KGO="wet-bulb-temperature/multi_level/kgo.nc"
-
-  # Run wet-bulb-temperature calculation and check the result.
-  run improver wet-bulb-temperature \
-  "$IMPROVER_ACC_TEST_DIR/wet-bulb-temperature/multi_level/enukx_multilevel_temperature.nc" \
-  "$IMPROVER_ACC_TEST_DIR/wet-bulb-temperature/multi_level/enukx_multilevel_relative_humidity.nc" \
-  "$IMPROVER_ACC_TEST_DIR/wet-bulb-temperature/multi_level/enukx_multilevel_pressure.nc" \
-  "$TEST_DIR/output.nc" \
-  --convergence_condition 0.005
+@test "wet-bulb-temperature-integral -h" {
+  run improver wet-bulb-temperature-integral -h
   [[ "$status" -eq 0 ]]
+  read -d '' expected <<'__HELP__' || true
+usage: improver wet-bulb-temperature-integral [-h] [--profile]
+                                              [--profile_file PROFILE_FILE]
+                                              WBT OUTPUT_FILE
 
-  improver_check_recreate_kgo "output.nc" $KGO
+Calculate the wet bulb temperature integral
 
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
+positional arguments:
+  WBT                   Path to a NetCDF file of wet bulb temperature on
+                        height levels (m).
+  OUTPUT_FILE           The output path for the processed NetCDF
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --profile             Switch on profiling information.
+  --profile_file PROFILE_FILE
+                        Dump profiling info to a file. Implies --profile.
+__HELP__
+  [[ "$output" == "$expected" ]]
 }

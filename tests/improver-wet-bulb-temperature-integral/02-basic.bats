@@ -29,14 +29,22 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-@test "snow-falling-level no arguments" {
-  run improver snow-falling-level
-  [[ "$status" -eq 2 ]]
-  expected="usage: improver snow-falling-level [-h] [--profile]
-                                   [--profile_file PROFILE_FILE]
-                                   [--precision NEWTON_PRECISION]
-                                   [--falling_level_threshold FALLING_LEVEL_THRESHOLD]
-                                   TEMPERATURE RELATIVE_HUMIDITY PRESSURE
-                                   OROGRAPHY LAND_SEA_MASK OUTPUT_FILE"
-  [[ "$output" =~ "$expected" ]]
+. $IMPROVER_DIR/tests/lib/utils
+
+@test "wet-bulb-temperature-integral calculation" {
+  improver_check_skip_acceptance
+  KGO="wet-bulb-temperature-integral/basic/kgo.nc"
+
+  # Run wet-bulb-temperature-integral processing and check it passes.
+  run improver wet-bulb-temperature-integral \
+  "$IMPROVER_ACC_TEST_DIR/wet-bulb-temperature/multi_level/kgo.nc" \
+  "$TEST_DIR/output.nc"
+
+  [[ "$status" -eq 0 ]]
+
+  improver_check_recreate_kgo "output.nc" $KGO
+
+  # Run nccmp to compare the output and kgo.
+  improver_compare_output "$TEST_DIR/output.nc" \
+      "$IMPROVER_ACC_TEST_DIR/$KGO"
 }

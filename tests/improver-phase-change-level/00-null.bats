@@ -29,24 +29,12 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-. $IMPROVER_DIR/tests/lib/utils
-
-@test "wet-bulb-temperature input1 input2 input3 output" {
-  improver_check_skip_acceptance
-  KGO="wet-bulb-temperature/multi_level/kgo.nc"
-
-  # Run wet-bulb-temperature calculation and check the result.
-  run improver wet-bulb-temperature \
-  "$IMPROVER_ACC_TEST_DIR/wet-bulb-temperature/multi_level/enukx_multilevel_temperature.nc" \
-  "$IMPROVER_ACC_TEST_DIR/wet-bulb-temperature/multi_level/enukx_multilevel_relative_humidity.nc" \
-  "$IMPROVER_ACC_TEST_DIR/wet-bulb-temperature/multi_level/enukx_multilevel_pressure.nc" \
-  "$TEST_DIR/output.nc" \
-  --convergence_condition 0.005
-  [[ "$status" -eq 0 ]]
-
-  improver_check_recreate_kgo "output.nc" $KGO
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
+@test "phase-change-level no arguments" {
+  run improver phase-change-level
+  [[ "$status" -eq 2 ]]
+  expected="usage: improver phase-change-level [-h] [--profile]
+                                   [--profile_file PROFILE_FILE]
+                                   PHASE_CHANGE WBT WBTI OROGRAPHY
+                                   LAND_SEA_MASK OUTPUT_FILE"
+  [[ "$output" =~ "$expected" ]]
 }

@@ -58,7 +58,8 @@ def test_multilevel(tmp_path):
     input_paths = [kgo_dir / f"enukx_multilevel_{p}.nc"
                    for p in ("temperature", "relative_humidity", "pressure")]
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, output_path]
+    args = [*input_paths, output_path,
+            "--convergence_condition", "0.005"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 

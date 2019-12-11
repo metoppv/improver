@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,26 +28,44 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""
+Tests for the phase-change-level CLI
+"""
 
-. $IMPROVER_DIR/tests/lib/utils
+import pytest
 
-@test "snowfall-level with data" {
-  improver_check_skip_acceptance
-  KGO="snow-falling-level/basic/kgo.nc"
+from improver.tests.acceptance import acceptance as acc
 
-  # Run snow-falling-level processing and check it passes.
-  run improver snow-falling-level \
-      "$IMPROVER_ACC_TEST_DIR/snow-falling-level/basic/temperature.nc" \
-      "$IMPROVER_ACC_TEST_DIR/snow-falling-level/basic/relative_humidity.nc" \
-      "$IMPROVER_ACC_TEST_DIR/snow-falling-level/basic/pressure.nc" \
-      "$IMPROVER_ACC_TEST_DIR/snow-falling-level/basic/orog.nc" \
-      "$IMPROVER_ACC_TEST_DIR/snow-falling-level/basic/land_mask.nc" \
-      "$TEST_DIR/output.nc"
-  [[ "$status" -eq 0 ]]
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
-  improver_check_recreate_kgo "output.nc" $KGO
 
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
-}
+def test_snow_sleet(tmp_path):
+    """Test snow/sleet level calculation"""
+    kgo_dir = acc.kgo_root() / f"{CLI}/basic"
+    kgo_path = kgo_dir / "snow_sleet_kgo.nc"
+    output_path = tmp_path / "output.nc"
+    input_paths = [acc.kgo_root() / x for x in
+                   ("wet-bulb-temperature/multi_level/kgo.nc",
+                    "wet-bulb-temperature-integral/basic/kgo.nc",
+                    "phase-change-level/basic/orog.nc",
+                    "phase-change-level/basic/land_mask.nc")]
+    args = ["snow-sleet", *input_paths, output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_sleet_rain(tmp_path):
+    """Test sleet/rain level calculation"""
+    kgo_dir = acc.kgo_root() / f"{CLI}/basic"
+    kgo_path = kgo_dir / "sleet_rain_kgo.nc"
+    output_path = tmp_path / "output.nc"
+    input_paths = [acc.kgo_root() / x for x in
+                   ("wet-bulb-temperature/multi_level/kgo.nc",
+                    "wet-bulb-temperature-integral/basic/kgo.nc",
+                    "phase-change-level/basic/orog.nc",
+                    "phase-change-level/basic/land_mask.nc")]
+    args = ["sleet-rain", *input_paths, output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

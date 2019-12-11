@@ -31,17 +31,18 @@
 
 . $IMPROVER_DIR/tests/lib/utils
 
-@test "wet-bulb-temperature input1 input2 input3 output" {
+@test "phase-change-level sleet-rain with data" {
   improver_check_skip_acceptance
-  KGO="wet-bulb-temperature/multi_level/kgo.nc"
+  KGO="phase-change-level/basic/sleet_rain_kgo.nc"
 
-  # Run wet-bulb-temperature calculation and check the result.
-  run improver wet-bulb-temperature \
-  "$IMPROVER_ACC_TEST_DIR/wet-bulb-temperature/multi_level/enukx_multilevel_temperature.nc" \
-  "$IMPROVER_ACC_TEST_DIR/wet-bulb-temperature/multi_level/enukx_multilevel_relative_humidity.nc" \
-  "$IMPROVER_ACC_TEST_DIR/wet-bulb-temperature/multi_level/enukx_multilevel_pressure.nc" \
-  "$TEST_DIR/output.nc" \
-  --convergence_condition 0.005
+  # Run phase-change-level processing and check it passes.
+  run improver phase-change-level \
+  "sleet-rain" \
+  "$IMPROVER_ACC_TEST_DIR/wet-bulb-temperature/multi_level/kgo.nc" \
+  "$IMPROVER_ACC_TEST_DIR/wet-bulb-temperature-integral/basic/kgo.nc" \
+  "$IMPROVER_ACC_TEST_DIR/phase-change-level/basic/orog.nc" \
+  "$IMPROVER_ACC_TEST_DIR/phase-change-level/basic/land_mask.nc" \
+  "$TEST_DIR/output.nc"
   [[ "$status" -eq 0 ]]
 
   improver_check_recreate_kgo "output.nc" $KGO
