@@ -1,0 +1,15 @@
+# Use this file to create a conda environment using:
+# conda create -n <name> --file environment.yml
+
+name: improver
+channels:
+  - conda-forge
+dependencies:
+  - python=3.6
+  - iris=2.2
+  - numpy=1.15.4
+  - cftime=1.0.1
+  - python-stratify=0.1
+  - pytest
+  - filelock
+  - mock
