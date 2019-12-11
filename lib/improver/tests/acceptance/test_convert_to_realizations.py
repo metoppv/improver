@@ -48,9 +48,9 @@ def test_percentiles(tmp_path):
                "percentiles-to-realizations/percentiles_rebadging")
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "multiple_percentiles_wind_cube.nc"
-    
+
     output_path = tmp_path / "output.nc"
-    
+
     args = [input_path,
             "--no-of-realizations", "12",
             "--output", output_path]
