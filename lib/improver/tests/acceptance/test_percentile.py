@@ -32,89 +32,76 @@
 
 import pytest
 
-from improver import cli
-from improver.tests import acceptance as acc
+from improver.tests.acceptance import acceptance as acc
+
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+run_cli = acc.run_cli("percentile")
 
 
-@pytest.mark.acc
-@acc.skip_if_kgo_missing
 def test_basic(tmp_path):
     """Test basic percentile processing"""
     kgo_dir = acc.kgo_root() / "percentile/basic"
     kgo_path = kgo_dir / "kgo.nc"
     perc_input = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = ["improver", "percentile",
-            str(perc_input), "--output", str(output_path),
+    args = [perc_input, "--output", output_path,
             "--coordinates", "realization",
             "--percentiles", "25.0,50,75.0"]
-    cli.run_main(args)
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.acc
 @pytest.mark.slow
-@acc.skip_if_kgo_missing
 @pytest.mark.parametrize("count", ("single", "multi"))
 def test_probconvert(tmp_path, count):
-    """Test percentile probability conversion"""
+    """Test probability conversion"""
     kgo_dir = acc.kgo_root() / "percentile/probability_convert"
     kgo_path = kgo_dir / f"{count}_realization_kgo.nc"
     prob_input = kgo_dir / f"{count}_realization.nc"
     output_path = tmp_path / "output.nc"
-    args = ["improver", "percentile",
-            str(prob_input), "--output", str(output_path),
+    args = [prob_input, "--output", output_path,
             "--coordinates", "realization",
             "--percentiles", "25,50,75"]
-    cli.run_main(args)
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.acc
-@acc.skip_if_kgo_missing
 def test_num_percentiles(tmp_path):
-    """Test basic percentile processing"""
+    """Test setting number of percentiles"""
     kgo_dir = acc.kgo_root() / "percentile/basic"
     kgo_path = kgo_dir / "kgo.nc"
     perc_input = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = ["improver", "percentile",
-            str(perc_input), "--output", str(output_path),
+    args = [perc_input, "--output", output_path,
             "--coordinates", "realization",
             "--no-of-percentiles", "3"]
-    cli.run_main(args)
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.acc
-@acc.skip_if_kgo_missing
 def test_masked(tmp_path):
-    """Test basic percentile processing"""
+    """Test use of a mask"""
     kgo_dir = acc.kgo_root() / "percentile/basic"
     kgo_path = kgo_dir / "kgo.nc"
     perc_input = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = ["improver", "percentile",
-            str(perc_input), "--output", str(output_path),
+    args = [perc_input, "--output", output_path,
             "--coordinates", "realization",
             "--percentiles", "25.0,50,75.0"]
-    cli.run_main(args)
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.acc
 @pytest.mark.slow
-@acc.skip_if_kgo_missing
 def test_eccbounds(tmp_path):
-    """Test basic percentile processing"""
+    """Test ECC bounds warning option"""
     kgo_dir = acc.kgo_root() / "percentile/ecc_bounds_warning"
     kgo_path = kgo_dir / "kgo.nc"
     perc_input = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = ["improver", "percentile",
-            str(perc_input), "--output", str(output_path),
+    args = [perc_input, "--output", output_path,
             "--coordinates", "realization",
             "--percentiles", "25,50,75",
             "--ecc-bounds-warning"]
-    cli.run_main(args)
+    run_cli(args)
     acc.compare(output_path, kgo_path)

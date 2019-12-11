@@ -28,35 +28,29 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the wind direction CLI"""
+"""
+Tests for the resolve-wind-components CLI
+"""
 
 import pytest
 
-from improver.cli import wind_direction
-from improver.tests import acceptance as acc
+from improver.tests.acceptance import acceptance as acc
+from improver.tests.acceptance.test_nowcast_extrapolate import WSPD, WDIR
+
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+run_cli = acc.run_cli("resolve-wind-components")
 
 
-@pytest.mark.acc
 @pytest.mark.slow
-@acc.skip_if_kgo_missing
 def test_basic(tmp_path):
-    """Test basic wind direction operation"""
-    kgo_dir = acc.kgo_root() / "wind_direction/basic"
+    """Test basic wind speed/direction to u/v vector conversion"""
+    kgo_dir = acc.kgo_root() / "resolve-wind-components/basic"
     kgo_path = kgo_dir / "kgo.nc"
+    input_dir = acc.kgo_root() / "nowcast-extrapolate/model_winds"
+    wspd_path = input_dir / f"20181103T1600Z-PT0001H00M-{WSPD}.nc"
+    wdir_path = input_dir / f"20181103T1600Z-PT0001H00M-{WDIR}.nc"
     output_path = tmp_path / "output.nc"
-    wind_direction.main([str(kgo_dir / "input.nc"),
-                         str(output_path)])
-    acc.compare(output_path, kgo_path)
-
-
-@pytest.mark.acc
-@acc.skip_if_kgo_missing
-def test_global(tmp_path):
-    """Test global wind direction operation"""
-    kgo_dir = acc.kgo_root() / "wind_direction/global"
-    kgo_path = kgo_dir / "kgo.nc"
-    output_path = tmp_path / "output.nc"
-    wind_direction.main(["--backup_method=first_realization",
-                         str(kgo_dir / "input.nc"),
-                         str(output_path)])
-    acc.compare(output_path, kgo_path)
+    args = [wspd_path, wdir_path,
+            "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path, rtol=None)

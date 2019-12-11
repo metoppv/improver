@@ -28,38 +28,27 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the wind-gust-diagnostic CLI"""
+"""
+Tests for the percentiles-to-probabilities CLI
+"""
 
 import pytest
 
-from improver.cli import wind_gust_diagnostic
-from improver.tests import acceptance as acc
+from improver.tests.acceptance import acceptance as acc
+
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
-@pytest.mark.acc
-@acc.skip_if_kgo_missing
-def test_average_wind_gust(tmp_path):
-    """Test basic wind gust diagnostic processing"""
-    kgo_dir = acc.kgo_root() / "wind-gust-diagnostic/basic"
-    kgo_path = kgo_dir / "kgo_average_wind_gust.nc"
+def test_basic(tmp_path):
+    """Test basic percentile to probability conversion"""
+    kgo_dir = acc.kgo_root() / "percentiles-to-probabilities/basic"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "../snow_level.nc"
+    orography_path = kgo_dir / "../enukx_orography.nc"
     output_path = tmp_path / "output.nc"
-    args = [str(kgo_dir / "wind_gust_perc.nc"),
-            str(kgo_dir / "wind_speed_perc.nc"),
-            str(output_path)]
-    wind_gust_diagnostic.main(args)
-    acc.compare(output_path, kgo_path)
-
-
-@pytest.mark.acc
-@acc.skip_if_kgo_missing
-def test_extreme_wind_gust(tmp_path):
-    """Test basic wind gust diagnostic processing"""
-    kgo_dir = acc.kgo_root() / "wind-gust-diagnostic/basic"
-    kgo_path = kgo_dir / "kgo_extreme_wind_gust.nc"
-    output_path = tmp_path / "output.nc"
-    args = ["--percentile_gust=95.0", "--percentile_ws=100.0",
-            str(kgo_dir / "wind_gust_perc.nc"),
-            str(kgo_dir / "wind_speed_perc.nc"),
-            str(output_path)]
-    wind_gust_diagnostic.main(args)
+    args = [input_path, orography_path, output_path,
+            "probability_of_snow_falling_level_below_ground_level"]
+    run_cli(args)
     acc.compare(output_path, kgo_path)
