@@ -35,10 +35,12 @@ import pytest
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-run_cli = acc.RunCLI("nowcast-accumulate")
+
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
-def basic(tmp_path):
+def test_basic(tmp_path):
     """
     Test use of ECC to convert one set of percentiles to another set of
     percentiles, and then reorder the ensemble using the raw ensemble
@@ -49,13 +51,13 @@ def basic(tmp_path):
     input_dir = acc.kgo_root() / "nowcast-optical-flow/basic"
     input_path = (input_dir /
                   "201811031600_radar_rainrate_composite_UK_regridded.nc")
-    uv_path = kgo_dir / "kgo.nc"
-    oe_path = kgo_dir / "20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
+    uv_path = input_dir / "kgo.nc"
+    oe_path = input_dir / "20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
 
     output_path = tmp_path / "output.nc"
 
     args = [input_path, uv_path, oe_path,
-            "--max-lead-time", 30,
+            "--max-lead-time", "30",
             "--output", output_path]
 
     run_cli(args)
