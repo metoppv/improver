@@ -31,7 +31,8 @@
 """A plugin to calculate probability of sleet"""
 
 import numpy as np
-from improver.metadata.utilities import create_new_diagnostic_cube
+from improver.metadata.utilities import (
+    create_new_diagnostic_cube, generate_mandatory_attributes)
 
 
 def calculate_sleet_probability(prob_of_snow,
@@ -62,7 +63,9 @@ def calculate_sleet_probability(prob_of_snow,
         raise ValueError(msg)
 
 # In this case we want to copy all the attributes from the prob_of_snow cube
+    mandatory_attributes = generate_mandatory_attributes([
+        prob_of_rain, prob_of_snow])
     probability_of_sleet = create_new_diagnostic_cube(
-        'probability_of_sleet', '1', prob_of_snow,
-        attributes=prob_of_snow.attributes, data=sleet_prob)
+        'probability_of_sleet', '1', prob_of_snow, mandatory_attributes,
+        data=sleet_prob)
     return probability_of_sleet
