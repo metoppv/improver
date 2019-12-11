@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,24 +28,49 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""
+Tests for the convert-to-realizations CLI
+"""
 
-. $IMPROVER_DIR/tests/lib/utils
+import pytest
 
-@test "convert-to-realizations --no-of-realizations 12 input --output output" {
-  improver_check_skip_acceptance
-  KGO="percentiles-to-realizations/percentiles_rebadging/kgo.nc"
+from improver.tests.acceptance import acceptance as acc
 
-  # Run Ensemble Copula Coupling to convert one set of percentiles to another
-  # set of percentiles, and then rebadge the percentiles to be ensemble
-  # realizations.
-  run improver convert-to-realizations --no-of-realizations 12 \
-      "$IMPROVER_ACC_TEST_DIR/percentiles-to-realizations/percentiles_rebadging/multiple_percentiles_wind_cube.nc" \
-      --output "$TEST_DIR/output.nc"
-  [[ "$status" -eq 0 ]]
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
-  improver_check_recreate_kgo "output.nc" $KGO
 
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
-}
+@pytest.mark.slow
+def test_percentiles(tmp_path):
+    """Test basic percentile to realization conversion"""
+    kgo_dir = (acc.kgo_root() /
+               "percentiles-to-realizations/percentiles_rebadging")
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "multiple_percentiles_wind_cube.nc"
+
+    output_path = tmp_path / "output.nc"
+
+    args = [input_path,
+            "--no-of-realizations", "12",
+            "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+@pytest.mark.slow
+def test_probabilities(tmp_path):
+    """Test basic probabilities to realization conversion"""
+    kgo_dir = (acc.kgo_root() /
+               "probabilities-to-realizations/12_realizations")
+    kgo_path = kgo_dir / "kgo.nc"
+    input_dir = kgo_dir / "../basic"
+    input_path = input_dir / "input.nc"
+
+    output_path = tmp_path / "output.nc"
+
+    args = [input_path,
+            "--no-of-realizations", "12",
+            "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
