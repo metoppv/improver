@@ -28,7 +28,9 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the wet-bulb-temperature CLI"""
+"""
+Tests for the wet-bulb-temperature-integral CLI
+"""
 
 import pytest
 
@@ -40,37 +42,11 @@ run_cli = acc.run_cli(CLI)
 
 
 def test_basic(tmp_path):
-    """Test basic wet bulb temperature calculation"""
-    kgo_dir = acc.kgo_root() / "wet-bulb-temperature/basic"
+    """Test basic wet bulb temperature integral calculation"""
+    kgo_dir = acc.kgo_root() / f"wet-bulb-temperature-integral/basic"
     kgo_path = kgo_dir / "kgo.nc"
-    input_paths = [kgo_dir / f"enukx_{p}.nc"
-                   for p in ("temperature", "relative_humidity", "pressure")]
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_multilevel(tmp_path):
-    """Test wet bulb temperature on multiple levels"""
-    kgo_dir = acc.kgo_root() / "wet-bulb-temperature/multi_level"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_paths = [kgo_dir / f"enukx_multilevel_{p}.nc"
-                   for p in ("temperature", "relative_humidity", "pressure")]
-    output_path = tmp_path / "output.nc"
-    args = [*input_paths, output_path,
-            "--convergence_condition", "0.005"]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_global(tmp_path):
-    """Test wet bulb temperature calculation on global domain"""
-    kgo_dir = acc.kgo_root() / "wet-bulb-temperature/global"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_paths = [kgo_dir / f"{p}_input.nc"
-                   for p in ("temperature", "relative_humidity", "pressure")]
-    output_path = tmp_path / "output.nc"
-    args = [*input_paths, output_path]
+    input_path = acc.kgo_root() / "wet-bulb-temperature/multi_level/kgo.nc"
+    args = [input_path, output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

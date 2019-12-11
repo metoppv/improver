@@ -28,7 +28,9 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the wet-bulb-temperature CLI"""
+"""
+Tests for the phase-change-level CLI
+"""
 
 import pytest
 
@@ -39,38 +41,31 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_basic(tmp_path):
-    """Test basic wet bulb temperature calculation"""
-    kgo_dir = acc.kgo_root() / "wet-bulb-temperature/basic"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_paths = [kgo_dir / f"enukx_{p}.nc"
-                   for p in ("temperature", "relative_humidity", "pressure")]
+def test_snow_sleet(tmp_path):
+    """Test snow/sleet level calculation"""
+    kgo_dir = acc.kgo_root() / f"{CLI}/basic"
+    kgo_path = kgo_dir / "snow_sleet_kgo.nc"
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, output_path]
+    input_paths = [acc.kgo_root() / x for x in
+                   ("wet-bulb-temperature/multi_level/kgo.nc",
+                    "wet-bulb-temperature-integral/basic/kgo.nc",
+                    "phase-change-level/basic/orog.nc",
+                    "phase-change-level/basic/land_mask.nc")]
+    args = ["snow-sleet", *input_paths, output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
-def test_multilevel(tmp_path):
-    """Test wet bulb temperature on multiple levels"""
-    kgo_dir = acc.kgo_root() / "wet-bulb-temperature/multi_level"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_paths = [kgo_dir / f"enukx_multilevel_{p}.nc"
-                   for p in ("temperature", "relative_humidity", "pressure")]
+def test_sleet_rain(tmp_path):
+    """Test sleet/rain level calculation"""
+    kgo_dir = acc.kgo_root() / f"{CLI}/basic"
+    kgo_path = kgo_dir / "sleet_rain_kgo.nc"
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, output_path,
-            "--convergence_condition", "0.005"]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_global(tmp_path):
-    """Test wet bulb temperature calculation on global domain"""
-    kgo_dir = acc.kgo_root() / "wet-bulb-temperature/global"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_paths = [kgo_dir / f"{p}_input.nc"
-                   for p in ("temperature", "relative_humidity", "pressure")]
-    output_path = tmp_path / "output.nc"
-    args = [*input_paths, output_path]
+    input_paths = [acc.kgo_root() / x for x in
+                   ("wet-bulb-temperature/multi_level/kgo.nc",
+                    "wet-bulb-temperature-integral/basic/kgo.nc",
+                    "phase-change-level/basic/orog.nc",
+                    "phase-change-level/basic/land_mask.nc")]
+    args = ["sleet-rain", *input_paths, output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
