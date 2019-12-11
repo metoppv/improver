@@ -13,6 +13,7 @@ jobs:
       run: |
         $CONDA/bin/conda env update --file environment.yml --name base
         $CONDA/bin/conda list
+        pip install clize
     - name: Pytest
       run: |
         $CONDA/bin/pytest

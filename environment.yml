@@ -11,7 +11,6 @@ dependencies:
   - numpy=1.15.4
   - cftime=1.0.1
   - python-stratify=0.1
-  - clize
   - pytest
   - filelock
   - mock
