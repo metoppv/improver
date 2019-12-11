@@ -41,14 +41,16 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
+@pytest.mark.slow
 def test_percentiles(tmp_path):
     """Test basic percentile to realization conversion"""
     kgo_dir = (acc.kgo_root() /
                "percentiles-to-realizations/percentiles_rebadging")
     kgo_path = kgo_dir / "kgo.nc"
-
     input_path = kgo_dir / "multiple_percentiles_wind_cube.nc"
+    
     output_path = tmp_path / "output.nc"
+    
     args = [input_path,
             "--no-of-realizations", "12",
             "--output", output_path]
@@ -56,6 +58,7 @@ def test_percentiles(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+@pytest.mark.slow
 def test_probabilities(tmp_path):
     """Test basic probabilities to realization conversion"""
     kgo_dir = (acc.kgo_root() /
