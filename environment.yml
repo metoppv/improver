@@ -3,7 +3,6 @@
 
 name: improver
 channels:
-  - defaults
   - conda-forge
 dependencies:
   - python=3.6
@@ -11,6 +10,7 @@ dependencies:
   - numpy=1.15.4
   - cftime=1.0.1
   - python-stratify=0.1
+  - sphinx
   - pytest
   - filelock
   - mock
