@@ -40,7 +40,6 @@ from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.cube_manipulation import merge_cubes
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
-from improver.wind_calculations.wind_components import ResolveWindComponents
 
 
 def main(argv=None):
@@ -96,28 +95,16 @@ def main(argv=None):
                        "precipitation_advection_x_velocity", allow_none=True)
 
     # Load Cubes and JSON
-    speed_cube = direction_cube = None
 
     input_cube = load_cube(args.input_filepath)
-    orographic_enhancement_cube = load_cube(
-        args.orographic_enhancement_filepaths, allow_none=True)
+    orographic_enhancement_cube = load_cube(args.orographic_enhancement_filepaths, allow_none=True)
 
-    s_path, d_path = (args.advection_speed_filepath,
-                      args.advection_direction_filepath)
     level_constraint = Constraint(pressure=args.pressure_level)
-    if s_path and d_path:
-        try:
-            speed_cube = load_cube(s_path, constraints=level_constraint)
-            direction_cube = load_cube(d_path, constraints=level_constraint)
-        except ValueError as err:
-            raise ValueError(
-                '{} Unable to extract specified pressure level from given '
-                'speed and direction files.'.format(err))
 
     attributes_dict = load_json_or_none(args.json_file)
     # Process Cubes
     result = process(
-        input_cube, u_cube, v_cube, speed_cube, direction_cube,
+        input_cube, u_cube, v_cube,
         orographic_enhancement_cube, attributes_dict, args.max_lead_time,
         args.lead_time_interval)
 
@@ -125,8 +112,8 @@ def main(argv=None):
     save_netcdf(result, args.output_filepath)
 
 
-def process(input_cube, u_cube=None, v_cube=None, speed_cube=None,
-            direction_cube=None, orographic_enhancement_cube=None,
+def process(input_cube, u_cube=None, v_cube=None,
+            orographic_enhancement_cube=None,
             attributes_dict=None, max_lead_time=360, lead_time_interval=15):
     """Module  to extrapolate input cubes given advection velocity fields.
 
@@ -141,14 +128,6 @@ def process(input_cube, u_cube=None, v_cube=None, speed_cube=None,
             Cube with the velocities in the y direction.
             Must be used with u_cube.
             speed_cube and direction_cube must be None.
-        speed_cube (iris.cube.Cube):
-            Cube containing advection speeds, usually wind speed.
-            Must be used with direction_cube.
-            u_cube and v_cube must be None.
-        direction_cube (iris.cube.Cube):
-            Cube from which advection speeds are coming. The directions
-            should be on the same grid as the input speeds, including the same
-            vertical levels.
             Must be used with speed_cube.
             u_cube and v_cube must be None.
         orographic_enhancement_cube (iris.cube.Cube):
@@ -173,16 +152,9 @@ def process(input_cube, u_cube=None, v_cube=None, speed_cube=None,
         ValueError:
             can either use speed_cube and direction_cube or u_cube and v_cube.
     """
-    if (speed_cube or direction_cube) and (u_cube or v_cube):
-        raise ValueError('Cannot mix advection component velocities with speed'
-                         ' and direction')
-    if not (speed_cube and direction_cube) and not (u_cube and v_cube):
-        raise ValueError('Either speed and direction or u and v cubes '
-                         'are needed.')
 
-    if speed_cube and direction_cube:
-        u_cube, v_cube = ResolveWindComponents().process(
-            speed_cube, direction_cube)
+    if not (u_cube and v_cube):
+        raise TypeError("Neither u_cube or v_cube can be None")
 
     # extrapolate input data to required lead times
     forecast_plugin = CreateExtrapolationForecast(
