@@ -577,7 +577,7 @@ class WetBulbTemperatureIntegral(BasePlugin):
 
         Args:
             wet_bulb_temperature (iris.cube.Cube):
-                Cube on wet bulb temperatures of height levels.
+                Cube of wet bulb temperatures of height levels.
 
         Returns:
             wet_bulb_temperature_integral (iris.cube.Cube):

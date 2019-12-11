@@ -91,7 +91,7 @@ def main(argv=None):
 
 def process(phase_change, wet_bulb_temperature, wet_bulb_integral, orog,
             land_sea):
-    """Module to calculate a continuous field of heights relative to sea level
+    """Calculate a continuous field of heights relative to sea level
     at which a phase change of precipitation is expected.
 
     This is achieved by finding the height above sea level at which the
@@ -108,17 +108,13 @@ def process(phase_change, wet_bulb_temperature, wet_bulb_integral, orog,
         wet_bulb_temperature (iris.cube.Cube):
             Cube of wet bulb temperatures on height levels.
         wet_bulb_integral (iris.cube.Cube):
-            Cube of wet bulb temperature integrals calculated vertically "
-            "downwards to height levels.
+            Cube of wet bulb temperature integrals calculated vertically
+            downwards to height levels.
         orog (iris.cube.Cube):
             Cube of the orography height in m.
         land_sea (iris.cube.Cube):
             Cube containing the binary land-sea mask. Land points are set to 1,
             sea points are set to 0.
-        precision (float):
-            Precision to which the wet-bulb temperature is required: This is
-            used by the Newton iteration.
-            Default is 0.005.
 
     Returns:
         iris.cube.Cube:
