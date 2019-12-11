@@ -28,38 +28,45 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the wind-gust-diagnostic CLI"""
+"""Convert NetCDF files to realizations."""
 
-import pytest
-
-from improver.cli import wind_gust_diagnostic
-from improver.tests import acceptance as acc
+from improver import cli
 
 
-@pytest.mark.acc
-@acc.skip_if_kgo_missing
-def test_average_wind_gust(tmp_path):
-    """Test basic wind gust diagnostic processing"""
-    kgo_dir = acc.kgo_root() / "wind-gust-diagnostic/basic"
-    kgo_path = kgo_dir / "kgo_average_wind_gust.nc"
-    output_path = tmp_path / "output.nc"
-    args = [str(kgo_dir / "wind_gust_perc.nc"),
-            str(kgo_dir / "wind_speed_perc.nc"),
-            str(output_path)]
-    wind_gust_diagnostic.main(args)
-    acc.compare(output_path, kgo_path)
+@cli.clizefy
+@cli.with_output
+def process(cube: cli.inputcube,
+            *,
+            no_of_realizations: int = None,
+            ecc_bounds_warning=False):
+    """Converts an incoming cube into one containing realizations.
 
+    Args:
+        cube (iris.cube.Cube):
+            A cube to be processed.
+        no_of_realizations (int):
+            The number of ensemble realizations in the output.
+        ecc_bounds_warning (bool):
+            If True, where percentiles exceed the ECC bounds range, raises a
+            warning rather than an exception.
 
-@pytest.mark.acc
-@acc.skip_if_kgo_missing
-def test_extreme_wind_gust(tmp_path):
-    """Test basic wind gust diagnostic processing"""
-    kgo_dir = acc.kgo_root() / "wind-gust-diagnostic/basic"
-    kgo_path = kgo_dir / "kgo_extreme_wind_gust.nc"
-    output_path = tmp_path / "output.nc"
-    args = ["--percentile_gust=95.0", "--percentile_ws=100.0",
-            str(kgo_dir / "wind_gust_perc.nc"),
-            str(kgo_dir / "wind_speed_perc.nc"),
-            str(output_path)]
-    wind_gust_diagnostic.main(args)
-    acc.compare(output_path, kgo_path)
+    Returns:
+        iris.cube.Cube:
+            The processed cube.
+    """
+    from improver.cli import (percentiles_to_realizations,
+                              probabilities_to_realizations)
+
+    if cube.coords('percentile'):
+        output_cube = percentiles_to_realizations.process(
+            cube, no_of_percentiles=no_of_realizations,
+            rebadging=True, ecc_bounds_warning=ecc_bounds_warning)
+    elif cube.coord(var_name='threshold'):
+        output_cube = probabilities_to_realizations.process(
+            cube, no_of_realizations=no_of_realizations, rebadging=True,
+            ecc_bounds_warning=ecc_bounds_warning)
+    elif cube.coord(var_name='realization'):
+        output_cube = cube
+    else:
+        raise ValueError("Unable to convert to realizations:\n" + str(cube))
+    return output_cube

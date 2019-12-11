@@ -32,101 +32,70 @@
 
 import pytest
 
-from improver import cli
-from improver.tests import acceptance as acc
+from improver.tests.acceptance import acceptance as acc
+
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
-@pytest.mark.acc
-@acc.skip_if_kgo_missing
 def test_basic(tmp_path):
     """Test basic combine operation"""
     kgo_dir = acc.kgo_root() / "combine/basic"
     kgo_path = kgo_dir / "kgo_cloud.nc"
+    low_cloud_path = kgo_dir / "low_cloud.nc"
+    medium_cloud_path = kgo_dir / "medium_cloud.nc"
     output_path = tmp_path / "output.nc"
-    args = ["improver",
-            "combine",
-            "--operation=max",
+    args = ["--operation=max",
             "--new-name=cloud_area_fraction",
-            str(kgo_dir / "low_cloud.nc"),
-            str(kgo_dir / "medium_cloud.nc"),
-            f"--output={output_path}"]
-    cli.run_main(args)
+            low_cloud_path,
+            medium_cloud_path,
+            output_path]
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.acc
-@acc.skip_if_kgo_missing
-def test_metadata(tmp_path):
-    """Test combining with a separate metadata file"""
-    kgo_dir = acc.kgo_root() / "combine/metadata"
-    kgo_path = kgo_dir / "kgo_prob_precip.nc"
-    precip_meta = kgo_dir / "prob_precip.json"
-    output_path = tmp_path / "output.nc"
-    new_name = "probability_of_total_precipitation_rate_between_thresholds"
-    args = ["improver",
-            "combine",
-            "--operation=-",
-            f"--new-name={new_name}",
-            f"--new-metadata={precip_meta}",
-            str(kgo_dir / "precip_prob_0p1.nc"),
-            str(kgo_dir / "precip_prob_1p0.nc"),
-            f"--output={output_path}"]
-    cli.run_main(args)
-    acc.compare(output_path, kgo_path)
-
-
-@pytest.mark.acc
-@acc.skip_if_kgo_missing
 @pytest.mark.parametrize("minmax", ("min", "max"))
 def test_minmax_temperatures(tmp_path, minmax):
     """Test combining minimum and maximum temperatures"""
     kgo_dir = acc.kgo_root() / "combine/bounds"
     kgo_path = kgo_dir / f"kgo_{minmax}.nc"
-    timebound_meta = kgo_dir / "time_bound.json"
-    temperatures = kgo_dir.glob(f"*temperature_at_screen_level_{minmax}.nc")
+    meta_path = kgo_dir / "../metadata.json"
+    temperatures = sorted(
+        kgo_dir.glob(f"*temperature_at_screen_level_{minmax}.nc"))
     output_path = tmp_path / "output.nc"
-    args = ["improver",
-            "combine",
-            f"--operation={minmax}",
-            f"--new-metadata={timebound_meta}",
-            *[str(t) for t in temperatures],
-            f"--output={output_path}"]
-    cli.run_main(args)
+    args = [f"--operation={minmax}",
+            f"--metadata_jsonfile={meta_path}",
+            *temperatures,
+            output_path]
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.acc
-@acc.skip_if_kgo_missing
 def test_combine_accumulation(tmp_path):
     """Test combining precipitation accumulations"""
     kgo_dir = acc.kgo_root() / "combine/accum"
     kgo_path = kgo_dir / "kgo_accum.nc"
-    rains = kgo_dir.glob("*rainfall_accumulation.nc")
-    timebound_meta = kgo_dir / "time_bound.json"
+    rains = sorted(kgo_dir.glob("*rainfall_accumulation.nc"))
+    meta_path = kgo_dir / "../metadata.json"
     output_path = tmp_path / "output.nc"
-    args = ["improver",
-            "combine",
-            f"--new-metadata={timebound_meta}",
-            *[str(r) for r in rains],
-            f"--output={output_path}"]
-    cli.run_main(args)
+    args = [f"--metadata_jsonfile={meta_path}",
+            *rains,
+            output_path]
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.acc
-@acc.skip_if_kgo_missing
 def test_mean_temperature(tmp_path):
     """Test combining mean temperature"""
     kgo_dir = acc.kgo_root() / "combine/bounds"
     kgo_path = kgo_dir / "kgo_mean.nc"
-    timebound_meta = kgo_dir / "time_bound.json"
-    temperatures = kgo_dir.glob("*temperature_at_screen_level.nc")
+    meta_path = kgo_dir / "../metadata.json"
+    temperatures = sorted(kgo_dir.glob("*temperature_at_screen_level.nc"))
     output_path = tmp_path / "output.nc"
-    args = ["improver",
-            "combine",
-            "--operation=mean",
-            f"--new-metadata={timebound_meta}",
-            *[str(t) for t in temperatures],
-            f"--output={output_path}"]
-    cli.run_main(args)
+    args = ["--operation=mean",
+            f"--metadata_jsonfile={meta_path}",
+            *temperatures,
+            output_path]
+    run_cli(args)
     acc.compare(output_path, kgo_path)

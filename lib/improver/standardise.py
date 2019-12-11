@@ -43,6 +43,8 @@ from improver import BasePlugin
 from improver.metadata.amend import amend_attributes
 from improver.metadata.check_datatypes import (
     check_cube_not_float64, check_time_coordinate_metadata)
+from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
+from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
 from improver.metadata.constants.time_types import (
     TIME_COORD_NAMES, TIME_REFERENCE_DTYPE, TIME_REFERENCE_UNIT,
     TIME_INTERVAL_DTYPE, TIME_INTERVAL_UNIT)
@@ -137,10 +139,6 @@ class StandardiseGridAndMetadata(BasePlugin):
             None if landmask is None else landmask_vicinity)
         self.landmask_name = "land_binary_mask"
 
-        # set attributes to inherit from the target grid
-        self.grid_attributes = [
-            'mosg__grid_version', 'mosg__grid_domain', 'mosg__grid_type']
-
     def _adjust_landsea(self, cube, target_grid):
         """
         Adjust regridded data using differences between the target landmask
@@ -170,9 +168,9 @@ class StandardiseGridAndMetadata(BasePlugin):
         plugin = AdjustLandSeaPoints(vicinity_radius=self.landmask_vicinity)
         return plugin.process(cube, self.landmask_source_grid, target_grid)
 
-    def _regrid_to_target(self, cube, target_grid):
+    def _regrid_to_target(self, cube, target_grid, regridded_title):
         """
-        Regrid cube to target_grid and inherit appropriate grid attributes
+        Regrid cube to target_grid, inherit grid attributes and update title
 
         Args:
             cube (iris.cube.Cube):
@@ -181,6 +179,9 @@ class StandardiseGridAndMetadata(BasePlugin):
                 Data on the target grid. If regridding with mask, this cube
                 should contain land-sea mask data to be used in adjusting land
                 and sea points after regridding.
+            regridded_title (str or None):
+                New value for the "title" attribute to be used after
+                regridding. If not set, a default value is used.
 
         Returns:
             iris.cube.Cube: Regridded cube with updated attributes
@@ -195,8 +196,12 @@ class StandardiseGridAndMetadata(BasePlugin):
 
         attributes_to_inherit = (
             {key: val for (key, val) in target_grid.attributes.items()
-             if key in self.grid_attributes})
+             if key in MOSG_GRID_ATTRIBUTES})
         amend_attributes(cube, attributes_to_inherit)
+
+        cube.attributes["title"] = (
+            MANDATORY_ATTRIBUTE_DEFAULTS["title"]
+            if regridded_title is None else regridded_title)
 
         return cube
 
@@ -257,9 +262,9 @@ class StandardiseGridAndMetadata(BasePlugin):
             except CoordinateNotFoundError:
                 continue
 
-    def process(self, cube, target_grid=None, new_name=None,
-                new_units=None, coords_to_remove=None, attributes_dict=None,
-                fix_float64=False):
+    def process(self, cube, target_grid=None, new_name=None, new_units=None,
+                regridded_title=None, coords_to_remove=None,
+                attributes_dict=None, fix_float64=False):
         """
         Perform regridding and metadata adjustments
 
@@ -275,6 +280,10 @@ class StandardiseGridAndMetadata(BasePlugin):
                 Optional rename for output cube
             new_units (str or None):
                 Optional unit conversion for output cube
+            regridded_title (str or None):
+                New title attribute to be applied after regridding. If not set,
+                the title attribute is set to a default value if the field is
+                regridded, as "title" may contain grid information.
             coords_to_remove (list of str or None):
                 Optional list of scalar coordinates to remove from output cube
             attributes_dict (dict or None):
@@ -294,7 +303,7 @@ class StandardiseGridAndMetadata(BasePlugin):
                 if not grid_contains_cutout(self.landmask_source_grid, cube):
                     raise ValueError(
                         "Source landmask does not match input grid")
-            cube = self._regrid_to_target(cube, target_grid)
+            cube = self._regrid_to_target(cube, target_grid, regridded_title)
 
         # standard metadata updates
         cube = self._collapse_scalar_dimensions(cube)
