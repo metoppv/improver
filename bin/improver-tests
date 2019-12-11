@@ -149,7 +149,7 @@ function improver_test_unit {
         VERBOSE_OPT='-v'
     fi
     if [[ -n "${CODACY_PROJECT_TOKEN:-}" || -n "${CODECOV_TOKEN:-}" ]]; then
-        pytest -m 'not acc' --cov=lib/improver --cov-report xml:coverage.xml ${VERBOSE_OPT:-}
+        pytest -m 'not acc' --cov=improver --cov-report xml:coverage.xml ${VERBOSE_OPT:-}
         if [[ -n "${CODACY_PROJECT_TOKEN:-}" ]]; then
             # Report coverage to Codacy if possible.
             python-codacy-coverage -r coverage.xml
