@@ -66,7 +66,6 @@ def process(*cubelist: cli.inputcube,
             "nonlinear": calculate blending weights that decrease
             exponentially with increasing blending coordinates.
             "dict": calculate weights using a dictionary passed in.
-
         weighting_coord (str):
             Name of coordinate over which linear weights should be scaled.
             This coordinate must be available in the weights dictionary.
