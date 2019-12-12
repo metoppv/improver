@@ -65,7 +65,3 @@ def process(temperature: cli.inputcube,
     result = apply_gridded_lapse_rate(
         temperature, lapse_rate, source_orog, target_orog)
     return result
-
-
-if __name__ == "__main__":
-    main()
