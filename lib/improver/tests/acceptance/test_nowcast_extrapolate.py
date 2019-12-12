@@ -42,24 +42,22 @@ run_cli = acc.run_cli(CLI)
 
 RAINRATE_NC = "201811031600_radar_rainrate_composite_UK_regridded.nc"
 OE = "orographic_enhancement_standard_resolution"
-WSPD = "wind_speed_on_pressure_levels"
-WDIR = "wind_direction_on_pressure_levels"
 
 
 def test_basic(tmp_path):
     """Test basic extrapolation nowcast"""
-    kgo_path = acc.kgo_root() / "nowcast-extrapolate/extrapolate/kgo.nc"
+    kgo_dir = acc.kgo_root() / "nowcast-extrapolate/extrapolate"
+    kgo_path = kgo_dir / "kgo.nc"
     input_dir = acc.kgo_root() / "nowcast-optical-flow/basic"
     input_path = input_dir / RAINRATE_NC
-    oe_paths = [input_dir / f"20181103T{x}00Z-PT000{y}H00M-{OE}.nc"
-                for x, y in ((16, 3), (17, 4))]
+    oe_paths = input_dir / f"20181103T1600Z-PT0003H00M-{OE}.nc"
     uv_path = input_dir / "kgo.nc"
+
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            output_path,
-            "--max_lead_time", "90",
-            "--u_and_v_filepath", uv_path,
-            "--orographic_enhancement_filepaths", *oe_paths]
+
+    args = [input_path, uv_path, oe_paths,
+            "--max-lead-time", "360",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -70,16 +68,16 @@ def test_metadata(tmp_path):
     kgo_path = kgo_dir / "kgo_with_metadata.nc"
     input_dir = acc.kgo_root() / "nowcast-optical-flow/basic"
     input_path = input_dir / RAINRATE_NC
-    oe_paths = [input_dir / f"20181103T1600Z-PT0003H00M-{OE}.nc"]
+    oe_paths = input_dir / f"20181103T1600Z-PT0003H00M-{OE}.nc"
     meta_path = input_dir / "../metadata/precip.json"
     uv_path = input_dir / "kgo.nc"
+
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            output_path,
-            "--json_file", meta_path,
-            "--max_lead_time", "30",
-            "--u_and_v_filepath", uv_path,
-            "--orographic_enhancement_filepaths", *oe_paths]
+
+    args = [input_path, uv_path, oe_paths,
+            "--attributes-dict", meta_path,
+            "--max-lead-time", "30",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -92,10 +90,11 @@ def test_basic_no_orographic(tmp_path):
                  "basic_no_orographic_enhancement")
     input_path = input_dir / RAINRATE_NC
     uv_path = input_dir / "../basic/kgo.nc"
+
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            output_path,
-            "--max_lead_time", "30",
-            "--u_and_v_filepath", uv_path]
+
+    args = [input_path, uv_path,
+            "--max-lead-time", "30",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
