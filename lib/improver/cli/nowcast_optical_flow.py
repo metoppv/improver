@@ -32,81 +32,31 @@
 """Script to calculate optical flow advection velocities with option to
 extrapolate."""
 
-import iris
-from iris.cube import CubeList
-
-from improver.argparser import ArgParser
-from improver.nowcasting.optical_flow import generate_optical_flow_components
-from improver.nowcasting.utilities import ApplyOrographicEnhancement
-from improver.utilities.cli_utilities import load_json_or_none
-from improver.utilities.load import load_cubelist, load_cube
-from improver.utilities.save import save_netcdf
+from improver import cli
 
 
-def main(argv=None):
-    """Calculate optical flow advection velocities"""
-
-    parser = ArgParser(
-        description="Calculate optical flow components from input fields.")
-
-    parser.add_argument("input_filepaths", metavar="INPUT_FILEPATHS",
-                        nargs=3, type=str, help="Paths to the input radar "
-                        "files. There should be 3 input files at T, T-1 and "
-                        "T-2 from which to calculate optical flow velocities. "
-                        "The files require a 'time' coordinate on which they "
-                        "are sorted, so the order of inputs does not matter.")
-    parser.add_argument("output_filepath", metavar="OUTPUT_FILEPATH",
-                        help="The output path for the resulting NetCDF")
-
-    parser.add_argument("--nowcast_filepaths", nargs="+", type=str,
-                        default=None, help="Optional list of full paths to "
-                        "output nowcast files. Overrides OUTPUT_DIR. Ignored "
-                        "unless '--extrapolate' is set.")
-    parser.add_argument("--orographic_enhancement_filepaths", nargs="+",
-                        type=str, default=None, help="List or wildcarded "
-                        "file specification to the input orographic "
-                        "enhancement files. Orographic enhancement files are "
-                        "compulsory for precipitation fields.")
-    parser.add_argument("--json_file", metavar="JSON_FILE", default=None,
-                        help="Filename for the json file containing "
-                        "required changes to attributes. "
-                        "Every output file will have the attributes_dict "
-                        "applied. Defaults to None.", type=str)
-
-    # OpticalFlow plugin configurable parameters
-    parser.add_argument("--ofc_box_size", type=int, default=30, help="Size of "
-                        "square 'box' (in grid squares) within which to solve "
-                        "the optical flow equations.")
-    parser.add_argument("--smart_smoothing_iterations", type=int, default=100,
-                        help="Number of iterations to perform in enforcing "
-                        "smoothness constraint for optical flow velocities.")
-
-    args = parser.parse_args(args=argv)
-
-    # Load Cubes and JSON
-    attributes_dict = load_json_or_none(args.json_file)
-    original_cube_list = load_cubelist(args.input_filepaths)
-    oe_cube = load_cube(args.orographic_enhancement_filepaths, allow_none=True)
-
-    # Process
-    result = process(
-        original_cube_list, oe_cube, attributes_dict, args.ofc_box_size,
-        args.smart_smoothing_iterations)
-
-    # Save Cubes
-    save_netcdf(result, args.output_filepath)
-
-
-def process(original_cube_list, orographic_enhancement_cube=None,
-            attributes_dict=None, ofc_box_size=30,
-            smart_smoothing_iterations=100):
+@cli.clizefy
+@cli.with_output
+def process(radar_t: cli.inputcube,
+            radar_t1: cli.inputcube,
+            radarT2: cli.inputcube,
+            orographic_enhancement_cube: cli.inputcube = None,
+            *,
+            attributes_dict: cli.inputjson = None,
+            ofc_box_size: int = 30,
+            smart_smoothing_iterations: int = 100):
     """Calculate optical flow components from input fields.
 
     Args:
-        original_cube_list (iris.cube.CubeList):
-            Cubelist from which to calculate optical flow velocities.
-            The cubes require a 'time' coordinate on which they are sorted,
-            so the order of cubes does not matter.
+        radar_t (iris.cube.CubeList):
+            Cube from which to calculate optical flow velocities.
+            These three cubes can be any order.
+        radar_t1 (iris.cube.CubeList):
+            Cube from which to calculate optical flow velocities.
+            These three cubes can be any order.
+        radarT2 (iris.cube.CubeList):
+            Cube from which to calculate optical flow velocities.
+            These three cubes can be any order.
         orographic_enhancement_cube (iris.cube.Cube):
             Cube containing the orographic enhancement fields.
             Default is None.
@@ -132,6 +82,13 @@ def process(original_cube_list, orographic_enhancement_cube=None,
             If there is no oe_cube but a cube is called 'precipitation_rate'.
 
     """
+    from iris.cube import CubeList
+
+    from improver.nowcasting.optical_flow import \
+        generate_optical_flow_components
+    from improver.nowcasting.utilities import ApplyOrographicEnhancement
+
+    original_cube_list = CubeList([radar_t, radar_t1, radarT2])
     # order input files by validity time
     original_cube_list.sort(key=lambda x: x.coord("time").points[0])
 
@@ -154,7 +111,3 @@ def process(original_cube_list, orographic_enhancement_cube=None,
         cube_list, ofc_box_size, smart_smoothing_iterations, attributes_dict)
 
     return CubeList([u_mean, v_mean])
-
-
-if __name__ == "__main__":
-    main()

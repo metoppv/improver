@@ -55,8 +55,8 @@ def test_basic(tmp_path):
                    for hhmm in ("1530", "1545", "1600")]
     oe_path = kgo_dir / OE
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, output_path,
-            "--orographic_enhancement_filepaths", oe_path]
+    args = [*input_paths, oe_path,
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -72,8 +72,8 @@ def test_metadata(tmp_path):
     # TODO: the BATS test does not call improver with the metadata file
     # metadata_path = kgo_dir / "../metadata/precip.json"
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, output_path,
-            "--orographic_enhancement_filepaths", oe_path]
+    args = [*input_paths, oe_path,
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -84,7 +84,8 @@ def test_no_orographic_error(tmp_path):
     input_paths = [kgo_dir / f"20181103{hhmm}_{RADAR_REGRID}.nc"
                    for hhmm in ("1530", "1545", "1600")]
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, output_path]
+    args = [*input_paths,
+            "--output", output_path]
     with pytest.raises(ValueError, match=".*orographic enhancement.*"):
         run_cli(args)
 
@@ -98,7 +99,8 @@ def test_basic_no_orographic(tmp_path):
     input_paths = [kgo_dir / f"20181103{hhmm}_{RADAR_REGRID}.nc"
                    for hhmm in ("1530", "1545", "1600")]
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, output_path]
+    args = [*input_paths,
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -111,6 +113,7 @@ def test_remasked(tmp_path):
     input_paths = [kgo_dir / f"20181127{hhmm}_{RADAR_REMASK}.nc"
                    for hhmm in ("1330", "1345", "1400")]
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, output_path]
+    args = [*input_paths,
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
