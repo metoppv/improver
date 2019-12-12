@@ -78,7 +78,3 @@ def process(*cubelist: cli.inputcube,
         CubeList(cubelist), new_name, coords_to_expand=coords_to_expand)
 
     return result
-
-
-if __name__ == "__main__":
-    main()
