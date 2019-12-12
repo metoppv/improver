@@ -31,37 +31,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to generate an ancillary "grid_with_halo" file."""
 
-from improver.argparser import ArgParser
-from improver.utilities.load import load_cube
-from improver.utilities.pad_spatial import create_cube_with_halo
-from improver.utilities.save import save_netcdf
+from improver import cli
 
-
-def main(argv=None):
-    """Generate target grid with a halo around the source file grid."""
-
-    parser = ArgParser(description='Generate grid with halo from a source '
-                       'domain input file. The grid is populated with zeroes.')
-    parser.add_argument('input_file', metavar='INPUT_FILE', help="NetCDF file "
-                        "containing data on a source grid.")
-    parser.add_argument('output_file', metavar='OUTPUT_FILE', help="NetCDF "
-                        "file defining the target grid with additional halo.")
-    parser.add_argument('--halo_radius', metavar='HALO_RADIUS', default=162000,
-                        type=float, help="Size of halo (in m) with which to "
-                        "pad the input grid.  Default is 162 000 m.")
-    args = parser.parse_args(args=argv)
-
-    # Load Cube
-    cube = load_cube(args.input_file)
-
-    # Process Cube
-    result = process(cube, args.halo_radius)
-
-    # Save Cube
-    save_netcdf(result, args.output_file)
-
-
-def process(cube, halo_radius=162000.0):
+@cli.clizefy
+@cli.with_output
+def process(cube: cli.inputcube,
+            *,
+            halo_radius: float = 162000.0):
     """Generate a zeroed grid with halo from a source cube.
 
     Create a template cube defining a new grid by adding a fixed width halo on
@@ -78,9 +54,8 @@ def process(cube, halo_radius=162000.0):
         iris.cube.Cube:
             The processed Cube defining the halo-padded grid (data set to 0)
     """
+    from improver.argparser import ArgParser
+    from improver.utilities.pad_spatial import create_cube_with_halo
+
     result = create_cube_with_halo(cube, halo_radius)
     return result
-
-
-if __name__ == '__main__':
-    main()
