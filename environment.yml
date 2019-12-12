@@ -12,5 +12,6 @@ dependencies:
   - python-stratify=0.1
   - sphinx
   - pytest
+  - pycodestyle
   - filelock
   - mock
