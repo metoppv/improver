@@ -408,11 +408,7 @@ def execute_command(dispatcher, prog_name, *args,
     if dry_run:
         return args
 
-    try:
-        result = dispatcher(prog_name, *args)
-    except Exception as exc:
-        print(exc)
-        raise exc
+    result = dispatcher(prog_name, *args)
 
     if verbose:
         print(ObjectAsStr.obj_to_name(result))
