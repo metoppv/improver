@@ -50,11 +50,10 @@ def process(*cubelist: cli.inputcube,
             model_id_attr='mosg__model_configuration',
             spatial_weights_from_mask=False,
             fuzzy_length=20000.0):
-    """Module to run weighted blending.
+    """Runs weighted blending.
 
-    Load in arguments and ensure they are set correctly.
-    Then load in the data to blend and calculate weights
-    using the method chosen before carrying out the blending.
+    Check for inconsistent arguments, then calculate a weighted blend
+    of input cube data using the options specified.
 
     Args:
         cubelist (iris.cube.CubeList):
