@@ -34,6 +34,7 @@
 
 from improver import cli
 
+
 @cli.clizefy
 @cli.with_output
 def process(*cubelist: cli.inputcube,
