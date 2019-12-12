@@ -46,11 +46,11 @@ def test_basic(tmp_path):
     low_cloud_path = kgo_dir / "low_cloud.nc"
     medium_cloud_path = kgo_dir / "medium_cloud.nc"
     output_path = tmp_path / "output.nc"
-    args = ["--operation=max",
-            "--new-name=cloud_area_fraction",
+    args = ["--operation max",
+            "--new-name cloud_area_fraction",
             low_cloud_path,
             medium_cloud_path,
-            f"--output={output_path}"]
+            f"--output {output_path}"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -64,10 +64,10 @@ def test_minmax_temperatures(tmp_path, minmax):
     temperatures = sorted(
         kgo_dir.glob(f"*temperature_at_screen_level_{minmax}.nc"))
     output_path = tmp_path / "output.nc"
-    args = [f"--operation={minmax}",
-            f"--new-metadata={meta_path}",
+    args = [f"--operation {minmax}",
+            f"--new-metadata {meta_path}",
             *temperatures,
-            f"--output={output_path}"]
+            f"--output {output_path}"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -79,9 +79,9 @@ def test_combine_accumulation(tmp_path):
     rains = sorted(kgo_dir.glob("*rainfall_accumulation.nc"))
     meta_path = kgo_dir / "../metadata.json"
     output_path = tmp_path / "output.nc"
-    args = [f"--new-metadata={meta_path}",
+    args = [f"--new-metadata {meta_path}",
             *rains,
-            f"--output={output_path}"]
+            f"--output {output_path}"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -93,9 +93,9 @@ def test_mean_temperature(tmp_path):
     meta_path = kgo_dir / "../metadata.json"
     temperatures = sorted(kgo_dir.glob("*temperature_at_screen_level.nc"))
     output_path = tmp_path / "output.nc"
-    args = ["--operation=mean",
-            f"--new-metadata={meta_path}",
+    args = ["--operation mean",
+            f"--new-metadata {meta_path}",
             *temperatures,
-            f"--output={output_path}"]
+            f"--output {output_path}"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
