@@ -3,7 +3,7 @@ name: Tests
 on: [push]
 
 jobs:
-  build:
+  Tests:
 
     runs-on: ubuntu-latest
 
@@ -11,9 +11,15 @@ jobs:
     - uses: actions/checkout@v1
     - name: Install dependencies
       run: |
-        $CONDA/bin/conda env update --file environment.yml --name base
-        $CONDA/bin/conda list
+        $CONDA/bin/conda env update -q --file environment.yml --name base
         $CONDA/bin/pip install clize
-    - name: Pytest
-      run: |
-        $CONDA/bin/pytest
+        $CONDA/bin/conda list --export
+
+    - name: Pycodestyle (PEP8 conventions)
+      run:  $CONDA/bin/pycodestyle -v lib
+
+    - name: Sphinx-build (Doc test)
+      run: cd doc; make SPHINXBUILD=$CONDA/bin/sphinx-build html
+      
+    - name: Pytest (Unit tests)
+      run:  $CONDA/bin/pytest -m "not acc"
