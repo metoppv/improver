@@ -32,19 +32,11 @@
 
 """Script to run weighted blending."""
 
-import numpy as np
+from improver import cli
 
-from improver.argparser import ArgParser
-from improver.blending.calculate_weights_and_blend import WeightAndBlend
-from improver.utilities.cli_utilities import load_json_or_none
-from improver.utilities.load import load_cubelist
-from improver.utilities.save import save_netcdf
-
-
+"""
 def main(argv=None):
-    """Load in arguments and ensure they are set correctly.
-       Then load in the data to blend and calculate default weights
-       using the method chosen before carrying out the blending."""
+
     parser = ArgParser(
         description='Calculate the default weights to apply in weighted '
         'blending plugins using the ChooseDefaultWeightsLinear or '
@@ -168,16 +160,6 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
-    # reject incorrect argument combinations
-    if (args.wts_calc_method == "linear") and args.cval:
-        parser.wrong_args_error('cval', 'linear')
-    if ((args.wts_calc_method == "nonlinear") and np.any([args.y0val,
-                                                          args.ynval])):
-        parser.wrong_args_error('y0val, ynval', 'non-linear')
-
-    if (args.wts_calc_method == "dict") and not args.wts_dict:
-        parser.error('Dictionary is required if --wts_calc_method="dict"')
-
     # Load dictionaries and cubes to be blended
     weights_dict = load_json_or_none(args.wts_dict)
     attributes_dict = load_json_or_none(args.attributes_dict)
@@ -190,12 +172,22 @@ def main(argv=None):
                      args.spatial_weights_from_mask, args.fuzzy_length)
 
     save_netcdf(result, args.output_filepath)
+"""
 
-
-def process(cubelist, wts_calc_method, coordinate, cycletime, weighting_coord,
-            weights_dict, attributes_dict, y0val=None, ynval=None,
-            cval=None, model_id_attr='mosg__model_configuration',
-            spatial_weights_from_mask=False, fuzzy_length=20000.0):
+@cli.clizefy
+@cli.with_output
+def process(*cubelist: cli.inputcube,
+            wts_calc_method,
+            coordinate,
+            weighting_coord,
+            wts_dict: cli.inputjson = None,
+            attributes_dict: cli.inputjson = None,
+            y0val: float = None,
+            ynval: float = None,
+            cval: float = None,
+            model_id_attr='mosg__model_configuration',
+            spatial_weights_from_mask=False,
+            fuzzy_length=20000.0):
     """Module to run weighted blending.
 
     Load in arguments and ensure they are set correctly.
@@ -221,7 +213,7 @@ def process(cubelist, wts_calc_method, coordinate, cycletime, weighting_coord,
         weighting_coord (str):
             Name of coordinate over which linear weights should be scaled.
             This coordinate must be available in the weights dictionary.
-        weights_dict (dict or None):
+        wts_dict (dict or None):
             Dictionary from which to calculate blending weights. Dictionary
             format is as specified in
             improver.blending.weights.ChoosingWeightsLinear
@@ -279,17 +271,19 @@ def process(cubelist, wts_calc_method, coordinate, cycletime, weighting_coord,
         RuntimeError:
             If calc_method is dict and weights_dict is None.
     """
+    from improver.blending.calculate_weights_and_blend import WeightAndBlend
+
     if (wts_calc_method == "linear") and cval:
         raise RuntimeError('Method: linear does not accept arguments: cval')
     elif (wts_calc_method == "nonlinear") and np.any([y0val, ynval]):
         raise RuntimeError('Method: non-linear does not accept arguments:'
                            ' y0val, ynval')
-    elif (wts_calc_method == "dict") and weights_dict is None:
+    elif (wts_calc_method == "dict") and wts_dict is None:
         raise RuntimeError('Dictionary is required if wts_calc_method="dict"')
 
     plugin = WeightAndBlend(
         coordinate, wts_calc_method,
-        weighting_coord=weighting_coord, wts_dict=weights_dict,
+        weighting_coord=weighting_coord, wts_dict=wts_dict,
         y0val=y0val, ynval=ynval, cval=cval)
     result = plugin.process(
         cubelist, cycletime=cycletime, model_id_attr=model_id_attr,
