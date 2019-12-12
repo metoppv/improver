@@ -50,7 +50,7 @@ def test_basic(tmp_path):
             "--new-name=cloud_area_fraction",
             low_cloud_path,
             medium_cloud_path,
-            output_path]
+            f"--output={output_path}"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -65,9 +65,9 @@ def test_minmax_temperatures(tmp_path, minmax):
         kgo_dir.glob(f"*temperature_at_screen_level_{minmax}.nc"))
     output_path = tmp_path / "output.nc"
     args = [f"--operation={minmax}",
-            f"--metadata_jsonfile={meta_path}",
+            f"--new-metadata={meta_path}",
             *temperatures,
-            output_path]
+            f"--output={output_path}"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -79,9 +79,9 @@ def test_combine_accumulation(tmp_path):
     rains = sorted(kgo_dir.glob("*rainfall_accumulation.nc"))
     meta_path = kgo_dir / "../metadata.json"
     output_path = tmp_path / "output.nc"
-    args = [f"--metadata_jsonfile={meta_path}",
+    args = [f"--new-metadata={meta_path}",
             *rains,
-            output_path]
+            f"--output={output_path}"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -94,8 +94,8 @@ def test_mean_temperature(tmp_path):
     temperatures = sorted(kgo_dir.glob("*temperature_at_screen_level.nc"))
     output_path = tmp_path / "output.nc"
     args = ["--operation=mean",
-            f"--metadata_jsonfile={meta_path}",
+            f"--new-metadata={meta_path}",
             *temperatures,
-            output_path]
+            f"--output={output_path}"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
