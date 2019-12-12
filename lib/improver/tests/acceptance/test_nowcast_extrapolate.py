@@ -50,13 +50,13 @@ def test_basic(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_dir = acc.kgo_root() / "nowcast-optical-flow/basic"
     input_path = input_dir / RAINRATE_NC
-    oe_paths = input_dir / f"20181103T1600Z-PT0003H00M-{OE}.nc"
+    oe_path = kgo_dir / "orographic_enhancement.nc"
     uv_path = input_dir / "kgo.nc"
 
     output_path = tmp_path / "output.nc"
 
-    args = [input_path, uv_path, oe_paths,
-            "--max-lead-time", "360",
+    args = [input_path, uv_path, oe_path,
+            "--max-lead-time", "90",
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -68,13 +68,13 @@ def test_metadata(tmp_path):
     kgo_path = kgo_dir / "kgo_with_metadata.nc"
     input_dir = acc.kgo_root() / "nowcast-optical-flow/basic"
     input_path = input_dir / RAINRATE_NC
-    oe_paths = input_dir / f"20181103T1600Z-PT0003H00M-{OE}.nc"
+    oe_path = input_dir / f"20181103T1600Z-PT0003H00M-{OE}.nc"
     meta_path = input_dir / "../metadata/precip.json"
     uv_path = input_dir / "kgo.nc"
 
     output_path = tmp_path / "output.nc"
 
-    args = [input_path, uv_path, oe_paths,
+    args = [input_path, uv_path, oe_path,
             "--attributes-dict", meta_path,
             "--max-lead-time", "30",
             "--output", output_path]

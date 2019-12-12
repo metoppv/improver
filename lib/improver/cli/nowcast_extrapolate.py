@@ -46,7 +46,7 @@ def process(input_cube: cli.inputcube,
             orographic_enhancement_cube: cli.inputcube = None,
             *,
             attributes_dict: cli.inputjson = None,
-            max_lead_time: int =360, lead_time_interval: int=15):
+            max_lead_time: int = 360, lead_time_interval: int = 15):
     """Module  to extrapolate input cubes given advection velocity fields.
 
     Args:
