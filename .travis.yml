@@ -8,6 +8,8 @@ python:
 os: linux
 git:
   depth: 10000
+env:
+  - CI_COVERAGE=yes
 
 install:
   # Install miniconda

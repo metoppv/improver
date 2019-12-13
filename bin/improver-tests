@@ -148,16 +148,9 @@ function improver_test_unit {
     if [[ -n $DEBUG_OPT ]]; then
         VERBOSE_OPT='-v'
     fi
-    if [[ -n "${CODACY_PROJECT_TOKEN:-}" || -n "${CODECOV_TOKEN:-}" ]]; then
-        pytest -m 'not acc' --cov=lib/improver --cov-report xml:coverage.xml ${VERBOSE_OPT:-}
-        if [[ -n "${CODACY_PROJECT_TOKEN:-}" ]]; then
-            # Report coverage to Codacy if possible.
-            python-codacy-coverage -r coverage.xml
-        fi
-        if [[ -n "${CODECOV_TOKEN:-}" ]]; then
-            # Report coverage to CodeCov if possible.
-            codecov
-        fi
+    if [[ -n "${CI_COVERAGE:-}" ]]; then
+        pytest -m 'not acc' --cov=improver \
+        --cov-report xml:coverage.xml ${VERBOSE_OPT:-}
     else
         pytest -m 'not acc' ${VERBOSE_OPT:-}
     fi
@@ -176,8 +169,21 @@ function improver_test_cli {
     if [[ -n $DEBUG_OPT ]]; then
         VERBOSE_OPT='-v'
     fi
-
-    pytest -m acc ${VERBOSE_OPT:-}
+    if [[ -n "${CI_COVERAGE:-}" ]]; then
+        pytest -m acc --cov-append --cov=improver \
+        --cov-report xml:coverage.xml \
+        --cov-report term ${VERBOSE_OPT:-}
+        if [[ -n "${CODACY_PROJECT_TOKEN:-}" ]]; then
+            # Report coverage to Codacy if possible.
+            python-codacy-coverage -v -r coverage.xml
+        fi
+        if [[ -n "${CODECOV_TOKEN:-}" ]]; then
+            # Report coverage to CodeCov if possible.
+            codecov
+        fi
+    else
+        pytest -m acc ${VERBOSE_OPT:-}
+    fi
 
     echo_ok "CLI tests"
 }
