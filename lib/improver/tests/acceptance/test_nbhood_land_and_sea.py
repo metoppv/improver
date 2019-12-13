@@ -48,7 +48,9 @@ def test_basic(tmp_path):
     input_path = kgo_dir / "input.nc"
     mask_path = kgo_dir / "ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, mask_path, output_path, "--radius=20000"]
+    args = [input_path, mask_path,
+            "--radius", "20000",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -66,11 +68,14 @@ def test_topographic_bands(tmp_path, intermediate):
     output_path = tmp_path / "output.nc"
     land_output_path = tmp_path / "output_land.nc"
     if intermediate:
-        im_args = ["--intermediate_filepath", land_output_path]
+        im_args = ["--intermediate-output", land_output_path,
+                   "--return-intermediate"]
     else:
         im_args = []
-    args = [input_path, bands_path, output_path, "--radius=20000",
-            "--weights", weights_path, *im_args]
+    args = [input_path, bands_path, weights_path,
+            "--radius", "20000",
+            *im_args,
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
     if intermediate:
@@ -84,8 +89,9 @@ def test_unnecessary_weights(tmp_path):
     mask_path = kgo_dir / "ukvx_landmask.nc"
     weights_path = kgo_dir / "../topographic_bands/weights_land.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, mask_path, output_path, "--radius=20000",
-            "--weights", weights_path]
+    args = [input_path, mask_path, weights_path,
+            "--radius", "20000",
+            "--output", output_path]
     with pytest.warns(UserWarning, match=".*weights cube.*"):
         run_cli(args)
 
@@ -96,8 +102,10 @@ def test_missing_weights(tmp_path):
     input_path = kgo_dir / "input.nc"
     mask_path = kgo_dir / "topographic_bands_land.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, mask_path, output_path, "--radius=20000"]
-    with pytest.raises(OSError, match=".*weights cube.*"):
+    args = [input_path, mask_path,
+            "--radius", "20000",
+            "--output", output_path]
+    with pytest.raises(TypeError, match=".*weights cube.*"):
         run_cli(args)
 
 
@@ -108,8 +116,9 @@ def test_incorrect_weights(tmp_path):
     mask_path = kgo_dir / "topographic_bands_land.nc"
     weights_path = kgo_dir / "weights_any_surface.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, mask_path, output_path, "--radius=20000",
-            "--weights", weights_path]
+    args = [input_path, mask_path, weights_path,
+            "--radius", "20000",
+            "--output", output_path]
     with pytest.raises(ValueError, match=".*weights cube.*"):
         run_cli(args)
 
@@ -121,8 +130,9 @@ def test_topographic_sea(tmp_path):
     mask_path = kgo_dir / "topographic_bands_any_surface.nc"
     weights_path = kgo_dir / "weights_land.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, mask_path, output_path, "--radius=20000",
-            "--weights", weights_path]
+    args = [input_path, mask_path, weights_path,
+            "--radius", "20000",
+            "--output", output_path]
     with pytest.raises(ValueError, match=".*mask cube.*"):
         run_cli(args)
 
@@ -136,7 +146,9 @@ def test_landsea_only(tmp_path, landsea):
     input_path = kgo_dir / "input.nc"
     mask_path = kgo_dir / "ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, mask_path, output_path, "--radius=20000"]
+    args = [input_path, mask_path,
+            "--radius", "20000",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -150,7 +162,8 @@ def test_topographic_bands_probabilities(tmp_path):
     mask_path = kgo_dir / "../topographic_bands/topographic_bands_land.nc"
     weights_path = kgo_dir / "../topographic_bands/weights_land.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, mask_path, output_path, "--radius=20000",
-            "--weights", weights_path]
+    args = [input_path, mask_path, weights_path,
+            "--radius", "20000",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

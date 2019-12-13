@@ -35,6 +35,7 @@ may also be employed, with the sea area being treated as a distinct zone."""
 from improver import cli
 
 
+# pylint: disable=too-many-branches, too-many-locals
 @cli.clizefy
 @cli.with_output
 @cli.with_intermediate_output
@@ -209,7 +210,3 @@ def process(cube: cli.inputcube,
         result = result_land.copy(data=combined_data)
 
     return result, intermediate_cube
-
-
-if __name__ == "__main__":
-    main()
