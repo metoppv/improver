@@ -75,6 +75,10 @@ def docutilize(obj):
         doc = getdoc(obj)
     doc = str(NumpyDocstring(doc))
     doc = str(GoogleDocstring(doc))
+    doc = doc.replace(':exc:', '')
+    doc = doc.replace(':keyword', ':param')
+    doc = doc.replace(':kwtype', ':type')
+
     if isinstance(obj, str):
         return doc
     obj.__doc__ = doc
@@ -408,11 +412,7 @@ def execute_command(dispatcher, prog_name, *args,
     if dry_run:
         return args
 
-    try:
-        result = dispatcher(prog_name, *args)
-    except Exception as exc:
-        print(exc)
-        raise exc
+    result = dispatcher(prog_name, *args)
 
     if verbose:
         print(ObjectAsStr.obj_to_name(result))
