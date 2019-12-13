@@ -152,7 +152,3 @@ def process(*cubelist: cli.inputcube,
         spatial_weights=spatial_weights_from_mask, fuzzy_length=fuzzy_length,
         attributes_dict=attributes_dict)
     return result
-
-
-if __name__ == "__main__":
-    main()
