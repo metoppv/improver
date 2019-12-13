@@ -54,7 +54,6 @@ def process(cube: cli.inputcube,
         iris.cube.Cube:
             The processed Cube defining the halo-padded grid (data set to 0)
     """
-    from improver.argparser import ArgParser
     from improver.utilities.pad_spatial import create_cube_with_halo
 
     result = create_cube_with_halo(cube, halo_radius)
