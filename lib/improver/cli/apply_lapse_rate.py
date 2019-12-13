@@ -44,9 +44,9 @@ def process(temperature: cli.inputcube,
 
     Args:
         temperature (iris.cube.Cube):
-            Input temperature Cube.
+            Input temperature cube.
         lapse_rate (iris.cube.Cube):
-            Lapse rate Cube.
+            Lapse rate cube.
         source_orog (iris.cube.Cube):
             Source model orography.
         target_orog (iris.cube.Cube):
@@ -54,7 +54,7 @@ def process(temperature: cli.inputcube,
 
     Returns:
         iris.cube.Cube:
-            temperature Cube after lapse rate adjustment has been applied.
+            Temperature cube after lapse rate adjustment has been applied.
     """
     from improver.lapse_rate import apply_gridded_lapse_rate
 
