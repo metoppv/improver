@@ -180,7 +180,7 @@ def rebadge_forecasts_as_latest_cycle(cubes, cycletime):
     the most recent forecast in the list (proxy for the current cycle).
 
     Args:
-        cubes (iris.cube.CubeList):
+        cubes (iris.cube.CubeList or list of iris.cube.Cube):
             Cubes that will have their forecast_reference_time and
             forecast_period updated.
         cycletime (str or None):
@@ -207,7 +207,7 @@ def unify_cycletime(cubes, cycletime):
     forecast_reference_time.
 
     Args:
-        cubes (iris.cube.CubeList):
+        cubes (iris.cube.CubeList or list of iris.cube.Cube):
             Cubes that will have their forecast_reference_time and
             forecast_period updated. Any bounds on the forecast_reference_time
             coordinate will be discarded.
@@ -257,7 +257,7 @@ def find_latest_cycletime(cubelist):
     a datetime object.
 
     Args:
-        cubelist (iris.cube.CubeList):
+        cubelist (iris.cube.CubeList or list of iris.cube.Cube):
             A list of cubes each containing single time step from different
             forecast cycles.
 

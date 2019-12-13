@@ -77,6 +77,10 @@ class GenerateTimeLaggedEnsemble(BasePlugin):
                any duplicates.
             4. Merge cubes into one cube, removing any metadata that
                doesn't match.
+
+        Args:
+            cubelist (iris.cube.CubeList or list of iris.cube.Cube):
+                Forecasts from different cycles
         """
         cubelist = rebadge_forecasts_as_latest_cycle(cubelist, self.cycletime)
 

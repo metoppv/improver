@@ -44,15 +44,15 @@ def process(*cubelist: cli.inputcube):
     merges them into a single cube.
 
     Args:
-        cubelist (iris.cube.CubeList):
-            CubeList of individual ensembles
+        cubelist (list of iris.cube.Cube):
+            List of individual ensemble cubes
 
     Returns:
         iris.cube.Cube:
-            Merged cube.
+            Merged cube
 
     Raises:
-        ValueError: If cubes have mismatched validity times.
+        ValueError: If ensembles have mismatched validity times
     """
     import warnings
     from improver.utilities.time_lagging import GenerateTimeLaggedEnsemble
