@@ -31,84 +31,49 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run time-lagged ensembles."""
 
-import warnings
-
-import iris
-
-from improver.argparser import ArgParser
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
-from improver.utilities.time_lagging import GenerateTimeLaggedEnsemble
+from improver import cli
 
 
-def main(argv=None):
-    """Load in the arguments and ensure they are set correctly. Then run
-    the time-lagged ensembles on the input cubes.
-    """
-    parser = ArgParser(
-        description='This combines the realizations from different forecast '
-                    'cycles into one cube. It does this by taking an input '
-                    'CubeList containing forecasts from different cycles and '
-                    'merges them into a single cube, removing any metadata '
-                    'that does not match.')
-    parser.add_argument('input_filenames', metavar='INPUT_FILENAMES',
-                        nargs="+", type=str,
-                        help='Paths to input NetCDF files for the time-lagged '
-                        'ensemble to combine the realizations.')
-    parser.add_argument('output_file', metavar='OUTPUT_FILE',
-                        help='The output file for the processed NetCDF.')
-    args = parser.parse_args(args=argv)
+@cli.clizefy
+@cli.with_output
+def process(*cubelist: cli.inputcube):
+    """Module to time-lag ensembles.
 
-    # Load the cubes
-    cubes = iris.cube.CubeList([])
-    for filename in args.input_filenames:
-        new_cube = load_cube(filename)
-        cubes.append(new_cube)
-
-    # Process Cube
-    result = process(cubes)
-
-    # Save Cube
-    save_netcdf(result, args.output_file)
-
-
-def process(cubes):
-    """Module to run time-lagged ensembles.
-
-    This combines the realization from different forecast cycles into one cube.
-    It does this by taking an input Cubelist containing forecasts from
-    different cycles and merges them into a single cube, removing any
-    metadata that does not match.
+    Combines the realization from different forecast cycles into one cube.
+    Takes an input CubeList containing forecasts from different cycles and
+    merges them into a single cube.
 
     Args:
-        cubes (iris.cube.CubeList):
-            CubeList for the time-lagged ensemble to combine the realizations.
+        cubelist (iris.cube.CubeList):
+            CubeList of individual ensembles
 
     Returns:
         iris.cube.Cube:
-            Merged Cube.
+            Merged cube.
 
     Raises:
         ValueError:
             If cubes have mismatched validity times.
     """
+    import warnings
+    from improver.utilities.time_lagging import GenerateTimeLaggedEnsemble
 
     # Warns if a single file is input
-    if len(cubes) == 1:
+    if len(cubelist) == 1:
         warnings.warn('Only a single cube input, so time lagging will have '
                       'no effect.')
-        return cubes[0]
+        return cubelist[0]
     # Raises an error if the validity times do not match
     else:
-        for i, this_cube in enumerate(cubes):
-            for later_cube in cubes[i+1:]:
+        for i, this_cube in enumerate(cubelist):
+            for later_cube in cubelist[i+1:]:
                 if this_cube.coord('time') == later_cube.coord('time'):
                     continue
                 else:
                     msg = ("Cubes with mismatched validity times are not "
                            "compatible.")
                     raise ValueError(msg)
-        return GenerateTimeLaggedEnsemble().process(cubes)
+        return GenerateTimeLaggedEnsemble().process(cubelist)
 
 
 if __name__ == "__main__":
