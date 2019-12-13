@@ -52,29 +52,21 @@ def process(*cubelist: cli.inputcube):
             Merged cube.
 
     Raises:
-        ValueError:
-            If cubes have mismatched validity times.
+        ValueError: If cubes have mismatched validity times.
     """
     import warnings
     from improver.utilities.time_lagging import GenerateTimeLaggedEnsemble
 
-    # Warns if a single file is input
     if len(cubelist) == 1:
         warnings.warn('Only a single cube input, so time lagging will have '
                       'no effect.')
         return cubelist[0]
-    # Raises an error if the validity times do not match
-    else:
-        for i, this_cube in enumerate(cubelist):
-            for later_cube in cubelist[i+1:]:
-                if this_cube.coord('time') == later_cube.coord('time'):
-                    continue
-                else:
-                    msg = ("Cubes with mismatched validity times are not "
-                           "compatible.")
-                    raise ValueError(msg)
-        return GenerateTimeLaggedEnsemble().process(cubelist)
 
+    # raise error if validity times are not all equal
+    time_coords = [cube.coord("time") for cube in cubelist]
+    time_coords_match = [coord == time_coords[0] for coord in time_coords]
+    if not all(time_coords_match):
+        raise ValueError(
+            "Cubes with mismatched validity times are not compatible.")
 
-if __name__ == "__main__":
-    main()
+    return GenerateTimeLaggedEnsemble().process(cubelist)
