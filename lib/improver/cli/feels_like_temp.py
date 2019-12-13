@@ -71,6 +71,6 @@ def process(temperature: cli.inputcube,
             will be the same as the units of temperature cube when it is input
             into the function.
     """
-    from improver.feels_like_temperature import calculate_feels_like_temperature    
+    from improver.feels_like_temperature import calculate_feels_like_temperature
     return calculate_feels_like_temperature(
         temperature, wind_speed, relative_humidity, pressure)
