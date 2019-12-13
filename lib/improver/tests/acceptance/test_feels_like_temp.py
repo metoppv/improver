@@ -52,6 +52,6 @@ def test_basic(tmp_path):
     input_paths = [kgo_dir / f"20181121T1200Z-PT0012H00M-{param}.nc"
                    for param in params]
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, output_path]
+    args = [*input_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

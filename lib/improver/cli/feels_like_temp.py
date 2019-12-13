@@ -31,47 +31,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run the feels like temperature plugin."""
 
-from improver.argparser import ArgParser
-from improver.feels_like_temperature import calculate_feels_like_temperature
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
+from improver import cli
 
 
-def main(argv=None):
-    """ Load in the arguments for feels like temperature and ensure they are
-    set correctly. Then calculate the feels like temperature using the data
-    in the input cubes."""
-    parser = ArgParser(
-        description="This calculates the feels like temperature using a "
-                    "combination of the wind chill index and Steadman's "
-                    "apparent temperature equation.")
-    parser.add_argument("temperature", metavar="TEMPERATURE",
-                        help="Path to a NetCDF file of air temperatures at "
-                        "screen level.")
-    parser.add_argument("wind_speed", metavar="WIND_SPEED",
-                        help="Path to the NetCDF file of wind speed at 10m.")
-    parser.add_argument("relative_humidity", metavar="RELATIVE_HUMIDITY",
-                        help="Path to the NetCDF file of relative humidity "
-                        "at screen level.")
-    parser.add_argument("pressure", metavar="PRESSURE",
-                        help="Path to a NetCDF file of mean sea level "
-                        "pressure.")
-    parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
-                        help="The output path for the processed NetCDF")
-
-    args = parser.parse_args(args=argv)
-    # Load Cubes
-    temperature = load_cube(args.temperature)
-    wind_speed = load_cube(args.wind_speed)
-    relative_humidity = load_cube(args.relative_humidity)
-    pressure = load_cube(args.pressure)
-    # Process Cube
-    result = process(temperature, wind_speed, relative_humidity, pressure)
-    # Save Cube
-    save_netcdf(result, args.output_filepath)
-
-
-def process(temperature, wind_speed, relative_humidity, pressure):
+@cli.clizefy
+@cli.with_output
+def process(temperature: cli.inputcube,
+            wind_speed: cli.inputcube,
+            relative_humidity: cli.inputcube,
+            pressure: cli.inputcube):
     """Calculates the feels like temperature using the data in the input cube.
 
     Calculate the feels like temperature using a combination of the wind chill
@@ -89,13 +57,13 @@ def process(temperature, wind_speed, relative_humidity, pressure):
 
     Args:
         temperature (iris.cube.Cube):
-            Cube of air temperature.
+            Cube of air temperatures at screen level
         wind_speed (iris.cube.Cube):
-            Cube of 10m wind speeds.
+            Cube of wind speed at 10m
         relative_humidity (iris.cube.Cube):
-            Cube of relative humidities
+            Cube of relative humidity at screen level
         pressure (iris.cube.Cube):
-            Cube of air pressure.
+            Cube of mean sea level pressure
 
     Returns:
         iris.cube.Cube:
@@ -103,9 +71,6 @@ def process(temperature, wind_speed, relative_humidity, pressure):
             will be the same as the units of temperature cube when it is input
             into the function.
     """
-    return calculate_feels_like_temperature(temperature, wind_speed,
-                                            relative_humidity, pressure)
-
-
-if __name__ == "__main__":
-    main()
+    from improver.feels_like_temperature import calculate_feels_like_temperature    
+    return calculate_feels_like_temperature(
+        temperature, wind_speed, relative_humidity, pressure)
