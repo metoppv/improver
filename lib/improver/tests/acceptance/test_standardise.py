@@ -144,15 +144,6 @@ def test_check_float64():
         run_cli(args)
 
 
-def test_no_output_path():
-    """Test missing output path"""
-    kgo_dir = acc.kgo_root() / "standardise/float64"
-    input_path = kgo_dir / "float64_data.nc"
-    args = [input_path, "--fix_float64"]
-    with pytest.raises(ValueError, match=".*output.*"):
-        run_cli(args)
-
-
 @pytest.mark.slow
 def test_regrid_nearest_landmask(tmp_path):
     """Test nearest neighbour regridding with land sea mask"""

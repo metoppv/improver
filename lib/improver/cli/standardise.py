@@ -141,37 +141,16 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
-    if args.target_grid_filepath or args.json_file or args.fix_float64:
-        if not args.output_filepath:
-            msg = ("An argument has been specified that requires an output "
-                   "filepath but none has been provided")
-            raise ValueError(msg)
-
-    if (args.input_landmask_filepath and
-            "nearest-with-mask" not in args.regrid_mode):
-        msg = ("Land-mask file supplied without appropriate regrid_mode. "
-               "Use --regrid_mode=nearest-with-mask.")
-        raise ValueError(msg)
-
-    if args.input_landmask_filepath and not args.target_grid_filepath:
-        msg = ("Cannot specify input_landmask_filepath without "
-               "target_grid_filepath")
-        raise ValueError(msg)
-
     # Load Cube and json
     attributes_dict = load_json_or_none(args.json_file)
     # source file data path is a mandatory argument
     source_data = load_cube(args.source_data_filepath)
     target_grid = None
-    source_landsea = None
     if args.target_grid_filepath:
         target_grid = load_cube(args.target_grid_filepath)
-        if args.regrid_mode in ["nearest-with-mask"]:
-            if not args.input_landmask_filepath:
-                msg = ("An argument has been specified that requires an input "
-                       "landmask filepath but none has been provided")
-                raise ValueError(msg)
-            source_landsea = load_cube(args.input_landmask_filepath)
+    source_landsea = None
+    if args.input_landmask_filepath:
+        source_landsea = load_cube(args.input_landmask_filepath)
 
     # Process Cube
     output_data = process(source_data, target_grid, args.regrid_mode,
@@ -264,7 +243,7 @@ def process(source_data, target_grid=None, regrid_mode='bilinear',
             If source landsea is supplied but not target grid.
         ValueError:
             If regrid_mode is "nearest-with-mask" but no landmask cube has
-            been provided (from plugin).
+            been provided.
 
     Warns:
         warning:
