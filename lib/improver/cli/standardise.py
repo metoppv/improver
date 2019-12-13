@@ -161,7 +161,7 @@ def main(argv=None):
     # Load Cube and json
     attributes_dict = load_json_or_none(args.json_file)
     # source file data path is a mandatory argument
-    output_data = load_cube(args.source_data_filepath)
+    source_data = load_cube(args.source_data_filepath)
     target_grid = None
     source_landsea = None
     if args.target_grid_filepath:
@@ -174,7 +174,7 @@ def main(argv=None):
             source_landsea = load_cube(args.input_landmask_filepath)
 
     # Process Cube
-    output_data = process(output_data, target_grid, args.regrid_mode,
+    output_data = process(source_data, target_grid, args.regrid_mode,
                           args.extrapolation_mode, source_landsea,
                           args.landmask_vicinity, args.regridded_title,
                           attributes_dict, args.coords_to_remove,
@@ -185,23 +185,21 @@ def main(argv=None):
         save_netcdf(output_data, args.output_filepath)
 
 
-def process(output_data, target_grid=None, regrid_mode='bilinear',
+def process(source_data, target_grid=None, regrid_mode='bilinear',
             extrapolation_mode='nanmask', source_landsea=None,
             landmask_vicinity=25000, regridded_title=None,
             attributes_dict=None, coords_to_remove=None, new_name=None,
             new_units=None, fix_float64=False):
     """Standardises a cube by one or more of regridding, updating meta-data etc
 
-    Standardise a source cube. Available options are regridding
-    (bi-linear or nearest-neighbour, optionally with land-mask
-    awareness), updating meta-data and converting float64 data to
-    float32. A check for float64 data compliance can be made by only
-    specifying a source cube with no other arguments.
+    Standardise a source cube. Available options are regridding (bi-linear or
+    nearest-neighbour, optionally with land-mask awareness), renaming,
+    converting units, updating attributes and / or converting float64 data to
+    float32.
 
     Args:
-        output_data (iris.cube.Cube):
-            Output cube. If the only argument, then it is checked bor float64
-            data.
+        source_data (iris.cube.Cube):
+            Source cube to be standardised
         target_grid (iris.cube.Cube):
             If specified, then regridding of the source against the target
             grid is enabled. If also using landmask-aware regridding then this
@@ -261,13 +259,12 @@ def process(output_data, target_grid=None, regrid_mode='bilinear',
 
     Raises:
         ValueError:
-            If source landsea is supplied but regrid mode not
-            nearest-with-mask.
+            If source landsea is supplied but regrid mode not nearest-with-mask.
         ValueError:
             If source landsea is supplied but not target grid.
         ValueError:
             If regrid_mode is "nearest-with-mask" but no landmask cube has
-            been provided.
+            been provided (from plugin).
 
     Warns:
         warning:
@@ -291,7 +288,7 @@ def process(output_data, target_grid=None, regrid_mode='bilinear',
         regrid_mode=regrid_mode, extrapolation_mode=extrapolation_mode,
         landmask=source_landsea, landmask_vicinity=landmask_vicinity)
     output_data = plugin.process(
-        output_data, target_grid, new_name=new_name, new_units=new_units,
+        source_data, target_grid, new_name=new_name, new_units=new_units,
         regridded_title=regridded_title, coords_to_remove=coords_to_remove,
         attributes_dict=attributes_dict, fix_float64=fix_float64)
 
