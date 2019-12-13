@@ -37,8 +37,8 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(*cubes: cli.inputcube,
-            coordinate=None,
-            central_point: float = None,
+            coordinate,
+            central_point: float,
             units=None,
             width: float = None,
             calendar='gregorian',
