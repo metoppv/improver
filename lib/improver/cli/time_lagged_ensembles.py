@@ -36,7 +36,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(*cubelist: cli.inputcube):
+def process(*cubes: cli.inputcube):
     """Module to time-lag ensembles.
 
     Combines the realization from different forecast cycles into one cube.
@@ -44,7 +44,7 @@ def process(*cubelist: cli.inputcube):
     merges them into a single cube.
 
     Args:
-        cubelist (list of iris.cube.Cube):
+        cubes (list of iris.cube.Cube):
             List of individual ensemble cubes
 
     Returns:
@@ -57,16 +57,16 @@ def process(*cubelist: cli.inputcube):
     import warnings
     from improver.utilities.time_lagging import GenerateTimeLaggedEnsemble
 
-    if len(cubelist) == 1:
+    if len(cubes) == 1:
         warnings.warn('Only a single cube input, so time lagging will have '
                       'no effect.')
-        return cubelist[0]
+        return cubes[0]
 
     # raise error if validity times are not all equal
-    time_coords = [cube.coord("time") for cube in cubelist]
+    time_coords = [cube.coord("time") for cube in cubes]
     time_coords_match = [coord == time_coords[0] for coord in time_coords]
     if not all(time_coords_match):
         raise ValueError(
             "Cubes with mismatched validity times are not compatible.")
 
-    return GenerateTimeLaggedEnsemble().process(cubelist)
+    return GenerateTimeLaggedEnsemble().process(cubes)

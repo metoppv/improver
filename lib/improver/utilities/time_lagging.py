@@ -54,6 +54,10 @@ class GenerateTimeLaggedEnsemble(BasePlugin):
 
         Args:
             cubelist (iris.cube.CubeList or list of iris.cube.Cube):
+                List of input forecasts
+
+        Returns:
+            iris.cube.Cube:
                 Concatenated forecasts
         """
         cubelist = rebadge_forecasts_as_latest_cycle(cubelist, None)
