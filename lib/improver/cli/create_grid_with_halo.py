@@ -49,7 +49,6 @@ def process(cube: cli.inputcube,
             Contains data on the source grid.
         halo_radius (float):
             Radius in metres of which to pad the input grid.
-            Default is 162,000
 
     Returns:
         iris.cube.Cube:
