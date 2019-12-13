@@ -32,143 +32,24 @@
 """Script to standardise a NetCDF file by one or more of regridding, updating
 meta-data and demoting float64 data to float32"""
 
-from improver.argparser import ArgParser
-from improver.standardise import StandardiseGridAndMetadata
-from improver.utilities.cli_utilities import load_json_or_none
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
+from improver import cli
 
 
-def main(argv=None):
-    """
-    Standardise a source cube. Available options are regridding (bilinear or
-    nearest-neighbour, optionally with land-mask awareness), updating meta-data
-    and converting float64 data to float32. A check for float64 data compliance
-    can be made by only specify a source NetCDF file with no other arguments.
-    """
-    parser = ArgParser(
-        description='Standardise a source data cube. Three main options are '
-                    'available; fixing float64 data, regridding and updating '
-                    'metadata. If regridding then additional options are '
-                    'available to use bilinear or nearest-neighbour '
-                    '(optionally with land-mask awareness) modes. If only a '
-                    'source file is specified with no other arguments, then '
-                    'an exception will be raised if float64 data are found on '
-                    'the source.')
-
-    parser.add_argument('source_data_filepath', metavar='SOURCE_DATA',
-                        help='A cube of data that is to be standardised and '
-                             'optionally fixed for float64 data, regridded '
-                             'and meta data changed')
-
-    parser.add_argument("--output_filepath", metavar="OUTPUT_FILE",
-                        default=None,
-                        help="The output path for the processed NetCDF. "
-                             "If only a source file is specified and no "
-                             "output file, then the source will be checked"
-                             "for float64 data.")
-
-    regrid_group = parser.add_argument_group("Regridding options")
-    regrid_group.add_argument(
-        "--target_grid_filepath", metavar="TARGET_GRID",
-        help=('If specified then regridding of the source '
-              'against the target grid is enabled. If also using '
-              'landmask-aware regridding, then this must be land_binary_mask '
-              'data.'))
-
-    regrid_group.add_argument(
-        "--regrid_mode", default='bilinear',
-        choices=['bilinear', 'nearest', 'nearest-with-mask'],
-        help=('Selects which regridding technique to use. Default uses '
-              'iris.analysis.Linear(); "nearest" uses Nearest() (Use for less '
-              'continuous fields, e.g. precipitation.); "nearest-with-mask" '
-              'ensures that target data are sourced from points with the same '
-              'mask value (Use for coast-line-dependent variables like '
-              'temperature).'))
-
-    regrid_group.add_argument(
-        "--extrapolation_mode", default='nanmask',
-        help='Mode to use for extrapolating data into regions '
-             'beyond the limits of the source_data domain. '
-             'Refer to online documentation for iris.analysis. '
-             'Modes are: '
-             'extrapolate - The extrapolation points will '
-             'take their value from the nearest source point. '
-             'nan - The extrapolation points will be be '
-             'set to NaN. '
-             'error - A ValueError exception will be raised, '
-             'notifying an attempt to extrapolate. '
-             'mask  - The extrapolation points will always be '
-             'masked, even if the source data is not a '
-             'MaskedArray. '
-             'nanmask - If the source data is a MaskedArray '
-             'the extrapolation points will be masked. '
-             'Otherwise they will be set to NaN. '
-             'Defaults to nanmask.')
-
-    regrid_group.add_argument(
-        "--input_landmask_filepath", metavar="INPUT_LANDMASK_FILE",
-        help=("A path to a NetCDF file describing the land_binary_mask on "
-              "the source-grid if coastline-aware regridding is required."))
-
-    regrid_group.add_argument(
-        "--landmask_vicinity", metavar="LANDMASK_VICINITY",
-        default=25000., type=float,
-        help=("Radius of vicinity to search for a coastline, in metres. "
-              "Default value; 25000 m"))
-
-    regrid_group.add_argument(
-        "--regridded_title", metavar="REGRIDDED_TITLE", default=None, type=str,
-        help="New title to be used for the regridded field.")
-
-    # metadata standardisation
-    parser.add_argument("--fix_float64", action='store_true', default=False,
-                        help="Check and fix cube for float64 data. Without "
-                             "this option an exception will be raised if "
-                             "float64 data is found but no fix applied.")
-    parser.add_argument("--json_file", metavar="JSON_FILE", default=None,
-                        help='Filename for the json file containing required '
-                             'changes that will be applied '
-                             'to the attributes. Defaults to None.')
-    parser.add_argument("--coords_to_remove", metavar="COORDS_TO_REMOVE",
-                        nargs="+", type=str, default=None,
-                        help="List of names of scalar coordinates to be "
-                             "removed from the non-standard input.")
-    parser.add_argument("--new_name", metavar="NEW_NAME", type=str,
-                        default=None, help="New dataset name.")
-    parser.add_argument("--new_units", metavar="NEW_UNITS", type=str,
-                        default=None, help="Units to convert to.")
-
-    args = parser.parse_args(args=argv)
-
-    # Load Cube and json
-    attributes_dict = load_json_or_none(args.json_file)
-    # source file data path is a mandatory argument
-    source_data = load_cube(args.source_data_filepath)
-    target_grid = None
-    if args.target_grid_filepath:
-        target_grid = load_cube(args.target_grid_filepath)
-    source_landsea = None
-    if args.input_landmask_filepath:
-        source_landsea = load_cube(args.input_landmask_filepath)
-
-    # Process Cube
-    output_data = process(source_data, target_grid, args.regrid_mode,
-                          args.extrapolation_mode, source_landsea,
-                          args.landmask_vicinity, args.regridded_title,
-                          attributes_dict, args.coords_to_remove,
-                          args.new_name, args.new_units, args.fix_float64)
-
-    # Save Cube
-    if args.output_filepath:
-        save_netcdf(output_data, args.output_filepath)
-
-
-def process(source_data, target_grid=None, regrid_mode='bilinear',
-            extrapolation_mode='nanmask', source_landsea=None,
-            landmask_vicinity=25000, regridded_title=None,
-            attributes_dict=None, coords_to_remove=None, new_name=None,
-            new_units=None, fix_float64=False):
+@cli.clizefy
+@cli.with_output
+def process(source_data: cli.inputcube,
+            *,
+            target_grid: cli.inputcube = None,
+            source_landmask: cli.inputcube = None,
+            regrid_mode='bilinear',
+            extrapolation_mode='nanmask',
+            landmask_vicinity=25000.,
+            regridded_title: str = None,
+            attributes_dict: cli.inputjson = None,
+            coords_to_remove=None,  # TODO this does not work yet (nargs=+ str)
+            new_name: str = None,
+            new_units: str = None,
+            fix_float64=False):
     """Standardises a cube by one or more of regridding, updating meta-data etc
 
     Standardise a source cube. Available options are regridding (bi-linear or
@@ -179,11 +60,13 @@ def process(source_data, target_grid=None, regrid_mode='bilinear',
     Args:
         source_data (iris.cube.Cube):
             Source cube to be standardised
-        target_grid (iris.cube.Cube):
+        target_grid (iris.cube.Cube or None):
             If specified, then regridding of the source against the target
             grid is enabled. If also using landmask-aware regridding then this
-            must be land_binary_mask data.
-            Default is None.
+            must be land_binary_mask data. Default is None.
+        source_landmask (iris.cube.Cube or None):
+            A cube describing the land_binary_mask on the source-grid if
+            coastline-aware regridding is required. Default is None.
         regrid_mode (str):
             Selects which regridding techniques to use. Default uses
             iris.analysis.Linear(); "nearest" uses Nearest() (Use for less
@@ -205,11 +88,7 @@ def process(source_data, target_grid=None, regrid_mode='bilinear',
             the source data is not a MaskedArray.
             nanmask - If the source data is a MaskedArray the extrapolation
             points will be masked. Otherwise they will be set to NaN.
-            Defaults is 'nanmask'.
-        source_landsea (iris.cube.Cube):
-            A cube describing the land_binary_mask on the source-grid if
-            coastline-aware regridding is required.
-            Default is None.
+            Default is 'nanmask'.
         landmask_vicinity (float):
             Radius of vicinity to search for a coastline, in metres.
             Defaults is 25000 m
@@ -238,41 +117,33 @@ def process(source_data, target_grid=None, regrid_mode='bilinear',
 
     Raises:
         ValueError:
-            If source landsea is supplied but regrid mode not nearest-with-mask.
+            If source landmask is supplied but regrid mode is not
+            "nearest-with-mask".
         ValueError:
-            If source landsea is supplied but not target grid.
+            If source landmask is supplied without target grid.
         ValueError:
-            If regrid_mode is "nearest-with-mask" but no landmask cube has
-            been provided.
-
-    Warns:
-        warning:
-            If the 'source_landsea' did not have a cube named land_binary_mask.
-        warning:
-            If the 'target_grid' did not have a cube named land_binary_mask.
-
+            If regrid_mode is "nearest-with-mask" but no source landmask is
+            provided (from plugin).
     """
-    if (source_landsea and
+    from improver.standardise import StandardiseGridAndMetadata
+
+    if (source_landmask and
             "nearest-with-mask" not in regrid_mode):
-        msg = ("Land-mask file supplied without appropriate regrid_mode. "
-               "Use --regrid_mode=nearest-with-mask.")
+        msg = ("Land-mask file supplied without appropriate regrid-mode. "
+               "Use --regrid-mode nearest-with-mask.")
         raise ValueError(msg)
 
-    if source_landsea and not target_grid:
+    if source_landmask and not target_grid:
         msg = ("Cannot specify input_landmask_filepath without "
                "target_grid_filepath")
         raise ValueError(msg)
 
     plugin = StandardiseGridAndMetadata(
         regrid_mode=regrid_mode, extrapolation_mode=extrapolation_mode,
-        landmask=source_landsea, landmask_vicinity=landmask_vicinity)
+        landmask=source_landmask, landmask_vicinity=landmask_vicinity)
     output_data = plugin.process(
         source_data, target_grid, new_name=new_name, new_units=new_units,
         regridded_title=regridded_title, coords_to_remove=coords_to_remove,
         attributes_dict=attributes_dict, fix_float64=fix_float64)
 
     return output_data
-
-
-if __name__ == "__main__":
-    main()
