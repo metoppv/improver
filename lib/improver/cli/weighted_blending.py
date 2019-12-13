@@ -132,12 +132,11 @@ def process(*cubelist: cli.inputcube,
         RuntimeError:
             If calc_method is dict and weights_dict is None.
     """
-    import numpy as np
     from improver.blending.calculate_weights_and_blend import WeightAndBlend
 
     if (wts_calc_method == "linear") and cval:
         raise RuntimeError('Method: linear does not accept arguments: cval')
-    elif (wts_calc_method == "nonlinear") and np.any([y0val, ynval]):
+    elif (wts_calc_method == "nonlinear") and any([y0val, ynval]):
         raise RuntimeError('Method: non-linear does not accept arguments:'
                            ' y0val, ynval')
     elif (wts_calc_method == "dict") and wts_dict is None:
