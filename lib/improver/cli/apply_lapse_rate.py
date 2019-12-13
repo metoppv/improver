@@ -56,10 +56,7 @@ def process(temperature: cli.inputcube,
         iris.cube.Cube:
             temperature Cube after lapse rate adjustment has been applied.
     """
-    from improver.argparser import ArgParser
     from improver.lapse_rate import apply_gridded_lapse_rate
-    from improver.utilities.load import load_cube
-    from improver.utilities.save import save_netcdf
 
     # apply lapse rate to temperature data
     result = apply_gridded_lapse_rate(
