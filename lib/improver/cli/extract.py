@@ -33,12 +33,13 @@
 
 from improver import cli
 
+
 @cli.clizefy
 @cli.with_output
 def process(cube: cli.inputcube,
             constraints: cli.comma_separated_list,
             *,
-            units: cli.comma_separated_list=None,
+            units: cli.comma_separated_list = None,
             ignore_failure=False):
     """ Extract a subset of a single cube.
 
@@ -89,5 +90,6 @@ def process(cube: cli.inputcube,
         raise ValueError(msg)
     return result
 
+
 if __name__ == '__main__':
-    main()
+    process()
