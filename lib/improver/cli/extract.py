@@ -31,59 +31,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to extract a subset of input file data, given constraints."""
 
-from improver.argparser import ArgParser
-from improver.utilities.cube_extraction import extract_subcube
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
+from improver import cli
 
-
-def main(argv=None):
-    """Invoke data extraction."""
-
-    parser = ArgParser(description='Extracts subset of data from a single '
-                       'input file, subject to equality-based constraints.')
-    parser.add_argument('input_file', metavar='INPUT_FILE',
-                        help="File containing a dataset to extract from.")
-    parser.add_argument('output_file', metavar='OUTPUT_FILE',
-                        help="File to write the extracted dataset to.")
-    parser.add_argument('constraints', metavar='CONSTRAINTS', nargs='+',
-                        help='The constraint(s) to be applied.  These must be'
-                        ' of the form "key=value", eg "threshold=1".  Scalars'
-                        ', boolean and string values are supported.  Comma-'
-                        'separated lists (eg "key=[value1,value2]") are '
-                        'supported. These comma-separated lists can either '
-                        'extract all values specified in the list or '
-                        'all values specified within a range e.g. '
-                        'key=[value1:value2]. When a range is specified, '
-                        'this is inclusive of the endpoints of the range.')
-    parser.add_argument('--units', metavar='UNITS', nargs='+', default=None,
-                        help='Optional: units of coordinate constraint(s) to '
-                        'be applied, for use when the input coordinate '
-                        'units are not ideal (eg for float equality). If '
-                        'used, this list must match the CONSTRAINTS list in '
-                        'order and length (with null values set to None).')
-    parser.add_argument('--ignore-failure', action='store_true', default=False,
-                        help='Option to ignore constraint match failure and '
-                        'return the input cube.')
-    args = parser.parse_args(args=argv)
-
-    # Load Cube
-    cube = load_cube(args.input_file)
-
-    # Process Cube
-    output_cube = process(cube, args.constraints, args.units)
-
-    # Save Cube
-    if output_cube is None and args.ignore_failure:
-        save_netcdf(cube, args.output_file)
-    elif output_cube is None:
-        msg = "Constraint(s) could not be matched in input cube"
-        raise ValueError(msg)
-    else:
-        save_netcdf(output_cube, args.output_file)
-
-
-def process(cube, constraints, units=None):
+@cli.clizefy
+@cli.with_output
+def process(cube: cli.inputcube,
+            constraints: cli.comma_separated_list,
+            *,
+            units: cli.comma_separated_list=None,
+            ignore_failure=False):
     """ Extract a subset of a single cube.
 
     Extracts subset of data from a single cube, subject to equality-based
@@ -96,27 +52,42 @@ def process(cube, constraints, units=None):
             The Cube from which a sub-cube is extracted
         constraints (list):
             The constraint(s) to be applied.  These must be of the form
-            "key=value", eg "threshold=1".  Scalars, boolean and string
-            values are supported.  Comma-separated lists
-            e.g. key=[value1,value2,value3]
-            are supported.
-            These comma-separated lists can either extract all values
-            specified in the list or all values specified within a range
-            e.g. key=[value1:value3].
+            "key=value", eg "threshold=1". Multiple constraints can be
+            specified using a comma separated list (no spaces), e.g.
+            threshold=1,wind_speed=10. Scalars, boolean and string
+            values are supported. Lists of values can be provided
+            e.g. key=[value1&value2&value3]. Alternatively, ranges can also be
+            specified e.g. key=[value1:value3].
             When a range is specified, this is inclusive of the endpoints of
             the range.
         units (list):
             List of units as strings corresponding to each coordinate in the
             list of constraints. One or more "units" may be None and units may
             only be associated with coordinate constraints.
+        ignore_failure (bool):
+            Option to ignore constraint match failure and return the input
+            cube.
+            Default is false.
 
     Returns:
         iris.cube.Cube:
             A single cube matching the input constraints or None. If no
             sub-cube is found within the cube that matches the constraints.
     """
-    return extract_subcube(cube, constraints, units)
+    from improver.utilities.cube_extraction import extract_subcube
 
+    constraints = [item.replace('&', ', ') for item in constraints]
+    if units is not None:
+        units = [item.replace('&', ', ') for item in units]
+
+    result = extract_subcube(cube, constraints, units)
+
+    if result is None and ignore_failure:
+        return cube
+    elif result is None:
+        msg = "Constraint(s) could not be matched in input cube"
+        raise ValueError(msg)
+    return result
 
 if __name__ == '__main__':
     main()
