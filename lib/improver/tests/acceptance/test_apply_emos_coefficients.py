@@ -47,8 +47,10 @@ def test_gaussian(tmp_path):
     emos_est_dir = kgo_dir / "../../estimate-emos-coefficients"
     emos_est_path = emos_est_dir / "gaussian/kgo.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, emos_est_path, output_path,
-            "norm", "--random_seed", "0"]
+    args = [input_path, emos_est_path,
+            "--distribution", "norm",
+            "--random-seed", "0",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path,
                 atol=acc.LOOSE_TOLERANCE, rtol=None)
@@ -62,9 +64,11 @@ def test_truncated_gaussian(tmp_path):
     emos_est_dir = kgo_dir / "../../estimate-emos-coefficients"
     emos_est_path = emos_est_dir / "truncated_gaussian/kgo.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, emos_est_path, output_path,
-            "truncnorm", "--random_seed", "0",
-            "--shape_parameters", "0", "inf"]
+    args = [input_path, emos_est_path,
+            "--distribution", "truncnorm",
+            "--random-seed", "0",
+            "--shape-parameters", "0,inf",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path,
                 atol=acc.LOOSE_TOLERANCE, rtol=None)
@@ -78,9 +82,11 @@ def predictor_of_mean(tmp_path, status):
     emos_est_dir = kgo_dir / "../../estimate-emos-coefficients"
     emos_est_path = emos_est_dir / f"realizations/{status}_statsmodels_kgo.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, emos_est_path, output_path,
-            "norm", "--predictor_of_mean", "realizations",
-            "--random_seed", "0"]
+    args = [input_path, emos_est_path,
+            "--distribution", "norm",
+            "--predictor-of-mean", "realizations",
+            "--random-seed", "0",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path,
                 atol=acc.LOOSE_TOLERANCE, rtol=None)
@@ -108,8 +114,10 @@ def test_probabilities(tmp_path):
     emos_est_dir = kgo_dir / "../../estimate-emos-coefficients"
     emos_est_path = emos_est_dir / "gaussian/kgo.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, emos_est_path, output_path,
-            "norm", "--num_realizations=18"]
+    args = [input_path, emos_est_path,
+            "--distribution", "norm",
+            "--num-realizations", "18",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path,
                 atol=acc.LOOSE_TOLERANCE, rtol=None)
@@ -122,7 +130,9 @@ def test_probabilities_error(tmp_path):
     emos_est_dir = kgo_dir / "../../estimate-emos-coefficients"
     emos_est_path = emos_est_dir / "gaussian/kgo.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, emos_est_path, output_path, "norm"]
+    args = [input_path, emos_est_path,
+            "--distribution", "norm",
+            "--output", output_path]
     with pytest.raises(ValueError, match=".*provided as probabilities.*"):
         run_cli(args)
 
@@ -135,8 +145,10 @@ def test_percentiles(tmp_path):
     emos_est_dir = kgo_dir / "../../estimate-emos-coefficients"
     emos_est_path = emos_est_dir / "gaussian/kgo.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, emos_est_path, output_path,
-            "norm", "--num_realizations=18"]
+    args = [input_path, emos_est_path,
+            "--distribution", "norm",
+            "--num-realizations", "18",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path,
                 atol=acc.LOOSE_TOLERANCE, rtol=None)
@@ -149,7 +161,9 @@ def test_percentiles_error(tmp_path):
     emos_est_dir = kgo_dir / "../../estimate-emos-coefficients"
     emos_est_path = emos_est_dir / "gaussian/kgo.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, emos_est_path, output_path, "norm"]
+    args = [input_path, emos_est_path,
+            "--distribution", "norm",
+            "--output", output_path]
     with pytest.raises(ValueError):
         run_cli(args)
 
@@ -161,10 +175,10 @@ def test_rebadged_percentiles(tmp_path):
     emos_est_dir = kgo_dir / "../../estimate-emos-coefficients"
     emos_est_path = emos_est_dir / "gaussian/kgo.nc"
     output_path = tmp_path / "output.nc"
-    args = [kgo_dir / "../rebadged_percentiles/input.nc",
-            emos_est_path,
-            output_path,
-            "norm", "--num_realizations=18"]
+    args = [kgo_dir / "../rebadged_percentiles/input.nc", emos_est_path,
+            "--distribution", "norm",
+            "--num-realizations", "18",
+            "--output", output_path]
     run_cli(args)
     # The known good output in this case is the same as when passing in
     # percentiles directly, apart from a difference in the coordinates, such
@@ -180,7 +194,10 @@ def test_no_coefficients(tmp_path):
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/gaussian"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, output_path, "norm", "--random_seed", "0"]
+    args = [input_path,
+            "--distribution", "norm",
+            "--random-seed", "0",
+            "--output", output_path]
     with pytest.warns(UserWarning, match=".*no coefficients provided.*"):
         run_cli(args)
     acc.compare(output_path, input_path, recreate=False,
@@ -192,7 +209,10 @@ def test_wrong_coefficients(tmp_path):
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/gaussian"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, input_path, output_path, "norm", "--random_seed", "0"]
+    args = [input_path, input_path,
+            "--distribution", "norm",
+            "--random-seed", "0",
+            "--output", output_path]
     with pytest.raises(ValueError, match=".*coefficients cube.*"):
         run_cli(args)
 
@@ -202,6 +222,9 @@ def test_wrong_forecast(tmp_path):
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/gaussian"
     kgo_path = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"
-    args = [kgo_path, kgo_path, output_path, "norm", "--random_seed", "0"]
+    args = [kgo_path, kgo_path,
+            "--distribution", "norm",
+            "--random-seed", "0",
+            "--output", output_path]
     with pytest.raises(ValueError, match=".*forecast cube.*"):
         run_cli(args)
