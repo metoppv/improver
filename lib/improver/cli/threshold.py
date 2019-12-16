@@ -114,13 +114,7 @@ def main(argv=None):
 
     args = parser.parse_args(args=argv)
 
-    # Deal with mutual-exclusions that ArgumentParser can't handle:
-    if args.threshold_values and args.threshold_config:
-        raise parser.error("--threshold_config option is not compatible "
-                           "with THRESHOLD_VALUES list.")
-    if args.fuzzy_factor and args.threshold_config:
-        raise parser.error("--threshold_config option is not compatible "
-                           "with --fuzzy_factor option.")
+
 
     # Load Cube
     cube = load_cube(args.input_filepath)
@@ -140,7 +134,7 @@ def main(argv=None):
     save_netcdf(result, args.output_filepath)
 
 
-def process(cube, threshold_values=None, threshold_dict=None,
+def process(cube, threshold_values=None, threshold_config=None,
             threshold_units=None, comparison_operator='>',
             fuzzy_factor=None,
             collapse_coord="None", vicinity=None):
@@ -155,13 +149,13 @@ def process(cube, threshold_values=None, threshold_dict=None,
 
     Args:
         cube (iris.cube.Cube):
-             A cube to be processed.
+            A cube to be processed.
         threshold_values (float):
             Threshold value or values about which to calculate the truth
             values; e.g. 270 300. Must be omitted if 'threshold_config'
             is used.
             Default is None.
-        threshold_dict (dict):
+        threshold_config (dict):
             Threshold configuration containing threshold values and
             (optionally) fuzzy bounds. Best used in combination with
             'threshold_units' It should contain a dictionary of strings that
@@ -192,7 +186,7 @@ def process(cube, threshold_values=None, threshold_dict=None,
             Fuzzy factor must be in the range 0-1, with higher values
             indicating a narrower fuzzy factor region / sharper threshold.
             N.B. A fuzzy factor cannot be used with a zero threshold or a
-            threshold_dict.
+            threshold_config file.
         collapse_coord (str):
             An optional ability to set which coordinate we want to collapse
             over. The default is set to None.
@@ -205,31 +199,38 @@ def process(cube, threshold_values=None, threshold_dict=None,
             processed Cube.
 
     Raises:
-        RuntimeError:
-            If threshold_dict and threshold_values are both used.
+        ValueError:
+            If threshold_config and threshold_values are both set.
+        ValueError:
+            If threshold_config is used for fuzzy thresholding
 
      Warns:
         warning:
             If collapsing coordinates with a masked array.
 
     """
-    if threshold_dict and threshold_values:
-        raise RuntimeError('threshold_dict cannot be used '
-                           'with threshold_values')
-    if threshold_dict:
+    if threshold_config and threshold_values:
+        raise ValueError(
+            "--threshold-config and --threshold-values are mutually exclusive "
+            "- please set one or the other, not both")
+    if threshold_config and fuzzy_factor:
+        raise ValueError(
+            "--threshold-config cannot be used for fuzzy thresholding")
+
+    if threshold_config:
         thresholds = []
         fuzzy_bounds = []
         is_fuzzy = True
-        for key in threshold_dict.keys():
+        for key in threshold_config.keys():
             thresholds.append(float(key))
             if is_fuzzy:
                 # If the first threshold has no bounds, fuzzy_bounds is
                 # set to None and subsequent bounds checks are skipped
-                if threshold_dict[key] == "None":
+                if threshold_config[key] == "None":
                     is_fuzzy = False
                     fuzzy_bounds = None
                 else:
-                    fuzzy_bounds.append(tuple(threshold_dict[key]))
+                    fuzzy_bounds.append(tuple(threshold_config[key]))
     else:
         thresholds = threshold_values
         fuzzy_bounds = None
