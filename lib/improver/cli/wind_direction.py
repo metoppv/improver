@@ -64,14 +64,6 @@ def process(wind_direction: cli.inputcube,
     """
     from improver.wind_calculations.wind_direction import WindDirection
 
-    # The plugin currently returns 3 cubes - the r_vals and confidence_measure
-    # cubes currently only contain experimental data to be used for further
-    # research. Details are retained here pending future work.
-    # cube_r_vals (numpy.ndarray) - 3D array - Radius taken from average
-    # complex wind direction angle.
-    # cube_confidence_measure (numpy.ndarray) - 3D array - The average distance
-    # from mean normalised - used as a confidence value.
-
     result, _, _ = (
         WindDirection(backup_method=backup_method).process(wind_direction))
     return result
