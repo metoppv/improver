@@ -53,17 +53,19 @@ def process(cube: cli.inputcube,
         cube (iris.cube.Cube):
             The Cube from which a sub-cube is extracted
         constraints (list):
-            The constraint(s) to be applied.  These must be of the form
-            "key=value", eg "threshold=1". Scalars, boolean and string
+            The constraint(s) to be applied. These must be of the form
+            "key=value", eg "threshold=1". Multiple constraints can be provided
+            by repeating this keyword before each. Scalars, boolean and string
             values are supported. Lists of values can be provided
-            e.g. key=[value1,value2,value3]. Alternatively, ranges can also be
-            specified e.g. key=[value1:value3].
+            e.g. key=[value1, value2, value3]. Alternatively, ranges can also
+            be specified e.g. key=[value1:value3].
             When a range is specified, this is inclusive of the endpoints of
             the range.
         units (list):
             List of units as strings corresponding to each coordinate in the
             list of constraints. One or more "units" may be None and units may
-            only be associated with coordinate constraints.
+            only be associated with coordinate constraints. The list should be
+            entered as a comman separated list without spaces, e.g. mm/hr,K.
         ignore_failure (bool):
             Option to ignore constraint match failure and return the input
             cube.

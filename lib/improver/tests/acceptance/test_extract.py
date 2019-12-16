@@ -114,7 +114,7 @@ def test_list_constraints(tmp_path):
     input_path = kgo_dir / "../basic/input.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path,
-            "--constraints", "wind_speed=[20,30]",
+            "--constraints", "wind_speed=[20, 30]",
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
