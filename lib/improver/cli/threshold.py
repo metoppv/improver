@@ -125,20 +125,10 @@ def main(argv=None):
     # Load Cube
     cube = load_cube(args.input_filepath)
     threshold_dict = None
+
     if args.threshold_config:
-        try:
-            # Read in threshold configuration from JSON file.
-            with open(args.threshold_config, 'r') as input_file:
-                threshold_dict = json.load(input_file)
-        except ValueError as err:
-            # Extend error message with hint for common JSON error.
-            raise type(err)("{} in JSON file {}. \nHINT: Try "
-                            "adding a zero after the decimal point.".
-                            format(err, args.threshold_config))
-        except Exception as err:
-            # Extend any errors with message about WHERE this occurred.
-            raise type(err)("{} in JSON file {}".format(
-                err, args.threshold_config))
+        with open(args.threshold_config, 'r') as input_file:
+            threshold_dict = json.load(input_file)
 
     # Process Cube
     result = process(cube, args.threshold_values, threshold_dict,
@@ -227,28 +217,19 @@ def process(cube, threshold_values=None, threshold_dict=None,
         raise RuntimeError('threshold_dict cannot be used '
                            'with threshold_values')
     if threshold_dict:
-        try:
-            thresholds = []
-            fuzzy_bounds = []
-            is_fuzzy = True
-            for key in threshold_dict.keys():
-                thresholds.append(float(key))
-                if is_fuzzy:
-                    # If the first threshold has no bounds, fuzzy_bounds is
-                    # set to None and subsequent bounds checks are skipped
-                    if threshold_dict[key] == "None":
-                        is_fuzzy = False
-                        fuzzy_bounds = None
-                    else:
-                        fuzzy_bounds.append(tuple(threshold_dict[key]))
-        except ValueError as err:
-            # Extend error message with hint for common JSON error.
-            raise type(err)(
-                "{} in threshold dictionary file. \nHINT: Try adding a zero "
-                "after the decimal point.".format(err))
-        except Exception as err:
-            # Extend any errors with message about WHERE this occurred.
-            raise type(err)("{} in dictionary file.".format(err))
+        thresholds = []
+        fuzzy_bounds = []
+        is_fuzzy = True
+        for key in threshold_dict.keys():
+            thresholds.append(float(key))
+            if is_fuzzy:
+                # If the first threshold has no bounds, fuzzy_bounds is
+                # set to None and subsequent bounds checks are skipped
+                if threshold_dict[key] == "None":
+                    is_fuzzy = False
+                    fuzzy_bounds = None
+                else:
+                    fuzzy_bounds.append(tuple(threshold_dict[key]))
     else:
         thresholds = threshold_values
         fuzzy_bounds = None
