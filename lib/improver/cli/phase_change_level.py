@@ -40,6 +40,7 @@ def process(wet_bulb_temperature: cli.inputcube,
             wet_bulb_integral: cli.inputcube,
             orography: cli.inputcube,
             land_sea: cli.inputcube,
+            *,
             phase_change):
     """Calculate a continuous field of heights relative to sea level
     at which a phase change of precipitation is expected.
