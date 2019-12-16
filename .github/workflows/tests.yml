@@ -23,3 +23,6 @@ jobs:
       
     - name: Pytest (Unit tests)
       run:  $CONDA/bin/pytest -m "not acc"
+
+    - name: Pylint (More linting goodness)
+      run: $CONDA/bin/pylint -j 0 -E --rcfile=etc/pylintrc lib
