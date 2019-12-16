@@ -30,11 +30,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for utilities.cli_utilities."""
 
+import os
+import numpy as np
 import unittest
 from unittest.mock import patch, mock_open
+from tempfile import mkdtemp
 
+from improver.utilities.load import load_cube
+from improver.utilities.save import save_netcdf
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cli_utilities import (radius_or_radii_and_lead,
-                                              load_json_or_none)
+                                              load_json_or_none,
+                                              make_cubes_non_lazy)
 
 
 class Test_load_json_or_none(unittest.TestCase):
@@ -94,6 +101,36 @@ class Test_radius_or_radii_and_lead(unittest.TestCase):
                "Only one option should be specified.")
         with self.assertRaisesRegex(TypeError, msg):
             radius_or_radii_and_lead(radius, radii_lead)
+
+
+class Test_make_cubes_non_lazy(unittest.TestCase):
+    """Tests make_cubes_non_lazy loads cubes data."""
+
+    def setUp(self):
+        self.directory = mkdtemp()
+        self.filepath = os.path.join(self.directory, "temp.nc")
+        cube = set_up_variable_cube(np.ones((3, 3), dtype=np.float32))
+        save_netcdf(cube, self.filepath)
+        self.cube = load_cube(self.filepath)
+
+    def test_single_cube_made_non_lazy(self):
+        """Test that a single cube which initially contains lazy data is loaded
+        fully by use of the make_cubes_non_lazy function."""
+
+        self.assertTrue(self.cube.has_lazy_data())
+        make_cubes_non_lazy(self.cube)
+        self.assertFalse(self.cube.has_lazy_data())
+
+    def test_multiple_cubes_made_non_lazy(self):
+        """Test that a list of cubes which initially contain lazy data are
+        loaded fully by use of the make_cubes_non_lazy function."""
+
+        cubes = [self.cube.copy(), self.cube.copy()]
+        self.assertTrue(cubes[0].has_lazy_data())
+        self.assertTrue(cubes[1].has_lazy_data())
+        make_cubes_non_lazy(cubes)
+        self.assertFalse(cubes[0].has_lazy_data())
+        self.assertFalse(cubes[1].has_lazy_data())
 
 
 if __name__ == '__main__':

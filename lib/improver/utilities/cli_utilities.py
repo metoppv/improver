@@ -93,3 +93,17 @@ def radius_or_radii_and_lead(radius=None, radii_by_lead_time=None):
         lead_times = radii_by_lead_time[1].split(",")
 
     return radius_or_radii, lead_times
+
+
+def make_cubes_non_lazy(cubes):
+    """Touches the data on all input cubes to ensure they are loaded in full
+    and not accessed using lazy data.
+
+    Args:
+        cubes (list of iris.cube.Cube or iris.cube.Cube):
+            A list of cubes to be made non-lazy.
+    """
+    if not isinstance(cubes, list):
+        cubes = [cubes]
+    for cube in cubes:
+        cube.data
