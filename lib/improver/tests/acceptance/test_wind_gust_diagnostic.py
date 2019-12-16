@@ -46,7 +46,7 @@ def test_average_wind_gust(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [kgo_dir / "wind_gust_perc.nc",
             kgo_dir / "wind_speed_perc.nc",
-            output_path]
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -56,9 +56,9 @@ def test_extreme_wind_gust(tmp_path):
     kgo_dir = acc.kgo_root() / "wind-gust-diagnostic/basic"
     kgo_path = kgo_dir / "kgo_extreme_wind_gust.nc"
     output_path = tmp_path / "output.nc"
-    args = ["--percentile_gust=95.0", "--percentile_ws=100.0",
-            kgo_dir / "wind_gust_perc.nc",
+    args = [kgo_dir / "wind_gust_perc.nc",
             kgo_dir / "wind_speed_perc.nc",
-            output_path]
+            "--percentile-gust", "95.0", "--percentile-ws", "100.0",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
