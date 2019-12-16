@@ -31,113 +31,20 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to apply thresholding to a parameter dataset."""
 
-import json
-import warnings
-
-import numpy as np
-
-from improver.argparser import ArgParser
-from improver.blending.calculate_weights_and_blend import WeightAndBlend
-from improver.metadata.probabilistic import in_vicinity_name_format
-from improver.threshold import BasicThreshold
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
-from improver.utilities.spatial import OccurrenceWithinVicinity
+from improver import cli
 
 
-def main(argv=None):
-    """Load in arguments and get going."""
-    parser = ArgParser(
-        description="Calculate the threshold truth value of input data "
-        "relative to the provided threshold value. By default data are "
-        "tested to be above the thresholds, though the --below_threshold "
-        "flag enables testing below thresholds. A fuzzy factor or fuzzy "
-        "bounds may be provided to capture data that is close to the "
-        "threshold.")
-    parser.add_argument("input_filepath", metavar="INPUT_FILE",
-                        help="A path to an input NetCDF file to be processed")
-    parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
-                        help="The output path for the processed NetCDF")
-    parser.add_argument("threshold_values", metavar="THRESHOLD_VALUES",
-                        nargs="*", type=float,
-                        help="Threshold value or values about which to "
-                        "calculate the truth values; e.g. 270 300. "
-                        "Must be omitted if --threshold_config is used.")
-    parser.add_argument("--threshold_config", metavar="THRESHOLD_CONFIG",
-                        type=str,
-                        help="Threshold configuration JSON file containing "
-                        "thresholds and (optionally) fuzzy bounds. Best used "
-                        "in combination  with --threshold_units. "
-                        "It should contain a dictionary of strings that can "
-                        "be interpreted as floats with the structure: "
-                        " \"THRESHOLD_VALUE\": [LOWER_BOUND, UPPER_BOUND] "
-                        "e.g: {\"280.0\": [278.0, 282.0], "
-                        "\"290.0\": [288.0, 292.0]}, or with structure "
-                        " \"THRESHOLD_VALUE\": \"None\" (no fuzzy bounds). "
-                        "Repeated thresholds with different bounds are not "
-                        "handled well. Only the last duplicate will be used.")
-    parser.add_argument("--threshold_units", metavar="THRESHOLD_UNITS",
-                        default=None, type=str,
-                        help="Units of the threshold values. If not provided "
-                        "the units are assumed to be the same as those of the "
-                        "input dataset. Specifying the units here will allow "
-                        "a suitable conversion to match the input units if "
-                        "possible.")
-    parser.add_argument("--comparison_operator", metavar="COMPARISON_OPERATOR",
-                        default='>', choices=['>', '>=', '<', '<=',
-                                              'gt', 'ge', 'lt', 'le'],
-                        help="Indicates the comparison_operator to use with "
-                        "the threshold. e.g. 'ge' or '>=' to evaluate data "
-                        ">= threshold or '<' to evaluate data < threshold. "
-                        "When using fuzzy thresholds, there is no difference "
-                        "between < and <= or > and >=."
-                        "Default is >. Valid choices: > >= < <= gt ge lt le.")
-    parser.add_argument("--fuzzy_factor", metavar="FUZZY_FACTOR",
-                        default=None, type=float,
-                        help="A decimal fraction defining the factor about "
-                        "the threshold value(s) which should be treated as "
-                        "fuzzy. Data which fail a test against the hard "
-                        "threshold value may return a fractional truth value "
-                        "if they fall within this fuzzy factor region. Fuzzy "
-                        "factor must be in the range 0-1, with higher values "
-                        "indicating a narrower fuzzy factor region / sharper "
-                        "threshold. NB A fuzzy factor cannot be used with a "
-                        "zero threshold or a threshold_config file.")
-    parser.add_argument("--collapse-coord", type=str,
-                        metavar="COLLAPSE-COORD", default="None",
-                        help="An optional ability to set which coordinate "
-                        "we want to collapse over. The default is set "
-                        "to None.")
-    parser.add_argument("--vicinity", type=float, default=None, help="If set,"
-                        " distance in metres used to define the vicinity "
-                        "within which to search for an occurrence.")
-
-    args = parser.parse_args(args=argv)
-
-
-
-    # Load Cube
-    cube = load_cube(args.input_filepath)
-    threshold_dict = None
-
-    if args.threshold_config:
-        with open(args.threshold_config, 'r') as input_file:
-            threshold_dict = json.load(input_file)
-
-    # Process Cube
-    result = process(cube, args.threshold_values, threshold_dict,
-                     args.threshold_units,
-                     args.comparison_operator,
-                     args.fuzzy_factor,
-                     args.collapse_coord, args.vicinity)
-    # Save Cube
-    save_netcdf(result, args.output_filepath)
-
-
-def process(cube, threshold_values=None, threshold_config=None,
-            threshold_units=None, comparison_operator='>',
-            fuzzy_factor=None,
-            collapse_coord="None", vicinity=None):
+@cli.clizefy
+@cli.with_output
+def process(cube: cli.inputcube,
+            *,
+            threshold_values: cli.comma_separated_list = None,
+            threshold_config: cli.inputjson = None,
+            threshold_units: str = None,
+            comparison_operator='>',
+            fuzzy_factor: float = None,
+            collapse_coord: str = None,
+            vicinity: float = None):
     """Module to apply thresholding to a parameter dataset.
 
     Calculate the threshold truth values of input data relative to the
@@ -154,7 +61,6 @@ def process(cube, threshold_values=None, threshold_config=None,
             Threshold value or values about which to calculate the truth
             values; e.g. 270 300. Must be omitted if 'threshold_config'
             is used.
-            Default is None.
         threshold_config (dict):
             Threshold configuration containing threshold values and
             (optionally) fuzzy bounds. Best used in combination with
@@ -162,11 +68,9 @@ def process(cube, threshold_values=None, threshold_config=None,
             can be interpreted as floats with the structure:
             "THRESHOLD_VALUE": [LOWER_BOUND, UPPER_BOUND]
             e.g: {"280.0": [278.0, 282.0], "290.0": [288.0, 292.0]},
-            or with structure
-            "THRESHOLD_VALUE": "None" (no fuzzy bounds).
-            Repeated thresholds with different bounds are not
-            handled well. Only the last duplicate will be used.
-            Default is None.
+            or with structure "THRESHOLD_VALUE": "None" (no fuzzy bounds).
+            Repeated thresholds with different bounds are ignored; only the
+            last duplicate will be used.
         threshold_units (str):
             Units of the threshold values. If not provided the units are
             assumed to be the same as those of the input cube. Specifying
@@ -189,26 +93,31 @@ def process(cube, threshold_values=None, threshold_config=None,
             threshold_config file.
         collapse_coord (str):
             An optional ability to set which coordinate we want to collapse
-            over. The default is set to None.
+            over.
         vicinity (float):
-            If True, distance in metres used to define the vicinity within
-            which to search for an occurrence.
+            Distance in metres used to define the vicinity within which to
+            search for an occurrence.
 
     Returns:
         iris.cube.Cube:
-            processed Cube.
+            Cube of probabilities relative to the given thresholds
 
     Raises:
-        ValueError:
-            If threshold_config and threshold_values are both set.
-        ValueError:
-            If threshold_config is used for fuzzy thresholding
+        ValueError: If threshold_config and threshold_values are both set
+        ValueError: If threshold_config is used for fuzzy thresholding
 
      Warns:
-        warning:
-            If collapsing coordinates with a masked array.
+        UserWarning: If collapsing coordinates with a masked array
 
     """
+    import warnings
+    import numpy as np
+
+    from improver.blending.calculate_weights_and_blend import WeightAndBlend
+    from improver.metadata.probabilistic import in_vicinity_name_format
+    from improver.threshold import BasicThreshold
+    from improver.utilities.spatial import OccurrenceWithinVicinity
+
     if threshold_config and threshold_values:
         raise ValueError(
             "--threshold-config and --threshold-values are mutually exclusive "
@@ -222,7 +131,7 @@ def process(cube, threshold_values=None, threshold_config=None,
         fuzzy_bounds = []
         is_fuzzy = True
         for key in threshold_config.keys():
-            thresholds.append(float(key))
+            thresholds.append(np.float32(key))
             if is_fuzzy:
                 # If the first threshold has no bounds, fuzzy_bounds is
                 # set to None and subsequent bounds checks are skipped
@@ -232,7 +141,7 @@ def process(cube, threshold_values=None, threshold_config=None,
                 else:
                     fuzzy_bounds.append(tuple(threshold_config[key]))
     else:
-        thresholds = threshold_values
+        thresholds = [np.float32(x) for x in threshold_values]
         fuzzy_bounds = None
 
     result_no_collapse_coord = BasicThreshold(
@@ -248,7 +157,7 @@ def process(cube, threshold_values=None, threshold_config=None,
             result_no_collapse_coord.name())
         result_no_collapse_coord.rename(new_cube_name)
 
-    if collapse_coord == "None":
+    if collapse_coord is None:
         result = result_no_collapse_coord
     else:
         # Raise warning if result_no_collapse_coord is masked array
@@ -261,7 +170,3 @@ def process(cube, threshold_values=None, threshold_config=None,
         result_collapse_coord = plugin.process(result_no_collapse_coord)
         result = result_collapse_coord
     return result
-
-
-if __name__ == "__main__":
-    main()
