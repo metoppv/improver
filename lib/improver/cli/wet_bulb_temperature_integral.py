@@ -56,7 +56,3 @@ def process(wet_bulb_temperature: cli.inputcube):
 
     result = WetBulbTemperatureIntegral().process(wet_bulb_temperature)
     return result
-
-
-if __name__ == "__main__":
-    main()
