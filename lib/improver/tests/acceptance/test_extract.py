@@ -47,7 +47,9 @@ def test_basic(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, output_path, "realization=1"]
+    args = [input_path,
+            "--constraints", "realization=1",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -58,7 +60,9 @@ def test_change_units(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "../basic/input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, output_path, "wind_speed=10000", "--units", "mm s-1"]
+    args = [input_path,
+            "--constraints", "wind_speed=10000", "--units", "mm s-1",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -69,7 +73,9 @@ def test_multiple_constraints(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "../basic/input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, output_path, "wind_speed=20", "realization=2"]
+    args = [input_path,
+            "--constraints", "wind_speed=20", "--constraints", "realization=2",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -80,9 +86,11 @@ def test_multiple_constraints_units(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "../basic/input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, output_path,
-            "wind_speed=20000", "realization=2",
-            "--units", "mm s-1", "None"]
+    args = [input_path,
+            "--constraints", "wind_speed=20000",
+            "--constraints", "realization=2",
+            "--units", "mm s-1,None",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -92,7 +100,9 @@ def test_invalid_constraints(tmp_path):
     kgo_dir = acc.kgo_root() / "extract/basic"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, output_path, "realization=6"]
+    args = [input_path,
+            "--constraints", "realization=6",
+            "--output", output_path]
     with pytest.raises(ValueError, match=".*Constraint.*"):
         run_cli(args)
 
@@ -103,16 +113,22 @@ def test_list_constraints(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "../basic/input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, output_path, "wind_speed=[20, 30]"]
+    args = [input_path,
+            "--constraints", "wind_speed=[20, 30]",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
 def test_range_constraints(tmp_path):
     """Test extraction with range constraints"""
-    kgo_dir = acc.kgo_root() / "extract/basic"
-    input_path = kgo_dir / "input.nc"
+    kgo_dir = acc.kgo_root() / "extract/range_constraints"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "../basic/input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, output_path, "percentile=10", "--ignore-failure"]
+    args = [input_path,
+            "--constraints", "projection_y_coordinate=[-398000:-160000]",
+            "--constraints", "projection_x_coordinate=[-202000:16000]",
+            "--output", output_path]
     run_cli(args)
-    acc.compare(output_path, input_path, recreate=False)
+    acc.compare(output_path, kgo_path, recreate=False)
