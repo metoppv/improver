@@ -46,7 +46,7 @@ def process(source_data: cli.inputcube,
             landmask_vicinity=25000.,
             regridded_title: str = None,
             attributes_dict: cli.inputjson = None,
-            coords_to_remove=None,  # TODO this does not work yet (nargs=+ str)
+            coords_to_remove: cli.comma_separated_list = None,
             new_name: str = None,
             new_units: str = None,
             fix_float64=False):

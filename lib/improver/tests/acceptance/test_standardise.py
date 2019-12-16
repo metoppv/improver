@@ -119,7 +119,7 @@ def test_change_metadata(tmp_path):
             "--new-name", "lwe_precipitation_rate",
             "--new-units", "m s-1",
             "--attributes-dict", metadata_path,
-            "--coords-to-remove", "height"]  # TODO fails here
+            "--coords-to-remove", "height"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
