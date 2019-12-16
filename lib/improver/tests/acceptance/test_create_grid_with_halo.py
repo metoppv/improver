@@ -45,7 +45,8 @@ def test_basic(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "source_grid.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, "--output", output_path]
+    args = [input_path,
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -55,7 +56,9 @@ def test_halo_size(tmp_path):
     kgo_dir = acc.kgo_root() / "create-grid-with-halo/halo_size"
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "../basic/source_grid.nc"
-    output_path = tmp_path / "output.nc"
-    args = [input_path, "--output", output_path, "--halo-radius", "75000"]
+    output_path = tmp_path / "output.nc"o
+    args = [input_path,
+            "--halo-radius", "75000",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
