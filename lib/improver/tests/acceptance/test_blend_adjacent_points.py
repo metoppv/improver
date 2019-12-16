@@ -110,8 +110,7 @@ def test_time(tmp_path):
     output_path = tmp_path / "output.nc"
     args = ["--coordinate", "time",
             "--central-point", "1536908400",
-            "--units",
-            "seconds since 1970-01-01 00:00:00",
+            "--units", "seconds since 1970-01-01 00:00:00",
             "--width", "7200",
             *multi_prob,
             "--output", output_path]
