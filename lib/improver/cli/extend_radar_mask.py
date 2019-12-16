@@ -36,9 +36,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(coverage: cli.inputcube,
-            radar_data: cli.inputcube,
-            *,
-            fix_float64=False):
+            radar_data: cli.inputcube):
     """ Extend radar mask based on coverage data.
 
     Extends the mask on radar data based on the radar coverage composite.
@@ -49,19 +47,13 @@ def process(coverage: cli.inputcube,
             Cube containing the radar data to remask
         radar_data (iris.cube.Cube):
             Cube containing the radar coverage data.
-        fix_float64 (bool):
-            Check and fix cube for float64 data. Without this, an exception
-            will be raised if float64 data is found but no fix applied.
 
     Returns:
         iris.cube.Cube:
             A cube with the remasked radar data.
     """
-    from improver.metadata.check_datatypes import check_cube_not_float64
     from improver.nowcasting.utilities import ExtendRadarMask
 
     # extend mask
     result = ExtendRadarMask().process(radar_data, coverage)
-    # Check and fix for float64 data only option:
-    check_cube_not_float64(result, fix=fix_float64)
     return result

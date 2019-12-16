@@ -53,18 +53,3 @@ def test_basic(tmp_path):
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
-
-
-def test_float64(tmp_path):
-    """Test radar mask extension"""
-    kgo_dir = acc.kgo_root() / "extend-radar-mask/float64"
-    kgo_path = kgo_dir / "kgo.nc"
-    radar_prefix = "201811190205_u1096_ng_radar"
-    preciprate_path = kgo_dir / f"{radar_prefix}_precip_ratecomposite_2km.nc"
-    coverage_path = kgo_dir / f"{radar_prefix}_coverage_composite_2km.nc"
-    output_path = tmp_path / "output.nc"
-    args = [coverage_path, preciprate_path,
-            "--fix-float64",
-            "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
