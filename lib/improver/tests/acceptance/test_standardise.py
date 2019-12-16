@@ -51,8 +51,7 @@ def test_regrid_basic(tmp_path):
     input_path = kgo_dir / "global_cutout.nc"
     target_path = kgo_dir / "ukvx_grid.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--target-grid", target_path,
+    args = [input_path, target_path,
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -65,8 +64,7 @@ def test_regrid_nearest(tmp_path):
     input_path = kgo_dir / "../regrid-basic/global_cutout.nc"
     target_path = kgo_dir / "../regrid-basic/ukvx_grid.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--target-grid", target_path,
+    args = [input_path, target_path,
             "--output", output_path,
             "--regrid-mode", "nearest",
             "--regridded-title", GLOBAL_UK_TITLE]
@@ -81,8 +79,7 @@ def test_regrid_extrapolate(tmp_path):
     input_path = kgo_dir / "../regrid-basic/ukvx_grid.nc"
     target_path = kgo_dir / "../regrid-basic/global_cutout.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--target-grid", target_path,
+    args = [input_path, target_path,
             "--output", output_path,
             "--regrid-mode", "nearest",
             "--extrapolation-mode", "extrapolate",
@@ -99,7 +96,7 @@ def test_regrid_json(tmp_path):
     target_path = kgo_dir / "../regrid-basic/ukvx_grid.nc"
     metadata_path = kgo_dir / "metadata.json"
     output_path = tmp_path / "output.nc"
-    args = [input_path, "--target-grid", target_path,
+    args = [input_path, target_path,
             "--output", output_path,
             "--attributes-dict", metadata_path,
             "--regridded-title", GLOBAL_UK_TITLE]
@@ -153,9 +150,7 @@ def test_regrid_nearest_landmask(tmp_path):
     landmask_path = kgo_dir / "../regrid-landmask/glm_landmask.nc"
     target_path = kgo_dir / "../regrid-landmask/ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--target-grid", target_path,
-            "--source-landmask", landmask_path,
+    args = [input_path, target_path, landmask_path,
             "--output", output_path,
             "--regrid-mode", "nearest-with-mask",
             "--regridded-title", GLOBAL_UK_TITLE]
@@ -173,9 +168,7 @@ def test_regrid_check_landmask(tmp_path):
     landmask_path = kgo_dir / "../regrid-landmask/glm_landmask.nc"
     target_path = kgo_dir / "../regrid-basic/ukvx_grid.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--target-grid", target_path,
-            "--source-landmask", landmask_path,
+    args = [input_path, target_path, landmask_path,
             "--output", output_path,
             "--regrid-mode", "nearest-with-mask",
             "--regridded-title", GLOBAL_UK_TITLE]
@@ -192,25 +185,9 @@ def test_args_error_landmask(tmp_path):
     landmask_path = kgo_dir / "../regrid-landmask/glm_landmask.nc"
     target_path = kgo_dir / "../regrid-landmask/ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--target-grid", target_path,
-            "--source-landmask", landmask_path,
+    args = [input_path, target_path, landmask_path,
             "--output", output_path]
     with pytest.raises(ValueError, match=".*nearest-with-mask.*"):
-        run_cli(args)
-
-
-def test_args_error_no_target_with_landmask(tmp_path):
-    """Test land sea mask specified but no target grid"""
-    kgo_dir = acc.kgo_root() / "standardise/regrid-landmask"
-    input_path = kgo_dir / "../regrid-basic/global_cutout.nc"
-    landmask_path = kgo_dir / "../regrid-landmask/glm_landmask.nc"
-    output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--source-landmask", landmask_path,
-            "--output", output_path,
-            "--regrid-mode", "nearest-with-mask"]
-    with pytest.raises(ValueError, match=".target_grid.*"):
         run_cli(args)
 
 
@@ -220,8 +197,7 @@ def test_args_error_no_landmask(tmp_path):
     input_path = kgo_dir / "../regrid-basic/global_cutout.nc"
     target_path = kgo_dir / "../regrid-landmask/ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--target-grid", target_path,
+    args = [input_path, target_path,
             "--output", output_path,
             "--regrid-mode", "nearest-with-mask"]
     with pytest.raises(ValueError, match=".*input landmask.*"):
@@ -237,9 +213,7 @@ def test_regrid_nearest_landmask_multi_realization(tmp_path):
     landmask_path = kgo_dir / "../regrid-landmask/glm_landmask.nc"
     target_path = kgo_dir / "../regrid-landmask/ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--target-grid", target_path,
-            "--source-landmask", landmask_path,
+    args = [input_path, target_path, landmask_path,
             "--output", output_path,
             "--regrid-mode", "nearest-with-mask",
             "--regridded-title", GLOBAL_UK_TITLE]

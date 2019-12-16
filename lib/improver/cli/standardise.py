@@ -38,9 +38,9 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(source_data: cli.inputcube,
-            *,
             target_grid: cli.inputcube = None,
             source_landmask: cli.inputcube = None,
+            *,
             regrid_mode='bilinear',
             extrapolation_mode='nanmask',
             landmask_vicinity=25000.,
@@ -116,8 +116,6 @@ def process(source_data: cli.inputcube,
             If source landmask is supplied but regrid mode is not
             "nearest-with-mask".
         ValueError:
-            If source landmask is supplied without target grid.
-        ValueError:
             If regrid_mode is "nearest-with-mask" but no source landmask is
             provided (from plugin).
     """
@@ -127,11 +125,6 @@ def process(source_data: cli.inputcube,
             "nearest-with-mask" not in regrid_mode):
         msg = ("Land-mask file supplied without appropriate regrid-mode. "
                "Use --regrid-mode nearest-with-mask.")
-        raise ValueError(msg)
-
-    if source_landmask and not target_grid:
-        msg = ("Cannot specify input_landmask_filepath without "
-               "target_grid_filepath")
         raise ValueError(msg)
 
     plugin = StandardiseGridAndMetadata(
