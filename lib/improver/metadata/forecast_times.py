@@ -43,15 +43,11 @@ from improver.utilities.cube_manipulation import build_coordinate
 from improver.utilities.temporal import cycletime_to_datetime
 
 
-def forecast_period_coord(cube, force_lead_time_calculation=False,
-                          result_units=TIME_INTERVAL_UNIT):
+def forecast_period_coord(cube, force_lead_time_calculation=False):
     """
-    Return or calculate the lead time coordinate (forecast_period)
-    within a cube, either by reading the forecast_period coordinate,
-    or by calculating the difference between the time (points and bounds) and
-    the forecast_reference_time. The units of the forecast_period, time and
-    forecast_reference_time coordinates are converted, if required. The final
-    coordinate will have units of seconds.
+    Return the lead time coordinate (forecast_period) from a cube, either by
+    reading an existing forecast_period coordinate, or by calculating the
+    difference between time and forecast_reference_time.
 
     Args:
         cube (iris.cube.Cube):
@@ -59,41 +55,29 @@ def forecast_period_coord(cube, force_lead_time_calculation=False,
         force_lead_time_calculation (bool):
             Force the lead time to be calculated from the
             forecast_reference_time and the time coordinate, even if
-            the forecast_period coordinate exists.
-            Default is False.
-        result_units (str or cf_units.Unit):
-            Desired units for the resulting forecast period coordinate.
+            the forecast_period coordinate exists. Default is False.
 
     Returns:
         iris.coords.Coord:
-            Describing the points and their units for
-            'forecast_period'. A DimCoord is returned if the
+            New forecast_period coord. A DimCoord is returned if the
             forecast_period coord is already present in the cube as a
             DimCoord and this coord does not need changing, otherwise
-            it will be an AuxCoord. Units are result_units.
+            it will be an AuxCoord.
     """
     create_dim_coord = False
     if cube.coords("forecast_period"):
-        fp_type = cube.coord("forecast_period").dtype
         if isinstance(cube.coord("forecast_period"), iris.coords.DimCoord):
             create_dim_coord = True
-    else:
-        fp_type = TIME_INTERVAL_DTYPE
 
     if cube.coords("forecast_period") and not force_lead_time_calculation:
         result_coord = cube.coord("forecast_period").copy()
-        try:
-            result_coord.convert_units(result_units)
-        except ValueError as err:
-            msg = "For forecast_period: {}".format(err)
-            raise ValueError(msg)
 
     elif cube.coords("time") and cube.coords("forecast_reference_time"):
         # Try to calculate forecast period from forecast reference time and
         # time coordinates
         result_coord = _calculate_forecast_period(
             cube.coord("time"), cube.coord("forecast_reference_time"),
-            result_units, dim_coord=create_dim_coord)
+            dim_coord=create_dim_coord)
 
     else:
         msg = ("The forecast period coordinate is not available within {}."
@@ -102,26 +86,19 @@ def forecast_period_coord(cube, force_lead_time_calculation=False,
                "the forecast_period.".format(cube))
         raise CoordinateNotFoundError(msg)
 
-    result_coord.points = result_coord.points.astype(fp_type)
-    if result_coord.bounds is not None:
-        result_coord.bounds = result_coord.bounds.astype(fp_type)
-
     return result_coord
 
 
-def _calculate_forecast_period(time_coord, frt_coord, fp_units,
-                               dim_coord=False):
+def _calculate_forecast_period(time_coord, frt_coord, dim_coord=False):
     """
     Calculate a forecast period from existing time and forecast reference
-    time coordinates, and return in the required units.
+    time coordinates.
 
     Args:
         time_coord (iris.coords.Coord):
             Time coordinate
         frt_coord (iris.coords.Coord):
             Forecast reference coordinate
-        fp_units (cf_units.Unit or str):
-            Required units of forecast period coordinate
         dim_coord (bool):
             If true, create an iris.coords.DimCoord instance.  Default is to
             create an iris.coords.AuxCoord.
@@ -159,7 +136,11 @@ def _calculate_forecast_period(time_coord, frt_coord, fp_units,
         standard_name='forecast_period',
         bounds=required_lead_time_bounds,
         units="seconds")
-    result_coord.convert_units(fp_units)
+    result_coord.convert_units(TIME_INTERVAL_UNIT)
+
+    result_coord.points = result_coord.points.astype(TIME_INTERVAL_DTYPE)
+    if result_coord.bounds is not None:
+        result_coord.bounds = result_coord.bounds.astype(TIME_INTERVAL_DTYPE)
 
     if np.any(result_coord.points < 0):
         msg = ("The values for the time {} and "
@@ -240,12 +221,10 @@ def unify_cycletime(cubes, cycletime):
         cube.add_aux_coord(frt_coord, data_dims=None)
 
         # Update the forecast period for consistency within each cube
-        fp_units = TIME_INTERVAL_UNIT
         if cube.coords("forecast_period"):
-            fp_units = cube.coord("forecast_period").units
             cube.remove_coord("forecast_period")
         fp_coord = forecast_period_coord(
-            cube, force_lead_time_calculation=True, result_units=fp_units)
+            cube, force_lead_time_calculation=True)
         cube.add_aux_coord(fp_coord, data_dims=cube.coord_dims("time"))
         result_cubes.append(cube)
     return result_cubes

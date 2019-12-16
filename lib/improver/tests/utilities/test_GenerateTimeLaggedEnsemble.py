@@ -37,10 +37,6 @@ import iris
 import numpy as np
 from iris.tests import IrisTest
 
-from improver.tests.ensemble_calibration.ensemble_calibration.helper_functions\
-    import add_forecast_reference_time_and_forecast_period
-from improver.tests.nbhood.nbhood.test_NeighbourhoodProcessing import (
-    set_up_cube)
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.time_lagging import GenerateTimeLaggedEnsemble
 
@@ -65,28 +61,24 @@ class Test_process(IrisTest):
         # Create a template cube. This cube has a forecast_reference_time of
         # 20151123T0400Z, a forecast period of T+4 and a
         # validity time of 2015-11-23 07:00:00
-        input_cube = iris.util.squeeze(
-            add_forecast_reference_time_and_forecast_period(set_up_cube()))
-        # Create an input cube with 3 realizations
-        realizations = iris.cube.CubeList()
-        for i in range(3):
-            realization = input_cube.copy()
-            realization.coord("realization").points = np.array(
-                i, dtype=np.int32)
-            realizations.append(realization)
-        self.input_cube = realizations.merge_cube()
+        data = np.ones((3, 5, 5), dtype=np.float32)
+        self.input_cube = set_up_variable_cube(
+            data, time=dt(2015, 11, 23, 7), frt=dt(2015, 11, 23, 3))
+
         # Create a second cube from a later forecast with a different set of
         # realizations.
-        self.input_cube2 = self.input_cube.copy()
-        self.input_cube2.coord("forecast_reference_time").points = np.array(
-            self.input_cube2.coord("forecast_reference_time").points[0] + 1)
-        self.input_cube2.coord("forecast_period").points = np.array(
-            self.input_cube2.coord("forecast_period").points[0] - 1)
-        self.input_cube2.coord("realization").points = np.array(
-            [3, 4, 5], dtype=np.int32)
+        self.input_cube2 = set_up_variable_cube(
+            data, time=dt(2015, 11, 23, 7), frt=dt(2015, 11, 23, 4),
+            realizations=np.array([3, 4, 5], dtype=np.int32))
+
         # Put the two cubes in a cubelist ready to use in the plugin.
         self.input_cubelist = iris.cube.CubeList(
             [self.input_cube, self.input_cube2])
+
+        # Set up expected forecast time outputs (from most recent forecast)
+        self.expected_fp = self.input_cube2.coord("forecast_period").points[0]
+        self.expected_frt = (
+            self.input_cube2.coord("forecast_reference_time").points[0])
 
     def test_return_type(self):
         """Test that an iris cube is returned."""
@@ -97,14 +89,11 @@ class Test_process(IrisTest):
         """Test that the expected metadata is correct after a simple test"""
         result = GenerateTimeLaggedEnsemble().process(
             self.input_cubelist)
-        expected_forecast_period = np.array(3)
-        expected_forecast_ref_time = np.array([402292.])
         expected_realizations = [0, 1, 2, 3, 4, 5]
         self.assertArrayAlmostEqual(
-            result.coord("forecast_period").points, expected_forecast_period)
+            result.coord("forecast_period").points, self.expected_fp)
         self.assertArrayAlmostEqual(
-            result.coord("forecast_reference_time").points,
-            expected_forecast_ref_time)
+            result.coord("forecast_reference_time").points, self.expected_frt)
         self.assertArrayAlmostEqual(
             result.coord("realization").points, expected_realizations)
         self.assertEqual(
@@ -112,11 +101,11 @@ class Test_process(IrisTest):
 
     def test_cycletime(self):
         """Test that the expected metadata is correct with a different
-           cycletime"""
+           cycletime (2 hours later)"""
         result = GenerateTimeLaggedEnsemble("20151123T0600Z").process(
             self.input_cubelist)
-        expected_forecast_period = np.array(1)
-        expected_forecast_ref_time = np.array([402294.])
+        expected_forecast_period = self.expected_fp - 2*3600
+        expected_forecast_ref_time = self.expected_frt + 2*3600
         expected_realizations = [0, 1, 2, 3, 4, 5]
         self.assertArrayAlmostEqual(
             result.coord("forecast_period").points, expected_forecast_period)
@@ -135,14 +124,11 @@ class Test_process(IrisTest):
             [6, 7, 8], dtype=np.int32)
         result = GenerateTimeLaggedEnsemble().process(
             self.input_cubelist)
-        expected_forecast_period = np.array(3)
-        expected_forecast_ref_time = np.array([402292.])
         expected_realizations = [0, 1, 2, 6, 7, 8]
         self.assertArrayAlmostEqual(
-            result.coord("forecast_period").points, expected_forecast_period)
+            result.coord("forecast_period").points, self.expected_fp)
         self.assertArrayAlmostEqual(
-            result.coord("forecast_reference_time").points,
-            expected_forecast_ref_time)
+            result.coord("forecast_reference_time").points, self.expected_frt)
         self.assertArrayAlmostEqual(
             result.coord("realization").points, expected_realizations)
         self.assertEqual(
@@ -155,14 +141,11 @@ class Test_process(IrisTest):
         self.input_cube2.coord("realization").points = np.array([0, 7, 8])
         result = GenerateTimeLaggedEnsemble().process(
             self.input_cubelist)
-        expected_forecast_period = np.array(3)
-        expected_forecast_ref_time = np.array([402292.])
         expected_realizations = [0, 1, 2, 3, 4, 5]
         self.assertArrayAlmostEqual(
-            result.coord("forecast_period").points, expected_forecast_period)
+            result.coord("forecast_period").points, self.expected_fp)
         self.assertArrayAlmostEqual(
-            result.coord("forecast_reference_time").points,
-            expected_forecast_ref_time)
+            result.coord("forecast_reference_time").points, self.expected_frt)
         self.assertArrayAlmostEqual(
             result.coord("realization").points, expected_realizations)
         self.assertEqual(
@@ -175,16 +158,16 @@ class Test_process(IrisTest):
         self.input_cube2.coord("realization").points = np.array([6, 7, 8])
         input_cube3 = self.input_cube2.copy()
         input_cube3.coord("forecast_reference_time").points = np.array(
-            input_cube3.coord("forecast_reference_time").points[0] + 1)
+            input_cube3.coord("forecast_reference_time").points[0] + 3600)
         input_cube3.coord("forecast_period").points = np.array(
-            input_cube3.coord("forecast_period").points[0] - 1)
+            input_cube3.coord("forecast_period").points[0] - 3600)
         input_cube3.coord("realization").points = np.array([7, 8, 9])
         input_cubelist = iris.cube.CubeList(
             [self.input_cube, self.input_cube2, input_cube3])
         result = GenerateTimeLaggedEnsemble().process(
             input_cubelist)
-        expected_forecast_period = np.array(2)
-        expected_forecast_ref_time = np.array([402293.])
+        expected_forecast_period = self.expected_fp - 3600
+        expected_forecast_ref_time = self.expected_frt + 3600
         expected_realizations = [0, 1, 2, 3, 4, 5, 6, 7, 8]
         self.assertArrayAlmostEqual(
             result.coord("forecast_period").points, expected_forecast_period)
