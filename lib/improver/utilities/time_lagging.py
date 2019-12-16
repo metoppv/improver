@@ -38,29 +38,7 @@ from improver.utilities.cube_manipulation import concatenate_cubes
 
 
 class GenerateTimeLaggedEnsemble(BasePlugin):
-
-    """
-    A plugin to combine realizations from different forecast cycles into one
-    cube.
-    """
-
-    def __init__(self, cycletime=None):
-        """
-        Initialise class.
-
-        Args:
-            cycletime (str):
-                A string of form YYYYMMDDTHHMMZ describing the
-                forecast_reference_time we want the resulting cube to be
-                relative to. Default None in which case the latest
-                forecast_reference_time from the input cubes is used.
-        """
-        self.cycletime = cycletime
-
-    def __repr__(self):
-        """Represent the configured plugin instance as a string."""
-        result = ('<GenerateTimeLaggedEnsemble: cycletime: {}>')
-        return result.format(self.cycletime)
+    """Combine realizations from different forecast cycles into one cube"""
 
     def process(self, cubelist):
         """
@@ -68,17 +46,21 @@ class GenerateTimeLaggedEnsemble(BasePlugin):
         merges them into a single cube.
 
         The steps taken are:
-            1. If no cycletime is given then find the latest cycle time from
-               the input cubes.
-            2. Update the forecast periods in each input cube to be relative
-               to the new cycletime.
-            3. Checks if there are duplicate realization numbers. If a
-               duplicate is found, renumbers all of the realizations to remove
-               any duplicates.
-            4. Merge cubes into one cube, removing any metadata that
-               doesn't match.
+            1. Update forecast reference time and period to match the latest
+               contributing cycle.
+            2. Check for duplicate realization numbers. If a duplicate is
+               found, renumber all of the realizations uniquely.
+            3. Concatenate into one cube along the realization axis.
+
+        Args:
+            cubelist (iris.cube.CubeList or list of iris.cube.Cube):
+                List of input forecasts
+
+        Returns:
+            iris.cube.Cube:
+                Concatenated forecasts
         """
-        cubelist = rebadge_forecasts_as_latest_cycle(cubelist, self.cycletime)
+        cubelist = rebadge_forecasts_as_latest_cycle(cubelist)
 
         # Take all the realizations from all the input cube and
         # put in one array

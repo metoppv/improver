@@ -165,7 +165,8 @@ class MergeCubesForWeightedBlending(BasePlugin):
             # if blending models using weights by forecast period, unify
             # forecast periods (assuming validity times are identical);
             # method returns a new cubelist with copies of input cubes
-            cubelist = rebadge_forecasts_as_latest_cycle(cubes_in, cycletime)
+            cubelist = rebadge_forecasts_as_latest_cycle(
+                cubes_in, cycletime=cycletime)
         else:
             # copy cubes to avoid modifying inputs
             cubelist = [cube.copy() for cube in cubes_in]
