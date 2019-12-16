@@ -31,51 +31,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to calculate mean wind direction from ensemble realizations."""
 
-from improver.argparser import ArgParser
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
-from improver.wind_calculations.wind_direction import WindDirection
+from improver import cli
 
 
-def main(argv=None):
-    """Load in arguments to calculate mean wind direction from ensemble
-       realizations."""
-
-    cli_specific_arguments = [(['--backup_method'],
-                               {'dest': 'backup_method',
-                                'default': 'neighbourhood',
-                                'choices': ['neighbourhood',
-                                            'first_realization'],
-                                'help': ('Backup method to use if '
-                                         'there is low confidence in'
-                                         ' the wind_direction. '
-                                         'Options are first_realization'
-                                         ' or neighbourhood, '
-                                         'first_realization should only '
-                                         'be used with global lat-lon data. '
-                                         'Default is neighbourhood.')})]
-
-    cli_definition = {'central_arguments': ('input_file', 'output_file'),
-                      'specific_arguments': cli_specific_arguments,
-                      'description': ('Run wind direction to calculate mean'
-                                      ' wind direction from '
-                                      'ensemble realizations')}
-
-    args = ArgParser(**cli_definition).parse_args(args=argv)
-
-    # Load Cube
-    wind_direction = load_cube(args.input_filepath)
-
-    # Returns 3 cubes - r_vals and confidence_measure cubes currently
-    # only contain experimental data to be used for further research.
-    # Process Cube
-    cube_mean_wdir, _, _ = process(wind_direction, args.backup_method)
-
-    # Save Cube
-    save_netcdf(cube_mean_wdir, args.output_filepath)
-
-
-def process(wind_direction, backup_method):
+@cli.clizefy
+@cli.with_output
+def process(wind_direction: cli.inputcube,
+            *,
+            backup_method="neighbourhood"):
     """Calculates mean wind direction from ensemble realization.
 
     Create a cube containing the wind direction averaged over the ensemble
@@ -88,27 +51,27 @@ def process(wind_direction, backup_method):
         backup_method (str):
             Backup method to use if the complex numbers approach has low
             confidence.
-            "first_realization" uses the value of realization zero.
             "neighbourhood" (default) recalculates using the complex numbers
             approach with additional realization extracted from neighbouring
             grid points from all available realizations.
+            "first_realization" uses the value of realization zero, and should
+            only be used with global lat-lon data.
 
-    Returns (tuple of 3 Cubes):
-        cube_mean_wdir (iris.cube.Cube):
+    Returns:
+        iris.cube.Cube:
             Cube containing the wind direction averaged from the ensemble
             realizations.
-        cube_r_vals (numpy.ndarray):
-            3D array - Radius taken from average complex wind direction angle.
-        cube_confidence_measure (numpy.ndarray):
-            3D array - The average distance from mean normalised - used as a
-            confidence value.
     """
-    # Returns 3 cubes - r_vals and confidence_measure cubes currently
-    # only contain experimental data to be used for further research.
-    result = (
+    from improver.wind_calculations.wind_direction import WindDirection
+
+    # The plugin currently returns 3 cubes - the r_vals and confidence_measure
+    # cubes currently only contain experimental data to be used for further
+    # research. Details are retained here pending future work.
+    # cube_r_vals (numpy.ndarray) - 3D array - Radius taken from average
+    # complex wind direction angle.
+    # cube_confidence_measure (numpy.ndarray) - 3D array - The average distance
+    # from mean normalised - used as a confidence value.
+
+    result, _, _ = (
         WindDirection(backup_method=backup_method).process(wind_direction))
     return result
-
-
-if __name__ == "__main__":
-    main()
