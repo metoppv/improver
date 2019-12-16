@@ -32,74 +32,17 @@
 
 """Script to run weighted blending across adjacent points"""
 
-from cf_units import Unit
+from improver import cli
 
-from improver.argparser import ArgParser
-from improver.blending.blend_across_adjacent_points import \
-    TriangularWeightedBlendAcrossAdjacentPoints
-from improver.utilities.cube_manipulation import MergeCubes
-from improver.utilities.load import load_cubelist
-from improver.utilities.save import save_netcdf
-
-
-def main(argv=None):
-    """Load in arguments and ensure they are set correctly.
-       Then run Triangular weighted blending across the given coordinate."""
-    parser = ArgParser(
-        description='Use the TriangularWeightedBlendAcrossAdjacentPoints to '
-                    'blend across a particular coordinate. It does not '
-                    'collapse the coordinate, but instead blends across '
-                    'adjacent points and puts the blended values back in the '
-                    'original coordinate, with adjusted bounds.')
-    parser.add_argument('coordinate', type=str,
-                        metavar='COORDINATE_TO_BLEND_OVER',
-                        help='The coordinate over which the blending '
-                             'will be applied.')
-    parser.add_argument('central_point', metavar='CENTRAL_POINT', type=float,
-                        help='Central point at which the output from the '
-                             'triangular weighted blending will be '
-                             'calculated. This should be in the units of the '
-                             'units argument that is passed in. '
-                             'This value should be a point on the '
-                             'coordinate for blending over.')
-    parser.add_argument('--units', metavar='UNIT_STRING', required=True,
-                        help='Units of the central_point and width.')
-    parser.add_argument('--calendar', metavar='CALENDAR',
-                        default='gregorian',
-                        help='Calendar for parameter_unit if required. '
-                             'Default=gregorian')
-    parser.add_argument('--width', metavar='TRIANGLE_WIDTH', type=float,
-                        required=True,
-                        help='Width of the triangular weighting function used '
-                             'in the blending, in the units of the '
-                             'units argument passed in.')
-    parser.add_argument('--blend_time_using_forecast_period',
-                        default=False, action='store_true', help='Flag that '
-                        'we are blending over time but using the forecast '
-                        'period coordinate as a proxy.  Note this should only '
-                        'be used when time and forecast_period share a '
-                        'dimension: ie when all files provided are from the '
-                        'same forecast cycle.')
-    parser.add_argument('input_filepaths', metavar='INPUT_FILES', nargs="+",
-                        help='Paths to input NetCDF files including and '
-                             'surrounding the central_point.')
-    parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
-                        help='The output path for the processed NetCDF.')
-
-    args = parser.parse_args(args=argv)
-
-    # Load Cubelist
-    cubelist = load_cubelist(args.input_filepaths)
-    # Process Cube
-    result = process(cubelist, args.coordinate, args.central_point,
-                     args.units, args.width, args.calendar,
-                     args.blend_time_using_forecast_period)
-    # Save Cube
-    save_netcdf(result, args.output_filepath)
-
-
-def process(cubelist, coordinate, central_point, units, width,
-            calendar='gregorian', blend_time_using_forecast_period=False):
+@cli.clizefy
+@cli.with_output
+def process(*cubes: cli.inputcube,
+            coordinate,
+            central_point: float,
+            units=None,
+            width: float = None,
+            calendar='gregorian',
+            blend_time_using_forecast_period=False):
     """Runs weighted blending across adjacent points.
 
     Uses the TriangularWeightedBlendAcrossAdjacentPoints to blend across
@@ -108,8 +51,8 @@ def process(cubelist, coordinate, central_point, units, width,
     in the original coordinate, with adjusted bounds.
 
     Args:
-        cubelist (iris.cube.CubeList):
-            CubeList including and surrounding the central point.
+        cubes (list of iris.cube.Cube):
+            A list of cubes including and surrounding the central point.
         coordinate (str):
             The coordinate over which the blending will be applied.
         central_point (float):
@@ -144,6 +87,14 @@ def process(cubelist, coordinate, central_point, units, width,
             coordinate.
 
     """
+    from cf_units import Unit
+    from iris.cube import CubeList
+
+    from improver.blending.blend_across_adjacent_points import \
+        TriangularWeightedBlendAcrossAdjacentPoints
+    from improver.utilities.cube_manipulation import MergeCubes
+
+
     # TriangularWeightedBlendAcrossAdjacentPoints can't currently handle
     # blending over times where iris reads the coordinate points as datetime
     # objects. Fail here to avoid unhelpful errors downstream.
@@ -156,10 +107,12 @@ def process(cubelist, coordinate, central_point, units, width,
     if coordinate == 'time':
         units = Unit(units, calendar)
 
+    cubelist = CubeList(cubes)
+
     if blend_time_using_forecast_period and coordinate == 'forecast_period':
         cube = MergeCubes().process(cubelist, check_time_bounds_ranges=True)
     elif blend_time_using_forecast_period:
-        msg = ('"--blend_time_using_forecast_period" can only be used with '
+        msg = ('"--blend-time-using-forecast-period" can only be used with '
                '"forecast_period" coordinate')
         raise ValueError(msg)
     else:
@@ -169,7 +122,3 @@ def process(cubelist, coordinate, central_point, units, width,
         coordinate, central_point, units, width)
     result = blending_plugin.process(cube)
     return result
-
-
-if __name__ == "__main__":
-    main()
