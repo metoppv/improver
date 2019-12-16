@@ -48,20 +48,17 @@ def process(cube: cli.inputcube,
     """Module to apply thresholding to a parameter dataset.
 
     Calculate the threshold truth values of input data relative to the
-    provided threshold value. By default data are tested to be above the
-    threshold, though the below_threshold boolean enables testing below
-    thresholds.
-    A fuzzy factor or fuzzy bounds may be provided to capture data that is
-    close to the threshold.
+    provided threshold value. A fuzzy factor or fuzzy bounds may be provided
+    to smooth probabilities where values are close to the threshold.
 
     Args:
         cube (iris.cube.Cube):
             A cube to be processed.
-        threshold_values (float):
+        threshold_values (list of float or None):
             Threshold value or values about which to calculate the truth
-            values; e.g. 270 300. Must be omitted if 'threshold_config'
+            values; e.g. 270,300. Must be omitted if 'threshold_config'
             is used.
-        threshold_config (dict):
+        threshold_config (dict or None):
             Threshold configuration containing threshold values and
             (optionally) fuzzy bounds. Best used in combination with
             'threshold_units' It should contain a dictionary of strings that
@@ -71,7 +68,7 @@ def process(cube: cli.inputcube,
             or with structure "THRESHOLD_VALUE": "None" (no fuzzy bounds).
             Repeated thresholds with different bounds are ignored; only the
             last duplicate will be used.
-        threshold_units (str):
+        threshold_units (str or None):
             Units of the threshold values. If not provided the units are
             assumed to be the same as those of the input cube. Specifying
             the units here will allow a suitable conversion to match
@@ -81,22 +78,22 @@ def process(cube: cli.inputcube,
             e.g. 'ge' or '>=' to evaluate data >= threshold or '<' to
             evaluate data < threshold. When using fuzzy thresholds, there is
             no difference between < and <= or > and >=.
-            Default is >. Valid choices: > >= < <= gt ge lt le.
-        fuzzy_factor (float):
+            Options: > >= < <= gt ge lt le.
+        fuzzy_factor (float of None):
             A decimal fraction defining the factor about the threshold value(s)
             which should be treated as fuzzy. Data which fail a test against
             the hard threshold value may return a fractional truth value if
             they fall within this fuzzy factor region.
             Fuzzy factor must be in the range 0-1, with higher values
             indicating a narrower fuzzy factor region / sharper threshold.
-            N.B. A fuzzy factor cannot be used with a zero threshold or a
+            A fuzzy factor cannot be used with a zero threshold or a
             threshold_config file.
-        collapse_coord (str):
+        collapse_coord (str or None):
             An optional ability to set which coordinate we want to collapse
             over.
-        vicinity (float):
+        vicinity (float or None):
             Distance in metres used to define the vicinity within which to
-            search for an occurrence.
+            search for an occurrence
 
     Returns:
         iris.cube.Cube:
@@ -129,17 +126,14 @@ def process(cube: cli.inputcube,
     if threshold_config:
         thresholds = []
         fuzzy_bounds = []
-        is_fuzzy = True
         for key in threshold_config.keys():
             thresholds.append(np.float32(key))
-            if is_fuzzy:
-                # If the first threshold has no bounds, fuzzy_bounds is
-                # set to None and subsequent bounds checks are skipped
-                if threshold_config[key] == "None":
-                    is_fuzzy = False
-                    fuzzy_bounds = None
-                else:
-                    fuzzy_bounds.append(tuple(threshold_config[key]))
+            # If the first threshold has no bounds, fuzzy_bounds is
+            # set to None and subsequent bounds checks are skipped
+            if threshold_config[key] == "None":
+                fuzzy_bounds = None
+                break
+            fuzzy_bounds.append(tuple(threshold_config[key]))
     else:
         thresholds = [np.float32(x) for x in threshold_values]
         fuzzy_bounds = None
@@ -158,15 +152,12 @@ def process(cube: cli.inputcube,
         result_no_collapse_coord.rename(new_cube_name)
 
     if collapse_coord is None:
-        result = result_no_collapse_coord
-    else:
-        # Raise warning if result_no_collapse_coord is masked array
-        if np.ma.isMaskedArray(result_no_collapse_coord.data):
-            warnings.warn("Collapse-coord option not fully tested with "
-                          "masked data.")
-        # Take a weighted mean across realizations with equal weights
-        plugin = WeightAndBlend(collapse_coord, "linear",
-                                y0val=1.0, ynval=1.0)
-        result_collapse_coord = plugin.process(result_no_collapse_coord)
-        result = result_collapse_coord
-    return result
+        return result_no_collapse_coord
+
+    # Raise warning if result_no_collapse_coord is masked array
+    if np.ma.isMaskedArray(result_no_collapse_coord.data):
+        warnings.warn("Collapse-coord option not fully tested with "
+                      "masked data.")
+    # Take a weighted mean across realizations with equal weights
+    plugin = WeightAndBlend(collapse_coord, "linear",y0val=1.0, ynval=1.0)
+    return plugin.process(result_no_collapse_coord)
