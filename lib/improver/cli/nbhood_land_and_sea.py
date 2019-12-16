@@ -107,14 +107,14 @@ def process(cube: cli.inputcube,
         ValueError:
             If the topographic zone mask has the attribute
             topographic_zones_include_seapoints.
-        IOError:
+        TypeError:
             if a weights cube isn't given and a topographic_zone mask is given.
         ValueError:
             If the weights cube has the attribute
             topographic_zones_include_seapoints.
-
-    Warns:
-        warning:
+        RuntimeError:
+            If lead times are not None and has a different length to radii.
+        TypeError:
             A weights cube has been provided but no topographic zone.
 
     """
