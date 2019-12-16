@@ -31,46 +31,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run the UV index plugin."""
 
-from improver.argparser import ArgParser
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
-from improver.uv_index import calculate_uv_index
+from improver import cli
 
 
-def main(argv=None):
-    """ Calculate the UV index using the data
-    in the input cubes."""
-    parser = ArgParser(
-        description="Calculates the UV index.")
-    parser.add_argument("radiation_flux_upward",
-                        metavar="RADIATION_FLUX_UPWARD",
-                        help="Path to a NetCDF file of radiation flux "
-                        "in uv upward at surface.")
-    parser.add_argument("radiation_flux_downward",
-                        metavar="RADIATION_FLUX_DOWNWARD",
-                        help="Path to a NetCDF file of radiation flux "
-                        "in uv downward at surface.")
-    parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
-                        help="The output path for the processed NetCDF")
-
-    args = parser.parse_args(args=argv)
-
-    # Load Cube
-    rad_uv_up = load_cube(args.radiation_flux_upward)
-    rad_uv_down = load_cube(args.radiation_flux_downward)
-
-    # Process Cube
-    result = process(rad_uv_up, rad_uv_down)
-    # Save Cube
-    save_netcdf(result, args.output_filepath)
-
-
-def process(rad_uv_up, rad_uv_down):
+@cli.clizefy
+@cli.with_output
+def process(rad_uv_up: cli.inputcube,
+            rad_uv_down: cli.inputcube):
     """Calculate the UV index using the data in the input cubes.
 
-    Calculate the uv index using radiation flux in UV downward at surface,
-    radiation flux UV upwards at surface and a scaling factor. The scaling
-    factor is configured by the user.
+    Calculate the uv index using the radiation flux in UV downward at surface
+    and the radiation flux UV upwards at surface.
 
     Args:
         rad_uv_up (iris.cube.Cube):
@@ -82,9 +53,6 @@ def process(rad_uv_up, rad_uv_down):
         iris.cube.Cube:
             Processed Cube.
     """
+    from improver.uv_index import calculate_uv_index
     result = calculate_uv_index(rad_uv_up, rad_uv_down)
     return result
-
-
-if __name__ == "__main__":
-    main()
