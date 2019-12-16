@@ -44,7 +44,7 @@ run_cli = acc.run_cli(CLI)
 @pytest.mark.parametrize(
     "extra_args,kgo_file",
     (([], "nearest_uk_temperatures.nc"),
-     (["--minimum_dz"], "mindz_uk_temperatures.nc")))
+     (["--minimum-dz"], "mindz_uk_temperatures.nc")))
 def test_nearest_uk(tmp_path, extra_args, kgo_file):
     """Test spot extraction using nearest location"""
     kgo_dir = acc.kgo_root() / "spot-extract"
@@ -52,7 +52,7 @@ def test_nearest_uk(tmp_path, extra_args, kgo_file):
     diag_path = kgo_dir / "inputs/ukvx_temperature.nc"
     kgo_path = kgo_dir / f"outputs/{kgo_file}"
     output_path = tmp_path / "output.nc"
-    args = [neighbour_path, diag_path, output_path, *extra_args]
+    args = [neighbour_path, diag_path, "--output", output_path, *extra_args]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -65,8 +65,8 @@ def test_lapse_rate_adjusted_uk(tmp_path):
     lapse_path = kgo_dir / "inputs/ukvx_lapse_rate.nc"
     kgo_path = kgo_dir / "outputs/lapse_rate_adjusted_uk_temperatures.nc"
     output_path = tmp_path / "output.nc"
-    args = [neighbour_path, diag_path, lapse_path, output_path,
-            "--apply_lapse_rate_correction"]
+    args = [neighbour_path, diag_path, lapse_path, "--output", output_path,
+            "--apply-lapse-rate-correction"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -77,7 +77,7 @@ def test_global_extract_on_uk_grid(tmp_path):
     neighbour_path = kgo_dir / "inputs/all_methods_global.nc"
     diag_path = kgo_dir / "inputs/ukvx_temperature.nc"
     output_path = tmp_path / "output.nc"
-    args = [neighbour_path, diag_path, output_path]
+    args = [neighbour_path, diag_path, "--output", output_path]
     with pytest.raises(ValueError, match=".*same grid.*"):
         run_cli(args)
 
@@ -88,7 +88,7 @@ def test_nearest_minimum_dz_unavailable(tmp_path):
     neighbour_path = kgo_dir / "inputs/nearest_uk.nc"
     diag_path = kgo_dir / "inputs/ukvx_temperature.nc"
     output_path = tmp_path / "output.nc"
-    args = [neighbour_path, diag_path, output_path, "--minimum_dz"]
+    args = [neighbour_path, diag_path, "--output", output_path, "--minimum-dz"]
     with pytest.raises(ValueError, match=".*neighbour_selection_method.*"):
         run_cli(args)
 
@@ -101,8 +101,8 @@ def test_lapse_rate_mismatch(tmp_path):
     lapse_path = kgo_dir / "inputs/ukvx_lapse_rate_2m.nc"
     kgo_path = kgo_dir / "outputs/nearest_uk_temperatures.nc"
     output_path = tmp_path / "output.nc"
-    args = [neighbour_path, diag_path, lapse_path, output_path,
-            "--apply_lapse_rate_correction"]
+    args = [neighbour_path, diag_path, lapse_path, "--output", output_path,
+            "--apply-lapse-rate-correction"]
     with pytest.warns(UserWarning, match=".*height.*not adjusted.*"):
         run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -115,8 +115,8 @@ def test_lapse_rate_wrong_height(tmp_path):
     diag_path = kgo_dir / "inputs/ukvx_temperature.nc"
     lapse_path = kgo_dir / "inputs/ukvx_lapse_rate_no_height.nc"
     output_path = tmp_path / "output.nc"
-    args = [neighbour_path, diag_path, lapse_path, output_path,
-            "--apply_lapse_rate_correction"]
+    args = [neighbour_path, diag_path, lapse_path, "--output", output_path,
+            "--apply-lapse-rate-correction"]
     with pytest.raises(ValueError, match=".*single valued height.*"):
         run_cli(args)
 
@@ -129,8 +129,8 @@ def test_new_spot_title(tmp_path):
     kgo_path = kgo_dir / "outputs/nearest_uk_temperatures_amended_metadata.nc"
     output_path = tmp_path / "output.nc"
     args = [neighbour_path, diag_path,
-            "--new_title", "IMPROVER Spot Values",
-            output_path]
+            "--new-title", "IMPROVER Spot Values",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -142,8 +142,8 @@ def test_lapse_rate_non_temperature(tmp_path):
     diag_path = kgo_dir / "inputs/ukvx_pmsl.nc"
     lapse_path = kgo_dir / "inputs/ukvx_lapse_rate.nc"
     output_path = tmp_path / "output.nc"
-    args = [neighbour_path, diag_path, lapse_path, output_path,
-            "--apply_lapse_rate_correction"]
+    args = [neighbour_path, diag_path, lapse_path, "--output", output_path,
+            "--apply-lapse-rate-correction"]
     with pytest.raises(ValueError, match=".*not air temperature.*"):
         run_cli(args)
 
@@ -155,8 +155,8 @@ def test_multiple_constraints(tmp_path):
     diag_path = kgo_dir / "inputs/ukvx_temperature.nc"
     kgo_path = kgo_dir / "outputs/mindz_land_constraint_uk_temperatures.nc"
     output_path = tmp_path / "output.nc"
-    args = [neighbour_path, diag_path, output_path,
-            "--minimum_dz", "--land_constraint"]
+    args = [neighbour_path, diag_path, "--output", output_path,
+            "--minimum-dz", "--land-constraint"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -168,8 +168,8 @@ def test_percentile_thresholded_input(tmp_path):
     threshold_path = kgo_dir / "inputs/enukx_temperature_thresholds.nc"
     kgo_path = kgo_dir / "outputs/extract_percentile_kgo.nc"
     output_path = tmp_path / "output.nc"
-    args = [neighbour_path, threshold_path, output_path,
-            "--extract_percentiles", "50"]
+    args = [neighbour_path, threshold_path, "--output", output_path,
+            "--extract-percentiles", "50"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -181,8 +181,8 @@ def test_percentile_percentile_input(tmp_path):
     threshold_path = kgo_dir / "inputs/enukx_temperature_percentiles.nc"
     kgo_path = kgo_dir / "outputs/extract_percentile_kgo.nc"
     output_path = tmp_path / "output.nc"
-    args = [neighbour_path, threshold_path, output_path,
-            "--extract_percentiles", "50"]
+    args = [neighbour_path, threshold_path, "--output", output_path,
+            "--extract-percentiles", "50"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -193,8 +193,8 @@ def test_percentile_unavailable(tmp_path):
     neighbour_path = kgo_dir / "inputs/all_methods_uk.nc"
     threshold_path = kgo_dir / "inputs/enukx_temperature_percentiles.nc"
     output_path = tmp_path / "output.nc"
-    args = [neighbour_path, threshold_path, output_path,
-            "--extract_percentiles", "45"]
+    args = [neighbour_path, threshold_path, "--output", output_path,
+            "--extract-percentiles", "45"]
     with pytest.raises(ValueError, match=".*percentile.*"):
         run_cli(args)
 
@@ -206,8 +206,8 @@ def test_percentile_deterministic(tmp_path):
     diag_path = kgo_dir / "inputs/ukvx_temperature.nc"
     kgo_path = kgo_dir / "outputs/nearest_uk_temperatures.nc"
     output_path = tmp_path / "output.nc"
-    args = [neighbour_path, diag_path, output_path,
-            "--extract_percentiles", "50"]
+    args = [neighbour_path, diag_path, "--output", output_path,
+            "--extract-percentiles", "50"]
     with pytest.warns(None):
         run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -220,8 +220,8 @@ def test_percentile_deterministic_quiet(tmp_path):
     diag_path = kgo_dir / "inputs/ukvx_temperature.nc"
     kgo_path = kgo_dir / "outputs/nearest_uk_temperatures.nc"
     output_path = tmp_path / "output.nc"
-    args = [neighbour_path, diag_path, output_path,
-            "--extract_percentiles", "50", "--suppress_warnings"]
+    args = [neighbour_path, diag_path, "--output", output_path,
+            "--extract-percentiles", "50", "--suppress-warnings"]
     with pytest.warns(None) as collected_warns:
         run_cli(args)
     # check that no warning is collected
@@ -236,8 +236,8 @@ def test_multiple_percentile_thresholded_input(tmp_path):
     threshold_path = kgo_dir / "inputs/enukx_temperature_thresholds.nc"
     kgo_path = kgo_dir / "outputs/extract_multiple_percentiles_kgo.nc"
     output_path = tmp_path / "output.nc"
-    args = [neighbour_path, threshold_path, output_path,
-            "--extract_percentiles", "25", "50", "75"]
+    args = [neighbour_path, threshold_path, "--output", output_path,
+            "--extract-percentiles", "25, 50, 75"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -249,8 +249,8 @@ def test_multiple_percentile_percentile_input(tmp_path):
     threshold_path = kgo_dir / "inputs/enukx_temperature_percentiles.nc"
     kgo_path = kgo_dir / "outputs/extract_multiple_percentiles_kgo.nc"
     output_path = tmp_path / "output.nc"
-    args = [neighbour_path, threshold_path, output_path,
-            "--extract_percentiles", "25", "50", "75"]
+    args = [neighbour_path, threshold_path, "--output", output_path,
+            "--extract-percentiles", "25, 50, 75"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -262,8 +262,8 @@ def test_percentile_realization_input(tmp_path):
     realization_path = kgo_dir / "inputs/enukx_temperature_realizations.nc"
     kgo_path = kgo_dir / "outputs/extract_percentile_kgo.nc"
     output_path = tmp_path / "output.nc"
-    args = [neighbour_path, realization_path, output_path,
-            "--extract_percentiles", "50"]
+    args = [neighbour_path, realization_path, "--output", output_path,
+            "--extract-percentiles", "50"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -275,8 +275,8 @@ def test_multiple_percentile_realization_input(tmp_path):
     realization_path = kgo_dir / "inputs/enukx_temperature_realizations.nc"
     kgo_path = kgo_dir / "outputs/extract_multiple_percentiles_kgo.nc"
     output_path = tmp_path / "output.nc"
-    args = [neighbour_path, realization_path, output_path,
-            "--extract_percentiles", "25", "50", "75"]
+    args = [neighbour_path, realization_path, "--output", output_path,
+            "--extract-percentiles", "25, 50, 75"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -288,8 +288,8 @@ def test_invalid_lapse_rate(tmp_path):
     diag_path = kgo_dir / "inputs/ukvx_temperature.nc"
     lapse_path = diag_path
     output_path = tmp_path / "output.nc"
-    args = [neighbour_path, diag_path, lapse_path, output_path,
-            "--apply_lapse_rate_correction"]
+    args = [neighbour_path, diag_path, lapse_path, "--output", output_path,
+            "--apply-lapse-rate-correction"]
     with pytest.raises(ValueError, match=".*lapse rate.*"):
         run_cli(args)
 
@@ -300,7 +300,7 @@ def test_no_lapse_rate_data(tmp_path):
     neighbour_path = kgo_dir / "inputs/all_methods_uk.nc"
     diag_path = kgo_dir / "inputs/ukvx_temperature.nc"
     output_path = tmp_path / "output.nc"
-    args = [neighbour_path, diag_path, output_path,
-            "--apply_lapse_rate_correction"]
+    args = [neighbour_path, diag_path, "--output", output_path,
+            "--apply-lapse-rate-correction"]
     with pytest.warns(UserWarning, match=".*lapse rate.*"):
         run_cli(args)

@@ -31,145 +31,21 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run spotdata extraction."""
 
-import warnings
-
-import iris
-import numpy as np
-from iris.exceptions import CoordinateNotFoundError
-
-from improver.argparser import ArgParser
-from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
-    GeneratePercentilesFromProbabilities
-from improver.metadata.probabilistic import find_percentile_coordinate
-from improver.percentile import PercentileConverter
-from improver.spotdata.apply_lapse_rate import SpotLapseRateAdjust
-from improver.spotdata.neighbour_finding import NeighbourSelection
-from improver.spotdata.spot_extraction import SpotExtraction
-from improver.utilities.cli_utilities import load_json_or_none
-from improver.utilities.cube_extraction import extract_subcube
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
+from improver import cli
 
 
-def main(argv=None):
-    """Load in arguments and start spotdata extraction process."""
-    parser = ArgParser(
-        description="Extract diagnostic data from gridded fields for spot data"
-        " sites. It is possible to apply a temperature lapse rate adjustment"
-        " to temperature data that helps to account for differences between"
-        " the spot sites real altitude and that of the grid point from which"
-        " the temperature data is extracted.")
-
-    # Input and output files required.
-    parser.add_argument("neighbour_filepath", metavar="NEIGHBOUR_FILEPATH",
-                        help="Path to a NetCDF file of spot-data neighbours. "
-                        "This file also contains the spot site information.")
-    parser.add_argument("diagnostic_filepath", metavar="DIAGNOSTIC_FILEPATH",
-                        help="Path to a NetCDF file containing the diagnostic "
-                             "data to be extracted.")
-    parser.add_argument("temperature_lapse_rate_filepath",
-                        metavar="LAPSE_RATE_FILEPATH", nargs='?',
-                        help="(Optional) Filepath to a NetCDF file containing"
-                        " temperature lapse rates. If this cube is provided,"
-                        " and a screen temperature cube is being processed,"
-                        " the lapse rates will be used to adjust the"
-                        " temperatures to better represent each spot's"
-                        " site-altitude.")
-    parser.add_argument("output_filepath", metavar="OUTPUT_FILEPATH",
-                        help="The output path for the resulting NetCDF")
-    parser.add_argument("--new_title", metavar="NEW_TITLE", default=None,
-                        help="Title attribute for spot-extracted data. If not "
-                        "set, this attribute is removed, since it has no "
-                        "prescribed standard and may therefore contain grid "
-                        "information that is no longer correct after spot-"
-                        "extraction.", type=str)
-
-    parser.add_argument(
-        "--apply_lapse_rate_correction",
-        default=False, action="store_true",
-        help="If the option is set and a lapse rate cube has been "
-        "provided, extracted screen temperatures will be adjusted to "
-        "better match the altitude of the spot site for which they have "
-        "been extracted.")
-
-    method_group = parser.add_argument_group(
-        title="Neighbour finding method",
-        description="If none of these options are set, the nearest grid point "
-        "to a spot site will be used without any other constraints.")
-    method_group.add_argument(
-        "--land_constraint", default=False, action='store_true',
-        help="If set the neighbour cube will be interrogated for grid point"
-        " neighbours that were identified using a land constraint. This means"
-        " that the grid points should be land points except for sites where"
-        " none were found within the search radius when the neighbour cube was"
-        " created. May be used with minimum_dz.")
-    method_group.add_argument(
-        "--minimum_dz", default=False, action='store_true',
-        help="If set the neighbour cube will be interrogated for grid point"
-        " neighbours that were identified using a minimum height difference"
-        " constraint. These are grid points that were found to be the closest"
-        " in altitude to the spot site within the search radius defined when"
-        " the neighbour cube was created. May be used with land_constraint.")
-
-    percentile_group = parser.add_argument_group(
-        title="Extract percentiles",
-        description="Extract particular percentiles from probabilistic, "
-        "percentile, or realization inputs. If deterministic input is "
-        "provided a warning is raised and all leading dimensions are included "
-        "in the returned spot-data cube.")
-    percentile_group.add_argument(
-        "--extract_percentiles", default=None, nargs='+', type=float,
-        help="If set to a percentile value or a list of percentile values, "
-        "data corresponding to those percentiles will be returned. For "
-        "example setting '--extract_percentiles 25 50 75' will result in the "
-        "25th, 50th, and 75th percentiles being returned from a cube of "
-        "probabilities, percentiles, or realizations. Note that for "
-        "percentile inputs, the desired percentile(s) must exist in the input "
-        "cube.")
-    parser.add_argument(
-        "--ecc_bounds_warning", default=False, action="store_true",
-        help="If True, where calculated percentiles are outside the ECC "
-        "bounds range, raise a warning rather than an exception.")
-
-    output_group = parser.add_argument_group("Suppress Verbose output")
-    # This CLI may be used to prepare data for verification without knowing the
-    # form of the input, be it deterministic, realizations or probabilistic.
-    # A warning is normally raised when attempting to extract a percentile from
-    # deterministic data as this is not possible; the spot-extraction of the
-    # entire cube is returned. When preparing data for verification we know
-    # that we will produce a large number of these warnings when passing in
-    # deterministic data. This option to suppress warnings is provided to
-    # reduce the amount of unneeded logging information that is written out.
-
-    output_group.add_argument(
-        "--suppress_warnings", default=False, action="store_true",
-        help="Suppress warning output. This option should only be used if "
-        "it is known that warnings will be generated but they are not "
-        "required.")
-
-    args = parser.parse_args(args=argv)
-
-    # Load Cube and JSON.
-    neighbour_cube = load_cube(args.neighbour_filepath)
-    diagnostic_cube = load_cube(args.diagnostic_filepath)
-    lapse_rate_cube = load_cube(args.temperature_lapse_rate_filepath,
-                                allow_none=True)
-
-    # Process Cube
-    result = process(neighbour_cube, diagnostic_cube, lapse_rate_cube,
-                     args.apply_lapse_rate_correction, args.land_constraint,
-                     args.minimum_dz, args.extract_percentiles,
-                     args.ecc_bounds_warning, args.new_title,
-                     args.suppress_warnings)
-
-    # Save Cube
-    save_netcdf(result, args.output_filepath)
-
-
-def process(neighbour_cube, diagnostic_cube, lapse_rate_cube=None,
-            apply_lapse_rate_correction=False, land_constraint=False,
-            minimum_dz=False, extract_percentiles=None,
-            ecc_bounds_warning=False, new_title=None,
+@cli.clizefy
+@cli.with_output
+def process(neighbour_cube: cli.inputcube,
+            diagnostic_cube: cli.inputcube,
+            lapse_rate_cube: cli.inputcube = None,
+            *,
+            apply_lapse_rate_correction=False,
+            land_constraint=False,
+            minimum_dz=False,
+            extract_percentiles: cli.comma_separated_list = None,
+            ecc_bounds_warning=False,
+            new_title: str = None,
             suppress_warnings=False):
     """Module to run spot data extraction.
 
@@ -190,7 +66,7 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube=None,
             spot's site-altitude.
         apply_lapse_rate_correction (bool):
             If True, and a lapse rate cube has been provided, extracted
-            screen temperature will be adjusted to better match the altitude
+            screen temperatures will be adjusted to better match the altitude
             of the spot site for which they have been extracted.
             Default is False.
         land_constraint (bool):
@@ -213,7 +89,8 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube=None,
             data corresponding to those percentiles will be returned. For
             example [25, 50, 75] will result in the 25th, 50th and 75th
             percentiles being returned from a cube of probabilities,
-            percentiles or realizations.
+            percentiles or realizations. Deterministic input data will raise
+            a warning message.
             Note that for percentiles inputs, the desired percentile(s) must
             exist in the input cube.
             Default is None.
@@ -223,7 +100,9 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube=None,
             Default is False.
         new_title (str or None):
             New title for the spot-extracted data.  If None, this attribute is
-            removed from the output cube.
+            removed from the output cube since it has no prescribed standard 
+            and may therefore contain grid information that is no longer 
+            correct after spot-extraction.
         suppress_warnings (bool):
             Suppress warning output. This option should only be used if it
             is known that warnings will be generated but they are not required.
@@ -231,7 +110,7 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube=None,
 
     Returns:
         iris.cube.Cube:
-           The processed cube.
+           Cube of spot data.
 
     Raises:
         ValueError:
@@ -258,6 +137,22 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube=None,
             the lapse rate correction was enabled.
 
     """
+
+    import warnings
+
+    import iris
+    import numpy as np
+    from iris.exceptions import CoordinateNotFoundError
+
+    from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
+        GeneratePercentilesFromProbabilities
+    from improver.metadata.probabilistic import find_percentile_coordinate
+    from improver.percentile import PercentileConverter
+    from improver.spotdata.apply_lapse_rate import SpotLapseRateAdjust
+    from improver.spotdata.neighbour_finding import NeighbourSelection
+    from improver.spotdata.spot_extraction import SpotExtraction
+    from improver.utilities.cube_extraction import extract_subcube
+
     neighbour_selection_method = NeighbourSelection(
         land_constraint=land_constraint,
         minimum_dz=minimum_dz).neighbour_finding_method_name()
@@ -270,7 +165,8 @@ def process(neighbour_cube, diagnostic_cube, lapse_rate_cube=None,
     # the given percentile if available. This is done after the spot-extraction
     # to minimise processing time; usually there are far fewer spot sites than
     # grid points.
-    if extract_percentiles is not None:
+    if extract_percentiles:
+        extract_percentiles = [np.float32(x) for x in extract_percentiles]
         try:
             perc_coordinate = find_percentile_coordinate(result)
         except CoordinateNotFoundError:
