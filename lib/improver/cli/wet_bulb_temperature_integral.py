@@ -31,37 +31,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to calculate wet bulb temperature integral."""
 
-from improver.argparser import ArgParser
-
-from improver.psychrometric_calculations.psychrometric_calculations import (
-    WetBulbTemperatureIntegral)
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
+from improver import cli
 
 
-def main(argv=None):
-    """Load in arguments and get going."""
-    parser = ArgParser(
-        description="Calculate the wet bulb temperature integral")
-    parser.add_argument("wet_bulb_temperature", metavar="WBT",
-                        help="Path to a NetCDF file of wet bulb temperature on"
-                        " height levels (m).")
-    parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
-                        help="The output path for the processed NetCDF")
-    args = parser.parse_args(args=argv)
-
-    # Load Cubes
-    wet_bulb_temperature = load_cube(args.wet_bulb_temperature,
-                                     no_lazy_load=True)
-
-    # Process Cube
-    result = process(wet_bulb_temperature)
-
-    # Save Cube
-    save_netcdf(result, args.output_filepath)
-
-
-def process(wet_bulb_temperature):
+@cli.clizefy
+@cli.with_output
+def process(wet_bulb_temperature: cli.inputcube):
     """Module to calculate wet bulb temperature integral.
 
     Calculate the wet-bulb temperature integral using the input wet bulb
@@ -76,8 +51,10 @@ def process(wet_bulb_temperature):
         iris.cube.Cube:
             Processed Cube of wet bulb integrals.
     """
-    result = WetBulbTemperatureIntegral().process(
-        wet_bulb_temperature)
+    from improver.psychrometric_calculations.psychrometric_calculations \
+        import WetBulbTemperatureIntegral
+
+    result = WetBulbTemperatureIntegral().process(wet_bulb_temperature)
     return result
 
 
