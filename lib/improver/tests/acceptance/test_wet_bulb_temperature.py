@@ -46,7 +46,7 @@ def test_basic(tmp_path):
     input_paths = [kgo_dir / f"enukx_{p}.nc"
                    for p in ("temperature", "relative_humidity", "pressure")]
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, output_path]
+    args = [*input_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -58,8 +58,9 @@ def test_multilevel(tmp_path):
     input_paths = [kgo_dir / f"enukx_multilevel_{p}.nc"
                    for p in ("temperature", "relative_humidity", "pressure")]
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, output_path,
-            "--convergence_condition", "0.005"]
+    args = [*input_paths,
+            "--convergence-condition", "0.005",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -71,6 +72,6 @@ def test_global(tmp_path):
     input_paths = [kgo_dir / f"{p}_input.nc"
                    for p in ("temperature", "relative_humidity", "pressure")]
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, output_path]
+    args = [*input_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
