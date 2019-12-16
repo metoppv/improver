@@ -100,8 +100,8 @@ def process(neighbour_cube: cli.inputcube,
             Default is False.
         new_title (str or None):
             New title for the spot-extracted data.  If None, this attribute is
-            removed from the output cube since it has no prescribed standard 
-            and may therefore contain grid information that is no longer 
+            removed from the output cube since it has no prescribed standard
+            and may therefore contain grid information that is no longer
             correct after spot-extraction.
         suppress_warnings (bool):
             Suppress warning output. This option should only be used if it
