@@ -43,8 +43,8 @@ def process(cube: cli.inputcube,
             mask: cli.inputcube,
             weights: cli.inputcube = None,
             *,
-            radius: cli.comma_separated_list = None,
-            lead_times=None,
+            radius: cli.comma_separated_list,
+            lead_times: cli.comma_separated_list = None,
             sum_or_fraction="fraction",
             return_intermediate=False):
     """ Module to process land and sea separately before combining them.
@@ -70,19 +70,14 @@ def process(cube: cli.inputcube,
             created using a land-sea mask.
             Default is None.
         radius (float or list of float):
-            The radius in metres of the neighbourhood to apply.
-            Rounded up to convert into integer number of grid points east and
-            north, based on the characteristic spacing at the zero indices of
-            the cube projection-x and y coordinates.
-            Default is None.
-            TODO
+            The radius or a list of radii in metres of the
+            neighbourhood to apply.
+            If it is a list, it must be the same length as lead_times.
         lead_times (list of int or None):
-            A list with the radius in metres at [0] and the lead_time at [1]
-            Lead time is a List of lead times or forecast periods, at which
-            the radii within 'radii' are defined. The lead times are expected
-            in hours.
+            The lead times in hours.
+            If lead_times is used, radius must be a list the same length as
+            lead_times.
             Default is None
-            TODO
         sum_or_fraction (str):
             The neighbourhood output can either be in the form of a sum of the
             neighbourhood, or a fraction calculated by dividing the sum of the
