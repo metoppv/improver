@@ -39,8 +39,8 @@ from improver import cli
 def process(gust_cube: cli.inputcube,
             ws_cube: cli.inputcube,
             *,
-            percentile_gust: float = 50,
-            percentile_ws: float = 95):
+            percentile_gust: float = 50.0,
+            percentile_ws: float = 95.0):
     """Create a cube containing the wind_gust diagnostic.
 
     Calculate revised wind-gust data using a specified percentile of
