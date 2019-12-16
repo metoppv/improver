@@ -64,7 +64,7 @@ def test_alpha_files(tmp_path):
     alphasx_path = kgo_dir / "alphasx.nc"
     alphasy_path = kgo_dir / "alphasy.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, 
+    args = [input_path,
             "--alphas-x-cube", alphasx_path,
             "--alphas-y-cube", alphasy_path,
             "--iterations", "2",

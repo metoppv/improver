@@ -99,4 +99,3 @@ def process(cube: cli.inputcube,
         cube, alphas_x=alphas_x_cube, alphas_y=alphas_y_cube,
         mask_cube=mask_cube)
     return result
-
