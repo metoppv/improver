@@ -47,8 +47,11 @@ def test_basic_alpha(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, output_path,
-            "--alpha_x=0.5", "--alpha_y=0.5", "--iterations=2"]
+    args = [input_path,
+            "--alpha-x", "0.5",
+            "--alpha-y", "0.5",
+            "--iterations", "2",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -61,10 +64,11 @@ def test_alpha_files(tmp_path):
     alphasx_path = kgo_dir / "alphasx.nc"
     alphasy_path = kgo_dir / "alphasy.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, output_path,
-            f"--input_filepath_alphas_x={alphasx_path}",
-            f"--input_filepath_alphas_y={alphasy_path}",
-            "--iterations=2"]
+    args = [input_path, 
+            "--alphas-x-cube", alphasx_path,
+            "--alphas-y-cube", alphasy_path,
+            "--iterations", "2",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path, rtol=None)
 
@@ -77,10 +81,13 @@ def test_external_mask_with_remask(tmp_path):
     input_path = kgo_dir / "input.nc"
     mask_path = kgo_dir / "mask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, output_path,
-            "--alpha_x=0.5", "--alpha_y=0.5", "--iterations=2",
-            f"--input_mask_filepath={mask_path}",
-            "--re_mask"]
+    args = [input_path,
+            "--mask-cube", mask_path,
+            "--alpha-x", "0.5",
+            "--alpha-y", "0.5",
+            "--iterations", "2",
+            "--re-mask",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -93,9 +100,12 @@ def test_external_mask_with_no_remask(tmp_path):
     input_path = kgo_dir / "input.nc"
     mask_path = kgo_dir / "mask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, output_path,
-            "--alpha_x=0.5", "--alpha_y=0.5", "--iterations=2",
-            f"--input_mask_filepath={mask_path}"]
+    args = [input_path,
+           "--mask-cube", mask_path,
+           "--alpha-x", "0.5",
+           "--alpha-y", "0.5",
+           "--iterations", "2",
+           "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -106,8 +116,12 @@ def test_internal_mask_with_remask(tmp_path):
     kgo_path = kgo_dir / "kgo_internal_mask_with_re_mask.nc"
     input_path = kgo_dir / "input_masked.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, output_path,
-            "--alpha_x=0.5", "--alpha_y=0.5", "--iterations=2", "--re_mask"]
+    args = [input_path,
+            "--alpha-x", "0.5",
+            "--alpha-y", "0.5",
+            "--iterations", "2",
+            "--re-mask",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -118,7 +132,10 @@ def test_internal_mask_with_no_remask(tmp_path):
     kgo_path = kgo_dir / "kgo_internal_mask_no_re_mask.nc"
     input_path = kgo_dir / "input_masked.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, output_path,
-            "--alpha_x=0.5", "--alpha_y=0.5", "--iterations=2"]
+    args = [input_path,
+            "--alpha-x", "0.5",
+            "--alpha-y", "0.5",
+            "--iterations", "2",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
