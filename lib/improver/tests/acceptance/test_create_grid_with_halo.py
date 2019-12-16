@@ -56,7 +56,7 @@ def test_halo_size(tmp_path):
     kgo_dir = acc.kgo_root() / "create-grid-with-halo/halo_size"
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "../basic/source_grid.nc"
-    output_path = tmp_path / "output.nc"
+    output_path = tmp_path / "output.nc"o
     args = [input_path,
             "--halo-radius", "75000",
             "--output", output_path]

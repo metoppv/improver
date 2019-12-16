@@ -33,6 +33,7 @@
 
 from improver import cli
 
+
 @cli.clizefy
 @cli.with_output
 def process(cube: cli.inputcube,
@@ -45,14 +46,13 @@ def process(cube: cli.inputcube,
 
     Args:
         cube (iris.cube.Cube):
-            The cube to be processed.
+            Contains data on the source grid.
         halo_radius (float):
             Radius in metres of which to pad the input grid.
-            Default is 162,000
 
     Returns:
         iris.cube.Cube:
-            The processed Cube defining the halo-padded grid (data set to 0)
+            The processed cube defining the halo-padded grid (data set to 0)
     """
     from improver.utilities.pad_spatial import create_cube_with_halo
 
