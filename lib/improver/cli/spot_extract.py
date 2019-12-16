@@ -247,7 +247,3 @@ def process(neighbour_cube: cli.inputcube,
     # Remove the internal model_grid_hash attribute if present.
     result.attributes.pop('model_grid_hash', None)
     return result
-
-
-if __name__ == "__main__":
-    main()
