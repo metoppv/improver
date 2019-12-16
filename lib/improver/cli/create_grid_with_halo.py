@@ -38,7 +38,7 @@ from improver import cli
 @cli.with_output
 def process(cube: cli.inputcube,
             *,
-            halo_radius=162000.0):
+            halo_radius: float = 162000.0):
     """Generate a zeroed grid with halo from a source cube.
 
     Create a template cube defining a new grid by adding a fixed width halo on
