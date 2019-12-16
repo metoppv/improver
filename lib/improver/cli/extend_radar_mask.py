@@ -30,46 +30,15 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to extend a radar mask based on coverage data."""
-
-from improver.argparser import ArgParser
-from improver.metadata.check_datatypes import check_cube_not_float64
-from improver.nowcasting.utilities import ExtendRadarMask
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
+from improver import cli
 
 
-def main(argv=None):
-    """Extend radar mask based on coverage data."""
-    parser = ArgParser(description="Extend radar mask based on coverage "
-                       "data.")
-    parser.add_argument("radar_data_filepath", metavar="RADAR_DATA_FILEPATH",
-                        type=str, help="Full path to input NetCDF file "
-                        "containing the radar variable to remask.")
-    parser.add_argument("coverage_filepath", metavar="COVERAGE_FILEPATH",
-                        type=str, help="Full path to input NetCDF file "
-                        "containing radar coverage data.")
-    parser.add_argument("output_filepath", metavar="OUTPUT_FILEPATH",
-                        type=str, help="Full path to save remasked radar data "
-                        "NetCDF file.")
-    parser.add_argument("--fix_float64", action='store_true', default=False,
-                        help="Check and fix cube for float64 data. Without "
-                             "this option an exception will be raised if "
-                             "float64 data is found but no fix applied.")
-
-    args = parser.parse_args(args=argv)
-
-    # Load Cubes
-    radar_data = load_cube(args.radar_data_filepath)
-    coverage = load_cube(args.coverage_filepath)
-
-    # Process Cube
-    remasked_data = process(coverage, radar_data, args.fix_float64)
-
-    # Save Cube
-    save_netcdf(remasked_data, args.output_filepath)
-
-
-def process(coverage, radar_data, fix_float64=False):
+@cli.clizefy
+@cli.with_output
+def process(coverage: cli.inputcube,
+            radar_data: cli.inputcube,
+            *,
+            fix_float64=False):
     """ Extend radar mask based on coverage data.
 
     Extends the mask on radar data based on the radar coverage composite.
@@ -88,12 +57,11 @@ def process(coverage, radar_data, fix_float64=False):
         iris.cube.Cube:
             A cube with the remasked radar data.
     """
+    from improver.metadata.check_datatypes import check_cube_not_float64
+    from improver.nowcasting.utilities import ExtendRadarMask
+
     # extend mask
     result = ExtendRadarMask().process(radar_data, coverage)
     # Check and fix for float64 data only option:
     check_cube_not_float64(result, fix=fix_float64)
     return result
-
-
-if __name__ == "__main__":
-    main()
