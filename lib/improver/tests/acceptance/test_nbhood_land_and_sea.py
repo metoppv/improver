@@ -92,7 +92,7 @@ def test_unnecessary_weights(tmp_path):
     args = [input_path, mask_path, weights_path,
             "--radius", "20000",
             "--output", output_path]
-    with pytest.warns(UserWarning, match=".*weights cube.*"):
+    with pytest.raises(TypeError, match=".*weights cube.*"):
         run_cli(args)
 
 
@@ -167,3 +167,17 @@ def test_topographic_bands_probabilities(tmp_path):
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_lead_time_radii_mismatch(tmp_path):
+    """Tests that lead times and radii of different lengths errors."""
+    kgo_dir = acc.kgo_root() / "nbhood-land-and-sea/no_topographic_bands"
+    input_path = kgo_dir / "input.nc"
+    mask_path = kgo_dir / "ukvx_landmask.nc"
+    output_path = tmp_path / "output.nc"
+    args = [input_path, mask_path,
+            "--radius", "20000,20001",
+            "--lead-times", "1",
+            "--output", output_path]
+    with pytest.raises(RuntimeError, match=".*list of radii.*"):
+        run_cli(args)

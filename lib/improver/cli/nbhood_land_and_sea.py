@@ -43,8 +43,8 @@ def process(cube: cli.inputcube,
             mask: cli.inputcube,
             weights: cli.inputcube = None,
             *,
-            radius: float = None,
-            radii_by_lead_time=None,
+            radius: cli.comma_separated_list = None,
+            lead_times=None,
             sum_or_fraction="fraction",
             return_intermediate=False):
     """ Module to process land and sea separately before combining them.
@@ -69,18 +69,20 @@ def process(cube: cli.inputcube,
             dimension gained through masking. These weights must have been
             created using a land-sea mask.
             Default is None.
-        radius (float):
+        radius (float or list of float):
             The radius in metres of the neighbourhood to apply.
             Rounded up to convert into integer number of grid points east and
             north, based on the characteristic spacing at the zero indices of
             the cube projection-x and y coordinates.
             Default is None.
-        radii_by_lead_time (list):
+            TODO
+        lead_times (list of int or None):
             A list with the radius in metres at [0] and the lead_time at [1]
             Lead time is a List of lead times or forecast periods, at which
             the radii within 'radii' are defined. The lead times are expected
             in hours.
             Default is None
+            TODO
         sum_or_fraction (str):
             The neighbourhood output can either be in the form of a sum of the
             neighbourhood, or a fraction calculated by dividing the sum of the
@@ -124,7 +126,6 @@ def process(cube: cli.inputcube,
     from improver.nbhood.use_nbhood import (
         ApplyNeighbourhoodProcessingWithAMask,
         CollapseMaskedNeighbourhoodCoordinate)
-    from improver.utilities.cli_utilities import radius_or_radii_and_lead
 
     masking_coordinate = intermediate_cube = None
     if any(['topographic_zone' in coord.name()
@@ -157,9 +158,8 @@ def process(cube: cli.inputcube,
 
     else:
         if weights is not None:
-            warnings.warn('A weights cube has been provided but will not be '
-                          'used as there is no topographic zone coordinate '
-                          'to collapse.')
+            raise TypeError('A weights cube has been provided but will not be '
+                            'used')
         landmask = mask
         # In this case the land is set to 1 and the sea is set to 0 in the
         # input mask.
@@ -167,8 +167,14 @@ def process(cube: cli.inputcube,
             data=np.logical_not(landmask.data).astype(int))
         land_only = landmask.copy(data=landmask.data.astype(int))
 
-    radius_or_radii, lead_times = radius_or_radii_and_lead(
-        radius, radii_by_lead_time)
+    if lead_times is None:
+        radius_or_radii = float(radius[0])
+    else:
+        if len(radius) != len(lead_times):
+            raise RuntimeError("If leadtimes are supplied, it must be a list"
+                               " of equal length to a list of radii.")
+        radius_or_radii = [float(x) for x in radius]
+        lead_times = [int(x) for x in lead_times]
 
     if return_intermediate is not None and masking_coordinate is None:
         warnings.warn('No topographic_zone coordinate found, so no '
