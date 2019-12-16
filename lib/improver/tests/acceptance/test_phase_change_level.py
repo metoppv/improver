@@ -51,7 +51,9 @@ def test_snow_sleet(tmp_path):
                     "wet-bulb-temperature-integral/basic/kgo.nc",
                     "phase-change-level/basic/orog.nc",
                     "phase-change-level/basic/land_mask.nc")]
-    args = [*input_paths, "snow-sleet", "--output", output_path]
+    args = [*input_paths,
+            "--phase-change", "snow-sleet",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
