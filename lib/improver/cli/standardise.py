@@ -63,42 +63,39 @@ def process(source_data: cli.inputcube,
         target_grid (iris.cube.Cube or None):
             If specified, then regridding of the source against the target
             grid is enabled. If also using landmask-aware regridding then this
-            must be land_binary_mask data. Default is None.
+            must be land_binary_mask data.
         source_landmask (iris.cube.Cube or None):
             A cube describing the land_binary_mask on the source-grid if
-            coastline-aware regridding is required. Default is None.
+            coastline-aware regridding is required.
         regrid_mode (str):
             Selects which regridding techniques to use. Default uses
-            iris.analysis.Linear(); "nearest" uses Nearest() (Use for less
-            continuous fields, e.g precipitation.); "nearest-with-mask"
+            iris.analysis.Linear(); "nearest" uses Nearest() (for less
+            continuous fields, e.g precipitation); "nearest-with-mask"
             ensures that target data are sources from points with the same
-            mask value (Use for coast-line-dependant variables
-            like temperature).
+            mask value (for coast-line-dependant variables like temperature).
         extrapolation_mode (str):
             Mode to use for extrapolating data into regions beyond the limits
             of the source_data domain. Refer to online documentation for
             iris.analysis.
             Modes are -
-            extrapolate -The extrapolation points will take their values
-            from the nearest source point.
-            nan - The extrapolation points will be set to NaN.
-            error - A ValueError exception will be raised notifying an attempt
-            to extrapolate.
-            mask - The extrapolation points will always be masked, even if
-            the source data is not a MaskedArray.
-            nanmask - If the source data is a MaskedArray the extrapolation
-            points will be masked. Otherwise they will be set to NaN.
-            Default is 'nanmask'.
+            extrapolate - extrapolated points will take their values from the
+            nearest source point
+            nan - extrapolated points will be set to NaN
+            error - a ValueError will be raised notifying an attempt to
+            extrapolate
+            mask - extrapolated points will always be masked, even if
+            the source data is not a MaskedArray
+            nanmask - if the source data is a MaskedArray extrapolated points
+            will be masked; otherwise they will be set to NaN
         landmask_vicinity (float):
             Radius of vicinity to search for a coastline, in metres.
-            Defaults is 25000 m
         regridded_title (str or None):
             New "title" attribute to be set if the field is being regridded
             (since "title" may contain grid information). If None, a default
             value is used.
         attributes_dict (dict or None):
             Dictionary containing required changes that will be applied to
-            the attributes. Default is None.
+            the attributes.
         coords_to_remove (list or None):
             List of names of scalar coordinates to remove.
         new_name (str or None):
@@ -109,7 +106,6 @@ def process(source_data: cli.inputcube,
             If True, checks and fixes cube for float64 data. Without this
             option an exception will be raised if float64 data is found but no
             fix applied.
-            Default is False.
 
     Returns:
         iris.cube.Cube:
