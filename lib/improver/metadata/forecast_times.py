@@ -173,7 +173,7 @@ def _calculate_forecast_period(time_coord, frt_coord, fp_units,
     return result_coord
 
 
-def rebadge_forecasts_as_latest_cycle(cubes, cycletime):
+def rebadge_forecasts_as_latest_cycle(cubes, cycletime=None):
     """
     Function to update the forecast_reference_time and forecast_period
     on a list of input forecasts to match either a given cycletime, or
