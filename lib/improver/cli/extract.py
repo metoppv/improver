@@ -89,7 +89,4 @@ def process(cube: cli.inputcube,
         msg = "Constraint(s) could not be matched in input cube"
         raise ValueError(msg)
     return result
-
-
-if __name__ == '__main__':
-    process()
+    
