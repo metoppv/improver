@@ -31,14 +31,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to extract a subset of input file data, given constraints."""
 
+from improver.cli import parameters
 from improver import cli
 
 
 @cli.clizefy
 @cli.with_output
 def process(cube: cli.inputcube,
-            constraints: cli.comma_separated_list,
             *,
+            constraints: parameters.multi(min=1),
             units: cli.comma_separated_list = None,
             ignore_failure=False):
     """ Extract a subset of a single cube.
@@ -53,11 +54,9 @@ def process(cube: cli.inputcube,
             The Cube from which a sub-cube is extracted
         constraints (list):
             The constraint(s) to be applied.  These must be of the form
-            "key=value", eg "threshold=1". Multiple constraints can be
-            specified using a comma separated list (no spaces), e.g.
-            threshold=1,wind_speed=10. Scalars, boolean and string
+            "key=value", eg "threshold=1". Scalars, boolean and string
             values are supported. Lists of values can be provided
-            e.g. key=[value1&value2&value3]. Alternatively, ranges can also be
+            e.g. key=[value1,value2,value3]. Alternatively, ranges can also be
             specified e.g. key=[value1:value3].
             When a range is specified, this is inclusive of the endpoints of
             the range.
@@ -77,10 +76,6 @@ def process(cube: cli.inputcube,
     """
     from improver.utilities.cube_extraction import extract_subcube
 
-    constraints = [item.replace('&', ', ') for item in constraints]
-    if units is not None:
-        units = [item.replace('&', ', ') for item in units]
-
     result = extract_subcube(cube, constraints, units)
 
     if result is None and ignore_failure:
@@ -89,4 +84,3 @@ def process(cube: cli.inputcube,
         msg = "Constraint(s) could not be matched in input cube"
         raise ValueError(msg)
     return result
-    
