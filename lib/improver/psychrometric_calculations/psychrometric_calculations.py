@@ -584,6 +584,7 @@ class WetBulbTemperatureIntegral(BasePlugin):
                 Cube of wet bulb temperature integral (Kelvin-metres).
         """
         # Touch the data to ensure it is not lazy
+        # otherwise vertical interpolation is slow
         wet_bulb_temperature.data
         # Convert to Celsius
         wet_bulb_temperature.convert_units('celsius')
