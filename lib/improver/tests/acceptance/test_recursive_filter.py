@@ -101,11 +101,11 @@ def test_external_mask_with_no_remask(tmp_path):
     mask_path = kgo_dir / "mask.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path,
-           "--mask-cube", mask_path,
-           "--alpha-x", "0.5",
-           "--alpha-y", "0.5",
-           "--iterations", "2",
-           "--output", output_path]
+            "--mask-cube", mask_path,
+            "--alpha-x", "0.5",
+            "--alpha-y", "0.5",
+            "--iterations", "2",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 

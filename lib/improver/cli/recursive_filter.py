@@ -44,7 +44,7 @@ def process(cube: cli.inputcube,
             alpha_x: float = None,
             alpha_y: float = None,
             iterations: int = 1,
-            re_mask = False):
+            re_mask=False):
     """Module to apply a recursive filter to neighbourhooded data.
 
     Run a recursive filter to convert a square neighbourhood into a
