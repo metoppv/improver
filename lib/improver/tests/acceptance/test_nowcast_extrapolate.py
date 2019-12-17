@@ -98,3 +98,20 @@ def test_basic_no_orographic(tmp_path):
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+def test_invalid_cubes(tmp_path):
+    """Tests when invalid cubes are given"""
+    kgo_dir = acc.kgo_root() / "nowcast-extrapolate/extrapolate"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_dir = acc.kgo_root() / "nowcast-optical-flow/basic"
+    input_path = input_dir / RAINRATE_NC
+    oe_path = kgo_dir / "orographic_enhancement.nc"
+    uv_path = kgo_dir / "wrong_cube.nc"
+
+    output_path = tmp_path / "output.nc"
+
+    args = [input_path, uv_path, oe_path,
+            "--max-lead-time", "90",
+            "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

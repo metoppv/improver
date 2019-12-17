@@ -54,6 +54,9 @@ def process(input_cube: cli.inputcube,
             The input Cube to be processed.
         advection_cubes (iris.cube.CubeList):
             Advection cubes of U and V.
+            These must have the names of.
+            precipitation_advection_x_velocity
+            precipitation_advection_y_velocity
         orographic_enhancement_cube (iris.cube.Cube):
             Cube containing the orographic enhancement fields. May have data
             for multiple times in the cube.
@@ -71,10 +74,6 @@ def process(input_cube: cli.inputcube,
     Returns:
         iris.cube.CubeList:
             New cubes with updated time and extrapolated data.
-
-    Raises:
-        ValueError:
-            can either use speed_cube and direction_cube or u_cube and v_cube.
     """
     from iris import Constraint
 
@@ -86,8 +85,6 @@ def process(input_cube: cli.inputcube,
     v_cube = advection_cubes.extract(
         Constraint("precipitation_advection_y_velocity"), True)
 
-    if not (u_cube and v_cube):
-        raise TypeError("Neither u_cube or v_cube can be None")
     # extrapolate input data to required lead times
     forecast_plugin = CreateExtrapolationForecast(
         input_cube, u_cube, v_cube,
