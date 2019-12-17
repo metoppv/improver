@@ -229,7 +229,8 @@ def with_output(wrapped, *args, output=None, **kwargs):
         wrapped (obj):
             The function to be wrapped.
         output (str, optional):
-            Output file name.
+            Output file name. If not supplied, the output object will be
+            printed instead.
 
     Returns:
         Result of calling `wrapped` or None if `output` is given.
