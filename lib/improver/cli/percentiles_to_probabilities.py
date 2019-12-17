@@ -29,26 +29,28 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to collapse cube coordinates and calculate percentiled data."""
+"""
+Calculate probability values from percentile data and a 2D threshold field.
+"""
 
-from improver.argparser import ArgParser
-
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
-from improver.utilities.statistical_operations import \
-    ProbabilitiesFromPercentiles2D
+from improver import cli
 
 
-def main(argv=None):
+@cli.clizefy
+@cli.with_output
+def process(percentiles_cube: cli.inputcube,
+            threshold_cube: cli.inputcube,
+            output_diagnostic_name):
     r"""
-    Load arguments and run ProbabilitiesFromPercentiles plugin.
+    Calculates probability from a percentiled field at a 2D threshold level.
+    It generates probabilities at a fixed threshold (height) from a set of
+    (height) percentiles. E.g. for 2D percentile levels at different heights,
+    calculate probability that height is at ground level, where the threshold
+    cube contains a 2D topography field.
 
-    Plugin generates probabilities at a fixed threshold (height) from a set of
-    (height) percentiles.
+    Example::
 
-    Example:
-
-        Snow-fall level::
+        Snow-fall level:
 
             Reference field: Percentiled snow fall level (m ASL)
             Other field: Orography (m ASL)
@@ -63,44 +65,6 @@ def main(argv=None):
         with percentile values to find the band in which they fall, then
         interpolated linearly to obtain a probability of snow level at / below
         the ground surface.
-    """
-    parser = ArgParser(
-        description="Calculate probability from a percentiled field at a "
-        "2D threshold level.  Eg for 2D percentile levels at different "
-        "heights, calculate probability that height is at ground level, where"
-        " the threshold file contains a 2D topography field.")
-    parser.add_argument("percentiles_filepath", metavar="PERCENTILES_FILE",
-                        help="A path to an input NetCDF file containing a "
-                        "percentiled field")
-    parser.add_argument("threshold_filepath", metavar="THRESHOLD_FILE",
-                        help="A path to an input NetCDF file containing a "
-                        "threshold value at which probabilities should be "
-                        "calculated.")
-    parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
-                        help="The output path for the processed NetCDF")
-    parser.add_argument("output_diagnostic_name",
-                        metavar="OUTPUT_DIAGNOSTIC_NAME", type=str,
-                        help="Name for data in output file e.g. "
-                        "probability_of_snow_falling_level_below_ground_level")
-    args = parser.parse_args(args=argv)
-
-    # Load Cubes
-    threshold_cube = load_cube(args.threshold_filepath)
-    percentiles_cube = load_cube(args.percentiles_filepath)
-
-    # Process Cubes
-    probability_cube = process(percentiles_cube, threshold_cube,
-                               args.output_diagnostic_name)
-
-    # Save Cubes
-    save_netcdf(probability_cube, args.output_filepath)
-
-
-def process(percentiles_cube, threshold_cube, output_diagnostic_name):
-    """Calculates probability from a percentiled field.
-
-    Plugin generates probabilities at a fixed threshold (height) from a set
-    of (height) percentiles.
 
     Args:
         percentiles_cube (iris.cube.Cube):
@@ -122,11 +86,9 @@ def process(percentiles_cube, threshold_cube, output_diagnostic_name):
             A cube of probabilities obtained by interpolating between
             percentile values at the "threshold" level.
     """
+    from improver.utilities.statistical_operations import \
+        ProbabilitiesFromPercentiles2D
     result = ProbabilitiesFromPercentiles2D(percentiles_cube,
                                             output_diagnostic_name)
     probability_cube = result.process(threshold_cube)
     return probability_cube
-
-
-if __name__ == "__main__":
-    main()
