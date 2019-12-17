@@ -31,111 +31,23 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run wind downscaling."""
 
-import warnings
-
-import iris
-import numpy as np
-from iris.exceptions import CoordinateNotFoundError
-
-from improver.argparser import ArgParser
-from improver.utilities.cube_extraction import apply_extraction
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
-from improver.wind_calculations import wind_downscaling
+from improver import cli
 
 
-def main(argv=None):
-    """Load in arguments and get going."""
-    parser = ArgParser(
-        description='Run wind downscaling to apply roughness correction and'
-                    ' height correction to wind fields (as described in'
-                    ' Howard and Clark [2007]). All inputs must be on the same'
-                    ' standard grid')
-    parser.add_argument('wind_speed_filepath', metavar='WIND_SPEED_FILE',
-                        help='Location of the wind speed on standard grid'
-                             ' file. Any units can be supplied.')
-    parser.add_argument('silhouette_roughness_filepath', metavar='AOS_FILE',
-                        help='Location of model silhouette roughness file. '
-                             'Units of field: dimensionless')
-    parser.add_argument('sigma_filepath', metavar='SIGMA_FILE',
-                        help='Location of standard deviation of model '
-                             'orography height file. Units of field: m')
-    parser.add_argument('target_orog_filepath',
-                        metavar='TARGET_OROGRAPHY_FILE',
-                        help='Location of target orography file to downscale'
-                             ' fields to.'
-                             'Units of field: m')
-    parser.add_argument('standard_orog_filepath',
-                        metavar='STANDARD_OROGRAPHY_FILE',
-                        help='Location of orography on standard grid file '
-                             '(interpolated model orography.'
-                             ' Units of field: m')
-    parser.add_argument('model_resolution', metavar='MODEL_RESOLUTION',
-                        help='Original resolution of model orography (before'
-                             ' interpolation to standard grid).'
-                             ' Units of field: m')
-    parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
-                        help='The output path for the processed NetCDF')
-    parser.add_argument('--output_height_level', metavar='OUTPUT_HEIGHT_LEVEL',
-                        default=None,
-                        help='If only a single height level is desired as '
-                        'output from wind-downscaling, this option can be '
-                        'used to select the height level. If no units are '
-                        'provided with the --output_height_level_units '
-                        'option, metres are assumed.')
-    parser.add_argument('--output_height_level_units',
-                        metavar='OUTPUT_HEIGHT_LEVEL_UNITS', default='m',
-                        help='If a single height level is selected as output '
-                        'using the --output_height_level option, this '
-                        'additional argument may be used to specify the units '
-                        'of the value entered to select the level. e.g. hPa')
-    parser.add_argument('--height_levels_filepath',
-                        metavar='HEIGHT_LEVELS_FILE',
-                        help='Location of file containing height levels '
-                             'coincident with wind speed field.')
-    parser.add_argument('--veg_roughness_filepath',
-                        metavar='VEGETATIVE_ROUGHNESS_LENGTH_FILE',
-                        help='Location of vegetative roughness length file.'
-                             ' Units of field: m')
-    args = parser.parse_args(args=argv)
-
-    if args.output_height_level_units and not args.output_height_level:
-        warnings.warn('--output_height_level_units has been set but no '
-                      'associated height level has been provided. These units '
-                      'will have no effect.')
-
-    # Turn string to float
-    model_resolution = float(args.model_resolution) if \
-        args.model_resolution is not None else None
-    output_height_level = float(args.output_height_level) if \
-        args.output_height_level is not None else None
-
-    # Load Cube
-    wind_speed = load_cube(args.wind_speed_filepath)
-    silhouette_roughness = load_cube(
-        args.silhouette_roughness_filepath)
-    sigma = load_cube(args.sigma_filepath)
-    target_orog = load_cube(args.target_orog_filepath)
-    standard_orog = load_cube(args.standard_orog_filepath)
-    height_levels = load_cube(args.height_levels_filepath, allow_none=True)
-    veg_roughness_cube = load_cube(args.veg_roughness_filepath,
-                                   allow_none=True)
-
-    # Process Cube
-    wind_speed = process(wind_speed, silhouette_roughness, sigma, target_orog,
-                         standard_orog, model_resolution, height_levels,
-                         veg_roughness_cube, output_height_level,
-                         args.output_height_level_units)
-
-    # Save Cube
-    save_netcdf(wind_speed, args.output_filepath)
-
-
-def process(wind_speed, silhouette_roughness, sigma, target_orog,
-            standard_orog, model_resolution, height_levels=None,
-            veg_roughness_cube=None, output_height_level=None,
+@cli.clizefy
+@cli.with_output
+def process(wind_speed: cli.inputcube,
+            silhouette_roughness: cli.inputcube,
+            sigma: cli.inputcube,
+            target_orog: cli.inputcube,
+            standard_orog: cli.inputcube,
+            veg_roughness_cube: cli.inputcube = None,
+            *,
+            height_levels: cli.inputcube = None,
+            model_resolution: float,
+            output_height_level: float = None,
             output_height_level_units='m'):
-    """Module to run wind downscaling.
+    """Wind downscaling.
 
     Run wind downscaling to apply roughness correction and height correction
     to wind fields as described in Howard and Clark (2007). All inputs must
@@ -191,6 +103,15 @@ def process(wind_speed, silhouette_roughness, sigma, target_orog,
             If the requested height value is not found.
 
     """
+    import warnings
+
+    import iris
+    import numpy as np
+    from iris.exceptions import CoordinateNotFoundError
+
+    from improver.utilities.cube_extraction import apply_extraction
+    from improver.wind_calculations import wind_downscaling
+
     if output_height_level_units and output_height_level is None:
         warnings.warn('output_height_level_units has been set but no '
                       'associated height level has been provided. These units '
@@ -230,7 +151,3 @@ def process(wind_speed, silhouette_roughness, sigma, target_orog,
                     wind_speed.coord('height').units))
         wind_speed = single_level
     return wind_speed
-
-
-if __name__ == "__main__":
-    main()
