@@ -51,7 +51,7 @@ def test_basic(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [*input_paths,
             "--times", "20190116T1000Z",
-            "--output_files", output_path]
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -59,29 +59,15 @@ def test_basic(tmp_path):
 def test_linear_interval(tmp_path):
     """Test linear time intervals"""
     kgo_dir = acc.kgo_root() / "temporal-interpolate/basic"
-    kgo_paths = [kgo_dir / f"kgo_t{n}.nc" for n in range(1, 3)]
+    kgo_path = kgo_dir / "kgo.nc"
     input_paths = [kgo_dir / f"20190116T{v:04}Z-PT{l:04}H00M-{T2M}.nc"
                    for v, l in ((900, 33), (1200, 36))]
-    output_paths = [tmp_path / f"output_{n}.nc" for n in range(1, 3)]
+    output_path = tmp_path / "output.nc"
     args = [*input_paths,
-            "--interval_in_mins=60",
-            "--output_files", *output_paths]
+            "--interval-in-mins", "60",
+            "--output", output_path]
     run_cli(args)
-    for out, kgo in zip(output_paths, kgo_paths):
-        acc.compare(out, kgo)
-
-
-def test_error_file_names(tmp_path):
-    """Test not enough output names provided"""
-    kgo_dir = acc.kgo_root() / "temporal-interpolate/basic"
-    input_paths = [kgo_dir / f"20190116T{v:04}Z-PT{l:04}H00M-{T2M}.nc"
-                   for v, l in ((900, 33), (1200, 36))]
-    output_paths = [tmp_path / f"output_{n}.nc" for n in range(1, 2)]
-    args = [*input_paths,
-            "--interval_in_mins=60",
-            "--output_files", *output_paths]
-    with pytest.raises(ValueError, match=".*cubes created.*"):
-        run_cli(args)
+    acc.compare(output_path, kgo_path)
 
 
 def test_solar_uv_index(tmp_path):
@@ -93,8 +79,8 @@ def test_solar_uv_index(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [*input_paths,
             "--times", "20181220T1000Z",
-            "--interpolation_method=solar",
-            "--output_files", output_path]
+            "--interpolation-method", "solar",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -108,7 +94,7 @@ def test_daynight(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [*input_paths,
             "--times", "20181220T1000Z",
-            "--interpolation_method=daynight",
-            "--output_files", output_path]
+            "--interpolation-method", "daynight",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
