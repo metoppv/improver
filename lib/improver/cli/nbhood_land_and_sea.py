@@ -43,7 +43,7 @@ def process(cube: cli.inputcube,
             mask: cli.inputcube,
             weights: cli.inputcube = None,
             *,
-            radius: cli.comma_separated_list,
+            radii: cli.comma_separated_list,
             lead_times: cli.comma_separated_list = None,
             sum_or_fraction="fraction",
             return_intermediate=False):
@@ -69,7 +69,7 @@ def process(cube: cli.inputcube,
             dimension gained through masking. These weights must have been
             created using a land-sea mask.
             Default is None.
-        radius (float or list of float):
+        radii (list of float):
             The radius or a list of radii in metres of the
             neighbourhood to apply.
             If it is a list, it must be the same length as lead_times.
@@ -163,12 +163,12 @@ def process(cube: cli.inputcube,
         land_only = landmask.copy(data=landmask.data.astype(int))
 
     if lead_times is None:
-        radius_or_radii = float(radius[0])
+        radius_or_radii = float(radii[0])
     else:
-        if len(radius) != len(lead_times):
+        if len(radii) != len(lead_times):
             raise RuntimeError("If leadtimes are supplied, it must be a list"
                                " of equal length to a list of radii.")
-        radius_or_radii = [float(x) for x in radius]
+        radius_or_radii = [float(x) for x in radii]
         lead_times = [int(x) for x in lead_times]
 
     if return_intermediate is not None and masking_coordinate is None:
