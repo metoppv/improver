@@ -33,15 +33,6 @@
 
 from improver import cli
 
-# The following dictionary defines the orography altitude bands in metres
-# above/below sea level for which masks are required.
-
-THRESHOLDS_DICT = {'bounds': [[-500., 50.], [50., 100.], [100., 150.],
-                              [150., 200.], [200., 250.], [250., 300.],
-                              [300., 400.], [400., 500.], [500., 650.],
-                              [650., 800.], [800., 950.], [950., 6000.]],
-                   'units': 'm'}
-
 
 @cli.clizefy
 @cli.with_output
@@ -80,7 +71,7 @@ def process(orography: cli.inputcube,
 
     """
     from improver.generate_ancillaries.generate_ancillary import (
-        GenerateOrographyBandAncils)
+        GenerateOrographyBandAncils, THRESHOLDS_DICT)
 
     if thresholds_dict is None:
         thresholds_dict = THRESHOLDS_DICT

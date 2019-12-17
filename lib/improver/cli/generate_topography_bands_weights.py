@@ -32,7 +32,6 @@
 """Script to run topographic bands weights generation."""
 
 from improver import cli
-from improver.cli.generate_topography_bands_mask import THRESHOLDS_DICT
 
 
 @cli.clizefy
@@ -78,6 +77,8 @@ def process(orography: cli.inputcube,
     """
     from improver.generate_ancillaries.generate_topographic_zone_weights \
         import GenerateTopographicZoneWeights
+    from improver.generate_ancillaries.generate_ancillary import (
+        THRESHOLDS_DICT)
 
     if thresholds_dict is None:
         thresholds_dict = THRESHOLDS_DICT
