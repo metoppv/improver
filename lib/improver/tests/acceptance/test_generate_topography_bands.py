@@ -55,8 +55,8 @@ def test_basic(tmp_path, maskweight, realizations):
     orography_path = kgo_dir / "input_orog.nc"
     landmask_path = kgo_dir / "input_land.nc"
     output_path = tmp_path / "output.nc"
-    args = [orography_path, output_path,
-            "--input_filepath_landmask", landmask_path]
+    args = [orography_path, landmask_path,
+            "--output", output_path]
     acc.run_cli(maskweight)(args)
     acc.compare(output_path, kgo_path)
 
@@ -70,24 +70,12 @@ def test_bounds_json(tmp_path, maskweight):
     landmask_path = kgo_dir / "input_land.nc"
     bounds_path = kgo_dir / "bounds.json"
     output_path = tmp_path / "output.nc"
-    args = [orography_path, output_path,
-            "--input_filepath_landmask", landmask_path,
-            "--thresholds_filepath", bounds_path]
+    args = [orography_path,
+            landmask_path,
+            "--thresholds-dict", bounds_path,
+            "--output", output_path]
     acc.run_cli(maskweight)(args)
     acc.compare(output_path, kgo_path)
-
-
-@pytest.mark.parametrize("maskweight", MASK_WEIGHT)
-def test_missing_land(tmp_path, maskweight):
-    """Test missing land mask error"""
-    kgo_dir = acc.kgo_root() / f"{maskweight}/basic"
-    orography_path = kgo_dir / "input_orog.nc"
-    landmask_path = kgo_dir / "missing.nc"
-    output_path = tmp_path / "output.nc"
-    args = [orography_path, output_path,
-            "--input_filepath_landmask", landmask_path]
-    with pytest.raises(OSError, match=".*land mask.*"):
-        acc.run_cli(maskweight)(args)
 
 
 @pytest.mark.parametrize("maskweight", MASK_WEIGHT)
@@ -97,6 +85,6 @@ def test_basic_nolandsea(tmp_path, maskweight):
     kgo_path = kgo_dir / "kgo.nc"
     orography_path = kgo_dir / "../basic/input_orog.nc"
     output_path = tmp_path / "output.nc"
-    args = [orography_path, output_path]
+    args = [orography_path, "--output", output_path]
     acc.run_cli(maskweight)(args)
     acc.compare(output_path, kgo_path)
