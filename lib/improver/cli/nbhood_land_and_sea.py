@@ -35,7 +35,6 @@ may also be employed, with the sea area being treated as a distinct zone."""
 from improver import cli
 
 
-# pylint: disable=too-many-branches, too-many-locals
 @cli.clizefy
 @cli.with_output
 @cli.with_intermediate_output
@@ -102,7 +101,7 @@ def process(cube: cli.inputcube,
         ValueError:
             If the topographic zone mask has the attribute
             topographic_zones_include_seapoints.
-        TypeError:
+        IOError:
             if a weights cube isn't given and a topographic_zone mask is given.
         ValueError:
             If the weights cube has the attribute

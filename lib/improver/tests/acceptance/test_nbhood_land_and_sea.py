@@ -49,7 +49,22 @@ def test_basic(tmp_path):
     mask_path = kgo_dir / "ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, mask_path,
-            "--radius", "20000",
+            "--radii", "20000",
+            "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_radii_with_lead_times(tmp_path):
+    """Test basic land-sea without topographic bands"""
+    kgo_dir = acc.kgo_root() / "nbhood-land-and-sea/no_topographic_bands"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "input.nc"
+    mask_path = kgo_dir / "ukvx_landmask.nc"
+    output_path = tmp_path / "output.nc"
+    args = [input_path, mask_path,
+            "--radii", "0,36,72,144",
+            "--lead-times", "18000,54000,90000,162000",
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -73,7 +88,7 @@ def test_topographic_bands(tmp_path, intermediate):
     else:
         im_args = []
     args = [input_path, bands_path, weights_path,
-            "--radius", "20000",
+            "--radii", "20000",
             *im_args,
             "--output", output_path]
     run_cli(args)
@@ -90,7 +105,7 @@ def test_unnecessary_weights(tmp_path):
     weights_path = kgo_dir / "../topographic_bands/weights_land.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, mask_path, weights_path,
-            "--radius", "20000",
+            "--radii", "20000",
             "--output", output_path]
     with pytest.raises(TypeError, match=".*weights cube.*"):
         run_cli(args)
@@ -103,7 +118,7 @@ def test_missing_weights(tmp_path):
     mask_path = kgo_dir / "topographic_bands_land.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, mask_path,
-            "--radius", "20000",
+            "--radii", "20000",
             "--output", output_path]
     with pytest.raises(TypeError, match=".*weights cube.*"):
         run_cli(args)
@@ -117,7 +132,7 @@ def test_incorrect_weights(tmp_path):
     weights_path = kgo_dir / "weights_any_surface.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, mask_path, weights_path,
-            "--radius", "20000",
+            "--radii", "20000",
             "--output", output_path]
     with pytest.raises(ValueError, match=".*weights cube.*"):
         run_cli(args)
@@ -131,7 +146,7 @@ def test_topographic_sea(tmp_path):
     weights_path = kgo_dir / "weights_land.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, mask_path, weights_path,
-            "--radius", "20000",
+            "--radii", "20000",
             "--output", output_path]
     with pytest.raises(ValueError, match=".*mask cube.*"):
         run_cli(args)
@@ -147,7 +162,7 @@ def test_landsea_only(tmp_path, landsea):
     mask_path = kgo_dir / "ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, mask_path,
-            "--radius", "20000",
+            "--radii", "20000",
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -163,7 +178,7 @@ def test_topographic_bands_probabilities(tmp_path):
     weights_path = kgo_dir / "../topographic_bands/weights_land.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, mask_path, weights_path,
-            "--radius", "20000",
+            "--radii", "20000",
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -176,7 +191,7 @@ def test_lead_time_radii_mismatch(tmp_path):
     mask_path = kgo_dir / "ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, mask_path,
-            "--radius", "20000,20001",
+            "--radii", "20000,20001",
             "--lead-times", "1",
             "--output", output_path]
     with pytest.raises(RuntimeError, match=".*list of radii.*"):
