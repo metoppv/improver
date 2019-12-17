@@ -34,6 +34,7 @@
 
 from improver import cli
 
+
 @cli.clizefy
 @cli.with_output
 def process(*cubes: cli.inputcube,
@@ -93,7 +94,6 @@ def process(*cubes: cli.inputcube,
     from improver.blending.blend_across_adjacent_points import \
         TriangularWeightedBlendAcrossAdjacentPoints
     from improver.utilities.cube_manipulation import MergeCubes
-
 
     # TriangularWeightedBlendAcrossAdjacentPoints can't currently handle
     # blending over times where iris reads the coordinate points as datetime
