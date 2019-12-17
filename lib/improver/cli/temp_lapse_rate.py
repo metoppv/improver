@@ -51,7 +51,8 @@ def process(temperature: cli.inputcube,
 
     Args:
         temperature (iris.cube.Cube):
-            Air temperature data.
+            Air temperature data. This is required even when returning DALR,
+            as this defines the grid on which lapse rates are required.
         orography (iris.cube.Cube):
             Orography data.
         land_sea_mask (iris.cube.Cube):
