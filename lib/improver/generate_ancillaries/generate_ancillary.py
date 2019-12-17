@@ -36,6 +36,14 @@ from cf_units import Unit
 
 from improver import BasePlugin
 
+# The following dictionary defines the default orography altitude bands in
+# metres above/below sea level for which masks are required.
+THRESHOLDS_DICT = {'bounds': [[-500., 50.], [50., 100.], [100., 150.],
+                              [150., 200.], [200., 250.], [250., 300.],
+                              [300., 400.], [400., 500.], [500., 650.],
+                              [650., 800.], [800., 950.], [950., 6000.]],
+                   'units': 'm'}
+
 
 def _make_mask_cube(
         mask_data, coords, topographic_bounds, topographic_units,
