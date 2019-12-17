@@ -41,27 +41,27 @@ from improver.metadata.constants.mo_attributes import (
 
 
 def update_stage_v110_metadata(cube):
-    """Translates meta-data relating to the grid_id attribute from StaGE
+    """Translates metadata relating to the grid_id attribute from StaGE
     version 1.1.0 to later StaGE versions.
     Cubes that have no "grid_id" attribute are not recognised as v1.1.0 and
     are ignored.
 
     Args:
         cube (iris.cube.Cube):
-            Cube to modify meta-data in (modified in place)
+            Cube to modify metadata in (modified in place)
 
     Returns:
-        bool:
-            True if meta-data have been changed by this function.
+        cube (iris.cube.Cube):
+            The cube with updated metadata.
     """
     try:
         grid_id = cube.attributes.pop('grid_id')
     except KeyError:
-        # Not a version 1.1.0 grid, so exit.
-        return False
+        # Not a version 1.1.0 grid, do nothing
+        return cube
     cube.attributes.update(MOSG_GRID_DEFINITION[GRID_ID_LOOKUP[grid_id]])
     cube.attributes['mosg__grid_version'] = '1.1.0'
-    return True
+    return cube
 
 
 def amend_attributes(cube, attributes_dict):
