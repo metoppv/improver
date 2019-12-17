@@ -214,14 +214,9 @@ class WindGustDiagnostic(BasePlugin):
             if point != ws_time.points[i]:
                 if wg_time.bounds is None:
                     raise ValueError(msg)
-                if len(wg_time.bounds) >= i:
-                    if len(wg_time.bounds[i]) == 2:
-                        if ws_time.points[i] < wg_time.bounds[i][0]:
-                            raise ValueError(msg)
-                        elif ws_time.points[i] > wg_time.bounds[i][1]:
-                            raise ValueError(msg)
-                    else:
-                        raise ValueError(msg)
+                if (ws_time.points[i] >= wg_time.bounds[i][0] and
+                        ws_time.points[i] <= wg_time.bounds[i][1]):
+                    pass
                 else:
                     raise ValueError(msg)
 
