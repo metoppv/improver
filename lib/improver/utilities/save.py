@@ -175,7 +175,7 @@ def save_netcdf(cubelist, filename):
 
     cubelist = _append_metadata_cube(cubelist, global_keys)
     # save atomically by writing to a temporary file and then renaming
-    ftmp = filename + '.tmp'
+    ftmp = str(filename) + '.tmp'
     iris.fileformats.netcdf.save(cubelist, ftmp, local_keys=local_keys,
                                  complevel=1, shuffle=True, zlib=True,
                                  chunksizes=chunksizes)
