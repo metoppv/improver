@@ -159,5 +159,5 @@ def process(cube: cli.inputcube,
         warnings.warn("Collapse-coord option not fully tested with "
                       "masked data.")
     # Take a weighted mean across realizations with equal weights
-    plugin = WeightAndBlend(collapse_coord, "linear",y0val=1.0, ynval=1.0)
+    plugin = WeightAndBlend(collapse_coord, "linear", y0val=1.0, ynval=1.0)
     return plugin.process(result_no_collapse_coord)
