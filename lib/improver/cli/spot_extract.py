@@ -60,10 +60,10 @@ def process(neighbour_cube: cli.inputcube,
         diagnostic_cube (iris.cube.Cube):
             Cube containing the diagnostic data to be extracted.
         lapse_rate_cube (iris.cube.Cube):
-            Cube containing temperature lapse rates. If this cube is provided
-            and a screen temperature cube is being processed, the lapse rates
-            will be used to adjust the temperature to better represent each
-            spot's site-altitude.
+            Optional cube containing temperature lapse rates. If this cube is
+            provided and a screen temperature cube is being processed, the
+            lapse rates will be used to adjust the temperature to better
+            represent each spot's site-altitude.
         apply_lapse_rate_correction (bool):
             Use to apply a lapse-rate correction to screen temperature data so
             that the data are a better match the altitude of the spot site for
