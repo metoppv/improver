@@ -154,7 +154,6 @@ def process(current_forecast: cli.inputcube,
         ResamplePercentiles)
     from improver.metadata.probabilistic import find_percentile_coordinate
 
-
     if coeffs is None:
         msg = ("There are no coefficients provided for calibration. The "
                "uncalibrated forecast will be returned.")
