@@ -45,10 +45,6 @@ from improver.utilities.cube_manipulation import (
 class WeightsUtilities:
     """ Utilities for Weight processing. """
 
-    def __init__(self):
-        """Initialise class."""
-        pass
-
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = ('<WeightsUtilities>')

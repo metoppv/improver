@@ -1034,9 +1034,6 @@ class EnsembleReordering(BasePlugin):
     Statistical Science, 28(4), pp.616-640.
 
     """
-    def __init__(self):
-        """Initialise the class"""
-        pass
 
     @staticmethod
     def _recycle_raw_ensemble_realizations(
