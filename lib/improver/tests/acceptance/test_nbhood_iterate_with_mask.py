@@ -49,8 +49,10 @@ def test_basic(tmp_path):
     input_path = kgo_dir / "input.nc"
     mask_path = kgo_dir / "mask.nc"
     output_path = tmp_path / "output.nc"
-    args = ["topographic_zone", input_path, mask_path, output_path,
-            "--radius=20000"]
+    args = [input_path, mask_path,
+            "--coord-for-masking", "topographic_zone",
+            "--radius=20000",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -69,12 +71,16 @@ def test_collapse_bands(tmp_path, intermediate):
     output_path = tmp_path / "output.nc"
     output_intermediate_path = tmp_path / "intermediate.nc"
     if intermediate:
-        im_args = ["--intermediate_filepath", output_intermediate_path]
+        im_args = ["--intermediate-output", output_intermediate_path]
     else:
         im_args = []
-    args = ["topographic_zone", input_path, mask_path, output_path,
-            "--radius", "10000", "--collapse_dimension",
-            "--weights_for_collapsing_dim", weights_path, *im_args]
+    args = [input_path, mask_path, weights_path,
+            "--coord-for-masking", "topographic_zone",
+            "--radius", "10000",
+            "--collapse-dimension",
+            *im_args,
+            "--output", output_path]
+
     run_cli(args)
     acc.compare(output_path, kgo_path)
     if intermediate:
