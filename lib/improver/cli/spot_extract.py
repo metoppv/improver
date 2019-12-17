@@ -65,29 +65,25 @@ def process(neighbour_cube: cli.inputcube,
             will be used to adjust the temperature to better represent each
             spot's site-altitude.
         apply_lapse_rate_correction (bool):
-            If True, and a lapse rate cube has been provided, extracted
-            screen temperatures will be adjusted to better match the altitude
-            of the spot site for which they have been extracted.
-            Default is False.
+            Use to apply a lapse-rate correction to screen temperature data so
+            that the data are a better match the altitude of the spot site for
+            which they have been extracted.
         land_constraint (bool):
-            If True, the neighbour cube will be interrogated for grid point
-            neighbours that were identified using a land constraint. This means
-            that the grid points should be land points except for sites where
-            none were found within the search radius when the neighbour cube
-            was created. May be used with minimum_dz.
-            Default is False.
+            Use to select the nearest-with-land-constraint neighbour-selection
+            method from the neighbour_cube. This means that the grid points
+            should be land points except for sites where none were found within
+            the search radius when the neighbour cube was created. May be used
+            with minimum_dz.
         minimum_dz (bool):
-            If True, the neighbour cube will be interrogated for grid point
-            neighbours that were identified using the minimum height
-            difference constraint. These are grid points that were found to be
-            the closest in altitude to the spot site within the search radius
-            defined when the neighbour cube was created. May be used with
-            land_constraint.
-            Default is False.
+            Use to select the nearest-with-height-constraint neighbour-selection
+            method from the neighbour_cube. These are grid points that were
+            found to be the closest in altitude to the spot site within the
+            search radius defined when the neighbour cube was created. May be
+            used with land_constraint.
         extract_percentiles (list or int):
             If set to a percentile value or a list of percentile values,
             data corresponding to those percentiles will be returned. For
-            example [25, 50, 75] will result in the 25th, 50th and 75th
+            example "25, 50, 75" will result in the 25th, 50th and 75th
             percentiles being returned from a cube of probabilities,
             percentiles or realizations. Deterministic input data will raise
             a warning message.
@@ -95,9 +91,8 @@ def process(neighbour_cube: cli.inputcube,
             exist in the input cube.
             Default is None.
         ecc_bounds_warning (bool):
-            If True, where calculated percentiles are outside the ECC bounds
-            range, raises a warning rather than an exception.
-            Default is False.
+            Demotes exceptions where calculated percentiles are outside the ECC
+            bounds range to warnings.
         new_title (str or None):
             New title for the spot-extracted data.  If None, this attribute is
             removed from the output cube since it has no prescribed standard
@@ -106,7 +101,6 @@ def process(neighbour_cube: cli.inputcube,
         suppress_warnings (bool):
             Suppress warning output. This option should only be used if it
             is known that warnings will be generated but they are not required.
-            Default is None.
 
     Returns:
         iris.cube.Cube:
