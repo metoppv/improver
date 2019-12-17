@@ -75,11 +75,11 @@ def process(neighbour_cube: cli.inputcube,
             the search radius when the neighbour cube was created. May be used
             with minimum_dz.
         minimum_dz (bool):
-            Use to select the nearest-with-height-constraint neighbour-selection
-            method from the neighbour_cube. These are grid points that were
-            found to be the closest in altitude to the spot site within the
-            search radius defined when the neighbour cube was created. May be
-            used with land_constraint.
+            Use to select the nearest-with-height-constraint
+            neighbour-selection method from the neighbour_cube. These are grid
+            points that were found to be the closest in altitude to the spot
+            site within the search radius defined when the neighbour cube was
+            created. May be used with land_constraint.
         extract_percentiles (list or int):
             If set to a percentile value or a list of percentile values,
             data corresponding to those percentiles will be returned. For
