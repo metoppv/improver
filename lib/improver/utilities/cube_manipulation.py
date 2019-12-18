@@ -35,7 +35,6 @@ import warnings
 
 import iris
 import numpy as np
-import six
 from iris.coords import AuxCoord, DimCoord
 from iris.exceptions import CoordinateNotFoundError
 
@@ -713,8 +712,7 @@ def sort_coord_in_cube(cube, coord, order="ascending"):
 
 
 def enforce_coordinate_ordering(
-        cube, coord_names, anchor="start", promote_scalar=False,
-        raise_exception=False):
+        cube, coord_names, anchor="start", promote_scalar=False):
     """
     Function to ensure that the requested coordinate within the cube are in
     the desired position.
@@ -724,9 +722,7 @@ def enforce_coordinate_ordering(
     all the dimension coordinates can be reordered by specifying the coordinate
     names in the desired order.
 
-    Note that the input cube is used as the output cube apart from if
-    promote_scalar = True when a new cube instance is generated with an extra
-    leading dimension.
+    Note that the input cube is modified in place unless promote_scalar = True.
 
     Args:
         cube (iris.cube.Cube):
@@ -749,29 +745,18 @@ def enforce_coordinate_ordering(
             will be the last coordinate within the cube, whilst "time" will be
             the last but one coordinate within the cube.
         promote_scalar (bool):
-            If True, any coordinates that are matched and are not dimension
-            coordinates are promoted to dimension coordinates.
-            If False, any coordinates that are matched and are not dimension
-            coordinates will not be considered in the reordering.
-        raise_exception (bool):
-            Option as to whether an exception should be raised, if the
-            requested coordinate is not present.
+            If True, any coordinates in coord_names that are not dimension
+            coordinates are promoted. If False, any coordinates in coord_names
+            that are not dimension coordinates are ignored.
 
     Returns:
         iris.cube.Cube:
-            Cube where the requirement for the dimensions to be in a particular
-            order will have been enforced.
+            Cube with reordered dimensions.
 
     Raises:
-        ValueError: The anchor argument must have a value of either start or
-            end.
-        CoordinateNotFoundError: The requested coordinate is not available on
-            the cube.
-        ValueError: Multiple coordinates match the partial name provided.
-
+        ValueError:
+            The anchor argument must have a value of either start or end.
     """
-    if isinstance(coord_names, six.string_types):
-        coord_names = str(coord_names)
     if isinstance(coord_names, str):
         coord_names = [coord_names]
 
@@ -780,85 +765,46 @@ def enforce_coordinate_ordering(
                "The value specified for the anchor was {}".format(anchor))
         raise ValueError(msg)
 
-    # Determine coordinate indices for use in creating a dictionary.
-    # These indices are either relative to the start or end of the available
-    # dimension coordinates.
-    coord_indices = np.array(list(range(len(coord_names))))
-    if anchor == "end":
-        coord_indices = sorted(len(cube.dim_coords) - coord_indices)
-    coord_dict = dict(list(zip(coord_names, coord_indices)))
+    # construct a list of coordinates on the cube to be reordered
+    cube_coord_names = [coord.name() for coord in cube.coords()]
+    coords_to_reorder = []
+    for coord in coord_names:
+        if coord in cube_coord_names:
+            if coord == "threshold":
+                coord = find_threshold_coordinate(cube).name()
+            coords_to_reorder.append(coord)
 
-    for coord_name in list(coord_dict.keys()):
-        # Deal with the coord_name being a partial match to the actual
-        # coordinate name.
-        if cube.coords(coord_name):
-            full_coord_name = coord_name
-        else:
-            # Handle "threshold" as an argument
-            if coord_name == "threshold":
-                try:
-                    coord = [find_threshold_coordinate(cube)]
-                except CoordinateNotFoundError:
-                    coord = []
-            else:
-                coord = [coord for coord in cube.coords()
-                         if coord_name in coord.name()]
-            # If the coordinate is desired, raise an exception
-            # if the coordinate is missing.
-            if len(coord) == 0:
-                if raise_exception:
-                    msg = ("The requested coordinate {} is not a coordinate "
-                           "in the cube: {}".format(coord, cube))
-                    raise CoordinateNotFoundError(msg)
-                continue
-            elif len(coord) == 1:
-                # Replace the dictionary key with the actual coordinate name.
-                full_coord_name = coord[0].name()
-                coord_dict[full_coord_name] = coord_dict.pop(coord_name)
-            else:
-                msg = ("More than 1 coordinate: {} matched the specified "
-                       "coordinate name: {}. Unable to distinguish which "
-                       "coordinate should be reordered.".format(
-                        coord, coord_name))
-                raise ValueError(msg)
-
-        # If the requested coordinate is not a dimension coordinate, make it
-        # a dimension coordinate.
-        if cube.coords(full_coord_name, dim_coords=False):
+    # promote scalar coordinates if required TODO what is the use case?
+    for coord in coords_to_reorder:
+        if cube.coords(coord, dim_coords=False):
             if promote_scalar:
-                cube = iris.util.new_axis(cube, full_coord_name)
+                cube = iris.util.new_axis(cube, coord)
             else:
-                if raise_exception:
-                    msg = ("The {} coordinate cannot be reordered as it "
-                           "is a scalar coordinate.".format(full_coord_name))
-                    raise ValueError(msg)
-                else:
-                    coord_dict.pop(full_coord_name, None)
+                coords_to_reorder.remove(coord)
 
-    # Get the dimensions for the coordinates that have not been requested.
-    remaining_coords = []
-    for acoord in cube.coords(dim_coords=True):
-        if acoord.name() not in coord_dict.keys():
-            remaining_coords.append(cube.coord_dims(acoord)[0])
-    remaining_coords = list(set(remaining_coords))
+    # construct dictionary of original dimensions of the form, eg:
+    # {'time': 0, 'realization': 1, ...}
+    original_dims = {}
+    for coord in cube.coords(dim_coords=True):
+        original_dims[coord.name()] = cube.coord_dims(coord)[0]
 
-    # Get the dimensions for the coordinates that have been requested by
-    # getting the keys from the dictionary that have been sorted by the values.
-    coord_dims = []
-    for coord_name, _ in sorted(
-            list(coord_dict.items()), key=operator.itemgetter(1)):
-        if cube.coords(coord_name, dim_coords=True):
-            coord_dims.append(cube.coord_dims(coord_name)[0])
+    # construct list of reordered dimensions assuming start anchor
+    new_dims = []
+    for coord in coords_to_reorder:
+        new_dims.append(original_dims[coord])
+    for coord in cube.coords(dim_coords=True):
+        if original_dims[coord.name()] not in new_dims:
+            new_dims.append(original_dims[coord.name()])
 
-    # Transpose by inserting the requested coordinates at either the start
-    # or the end.
-    if anchor == "start":
-        dim_order = coord_dims + remaining_coords
-    elif anchor == "end":
-        dim_order = remaining_coords + coord_dims
-    # Don't reorder if dim_order is already correct:
-    if dim_order != sorted(dim_order):
-        cube.transpose(dim_order)
+    # if anchor is end, reshuffle the list
+    if anchor != "start":
+        new_dims_end = new_dims[len(coords_to_reorder):]
+        new_dims_end.extend(new_dims[:len(coords_to_reorder)])
+        new_dims = new_dims_end
+
+    # transpose cube using new coordinate order
+    cube.transpose(new_dims)
+
     return cube
 
 

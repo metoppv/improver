@@ -138,28 +138,6 @@ class Test_enforce_coordinate_ordering(IrisTest):
         self.assertEqual(result.coord_dims("time")[0], 3)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
-    def test_partial_names(self):
-        """Test that a cube with the expected data contents is returned when
-        the names provided are partial matches of the names of the coordinates
-        within the cube."""
-        # remove coordinate that causes multiple partial matches
-        # TODO remove this functionality and test (never called operationally)
-        self.cube.remove_coord("forecast_reference_time")
-        expected = self.cube.copy()
-        expected.transpose([1, 0, 2, 3])
-        result = enforce_coordinate_ordering(self.cube, ["tim", "realiz"])
-        self.assertEqual(result.coord_dims("time")[0], 0)
-        self.assertEqual(result.coord_dims("realization")[0], 1)
-        self.assertArrayAlmostEqual(result.data, expected.data)
-
-    def test_partial_names_multiple_matches_exception(self):
-        """Test that the expected exception is raised when the names provided
-        are partial matches of the names of multiple coordinates within the
-        cube."""
-        msg = "More than 1 coordinate"
-        with self.assertRaisesRegex(ValueError, msg):
-            enforce_coordinate_ordering(self.cube, ["l", "e"])
-
     def test_include_extra_coordinates(self):
         """Test that a cube with the expected data contents is returned when
         extra coordinates are passed in for reordering but these coordinates
@@ -190,16 +168,6 @@ class Test_enforce_coordinate_ordering(IrisTest):
         result = enforce_coordinate_ordering(cube, "realization")
         self.assertFalse(result.coord_dims("realization"))
         self.assertArrayAlmostEqual(result.data, cube.data)
-
-    def test_coordinate_raise_exception(self):
-        """Test that the expected error message is raised when the required
-        probabilistic dimension is not available in the cube."""
-        cube = self.cube[0, :, :, :]
-        cube.remove_coord("realization")
-        msg = "The requested coordinate"
-        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            enforce_coordinate_ordering(
-                cube, "realization", raise_exception=True)
 
 
 if __name__ == '__main__':
