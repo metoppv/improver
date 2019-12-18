@@ -42,7 +42,7 @@ def process(start_cube: cli.inputcube,
             interval_in_mins: int = None,
             times: cli.comma_separated_list = None,
             interpolation_method='linear'):
-    """Module to interpolate data between validity times.
+     """Interpolate data between validity times.
 
     Interpolate data to intermediate times between the validity times of two
     cubes. This can be used to fill in missing data (e.g. for radar fields)
