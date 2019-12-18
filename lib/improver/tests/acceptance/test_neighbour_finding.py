@@ -138,7 +138,6 @@ def test_all_methods(tmp_path, domain, model):
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.xfail(reason="BATS had no check for nccmp return value or output")
 def test_alternative_coordinate_system(tmp_path):
     """Test use of an alternative coordinate system"""
     kgo_dir = acc.kgo_root() / "neighbour-finding"
@@ -167,7 +166,7 @@ def test_alternative_coordinate_system(tmp_path):
     # data (neighbour indices and vertical displacements) should be identical
     # to the test_nearest on global domain in which sites were defined with
     # latitudes and longitudes.
-    acc.compare(output_path, kgo_path, options="-dm")
+    acc.compare(output_path, kgo_path)
 
 
 def test_incompatible_constraints(tmp_path):
