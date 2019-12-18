@@ -49,6 +49,7 @@ def test_basic(tmp_path):
     orography_path = kgo_dir / "../enukx_orography.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, orography_path,
+            "--output-diagnostic-name",
             "probability_of_snow_falling_level_below_ground_level",
             "--output", output_path]
     run_cli(args)
