@@ -91,7 +91,7 @@ def test_nearest_minimum_dz(tmp_path, domain, model):
     args = [orography_path, landmask_path,
             "--site-list", sites_path,
             "--minimum-dz",
-             "--search-radius", "50000",
+            "--search-radius", "50000",
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
