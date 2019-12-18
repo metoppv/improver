@@ -46,7 +46,7 @@ from improver.utilities.redirect_stdout import redirect_stdout
 # PySteps prints a message on import to stdout - trap this
 # This should be removed for PySteps v1.1.0 which has a configuration setting
 # for this
-with (redirect_stdout(None)):
+with redirect_stdout():
     from pysteps.extrapolation.semilagrangian import extrapolate
 
 

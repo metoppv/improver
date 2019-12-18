@@ -37,7 +37,7 @@ import contextlib
 
 
 @contextlib.contextmanager
-def redirect_stdout(target):
+def redirect_stdout(target=None):
     original = sys.stdout
     sys.stdout = target
     yield
