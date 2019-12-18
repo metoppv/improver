@@ -45,8 +45,8 @@ def test_basic(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"
     args = [kgo_dir / "input.nc",
-            output_path,
-            kgo_dir / "threshold_ranges_m.json"]
+            "--threshold-ranges", kgo_dir / "threshold_ranges_m.json",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -57,8 +57,8 @@ def test_units(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"
     args = [kgo_dir / "input.nc",
-            output_path,
-            kgo_dir / "threshold_ranges_km.json",
-            "--threshold_units", "km"]
+            "--threshold-ranges", kgo_dir / "threshold_ranges_km.json",
+            "--threshold-units", "km",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
