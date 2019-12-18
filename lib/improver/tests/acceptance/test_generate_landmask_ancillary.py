@@ -47,6 +47,7 @@ def test_basic(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, output_path]
+    args = [input_path,
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
