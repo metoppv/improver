@@ -1,4 +1,4 @@
-#!/usr/bin/env bats
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
 # All rights reserved.
@@ -28,30 +28,22 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""Contains a class to trap stdout. Deprecated from PySteps v1.1.0 in favour
+of adding "silent_import=True" to the pyconfig file."""
 
-. $IMPROVER_DIR/tests/lib/utils
+import sys
+import contextlib
 
-@test "extrapolate basic no orographic enhancement" {
-  improver_check_skip_acceptance
-  KGO="nowcast-extrapolate/extrapolate_no_orographic_enhancement/kgo.nc"
 
-  UVCOMP="$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic/kgo.nc"
-  INFILE="201811031600_radar_rainrate_composite_UK_regridded.nc"
+@contextlib.contextmanager
+def redirect_stdout(target=None):
+    """Captures stdout and optionally returns it
 
-  # Run processing and check it passes when the input files are not
-  # specifically precipitation. In this case, the input radar precipitation
-  # files and fields have been renamed as rainfall_rate to be able to test the
-  # CLIs function as intended for a field not recognised as precipitation.
-  run improver nowcast-extrapolate \
-    "$IMPROVER_ACC_TEST_DIR/nowcast-optical-flow/basic_no_orographic_enhancement/$INFILE" \
-    "$TEST_DIR/output.nc" \
-    --max_lead_time 30 \
-    --u_and_v_filepath "$UVCOMP"
-  [[ "$status" -eq 0 ]]
-
-  improver_check_recreate_kgo "output.nc" $KGO
-
-  # Run nccmp to compare the output and kgo.
-  improver_compare_output "$TEST_DIR/output.nc" \
-      "$IMPROVER_ACC_TEST_DIR/$KGO"
-}
+    Args:
+        target:
+            Any captured stdout is returned here.
+    """
+    original = sys.stdout
+    sys.stdout = target
+    yield
+    sys.stdout = original

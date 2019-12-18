@@ -35,7 +35,7 @@ import iris
 from iris import Constraint
 
 from improver.argparser import ArgParser
-from improver.nowcasting.forecasting import CreateExtrapolationForecast
+from improver.nowcasting.pysteps_advection import PystepsExtrapolate
 from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.cube_manipulation import merge_cubes
 from improver.utilities.load import load_cube
@@ -185,11 +185,10 @@ def process(input_cube, u_cube=None, v_cube=None, speed_cube=None,
             speed_cube, direction_cube)
 
     # extrapolate input data to required lead times
-    forecast_plugin = CreateExtrapolationForecast(
-        input_cube, u_cube, v_cube,
-        orographic_enhancement_cube=orographic_enhancement_cube,
-        attributes_dict=attributes_dict)
-    forecast_cubes = forecast_plugin.process(lead_time_interval, max_lead_time)
+    forecast_plugin = PystepsExtrapolate(lead_time_interval, max_lead_time)
+    forecast_cubes = forecast_plugin.process(input_cube, u_cube, v_cube,
+                                             orographic_enhancement_cube,
+                                             attributes_dict=attributes_dict)
 
     return merge_cubes(forecast_cubes)
 

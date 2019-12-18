@@ -34,13 +34,20 @@ import numpy as np
 from datetime import timedelta
 
 from iris.coords import AuxCoord
-from pysteps.extrapolation.semilagrangian import extrapolate
 
+from improver.metadata.amend import (amend_attributes, set_history_attribute)
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area, calculate_grid_spacing)
 from improver.utilities.temporal import (
     iris_time_to_datetime, datetime_to_iris_time)
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
+from improver.utilities.redirect_stdout import redirect_stdout
+
+# PySteps prints a message on import to stdout - trap this
+# This should be removed for PySteps v1.1.0 which has a configuration setting
+# for this
+with redirect_stdout():
+    from pysteps.extrapolation.semilagrangian import extrapolate
 
 
 class PystepsExtrapolate(object):
@@ -72,8 +79,8 @@ class PystepsExtrapolate(object):
             np.ndarray:
                 2D precipitation rate array in mm h-1
         """
-        self.analysis_cube, = ApplyOrographicEnhancement("subtract").process(
-            self.analysis_cube, self.orogenh)
+        self.analysis_cube, = ApplyOrographicEnhancement(
+            "subtract").process(self.analysis_cube, self.orogenh)
         self.analysis_cube.convert_units('mm h-1')
         return np.ma.filled(self.analysis_cube.data, np.nan)
 
@@ -171,7 +178,7 @@ class PystepsExtrapolate(object):
             forecast_cubes.append(new_cube)
         return forecast_cubes
 
-    def _generate_forecast_cubes(self, all_forecasts):
+    def _generate_forecast_cubes(self, all_forecasts, attributes_dict):
         """
         Convert forecast arrays into IMPROVER output cubes with re-added
         orographic enhancement
@@ -179,6 +186,9 @@ class PystepsExtrapolate(object):
         Args:
             all_forecasts (np.ndarray):
                 Array of 2D forecast fields returned by extrapolation function
+            attributes_dict (dict or None):
+                Dictionary containing information for amending the attributes
+                of the output cube.
 
         Returns:
             forecast_cubes (list):
@@ -186,6 +196,9 @@ class PystepsExtrapolate(object):
                 required lead times, and conforming to the IMPROVER metadata
                 standard.
         """
+        if not attributes_dict:
+            attributes_dict = {}
+
         # re-mask forecast data
         all_forecasts = np.ma.masked_invalid(all_forecasts)
 
@@ -197,12 +210,18 @@ class PystepsExtrapolate(object):
         forecast_cubes = []
         for cube in timestamped_cubes:
             cube.convert_units(self.required_units)
-            cube, = ApplyOrographicEnhancement("add").process(
-                cube, self.orogenh)
+            if self.orogenh:
+                cube, = ApplyOrographicEnhancement("add").process(
+                    cube, self.orogenh)
+
+            # Update meta-data
+            amend_attributes(cube, attributes_dict)
+            set_history_attribute(cube, "Nowcast")
             forecast_cubes.append(cube)
         return forecast_cubes
 
-    def process(self, initial_cube, ucube, vcube, orographic_enhancement):
+    def process(self, initial_cube, ucube, vcube, orographic_enhancement,
+                attributes_dict=None):
         """
         Extrapolate the initial precipitation field using the velocities
         provided to the required forecast lead times
@@ -217,6 +236,9 @@ class PystepsExtrapolate(object):
             orographic_enhancement (iris.cube.Cube):
                 Cube containing orographic enhancement fields at all required
                 lead times
+            attributes_dict (dict or None):
+                Dictionary containing information for amending the attributes
+                of the output cube.
 
         Returns:
             forecast_cubes (list):
@@ -245,6 +267,7 @@ class PystepsExtrapolate(object):
             allow_nonfinite_values=True)
 
         # repackage data as IMPROVER masked cubes
-        forecast_cubes = self._generate_forecast_cubes(all_forecasts)
+        forecast_cubes = self._generate_forecast_cubes(
+            all_forecasts, attributes_dict)
 
         return forecast_cubes
