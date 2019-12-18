@@ -41,12 +41,12 @@ from improver.utilities.spatial import (
 from improver.utilities.temporal import (
     iris_time_to_datetime, datetime_to_iris_time)
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
-from improver.utilities.stdout_trap import Capture_Stdout
+from improver.utilities.redirect_stdout import redirect_stdout
 
 # PySteps prints a message on import to stdout - trap this
 # This should be removed for PySteps v1.1.0 which has a configuration setting
 # for this
-with Capture_Stdout() as _:
+with (redirect_stdout(None)):
     from pysteps.extrapolation.semilagrangian import extrapolate
 
 

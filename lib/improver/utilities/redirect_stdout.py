@@ -33,28 +33,12 @@ of adding "silent_import=True" to the pyconfig file."""
 
 from io import StringIO
 import sys
+import contextlib
 
 
-class Capture_Stdout(list):
-    """Simple class to trap stdout messages such as "print()".
-
-    Usage:
-    with Capture_StdOut() as captured_stdout:
-        run_noisy_function()
-    """
-
-    def __enter__(self):
-        """Start trapping stdout
-
-        Returns:
-            list: That will contain each printed string
-        """
-        self._stdout = sys.stdout
-        sys.stdout = self._stringio = StringIO()
-        return self
-
-    def __exit__(self, *args):
-        """Stop trapping stdout"""
-        self.extend(self._stringio.getvalue().splitlines())
-        del self._stringio    # free up some memory
-        sys.stdout = self._stdout
+@contextlib.contextmanager
+def redirect_stdout(target):
+    original = sys.stdout
+    sys.stdout = target
+    yield
+    sys.stdout = original
