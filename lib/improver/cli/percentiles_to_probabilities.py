@@ -40,6 +40,7 @@ from improver import cli
 @cli.with_output
 def process(percentiles_cube: cli.inputcube,
             threshold_cube: cli.inputcube,
+            *,
             output_diagnostic_name):
     r"""
     Calculates probability from a percentiled field at a 2D threshold level.
