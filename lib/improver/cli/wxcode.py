@@ -37,7 +37,8 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(*cubes: cli.inputcube,
-            wxtree='high_resolution'):
+            wxtree='high_resolution',
+            extended_help=None):
     """ Processes cube for Weather symbols.
 
     Args:
@@ -48,6 +49,10 @@ def process(*cubes: cli.inputcube,
             Weather Code tree.
             Choices are high_resolution or global.
             Default is 'high_resolution'.
+        extended_help (str):
+            Get extended help about the necessary inputs for a weather symbol
+            tree as it is currently configured. Choices are high_resolution or
+            global.
 
     Returns:
         iris.cube.Cube:
@@ -56,6 +61,11 @@ def process(*cubes: cli.inputcube,
     """
     from iris.cube import CubeList
     from improver.wxcode.weather_symbols import WeatherSymbols
+    from improver.wxcode.wxcode_utilities import interrogate_decision_tree
+
+    if extended_help is not None:
+        print(interrogate_decision_tree(extended_help))
+        return
 
     # TODO: Consider adding detail to help output
     return WeatherSymbols(wxtree=wxtree).process(CubeList(cubes))

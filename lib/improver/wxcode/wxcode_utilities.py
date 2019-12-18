@@ -36,6 +36,9 @@ import iris
 import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 
+from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
+from improver.wxcode.wxcode_decision_tree_global import (
+    wxcode_decision_tree_global)
 import improver.utilities.solar as solar
 
 _WX_DICT_IN = {0: 'Clear_Night',
@@ -166,3 +169,69 @@ def update_daynight(cubewx):
     if not time_dim:
         cubewx_daynight = iris.util.squeeze(cubewx_daynight)
     return cubewx_daynight
+
+
+def interrogate_decision_tree(wxtree):
+    """
+    Obtain a list of necessary inputs from the decision tree as it is currently
+    defined. Return a formatted string that contains the diagnostic names, the
+    thresholds needed, and whether they are thresholded above or below these
+    values. This output is used to create the CLI help, informing the user of
+    the necessary inputs.
+
+    Args:
+        wxtree (str):
+            The weather symbol tree that is to be interrogated.
+
+    Returns:
+        list of str:
+            Returns a formatted string descring the diagnostics required,
+            including threshold details.
+    """
+
+    # Get current weather symbol decision tree and populate a list of
+    # required inputs for printing.
+    if wxtree == 'high_resolution':
+        queries = wxcode_decision_tree()
+    elif wxtree == 'global':
+        queries = wxcode_decision_tree_global()
+    else:
+        raise ValueError('Unknown decision tree name provided.')
+
+    # Diagnostic names and threshold values.
+    requirements = {}
+    # How the data has been thresholded relative to these thresholds.
+    relative = {}
+
+    for query in queries.values():
+        diagnostics = expand_nested_lists(query, 'diagnostic_fields')
+        for index, diagnostic in enumerate(diagnostics):
+            if diagnostic not in requirements:
+                requirements[diagnostic] = []
+                relative[diagnostic] = []
+            requirements[diagnostic].extend(
+                expand_nested_lists(query, 'diagnostic_thresholds')[index])
+            relative[diagnostic].append(
+                expand_nested_lists(query, 'diagnostic_conditions')[index])
+
+    # Create a list of formatted strings that will be printed as part of the
+    # CLI help.
+    output = []
+    for requirement in requirements:
+        entries = np.array([entry for entry in requirements[requirement]])
+        relations = np.array([entry for entry in relative[requirement]])
+        _, thresholds = np.unique(np.array([item.points.item()
+                                            for item in entries]),
+                                  return_index=True)
+        output.append('{}; thresholds: {}'.format(
+            requirement, ', '.join([
+                '{} ({})'.format(str(threshold.points.item()),
+                                 str(threshold.units))
+                for threshold, relation in
+                zip(entries[thresholds], relations[thresholds])])))
+
+    n_files = len(output)
+    formatted_string = (' - {}\n'*n_files)
+    formatted_output = formatted_string.format(*output)
+
+    return formatted_output
