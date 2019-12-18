@@ -54,7 +54,9 @@ def test_nearest(tmp_path, domain, model):
     orography_path = kgo_dir / f"inputs/{model}_orography.nc"
     landmask_path = kgo_dir / f"inputs/{model}_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [sites_path, orography_path, landmask_path, output_path]
+    args = [orography_path, landmask_path,
+            "--site-list", sites_path,
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -68,8 +70,10 @@ def test_nearest_land(tmp_path, domain, model):
     orography_path = kgo_dir / f"inputs/{model}_orography.nc"
     landmask_path = kgo_dir / f"inputs/{model}_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [sites_path, orography_path, landmask_path, output_path,
-            "--land_constraint"]
+    args = [orography_path, landmask_path,
+            "--site-list", sites_path,
+            "--land-constraint",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -84,8 +88,11 @@ def test_nearest_minimum_dz(tmp_path, domain, model):
     orography_path = kgo_dir / f"inputs/{model}_orography.nc"
     landmask_path = kgo_dir / f"inputs/{model}_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [sites_path, orography_path, landmask_path, output_path,
-            "--minimum_dz", "--search_radius", "50000"]
+    args = [orography_path, landmask_path,
+            "--site-list", sites_path,
+            "--minimum-dz",
+            "--search-radius", "50000",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -101,11 +108,14 @@ def test_nearest_land_minimum_dz(tmp_path, domain, model):
     orography_path = kgo_dir / f"inputs/{model}_orography.nc"
     landmask_path = kgo_dir / f"inputs/{model}_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [sites_path, orography_path, landmask_path, output_path,
-            "--land_constraint", "--minimum_dz",
-            "--search_radius", "50000"]
+    args = [orography_path, landmask_path,
+            "--site-list", sites_path,
+            "--land-constraint",
+            "--minimum-dz",
+            "--search-radius", "50000",
+            "--output", output_path]
     if domain == "uk":
-        args += ["--node_limit", "100"]
+        args += ["--node-limit", "100"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -120,8 +130,10 @@ def test_all_methods(tmp_path, domain, model):
     orography_path = kgo_dir / f"inputs/{model}_orography.nc"
     landmask_path = kgo_dir / f"inputs/{model}_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [sites_path, orography_path, landmask_path, output_path,
-            "--all_methods"]
+    args = [orography_path, landmask_path,
+            "--site-list", sites_path,
+            "--all-methods",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -143,11 +155,13 @@ def test_alternative_coordinate_system(tmp_path):
                   "globe": {"semimajor_axis": 6378137.0,
                             "semiminor_axis": 6356752.314140356}}
     coord_opts_json = json.dumps(coord_opts)
-    args = [sites_path, orography_path, landmask_path, output_path,
-            "--site_coordinate_system", "LambertAzimuthalEqualArea",
-            "--site_coordinate_options", coord_opts_json,
-            "--site_x_coordinate", "projection_x_coordinate",
-            "--site_y_coordinate", "projection_y_coordinate"]
+    args = [orography_path, landmask_path,
+            "--site-list", sites_path,
+            "--site-coordinate-system", "LambertAzimuthalEqualArea",
+            "--site-coordinate-options", coord_opts_json,
+            "--site-x-coordinate", "projection_x_coordinate",
+            "--site-y-coordinate", "projection_y_coordinate",
+            "--output", output_path]
     run_cli(args)
     # Note this is a special case. The site coordinates are different, but the
     # data (neighbour indices and vertical displacements) should be identical
@@ -163,8 +177,11 @@ def test_incompatible_constraints(tmp_path):
     orography_path = kgo_dir / "inputs/ukvx_orography.nc"
     landmask_path = kgo_dir / "inputs/ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [sites_path, orography_path, landmask_path, output_path,
-            "--land_constraint", "--all_methods"]
+    args = [orography_path, landmask_path,
+            "--site-list", sites_path,
+            "--land-constraint",
+            "--all-methods",
+            "--output", output_path]
     with pytest.raises(ValueError, match=".*all_methods.*"):
         run_cli(args)
 
@@ -177,7 +194,9 @@ def test_invalid_site(tmp_path):
     orography_path = kgo_dir / "inputs/global_orography.nc"
     landmask_path = kgo_dir / "inputs/global_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [sites_path, orography_path, landmask_path, output_path]
+    args = [orography_path, landmask_path,
+            "--site-list", sites_path,
+            "--output", output_path]
     with pytest.warns(UserWarning, match=".*outside the grid.*"):
         run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -191,7 +210,9 @@ def test_coord_beyond_bounds(tmp_path):
     orography_path = kgo_dir / "inputs/global_orography.nc"
     landmask_path = kgo_dir / "inputs/global_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [sites_path, orography_path, landmask_path, output_path]
+    args = [orography_path, landmask_path,
+            "--site-list", sites_path,
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path, exclude_dims=["longitude"])
 
@@ -204,6 +225,8 @@ def test_unset_wmo_ids(tmp_path):
     orography_path = kgo_dir / "inputs/ukvx_orography.nc"
     landmask_path = kgo_dir / "inputs/ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [sites_path, orography_path, landmask_path, output_path]
+    args = [orography_path, landmask_path,
+            "--site-list", sites_path,
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
