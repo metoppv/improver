@@ -31,13 +31,18 @@
 """Contains a class to trap stdout. Deprecated from PySteps v1.1.0 in favour
 of adding "silent_import=True" to the pyconfig file."""
 
-from io import StringIO
 import sys
 import contextlib
 
 
 @contextlib.contextmanager
 def redirect_stdout(target=None):
+    """Captures stdout and optionally returns it
+
+    Args:
+        target:
+            Any captured stdout is returned here.
+    """
     original = sys.stdout
     sys.stdout = target
     yield
