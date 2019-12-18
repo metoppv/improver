@@ -31,49 +31,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to calculate probabilities of occurrence between thresholds."""
 
-import json
-
-from improver.argparser import ArgParser
-from improver.between_thresholds import OccurrenceBetweenThresholds
-from improver.metadata.probabilistic import find_threshold_coordinate
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
+from improver import cli
 
 
-def main(argv=None):
-    """Load arguments"""
-    parser = ArgParser(description='Calculates probabilities of occurrence '
-                       'between thresholds')
-    parser.add_argument('input_file', metavar='INPUT_FILE',
-                        help='Path to NetCDF file containing probabilities '
-                        'above or below thresholds')
-    parser.add_argument('output_file', metavar='OUTPUT_FILE',
-                        help='Path to NetCDF file to write probabilities of '
-                        'occurrence between thresholds')
-    parser.add_argument('threshold_ranges', metavar='THRESHOLD_RANGES',
-                        help='Path to json file specifying threshold ranges')
-    parser.add_argument('--threshold_units', metavar='THRESHOLD_UNITS',
-                        type=str, default=None,
-                        help='Units in which thresholds are specified')
-    args = parser.parse_args(args=argv)
-
-    # Load Cube and json
-    cube = load_cube(args.input_file)
-    with open(args.threshold_ranges) as input_file:
-        # read list of thresholds from json file
-        threshold_ranges = json.load(input_file)
-
-    # Process Cube
-    result = process(
-        cube, threshold_ranges, threshold_units=args.threshold_units)
-
-    # Save Cube
-    save_netcdf(result, args.output_file)
-
-
-def process(cube, threshold_ranges, threshold_units=None):
+@cli.clizefy
+@cli.with_output
+def process(cube: cli.inputcube,
+            *,
+            threshold_ranges: cli.inputjson,
+            threshold_units=None):
     """
-    Calculates probabilities of occurrence between thresholds
+    Calculate the probabilities of occurrence between thresholds
 
     Args:
         cube (iris.cube.Cube):
@@ -90,12 +58,11 @@ def process(cube, threshold_ranges, threshold_units=None):
             Cube containing probability of occurrences between the thresholds
             specified
     """
+    from improver.between_thresholds import OccurrenceBetweenThresholds
+    from improver.metadata.probabilistic import find_threshold_coordinate
+
     if threshold_units is None:
         threshold_units = str(find_threshold_coordinate(cube).units)
 
     plugin = OccurrenceBetweenThresholds(threshold_ranges, threshold_units)
     return plugin.process(cube)
-
-
-if __name__ == "__main__":
-    main()
