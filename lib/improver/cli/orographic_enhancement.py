@@ -78,7 +78,7 @@ def process(temperature: cli.inputcube,
             orography: cli.inputcube,
             *,
             boundary_height: float = 1000.0, boundary_height_units='m'):
-    """Calculate orograhpic enhancement
+    """Calculate orographic enhancement
 
     Uses the ResolveWindComponents() and OrographicEnhancement() plugins.
     Outputs data on the high resolution orography grid.
