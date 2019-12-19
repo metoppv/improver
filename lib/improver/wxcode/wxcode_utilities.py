@@ -231,7 +231,7 @@ def interrogate_decision_tree(wxtree):
                 zip(entries[thresholds], relations[thresholds])])))
 
     n_files = len(output)
-    formatted_string = (' - {}\n'*n_files)
+    formatted_string = ('{}\n'*n_files)
     formatted_output = formatted_string.format(*output)
 
     return formatted_output

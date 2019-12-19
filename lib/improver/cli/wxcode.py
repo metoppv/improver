@@ -34,11 +34,27 @@
 from improver import cli
 
 
+def extend_help(fn):
+    # TODO: speed up help - pulling in decision tree imports iris
+    # (and gets executed at import time)
+    from improver.wxcode.wxcode_utilities import interrogate_decision_tree
+    for wxtree in ('high_resolution', 'global'):
+        title = wxtree.title().replace('_', ' ') + ' tree inputs'
+        inputs = interrogate_decision_tree(wxtree).replace('\n', '\n    ')
+        tree_help = f"""
+{title}:
+
+    {inputs}
+    """
+        fn.__doc__ += tree_help
+    return fn
+
+
 @cli.clizefy
 @cli.with_output
+@extend_help
 def process(*cubes: cli.inputcube,
-            wxtree='high_resolution',
-            extended_help=None):
+            wxtree='high_resolution'):
     """ Processes cube for Weather symbols.
 
     Args:
@@ -49,23 +65,16 @@ def process(*cubes: cli.inputcube,
             Weather Code tree.
             Choices are high_resolution or global.
             Default is 'high_resolution'.
-        extended_help (str):
-            Get extended help about the necessary inputs for a weather symbol
-            tree as it is currently configured. Choices are high_resolution or
-            global.
 
     Returns:
         iris.cube.Cube:
             A cube of weather symbols.
-
     """
     from iris.cube import CubeList
     from improver.wxcode.weather_symbols import WeatherSymbols
-    from improver.wxcode.wxcode_utilities import interrogate_decision_tree
 
-    if extended_help is not None:
-        print(interrogate_decision_tree(extended_help))
-        return
+    if not cubes:
+        raise RuntimeError('Not enough input arguments. '
+                           'See help for more information.')
 
-    # TODO: Consider adding detail to help output
     return WeatherSymbols(wxtree=wxtree).process(CubeList(cubes))
