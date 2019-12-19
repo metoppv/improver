@@ -51,16 +51,15 @@ def process(input_cube: cli.inputcube,
 
     Args:
         input_cube (iris.cube.Cube):
-            The input Cube to be processed.
+            The data to be advected.
         advection_cubes (iris.cube.CubeList):
             Advection cubes of U and V.
             These must have the names of.
             precipitation_advection_x_velocity
             precipitation_advection_y_velocity
         orographic_enhancement_cube (iris.cube.Cube):
-            Cube containing the orographic enhancement fields. May have data
-            for multiple times in the cube.
-            Default is None.
+            Cube containing orographic enhancement forecasts for the lead times
+            at which an extrapolation nowcast is required.
         attributes_dict (dict):
             Dictionary containing the required changes to the attributes.
             Default is None.
