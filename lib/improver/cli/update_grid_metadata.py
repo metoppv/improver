@@ -58,4 +58,5 @@ def process(cube: cli.inputcube):
     """
     from improver.metadata.amend import update_stage_v110_metadata
 
-    return update_stage_v110_metadata(cube)
+    update_stage_v110_metadata(cube)
+    return cube
