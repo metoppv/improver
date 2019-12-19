@@ -31,123 +31,30 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """CLI to generate weather symbols."""
 
-import argparse
-from argparse import RawTextHelpFormatter
-
-import numpy as np
-
-from improver.argparser import ArgParser
-from improver.utilities.load import load_cubelist
-from improver.utilities.save import save_netcdf
-from improver.wxcode.weather_symbols import WeatherSymbols
-from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
-from improver.wxcode.wxcode_decision_tree_global import (
-    wxcode_decision_tree_global)
-from improver.wxcode.wxcode_utilities import expand_nested_lists
+from improver import cli
 
 
-def interrogate_decision_tree(wxtree):
+def _extend_help(fn):
+    # TODO: speed up help - pulling in decision tree imports iris
+    # (and gets executed at import time)
+    from improver.wxcode.wxcode_utilities import interrogate_decision_tree
+    for wxtree in ('high_resolution', 'global'):
+        title = wxtree.title().replace('_', ' ') + ' tree inputs'
+        inputs = interrogate_decision_tree(wxtree).replace('\n', '\n    ')
+        tree_help = f"""
+{title}:
+
+    {inputs}
     """
-    Obtain a list of necessary inputs from the decision tree as it is currently
-    defined. Return a list of the diagnostic names, the thresholds needed,
-    and whether they are thresholded above or below these values. This output
-    is used to create the CLI help, informing the user of the necessary inputs.
-
-    Returns:
-        list of str:
-            Returns a list of strings, an entry for each diagnostic required,
-            including threshold details.
-    """
-
-    # Get current weather symbol decision tree and populate a list of
-    # required inputs for printing.
-    if wxtree == 'high_resolution':
-        queries = wxcode_decision_tree()
-    elif wxtree == 'global':
-        queries = wxcode_decision_tree_global()
-
-    # Diagnostic names and threshold values.
-    requirements = {}
-    # How the data has been thresholded relative to these thresholds.
-    relative = {}
-
-    for query in queries.values():
-        diagnostics = expand_nested_lists(query, 'diagnostic_fields')
-        for index, diagnostic in enumerate(diagnostics):
-            if diagnostic not in requirements:
-                requirements[diagnostic] = []
-                relative[diagnostic] = []
-            requirements[diagnostic].extend(
-                expand_nested_lists(query, 'diagnostic_thresholds')[index])
-            relative[diagnostic].append(
-                expand_nested_lists(query, 'diagnostic_conditions')[index])
-
-    # Create a list of formatted strings that will be printed as part of the
-    # CLI help.
-    output = []
-    for requirement in requirements:
-        entries = np.array([entry for entry in requirements[requirement]])
-        relations = np.array([entry for entry in relative[requirement]])
-        _, thresholds = np.unique(np.array([item.points.item()
-                                            for item in entries]),
-                                  return_index=True)
-        output.append('{}; thresholds: {}'.format(
-            requirement, ', '.join([
-                '{} ({})'.format(str(threshold.points.item()),
-                                 str(threshold.units))
-                for threshold, relation in
-                zip(entries[thresholds], relations[thresholds])])))
-    return output
+        fn.__doc__ += tree_help
+    return fn
 
 
-def main(argv=None):
-    """Parser to accept input data and an output destination before invoking
-    the weather symbols plugin.
-    """
-
-    diagnostics = interrogate_decision_tree('high_resolution')
-    n_files = len(diagnostics)
-    dlist = (' - {}\n'*n_files)
-
-    diagnostics_global = interrogate_decision_tree('global')
-    n_files_global = len(diagnostics_global)
-    dlist_global = (' - {}\n'*n_files_global)
-
-    parser = ArgParser(
-        description='Calculate gridded weather symbol codes.\nThis plugin '
-        'requires a specific set of input diagnostics, where data\nmay be in '
-        'any units to which the thresholds given below can\nbe converted:\n' +
-        dlist.format(*diagnostics) +
-        '\n\n (probability_of_number_of_lightning_flashes data is optional)'
-        '\n\n or for global data\n\n' +
-        dlist_global.format(*diagnostics_global),
-        formatter_class=RawTextHelpFormatter)
-
-    parser.add_argument(
-        'input_filepaths', metavar='INPUT_FILES', nargs="+",
-        help='Paths to files containing the required input diagnostics.')
-    parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
-                        help='The output path for the processed NetCDF.')
-    parser.add_argument("--wxtree", metavar="WXTREE",
-                        default="high_resolution",
-                        choices=["high_resolution", "global"],
-                        help="Weather Code tree.\n"
-                        "Choices are high_resolution or global.\n"
-                        "Default=high_resolution.", type=str)
-
-    args = parser.parse_args(args=argv)
-
-    # Load Cube
-    cubes = load_cubelist(args.input_filepaths, no_lazy_load=True)
-
-    # Process Cube
-    result = process(cubes, args.wxtree)
-
-    # Save Cube
-    save_netcdf(result, args.output_filepath)
-
-
-def process(cubes, wxtree='high_resolution'):
+@cli.clizefy
+@cli.with_output
+@_extend_help
+def process(*cubes: cli.inputcube,
+            wxtree='high_resolution'):
     """ Processes cube for Weather symbols.
 
     Args:
@@ -162,11 +69,12 @@ def process(cubes, wxtree='high_resolution'):
     Returns:
         iris.cube.Cube:
             A cube of weather symbols.
-
     """
-    result = WeatherSymbols(wxtree=wxtree).process(cubes)
-    return result
+    from iris.cube import CubeList
+    from improver.wxcode.weather_symbols import WeatherSymbols
 
+    if not cubes:
+        raise RuntimeError('Not enough input arguments. '
+                           'See help for more information.')
 
-if __name__ == "__main__":
-    main()
+    return WeatherSymbols(wxtree=wxtree).process(CubeList(cubes))
