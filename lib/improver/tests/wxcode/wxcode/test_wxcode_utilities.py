@@ -517,5 +517,6 @@ class Test_interrogate_decision_tree(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             interrogate_decision_tree('kittens')
 
+
 if __name__ == '__main__':
     unittest.main()
