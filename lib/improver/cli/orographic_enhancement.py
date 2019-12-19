@@ -114,10 +114,6 @@ def process(temperature: cli.inputcube,
 
     constraint_info = (boundary_height, boundary_height_units)
 
-    # pylint: disable=use-symbolic-message-instead
-    # pylint: disable=W1637
-    var = zip([0, 1, 2], [1, 2, 3])
-    print(var)
     temperature = extract_and_check(temperature, *constraint_info)
     humidity = extract_and_check(humidity, *constraint_info)
     pressure = extract_and_check(pressure, *constraint_info)
