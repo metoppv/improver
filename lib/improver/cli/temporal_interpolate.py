@@ -83,6 +83,7 @@ def process(start_cube: cli.inputcube,
             interpolated cubes will always be in chronological order of
             earliest to latest regardless of the order of the input.
     """
+    from improver.utilities.cube_manipulation import merge_cubes
     from improver.utilities.temporal import (
         cycletime_to_datetime, iris_time_to_datetime)
     from improver.utilities.temporal_interpolation import TemporalInterpolation
@@ -96,7 +97,8 @@ def process(start_cube: cli.inputcube,
     if times is not None:
         times = [cycletime_to_datetime(timestr) for timestr in times]
 
-    return TemporalInterpolation(
+    result = TemporalInterpolation(
         interval_in_minutes=interval_in_mins, times=times,
         interpolation_method=interpolation_method
     ).process(start_cube, end_cube)
+    return merge_cubes(result)
