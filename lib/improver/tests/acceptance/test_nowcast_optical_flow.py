@@ -55,7 +55,7 @@ def test_basic(tmp_path):
                    for hhmm in ("1530", "1545", "1600")]
     oe_path = kgo_dir / OE
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, oe_path,
+    args = [oe_path, *input_paths,
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -72,34 +72,7 @@ def test_metadata(tmp_path):
     # TODO: the BATS test does not call improver with the metadata file
     # metadata_path = kgo_dir / "../metadata/precip.json"
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, oe_path,
-            "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_no_orographic_error(tmp_path):
-    """Test missing orographic enhancement error"""
-    kgo_dir = acc.kgo_root() / "nowcast-optical-flow/basic"
-    input_paths = [kgo_dir / f"20181103{hhmm}_{RADAR_REGRID}.nc"
-                   for hhmm in ("1530", "1545", "1600")]
-    output_path = tmp_path / "output.nc"
-    args = [*input_paths,
-            "--output", output_path]
-    with pytest.raises(ValueError, match=".*orographic enhancement.*"):
-        run_cli(args)
-
-
-@pytest.mark.slow
-def test_basic_no_orographic(tmp_path):
-    """Test basic optical flow without orographic enhancement"""
-    kgo_dir = (acc.kgo_root() / "nowcast-optical-flow" /
-               "basic_no_orographic_enhancement")
-    kgo_path = kgo_dir / "kgo.nc"
-    input_paths = [kgo_dir / f"20181103{hhmm}_{RADAR_REGRID}.nc"
-                   for hhmm in ("1530", "1545", "1600")]
-    output_path = tmp_path / "output.nc"
-    args = [*input_paths,
+    args = [oe_path, *input_paths,
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -112,8 +85,9 @@ def test_remasked(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_paths = [kgo_dir / f"20181127{hhmm}_{RADAR_REMASK}.nc"
                    for hhmm in ("1330", "1345", "1400")]
+    oe_path = kgo_dir / "../basic" / OE
     output_path = tmp_path / "output.nc"
-    args = [*input_paths,
+    args = [oe_path, *input_paths,
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

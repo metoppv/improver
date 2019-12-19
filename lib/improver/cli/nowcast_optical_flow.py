@@ -37,41 +37,28 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(radar_t: cli.inputcube,
-            radar_t1: cli.inputcube,
-            radarT2: cli.inputcube,
-            orographic_enhancement_cube: cli.inputcube = None,
-            *,
+def process(orographic_enhancement_cube: cli.inputcube,
+            *radar: cli.inputcube,
             attributes_dict: cli.inputjson = None,
             ofc_box_size: int = 30,
             smart_smoothing_iterations: int = 100):
     """Calculate optical flow components from input fields.
 
     Args:
-        radar_t (iris.cube.CubeList):
-            Cube from which to calculate optical flow velocities.
-            These three cubes can be any order.
-        radar_t1 (iris.cube.CubeList):
-            Cube from which to calculate optical flow velocities.
-            These three cubes can be any order.
-        radarT2 (iris.cube.CubeList):
-            Cube from which to calculate optical flow velocities.
-            These three cubes can be any order.
         orographic_enhancement_cube (iris.cube.Cube):
             Cube containing the orographic enhancement fields.
-            Default is None.
+        radar (iris.cube.CubeList):
+            Cube from which to calculate optical flow velocities.
+            These three cubes can be any order.
         attributes_dict (dict):
             Dictionary containing required changes to the attributes.
             Every output file will have the attributes_dict applied.
-            Default is None.
         ofc_box_size (int):
             Size of square 'box' (in grid spaces) within which to solve
             the optical flow equations.
-            Default is 30.
         smart_smoothing_iterations (int):
             Number of iterations to perform in enforcing smoothness constraint
             for optical flow velocities.
-            Default is 100.
 
     Returns:
         iris.cube.CubeList:
@@ -88,22 +75,13 @@ def process(radar_t: cli.inputcube,
         generate_optical_flow_components
     from improver.nowcasting.utilities import ApplyOrographicEnhancement
 
-    original_cube_list = CubeList([radar_t, radar_t1, radarT2])
+    original_cube_list = CubeList(radar)
     # order input files by validity time
     original_cube_list.sort(key=lambda x: x.coord("time").points[0])
 
     # subtract orographic enhancement
-    if orographic_enhancement_cube:
-        cube_list = ApplyOrographicEnhancement("subtract").process(
+    cube_list = ApplyOrographicEnhancement("subtract").process(
             original_cube_list, orographic_enhancement_cube)
-    else:
-        cube_list = original_cube_list
-        if any("precipitation_rate" in cube.name() for cube in cube_list):
-            cube_names = [cube.name() for cube in cube_list]
-            msg = ("For precipitation fields, orographic enhancement "
-                   "filepaths must be supplied. The names of the cubes "
-                   "supplied were: {}".format(cube_names))
-            raise ValueError(msg)
 
     # calculate optical flow velocities from T-1 to T and T-2 to T-1, and
     # average to produce the velocities for use in advection
