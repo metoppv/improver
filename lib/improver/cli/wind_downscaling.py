@@ -43,7 +43,6 @@ def process(wind_speed: cli.inputcube,
             standard_orog: cli.inputcube,
             veg_roughness_cube: cli.inputcube = None,
             *,
-            height_levels: cli.inputcube = None,
             model_resolution: float,
             output_height_level: float = None,
             output_height_level_units='m'):
@@ -69,18 +68,14 @@ def process(wind_speed: cli.inputcube,
         standard_orog (iris.cube.Cube):
             Cube of orography on standard grid. (interpolated model orography).
             Units of field: m.
-        model_resolution (float):
-            Original resolution of model orography (before interpolation to
-            standard grid)
-            Units of field: m.
-        height_levels (iris.cube.Cube):
-            Cube of height levels coincident with wind direction.
-            Units of field: m.
-            Default is None.
         veg_roughness_cube (iris.cube.Cube):
             Cube of vegetative roughness length.
             Units of field: m.
             Default is None.
+        model_resolution (float):
+            Original resolution of model orography (before interpolation to
+            standard grid)
+            Units of field: m.
         output_height_level (float):
             If only a single height level is desired as output from
             wind-downscaling, this option can be used to select the height
@@ -127,9 +122,9 @@ def process(wind_speed: cli.inputcube,
                 silhouette_roughness, sigma, target_orog,
                 standard_orog, model_resolution,
                 z0_cube=veg_roughness_cube,
-                height_levels_cube=height_levels).process(wind_speed_slice))
+                height_levels_cube=None).process(wind_speed_slice))
         wind_speed_list.append(result)
-    # Temporary fix for chunking problems when merging cubes
+    # TODO: Remove temporary fix for chunking problems when merging cubes
     max_npoints = max([np.prod(cube.data.shape) for cube in wind_speed_list])
     while iris._lazy_data._MAX_CHUNK_SIZE < max_npoints:
         iris._lazy_data._MAX_CHUNK_SIZE *= 2
