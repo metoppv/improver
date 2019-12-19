@@ -52,7 +52,8 @@ from improver.utilities.save import save_netcdf
 from improver.wxcode.wxcode_utilities import (WX_DICT,
                                               add_wxcode_metadata,
                                               expand_nested_lists,
-                                              update_daynight)
+                                              update_daynight,
+                                              interrogate_decision_tree)
 
 
 def datetime_to_numdateval(year=2018, month=9, day=12, hour=5, minutes=43):
@@ -499,6 +500,22 @@ class Test_update_daynight(IrisTest):
             [28, 28, 28, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29]]])
         result = update_daynight(cube)
         self.assertArrayEqual(result.data, expected_result)
+
+
+class Test_interrogate_decision_tree(IrisTest):
+    """Test the function for generating extended help."""
+
+    def test_return_type(self):
+        """Test that the function returns a string."""
+        result = interrogate_decision_tree('global')
+        self.assertIsInstance(result, str)
+
+    def test_raises_exception(self):
+        """Test the function raises an exception for an unknown weather symbol
+        tree name."""
+        msg = "Unknown decision tree name provided."
+        with self.assertRaisesRegex(ValueError, msg):
+            interrogate_decision_tree('kittens')
 
 
 if __name__ == '__main__':
