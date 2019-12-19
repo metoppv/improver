@@ -43,9 +43,9 @@ run_cli = acc.run_cli(CLI)
 
 @pytest.mark.parametrize(
     "extra,match",
-    ((["--max-lapse-rate=-1", "--min-lapse-rate=1"], "lapse rate"),
-     (["--max-height-diff-metres=-1"], "height difference"),
-     (["--nbhood-radius=-1"], "radius")))
+    ((["--max-lapse-rate", "-1", "--min-lapse-rate", "1"], "lapse rate"),
+     (["--max-height-diff-metres", "-1"], "height difference"),
+     (["--nbhood-radius", "-1"], "radius")))
 def test_bad_params(tmp_path, extra, match):
     """Test use of incorrect parameters"""
     kgo_dir = acc.kgo_root() / "temp-lapse-rate/basic"
@@ -53,9 +53,7 @@ def test_bad_params(tmp_path, extra, match):
     orography_path = kgo_dir / "ukvx_orography.nc"
     landmask_path = kgo_dir / "ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--orography", orography_path,
-            "--land-sea-mask", landmask_path,
+    args = [input_path, orography_path, landmask_path,
             *extra,
             "--output", output_path]
     with pytest.raises(ValueError, match=f".*{match}.*"):
@@ -70,9 +68,7 @@ def test_basic(tmp_path):
     orography_path = kgo_dir / "ukvx_orography.nc"
     landmask_path = kgo_dir / "ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--orography", orography_path,
-            "--land-sea-mask", landmask_path,
+    args = [input_path, orography_path, landmask_path,
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -87,9 +83,7 @@ def test_realizations(tmp_path):
     orography_path = kgo_dir / "enukx_orography.nc"
     landmask_path = kgo_dir / "enukx_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--orography", orography_path,
-            "--land-sea-mask", landmask_path,
+    args = [input_path, orography_path, landmask_path,
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=acc.DEFAULT_TOLERANCE, rtol=None)
@@ -104,13 +98,11 @@ def test_options(tmp_path):
     orography_path = input_dir / "ukvx_orography.nc"
     landmask_path = input_dir / "ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--orography", orography_path,
-            "--land-sea-mask", landmask_path,
-            "--max-height-diff-metres=10",
-            "--nbhood-radius=3",
-            "--max-lapse-rate=0.06",
-            "--min-lapse-rate=-0.01",
+    args = [input_path, orography_path, landmask_path,
+            "--max-height-diff-metres", "10",
+            "--nbhood-radius", "3",
+            "--max-lapse-rate", "0.06",
+            "--min-lapse-rate", "-0.01",
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

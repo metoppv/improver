@@ -39,9 +39,9 @@ from improver.constants import DALR, U_DALR
 @cli.clizefy
 @cli.with_output
 def process(temperature: cli.inputcube,
-            *,
             orography: cli.inputcube = None,
             land_sea_mask: cli.inputcube = None,
+            *,
             max_height_diff_metres: float = 35,
             nbhood_radius: int = 7,
             max_lapse_rate: float = -3*DALR,
@@ -119,7 +119,3 @@ def process(temperature: cli.inputcube,
             temperature, orography, land_sea_mask)
     amend_attributes(result, attributes_dict)
     return result
-
-
-if __name__ == "__main__":
-    main()
