@@ -34,7 +34,7 @@
 from improver import cli
 
 
-def extend_help(fn):
+def _extend_help(fn):
     # TODO: speed up help - pulling in decision tree imports iris
     # (and gets executed at import time)
     from improver.wxcode.wxcode_utilities import interrogate_decision_tree
@@ -52,7 +52,7 @@ def extend_help(fn):
 
 @cli.clizefy
 @cli.with_output
-@extend_help
+@_extend_help
 def process(*cubes: cli.inputcube,
             wxtree='high_resolution'):
     """ Processes cube for Weather symbols.
