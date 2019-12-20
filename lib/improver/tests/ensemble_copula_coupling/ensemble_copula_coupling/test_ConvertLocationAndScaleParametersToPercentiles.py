@@ -129,26 +129,28 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
                            [3, 3, 3],
                            [3, 3, 3]]]])
 
-        result_data = np.array([[[[0.827385, 0.827385, 0.827385],
-                                  [0.827385, 0.827385, 0.827385],
-                                  [0.827385, 0.827385, 0.827385]]],
-                                [[[2.028517, 2.028517, 2.028517],
-                                  [2.028517, 2.028517, 2.028517],
-                                  [2.028517, 2.028517, 2.028517]]],
-                                [[[3.2946239, 3.2946239, 3.2946239],
-                                  [3.2946239, 3.2946239, 3.2946239],
-                                  [3.2946239, 3.2946239, 3.2946239]]]])
+        result_data = np.array([[[[1.3042759, 1.3042759, 1.3042759],
+                                  [1.3042759, 1.3042759, 1.3042759],
+                                  [1.3042759, 1.3042759, 1.3042759]]],
+                                [[[3.0300407, 3.0300407, 3.0300407],
+                                  [3.0300407, 3.0300407, 3.0300407],
+                                  [3.0300407, 3.0300407, 3.0300407]]],
+                                [[[4.8261294, 4.8261294, 4.8261294],
+                                  [4.8261294, 4.8261294, 4.8261294],
+                                  [4.8261294, 4.8261294, 4.8261294]]]])
 
         cube = self.current_temperature_forecast_cube
         cube.data = data
-        # Use the ensemble mean as a proxy for the location parameter for
-        # the truncated normal distribution.
+        # Use an adjusted version of the ensemble mean as a proxy for the
+        # location parameter for the truncated normal distribution.
         current_forecast_predictor = cube.collapsed(
             "realization", iris.analysis.MEAN)
-        # Use the ensemble variance as a proxy for the scale parameter for
-        # the truncated normal distribution.
+        current_forecast_predictor.data = current_forecast_predictor.data + 1
+        # Use an adjusted version of the ensemble variance as a proxy for the
+        # scale parameter for the truncated normal distribution.
         current_forecast_variance = cube.collapsed(
             "realization", iris.analysis.VARIANCE)
+        current_forecast_variance.data = current_forecast_variance.data + 1
         percentiles = [10, 50, 90]
         plugin = Plugin(distribution="truncnorm", shape_parameters=[0, np.inf])
         result = plugin._location_and_scale_parameters_to_percentiles(

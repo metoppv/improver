@@ -627,9 +627,14 @@ class ConvertLocationAndScaleParameters():
         """
         Initialise the class.
 
-        .. Further information is available in:
-        .. include:: extended_documentation/ensemble_copula_coupling/
-           ensemble_copula_coupling/ConvertLocationAndScaleParameters.rst
+        In order to construct percentiles or probabilities from the location
+        or scale parameter, the distribution for the resulting output needs
+        to be selected. For use with the outputs from EMOS, where it has been
+        assumed that the outputs from minimising the CRPS follow a particular
+        distribution, then the same distribution should be selected, as used
+        for the CRPS minimisation. The conversion to percentiles and
+        probabilities from the location and scale parameter relies upon
+        functionality within scipy.stats.
 
         Args:
             distribution (str):
@@ -666,7 +671,7 @@ ContinuousRankedProbabilityScoreMinimisers.calculate_truncated_normal_crps`,
         return result.format(
             self.distribution.name, self.shape_parameters)
 
-    def _rescale_shape_parameters(self, mean, std):
+    def _rescale_shape_parameters(self, location_parameter, scale_parameter):
         """
         Rescale the shape parameters for the desired location and scale
         parameters for the truncated normal distribution. The shape parameters
@@ -675,30 +680,31 @@ ContinuousRankedProbabilityScoreMinimisers.calculate_truncated_normal_crps`,
         For the truncated normal distribution, if the shape parameters are not
         rescaled, then :data:`scipy.stats.truncnorm` will assume that the shape
         parameters are appropriate for a standard normal distribution. As the
-        aim is to construct a distribution using specific values for the mean
-        and standard deviation, the assumption of a standard normal
+        aim is to construct a distribution using specific values for the
+        location and scale parameters, the assumption of a standard normal
         distribution is not appropriate. Therefore the shape parameters are
         rescaled using the equations:
 
         .. math::
-          a\\_rescaled = (a - mean)/standard\\_deviation
+          a\\_rescaled = (a - location\\_parameter)/scale\\_parameter
 
-          b\\_rescaled = (b - mean)/standard\\_deviation
+          b\\_rescaled = (b - location\\_parameter)/scale\\_parameter
 
         Please see :data:`scipy.stats.truncnorm` for some further information.
 
         Args:
-            mean (numpy.ndarray):
-                Mean to be used to scale the shape parameters.
-            std (numpy.ndarray):
-                Standard deviation to be used to scale the shape parameters.
+            location_parameter (numpy.ndarray):
+                Location parameter to be used to scale the shape parameters.
+            scale_parameter (numpy.ndarray):
+                Scale parameter to be used to scale the shape parameters.
 
         """
         if self.distribution.name == "truncnorm":
             if self.shape_parameters:
                 rescaled_values = []
                 for value in self.shape_parameters:
-                    rescaled_values.append((value - mean) / std)
+                    rescaled_values.append((value - location_parameter) /
+                                           scale_parameter)
                 self.shape_parameters = rescaled_values
             else:
                 msg = ("For the truncated normal distribution, "
@@ -709,9 +715,9 @@ ContinuousRankedProbabilityScoreMinimisers.calculate_truncated_normal_crps`,
 class ConvertLocationAndScaleParametersToPercentiles(
         BasePlugin, ConvertLocationAndScaleParameters):
     """
-    Plugin focussing on generating percentiles from mean and variance.
-    In combination with the EnsembleReordering plugin, this is Ensemble
-    Copula Coupling.
+    Plugin focusing on generating percentiles from location and scale
+    parameters. In combination with the EnsembleReordering plugin, this is
+    Ensemble Copula Coupling.
     """
 
     def __repr__(self):
@@ -721,19 +727,18 @@ class ConvertLocationAndScaleParametersToPercentiles(
         return result.format(self.distribution.name, self.shape_parameters)
 
     def _location_and_scale_parameters_to_percentiles(
-            self, calibrated_forecast_predictor, calibrated_forecast_variance,
-            percentiles):
+            self, location_parameter, scale_parameter, percentiles):
         """
-        Function returning percentiles based on the supplied
-        mean and variance. The percentiles are created by assuming a
+        Function returning percentiles based on the supplied location and
+        scale parameters. The percentiles are created by assuming a
         Gaussian distribution and calculating the value of the phenomenon at
         specific points within the distribution.
 
         Args:
-            calibrated_forecast_predictor (iris.cube.Cube):
-                Predictor for the calibrated forecast i.e. the mean.
-            calibrated_forecast_variance (iris.cube.Cube):
-                Variance for the calibrated forecast.
+            location_parameter (iris.cube.Cube):
+                Location parameter of calibrated distribution.
+            scale_parameter (iris.cube.Cube):
+                Scale parameter of the calibrated distribution.
             percentiles (list):
                 Percentiles at which to calculate the value of the phenomenon
                 at.
@@ -747,49 +752,45 @@ class ConvertLocationAndScaleParametersToPercentiles(
             ValueError: If any of the resulting percentile values are
                 nans and these nans are not caused by a zero variance.
         """
-        calibrated_forecast_predictor = (
-            enforce_coordinate_ordering(
-                calibrated_forecast_predictor, "realization"))
-        calibrated_forecast_variance = (
-            enforce_coordinate_ordering(
-                calibrated_forecast_variance, "realization"))
+        location_parameter = (
+            enforce_coordinate_ordering(location_parameter, "realization"))
+        scale_parameter = (
+            enforce_coordinate_ordering(scale_parameter, "realization"))
 
-        calibrated_forecast_predictor_data = (
-            calibrated_forecast_predictor.data.flatten())
-        calibrated_forecast_variance_data = (
-            calibrated_forecast_variance.data.flatten())
+        location_parameter_data = location_parameter.data.flatten()
+        scale_parameter_data = scale_parameter.data.flatten()
 
         # Convert percentiles into fractions.
         percentiles = np.array(
             [x/100.0 for x in percentiles], dtype=np.float32)
 
         result = np.zeros((len(percentiles),
-                           calibrated_forecast_predictor_data.shape[0]),
-                          dtype=np.float32)
+                           location_parameter_data.shape[0]), dtype=np.float32)
 
         self._rescale_shape_parameters(
-            calibrated_forecast_predictor_data,
-            np.sqrt(calibrated_forecast_variance_data))
+            location_parameter_data,
+            np.sqrt(scale_parameter_data))
 
         percentile_method = self.distribution(
             *self.shape_parameters,
-            loc=calibrated_forecast_predictor_data,
-            scale=np.sqrt(calibrated_forecast_variance_data))
+            loc=location_parameter_data,
+            scale=np.sqrt(scale_parameter_data))
 
         # Loop over percentiles, and use the specified distribution with the
-        # mean and variance to calculate the values at each percentile.
+        # location and scale parameter to calculate the values at each
+        # percentile.
         for index, percentile in enumerate(percentiles):
             percentile_list = np.repeat(
-                percentile, len(calibrated_forecast_predictor_data))
+                percentile, len(location_parameter_data))
             result[index, :] = percentile_method.ppf(percentile_list)
             # If percent point function (PPF) returns NaNs, fill in
             # mean instead of NaN values. NaN will only be generated if the
             # variance is zero. Therefore, if the variance is zero, the mean
             # value is used for all gridpoints with a NaN.
-            if np.any(calibrated_forecast_variance_data == 0):
+            if np.any(scale_parameter_data == 0):
                 nan_index = np.argwhere(np.isnan(result[index, :]))
                 result[index, nan_index] = (
-                    calibrated_forecast_predictor_data[nan_index])
+                    location_parameter_data[nan_index])
             if np.any(np.isnan(result)):
                 msg = ("NaNs are present within the result for the {} "
                        "percentile. Unable to calculate the percent point "
@@ -803,10 +804,9 @@ class ConvertLocationAndScaleParametersToPercentiles(
         # first, and any other dimension coordinates follow.
         result = (
             restore_non_probabilistic_dimensions(
-                result, calibrated_forecast_predictor,
-                "realization", len(percentiles)))
+                result, location_parameter, "realization", len(percentiles)))
 
-        for template_cube in calibrated_forecast_predictor.slices_over(
+        for template_cube in location_parameter.slices_over(
                 "realization"):
             template_cube.remove_coord("realization")
             break
@@ -817,23 +817,22 @@ class ConvertLocationAndScaleParametersToPercentiles(
         percentile_cube.cell_methods = {}
         return percentile_cube
 
-    def process(self, calibrated_forecast_predictor,
-                calibrated_forecast_variance, no_of_percentiles=None,
-                percentiles=None):
+    def process(self, location_parameter, scale_parameter,
+                no_of_percentiles=None, percentiles=None):
         """
-        Generate ensemble percentiles from the mean and variance.
+        Generate ensemble percentiles from the location and scale parameters.
 
         Args:
-            calibrated_forecast_predictor (iris.cube.Cube):
-                Cube containing the calibrated forecast predictor.
-            calibrated_forecast_variance (iris.cube.Cube):
-                Cube containing the calibrated forecast variance.
+            location_parameter (iris.cube.Cube):
+                Cube containing the location parameters.
+            scale_parameter (iris.cube.Cube):
+                Cube containing the scale parameters.
             no_of_percentiles (int):
                 Integer defining the number of percentiles that will be
-                calculated from the mean and variance.
+                calculated from the location and scale parameters.
             percentiles (list):
-                List of percentiles that will be generated from the mean
-                and variance provided.
+                List of percentiles that will be generated from the location
+                and scale parameters provided.
 
         Returns:
             iris.cube.Cube:
@@ -857,9 +856,7 @@ class ConvertLocationAndScaleParametersToPercentiles(
             percentiles = choose_set_of_percentiles(no_of_percentiles)
         calibrated_forecast_percentiles = (
             self._location_and_scale_parameters_to_percentiles(
-                calibrated_forecast_predictor,
-                calibrated_forecast_variance,
-                percentiles))
+                location_parameter, scale_parameter, percentiles))
 
         return calibrated_forecast_percentiles
 
@@ -867,8 +864,8 @@ class ConvertLocationAndScaleParametersToPercentiles(
 class ConvertLocationAndScaleParametersToProbabilities(
         BasePlugin, ConvertLocationAndScaleParameters):
     """
-    Plugin to generate probabilities relative to given thresholds from the mean
-    and variance of a distribution.
+    Plugin to generate probabilities relative to given thresholds from the
+    location and scale parameters of a distribution.
     """
 
     def __repr__(self):
@@ -911,19 +908,20 @@ class ConvertLocationAndScaleParametersToProbabilities(
 
     @staticmethod
     def _check_unit_compatibility(
-            location_parameter_values, scale_parameter_values,
+            location_parameter, scale_parameter,
             probability_cube_template):
         """
-        The mean, variance, and threshold values come from three different
-        cubes. They should all be in the same units, but this is a sanity check
-        to ensure this is the case, converting units of the means and variances
-        if possible. This has been written specifically for this plugin as we
-        are comparing squared units in the case of the variance.
+        The location parameter, scale parameters, and threshold values come
+        from three different cubes. They should all be in the same base unit,
+        with the units of the scale parameter being the squared units of the
+        location parameter and threshold values. This is a sanity check to
+        ensure the units are as expected, converting units of the location
+        parameter and scale parameter if possible.
 
         Args:
-            location_parameter_values (iris.cube.Cube):
+            location_parameter (iris.cube.Cube):
                 Cube of location parameter values.
-            scale_parameter_values (iris.cube.Cube):
+            scale_parameter (iris.cube.Cube):
                 Cube of scale parameter values.
             probability_cube_template (iris.cube.Cube):
                 Cube containing threshold values.
@@ -934,8 +932,8 @@ class ConvertLocationAndScaleParametersToProbabilities(
             find_threshold_coordinate(probability_cube_template).units)
 
         try:
-            location_parameter_values.convert_units(threshold_units)
-            scale_parameter_values.convert_units(threshold_units**2)
+            location_parameter.convert_units(threshold_units)
+            scale_parameter.convert_units(threshold_units**2)
         except ValueError as err:
             msg = ('Error: {} This is likely because the mean '
                    'variance and template cube threshold units are '
@@ -943,18 +941,17 @@ class ConvertLocationAndScaleParametersToProbabilities(
             raise ValueError(msg)
 
     def _location_and_scale_parameters_to_probabilities(
-            self, location_parameter_values, scale_parameter_values,
+            self, location_parameter, scale_parameter,
             probability_cube_template):
         """
         Function returning probabilities relative to provided thresholds based
         on the supplied location and scale parameters.
 
         Args:
-            location_parameter_values (iris.cube.Cube):
-                Predictor for the calibrated forecast location parameter
-                i.e. the mean.
-            scale_parameter_values (iris.cube.Cube):
-                Scale parameter for the calibrated forecast i.e. the variance.
+            location_parameter (iris.cube.Cube):
+                Predictor for the calibrated forecast location parameter.
+            scale_parameter (iris.cube.Cube):
+                Scale parameter for the calibrated forecast.
             probability_cube_template (iris.cube.Cube):
                 A probability cube that has a threshold coordinate, where the
                 probabilities are defined as above or below the threshold by
@@ -973,18 +970,18 @@ class ConvertLocationAndScaleParametersToProbabilities(
             probability_cube_template).attributes['spp__relative_to_threshold']
 
         self._rescale_shape_parameters(
-            location_parameter_values.data.flatten(),
-            np.sqrt(scale_parameter_values.data).flatten())
+            location_parameter.data.flatten(),
+            np.sqrt(scale_parameter.data).flatten())
 
         # Loop over thresholds, and use the specified distribution with the
-        # mean and variance to calculate the probabilities relative to each
-        # threshold.
+        # location and scale parameter to calculate the probabilities relative
+        # to each threshold.
         probabilities = np.empty_like(probability_cube_template.data)
 
         distribution = self.distribution(
             *self.shape_parameters,
-            loc=location_parameter_values.data.flatten(),
-            scale=np.sqrt(scale_parameter_values.data.flatten()))
+            loc=location_parameter.data.flatten(),
+            scale=np.sqrt(scale_parameter.data.flatten()))
 
         probability_method = distribution.cdf
         if relative_to_threshold == 'above':
@@ -997,19 +994,17 @@ class ConvertLocationAndScaleParametersToProbabilities(
         probability_cube = probability_cube_template.copy(data=probabilities)
         return probability_cube
 
-    def process(self, location_parameter_values, scale_parameter_values,
+    def process(self, location_parameter, scale_parameter,
                 probability_cube_template):
         """
         Generate probabilities from the location and scale parameters of the
         distribution.
 
         Args:
-            location_parameter_values (iris.cube.Cube):
-                Cube containing the distribution location parameter values of
-                a diagnostic, e.g. the mean over realizations.
-            scale_parameter_values (iris.cube.Cube):
-                Cube containing the distribution scale parameter values of a
-                diagnostic, e.g. the variance across realizations.
+            location_parameter (iris.cube.Cube):
+                Cube containing the location parameters.
+            scale_parameter (iris.cube.Cube):
+                Cube containing the scale parameters.
             probability_cube_template (iris.cube.Cube):
                 A probability cube that has a threshold coordinate, where the
                 probabilities are defined as above or below the threshold by
@@ -1023,12 +1018,12 @@ class ConvertLocationAndScaleParametersToProbabilities(
         """
         self._check_template_cube(probability_cube_template)
         self._check_unit_compatibility(
-            location_parameter_values, scale_parameter_values,
+            location_parameter, scale_parameter,
             probability_cube_template)
 
         probability_cube = (
             self._location_and_scale_parameters_to_probabilities(
-                location_parameter_values, scale_parameter_values,
+                location_parameter, scale_parameter,
                 probability_cube_template))
 
         return probability_cube
