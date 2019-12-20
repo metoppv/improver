@@ -100,7 +100,7 @@ def process(cube: cli.inputcube,
     """
     from iris.exceptions import CoordinateNotFoundError
     from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-        GeneratePercentilesFromProbabilities, RebadgePercentilesAsRealizations,
+        ConvertProbabilitiesToPercentiles, RebadgePercentilesAsRealizations,
         EnsembleReordering)
 
     if rebadging:
