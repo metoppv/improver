@@ -910,14 +910,15 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
 class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
     """
-    Class to apply the optimised EMOS coefficients to future dates.
+    Class to apply the optimised EMOS coefficients to the current forecast.
 
     """
     def __init__(self, predictor="mean"):
         """
-        Create an ensemble calibration plugin that, for Nonhomogeneous Gaussian
-        Regression, applies coefficients created using on historical forecasts
-        and applies the coefficients to the current forecast.
+        Create a plugin that uses the coefficients created using EMOS from
+        historical forecasts and corresponding truths and applies these
+        coefficients to the current forecast to generate a location and scale
+        parameter that represents the calibrated distribution.
 
         Args:
             predictor (str):
