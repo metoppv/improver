@@ -1190,18 +1190,20 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
 
         # Use a mask to confine calibration to regions in which the mask=1.
         if landsea_mask:
-            forecast_mean = (
+            # Assume that the ensemble mean and the ensemble variance provide
+            # an estimate of the uncalibrated location and scale parameter.
+            uncalibrated_location_parameter = (
                 self.current_forecast.collapsed(
                     "realization", iris.analysis.MEAN))
-            forecast_variance = (
+            uncalibrated_scale_parameter = (
                 self.current_forecast.collapsed(
                     "realization", iris.analysis.VARIANCE))
             self._merge_calibrated_and_uncalibrated_regions(
-                forecast_mean.data,
+                uncalibrated_location_parameter.data,
                 location_parameter_cube.data,
                 landsea_mask.data)
             self._merge_calibrated_and_uncalibrated_regions(
-                forecast_variance.data,
+                uncalibrated_scale_parameter.data,
                 scale_parameter_cube.data,
                 landsea_mask.data)
 
