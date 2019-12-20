@@ -221,12 +221,9 @@ def time_coords_match(first_cube, second_cube, raise_exception=False):
     cubes_equivalent = True
     mismatches = []
     for coord_name in ["forecast_period", "time", "forecast_reference_time"]:
-        try:
-            if (first_cube.coord(coord_name) != second_cube.coord(coord_name)):
-                mismatches.append(coord_name)
-                cubes_equivalent = False
-        except CoordinateNotFoundError:
-            raise
+        if (first_cube.coord(coord_name) != second_cube.coord(coord_name)):
+            mismatches.append(coord_name)
+            cubes_equivalent = False
 
     if mismatches and raise_exception:
         msg = "The following coordinates of the two cubes do not match: {}"

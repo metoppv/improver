@@ -495,8 +495,8 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             warnings.warn(msg)
 
         # Convert percentiles into fractions.
-        percentiles = np.array([x/100.0 for x in percentiles],
-                               dtype=np.float32)
+        percentiles_as_fractions = np.array(
+            [x/100.0 for x in percentiles], dtype=np.float32)
 
         forecast_at_percentiles = (
             np.empty((len(percentiles), probabilities_for_cdf.shape[0]),
@@ -504,12 +504,8 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         )
         for index in range(probabilities_for_cdf.shape[0]):
             forecast_at_percentiles[:, index] = np.interp(
-                percentiles, probabilities_for_cdf[index, :],
+                percentiles_as_fractions, probabilities_for_cdf[index, :],
                 threshold_points)
-
-        # Convert percentiles back into percentages.
-        percentiles = np.array([x*100.0 for x in percentiles],
-                               dtype=np.float32)
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
@@ -617,7 +613,6 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         for cube_realization in slices_over_realization:
             cubelist.append(self._probabilities_to_percentiles(
                 cube_realization, percentiles, bounds_pairing))
-
         forecast_at_percentiles = cubelist.merge_cube()
         return forecast_at_percentiles
 
@@ -1052,9 +1047,6 @@ class EnsembleReordering(BasePlugin):
     Statistical Science, 28(4), pp.616-640.
 
     """
-    def __init__(self):
-        """Initialise the class"""
-        pass
 
     @staticmethod
     def _recycle_raw_ensemble_realizations(

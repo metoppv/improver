@@ -31,77 +31,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to collapse cube coordinates and calculate percentiled data."""
 
-import warnings
-
-import numpy as np
-
-from improver.argparser import ArgParser
-from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
-    ConvertProbabilitiesToPercentiles
-from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
-    import choose_set_of_percentiles
-from improver.percentile import PercentileConverter
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
+from improver import cli
 
 
-def main(argv=None):
-    """Load in arguments and get going."""
-    parser = ArgParser(
-        description="Calculate percentiled data over a given coordinate by "
-        "collapsing that coordinate. Typically used to convert realization "
-        "data into percentiled data, but may calculate over any "
-        "dimension coordinate. Alternatively, calling this CLI with a dataset"
-        " containing probabilities will convert those to percentiles using "
-        "the ensemble copula coupling plugin. If no particular percentiles "
-        "are given at which to calculate values and no 'number of percentiles'"
-        " to calculate are specified, the following defaults will be used: "
-        "[0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100]")
-    parser.add_argument("input_filepath", metavar="INPUT_FILE",
-                        help="A path to an input NetCDF file to be processed")
-    parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
-                        help="The output path for the processed NetCDF")
-    parser.add_argument("--coordinates", metavar="COORDINATES_TO_COLLAPSE",
-                        nargs="+",
-                        help="Coordinate or coordinates over which to collapse"
-                        " data and calculate percentiles; e.g. "
-                        "'realization' or 'latitude longitude'. This argument "
-                        "must be provided when collapsing a coordinate or "
-                        "coordinates to create percentiles, but is redundant "
-                        "when converting probabilities to percentiles and may "
-                        "be omitted. This coordinate(s) will be removed "
-                        "and replaced by a percentile coordinate.")
-    parser.add_argument('--ecc_bounds_warning', default=False,
-                        action='store_true',
-                        help='If True, where calculated percentiles are '
-                             'outside the ECC bounds range, raise a warning '
-                             'rather than an exception.')
-    group = parser.add_mutually_exclusive_group(required=False)
-    group.add_argument("--percentiles", metavar="PERCENTILES",
-                       nargs="+", default=None, type=float,
-                       help="Optional definition of percentiles at which to "
-                       "calculate data, e.g. --percentiles 0 33.3 66.6 100")
-    group.add_argument('--no-of-percentiles', default=None, type=int,
-                       metavar='NUMBER_OF_PERCENTILES',
-                       help="Optional definition of the number of percentiles "
-                       "to be generated, these distributed regularly with the "
-                       "aim of dividing into blocks of equal probability.")
-
-    args = parser.parse_args(args=argv)
-
-    # Load Cube
-    cube = load_cube(args.input_filepath)
-
-    # Process Cube
-    result = process(cube, args.coordinates, args.ecc_bounds_warning,
-                     args.percentiles, args.no_of_percentiles)
-
-    # Save Cube
-    save_netcdf(result, args.output_filepath)
-
-
-def process(cube, coordinates=None, ecc_bounds_warning=False,
-            percentiles=None, no_of_percentiles=None):
+@cli.clizefy
+@cli.with_output
+def process(cube: cli.inputcube,
+            *,
+            coordinates: cli.comma_separated_list = None,
+            ecc_bounds_warning=False,
+            percentiles: cli.comma_separated_list = None,
+            no_of_percentiles: int = None):
     r"""Collapses cube coordinates and calculate percentiled data.
 
     Calculate percentiled data over a given coordinate by collapsing that
@@ -119,7 +59,7 @@ def process(cube, coordinates=None, ecc_bounds_warning=False,
             A Cube for processing.
         coordinates (str or list):
             Coordinate or coordinates over which to collapse data and
-            calculate percentiles; e.g. 'realization' or 'latitude longitude'.
+            calculate percentiles; e.g. 'realization' or 'latitude,longitude'.
             This argument must be provided when collapsing a coordinate or
             coordinates to create percentiles, but is redundant when
             converting probabilities to percentiles and may be omitted. This
@@ -153,6 +93,19 @@ def process(cube, coordinates=None, ecc_bounds_warning=False,
             If 'probability_of\_' is in the cube name and coordinates is used.
 
     """
+    import warnings
+
+    import numpy as np
+
+    from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
+        ConvertProbabilitiesToPercentiles
+    from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
+        import choose_set_of_percentiles
+    from improver.percentile import PercentileConverter
+
+    if percentiles is not None:
+        percentiles = [float(p) for p in percentiles]
+
     if no_of_percentiles is not None:
         percentiles = choose_set_of_percentiles(no_of_percentiles,
                                                 sampling="quantile")
@@ -187,7 +140,3 @@ def process(cube, coordinates=None, ecc_bounds_warning=False,
             coordinates, percentiles=percentiles,
             fast_percentile_method=fast_percentile_method).process(cube)
     return result
-
-
-if __name__ == "__main__":
-    main()

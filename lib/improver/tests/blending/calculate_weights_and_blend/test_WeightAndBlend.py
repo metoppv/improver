@@ -39,6 +39,7 @@ from iris.tests import IrisTest
 
 from improver.blending.calculate_weights_and_blend import WeightAndBlend
 from improver.blending.weighted_blend import MergeCubesForWeightedBlending
+from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.tests.set_up_test_cubes import (
     set_up_probability_cube, set_up_variable_cube)
 from improver.utilities.warnings_handler import ManageWarnings
@@ -343,8 +344,10 @@ class Test_process(IrisTest):
         attribute_changes = {"mosg__model_configuration": "remove",
                              "source": "IMPROVER",
                              "title": "IMPROVER Multi-Model Blend"}
-        expected_attributes = {"source": "IMPROVER",
-                               "title": "IMPROVER Multi-Model Blend"}
+        expected_attributes = {
+            "source": "IMPROVER",
+            "title": "IMPROVER Multi-Model Blend",
+            "institution": MANDATORY_ATTRIBUTE_DEFAULTS["institution"]}
         result = self.plugin_model.process(
             [self.ukv_cube, self.nowcast_cube],
             model_id_attr="mosg__model_configuration",

@@ -31,6 +31,8 @@
 """init for cli and clize"""
 
 from collections import OrderedDict
+import pathlib
+import shlex
 
 import clize
 from clize import parameters
@@ -73,6 +75,10 @@ def docutilize(obj):
         doc = getdoc(obj)
     doc = str(NumpyDocstring(doc))
     doc = str(GoogleDocstring(doc))
+    doc = doc.replace(':exc:', '')
+    doc = doc.replace(':keyword', ':param')
+    doc = doc.replace(':kwtype', ':type')
+
     if isinstance(obj, str):
         return doc
     obj.__doc__ = doc
@@ -159,6 +165,58 @@ def inputjson(to_convert):
     from improver.utilities.cli_utilities import load_json_or_none
     return maybe_coerce_with(load_json_or_none, to_convert)
 
+
+@value_converter
+def comma_separated_list(to_convert):
+    """Converts comma separated string to list or returns passed object.
+
+    Args:
+        to_convert (string or list)
+            comma separated string or list
+
+    Returns:
+       list
+    """
+    return maybe_coerce_with(lambda s: s.split(','), to_convert)
+
+
+def create_constrained_inputcubelist_converter(*constraints):
+    """Makes function that the input constraints are used in a loop.
+
+    The function is value_converter, this means it is used by clize to convert
+    strings into objects.
+    This is a way of not using the IMPROVER load_cube which will try to merge
+    cubes. Iris load on the other hand won't deal with meta data properly.
+    So an example if you wanted to load an X cube and a Y cube from a cubelist
+    of 2. You call this function with a list of constraints.
+    These cubes get loaded and returned as a CubeList.
+
+    Args:
+        *constraints (str):
+            constraints to be used in the loading of cubes against a cubeList.
+
+    Returns:
+        function:
+            A function with the constraints used for a list comprehension.
+    """
+    @value_converter
+    def constrained_inputcubelist_converter(to_convert):
+        """Passes the cube and constraints onto maybe_coerce_with.
+
+        Args:
+            to_convert (string or iris.cube.CubeList):
+                The cube to be passed forward for returning or loading.
+
+        Returns:
+            iris.cube.CubeList:
+                The loaded cubelist of constrained cubes.
+        """
+        from improver.utilities.load import load_cube
+        from iris.cube import CubeList
+        return CubeList([maybe_coerce_with(
+            load_cube, to_convert, constraints=j) for j in constraints])
+
+    return constrained_inputcubelist_converter
 
 # output handling
 
@@ -343,18 +401,21 @@ def execute_command(dispatcher, prog_name, *args,
             # process nested commands recursively
             arg = execute_command(dispatcher, prog_name, *arg,
                                   verbose=verbose, dry_run=dry_run)
-        if not isinstance(arg, str):
+        if isinstance(arg, pathlib.PurePath):
+            arg = str(arg)
+        elif not isinstance(arg, str):
             arg = ObjectAsStr(arg)
         args[i] = arg
 
-    if dry_run:
-        result = args
-    else:
-        result = dispatcher(prog_name, *args)
-
     if verbose or dry_run:
-        print(prog_name, *args, ' -> ', ObjectAsStr.obj_to_name(result))
+        print(" ".join([shlex.quote(x) for x in (prog_name, *args)]))
+    if dry_run:
+        return args
 
+    result = dispatcher(prog_name, *args)
+
+    if verbose:
+        print(ObjectAsStr.obj_to_name(result))
     return result
 
 
@@ -418,4 +479,4 @@ def run_main(argv=None):
     if argv is None:
         argv = sys.argv[:]
         argv[0] = 'improver'
-    run(main, args=argv)  # pylint: disable=E1124
+    run(main, args=argv, exit=False)  # pylint: disable=E1124

@@ -84,6 +84,14 @@ def main(argv=None):
     parser.add_argument(
         'output_filepath', metavar='OUTPUT_FILEPATH',
         help='The output path for the processed NetCDF')
+    parser.add_argument(
+        'distribution', metavar="DISTRIBUTION",
+        help="The distribution for constructing realizations, percentiles or "
+             "probabilities. This should typically match the distribution "
+             "used for minimising the Continuous Ranked Probability Score "
+             "when estimating the EMOS coefficients. The distributions "
+             "available are those supported by scipy.stats. Currently "
+             "tested distributions are: 'norm', 'truncnorm'.")
     # Optional arguments.
     parser.add_argument(
         '--num_realizations', metavar='NUMBER_OF_REALIZATIONS',
@@ -138,6 +146,17 @@ def main(argv=None):
              "specified by ones and sea points are specified by zeros. "
              "Supplying this file will enable land-only calibration, in which "
              "sea points are returned without the application of calibration.")
+    parser.add_argument(
+        '--shape_parameters', metavar="SHAPE_PARAMETERS", nargs="*",
+        default=None, type=float,
+        help="The shape parameters required for defining the distribution "
+             "specified by the distribution argument. The shape parameters "
+             "should either be a number or 'inf' or '-inf' to represent "
+             "infinity. Further details about appropriate shape parameters "
+             "are available in scipy.stats. For the truncated normal "
+             "distribution with a lower bound of zero, as available when "
+             "estimating EMOS coefficients, the appropriate shape parameters "
+             "are 0 and inf.")
 
     args = parser.parse_args(args=argv)
 
@@ -147,16 +166,18 @@ def main(argv=None):
     landsea_mask = load_cube(args.landsea_mask, allow_none=True)
     # Process Cube
     result = process(current_forecast, coeffs, landsea_mask,
-                     args.num_realizations, args.random_ordering,
-                     args.random_seed, args.ecc_bounds_warning,
-                     args.predictor)
+                     args.distribution, args.num_realizations,
+                     args.random_ordering, args.random_seed,
+                     args.ecc_bounds_warning, args.predictor,
+                     args.shape_parameters)
     # Save Cube
     save_netcdf(result, args.output_filepath)
 
 
-def process(current_forecast, coeffs, landsea_mask, num_realizations=None,
-            random_ordering=False, random_seed=None,
-            ecc_bounds_warning=False, predictor='mean'):
+def process(current_forecast, coeffs, landsea_mask, distribution,
+            num_realizations=None, random_ordering=False, random_seed=None,
+            ecc_bounds_warning=False, predictor='mean', shape_parameters=None):
+
     """Applying coefficients for Ensemble Model Output Statistics.
 
     Load in arguments for applying coefficients for Ensemble Model Output
@@ -180,6 +201,12 @@ def process(current_forecast, coeffs, landsea_mask, num_realizations=None,
             "If not None this argument will enable land-only calibration, in "
             "which sea points are returned without the application of "
             "calibration."
+        distribution (str):
+            The distribution for constructing realizations, percentiles or
+            probabilities. This should typically match the distribution used
+            for minimising the Continuous Ranked Probability Score when
+            estimating the EMOS coefficients. The distributions available are
+            those supported by :data:`scipy.stats`.
         num_realizations (numpy.int32):
             Optional argument to specify the number of ensemble realizations
             to produce. If the current forecast is input as probabilities or
@@ -216,6 +243,15 @@ def process(current_forecast, coeffs, landsea_mask, num_realizations=None,
             Currently the ensemble mean ("mean") and the ensemble
             realizations ("realizations") are supported as the predictors.
             Default is "mean".
+        shape_parameters (float or str):
+            The shape parameters required for defining the distribution
+            specified by the distribution argument. The shape parameters
+            should either be a number or 'inf' or '-inf' to represent
+            infinity. Further details about appropriate shape parameters
+            are available in scipy.stats. For the truncated normal
+            distribution with a lower bound of zero, as available when
+            estimating EMOS coefficients, the appropriate shape parameters
+            are 0 and inf.
 
     Returns:
         iris.cube.Cube:
@@ -298,18 +334,24 @@ def process(current_forecast, coeffs, landsea_mask, num_realizations=None,
     # If input forecast is percentiles, convert output into percentiles.
     # If input forecast is realizations, convert output into realizations.
     if input_forecast_type == "probabilities":
-        result = ConvertLocationAndScaleParametersToProbabilities().process(
+        result = ConvertLocationAndScaleParametersToProbabilities(
+            distribution=distribution,
+            shape_parameters=shape_parameters).process(
             calibrated_predictor, calibrated_variance,
             original_current_forecast)
     elif input_forecast_type == "percentiles":
         perc_coord = find_percentile_coordinate(original_current_forecast)
-        result = ConvertLocationAndScaleParametersToPercentiles().process(
+        result = ConvertLocationAndScaleParametersToPercentiles(
+            distribution=distribution,
+            shape_parameters=shape_parameters).process(
             calibrated_predictor, calibrated_variance,
             percentiles=perc_coord.points)
     elif input_forecast_type == "realizations":
         # Ensemble Copula Coupling to generate realizations
         # from the location and scale parameter.
-        percentiles = ConvertLocationAndScaleParametersToPercentiles().process(
+        percentiles = ConvertLocationAndScaleParametersToPercentiles(
+            distribution=distribution,
+            shape_parameters=shape_parameters).process(
             calibrated_predictor, calibrated_variance,
             no_of_percentiles=num_realizations)
         result = EnsembleReordering().process(

@@ -81,7 +81,7 @@ def radius_or_radii_and_lead(radius=None, radii_by_lead_time=None):
         msg = ("Neither radius or radii_by_lead_time have been set. "
                "One option should be specified.")
         raise TypeError(msg)
-    elif radius is not None and radii_by_lead_time is not None:
+    if radius is not None and radii_by_lead_time is not None:
         msg = ("Both radius and radii_by_lead_time have been set. "
                "Only one option should be specified.")
         raise TypeError(msg)

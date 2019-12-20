@@ -107,60 +107,6 @@ class set_up_cubes(IrisTest):
             attributes={'attribute_to_update': 'first_value'})
 
 
-class Test_combine(set_up_cubes):
-
-    """Test the combine method."""
-
-    def test_basic(self):
-        """Test that the function returns a Cube. """
-        operation = '*'
-        plugin = CubeCombiner(operation)
-        result = plugin.combine(self.cube1, self.cube2)
-        self.assertIsInstance(result, Cube)
-        expected_data = np.full((1, 2, 2), 0.3, dtype=np.float32)
-        self.assertArrayAlmostEqual(result.data, expected_data)
-
-    def test_add(self):
-        """Test combine adds the cubes correctly. """
-        operation = '+'
-        plugin = CubeCombiner(operation)
-        result = plugin.combine(self.cube1, self.cube2)
-        expected_data = np.full((1, 2, 2), 1.1, dtype=np.float32)
-        self.assertArrayAlmostEqual(result.data, expected_data)
-
-    def test_minus(self):
-        """Test combine minus the cubes correctly. """
-        operation = '-'
-        plugin = CubeCombiner(operation)
-        result = plugin.combine(self.cube1, self.cube2)
-        expected_data = np.full((1, 2, 2), -0.1, dtype=np.float32)
-        self.assertArrayAlmostEqual(result.data, expected_data)
-
-    def test_max(self):
-        """Test combine finds the max of the cubes correctly."""
-        operation = 'max'
-        plugin = CubeCombiner(operation)
-        result = plugin.combine(self.cube1, self.cube2)
-        expected_data = np.full((1, 2, 2), 0.6, dtype=np.float32)
-        self.assertArrayAlmostEqual(result.data, expected_data)
-
-    def test_min(self):
-        """Test combine finds the min of the cubes correctly."""
-        operation = 'min'
-        plugin = CubeCombiner(operation)
-        result = plugin.combine(self.cube1, self.cube2)
-        expected_data = np.full((1, 2, 2), 0.5, dtype=np.float32)
-        self.assertArrayAlmostEqual(result.data, expected_data)
-
-    def test_mean(self):
-        """Test that the function adds the cubes correctly for mean."""
-        operation = 'mean'
-        plugin = CubeCombiner(operation)
-        result = plugin.combine(self.cube1, self.cube2)
-        expected_data = np.full((1, 2, 2), 1.1, dtype=np.float32)
-        self.assertArrayAlmostEqual(result.data, expected_data)
-
-
 class Test_process(set_up_cubes):
 
     """Test the plugin combines the cubelist into a cube."""
@@ -189,10 +135,10 @@ class Test_process(set_up_cubes):
         correctly and expands the requested coordinate bounds in the
         resulting output."""
         plugin = CubeCombiner('add')
-        expanded_coord = {'time': 'upper'}
+        coords_to_expand = {'time': 'upper'}
         cubelist = iris.cube.CubeList([self.cube1, self.cube2])
         result = plugin.process(cubelist, 'new_cube_name',
-                                expanded_coord=expanded_coord)
+                                coords_to_expand=coords_to_expand)
         expected_data = np.full((1, 2, 2), 1.1, dtype=np.float32)
         self.assertEqual(result.name(), 'new_cube_name')
         self.assertArrayAlmostEqual(result.data, expected_data)
@@ -211,50 +157,36 @@ class Test_process(set_up_cubes):
         self.assertEqual(result.name(), 'new_cube_name')
         self.assertArrayAlmostEqual(result.data, expected_data)
 
-    def test_exception_for_cube_passed_in(self):
-        """Test that the plugin raises an exception if something other than a
-        cubelist is passed in."""
-        plugin = CubeCombiner('-')
-        msg = "Expecting data to be an instance of"
+    def test_with_mask(self):
+        """Test that the plugin preserves the mask if any of the inputs are
+        masked"""
+        expected_data = np.full((1, 2, 2), 1.2, dtype=np.float32)
+        mask = [[[False, True], [False, False]]]
+        self.cube1.data = np.ma.MaskedArray(self.cube1.data, mask=mask)
+        plugin = CubeCombiner('add')
+        result = plugin.process(
+            [self.cube1, self.cube2, self.cube3], 'new_cube_name')
+        self.assertIsInstance(result.data, np.ma.MaskedArray)
+        self.assertArrayAlmostEqual(result.data.data, expected_data)
+        self.assertArrayEqual(result.data.mask, mask)
 
-        with self.assertRaisesRegex(TypeError, msg):
-            plugin.process(self.cube1, 'new_cube_name')
+    def test_exception_mismatched_dimensions(self):
+        """Test an error is raised if dimension coordinates do not match"""
+        self.cube2.coord("lwe_thickness_of_precipitation_amount").rename(
+            "snow_depth")
+        plugin = CubeCombiner('+')
+        msg = "Cannot combine cubes with different dimensions"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.process([self.cube1, self.cube2], 'new_cube_name')
 
     def test_exception_for_single_entry_cubelist(self):
         """Test that the plugin raises an exception if a cubelist containing
         only one cube is passed in."""
         plugin = CubeCombiner('-')
         msg = "Expecting 2 or more cubes in cube_list"
-
         cubelist = iris.cube.CubeList([self.cube1])
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(cubelist, 'new_cube_name')
-
-    def test_revised_coords(self):
-        """Test that the plugin passes through the relevant dictionary to
-        modify a coordinate and that these modifications are present in the
-        returned cube."""
-        plugin = CubeCombiner('mean')
-        revised_coords = {'lwe_thickness_of_precipitation_amount': {
-            'points': [2.0]}}
-        cubelist = iris.cube.CubeList([self.cube1, self.cube2])
-        result = plugin.process(cubelist, 'new_cube_name',
-                                revised_coords=revised_coords)
-        self.assertEqual(
-            result.coord('lwe_thickness_of_precipitation_amount').points[0],
-            2.0)
-
-    def test_revised_attributes(self):
-        """Test that the plugin passes through the relevant dictionary to
-        modify an attribute and that these modifications are present in the
-        returned cube."""
-        plugin = CubeCombiner('mean')
-        revised_attributes = {'attribute_to_update': 'second_value'}
-        cubelist = iris.cube.CubeList([self.cube1, self.cube2])
-        result = plugin.process(cubelist, 'new_cube_name',
-                                revised_attributes=revised_attributes)
-        self.assertEqual(result.attributes['attribute_to_update'],
-                         'second_value')
 
 
 if __name__ == '__main__':

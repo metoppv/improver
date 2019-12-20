@@ -32,17 +32,11 @@
 """Script to standardise a NetCDF file by one or more of regridding, updating
 meta-data and demoting float64 data to float32"""
 
-import warnings
-
-import iris
-
 from improver.argparser import ArgParser
-from improver.metadata.amend import amend_metadata
-from improver.metadata.check_datatypes import check_cube_not_float64
+from improver.standardise import StandardiseGridAndMetadata
 from improver.utilities.cli_utilities import load_json_or_none
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
-from improver.utilities.spatial import RegridLandSea
 
 
 def main(argv=None):
@@ -123,15 +117,27 @@ def main(argv=None):
         help=("Radius of vicinity to search for a coastline, in metres. "
               "Default value; 25000 m"))
 
+    regrid_group.add_argument(
+        "--regridded_title", metavar="REGRIDDED_TITLE", default=None, type=str,
+        help="New title to be used for the regridded field.")
+
+    # metadata standardisation
     parser.add_argument("--fix_float64", action='store_true', default=False,
                         help="Check and fix cube for float64 data. Without "
                              "this option an exception will be raised if "
                              "float64 data is found but no fix applied.")
-
     parser.add_argument("--json_file", metavar="JSON_FILE", default=None,
                         help='Filename for the json file containing required '
                              'changes that will be applied '
-                             'to the metadata. Defaults to None.')
+                             'to the attributes. Defaults to None.')
+    parser.add_argument("--coords_to_remove", metavar="COORDS_TO_REMOVE",
+                        nargs="+", type=str, default=None,
+                        help="List of names of scalar coordinates to be "
+                             "removed from the non-standard input.")
+    parser.add_argument("--new_name", metavar="NEW_NAME", type=str,
+                        default=None, help="New dataset name.")
+    parser.add_argument("--new_units", metavar="NEW_UNITS", type=str,
+                        default=None, help="Units to convert to.")
 
     args = parser.parse_args(args=argv)
 
@@ -153,7 +159,7 @@ def main(argv=None):
         raise ValueError(msg)
 
     # Load Cube and json
-    metadata_dict = load_json_or_none(args.json_file)
+    attributes_dict = load_json_or_none(args.json_file)
     # source file data path is a mandatory argument
     output_data = load_cube(args.source_data_filepath)
     target_grid = None
@@ -168,20 +174,22 @@ def main(argv=None):
             source_landsea = load_cube(args.input_landmask_filepath)
 
     # Process Cube
-    output_data = process(output_data, target_grid, source_landsea,
-                          metadata_dict, args.regrid_mode,
-                          args.extrapolation_mode, args.landmask_vicinity,
-                          args.fix_float64)
+    output_data = process(output_data, target_grid, args.regrid_mode,
+                          args.extrapolation_mode, source_landsea,
+                          args.landmask_vicinity, args.regridded_title,
+                          attributes_dict, args.coords_to_remove,
+                          args.new_name, args.new_units, args.fix_float64)
 
     # Save Cube
     if args.output_filepath:
         save_netcdf(output_data, args.output_filepath)
 
 
-def process(output_data, target_grid=None, source_landsea=None,
-            metadata_dict=None, regrid_mode='bilinear',
-            extrapolation_mode='nanmask', landmask_vicinity=25000,
-            fix_float64=False):
+def process(output_data, target_grid=None, regrid_mode='bilinear',
+            extrapolation_mode='nanmask', source_landsea=None,
+            landmask_vicinity=25000, regridded_title=None,
+            attributes_dict=None, coords_to_remove=None, new_name=None,
+            new_units=None, fix_float64=False):
     """Standardises a cube by one or more of regridding, updating meta-data etc
 
     Standardise a source cube. Available options are regridding
@@ -198,14 +206,6 @@ def process(output_data, target_grid=None, source_landsea=None,
             If specified, then regridding of the source against the target
             grid is enabled. If also using landmask-aware regridding then this
             must be land_binary_mask data.
-            Default is None.
-        source_landsea (iris.cube.Cube):
-            A cube describing the land_binary_mask on the source-grid if
-            coastline-aware regridding is required.
-            Default is None.
-        metadata_dict (dict):
-            Dictionary containing required changes that will be applied to
-            the metadata.
             Default is None.
         regrid_mode (str):
             Selects which regridding techniques to use. Default uses
@@ -229,9 +229,26 @@ def process(output_data, target_grid=None, source_landsea=None,
             nanmask - If the source data is a MaskedArray the extrapolation
             points will be masked. Otherwise they will be set to NaN.
             Defaults is 'nanmask'.
+        source_landsea (iris.cube.Cube):
+            A cube describing the land_binary_mask on the source-grid if
+            coastline-aware regridding is required.
+            Default is None.
         landmask_vicinity (float):
             Radius of vicinity to search for a coastline, in metres.
             Defaults is 25000 m
+        regridded_title (str or None):
+            New "title" attribute to be set if the field is being regridded
+            (since "title" may contain grid information). If None, a default
+            value is used.
+        attributes_dict (dict or None):
+            Dictionary containing required changes that will be applied to
+            the attributes. Default is None.
+        coords_to_remove (list or None):
+            List of names of scalar coordinates to remove.
+        new_name (str or None):
+            Name of output cube.
+        new_units (str or None):
+            Units to convert to.
         fix_float64 (bool):
             If True, checks and fixes cube for float64 data. Without this
             option an exception will be raised if float64 data is found but no
@@ -269,54 +286,14 @@ def process(output_data, target_grid=None, source_landsea=None,
         msg = ("Cannot specify input_landmask_filepath without "
                "target_grid_filepath")
         raise ValueError(msg)
-    # Process
-    # Re-grid with options:
-    check_cube_not_float64(output_data, fix=fix_float64)
-    # if a target grid file has been specified, then regrid optionally
-    # applying float64 data check, metadata change, Iris nearest and
-    # extrapolation mode as required.
-    if target_grid:
-        regridder = iris.analysis.Linear(
-            extrapolation_mode=extrapolation_mode)
 
-        if regrid_mode in ["nearest", "nearest-with-mask"]:
-            regridder = iris.analysis.Nearest(
-                extrapolation_mode=extrapolation_mode)
-
-        output_data = output_data.regrid(target_grid, regridder)
-
-        if regrid_mode in ["nearest-with-mask"]:
-            if not source_landsea:
-                msg = ("An argument has been specified that requires an input "
-                       "landmask cube but none has been provided")
-                raise ValueError(msg)
-
-            if "land_binary_mask" not in source_landsea.name():
-                msg = ("Expected land_binary_mask in input_landmask cube "
-                       "but found {}".format(repr(source_landsea)))
-                warnings.warn(msg)
-
-            if "land_binary_mask" not in target_grid.name():
-                msg = ("Expected land_binary_mask in target_grid cube "
-                       "but found {}".format(repr(target_grid)))
-                warnings.warn(msg)
-
-            output_data = RegridLandSea(
-                vicinity_radius=landmask_vicinity).process(
-                output_data, source_landsea, target_grid)
-
-        target_grid_attributes = (
-            {k: v for (k, v) in target_grid.attributes.items()
-             if 'mosg__' in k or 'institution' in k})
-        output_data = amend_metadata(
-            output_data, attributes=target_grid_attributes)
-    # Change metadata only option:
-    # if output file path and json metadata file specified,
-    # change the metadata
-    if metadata_dict:
-        output_data = amend_metadata(output_data, **metadata_dict)
-
-    check_cube_not_float64(output_data, fix=fix_float64)
+    plugin = StandardiseGridAndMetadata(
+        regrid_mode=regrid_mode, extrapolation_mode=extrapolation_mode,
+        landmask=source_landsea, landmask_vicinity=landmask_vicinity)
+    output_data = plugin.process(
+        output_data, target_grid, new_name=new_name, new_units=new_units,
+        regridded_title=regridded_title, coords_to_remove=coords_to_remove,
+        attributes_dict=attributes_dict, fix_float64=fix_float64)
 
     return output_data
 

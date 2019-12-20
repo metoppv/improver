@@ -98,13 +98,6 @@ class Test__init__(IrisTest):
         plugin = ApplyOrographicEnhancement("add")
         self.assertEqual(plugin.operation, "add")
 
-    def test_exception(self):
-        """Test that an exception is raised if the operation requested is
-        not a valid choice."""
-        msg = "Operation 'multiply' not supported for"
-        with self.assertRaisesRegex(ValueError, msg):
-            ApplyOrographicEnhancement("multiply")
-
 
 class Test__repr__(IrisTest):
 
@@ -458,11 +451,19 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result[0].data, expected0)
         self.assertArrayAlmostEqual(result[1].data, expected1)
 
+    def test_exception(self):
+        """Test that an exception is raised if the operation requested is
+        not a valid choice."""
+        plugin = ApplyOrographicEnhancement("invalid")
+        msg = "Operation 'invalid' not supported for"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.process(self.precip_cubes, self.oe_cube)
+
     def test_add_with_mask(self):
         """Test the addition of cubelists containing cubes of
         precipitation rate and orographic enhancement, where a mask has
-        been applied. Note the change for the upper right point within the
-        expected1 array compared to the test_basic_add test."""
+        been applied. Orographic enhancement is not added to the masked
+        points (where precip rate <= 1 mm/hr)."""
         expected0 = np.array([[[0., 1., 2.],
                                [1., 2., 7.],
                                [0., 3., 4.]]])
@@ -485,8 +486,10 @@ class Test_process(IrisTest):
 
         plugin = ApplyOrographicEnhancement("add")
         result = plugin.process(self.precip_cubes, self.oe_cube)
+
         self.assertIsInstance(result, iris.cube.CubeList)
         for aresult, precip_cube in zip(result, self.precip_cubes):
+            self.assertIsInstance(aresult.data, np.ma.MaskedArray)
             self.assertEqual(
                 aresult.metadata, precip_cube.metadata)
         for cube in result:
@@ -497,8 +500,8 @@ class Test_process(IrisTest):
     def test_subtract_with_mask(self):
         """Test the subtraction of cubelists containing cubes of orographic
         enhancement from cubes of precipitation rate, where a mask has been
-        applied. Note the change for the upper right point within the
-        expected1 array compared to the test_basic_subtract test."""
+        applied. Orographic enhancement is not added to the masked points
+        (where precip rate <= 1 mm/hr)."""
         expected0 = np.array([[[0., 1., 2.],
                                [1., 2., MIN_PRECIP_RATE_MMH],
                                [0., 1., MIN_PRECIP_RATE_MMH]]])
@@ -522,6 +525,7 @@ class Test_process(IrisTest):
         result = plugin.process(self.precip_cubes, self.oe_cube)
         self.assertIsInstance(result, iris.cube.CubeList)
         for aresult, precip_cube in zip(result, self.precip_cubes):
+            self.assertIsInstance(aresult.data, np.ma.MaskedArray)
             self.assertEqual(
                 aresult.metadata, precip_cube.metadata)
         for cube in result:

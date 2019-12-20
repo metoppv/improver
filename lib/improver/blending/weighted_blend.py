@@ -41,13 +41,15 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
 from improver.metadata.amend import amend_attributes
+from improver.metadata.constants.attributes import (
+    MANDATORY_ATTRIBUTES, MANDATORY_ATTRIBUTE_DEFAULTS)
 from improver.metadata.probabilistic import find_percentile_coordinate
+from improver.metadata.forecast_times import (
+    forecast_period_coord, rebadge_forecasts_as_latest_cycle)
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering, sort_coord_in_cube, build_coordinate,
     MergeCubes)
-from improver.utilities.temporal import (
-    cycletime_to_number, forecast_period_coord,
-    rebadge_forecasts_as_latest_cycle)
+from improver.utilities.temporal import cycletime_to_number
 
 
 class MergeCubesForWeightedBlending(BasePlugin):
@@ -219,12 +221,6 @@ class PercentileBlendingAggregator:
             https://github.com/metoppv/improver/files/1128018/
             Combining_Probabilities.pdf
     """
-
-    def __init__(self):
-        """
-        Initialise class.
-        """
-        pass
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -781,6 +777,7 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
         - Remove scalar coordinates that were previously associated with the
         blend dimension
         - Update attributes as specified via process arguments
+        - Set any missing mandatory arguments to their default values
         Modifies cube in place.
 
         Args:
@@ -793,6 +790,10 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
             blended_cube.remove_coord(coord)
         if attributes_dict is not None:
             amend_attributes(blended_cube, attributes_dict)
+        for attr in MANDATORY_ATTRIBUTES:
+            if attr not in blended_cube.attributes:
+                blended_cube.attributes[attr] = (
+                    MANDATORY_ATTRIBUTE_DEFAULTS[attr])
 
     def process(self, cube, weights=None,
                 cycletime=None, attributes_dict=None):
@@ -816,7 +817,8 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
             attributes_dict (dict or None):
                 Changes to cube attributes to be applied after blending. See
                 :func:`~improver.metadata.amend.amend_attributes` for required
-                format.
+                format. If mandatory attributes are not set here, default
+                values are used.
 
         Returns:
             iris.cube.Cube:

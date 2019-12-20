@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for saving netcdf cubes with desired attribute types."""
 
+import os
 import warnings
 
 import cf_units
@@ -173,6 +174,9 @@ def save_netcdf(cubelist, filename):
                   if key not in global_keys}
 
     cubelist = _append_metadata_cube(cubelist, global_keys)
-    iris.fileformats.netcdf.save(cubelist, filename, local_keys=local_keys,
+    # save atomically by writing to a temporary file and then renaming
+    ftmp = str(filename) + '.tmp'
+    iris.fileformats.netcdf.save(cubelist, ftmp, local_keys=local_keys,
                                  complevel=1, shuffle=True, zlib=True,
                                  chunksizes=chunksizes)
+    os.rename(ftmp, filename)

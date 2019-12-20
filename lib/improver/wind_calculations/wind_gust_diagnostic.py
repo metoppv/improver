@@ -31,11 +31,11 @@
 """Module containing plugin for WindGustDiagnostic."""
 
 import warnings
+import numpy as np
 
 import iris
 
 from improver import BasePlugin
-from improver.cube_combiner import CubeCombiner
 from improver.metadata.probabilistic import find_percentile_coordinate
 
 
@@ -208,29 +208,22 @@ class WindGustDiagnostic(BasePlugin):
         ws_time = req_cube_ws.coords('time')
         if len(wg_time) == 0 or len(ws_time) == 0:
             raise ValueError(msg)
-        wg_time = wg_time[0]
-        ws_time = ws_time[0]
-        for i, point in enumerate(wg_time.points):
-            if point != ws_time.points[i]:
-                if wg_time.bounds is None:
-                    raise ValueError(msg)
-                if len(wg_time.bounds) >= i:
-                    if len(wg_time.bounds[i]) == 2:
-                        if ws_time.points[i] < wg_time.bounds[i][0]:
-                            raise ValueError(msg)
-                        elif ws_time.points[i] > wg_time.bounds[i][1]:
-                            raise ValueError(msg)
-                    else:
-                        raise ValueError(msg)
-                else:
-                    raise ValueError(msg)
+
+        if not all(wg_point == ws_point for wg_point, ws_point
+                   in zip(wg_time[0].points, ws_time[0].points)):
+            if wg_time[0].bounds is None:
+                raise ValueError(msg)
+            if not all((point >= bounds[0] and point <= bounds[1])
+                       for point, bounds in zip(ws_time[0].points,
+                                                wg_time[0].bounds)):
+                raise ValueError(msg)
 
         # Add metadata to gust cube
         req_cube_gust = self.add_metadata(req_cube_gust)
 
-        # Calculate wind-gust diagnostic using CubeCombiner
-        plugin = CubeCombiner('max')
-        result = plugin.combine(req_cube_gust, req_cube_ws)
+        # Calculate wind-gust diagnostic
+        result = req_cube_gust.copy(
+            data=np.maximum(req_cube_gust.data, req_cube_ws.data))
 
         # Update metadata
         result = self.update_metadata_after_max(result,
