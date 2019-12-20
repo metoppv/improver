@@ -325,7 +325,7 @@ def process(current_forecast, coeffs, landsea_mask, distribution,
 
     # Apply coefficients as part of Ensemble Model Output Statistics (EMOS).
     ac = ApplyCoefficientsFromEnsembleCalibration(
-        predictor_of_mean_flag=predictor_of_mean)
+        predictor=predictor_of_mean)
     calibrated_predictor, calibrated_variance = ac.process(
         current_forecast, coeffs, landsea_mask=landsea_mask)
 
@@ -344,7 +344,7 @@ def process(current_forecast, coeffs, landsea_mask, distribution,
             distribution=distribution,
             shape_parameters=shape_parameters).process(
             calibrated_predictor, calibrated_variance,
-            percentiles=perc_coord.points)
+            original_current_forecast, percentiles=perc_coord.points)
     elif input_forecast_type == "realizations":
         # Ensemble Copula Coupling to generate realizations
         # from mean and variance.
@@ -352,7 +352,7 @@ def process(current_forecast, coeffs, landsea_mask, distribution,
             distribution=distribution,
             shape_parameters=shape_parameters).process(
             calibrated_predictor, calibrated_variance,
-            no_of_percentiles=num_realizations)
+            original_current_forecast, no_of_percentiles=num_realizations)
         result = EnsembleReordering().process(
             percentiles, current_forecast,
             random_ordering=random_ordering, random_seed=random_seed)

@@ -41,6 +41,7 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 import numpy as np
 
+from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.probabilistic import extract_diagnostic_name
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
@@ -111,7 +112,7 @@ class SetupCubes(IrisTest):
         temperature_data = base_data + 273.15
         self.current_temperature_forecast_cube = set_up_variable_cube(
             temperature_data, units="Kelvin", realizations=[0, 1, 2],
-            time=time_dt, frt=frt_dt)
+            time=time_dt, frt=frt_dt, attributes=MANDATORY_ATTRIBUTE_DEFAULTS)
 
         # Create historic forecasts and truth
         self.historic_forecasts = _create_historic_forecasts(
@@ -129,7 +130,7 @@ class SetupCubes(IrisTest):
         # Create a cube for testing wind speed.
         self.current_wind_speed_forecast_cube = set_up_variable_cube(
             base_data, name="wind_speed", units="m s-1",
-            realizations=[0, 1, 2])
+            realizations=[0, 1, 2], attributes=MANDATORY_ATTRIBUTE_DEFAULTS)
 
         self.historic_wind_speed_forecast_cube = _create_historic_forecasts(
             base_data, time_dt, frt_dt, realizations=[0, 1, 2],

@@ -46,6 +46,7 @@ from improver import BasePlugin
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     convert_cube_data_to_2d, check_predictor_of_mean_flag,
     flatten_ignoring_masked_data)
+from improver.metadata.utilities import create_new_diagnostic_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.cube_checker import time_coords_match
 from improver.utilities.temporal import (
@@ -912,26 +913,26 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
     Class to apply the optimised EMOS coefficients to future dates.
 
     """
-    def __init__(self, predictor_of_mean_flag="mean"):
+    def __init__(self, predictor="mean"):
         """
         Create an ensemble calibration plugin that, for Nonhomogeneous Gaussian
         Regression, applies coefficients created using on historical forecasts
         and applies the coefficients to the current forecast.
 
         Args:
-            predictor_of_mean_flag (str):
-                String to specify the input to calculate the calibrated mean.
+            predictor (str):
+                String to specify the form of the predictor used to calculate
+                the location parameter when estimating the EMOS coefficients.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
         """
-        check_predictor_of_mean_flag(predictor_of_mean_flag)
-        self.predictor_of_mean_flag = predictor_of_mean_flag
+        check_predictor_of_mean_flag(predictor)
+        self.predictor = predictor
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<ApplyCoefficientsFromEnsembleCalibration: '
-                  'predictor_of_mean_flag: {}>')
-        return result.format(self.predictor_of_mean_flag)
+        result = ('<ApplyCoefficientsFromEnsembleCalibration: predictor: {}>')
+        return result.format(self.predictor)
 
     @staticmethod
     def _merge_calibrated_and_uncalibrated_regions(
@@ -995,10 +996,10 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
                     msg.format(axis, current_forecast_points,
                                self.coefficients_cube.coord(axis=axis).bounds))
 
-    def _get_calibrated_forecast_predictors_mean(self, optimised_coeffs):
+    def _calculate_location_parameter_from_mean(self, optimised_coeffs):
         """
-        Function to get calibrated forecast_predictors when the predictor of
-        mean used is the ensemble mean.
+        Function to calculate the location parameter when the predictor is
+        the ensemble mean.
 
         Args:
             optimised_coeffs (dict):
@@ -1006,58 +1007,50 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
                 keys with their corresponding values.
 
         Returns:
-            (tuple): tuple containing:
-                **predicted_mean** (numpy.ndarray):
-                    Calibrated mean values in a flattened array.
-                **forecast_predictor** (iris.cube.Cube):
-                    The forecast predictors, mean values taken by collapsing
-                    the realization coordinate.
+            location_parameter (numpy.ndarray):
+                Location parameter calculated using the ensemble mean as the
+                predictor.
         """
         forecast_predictor = self.current_forecast.collapsed(
             "realization", iris.analysis.MEAN)
 
-        # Calculate predicted mean = a + b*X, where X is the
+        # Calculate location parameter = a + b*X, where X is the
         # raw ensemble mean. In this case, b = beta.
         a_and_b = [optimised_coeffs["alpha"], optimised_coeffs["beta"]]
         forecast_predictor_flat = forecast_predictor.data.flatten()
+        xy_shape = forecast_predictor.shape
         col_of_ones = (
             np.ones(forecast_predictor_flat.shape, dtype=np.float32))
-        ones_and_mean = (
+        ones_and_predictor = (
             np.column_stack((col_of_ones, forecast_predictor_flat)))
-        predicted_mean = np.dot(ones_and_mean, a_and_b)
+        location_parameter = (
+            np.dot(ones_and_predictor, a_and_b).reshape(xy_shape))
+        return location_parameter
 
-        return predicted_mean, forecast_predictor
-
-    def _get_calibrated_forecast_predictors_realizations(
-            self, optimised_coeffs, forecast_vars):
+    def _calculate_location_parameter_from_realizations(
+            self, optimised_coeffs):
         """
-        Function to get calibrated forecast_predictors when the predictor of
-        mean is the mean of each distinct realization. The domain mean in a
-        given realization has been used to generate calibration coefficients,
-        such that each realization can be calibrated separately. These
-        calibrated realizations are then collapsed to give mean values at each
-        point in the domain.
+        Function to calculate the location parameter when the predictor is the
+        mean of each distinct realization. The domain mean in a given
+        realization has been used to generate calibration coefficients, such
+        that each realization independently contributes to generating the
+        location parameter.
 
         Args:
             optimised_coeffs (dict):
                 A dictionary containing the calibration coefficient names as
                 keys with their corresponding values.
-            forecast_vars (iris.cube.Cube):
-                A cube of forecast predictor variance calculated across
-                realizations.
 
         Returns:
-            (tuple): tuple containing:
-                **predicted_mean** (numpy.ndarray):
-                    Calibrated mean values in a flattened array.
-                **forecast_predictor** (iris.cube.Cube):
-                    The forecast predictors, mean values taken by collapsing
-                    the realization coordinate.
+            location_parameter (numpy.ndarray):
+                Location parameter calculated using the ensemble realizations
+                as the predictor.
         """
         forecast_predictor = self.current_forecast
 
-        # Calculate predicted mean = a + b*X, where X is the
-        # raw ensemble mean. In this case, b = beta^2.
+        # Calculate location parameter = a + b1*X1 .... + bn*Xn, where X is the
+        # ensemble realizations. The number of b and X terms depends upon the
+        # number of ensemble realizations. In this case, b = beta^2.
         beta_values = np.array([], dtype=np.float32)
         for key in optimised_coeffs.keys():
             if key.startswith("beta"):
@@ -1065,72 +1058,85 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         a_and_b = np.append(optimised_coeffs["alpha"], beta_values**2)
         forecast_predictor_flat = (
             convert_cube_data_to_2d(forecast_predictor))
-        forecast_var_flat = forecast_vars.data.flatten()
-        col_of_ones = np.ones(forecast_var_flat.shape, dtype=np.float32)
+        xy_shape = next(forecast_predictor.slices_over("realization")).shape
+        col_of_ones = np.ones(np.dot(*xy_shape), dtype=np.float32)
         ones_and_predictor = (
             np.column_stack((col_of_ones, forecast_predictor_flat)))
-        predicted_mean = np.dot(ones_and_predictor, a_and_b)
-        # Calculate mean of ensemble realizations, as only the
-        # calibrated ensemble mean will be returned.
-        forecast_predictor = (
-            forecast_predictor.collapsed(
-                "realization", iris.analysis.MEAN))
+        location_parameter = (
+            np.dot(ones_and_predictor, a_and_b).reshape(xy_shape).astype(
+                np.float32))
+        return location_parameter
 
-        return predicted_mean, forecast_predictor
-
-    @staticmethod
-    def calibrate_forecast_data(optimised_coeffs, predicted_mean,
-                                forecast_predictor, forecast_var):
+    def _calculate_scale_parameter(self, optimised_coeffs):
         """
-        Create a calibrated_forecast_predictor by reshaping the predicted mean
-        to the original domain dimensions. Apply the calibration coefficients
-        to the forecast data variance. Return both to give calibrated mean and
-        variance in the original domain dimensions.
+        Calculation of the scale parameter using the ensemble variance
+        adjusted using the gamma and delta coefficients calculated by EMOS.
+        This follows the equations below, where S^2 is the ensemble variance:
+
+        .. math::
+            \\sigma^2 = c + dS^2
+
+            c = \\gamma^2
+
+            d = \\delta^2
 
         Args:
             optimised_coeffs (dict):
                 A dictionary containing the calibration coefficient names as
                 keys with their corresponding values.
-            predicted_mean (numpy.ndarray):
-                Calibrated mean value.
-            forecast_predictor (iris.cube.Cube):
-                The forecast predictors, mean values taken by collapsing
-                the realization coordinate.
-            forecast_var (iris.cube.Cube):
-                A cube of forecast predictor variance calculated across
-                realizations.
 
         Returns:
-            (tuple): tuple containing:
-                **calibrated_forecast_predictor** (iris.cube.Cube):
-                    Cube containing the calibrated version of the
-                    ensemble predictor, either the ensemble mean or
-                    the ensemble realizations.
-                **calibrated_forecast_var** (iris.cube.Cube):
-                    Cube containing the calibrated version of the
-                    ensemble variance, either the ensemble mean or
-                    the ensemble realizations.
+            scale_parameter (numpy.ndarray):
+                Scale parameter for defining the distribution of the calibrated
+                forecast.
+
         """
-        xlen = len(forecast_predictor.coord(axis="x").points)
-        ylen = len(forecast_predictor.coord(axis="y").points)
+        forecast_var = self.current_forecast.collapsed(
+            "realization", iris.analysis.VARIANCE)
+        # Calculating the scale parameter, based on the raw variance S^2,
+        # where predicted variance = c + dS^2, where c = (gamma)^2 and
+        # d = (delta)^2
+        scale_parameter = (
+            optimised_coeffs["gamma"]**2 +
+            optimised_coeffs["delta"]**2 * forecast_var.data).astype(
+                np.float32)
+        return scale_parameter
 
-        calibrated_forecast_predictor = forecast_predictor.copy(
-            data=np.reshape(predicted_mean, (ylen, xlen)))
+    def _create_output_cubes(
+            self, location_parameter, scale_parameter):
+        """
+        Creation of output cubes containing the location and scale parameters.
 
-        # Calculating the predicted variance, based on the
-        # raw variance S^2, where predicted variance = c + dS^2,
-        # where c = (gamma)^2 and d = (delta)^2
-        calibrated_forecast_var = forecast_var.copy(
-            data=(
-                optimised_coeffs["gamma"]**2 +
-                optimised_coeffs["delta"]**2 * forecast_var.data))
+        Args:
+            location_parameter (numpy.ndarray):
+                Location parameter of the calibrated distribution.
+            scale_parameter (numpy.ndarray):
+                Scale parameter of the calibrated distribution.
 
-        return calibrated_forecast_predictor, calibrated_forecast_var
+        Returns:
+            location_parameter_cube (iris.cube.Cube):
+                Location parameter of the calibrated distribution with
+                associated metadata.
+            scale_parameter_cube (iris.cube.Cube):
+                Scale parameter of the calibrated distribution with
+                associated metadata.
+        """
+        template_cube = next(self.current_forecast.slices_over("realization"))
+        template_cube.remove_coord("realization")
+
+        location_parameter_cube = create_new_diagnostic_cube(
+            "location_parameter", template_cube.units, template_cube,
+            template_cube.attributes, data=location_parameter)
+        scale_parameter_cube = create_new_diagnostic_cube(
+            "scale_parameter", f"({template_cube.units})^2",
+            template_cube, template_cube.attributes, data=scale_parameter)
+        return location_parameter_cube, scale_parameter_cube
 
     def process(self, current_forecast, coefficients_cube, landsea_mask=None):
         """
-        Wrapping function to calculate the forecast predictor and forecast
-        variance prior to applying coefficients to the current forecast.
+        Apply the EMOS coefficients to the current forecast, in order to
+        generate location and scale parameters for creating the calibrated
+        distribution.
 
         Args:
             current_forecast (iris.cube.Cube):
@@ -1147,14 +1153,14 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
 
         Returns:
             (tuple): tuple containing:
-                **calibrated_forecast_predictor** (iris.cube.Cube):
-                    Cube containing the calibrated version of the
-                    ensemble predictor, either the ensemble mean or
-                    the ensemble realizations.
-                **calibrated_forecast_variance** (iris.cube.Cube):
-                    Cube containing the calibrated version of the
-                    ensemble variance, either the ensemble mean or
-                    the ensemble realizations.
+                **location_parameter_cube** (iris.cube.Cube):
+                    Cube containing the location parameter of the calibrated
+                    distribution using either the ensemble mean or the
+                    ensemble realizations.
+                **scale_parameter_cube** (iris.cube.Cube):
+                    Cube containing the scale parameter of the calibrated
+                    distribution using either the ensemble mean or the
+                    ensemble realizations.
         """
         self.current_forecast = current_forecast
         self.coefficients_cube = coefficients_cube
@@ -1166,31 +1172,37 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         optimised_coeffs = (
             dict(zip(self.coefficients_cube.coord("coefficient_name").points,
                      self.coefficients_cube.data)))
-        forecast_vars = self.current_forecast.collapsed(
-            "realization", iris.analysis.VARIANCE)
 
-        if self.predictor_of_mean_flag.lower() == "mean":
-            predicted_mean, forecast_predictor = (
-                self._get_calibrated_forecast_predictors_mean(
+        if self.predictor.lower() == "mean":
+            location_parameter = (
+                self._calculate_location_parameter_from_mean(optimised_coeffs))
+        elif self.predictor.lower() == "realizations":
+            location_parameter = (
+                self._calculate_location_parameter_from_realizations(
                     optimised_coeffs))
-        elif self.predictor_of_mean_flag.lower() == "realizations":
-            predicted_mean, forecast_predictor = (
-                self._get_calibrated_forecast_predictors_realizations(
-                    optimised_coeffs, forecast_vars))
 
-        calibrated_forecast_predictor, calibrated_forecast_var = (
-            self.calibrate_forecast_data(optimised_coeffs, predicted_mean,
-                                         forecast_predictor, forecast_vars))
+        # Calculate mean of ensemble realizations, as only the
+        # calibrated ensemble mean will be returned.
+        scale_parameter = self._calculate_scale_parameter(optimised_coeffs)
+
+        location_parameter_cube, scale_parameter_cube = (
+            self._create_output_cubes(location_parameter, scale_parameter))
 
         # Use a mask to confine calibration to regions in which the mask=1.
         if landsea_mask:
+            forecast_mean = (
+                self.current_forecast.collapsed(
+                    "realization", iris.analysis.MEAN))
+            forecast_variance = (
+                self.current_forecast.collapsed(
+                    "realization", iris.analysis.VARIANCE))
             self._merge_calibrated_and_uncalibrated_regions(
-                forecast_predictor.data,
-                calibrated_forecast_predictor.data,
+                forecast_mean.data,
+                location_parameter_cube.data,
                 landsea_mask.data)
             self._merge_calibrated_and_uncalibrated_regions(
-                forecast_vars.data,
-                calibrated_forecast_var.data,
+                forecast_variance.data,
+                scale_parameter_cube.data,
                 landsea_mask.data)
 
-        return calibrated_forecast_predictor, calibrated_forecast_var
+        return location_parameter_cube, scale_parameter_cube

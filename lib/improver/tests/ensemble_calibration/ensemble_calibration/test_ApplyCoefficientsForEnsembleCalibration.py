@@ -45,11 +45,13 @@ from improver.ensemble_calibration.ensemble_calibration import (
     ApplyCoefficientsFromEnsembleCalibration as Plugin)
 from improver.ensemble_calibration.ensemble_calibration import (
     EstimateCoefficientsForEnsembleCalibration)
+from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import SetupCubes, EnsembleCalibrationAssertions
 from improver.tests.ensemble_calibration.ensemble_calibration.\
     test_EstimateCoefficientsForEnsembleCalibration import (
         SetupExpectedCoefficients)
+from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
 
@@ -112,27 +114,37 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         self.expected_calibrated_predictor_mean = (
             np.array([[273.7854, 274.6913, 275.4461],
                       [276.8652, 277.6502, 278.405],
-                      [279.492, 280.1562, 280.9715]]))
+                      [279.492, 280.1562, 280.9715]], dtype=np.float32))
         self.expected_calibrated_variance_mean = (
             np.array([[0.1952, 0.1974, 0.0117],
                       [0.0226, 0.0197, 0.0117],
-                      [0.0532, 0.0029, 0.0007]]))
+                      [0.0532, 0.0029, 0.0007]], dtype=np.float32))
         self.expected_calibrated_predictor_statsmodels_realizations = (
             np.array([[274.1395, 275.0975, 275.258],
                       [276.9771, 277.3487, 278.3144],
-                      [280.0085, 280.2506, 281.1632]]))
+                      [280.0085, 280.2506, 281.1632]], dtype=np.float32))
         self.expected_calibrated_variance_statsmodels_realizations = (
             np.array([[0.8973, 0.9073, 0.0536],
                       [0.1038, 0.0904, 0.0536],
-                      [0.2444, 0.0134, 0.0033]]))
+                      [0.2444, 0.0134, 0.0033]], dtype=np.float32))
         self.expected_calibrated_predictor_no_statsmodels_realizations = (
             np.array([[273.4695, 274.4673, 275.3034],
                       [276.8648, 277.733, 278.5632],
-                      [279.7562, 280.4913, 281.3889]]))
+                      [279.7562, 280.4913, 281.3889]], dtype=np.float32))
         self.expected_calibrated_variance_no_statsmodels_realizations = (
             np.array([[0.9344, 0.9448, 0.0558],
                       [0.1081, 0.0941, 0.0558],
-                      [0.2545, 0.0139, 0.0035]]))
+                      [0.2545, 0.0139, 0.0035]], dtype=np.float32))
+
+        # Create output cubes with the expected data.
+        self.expected_calibrated_predictor_mean_cube = set_up_variable_cube(
+            self.expected_calibrated_predictor_mean, name="location_parameter",
+            units="K", attributes=MANDATORY_ATTRIBUTE_DEFAULTS)
+        self.expected_calibrated_predictor_variance_cube = (
+            set_up_variable_cube(
+                self.expected_calibrated_variance_mean,
+                name="scale_parameter", units="Kelvin^2",
+                attributes=MANDATORY_ATTRIBUTE_DEFAULTS))
 
 
 class Test__init__(IrisTest):
@@ -142,12 +154,12 @@ class Test__init__(IrisTest):
     def test_basic(self):
         """Test without specifying a predictor_of_mean_flag."""
         plugin = Plugin()
-        self.assertEqual(plugin.predictor_of_mean_flag, "mean")
+        self.assertEqual(plugin.predictor, "mean")
 
     def test_with_predictor_of_mean_flag(self):
         """Test specifying the predictor_of_mean_flag."""
-        plugin = Plugin(predictor_of_mean_flag="realizations")
-        self.assertEqual(plugin.predictor_of_mean_flag, "realizations")
+        plugin = Plugin(predictor="realizations")
+        self.assertEqual(plugin.predictor, "realizations")
 
 
 class Test__repr__(IrisTest):
@@ -158,14 +170,14 @@ class Test__repr__(IrisTest):
         """Test without the predictor_of_mean_flag."""
         result = str(Plugin())
         msg = ("<ApplyCoefficientsFromEnsembleCalibration: "
-               "predictor_of_mean_flag: mean>")
+               "predictor: mean>")
         self.assertEqual(result, msg)
 
     def test_with_predictor_of_mean_flag(self):
         """Test specifying the predictor_of_mean_flag."""
-        result = str(Plugin(predictor_of_mean_flag="realizations"))
+        result = str(Plugin(predictor="realizations"))
         msg = ("<ApplyCoefficientsFromEnsembleCalibration: "
-               "predictor_of_mean_flag: realizations>")
+               "predictor: realizations>")
         self.assertEqual(result, msg)
 
 
@@ -271,237 +283,161 @@ class Test__spatial_domain_match(SetupCoefficientsCubes):
             self.plugin._spatial_domain_match()
 
 
-class Test__get_calibrated_forecast_predictors_mean(
+class Test__calculate_location_parameter_from_mean(
         SetupCoefficientsCubes, EnsembleCalibrationAssertions):
 
-    """Test the _get_calibrated_forecast_predictors_mean method."""
+    """Test the __calculate_location_parameter_from_mean method."""
 
     def setUp(self):
-        """Setup cubes and sundries for testing calibration of mean."""
+        """Set-up coefficients and plugin for testing."""
         super().setUp()
+
         self.optimised_coeffs = (
             dict(zip(self.coeffs_from_mean.coord("coefficient_name").points,
                      self.coeffs_from_mean.data)))
         self.plugin = Plugin()
         self.plugin.current_forecast = self.current_temperature_forecast_cube
 
-        self.expected_calibrated_predictor_mean = (
-            self.expected_calibrated_predictor_mean.flatten())
-
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic(self):
-        """
-        Test that the expected values are returned by this function.
-        """
-        expected_forecast_predictors = (
-            self.current_temperature_forecast_cube.collapsed(
-                "realization", iris.analysis.MEAN))
-        predicted_mean, forecast_predictors = (
-            self.plugin._get_calibrated_forecast_predictors_mean(
+        """Test that the expected values for the location parameter are
+        calculated when using the ensemble mean. These expected values are
+        compared to the results when using the ensemble realizations to ensure
+        that the results are similar."""
+        location_parameter = (
+            self.plugin._calculate_location_parameter_from_mean(
                 self.optimised_coeffs))
         self.assertCalibratedVariablesAlmostEqual(
-            predicted_mean, self.expected_calibrated_predictor_mean)
-        self.assertCalibratedVariablesAlmostEqual(
-            forecast_predictors.data, expected_forecast_predictors.data)
+            location_parameter, self.expected_calibrated_predictor_mean)
+        assert_array_almost_equal(
+            location_parameter,
+            self.expected_calibrated_predictor_statsmodels_realizations,
+            decimal=0)
+        assert_array_almost_equal(
+            location_parameter,
+            self.expected_calibrated_predictor_no_statsmodels_realizations,
+            decimal=0)
 
 
-class Test__get_calibrated_forecast_predictors_realizations(
+class Test__calculate_location_parameter_from_realizations(
         SetupCoefficientsCubes, EnsembleCalibrationAssertions):
 
-    """Test the _get_calibrated_forecast_predictors_realizations method."""
+    """Test the _calculate_location_parameter_from_realizations method."""
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
     def setUp(self):
-        """Setup cubes and sundries for testing calibration of mean."""
+        """Set-up coefficients and plugin for testing."""
         super().setUp()
-
-        self.forecast_vars = self.current_temperature_forecast_cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
 
         self.plugin = Plugin()
         self.plugin.current_forecast = self.current_temperature_forecast_cube
-        self.expected_calibrated_predictor_statsmodels_realizations = (
-            self.expected_calibrated_predictor_statsmodels_realizations.
-            flatten())
-        self.expected_calibrated_predictor_no_statsmodels_realizations = (
-            self.expected_calibrated_predictor_no_statsmodels_realizations.
-            flatten())
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_with_statsmodels(self):
-        """
-        Test that the expected values are returned by this function when using
-        statsmodels.
-        """
+        """Test that the expected values for the location parameter are
+        calculated when using the ensemble realizations with statsmodels.
+        These expected values are compared to the results when using the
+        ensemble realizations to ensure that the results are similar."""
         optimised_coeffs = dict(
             zip(self.coeffs_from_statsmodels_realizations.coord(
                     "coefficient_name").points,
                 self.coeffs_from_statsmodels_realizations.data))
-        expected_forecast_predictors = (
-            self.current_temperature_forecast_cube.collapsed(
-                "realization", iris.analysis.MEAN))
-        predicted_mean, forecast_predictors = (
-            self.plugin._get_calibrated_forecast_predictors_realizations(
-                optimised_coeffs, self.forecast_vars))
+        location_parameter = (
+            self.plugin._calculate_location_parameter_from_realizations(
+                optimised_coeffs))
         self.assertCalibratedVariablesAlmostEqual(
-            predicted_mean,
+            location_parameter,
             self.expected_calibrated_predictor_statsmodels_realizations)
-        self.assertCalibratedVariablesAlmostEqual(
-            forecast_predictors.data, expected_forecast_predictors.data)
+        assert_array_almost_equal(
+            location_parameter,
+            self.expected_calibrated_predictor_mean,
+            decimal=0)
+        assert_array_almost_equal(
+            location_parameter,
+            self.expected_calibrated_predictor_no_statsmodels_realizations,
+            decimal=0)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_without_statsmodels(self):
-        """
-        Test that the expected values are returned by this function when not
-        using statsmodels.
-        """
+        """Test that the expected values for the location parameter are
+        calculated when using the ensemble realizations without statsmodels.
+        These expected values are compared to the results when using the
+        ensemble realizations to ensure that the results are similar."""
         optimised_coeffs = dict(
             zip(self.coeffs_from_no_statsmodels_realizations.coord(
                     "coefficient_name").points,
                 self.coeffs_from_no_statsmodels_realizations.data))
-        expected_forecast_predictors = (
-            self.current_temperature_forecast_cube.collapsed(
-                "realization", iris.analysis.MEAN))
-        predicted_mean, forecast_predictors = (
-            self.plugin._get_calibrated_forecast_predictors_realizations(
-                optimised_coeffs, self.forecast_vars))
+        location_parameter = (
+            self.plugin._calculate_location_parameter_from_realizations(
+                optimised_coeffs))
         self.assertCalibratedVariablesAlmostEqual(
-            predicted_mean,
+            location_parameter,
             self.expected_calibrated_predictor_no_statsmodels_realizations)
-        self.assertCalibratedVariablesAlmostEqual(
-            forecast_predictors.data, expected_forecast_predictors.data)
+        assert_array_almost_equal(
+            location_parameter,
+            self.expected_calibrated_predictor_mean,
+            decimal=0)
+        assert_array_almost_equal(
+            location_parameter,
+            self.expected_calibrated_predictor_statsmodels_realizations,
+            decimal=0)
 
 
-class Test_calibrate_forecast_data(
+class Test__calculate_scale_parameter(
         SetupCoefficientsCubes, EnsembleCalibrationAssertions):
 
-    """Test the calibrate_forecast_data method.
+    """Test the _calculate_scale_parameter method."""
 
-    Note that there are several cross comparisons of results between the tests.
-    These overlap to ensure that if any one test is removed, the others still
-    check that the behaviour is as expected."""
+    def setUp(self):
+        """Set-up the plugin for testing."""
+        super().setUp()
+        self.plugin = Plugin()
+        self.plugin.current_forecast = self.current_temperature_forecast_cube
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def setUp(self):
-        """Setup cubes and sundries for testing calibration."""
-        super().setUp()
-
-        self.forecast_vars = self.current_temperature_forecast_cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-        self.forecast_predictor = (
-            self.current_temperature_forecast_cube.collapsed(
-                "realization", iris.analysis.MEAN))
-
-        self.plugin = Plugin()
-
-    def test_mean_as_predictor(self):
-        """Test that the calibrated forecast using ensemble mean as the
-        predictor returns the correct values. Check that the calibrated mean
-        is similar to when the ensemble realizations are used as the predictor
-        with and without statsmodels."""
-
+    def test_basic(self):
+        """Test the scale parameter is calculated correctly."""
         optimised_coeffs = dict(
             zip(self.coeffs_from_mean.coord("coefficient_name").points,
                 self.coeffs_from_mean.data))
-        predicted_mean = self.expected_calibrated_predictor_mean.flatten()
-
-        calibrated_forecast_predictor, calibrated_forecast_var = (
-            self.plugin.calibrate_forecast_data(
-                optimised_coeffs, predicted_mean, self.forecast_predictor,
-                self.forecast_vars))
-
+        scale_parameter = (
+            self.plugin._calculate_scale_parameter(optimised_coeffs))
         self.assertCalibratedVariablesAlmostEqual(
-            calibrated_forecast_predictor.data,
-            self.expected_calibrated_predictor_mean)
-        self.assertCalibratedVariablesAlmostEqual(
-            calibrated_forecast_var.data,
-            self.expected_calibrated_variance_mean)
-        assert_array_almost_equal(
-            calibrated_forecast_predictor.data,
-            self.expected_calibrated_predictor_statsmodels_realizations,
-            decimal=0)
-        assert_array_almost_equal(
-            calibrated_forecast_predictor.data,
-            self.expected_calibrated_predictor_no_statsmodels_realizations,
-            decimal=0)
-        self.assertIsInstance(calibrated_forecast_predictor, iris.cube.Cube)
-        self.assertIsInstance(calibrated_forecast_var, iris.cube.Cube)
+            scale_parameter, self.expected_calibrated_variance_mean)
 
-    def test_realization_as_predictor_with_statsmodels(self):
-        """Test that the calibrated forecast using realization as the
-        predictor returns the correct values when using statsmodels. Check that
-        the calibrated mean is similar to when not using statsmodels and to
-        when the ensemble mean is used as the predictor."""
 
-        optimised_coeffs = dict(
-            zip(self.coeffs_from_statsmodels_realizations.coord(
-                    "coefficient_name").points,
-                self.coeffs_from_statsmodels_realizations.data))
-        predicted_mean = (
-            self.expected_calibrated_predictor_statsmodels_realizations.
-            flatten())
+class Test__create_output_cubes(
+        SetupCoefficientsCubes, EnsembleCalibrationAssertions):
 
-        calibrated_forecast_predictor, calibrated_forecast_var = (
-            self.plugin.calibrate_forecast_data(
-                optimised_coeffs, predicted_mean, self.forecast_predictor,
-                self.forecast_vars))
+    """Test the _create_output_cubes method."""
 
-        self.assertCalibratedVariablesAlmostEqual(
-            calibrated_forecast_predictor.data,
-            self.expected_calibrated_predictor_statsmodels_realizations)
-        self.assertCalibratedVariablesAlmostEqual(
-            calibrated_forecast_var.data,
-            self.expected_calibrated_variance_statsmodels_realizations)
-        assert_array_almost_equal(
-            calibrated_forecast_predictor.data,
-            self.expected_calibrated_predictor_mean,
-            decimal=0)
-        assert_array_almost_equal(
-            calibrated_forecast_predictor.data,
-            self.expected_calibrated_predictor_no_statsmodels_realizations,
-            decimal=0)
-        self.assertIsInstance(calibrated_forecast_predictor, iris.cube.Cube)
-        self.assertIsInstance(calibrated_forecast_var, iris.cube.Cube)
+    def setUp(self):
+        """Set-up the plugin for testing."""
+        super().setUp()
+        self.plugin = Plugin()
+        self.plugin.current_forecast = self.current_temperature_forecast_cube
 
-    def test_realization_as_predictor_without_statsmodels(self):
-        """Test that the calibrated forecast using realization as the
-        predictor returns the correct values when not using statsmodels. Check
-        that the calibrated mean is similar to when using statsmodels and to
-        when the ensemble mean is used as the predictor."""
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_basic(self):
+        """Test that the cubes created containing the location and scale
+        parameter are formatted as expected."""
+        location_parameter_cube, scale_parameter_cube = (
+            self.plugin._create_output_cubes(
+                self.expected_calibrated_predictor_mean,
+                self.expected_calibrated_variance_mean))
 
-        optimised_coeffs = dict(
-            zip(self.coeffs_from_no_statsmodels_realizations.coord(
-                    "coefficient_name").points,
-                self.coeffs_from_no_statsmodels_realizations.data))
-        predicted_mean = (
-            self.expected_calibrated_predictor_no_statsmodels_realizations.
-            flatten())
-
-        calibrated_forecast_predictor, calibrated_forecast_var = (
-            self.plugin.calibrate_forecast_data(
-                optimised_coeffs, predicted_mean, self.forecast_predictor,
-                self.forecast_vars))
-        self.assertCalibratedVariablesAlmostEqual(
-            calibrated_forecast_predictor.data,
-            self.expected_calibrated_predictor_no_statsmodels_realizations)
-        self.assertCalibratedVariablesAlmostEqual(
-            calibrated_forecast_var.data,
-            self.expected_calibrated_variance_no_statsmodels_realizations)
-        assert_array_almost_equal(
-            calibrated_forecast_predictor.data,
-            self.expected_calibrated_predictor_mean,
-            decimal=0)
-        assert_array_almost_equal(
-            calibrated_forecast_predictor.data,
-            self.expected_calibrated_predictor_statsmodels_realizations,
-            decimal=0)
-        self.assertIsInstance(calibrated_forecast_predictor, iris.cube.Cube)
-        self.assertIsInstance(calibrated_forecast_var, iris.cube.Cube)
+        self.assertEqual(
+            location_parameter_cube,
+            self.expected_calibrated_predictor_mean_cube)
+        self.assertEqual(
+            scale_parameter_cube,
+            self.expected_calibrated_predictor_variance_cube)
 
 
 class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
@@ -509,7 +445,7 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
     """Test the process plugin."""
 
     def setUp(self):
-        """Setup cubes and sundries for testing calibration."""
+        """Set-up the plugin for testing."""
         super().setUp()
         self.plugin = Plugin()
 
