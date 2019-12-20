@@ -34,54 +34,18 @@ Script to translate meta-data relating to the grid_id attribute from StaGE
 version 1.1.0 to StaGE version 1.2.0.
 """
 
-import os
-
-from improver.argparser import ArgParser
-from improver.metadata.amend import update_stage_v110_metadata
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
+from improver import cli
 
 
-def main(argv=None):
-    """
-    Translate meta-data relating to the grid_id attribute from StaGE version
-    1.1.0 to StaGE version 1.2.0.
-    """
-
-    cli_definition = {'central_arguments': ['input_file', 'output_file'],
-                      'specific_arguments': [],
-                      'description': ('Translates meta-data relating to the '
-                                      'grid_id attribute from StaGE version '
-                                      '1.1.0 to StaGE version 1.2.0. '
-                                      'Files that have no "grid_id" attribute '
-                                      'are not recognised as v1.1.0 and are '
-                                      'not changed. Has no effect if '
-                                      'input_file and output_file are the '
-                                      'same and contain a cube with non '
-                                      'v1.1.0 meta-data')}
-
-    args = ArgParser(**cli_definition).parse_args(args=argv)
-    # Load Cube
-    cube = load_cube(args.input_filepath, no_lazy_load=True)
-    # Process Cube
-    cube_changed = process(cube)
-
-    # Save Cube
-    # Create normalised file paths to make them comparable
-    in_file_norm = os.path.normpath(args.input_filepath)
-    out_file_norm = os.path.normpath(args.output_filepath)
-    if cube_changed or in_file_norm != out_file_norm:
-        save_netcdf(cube, args.output_filepath)
-
-
-def process(cube):
+@cli.clizefy
+@cli.with_output
+def process(cube: cli.inputcube):
     """Update grid_id meta-data for StaGE.
 
     Translates meta-data relating to the grid_id attribute from StaGE
     version 1.1.0 to StaGE version 1.2.0.
     Files that have no "grid_id" attribute are not recognised as v1.1.0 and
-    are not changed. Has no effect if input_file and output_file are the
-    same and contain a cube with non v1.1.0 meta-data.
+    are not changed and copied.
 
     Args:
         cube (iris.cube.Cube):
@@ -92,9 +56,7 @@ def process(cube):
             Processed Cube.
 
     """
-    result = update_stage_v110_metadata(cube)
-    return result
+    from improver.metadata.amend import update_stage_v110_metadata
 
-
-if __name__ == "__main__":
-    main()
+    update_stage_v110_metadata(cube)
+    return cube
