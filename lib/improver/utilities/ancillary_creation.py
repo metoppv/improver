@@ -128,7 +128,7 @@ class OrographicAlphas(BasePlugin):
         return alphas_cube
 
     @staticmethod
-    def update_alphas_metadata(alphas_cube):
+    def update_alphas_metadata(alphas_cube, cube_name):
         """
         Update metadata in alphas cube.  Remove any time coordinates and
         rename.
@@ -136,12 +136,14 @@ class OrographicAlphas(BasePlugin):
         Args:
             alphas_cube (iris.cube.Cube):
                 A cube of alphas with "gradient" metadata
+            cube_name (str):
+                A name for the resultant cube
 
         Returns:
             iris.cube.Cube:
                 A cube of alphas with adjusted metadata
         """
-        alphas_cube.rename('alphas')
+        alphas_cube.rename(cube_name)
         for coord in alphas_cube.coords(dim_coords=False):
             if 'time' in coord.name() or 'period' in coord.name():
                 alphas_cube.remove_coord(coord)
@@ -177,8 +179,8 @@ class OrographicAlphas(BasePlugin):
             alpha_x, alpha_y = self.scale_alphas([alpha_x, alpha_y],
                                                  min_output=self.min_alpha,
                                                  max_output=self.max_alpha)
-        alpha_x = self.update_alphas_metadata(alpha_x)
-        alpha_y = self.update_alphas_metadata(alpha_y)
+        alpha_x = self.update_alphas_metadata(alpha_x, 'alpha_x')
+        alpha_y = self.update_alphas_metadata(alpha_y, 'alpha_y')
 
         return alpha_x, alpha_y
 
@@ -197,7 +199,7 @@ class OrographicAlphas(BasePlugin):
                 for.
 
         Returns:
-            (tuple): tuple containing:
+            (iris.cube.CubeList): containing:
                 **alpha_x** (iris.cube.Cube): A cube of orography-dependent
                     alphas calculated in the x direction.
 
@@ -216,7 +218,7 @@ class OrographicAlphas(BasePlugin):
             DifferenceBetweenAdjacentGridSquares(gradient=True).process(cube)
         alpha_x, alpha_y = self.gradient_to_alpha(gradient_x, gradient_y)
 
-        return alpha_x, alpha_y
+        return iris.cube.CubeList([alpha_x, alpha_y])
 
 
 class SaturatedVapourPressureTable(BasePlugin):
