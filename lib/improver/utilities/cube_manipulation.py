@@ -35,7 +35,6 @@ import warnings
 
 import iris
 import numpy as np
-import six
 from iris.coords import AuxCoord, DimCoord
 from iris.exceptions import CoordinateNotFoundError
 
@@ -505,7 +504,7 @@ def compare_attributes(cubes, attribute_filter=None):
     """
     unmatching_attributes = []
     if len(cubes) == 1:
-        msg = ('Only a single cube so no differences will be found ')
+        msg = 'Only a single cube so no differences will be found '
         warnings.warn(msg)
     else:
         reference_attributes = get_filtered_attributes(
@@ -551,7 +550,7 @@ def compare_coords(cubes):
     """
     unmatching_coords = []
     if len(cubes) == 1:
-        msg = ('Only a single cube so no differences will be found ')
+        msg = 'Only a single cube so no differences will be found '
         warnings.warn(msg)
     else:
         common_coords = cubes[0].coords()
@@ -713,7 +712,7 @@ def sort_coord_in_cube(cube, coord, order="ascending"):
 
 
 def enforce_coordinate_ordering(
-        cube, coord_names, anchor="start", promote_scalar=False,
+        cube, coord_names, anchor_to_start=True, promote_scalar=False,
         raise_exception=False):
     """
     Function to ensure that the requested coordinate within the cube are in
@@ -736,16 +735,17 @@ def enforce_coordinate_ordering(
         coord_names (list or str):
             List of the names of the coordinates to order. If a string is
             passed in, only the single specified coordinate is reordered.
-        anchor (str):
-            String to define where within the range of possible dimensions
+        anchor_to_start (bool):
+            Bool to define where within the range of possible dimensions
             the specified coordinates should be located. If all the names
             of all the dimension coordinates are specified within the
             coord_names argument then this argument effectively does nothing.
-            The options are either: "start" or "end". "start" indicates that
-            the coordinates are inserted as the first coordinates within the
-            cube. "end" indicates that the coordinates are inserted as the
-            last coordinates within the cube. For example, if the specified
-            coordinate names are ["time", "realization"] then "realization"
+            True indicates that the coordinates are inserted as the first
+            coordinates within the cube.
+            False indicates that the coordinates are inserted as the
+            last coordinates within the cube.
+            For example, if the specified coordinate names are
+            ["time", "realization"] then "realization"
             will be the last coordinate within the cube, whilst "time" will be
             the last but one coordinate within the cube.
         promote_scalar (bool):
@@ -763,28 +763,19 @@ def enforce_coordinate_ordering(
             order will have been enforced.
 
     Raises:
-        ValueError: The anchor argument must have a value of either start or
-            end.
         CoordinateNotFoundError: The requested coordinate is not available on
             the cube.
         ValueError: Multiple coordinates match the partial name provided.
 
     """
-    if isinstance(coord_names, six.string_types):
-        coord_names = str(coord_names)
     if isinstance(coord_names, str):
         coord_names = [coord_names]
-
-    if anchor not in ["start", "end"]:
-        msg = ("The value for the anchor must be either 'start' or 'end'."
-               "The value specified for the anchor was {}".format(anchor))
-        raise ValueError(msg)
 
     # Determine coordinate indices for use in creating a dictionary.
     # These indices are either relative to the start or end of the available
     # dimension coordinates.
     coord_indices = np.array(list(range(len(coord_names))))
-    if anchor == "end":
+    if not anchor_to_start:
         coord_indices = sorted(len(cube.dim_coords) - coord_indices)
     coord_dict = dict(list(zip(coord_names, coord_indices)))
 
@@ -852,10 +843,8 @@ def enforce_coordinate_ordering(
 
     # Transpose by inserting the requested coordinates at either the start
     # or the end.
-    if anchor == "start":
-        dim_order = coord_dims + remaining_coords
-    elif anchor == "end":
-        dim_order = remaining_coords + coord_dims
+    dim_order = (coord_dims + remaining_coords
+                 if anchor_to_start else remaining_coords + coord_dims)
     # Don't reorder if dim_order is already correct:
     if dim_order != sorted(dim_order):
         cube.transpose(dim_order)
