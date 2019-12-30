@@ -57,14 +57,15 @@ def test_basic(tmp_path):
 
 def test_radii_with_lead_times(tmp_path):
     """Test basic land-sea without topographic bands"""
-    kgo_dir = acc.kgo_root() / "nbhood-land-and-sea/no_topographic_bands"
+    kgo_dir = acc.kgo_root() / "nbhood-land-and-sea/radii_no_topographic_bands"
     kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / "input.nc"
-    mask_path = kgo_dir / "ukvx_landmask.nc"
+    imp_dir = acc.kgo_root() / "nbhood-land-and-sea/no_topographic_bands"
+    input_path = imp_dir / "input.nc"
+    mask_path = imp_dir / "ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, mask_path,
-            "--radii", "0,36,72,144",
-            "--lead-times", "18000,54000,90000,162000",
+            "--radii", "18000,54000,90000,162000",
+            "--lead-times", "0,36,72,144",
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
