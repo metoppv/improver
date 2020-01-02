@@ -75,8 +75,8 @@ def process(input_cube: cli.inputcube,
     """
     from iris import Constraint
 
-    from improver.nowcasting.forecasting import CreateExtrapolationForecast
     from improver.utilities.cube_manipulation import merge_cubes
+    from improver.nowcasting.pysteps_advection import PystepsExtrapolate
 
     u_cube = advection_cubes.extract(
         Constraint("precipitation_advection_x_velocity"), True)

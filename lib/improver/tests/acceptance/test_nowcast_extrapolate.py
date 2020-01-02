@@ -46,11 +46,13 @@ OE = "orographic_enhancement_standard_resolution"
 
 def test_basic(tmp_path):
     """Test basic extrapolation nowcast"""
-    kgo_dir = acc.kgo_root() / "nowcast-extrapolate/extrapolate"
+    kgo_dir = acc.kgo_root() / "nowcast-feature-branch/nowcast-extrapolate"
     kgo_path = kgo_dir / "kgo.nc"
     input_dir = acc.kgo_root() / "nowcast-optical-flow/basic"
     input_path = input_dir / RAINRATE_NC
-    oe_path = kgo_dir / "orographic_enhancement.nc"
+    # TODO get this put in optical flow, with the other inputs
+    oe_dir = acc.kgo_root() / "nowcast-extrapolate/extrapolate"
+    oe_path = oe_dir / "orographic_enhancement.nc"
     uv_path = input_dir / "kgo.nc"
 
     output_path = tmp_path / "output.nc"
@@ -64,7 +66,7 @@ def test_basic(tmp_path):
 
 def test_metadata(tmp_path):
     """Test basic extrapolation nowcast with json metadata"""
-    kgo_dir = acc.kgo_root() / "nowcast-extrapolate/extrapolate"
+    kgo_dir = acc.kgo_root() / "nowcast-feature-branch/nowcast-extrapolate"
     kgo_path = kgo_dir / "kgo_with_metadata.nc"
     input_dir = acc.kgo_root() / "nowcast-optical-flow/basic"
     input_path = input_dir / RAINRATE_NC
@@ -76,24 +78,6 @@ def test_metadata(tmp_path):
 
     args = [input_path, uv_path, oe_path,
             "--attributes-dict", meta_path,
-            "--max-lead-time", "30",
-            "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_basic_no_orographic(tmp_path):
-    """Test basic extrapolation nowcast without orographic enhancement"""
-    kgo_path = (acc.kgo_root() / "nowcast-extrapolate" /
-                "extrapolate_no_orographic_enhancement/kgo.nc")
-    input_dir = (acc.kgo_root() / "nowcast-optical-flow" /
-                 "basic_no_orographic_enhancement")
-    input_path = input_dir / RAINRATE_NC
-    uv_path = input_dir / "../basic/kgo.nc"
-
-    output_path = tmp_path / "output.nc"
-
-    args = [input_path, uv_path,
             "--max-lead-time", "30",
             "--output", output_path]
     run_cli(args)
