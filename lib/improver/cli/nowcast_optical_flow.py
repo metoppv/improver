@@ -64,10 +64,6 @@ def process(orographic_enhancement_cube: cli.inputcube,
         iris.cube.CubeList:
             List of the umean and vmean cubes.
 
-    Raises:
-        ValueError:
-            If there is no oe_cube but a cube is called 'precipitation_rate'.
-
     """
     from iris.cube import CubeList
 
