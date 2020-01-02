@@ -49,7 +49,7 @@ def process(orographic_enhancement_cube: cli.inputcube,
             Cube containing the orographic enhancement fields.
         radar (iris.cube.CubeList):
             Cubes from which to calculate optical flow velocities.
-            These three cubes can be any order.
+            These three cubes will be sorted by their time coords.
         attributes_dict (dict):
             Dictionary containing required changes to the attributes.
             Every output file will have the attributes_dict applied.
