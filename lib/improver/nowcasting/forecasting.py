@@ -360,6 +360,9 @@ class CreateExtrapolationForecast(BasePlugin):
                 Dictionary containing information for amending the attributes
                 of the output cube.
         """
+        if not (vel_x and vel_y):
+            raise TypeError("Neither x velocity or y velocity can be None")
+
         self.orographic_enhancement_cube = orographic_enhancement_cube
         if self.orographic_enhancement_cube:
             input_cube, = ApplyOrographicEnhancement("subtract").process(

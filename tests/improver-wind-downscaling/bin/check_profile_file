@@ -1,7 +1,0 @@
-#!/bin/bash
-
-set -eu
-
-. $IMPROVER_DIR/etc/site-init || true
-
-python -c "import pstats; pstats.Stats('"$1"').print_stats()"

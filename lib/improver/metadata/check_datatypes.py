@@ -116,10 +116,9 @@ def _get_required_datatype(item):
     """
     if item.units.is_time_reference():
         return TIME_REFERENCE_DTYPE
-    elif issubclass(item.dtype.type, np.integer):
+    if issubclass(item.dtype.type, np.integer):
         return np.int32
-    else:
-        return np.float32
+    return np.float32
 
 
 def check_datatypes(cube, coords=None):

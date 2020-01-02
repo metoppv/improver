@@ -84,7 +84,8 @@ def load_cube(filepath, constraints=None, no_lazy_load=False,
     if not cubes:
         message = "No cubes found using contraints {}".format(constraints)
         raise ValueError(message)
-    elif len(cubes) == 1:
+
+    if len(cubes) == 1:
         cube = cubes[0]
     else:
         cube = merge_cubes(cubes)

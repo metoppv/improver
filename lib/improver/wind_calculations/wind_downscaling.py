@@ -929,8 +929,7 @@ class RoughnessCorrection(BasePlugin):
         if xwp - ywp != xap - yap:
             if np.isnan(xap) or np.isnan(yap):
                 raise ValueError("ancillary grid different from wind grid")
-            else:
-                raise ValueError("xy-orientation: ancillary differ from wind")
+            raise ValueError("xy-orientation: ancillary differ from wind")
 
     def process(self, input_cube):
         """Adjust the 4d wind field - cube - (x, y, z including times).

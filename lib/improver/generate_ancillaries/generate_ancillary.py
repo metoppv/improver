@@ -70,19 +70,20 @@ def _make_mask_cube(
                "upper and lower limit: "
                "Your topographic_bounds are {}")
         raise TypeError(msg.format(topographic_bounds))
-    elif len(topographic_bounds) != 2:
+
+    if len(topographic_bounds) != 2:
         msg = ("The topographic bounds variable should have only an "
                "upper and lower limit: "
                "Your topographic_bounds variable has length {}")
         raise TypeError(msg.format(len(topographic_bounds)))
-    else:
-        coord_name = 'topographic_zone'
-        central_point = np.mean(topographic_bounds)
-        threshold_coord = iris.coords.AuxCoord(central_point,
-                                               bounds=topographic_bounds,
-                                               long_name=coord_name,
-                                               units=Unit(topographic_units))
-        mask_cube.add_aux_coord(threshold_coord)
+
+    coord_name = 'topographic_zone'
+    central_point = np.mean(topographic_bounds)
+    threshold_coord = iris.coords.AuxCoord(central_point,
+                                           bounds=topographic_bounds,
+                                           long_name=coord_name,
+                                           units=Unit(topographic_units))
+    mask_cube.add_aux_coord(threshold_coord)
     # We can't save attributes with boolean values so convert to string.
     mask_cube.attributes.update(
         {'topographic_zones_include_seapoints': str(sea_points_included)})

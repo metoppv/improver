@@ -810,8 +810,7 @@ def enforce_coordinate_ordering(
                     msg = ("The requested coordinate {} is not a coordinate "
                            "in the cube: {}".format(coord, cube))
                     raise CoordinateNotFoundError(msg)
-                else:
-                    continue
+                continue
             elif len(coord) == 1:
                 # Replace the dictionary key with the actual coordinate name.
                 full_coord_name = coord[0].name()

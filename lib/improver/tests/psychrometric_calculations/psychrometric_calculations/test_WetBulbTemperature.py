@@ -32,9 +32,9 @@
 
 import unittest
 
-import iris
 import numpy as np
 from cf_units import Unit
+import iris
 from iris.cube import Cube
 from iris.tests import IrisTest
 
