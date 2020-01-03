@@ -747,18 +747,17 @@ def enforce_coordinate_ordering(cube, coord_names, anchor_start=True):
     if isinstance(coord_names, str):
         coord_names = [coord_names]
 
-    # construct a list of coordinates on the cube to be reordered
-    cube_coord_names = [coord.name() for coord in cube.coords()]
+    # construct a list of dimensions on the cube to be reordered
+    dim_coord_names = [coord.name() for coord in cube.coords(dim_coords=True)]
     coords_to_reorder = []
     for coord in coord_names:
-        if coord in cube_coord_names:
-            if coord == "threshold":
+        if coord == "threshold":
+            try:
                 coord = find_threshold_coordinate(cube).name()
+            except CoordinateNotFoundError:
+                continue
+        if coord in dim_coord_names:
             coords_to_reorder.append(coord)
-
-    for coord in coords_to_reorder:
-        if cube.coords(coord, dim_coords=False):
-            coords_to_reorder.remove(coord)
 
     # construct dictionary of original dimensions of the form, eg:
     # {'time': 0, 'realization': 1, ...}
