@@ -84,7 +84,7 @@ class Test_enforce_coordinate_ordering(IrisTest):
         expected = self.cube.copy()
         expected.transpose([1, 2, 3, 0])
         result = enforce_coordinate_ordering(
-            self.cube, "realization", anchor="end")
+            self.cube, "realization", anchor_start=False)
         self.assertEqual(result.coord_dims("realization")[0], 3)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
@@ -119,7 +119,7 @@ class Test_enforce_coordinate_ordering(IrisTest):
         expected = self.cube.copy()
         expected.transpose([2, 3, 1, 0])
         result = enforce_coordinate_ordering(
-            self.cube, ["time", "realization"], anchor="end")
+            self.cube, ["time", "realization"], anchor_start=False)
         self.assertEqual(result.coord_dims("time")[0], 2)
         self.assertEqual(result.coord_dims("realization")[0], 3)
         self.assertArrayAlmostEqual(result.data, expected.data)

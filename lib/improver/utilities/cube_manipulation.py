@@ -712,7 +712,7 @@ def sort_coord_in_cube(cube, coord, order="ascending"):
 
 
 def enforce_coordinate_ordering(
-        cube, coord_names, anchor="start", promote_scalar=False):
+        cube, coord_names, anchor_start=True, promote_scalar=False):
     """
     Function to ensure that the requested coordinate within the cube are in
     the desired position.
@@ -732,18 +732,14 @@ def enforce_coordinate_ordering(
         coord_names (list or str):
             List of the names of the coordinates to order. If a string is
             passed in, only the single specified coordinate is reordered.
-        anchor (str):
-            String to define where within the range of possible dimensions
-            the specified coordinates should be located. If all the names
-            of all the dimension coordinates are specified within the
-            coord_names argument then this argument effectively does nothing.
-            The options are either: "start" or "end". "start" indicates that
-            the coordinates are inserted as the first coordinates within the
-            cube. "end" indicates that the coordinates are inserted as the
-            last coordinates within the cube. For example, if the specified
-            coordinate names are ["time", "realization"] then "realization"
-            will be the last coordinate within the cube, whilst "time" will be
-            the last but one coordinate within the cube.
+        anchor_start (bool):
+            Define whether the specified coordinates should be moved to the
+            start (True) or end (False) of the list of dimensions. If True, the
+            coordinates are inserted as the first dimensions in the order in
+            which they are provided. If False, the coordinates are moved to the
+            end. For example, if the specified coordinate names are
+            ["time", "realization"] then "realization" will be the last
+            coordinate within the cube, whilst "time" will be the last but one.
         promote_scalar (bool):
             If True, any coordinates in coord_names that are not dimension
             coordinates are promoted. If False, any coordinates in coord_names
@@ -752,18 +748,9 @@ def enforce_coordinate_ordering(
     Returns:
         iris.cube.Cube:
             Cube with reordered dimensions.
-
-    Raises:
-        ValueError:
-            The anchor argument must have a value of either start or end.
     """
     if isinstance(coord_names, str):
         coord_names = [coord_names]
-
-    if anchor not in ["start", "end"]:
-        msg = ("The value for the anchor must be either 'start' or 'end'."
-               "The value specified for the anchor was {}".format(anchor))
-        raise ValueError(msg)
 
     # construct a list of coordinates on the cube to be reordered
     cube_coord_names = [coord.name() for coord in cube.coords()]
@@ -797,7 +784,7 @@ def enforce_coordinate_ordering(
             new_dims.append(original_dims[coord.name()])
 
     # if anchor is end, reshuffle the list
-    if anchor != "start":
+    if not anchor_start:
         new_dims_end = new_dims[len(coords_to_reorder):]
         new_dims_end.extend(new_dims[:len(coords_to_reorder)])
         new_dims = new_dims_end
