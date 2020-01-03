@@ -150,20 +150,9 @@ class Test_enforce_coordinate_ordering(IrisTest):
         self.assertEqual(result.coord_dims("realization")[0], 1)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
-    def test_force_promotion_of_scalar(self):
+    def test_no_impact_scalar(self):
         """Test that a cube with the expected data contents is returned when
-        the probabilistic dimension is a scalar coordinate, which is promoted
-        to a dimension coordinate."""
-        cube = self.cube[0, :, :, :]
-        result = enforce_coordinate_ordering(
-            cube, "realization", promote_scalar=True)
-        self.assertEqual(result.coord_dims("realization")[0], 0)
-        self.assertArrayAlmostEqual(result.data, [cube.data])
-
-    def test_do_not_promote_scalar(self):
-        """Test that a cube with the expected data contents is returned when
-        the probabilistic dimension is a scalar coordinate, which is not
-        promoted to a dimension coordinate."""
+        reordered on a scalar coordinate."""
         cube = self.cube[0, :, :, :]
         result = enforce_coordinate_ordering(cube, "realization")
         self.assertFalse(result.coord_dims("realization"))

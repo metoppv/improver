@@ -711,8 +711,7 @@ def sort_coord_in_cube(cube, coord, order="ascending"):
     return cube[tuple(index)]
 
 
-def enforce_coordinate_ordering(
-        cube, coord_names, anchor_start=True, promote_scalar=False):
+def enforce_coordinate_ordering(cube, coord_names, anchor_start=True):
     """
     Function to ensure that the requested coordinate within the cube are in
     the desired position.
@@ -740,10 +739,6 @@ def enforce_coordinate_ordering(
             end. For example, if the specified coordinate names are
             ["time", "realization"] then "realization" will be the last
             coordinate within the cube, whilst "time" will be the last but one.
-        promote_scalar (bool):
-            If True, any coordinates in coord_names that are not dimension
-            coordinates are promoted. If False, any coordinates in coord_names
-            that are not dimension coordinates are ignored.
 
     Returns:
         iris.cube.Cube:
@@ -761,13 +756,9 @@ def enforce_coordinate_ordering(
                 coord = find_threshold_coordinate(cube).name()
             coords_to_reorder.append(coord)
 
-    # promote scalar coordinates if required TODO what is the use case?
     for coord in coords_to_reorder:
         if cube.coords(coord, dim_coords=False):
-            if promote_scalar:
-                cube = iris.util.new_axis(cube, coord)
-            else:
-                coords_to_reorder.remove(coord)
+            coords_to_reorder.remove(coord)
 
     # construct dictionary of original dimensions of the form, eg:
     # {'time': 0, 'realization': 1, ...}
