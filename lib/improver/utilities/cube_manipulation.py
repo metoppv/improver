@@ -713,15 +713,8 @@ def sort_coord_in_cube(cube, coord, order="ascending"):
 
 def enforce_coordinate_ordering(cube, coord_names, anchor_start=True):
     """
-    Function to ensure that the requested coordinate within the cube are in
-    the desired position.
-
-    The reordering can either be anchored to the start or end of the available
-    dimension coordinates using the "anchor" keyword argument. If desired,
-    all the dimension coordinates can be reordered by specifying the coordinate
-    names in the desired order.
-
-    Note that the input cube is modified in place unless promote_scalar = True.
+    Function to reorder dimensions within a cube.
+    Note that the input cube is modified in place.
 
     Args:
         cube (iris.cube.Cube):
