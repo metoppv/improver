@@ -139,8 +139,9 @@ def compare(output_path, kgo_path, recreate=True,
         output_path (pathlib.Path): Path to output produced by test
         kgo_path (pathlib.Path): Path to KGO file
         recreate (bool): False to disable KGO recreation, compare only
-        atol (float): absolute tolerance
-        rtol (float): relative tolerance
+        atol (float): Absolute tolerance
+        rtol (float): Relative tolerance
+        exclude_vars (Iterable[str]): Variables to exclude from comparison
 
     Returns:
         None
