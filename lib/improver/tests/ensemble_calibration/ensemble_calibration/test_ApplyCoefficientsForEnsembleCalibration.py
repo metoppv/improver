@@ -111,38 +111,30 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
                 self.current_temperature_forecast_cube))
 
         # Some expected data that are used in various tests.
-        self.expected_calibrated_predictor_mean = (
+        self.expected_loc_param_mean = (
             np.array([[273.7854, 274.6913, 275.4461],
                       [276.8652, 277.6502, 278.405],
                       [279.492, 280.1562, 280.9715]], dtype=np.float32))
-        self.expected_calibrated_variance_mean = (
+        self.expected_scale_param_mean = (
             np.array([[0.1952, 0.1974, 0.0117],
                       [0.0226, 0.0197, 0.0117],
                       [0.0532, 0.0029, 0.0007]], dtype=np.float32))
-        self.expected_calibrated_predictor_statsmodels_realizations = (
+        self.expected_loc_param_statsmodels_realizations = (
             np.array([[274.1395, 275.0975, 275.258],
                       [276.9771, 277.3487, 278.3144],
                       [280.0085, 280.2506, 281.1632]], dtype=np.float32))
-        self.expected_calibrated_variance_statsmodels_realizations = (
-            np.array([[0.8973, 0.9073, 0.0536],
-                      [0.1038, 0.0904, 0.0536],
-                      [0.2444, 0.0134, 0.0033]], dtype=np.float32))
-        self.expected_calibrated_predictor_no_statsmodels_realizations = (
+        self.expected_loc_param_no_statsmodels_realizations = (
             np.array([[273.4695, 274.4673, 275.3034],
                       [276.8648, 277.733, 278.5632],
                       [279.7562, 280.4913, 281.3889]], dtype=np.float32))
-        self.expected_calibrated_variance_no_statsmodels_realizations = (
-            np.array([[0.9344, 0.9448, 0.0558],
-                      [0.1081, 0.0941, 0.0558],
-                      [0.2545, 0.0139, 0.0035]], dtype=np.float32))
 
         # Create output cubes with the expected data.
-        self.expected_calibrated_predictor_mean_cube = set_up_variable_cube(
-            self.expected_calibrated_predictor_mean, name="location_parameter",
+        self.expected_loc_param_mean_cube = set_up_variable_cube(
+            self.expected_loc_param_mean, name="location_parameter",
             units="K", attributes=MANDATORY_ATTRIBUTE_DEFAULTS)
         self.expected_calibrated_predictor_variance_cube = (
             set_up_variable_cube(
-                self.expected_calibrated_variance_mean,
+                self.expected_scale_param_mean,
                 name="scale_parameter", units="Kelvin^2",
                 attributes=MANDATORY_ATTRIBUTE_DEFAULTS))
 
@@ -309,14 +301,14 @@ class Test__calculate_location_parameter_from_mean(
             self.plugin._calculate_location_parameter_from_mean(
                 self.optimised_coeffs))
         self.assertCalibratedVariablesAlmostEqual(
-            location_parameter, self.expected_calibrated_predictor_mean)
+            location_parameter, self.expected_loc_param_mean)
         assert_array_almost_equal(
             location_parameter,
-            self.expected_calibrated_predictor_statsmodels_realizations,
+            self.expected_loc_param_statsmodels_realizations,
             decimal=0)
         assert_array_almost_equal(
             location_parameter,
-            self.expected_calibrated_predictor_no_statsmodels_realizations,
+            self.expected_loc_param_no_statsmodels_realizations,
             decimal=0)
 
 
@@ -350,14 +342,14 @@ class Test__calculate_location_parameter_from_realizations(
                 optimised_coeffs))
         self.assertCalibratedVariablesAlmostEqual(
             location_parameter,
-            self.expected_calibrated_predictor_statsmodels_realizations)
+            self.expected_loc_param_statsmodels_realizations)
         assert_array_almost_equal(
             location_parameter,
-            self.expected_calibrated_predictor_mean,
+            self.expected_loc_param_mean,
             decimal=0)
         assert_array_almost_equal(
             location_parameter,
-            self.expected_calibrated_predictor_no_statsmodels_realizations,
+            self.expected_loc_param_no_statsmodels_realizations,
             decimal=0)
 
     @ManageWarnings(
@@ -376,14 +368,14 @@ class Test__calculate_location_parameter_from_realizations(
                 optimised_coeffs))
         self.assertCalibratedVariablesAlmostEqual(
             location_parameter,
-            self.expected_calibrated_predictor_no_statsmodels_realizations)
+            self.expected_loc_param_no_statsmodels_realizations)
         assert_array_almost_equal(
             location_parameter,
-            self.expected_calibrated_predictor_mean,
+            self.expected_loc_param_mean,
             decimal=0)
         assert_array_almost_equal(
             location_parameter,
-            self.expected_calibrated_predictor_statsmodels_realizations,
+            self.expected_loc_param_statsmodels_realizations,
             decimal=0)
 
 
@@ -408,7 +400,7 @@ class Test__calculate_scale_parameter(
         scale_parameter = (
             self.plugin._calculate_scale_parameter(optimised_coeffs))
         self.assertCalibratedVariablesAlmostEqual(
-            scale_parameter, self.expected_calibrated_variance_mean)
+            scale_parameter, self.expected_scale_param_mean)
 
 
 class Test__create_output_cubes(
@@ -429,12 +421,12 @@ class Test__create_output_cubes(
         parameter are formatted as expected."""
         location_parameter_cube, scale_parameter_cube = (
             self.plugin._create_output_cubes(
-                self.expected_calibrated_predictor_mean,
-                self.expected_calibrated_variance_mean))
+                self.expected_loc_param_mean,
+                self.expected_scale_param_mean))
 
         self.assertEqual(
             location_parameter_cube,
-            self.expected_calibrated_predictor_mean_cube)
+            self.expected_loc_param_mean_cube)
         self.assertEqual(
             scale_parameter_cube,
             self.expected_calibrated_predictor_variance_cube)
@@ -473,10 +465,10 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
 
         self.assertCalibratedVariablesAlmostEqual(
             calibrated_forecast_predictor.data,
-            self.expected_calibrated_predictor_mean)
+            self.expected_loc_param_mean)
         self.assertCalibratedVariablesAlmostEqual(
             calibrated_forecast_var.data,
-            self.expected_calibrated_variance_mean)
+            self.expected_scale_param_mean)
         self.assertEqual(calibrated_forecast_predictor.dtype, np.float32)
 
     @ManageWarnings(
@@ -497,9 +489,9 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
             "realization", iris.analysis.VARIANCE)
 
         # Manually construct merged calibrated and uncalibrated arrays.
-        self.expected_calibrated_predictor_mean[1:, 1:] = (
+        self.expected_loc_param_mean[1:, 1:] = (
             forecast_predictors.data[1:, 1:])
-        self.expected_calibrated_variance_mean[1:, 1:] = (
+        self.expected_scale_param_mean[1:, 1:] = (
             forecast_vars.data[1:, 1:])
 
         calibrated_forecast_predictor, calibrated_forecast_var = (
@@ -508,10 +500,10 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
 
         self.assertCalibratedVariablesAlmostEqual(
             calibrated_forecast_predictor.data,
-            self.expected_calibrated_predictor_mean)
+            self.expected_loc_param_mean)
         self.assertCalibratedVariablesAlmostEqual(
             calibrated_forecast_var.data,
-            self.expected_calibrated_variance_mean)
+            self.expected_scale_param_mean)
 
 
 if __name__ == '__main__':

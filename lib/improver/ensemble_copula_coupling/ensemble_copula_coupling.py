@@ -731,7 +731,9 @@ class GeneratePercentilesFromMeanAndVariance(BasePlugin, FromMeanAndVariance):
                 Variance for the calibrated forecast.
             template_cube (iris.cube.Cube):
                 Template cube containing either a percentile or realization
-                coordinate.
+                coordinate. All coordinates apart from the percentile or
+                realization coordinate will be copied from the template cube.
+                Metadata will also be copied from this cube.
             percentiles (list):
                 Percentiles at which to calculate the value of the phenomenon
                 at.
@@ -818,7 +820,9 @@ class GeneratePercentilesFromMeanAndVariance(BasePlugin, FromMeanAndVariance):
                 Cube containing the calibrated forecast variance.
             template_cube (iris.cube.Cube):
                 Template cube containing either a percentile or realization
-                coordinate.
+                coordinate. All coordinates apart from the percentile or
+                realization coordinate will be copied from the template cube.
+                Metadata will also be copied from this cube.
             no_of_percentiles (int):
                 Integer defining the number of percentiles that will be
                 calculated from the mean and variance.

@@ -637,7 +637,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         or
 
         .. math::
-            alpha + beta0 * realization1 + beta1 * realization2
+            alpha + beta0 * realization0 + beta1 * realization1
 
         .. math::
             gamma + delta * ensemble\\_variance
@@ -999,8 +999,11 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
 
     def _calculate_location_parameter_from_mean(self, optimised_coeffs):
         """
-        Function to calculate the location parameter when the predictor is
-        the ensemble mean.
+        Function to calculate the location parameter when the ensemble mean at
+        each grid point is the predictor.
+
+        .. math::
+            location\\_parameter = \\alpha + \\beta \\times ensemble\\_mean
 
         Args:
             optimised_coeffs (dict):
@@ -1008,7 +1011,7 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
                 keys with their corresponding values.
 
         Returns:
-            location_parameter (numpy.ndarray):
+            numpy.ndarray:
                 Location parameter calculated using the ensemble mean as the
                 predictor.
         """
@@ -1017,25 +1020,22 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
 
         # Calculate location parameter = a + b*X, where X is the
         # raw ensemble mean. In this case, b = beta.
-        a_and_b = [optimised_coeffs["alpha"], optimised_coeffs["beta"]]
-        forecast_predictor_flat = forecast_predictor.data.flatten()
-        xy_shape = forecast_predictor.shape
-        col_of_ones = (
-            np.ones(forecast_predictor_flat.shape, dtype=np.float32))
-        ones_and_predictor = (
-            np.column_stack((col_of_ones, forecast_predictor_flat)))
         location_parameter = (
-            np.dot(ones_and_predictor, a_and_b).reshape(xy_shape))
+            optimised_coeffs["alpha"] +
+            optimised_coeffs["beta"] * forecast_predictor.data).astype(
+                np.float32)
+
         return location_parameter
 
     def _calculate_location_parameter_from_realizations(
             self, optimised_coeffs):
         """
-        Function to calculate the location parameter when the predictor is the
-        mean of each distinct realization. The domain mean in a given
-        realization has been used to generate calibration coefficients, such
-        that each realization independently contributes to generating the
-        location parameter.
+        Function to calculate the location parameter when the ensemble
+        realizations are the predictor.
+
+        .. math::
+            location\\_parameter = \\alpha + \\beta_0 \\times realization_0 +
+                ... + \\beta_n \\times realization_n
 
         Args:
             optimised_coeffs (dict):
@@ -1043,7 +1043,7 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
                 keys with their corresponding values.
 
         Returns:
-            location_parameter (numpy.ndarray):
+            numpy.ndarray:
                 Location parameter calculated using the ensemble realizations
                 as the predictor.
         """
@@ -1060,7 +1060,7 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         forecast_predictor_flat = (
             convert_cube_data_to_2d(forecast_predictor))
         xy_shape = next(forecast_predictor.slices_over("realization")).shape
-        col_of_ones = np.ones(np.dot(*xy_shape), dtype=np.float32)
+        col_of_ones = np.ones(np.prod(xy_shape), dtype=np.float32)
         ones_and_predictor = (
             np.column_stack((col_of_ones, forecast_predictor_flat)))
         location_parameter = (
@@ -1072,13 +1072,16 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         """
         Calculation of the scale parameter using the ensemble variance
         adjusted using the gamma and delta coefficients calculated by EMOS.
-        This follows the equations below, where S^2 is the ensemble variance:
+        This follows the equations below, where :math:`S^2` is the ensemble
+        variance and :math:`\\sigma^2` is the scale parameter:
 
         .. math::
-            \\sigma^2 = c + dS^2
+            \\sigma^2 = c + d \\times S^2
 
+        .. math::
             c = \\gamma^2
 
+        .. math::
             d = \\delta^2
 
         Args:
@@ -1087,7 +1090,7 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
                 keys with their corresponding values.
 
         Returns:
-            scale_parameter (numpy.ndarray):
+            numpy.ndarray:
                 Scale parameter for defining the distribution of the calibrated
                 forecast.
 
@@ -1115,12 +1118,13 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
                 Scale parameter of the calibrated distribution.
 
         Returns:
-            location_parameter_cube (iris.cube.Cube):
-                Location parameter of the calibrated distribution with
-                associated metadata.
-            scale_parameter_cube (iris.cube.Cube):
-                Scale parameter of the calibrated distribution with
-                associated metadata.
+            (tuple): tuple containing:
+                **location_parameter_cube** (iris.cube.Cube):
+                    Location parameter of the calibrated distribution with
+                    associated metadata.
+                **scale_parameter_cube** (iris.cube.Cube):
+                    Scale parameter of the calibrated distribution with
+                    associated metadata.
         """
         template_cube = next(self.current_forecast.slices_over("realization"))
         template_cube.remove_coord("realization")
@@ -1156,12 +1160,12 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
             (tuple): tuple containing:
                 **location_parameter_cube** (iris.cube.Cube):
                     Cube containing the location parameter of the calibrated
-                    distribution using either the ensemble mean or the
-                    ensemble realizations.
+                    distribution calculated using either the ensemble mean or
+                    the ensemble realizations.
                 **scale_parameter_cube** (iris.cube.Cube):
                     Cube containing the scale parameter of the calibrated
-                    distribution using either the ensemble mean or the
-                    ensemble realizations.
+                    distribution calculated using either the ensemble mean or
+                    the ensemble realizations.
         """
         self.current_forecast = current_forecast
         self.coefficients_cube = coefficients_cube
@@ -1177,13 +1181,11 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         if self.predictor.lower() == "mean":
             location_parameter = (
                 self._calculate_location_parameter_from_mean(optimised_coeffs))
-        elif self.predictor.lower() == "realizations":
+        else:
             location_parameter = (
                 self._calculate_location_parameter_from_realizations(
                     optimised_coeffs))
 
-        # Calculate mean of ensemble realizations, as only the
-        # calibrated ensemble mean will be returned.
         scale_parameter = self._calculate_scale_parameter(optimised_coeffs)
 
         location_parameter_cube, scale_parameter_cube = (
