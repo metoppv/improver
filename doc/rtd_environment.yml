@@ -1,0 +1,12 @@
+# Use this file to create a conda environment using:
+# conda create -n <name> --file environment.yml
+# This is for use with Read the Docs.
+
+name: improver
+channels:
+  - conda-forge
+dependencies:
+  - python=3.6
+  - iris=2.1
+  - cf_units
+  - python-stratify

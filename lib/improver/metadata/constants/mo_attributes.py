@@ -33,6 +33,9 @@
 GRID_TYPE = 'standard'
 STAGE_VERSION = '1.3.0'
 
+MOSG_GRID_ATTRIBUTES = {
+    'mosg__grid_type', 'mosg__grid_version', 'mosg__grid_domain'}
+
 # Define current StaGE grid metadata
 MOSG_GRID_DEFINITION = {
     'uk_ens': {'mosg__grid_type': GRID_TYPE,

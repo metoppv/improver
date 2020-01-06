@@ -137,6 +137,12 @@ class Test__init__(SetUpCubes):
         self.assertEqual(plugin.orographic_enhancement_cube, self.oe_cube)
         self.assertIsInstance(plugin.advection_plugin, AdvectField)
 
+    def test_velocity_mismatch(self):
+        """Tests that x and y velocities are both used."""
+        with self.assertRaisesRegex(TypeError, ".*x velocity or y.*"):
+            CreateExtrapolationForecast(
+                self.precip_cube, self.vel_x, None)
+
 
 class Test__repr__(SetUpCubes):
     """Test class representation"""

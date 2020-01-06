@@ -34,8 +34,10 @@ import unittest
 import iris
 import numpy as np
 
+from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.utilities import (
-    create_new_diagnostic_cube, generate_hash, create_coordinate_hash)
+    create_new_diagnostic_cube, generate_mandatory_attributes, generate_hash,
+    create_coordinate_hash)
 from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
@@ -51,11 +53,13 @@ class Test_create_new_diagnostic_cube(unittest.TestCase):
         self.template_cube.add_cell_method('time (max): 1 hour')
         self.name = "lwe_precipitation_rate"
         self.units = "mm h-1"
+        self.mandatory_attributes = MANDATORY_ATTRIBUTE_DEFAULTS.copy()
 
     def test_basic(self):
         """Test result is a cube that inherits coordinates only"""
         result = create_new_diagnostic_cube(
-            self.name, self.units, self.template_cube)
+            self.name, self.units, self.template_cube,
+            self.mandatory_attributes)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.standard_name, "lwe_precipitation_rate")
         self.assertEqual(result.units, "mm h-1")
@@ -64,36 +68,91 @@ class Test_create_new_diagnostic_cube(unittest.TestCase):
         self.assertSequenceEqual(result.coords(dim_coords=False),
                                  self.template_cube.coords(dim_coords=False))
         self.assertFalse(np.allclose(result.data, self.template_cube.data))
-        self.assertFalse(result.attributes)
+        self.assertDictEqual(result.attributes, self.mandatory_attributes)
         self.assertFalse(result.cell_methods)
         self.assertEqual(result.data.dtype, np.float32)
 
     def test_attributes(self):
-        """Test attributes can be set on the output cube"""
-        attributes = {"source": "IMPROVER"}
+        """Test optional attributes can be set on the output cube, and override
+        the values in mandatory_attributes"""
+        attributes = {"source": "Mars", "mosg__model_configuration": "uk_det"}
+        expected_attributes = self.mandatory_attributes
+        expected_attributes.update(attributes)
         result = create_new_diagnostic_cube(
-            self.name, self.units, self.template_cube, attributes=attributes)
-        self.assertDictEqual(result.attributes, attributes)
+            self.name, self.units, self.template_cube,
+            self.mandatory_attributes, optional_attributes=attributes)
+        self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_data(self):
         """Test data can be set on the output cube"""
         data = np.arange(3*5*5).reshape((3, 5, 5)).astype(np.float32)
         result = create_new_diagnostic_cube(
-            self.name, self.units, self.template_cube, data=data)
+            self.name, self.units, self.template_cube,
+            self.mandatory_attributes, data=data)
         self.assertTrue(np.allclose(result.data, data))
 
     def test_dtype(self):
         """Test dummy data of a different type can be set"""
         result = create_new_diagnostic_cube(
-            self.name, self.units, self.template_cube, dtype=np.int32)
+            self.name, self.units, self.template_cube,
+            self.mandatory_attributes, dtype=np.int32)
         self.assertEqual(result.data.dtype, np.int32)
 
     def test_non_standard_name(self):
         """Test cube can be created with a non-CF-standard name"""
         result = create_new_diagnostic_cube(
-            "RainRate Composite", self.units, self.template_cube)
+            "RainRate Composite", self.units, self.template_cube,
+            self.mandatory_attributes)
         self.assertEqual(result.long_name, "RainRate Composite")
         self.assertIsNone(result.standard_name)
+
+
+class Test_generate_mandatory_attributes(unittest.TestCase):
+    """Test the generate_mandatory_attributes utility"""
+
+    def setUp(self):
+        """Set up some example input diagnostic cubes"""
+        self.attributes = {
+            "source": "Met Office Unified Model",
+            "institution": "Met Office",
+            "title": "UKV Model Forecast on UK 2 km Standard Grid"}
+        base_data = np.ones((5, 5), dtype=np.float32)
+        self.t_cube = set_up_variable_cube(
+            285*base_data, spatial_grid="equalarea",
+            standard_grid_metadata="uk_det", attributes=self.attributes)
+        self.p_cube = set_up_variable_cube(
+            987*base_data, name="PMSL", units="hPa", spatial_grid="equalarea",
+            standard_grid_metadata="uk_det", attributes=self.attributes)
+        self.rh_cube = set_up_variable_cube(
+            0.8*base_data, name="relative_humidity", units="1",
+            spatial_grid="equalarea", standard_grid_metadata="uk_det",
+            attributes=self.attributes)
+
+    def test_consensus(self):
+        """Test attributes are inherited if all input fields agree"""
+        result = generate_mandatory_attributes(
+            [self.t_cube, self.p_cube, self.rh_cube])
+        self.assertDictEqual(result, self.attributes)
+
+    def test_no_consensus(self):
+        """Test default values if input fields do not all agree"""
+        self.t_cube.attributes = {
+            "source": "Met Office Unified Model Version 1000",
+            "institution": "BOM",
+            "title": "UKV Model Forecast on 20 km Global Grid"}
+        result = generate_mandatory_attributes(
+            [self.t_cube, self.p_cube, self.rh_cube])
+        self.assertDictEqual(result, MANDATORY_ATTRIBUTE_DEFAULTS)
+
+    def test_missing_attribute(self):
+        """Test defaults are triggered if mandatory attribute is missing
+        from one input"""
+        expected_attributes = self.attributes
+        expected_attributes["title"] = MANDATORY_ATTRIBUTE_DEFAULTS["title"]
+        self.t_cube.attributes.pop("title")
+        result = generate_mandatory_attributes(
+            [self.t_cube, self.p_cube, self.rh_cube])
+        self.assertDictEqual(result, expected_attributes)
 
 
 class Test_generate_hash(unittest.TestCase):

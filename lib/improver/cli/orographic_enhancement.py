@@ -31,25 +31,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to calculate orographic enhancement."""
 
-import os
 
-from improver.argparser import ArgParser
-from improver.orographic_enhancement import OrographicEnhancement
-from improver.utilities.cube_extraction import extract_subcube
-from improver.utilities.filename import generate_file_name
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
-from improver.wind_calculations.wind_components import ResolveWindComponents
+from improver import cli
 
 
-def load_and_extract(cube_filepath, height_value, units):
+def extract_and_check(cube, height_value, units):
     """
-    Function to load a cube, attempt to extract a height level.
+    Function to attempt to extract a height level.
     If no matching level is available an error is raised.
 
     Args:
-        cube_filepath (str):
-            Path to the input NetCDF file.
+        cube (cube):
+            Cube to be extracted from and checked it worked.
         height_value (float):
             The boundary height to be extracted with the input units.
         units (str):
@@ -60,7 +53,7 @@ def load_and_extract(cube_filepath, height_value, units):
     Raises:
         ValueError: If height level is not found in the input cube.
     """
-    cube = load_cube(cube_filepath)
+    from improver.utilities.cube_extraction import extract_subcube
 
     # Write constraint in this format so a constraint is constructed that
     # is suitable for floating point comparison
@@ -71,78 +64,21 @@ def load_and_extract(cube_filepath, height_value, units):
     if cube is not None:
         return cube
 
-    raise ValueError('No data available from {} at height {}{}'.format(
-            cube_filepath, height_value, units))
+    raise ValueError('No data available at height {}{}'.format(
+        height_value, units))
 
 
-def main(argv=None):
-    """Calculate orographic enhancement of precipitation from model pressure,
-    temperature, relative humidity and wind input files"""
-
-    parser = ArgParser(description='Calculate orographic enhancement using the'
-                       ' ResolveWindComponents() and OrographicEnhancement() '
-                       'plugins. Outputs data on the high resolution orography'
-                       ' grid.')
-
-    parser.add_argument('temperature_filepath', metavar='TEMPERATURE_FILEPATH',
-                        help='Full path to input NetCDF file of temperature on'
-                        ' height levels')
-    parser.add_argument('humidity_filepath', metavar='HUMIDITY_FILEPATH',
-                        help='Full path to input NetCDF file of relative '
-                        'humidity on height levels')
-    parser.add_argument('pressure_filepath', metavar='PRESSURE_FILEPATH',
-                        help='Full path to input NetCDF file of pressure on '
-                        'height levels')
-    parser.add_argument('windspeed_filepath', metavar='WINDSPEED_FILEPATH',
-                        help='Full path to input NetCDF file of wind speed on '
-                        'height levels')
-    parser.add_argument('winddir_filepath', metavar='WINDDIR_FILEPATH',
-                        help='Full path to input NetCDF file of wind direction'
-                        ' on height levels')
-    parser.add_argument('orography_filepath', metavar='OROGRAPHY_FILEPATH',
-                        help='Full path to input NetCDF high resolution '
-                        'orography ancillary. This should be on the same or a '
-                        'finer resolution grid than the input variables, and '
-                        'defines the grid on which the orographic enhancement '
-                        'will be calculated.')
-    parser.add_argument('output_dir', metavar='OUTPUT_DIR', help='Directory '
-                        'to write output orographic enhancement files')
-    parser.add_argument('--boundary_height', type=float, default=1000.,
-                        help='Model height level to extract variables for '
-                        'calculating orographic enhancement, as proxy for '
-                        'the boundary layer.')
-    parser.add_argument('--boundary_height_units', type=str, default='m',
-                        help='Units of the boundary height specified for '
-                        'extracting model levels.')
-
-    args = parser.parse_args(args=argv)
-
-    constraint_info = (args.boundary_height, args.boundary_height_units)
-
-    temperature = load_and_extract(args.temperature_filepath, *constraint_info)
-    humidity = load_and_extract(args.humidity_filepath, *constraint_info)
-    pressure = load_and_extract(args.pressure_filepath, *constraint_info)
-    wind_speed = load_and_extract(args.windspeed_filepath, *constraint_info)
-    wind_dir = load_and_extract(args.winddir_filepath, *constraint_info)
-
-    # load high resolution orography
-    orography = load_cube(args.orography_filepath)
-
-    orogenh_high_res = process(
-        temperature, humidity, pressure, wind_speed, wind_dir, orography)
-
-    # generate file names
-    fname_high_res = os.path.join(
-        args.output_dir, generate_file_name(
-            orogenh_high_res,
-            parameter="orographic_enhancement_high_resolution"))
-
-    # save output files
-    save_netcdf(orogenh_high_res, fname_high_res)
-
-
-def process(temperature, humidity, pressure, wind_speed, wind_dir, orography):
-    """Calculate orograhpic enhancement
+@cli.clizefy
+@cli.with_output
+def process(temperature: cli.inputcube,
+            humidity: cli.inputcube,
+            pressure: cli.inputcube,
+            wind_speed: cli.inputcube,
+            wind_dir: cli.inputcube,
+            orography: cli.inputcube,
+            *,
+            boundary_height: float = 1000.0, boundary_height_units='m'):
+    """Calculate orographic enhancement
 
     Uses the ResolveWindComponents() and OrographicEnhancement() plugins.
     Outputs data on the high resolution orography grid.
@@ -161,18 +97,31 @@ def process(temperature, humidity, pressure, wind_speed, wind_dir, orography):
         orography (iris.cube.Cube):
             Cube containing height of orography above sea level on high
             resolution (1 km) UKPP domain grid.
+        boundary_height (float):
+            Model height level to extract variables for calculating orographic
+            enhancement, as proxy for the boundary layer.
+        boundary_height_units (str):
+            Units of the boundary height specified for extracting model levels.
 
     Returns:
         iris.cube.Cube:
             Precipitation enhancement due to orography on the high resolution
             input orography grid.
     """
+    from improver.orographic_enhancement import OrographicEnhancement
+    from improver.wind_calculations.wind_components import \
+        ResolveWindComponents
+
+    constraint_info = (boundary_height, boundary_height_units)
+
+    temperature = extract_and_check(temperature, *constraint_info)
+    humidity = extract_and_check(humidity, *constraint_info)
+    pressure = extract_and_check(pressure, *constraint_info)
+    wind_speed = extract_and_check(wind_speed, *constraint_info)
+    wind_dir = extract_and_check(wind_dir, *constraint_info)
+
     # resolve u and v wind components
     u_wind, v_wind = ResolveWindComponents().process(wind_speed, wind_dir)
     # calculate orographic enhancement
     return OrographicEnhancement().process(temperature, humidity, pressure,
                                            u_wind, v_wind, orography)
-
-
-if __name__ == "__main__":
-    main()

@@ -1,0 +1,28 @@
+name: Tests
+
+on: [push]
+
+jobs:
+  Tests:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install dependencies
+      run: |
+        $CONDA/bin/conda env update -q --file environment.yml --name base
+        $CONDA/bin/pip install clize
+        $CONDA/bin/conda list --export
+
+    - name: Pycodestyle (PEP8 conventions)
+      run:  $CONDA/bin/pycodestyle -v lib
+
+    - name: Sphinx-build (Doc test)
+      run: cd doc; make SPHINXBUILD=$CONDA/bin/sphinx-build html
+      
+    - name: Pytest (Unit tests)
+      run:  $CONDA/bin/pytest -m "not acc"
+
+    - name: Pylint (More linting goodness)
+      run: $CONDA/bin/pylint -j 0 -E --rcfile=etc/pylintrc lib

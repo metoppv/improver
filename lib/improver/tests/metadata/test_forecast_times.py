@@ -39,134 +39,140 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.metadata.forecast_times import (
-    forecast_period_coord, rebadge_forecasts_as_latest_cycle,
-    unify_cycletime, find_latest_cycletime)
+    forecast_period_coord, _calculate_forecast_period,
+    rebadge_forecasts_as_latest_cycle, unify_cycletime, find_latest_cycletime)
 from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, add_coordinate)
 from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_forecast_period_coord(IrisTest):
-
-    """Test determining of the lead times present within the input cube."""
+    """Test the forecast_period_coord function"""
 
     def setUp(self):
         """Set up a test cube with a forecast period scalar coordinate"""
         self.cube = set_up_variable_cube(np.ones((1, 3, 3), dtype=np.float32))
 
     def test_basic(self):
-        """Test that an iris.coords.DimCoord is returned."""
+        """Test that an iris.coords.DimCoord is returned from a cube with an
+        existing forecast period"""
         result = forecast_period_coord(self.cube)
         self.assertIsInstance(result, iris.coords.DimCoord)
 
-    def test_basic_AuxCoord(self):
-        """Test that an iris.coords.AuxCoord is returned."""
+    def test_no_forecast_period(self):
+        """Test that an iris.coords.AuxCoord is returned from a cube with no
+        forecast period"""
         self.cube.remove_coord('forecast_period')
         result = forecast_period_coord(
             self.cube, force_lead_time_calculation=True)
         self.assertIsInstance(result, iris.coords.AuxCoord)
 
-    def test_check_coordinate(self):
+    def test_values(self):
         """Test that the data within the coord is as expected with the
         expected units, when the input cube has a forecast_period coordinate.
         """
         fp_coord = self.cube.coord("forecast_period").copy()
-        expected_points = fp_coord.points
-        expected_units = str(fp_coord.units)
         result = forecast_period_coord(self.cube)
-        self.assertArrayEqual(result.points, expected_points)
-        self.assertEqual(str(result.units), expected_units)
+        self.assertArrayEqual(result.points, fp_coord.points)
+        self.assertEqual(result.units, fp_coord.units)
+        self.assertEqual(result.dtype, fp_coord.dtype)
 
-    def test_check_coordinate_force_lead_time_calculation(self):
+    def test_values_force_lead_time_calculation(self):
         """Test that the data within the coord is as expected with the
         expected units, when the input cube has a forecast_period coordinate.
         """
         fp_coord = self.cube.coord("forecast_period").copy()
-        expected_points = fp_coord.points
-        expected_units = str(fp_coord.units)
+        # put incorrect data into the existing coordinate so we can test it is
+        # correctly recalculated
+        self.cube.coord("forecast_period").points = [-3600]
         result = forecast_period_coord(
             self.cube, force_lead_time_calculation=True)
-        self.assertArrayEqual(result.points, expected_points)
-        self.assertEqual(result.units, expected_units)
+        self.assertArrayEqual(result.points, fp_coord.points)
+        self.assertEqual(result.units, fp_coord.units)
+        self.assertEqual(result.dtype, fp_coord.dtype)
 
-    def test_check_coordinate_in_hours_force_lead_time_calculation(self):
-        """Test that the data within the coord is as expected with the
-        expected units, when the input cube has a forecast_period coordinate.
-        """
-        fp_coord = self.cube.coord("forecast_period").copy()
-        fp_coord.convert_units("hours")
-        expected_points = fp_coord.points
-        expected_units = str(fp_coord.units)
-        result = forecast_period_coord(
-            self.cube, force_lead_time_calculation=True,
-            result_units=fp_coord.units)
-        self.assertArrayEqual(result.points, expected_points)
-        self.assertEqual(result.units, expected_units)
-
-    def test_check_coordinate_without_forecast_period(self):
-        """Test that the data within the coord is as expected with the
-        expected units, when the input cube has a time coordinate and a
-        forecast_reference_time coordinate.
-        """
-        fp_coord = self.cube.coord("forecast_period").copy()
-        expected_result = fp_coord
-        self.cube.remove_coord("forecast_period")
-        result = forecast_period_coord(self.cube)
-        self.assertEqual(result, expected_result)
-
-    def test_check_time_unit_conversion(self):
-        """Test that the data within the coord is as expected with the
-        expected units, when the input cube has a time coordinate with units
-        other than the usual units of seconds since 1970-01-01 00:00:00.
-        """
-        expected_result = self.cube.coord("forecast_period")
-        self.cube.coord("time").convert_units(
-            "hours since 1970-01-01 00:00:00")
-        result = forecast_period_coord(
-            self.cube, force_lead_time_calculation=True)
-        self.assertEqual(result, expected_result)
-
-    def test_check_time_unit_has_bounds(self):
-        """Test that the forecast_period coord has bounds if time has bounds.
-        """
-        cube = set_up_variable_cube(
-            np.ones((3, 3), dtype=np.float32),
-            time=datetime(2018, 3, 12, 20), frt=datetime(2018, 3, 12, 15),
-            time_bounds=[datetime(2018, 3, 12, 19), datetime(2018, 3, 12, 20)])
-        expected_result = cube.coord("forecast_period").copy()
-        expected_result.bounds = [[14400, 18000]]
-        result = forecast_period_coord(cube, force_lead_time_calculation=True)
-        self.assertEqual(result, expected_result)
-
-    @ManageWarnings(record=True)
-    def test_negative_forecast_periods_warning(self, warning_list=None):
-        """Test that a warning is raised if the point within the
-        time coordinate is prior to the point within the
-        forecast_reference_time, and therefore the forecast_period values that
-        have been generated are negative.
-        """
-        cube = set_up_variable_cube(np.ones((3, 3), dtype=np.float32))
-        cube.remove_coord("forecast_period")
-        # default cube has a 4 hour forecast period, so add 5 hours to frt
-        cube.coord("forecast_reference_time").points = (
-            cube.coord("forecast_reference_time").points + 5*3600)
-        warning_msg = "The values for the time"
-        forecast_period_coord(cube)
-        self.assertTrue(any(item.category == UserWarning
-                            for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item)
-                            for item in warning_list))
-
-    def test_exception_raised(self):
-        """Test that a CoordinateNotFoundError exception is raised if the
-        forecast_period, or the time and forecast_reference_time,
-        are not present.
+    def test_exception_insufficient_data(self):
+        """Test that a CoordinateNotFoundError exception is raised if forecast
+        period cannot be calculated from the available coordinates
         """
         self.cube.remove_coord("forecast_reference_time")
         self.cube.remove_coord("forecast_period")
         msg = "The forecast period coordinate is not available"
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             forecast_period_coord(self.cube)
+
+
+class Test__calculate_forecast_period(IrisTest):
+    """Test the _calculate_forecast_period function"""
+
+    def setUp(self):
+        """Set up test inputs (4 hour forecast period)"""
+        cube = set_up_variable_cube(np.ones((1, 3, 3), dtype=np.float32))
+        self.time_coord = cube.coord("time")
+        self.frt_coord = cube.coord("forecast_reference_time")
+        self.fp_coord = cube.coord("forecast_period")
+
+    def test_basic(self):
+        """Test correct coordinate type is returned"""
+        result = _calculate_forecast_period(self.time_coord, self.frt_coord)
+        self.assertIsInstance(result, iris.coords.AuxCoord)
+
+    def test_dim_coord(self):
+        """Test it is possible to create a dimension coordinate"""
+        result = _calculate_forecast_period(
+            self.time_coord, self.frt_coord, dim_coord=True)
+        self.assertIsInstance(result, iris.coords.DimCoord)
+
+    def test_values(self):
+        """Test correct values are returned"""
+        result = _calculate_forecast_period(self.time_coord, self.frt_coord)
+        self.assertArrayAlmostEqual(result.points, self.fp_coord.points)
+        self.assertEqual(result.units, self.fp_coord.units)
+        self.assertEqual(result.dtype, self.fp_coord.dtype)
+
+    def test_bounds(self):
+        """Test that the forecast_period coord has bounds where appropriate"""
+        time_point = self.time_coord.points[0]
+        self.time_coord.bounds = [[time_point - 3600, time_point]]
+        fp_point = self.fp_coord.points[0]
+        expected_fp_bounds = [[fp_point - 3600, fp_point]]
+        result = _calculate_forecast_period(self.time_coord, self.frt_coord)
+        self.assertArrayAlmostEqual(result.points, [fp_point])
+        self.assertArrayAlmostEqual(result.bounds, expected_fp_bounds)
+
+    def test_multiple_time_points(self):
+        """Test a multi-valued forecast period coordinate can be created"""
+        time_point = self.time_coord.points[0]
+        new_time_points = [time_point, time_point + 3600, time_point + 7200]
+        new_time_coord = self.time_coord.copy(new_time_points)
+        fp_point = self.fp_coord.points[0]
+        expected_fp_points = [fp_point, fp_point + 3600, fp_point + 7200]
+        result = _calculate_forecast_period(new_time_coord, self.frt_coord)
+        self.assertArrayAlmostEqual(result.points, expected_fp_points)
+
+    def test_check_time_unit_conversion(self):
+        """Test correct values and units are returned when the input time and
+        forecast reference time coordinates are in different units
+        """
+        self.time_coord.convert_units("seconds since 1970-01-01 00:00:00")
+        self.frt_coord.convert_units("hours since 1970-01-01 00:00:00")
+        result = _calculate_forecast_period(self.time_coord, self.frt_coord)
+        self.assertEqual(result, self.fp_coord)
+
+    @ManageWarnings(record=True)
+    def test_negative_forecast_period(self, warning_list=None):
+        """Test a warning is raised if the calculated forecast period is
+        negative"""
+        # default cube has a 4 hour forecast period, so add 5 hours to frt
+        self.frt_coord.points = self.frt_coord.points + 5*3600
+        result = _calculate_forecast_period(self.time_coord, self.frt_coord)
+        warning_msg = "The values for the time"
+        result = _calculate_forecast_period(self.time_coord, self.frt_coord)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
+        self.assertEqual(result.points, [-3600])
 
 
 class Test_rebadge_forecasts_as_latest_cycle(IrisTest):
