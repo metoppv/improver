@@ -109,16 +109,19 @@ def process(*cubes: cli.inputcube,
             An unexpected number of distinct cube names were passed in.
         RuntimeError:
             More than one cube was identified as a land-sea mask.
+        RuntimeError:
+            Missing truth and/or historical forcast in input cubes.
 
     """
 
     from collections import OrderedDict
-    from toolz.itertoolz import groupby
     from improver.utilities.cube_manipulation import MergeCubes
     from improver.ensemble_calibration.ensemble_calibration import (
         EstimateCoefficientsForEnsembleCalibration)
 
-    grouped_cubes = groupby(lambda cube: cube.name(), cubes)
+    grouped_cubes = {}
+    for cube in cubes:
+        grouped_cubes.setdefault(cube.name(), []).append(cube)
     if len(grouped_cubes) == 1:
         # Only one group - all forecast/truth cubes
         landsea_mask = None
@@ -137,16 +140,22 @@ def process(*cubes: cli.inputcube,
     else:
         raise RuntimeError('Must have cubes with 1 or 2 distinct names.')
 
-    truth_key, truth_value = truth_attribute.split('=')
-    def _is_truth(cube):
-        return cube.attributes.get(truth_key) == truth_value
-
     # split non-landmask cubes on forecast vs truth
-    grouped_cubes = grouped_cubes[diag_name]
-    grouped_cubes = groupby(_is_truth, grouped_cubes)
-    truth, forecast = grouped_cubes[True], grouped_cubes[False]
-    truth = MergeCubes()(truth)
-    forecast = MergeCubes()(forecast)
+    truth_key, truth_value = truth_attribute.split('=')
+    input_cubes = grouped_cubes[diag_name]
+    grouped_cubes = {'truth': [], 'historical forecast': []}
+    for cube in input_cubes:
+        if cube.attributes.get(truth_key) == truth_value:
+            grouped_cubes['truth'].append(cube)
+        else:
+            grouped_cubes['historical forecast'].append(cube)
+
+    missing_inputs = ' and '.join(k for k, v in grouped_cubes.items() if not v)
+    if missing_inputs:
+        raise RuntimeError('Missing ' + missing_inputs + ' input.')
+
+    truth = MergeCubes()(grouped_cubes['truth'])
+    forecast = MergeCubes()(grouped_cubes['historical forecast'])
 
     return EstimateCoefficientsForEnsembleCalibration(
         distribution, cycletime, desired_units=units,
