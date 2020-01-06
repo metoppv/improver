@@ -69,11 +69,13 @@ def process(cube: cli.inputcube,
             created using a land-sea mask.
             Default is None.
         radii (list of float):
-            The radius or a list of radii in metres of the
-            neighbourhood to apply.
-            If it is a list, it must be the same length as lead_times.
+            The radius or a list of radii in metres of the neighbourhood to
+            apply.
+            If it is a list, it must be the same length as lead_times, which
+            defines at which lead time to use which nbhood radius. The radius
+            will be interpolated for intermediate lead times.
         lead_times (list of int or None):
-            The lead times in hours.
+            The lead times in hours that correspond to the radii to be used.
             If lead_times is used, radius must be a list the same length as
             lead_times.
             Default is None
