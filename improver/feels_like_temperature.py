@@ -33,6 +33,8 @@
 import numpy as np
 from cf_units import Unit
 
+from improver.metadata.utilities import (
+    generate_mandatory_attributes, create_new_diagnostic_cube)
 from improver.psychrometric_calculations.psychrometric_calculations \
     import calculate_svp_in_air
 
@@ -92,21 +94,21 @@ def calculate_wind_chill(temperature, wind_speed):
     assumption being that lower wind speeds are usually not measured or
     reported accurately anyway.
     """
-    temp_units = temperature.copy().units
-    wind_units = wind_speed.copy().units
-    # convert temperature units
-    temperature.convert_units('celsius')
-    # convert wind speed to km/h
-    wind_speed.convert_units('km h-1')
-    eqn_component = (wind_speed.data)**0.16
+    t_cube = temperature.copy()
+    w_cube = wind_speed.copy()
+
+    t_cube.convert_units('degC')
+    w_cube.convert_units('km h-1')
+
+    eqn_component = (w_cube.data)**0.16
     wind_chill_data = (
-        13.12 + 0.6215 * temperature.data - 11.37 * eqn_component +
-        0.3965 * temperature.data * eqn_component).astype(np.float32)
-    wind_chill = temperature.copy(data=wind_chill_data)
-    wind_chill.rename("wind_chill")
-    wind_chill.convert_units(temp_units)
-    temperature.convert_units(temp_units)
-    wind_speed.convert_units(wind_units)
+        13.12 + 0.6215 * t_cube.data - 11.37 * eqn_component +
+        0.3965 * t_cube.data * eqn_component).astype(np.float32)
+
+    attributes = generate_mandatory_attributes([temperature, wind_speed])
+    wind_chill = create_new_diagnostic_cube(
+        "wind_chill", "degC", temperature, attributes, data=wind_chill_data)
+    wind_chill.convert_units(temperature.units)
     return wind_chill
 
 
@@ -155,42 +157,33 @@ def calculate_apparent_temperature(temperature, wind_speed,
       Steadman, R. (1984). A Universal Scale of Apparent Temperature.
       Journal of Climate and Applied Meteorology, 23(12), pp.1674-1687
     """
-    # take a copy of each cube's original units
-    temp_units = temperature.copy().units
-    wind_units = wind_speed.copy().units
-    pressure_units = pressure.copy().units
-    relative_humidity_units = relative_humidity.copy().units
+    t_cube = temperature.copy()
+    w_cube = wind_speed.copy()
+    p_cube = pressure.copy()
+    rh_cube = relative_humidity.copy()
 
-    # ensure units are correct
-    wind_speed.convert_units('m s-1')
-    pressure.convert_units('Pa')
-    relative_humidity.convert_units('1')
-    temperature.convert_units('K')
-    avp = temperature.copy()
-    avp.units = Unit('Pa')
-    # calculate saturation vapour pressure in air
+    t_cube.convert_units('K')
+    w_cube.convert_units('m s-1')
+    p_cube.convert_units('Pa')
+    rh_cube.convert_units('1')
+
+    # calculate saturation vapour pressure in air in Pa
     svp = calculate_svp_in_air(temperature.data, pressure.data)
-    # convert temperature units
-    temperature.convert_units('celsius')
-    # calculate actual vapour pressure
-    # and convert relative humidities to fractional values
-    avp_data = svp*relative_humidity.data
-    avp = avp.copy(data=avp_data)
-    avp.rename("actual_vapour_pressure")
-    avp.convert_units('kPa')
-    # calculate apparent temperature
-    apparent_temperature_data = (
-        -2.7 + 1.04 * temperature.data + 2.0 * avp.data -
-        0.65 * wind_speed.data).astype(np.float32)
-    apparent_temperature = temperature.copy(data=apparent_temperature_data)
-    apparent_temperature.rename("apparent_temperature")
-    apparent_temperature.convert_units(temp_units)
+    # calculate actual vapour pressure in kPa
+    avp = 0.001 * svp * rh_cube.data
 
-    # convert units back to input units
-    temperature.convert_units(temp_units)
-    wind_speed.convert_units(wind_units)
-    pressure.convert_units(pressure_units)
-    relative_humidity.convert_units(relative_humidity_units)
+    # calculate apparent temperature
+    t_cube.convert_units('degC')
+    apparent_temperature_data = (
+        -2.7 + 1.04 * t_cube.data + 2.0 * avp -
+        0.65 * w_cube.data).astype(np.float32)
+
+    attributes = generate_mandatory_attributes(
+        [temperature, wind_speed, pressure, relative_humidity])
+    apparent_temperature = create_new_diagnostic_cube(
+        "apparent_temperature", "degC", temperature, attributes,
+        data=apparent_temperature_data)
+    apparent_temperature.convert_units(temperature.units)
 
     return apparent_temperature
 
@@ -230,18 +223,19 @@ def calculate_feels_like_temperature(temperature, wind_speed,
         will be the same as the units of the temperature cube when it is input
         into the function.
     """
-    temp_units = temperature.units
-    # convert temperature units
-    temperature.convert_units('celsius')
-
+    # get wind chill and apparent temperatures in units of the input
+    # temperature cube
     wind_chill = calculate_wind_chill(temperature, wind_speed)
     apparent_temperature = calculate_apparent_temperature(
         temperature, wind_speed, relative_humidity, pressure)
 
-    t_data = temperature.data
-    feels_like_temperature_data = np.zeros(t_data.shape, dtype=np.float32)
+    # get temperatures in celcius
+    t_cube = temperature.copy()
+    t_cube.convert_units('degC')
+    t_data = t_cube.data
 
     # if temperature < 10 degrees Celsius:
+    feels_like_temperature_data = np.zeros(t_data.shape, dtype=np.float32)
     feels_like_temperature_data[t_data < 10] = wind_chill.data[t_data < 10]
 
     # if temperature >= 10 degrees Celsius and <= 20 degrees Celsius:
@@ -256,9 +250,10 @@ def calculate_feels_like_temperature(temperature, wind_speed,
     feels_like_temperature_data[t_data > 20] = (
         apparent_temperature.data[t_data > 20])
 
-    feels_like_temperature = temperature.copy(data=feels_like_temperature_data)
-    feels_like_temperature.rename("feels_like_temperature")
-    feels_like_temperature.convert_units(temp_units)
-    temperature.convert_units(temp_units)
+    attributes = generate_mandatory_attributes([temperature])
+    feels_like_temperature = create_new_diagnostic_cube(
+        "feels_like_temperature", apparent_temperature.units, temperature,
+        attributes, optional_attributes=temperature.attributes,
+        data=feels_like_temperature_data)
 
     return feels_like_temperature
