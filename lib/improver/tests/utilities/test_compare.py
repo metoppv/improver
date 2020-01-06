@@ -133,7 +133,6 @@ def test_compare_netcdf_attrs(dummy_nc):
     actual_ds.setncattr("float_number", 3.2)
     compare.compare_attributes(
         "root", actual_ds, expected_ds, message_collector)
-    print(messages_reported)
     assert len(messages_reported) == 1
     assert "float_number" in messages_reported[0]
     assert "3.2" in messages_reported[0]
@@ -146,7 +145,6 @@ def test_compare_netcdf_attrs(dummy_nc):
     actual_ds.setncattr("extra", "additional")
     compare.compare_attributes(
         "longer name", actual_ds, expected_ds, message_collector)
-    print(messages_reported)
     assert len(messages_reported) == 1
     assert "longer name" in messages_reported[0]
     # The difference message should mention the attribute which was added
@@ -289,5 +287,4 @@ def test_compare_data_shape(dummy_nc):
     compare.compare_data("lonlat", actual_ds[LON], expected_ds[LAT],
                          100.0, 100.0, message_collector)
     assert len(messages_reported) == 1
-    print(messages_reported[0])
     assert "shape" in messages_reported[0]

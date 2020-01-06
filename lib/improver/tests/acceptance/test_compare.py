@@ -62,7 +62,6 @@ def test_different(capsys):
     args = [a_file, b_file]
     run_cli(args)
     captured = capsys.readouterr()
-    print(captured.out)
     assert "different dimension size" in captured.out
     assert "different variables" in captured.out
     assert "different data" in captured.out
