@@ -49,33 +49,27 @@ def test_basic(tmp_path):
     input_path = kgo_dir / "input.nc"
     mask_path = kgo_dir / "mask.nc"
     output_path = tmp_path / "output.nc"
-    args = ["topographic_zone", input_path, mask_path, output_path,
-            "--radius=20000"]
+    args = [input_path, mask_path,
+            "--coord-for-masking", "topographic_zone",
+            "--radii", "20000",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("intermediate", (True, False))
-def test_collapse_bands(tmp_path, intermediate):
+def test_collapse_bands(tmp_path):
     """Test with collapsing orographic bands"""
     kgo_dir = acc.kgo_root() / "nbhood-iterate-with-mask/basic_collapse_bands"
     kgo_path = kgo_dir / "kgo_collapsed.nc"
-    kgo_intermediate_path = kgo_dir / \
-        "../collapse_store_intermediate/kgo_pre_collapse.nc"
     input_path = kgo_dir / "thresholded_input.nc"
     mask_path = kgo_dir / "orographic_bands_mask.nc"
     weights_path = kgo_dir / "orographic_bands_weights.nc"
     output_path = tmp_path / "output.nc"
-    output_intermediate_path = tmp_path / "intermediate.nc"
-    if intermediate:
-        im_args = ["--intermediate_filepath", output_intermediate_path]
-    else:
-        im_args = []
-    args = ["topographic_zone", input_path, mask_path, output_path,
-            "--radius", "10000", "--collapse_dimension",
-            "--weights_for_collapsing_dim", weights_path, *im_args]
+    args = [input_path, mask_path, weights_path,
+            "--coord-for-masking", "topographic_zone",
+            "--radii", "10000",
+            "--collapse-dimension",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
-    if intermediate:
-        acc.compare(output_intermediate_path, kgo_intermediate_path)
