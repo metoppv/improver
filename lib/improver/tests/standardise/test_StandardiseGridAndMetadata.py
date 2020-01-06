@@ -328,7 +328,7 @@ class Test_process_regrid_options(IrisTest):
         after regridding"""
         self.target_grid.attributes.pop("mosg__grid_domain")
         result = StandardiseGridAndMetadata().process(
-            self.cube, target_grid=self.target_grid)        
+            self.cube, target_grid=self.target_grid)
         self.assertNotIn("mosg__grid_domain", result.attributes)
 
 
