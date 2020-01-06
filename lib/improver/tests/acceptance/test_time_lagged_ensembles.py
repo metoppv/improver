@@ -43,7 +43,6 @@ run_cli = acc.run_cli(CLI)
 
 
 @pytest.mark.slow
-@pytest.mark.xfail(reason="comparison often exceeds time limit")
 def test_basic(tmp_path):
     """Test basic time lagging"""
     kgo_dir = acc.kgo_root() / "time-lagged-ens/same_validity"
@@ -53,7 +52,6 @@ def test_basic(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [*input_paths, output_path]
     run_cli(args)
-    pytest.fail("comparison of output and KGO is very slow")
     acc.compare(output_path, kgo_path)
 
 
