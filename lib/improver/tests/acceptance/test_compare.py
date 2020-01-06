@@ -28,8 +28,41 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Acceptance test related constants"""
+"""Tests for the compare CLI"""
 
-TIGHT_TOLERANCE = 1e-4
-DEFAULT_TOLERANCE = 1e-2
-LOOSE_TOLERANCE = 1e-1
+import shutil
+
+import pytest
+
+from improver.tests.acceptance import acceptance as acc
+
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI, verbose=False)
+
+
+def test_same(tmp_path, capsys):
+    """Compare identical files, should not produce any output"""
+    kgo_dir = acc.kgo_root()
+    input_file = kgo_dir / "percentile/basic/input.nc"
+    copied_file = tmp_path / "copied.nc"
+    shutil.copy(input_file, copied_file)
+    args = [input_file, copied_file]
+    run_cli(args)
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
+
+
+def test_different(capsys):
+    """Compare different files, should report differences to stdout"""
+    kgo_dir = acc.kgo_root()
+    a_file = kgo_dir / "percentile/basic/input.nc"
+    b_file = kgo_dir / "threshold/basic/input.nc"
+    args = [a_file, b_file]
+    run_cli(args)
+    captured = capsys.readouterr()
+    print(captured.out)
+    assert "different dimension size" in captured.out
+    assert "different variables" in captured.out
+    assert "different data" in captured.out

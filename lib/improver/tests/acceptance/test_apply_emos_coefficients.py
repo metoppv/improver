@@ -32,7 +32,9 @@
 
 import pytest
 
+from improver.tests.acceptance import LOOSE_TOLERANCE
 from improver.tests.acceptance import acceptance as acc
+
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
@@ -50,8 +52,7 @@ def test_gaussian(tmp_path):
     args = [input_path, emos_est_path, output_path,
             "norm", "--random_seed", "0"]
     run_cli(args)
-    acc.compare(output_path, kgo_path,
-                atol=acc.LOOSE_TOLERANCE, rtol=None)
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
 
 def test_truncated_gaussian(tmp_path):
@@ -66,8 +67,7 @@ def test_truncated_gaussian(tmp_path):
             "truncnorm", "--random_seed", "0",
             "--shape_parameters", "0", "inf"]
     run_cli(args)
-    acc.compare(output_path, kgo_path,
-                atol=acc.LOOSE_TOLERANCE, rtol=None)
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
 
 def predictor_of_mean(tmp_path, status):
@@ -82,8 +82,7 @@ def predictor_of_mean(tmp_path, status):
             "norm", "--predictor_of_mean", "realizations",
             "--random_seed", "0"]
     run_cli(args)
-    acc.compare(output_path, kgo_path,
-                atol=acc.LOOSE_TOLERANCE, rtol=None)
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
 
 @acc.skip_if_statsmodels
@@ -112,7 +111,7 @@ def test_probabilities(tmp_path):
             "norm", "--num_realizations=18"]
     run_cli(args)
     acc.compare(output_path, kgo_path,
-                atol=acc.LOOSE_TOLERANCE, rtol=None)
+                atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
 
 
 def test_probabilities_error(tmp_path):
@@ -139,7 +138,7 @@ def test_percentiles(tmp_path):
             "norm", "--num_realizations=18"]
     run_cli(args)
     acc.compare(output_path, kgo_path,
-                atol=acc.LOOSE_TOLERANCE, rtol=None)
+                atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
 
 
 def test_percentiles_error(tmp_path):
@@ -171,8 +170,8 @@ def test_rebadged_percentiles(tmp_path):
     # that the percentile input will have a percentile coordinate, whilst the
     # rebadged percentile input will result in a realization coordinate.
     acc.compare(output_path, kgo_path,
-                exclude_dims=["realization", "percentile"], options="-dNs",
-                atol=acc.LOOSE_TOLERANCE, rtol=None)
+                exclude_vars=["realization", "percentile"],
+                atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
 
 
 def test_no_coefficients(tmp_path):
@@ -184,7 +183,7 @@ def test_no_coefficients(tmp_path):
     with pytest.warns(UserWarning, match=".*no coefficients provided.*"):
         run_cli(args)
     acc.compare(output_path, input_path, recreate=False,
-                atol=acc.LOOSE_TOLERANCE, rtol=None)
+                atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
 
 
 def test_wrong_coefficients(tmp_path):

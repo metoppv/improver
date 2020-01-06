@@ -66,7 +66,7 @@ def test_alpha_files(tmp_path):
             f"--input_filepath_alphas_y={alphasy_path}",
             "--iterations=2"]
     run_cli(args)
-    acc.compare(output_path, kgo_path, rtol=None)
+    acc.compare(output_path, kgo_path, rtol=0.0)
 
 
 @pytest.mark.slow

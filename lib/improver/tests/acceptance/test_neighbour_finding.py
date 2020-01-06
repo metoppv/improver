@@ -193,7 +193,7 @@ def test_coord_beyond_bounds(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [sites_path, orography_path, landmask_path, output_path]
     run_cli(args)
-    acc.compare(output_path, kgo_path, exclude_dims=["longitude"])
+    acc.compare(output_path, kgo_path, exclude_vars=["longitude"])
 
 
 def test_unset_wmo_ids(tmp_path):

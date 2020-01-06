@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
@@ -28,8 +29,33 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Acceptance test related constants"""
+"""Script to compare netcdf files"""
 
-TIGHT_TOLERANCE = 1e-4
-DEFAULT_TOLERANCE = 1e-2
-LOOSE_TOLERANCE = 1e-1
+from improver.tests import acceptance as acc
+from improver.utilities import compare
+from improver import cli
+
+
+@cli.clizefy
+def process(actual: cli.inputpath,
+            desired: cli.inputpath,
+            rtol: float = acc.DEFAULT_TOLERANCE,
+            atol: float = acc.DEFAULT_TOLERANCE) -> None:
+    """
+    Compare two netcdf files
+
+    Args:
+        actual: path to output data netcdf file
+        desired: path to desired/known good data netcdf file
+        rtol: relative tolerance for data in variables
+        atol: absolute tolerance for data in variables
+
+    Returns:
+        None
+    """
+
+    def print_reporter(message):
+        print(message)
+
+    compare.compare_netcdfs(actual, desired, rtol=rtol, atol=atol,
+                            reporter=print_reporter)

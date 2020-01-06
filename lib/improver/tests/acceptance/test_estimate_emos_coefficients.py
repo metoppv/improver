@@ -38,6 +38,7 @@ which expand directory names in addition to filenames.
 
 import pytest
 
+from improver.tests.acceptance import LOOSE_TOLERANCE
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
@@ -61,7 +62,7 @@ def test_gaussian(tmp_path):
             "--truth_filepath", truth_path]
     run_cli(args)
     acc.compare(output_path, kgo_path,
-                atol=acc.LOOSE_TOLERANCE, rtol=None)
+                atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
 
 
 @pytest.mark.slow
@@ -80,7 +81,7 @@ def test_trunc_gaussian(tmp_path):
             "--truth_filepath", truth_path]
     run_cli(args)
     acc.compare(output_path, kgo_path,
-                atol=acc.LOOSE_TOLERANCE, rtol=None)
+                atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
 
 
 @pytest.mark.slow
@@ -97,7 +98,7 @@ def test_units(tmp_path):
             "--units", "K", "--max_iterations", "600"]
     run_cli(args)
     acc.compare(output_path, kgo_path,
-                atol=acc.LOOSE_TOLERANCE, rtol=None)
+                atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
 
 
 @pytest.mark.slow
@@ -116,7 +117,7 @@ def test_predictor_of_mean_no_sm(tmp_path):
             "--max_iterations", "150"]
     run_cli(args)
     acc.compare(output_path, kgo_path,
-                atol=acc.LOOSE_TOLERANCE, rtol=None)
+                atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
 
 
 @acc.skip_if_no_statsmodels
@@ -134,7 +135,7 @@ def test_predictor_of_mean_sm(tmp_path):
             "--max_iterations", "150"]
     run_cli(args)
     acc.compare(output_path, kgo_path,
-                atol=acc.LOOSE_TOLERANCE, rtol=None)
+                atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
 
 
 @pytest.mark.slow
@@ -152,7 +153,7 @@ def test_combined_inputs(tmp_path):
             "--truth_identifier", truth_path]
     run_cli(args)
     acc.compare(output_path, kgo_path,
-                atol=acc.LOOSE_TOLERANCE, rtol=None)
+                atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
 
 
 def test_only_truth_dataset(tmp_path):
@@ -230,4 +231,4 @@ def test_land_points_only(tmp_path):
             "--tolerance", "1e-4"]
     run_cli(args)
     acc.compare(output_path, kgo_path,
-                atol=acc.LOOSE_TOLERANCE, rtol=None)
+                atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)

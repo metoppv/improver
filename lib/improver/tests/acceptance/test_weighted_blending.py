@@ -240,7 +240,7 @@ def test_accum_cycle_blend(tmp_path):
             *input_paths,
             output_path]
     run_cli(args)
-    acc.compare(output_path, kgo_path, rtol=None)
+    acc.compare(output_path, kgo_path, rtol=0.0)
 
 
 def test_non_mo_model(tmp_path):

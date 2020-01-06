@@ -55,4 +55,4 @@ def test_basic(tmp_path):
     args = [wspd_path, wdir_path,
             "--output", output_path]
     run_cli(args)
-    acc.compare(output_path, kgo_path, rtol=None)
+    acc.compare(output_path, kgo_path, rtol=0.0)
