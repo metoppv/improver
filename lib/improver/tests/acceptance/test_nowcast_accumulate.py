@@ -42,11 +42,9 @@ run_cli = acc.run_cli(CLI)
 
 def test_basic(tmp_path):
     """
-    Test use of ECC to convert one set of percentiles to another set of
-    percentiles, and then reorder the ensemble using the raw ensemble
-    realizations
+    Test nowcast precipitation accumulations
     """
-    kgo_dir = acc.kgo_root() / "nowcast-accumulate/basic"
+    kgo_dir = acc.kgo_root() / "nowcast-feature-branch/nowcast-accumulate"
     kgo_path = kgo_dir / "kgo.nc"
     input_dir = acc.kgo_root() / "nowcast-optical-flow/basic"
     input_path = (input_dir /
