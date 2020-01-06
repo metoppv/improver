@@ -323,6 +323,14 @@ class Test_process_regrid_options(IrisTest):
             attributes_dict=attribute_changes)
         self.assertDictEqual(result.attributes, expected_attributes)
 
+    def test_incorrect_grid_attributes_removed(self):
+        """Test grid attributes not present on the target cube are removed
+        after regridding"""
+        self.target_grid.attributes.pop("mosg__grid_domain")
+        result = StandardiseGridAndMetadata().process(
+            self.cube, target_grid=self.target_grid)        
+        self.assertNotIn("mosg__grid_domain", result.attributes)
+
 
 if __name__ == '__main__':
     unittest.main()
