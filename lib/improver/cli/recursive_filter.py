@@ -34,15 +34,15 @@
 from improver import cli
 
 
+inputalphas = cli.create_constrained_inputcubelist_converter(
+    'alpha_x', 'alpha_y')
+
 @cli.clizefy
 @cli.with_output
 def process(cube: cli.inputcube,
-            *,
+            alpha_cubelist: inputalphas,
             mask_cube: cli.inputcube = None,
-            alphas_x_cube: cli.inputcube = None,
-            alphas_y_cube: cli.inputcube = None,
-            alpha_x: float = None,
-            alpha_y: float = None,
+            *,
             iterations: int = 1,
             re_mask=False):
     """Module to apply a recursive filter to neighbourhooded data.
@@ -54,30 +54,15 @@ def process(cube: cli.inputcube,
     The alpha parameter can be set on a grid square by grid-square basis for
     the x and y directions separately (using two arrays of alpha parameters
     of the same dimensionality as the domain).
-    Alternatively a single alpha value can be set for each of the x and y
-    direction and a float for the y direction and vice versa.
 
     Args:
         cube (iris.cube.Cube):
             Cube to be processed.
+        alpha_cubelist (iris.cube.CubeList):
+            CubeList describing the alpha factors to be used for smoothing in
+            in the x and y directions.
         mask_cube (iris.cube.Cube):
             Cube to mask the processed cube.
-            Default is None.
-        alphas_x_cube (iris.cube.Cube):
-            Cube describing the alpha factors to be used for smoothing in the
-            x direction.
-            Default is None.
-        alphas_y_cube (iris.cube.Cube):
-            Cube describing the alpha factors to be used for smoothing in the
-            y direction.
-            Default is None.
-        alpha_x (float):
-            A single alpha factor (0 < alpha_x < 1) to be applied to every
-            grid square in the x direction.
-            Default is None.
-        alpha_y (float):
-            A single alpha factor (0 < alpha_y < 1) to be applied to every grid
-            square in the y direction.
             Default is None.
         iterations (int):
             Number of times to apply the filter. (Typically < 3)
@@ -93,9 +78,9 @@ def process(cube: cli.inputcube,
             The processed Cube.
     """
     from improver.nbhood.recursive_filter import RecursiveFilter
-    result = RecursiveFilter(
-        alpha_x=alpha_x, alpha_y=alpha_y,
+
+    alphas_x_cube, alphas_y_cube = alpha_cubelist
+    return RecursiveFilter(
         iterations=iterations, re_mask=re_mask).process(
         cube, alphas_x=alphas_x_cube, alphas_y=alphas_y_cube,
         mask_cube=mask_cube)
-    return result

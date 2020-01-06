@@ -41,51 +41,32 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_basic_alpha(tmp_path):
-    """Test basic recursive filter usage with a numerical alpha value"""
-    kgo_dir = acc.kgo_root() / "recursive-filter/basic_alpha"
-    kgo_path = kgo_dir / "kgo.nc"
+def test_basic(tmp_path):
+    """Test basic recursive filter usage"""
+    kgo_dir = acc.kgo_root() / "recursive-filter"
+    kgo_path = kgo_dir / "kgo_basic.nc"
     input_path = kgo_dir / "input.nc"
+    alphas_path = kgo_dir / "alphas.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path,
-            "--alpha-x", "0.5",
-            "--alpha-y", "0.5",
-            "--iterations", "2",
+            alphas_path,
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
-def test_alpha_files(tmp_path):
-    """Test recursive filter usage with alpha grids"""
-    kgo_dir = acc.kgo_root() / "recursive-filter/option_alphas"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / "input.nc"
-    alphasx_path = kgo_dir / "alphasx.nc"
-    alphasy_path = kgo_dir / "alphasy.nc"
-    output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--alphas-x-cube", alphasx_path,
-            "--alphas-y-cube", alphasy_path,
-            "--iterations", "2",
-            "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path, rtol=None)
-
-
 @pytest.mark.slow
 def test_external_mask_with_remask(tmp_path):
     """Test recursive filter with input mask file and remasking"""
-    kgo_dir = acc.kgo_root() / "recursive-filter/masked_input"
+    kgo_dir = acc.kgo_root() / "recursive-filter"
     kgo_path = kgo_dir / "kgo_external_mask_with_re_mask.nc"
     input_path = kgo_dir / "input.nc"
+    alphas_path = kgo_dir / "alphas.nc"
     mask_path = kgo_dir / "mask.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path,
-            "--mask-cube", mask_path,
-            "--alpha-x", "0.5",
-            "--alpha-y", "0.5",
-            "--iterations", "2",
+            alphas_path,
+            mask_path,
             "--re-mask",
             "--output", output_path]
     run_cli(args)
@@ -95,16 +76,15 @@ def test_external_mask_with_remask(tmp_path):
 @pytest.mark.slow
 def test_external_mask_with_no_remask(tmp_path):
     """Test recursive filter with input mask file and no remasking"""
-    kgo_dir = acc.kgo_root() / "recursive-filter/masked_input"
+    kgo_dir = acc.kgo_root() / "recursive-filter"
     kgo_path = kgo_dir / "kgo_external_mask_no_re_mask.nc"
     input_path = kgo_dir / "input.nc"
+    alphas_path = kgo_dir / "alphas.nc"
     mask_path = kgo_dir / "mask.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path,
-            "--mask-cube", mask_path,
-            "--alpha-x", "0.5",
-            "--alpha-y", "0.5",
-            "--iterations", "2",
+            alphas_path,
+            mask_path,
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -112,14 +92,13 @@ def test_external_mask_with_no_remask(tmp_path):
 
 def test_internal_mask_with_remask(tmp_path):
     """Test recursive filter with internal mask and remasking"""
-    kgo_dir = acc.kgo_root() / "recursive-filter/masked_input"
+    kgo_dir = acc.kgo_root() / "recursive-filter"
     kgo_path = kgo_dir / "kgo_internal_mask_with_re_mask.nc"
     input_path = kgo_dir / "input_masked.nc"
+    alphas_path = kgo_dir / "alphas.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path,
-            "--alpha-x", "0.5",
-            "--alpha-y", "0.5",
-            "--iterations", "2",
+            alphas_path,
             "--re-mask",
             "--output", output_path]
     run_cli(args)
@@ -127,15 +106,14 @@ def test_internal_mask_with_remask(tmp_path):
 
 
 def test_internal_mask_with_no_remask(tmp_path):
-    """Test recursive filter with internal mask and remasking"""
-    kgo_dir = acc.kgo_root() / "recursive-filter/masked_input"
+    """Test recursive filter with internal mask and no remasking"""
+    kgo_dir = acc.kgo_root() / "recursive-filter"
     kgo_path = kgo_dir / "kgo_internal_mask_no_re_mask.nc"
     input_path = kgo_dir / "input_masked.nc"
+    alphas_path = kgo_dir / "alphas.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path,
-            "--alpha-x", "0.5",
-            "--alpha-y", "0.5",
-            "--iterations", "2",
+            alphas_path,
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
