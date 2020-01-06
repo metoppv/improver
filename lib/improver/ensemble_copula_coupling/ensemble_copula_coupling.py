@@ -798,7 +798,7 @@ class GeneratePercentilesFromMeanAndVariance(BasePlugin, FromMeanAndVariance):
             (len(percentiles),) + calibrated_forecast_predictor.data.shape)
 
         for prob_coord_name in ["realization", "percentile"]:
-            if template_cube.coords(prob_coord_name):
+            if template_cube.coords(prob_coord_name, dim_coords=True):
                 prob_coord = template_cube.coord(prob_coord_name)
                 template_slice = next(template_cube.slices_over(prob_coord))
                 template_slice.remove_coord(prob_coord)
