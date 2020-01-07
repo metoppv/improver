@@ -60,7 +60,6 @@ def test_gaussian(tmp_path):
             "--distribution", "gaussian",
             "--cycletime", "20170605T0300Z",
             "--truth-attribute", "mosg__model_configuration=uk_det",
-            "--tolerance", str(acc.LOOSE_TOLERANCE * 1e-1),
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path,
@@ -82,7 +81,6 @@ def test_trunc_gaussian(tmp_path):
             "--distribution", "truncated_gaussian",
             "--cycletime", "20170605T0300Z",
             "--truth-attribute", "mosg__model_configuration=uk_det",
-            "--tolerance", str(acc.LOOSE_TOLERANCE * 1e-1),
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path,
@@ -102,7 +100,6 @@ def test_units(tmp_path):
             "--cycletime", "20170605T0300Z",
             "--truth-attribute", "mosg__model_configuration=uk_det",
             "--units", "K",
-            "--tolerance", str(acc.LOOSE_TOLERANCE * 1e-1),
             "--max-iterations", "600",
             "--output", output_path]
     run_cli(args)
@@ -124,7 +121,6 @@ def test_predictor_of_mean_no_sm(tmp_path):
             "--cycletime", "20170605T0300Z",
             "--truth-attribute", "mosg__model_configuration=uk_det",
             "--predictor-of-mean", "realizations",
-            "--tolerance", str(acc.LOOSE_TOLERANCE * 1e-1),
             "--max-iterations", "150",
             "--output", output_path]
     run_cli(args)
@@ -145,7 +141,6 @@ def test_predictor_of_mean_sm(tmp_path):
             "--cycletime", "20170605T0300Z",
             "--truth-attribute", "mosg__model_configuration=uk_det",
             "--predictor-of-mean", "realizations",
-            "--tolerance", str(acc.LOOSE_TOLERANCE * 1e-1),
             "--max-iterations", "150",
             "--output", output_path]
     run_cli(args)

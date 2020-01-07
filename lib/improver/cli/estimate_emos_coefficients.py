@@ -44,7 +44,7 @@ def process(*cubes: cli.inputcube,
             cycletime,
             units=None,
             predictor_of_mean='mean',
-            tolerance: float = 1,
+            tolerance: float = 0.01,
             max_iterations: int = 1000):
     """Estimate coefficients for Ensemble Model Output Statistics.
 
