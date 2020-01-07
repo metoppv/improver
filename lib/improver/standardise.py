@@ -198,11 +198,11 @@ class StandardiseGridAndMetadata(BasePlugin):
         required_grid_attributes = [attr for attr in cube.attributes
                                     if attr in MOSG_GRID_ATTRIBUTES]
         # update attributes if available on target grid, otherwise remove
-        val = (lambda k, t: t.attributes[k]
-               if k in t.attributes else "remove")  # noqa: E731
-        grid_attribute_changes = {key: val(key, target_grid)
-                                  for key in required_grid_attributes}
-        amend_attributes(cube, grid_attribute_changes)
+        for key in required_grid_attributes:
+            if key in target_grid.attributes:
+                cube.attributes[key] = target_grid.attributes[key]
+            else:
+                cube.attributes.pop(key)
 
         cube.attributes["title"] = (
             MANDATORY_ATTRIBUTE_DEFAULTS["title"]
