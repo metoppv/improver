@@ -117,6 +117,18 @@ class Test_create_new_diagnostic_cube(unittest.TestCase):
         self.assertEqual(result.long_name, "RainRate Composite")
         self.assertIsNone(result.standard_name)
 
+    def test_inherit_model_id(self):
+        """Test cube can inherit model identification metadata when
+        specified"""
+        model_id_attr = "mosg__model_configuration"
+        expected_attributes = self.mandatory_attributes.copy()
+        expected_attributes[model_id_attr] = (
+            self.template_cube.attributes[model_id_attr])
+        result = create_new_diagnostic_cube(
+            self.name, self.units, self.template_cube,
+            self.mandatory_attributes, model_id_attr=model_id_attr)
+        self.assertDictEqual(result.attributes, expected_attributes)
+
 
 class Test_generate_mandatory_attributes(unittest.TestCase):
     """Test the generate_mandatory_attributes utility"""

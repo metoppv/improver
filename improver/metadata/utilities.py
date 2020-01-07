@@ -42,17 +42,18 @@ from improver.metadata.constants.attributes import (
 
 
 def create_new_diagnostic_cube(
-        name, units, coordinate_template, mandatory_attributes,
-        optional_attributes=None, data=None, dtype=np.float32):
+        name, units, template_cube, mandatory_attributes,
+        optional_attributes=None, model_id_attr=None, data=None,
+        dtype=np.float32):
     """
-    Creates a template for a new diagnostic cube with suitable metadata.
+    Creates a new diagnostic cube with suitable metadata.
 
     Args:
         name (str):
             Standard or long name for output cube
         units (str or cf_units.Unit):
             Units for output cube
-        coordinate_template (iris.cube.Cube):
+        template_cube (iris.cube.Cube):
             Cube from which to copy dimensional and auxiliary coordinates
         mandatory_attributes (dict):
             Dictionary containing values for the mandatory attributes
@@ -62,6 +63,10 @@ def create_new_diagnostic_cube(
             Dictionary of optional attribute names and values.  If values for
             mandatory attributes are included in this dictionary they override
             the values of mandatory_attributes.
+        model_id_attr (str or None):
+            Name of attribute used to identify source model, if required.  This
+            should only be used where the new cube will be input to a
+            multi-model blend.  The value is inherited from template_cube.
         data (numpy.ndarray or None):
             Data array.  If not set, cube is filled with zeros using a lazy
             data object, as this will be overwritten later by the caller
@@ -76,6 +81,8 @@ def create_new_diagnostic_cube(
     attributes = mandatory_attributes
     if optional_attributes is not None:
         attributes.update(optional_attributes)
+    if model_id_attr is not None and model_id_attr not in attributes:
+        attributes[model_id_attr] = template_cube.attributes[model_id_attr]
 
     error_msg = ""
     for attr in MANDATORY_ATTRIBUTES:
@@ -85,11 +92,11 @@ def create_new_diagnostic_cube(
         raise ValueError(error_msg)
 
     if data is None:
-        data = da.zeros_like(coordinate_template.core_data(), dtype=dtype)
+        data = da.zeros_like(template_cube.core_data(), dtype=dtype)
 
     aux_coords_and_dims, dim_coords_and_dims = [
-        [(coord, coordinate_template.coord_dims(coord))
-         for coord in getattr(coordinate_template, coord_type)]
+        [(coord, template_cube.coord_dims(coord))
+         for coord in getattr(template_cube, coord_type)]
         for coord_type in ('aux_coords', 'dim_coords')]
 
     cube = iris.cube.Cube(
