@@ -112,7 +112,8 @@ def process(cube: cli.inputcube,
             Default is False.
         percentiles (float or None):
             Calculates value at the specified percentiles from the
-            neighbourhood surrounding each grid point.
+            neighbourhood surrounding each grid point. This argument has no
+            effect if the output is probabilities.
             Default is improver.constants.DEFAULT_PERCENTILES.
         halo_radius (float or None):
             Radius in metres of excess halo to clip. Used where a larger grid
@@ -141,34 +142,28 @@ def process(cube: cli.inputcube,
         ValueError:
             If degree_as_complex is used with neighbourhood_shape='circular'.
     """
+    from improver.nbhood import radius_by_lead_time
     from improver.nbhood.nbhood import (
         GeneratePercentilesFromANeighbourhood, NeighbourhoodProcessing)
     from improver.utilities.pad_spatial import remove_cube_halo
     from improver.wind_calculations.wind_direction import WindDirection
 
-    if (neighbourhood_output == "percentiles" and
-            neighbourhood_shape == "square"):
-        raise RuntimeError('neighbourhood_shape="square" cannot be used with'
-                           'neighbourhood_output="percentiles"')
+    if neighbourhood_output == "percentiles":
+        if neighbourhood_shape == "square":
+            raise RuntimeError('neighbourhood_shape="square" cannot be used '
+                               'with neighbourhood_output="percentiles"')
+        if weighted_mode:
+            raise RuntimeError('weighted_mode cannot be used with'
+                               'neighbourhood_output="percentiles"')
+        if degrees_as_complex:
+            raise ValueError('Cannot generate percentiles from complex '
+                             'numbers')
 
-    if neighbourhood_output == "percentiles" and weighted_mode:
-        raise RuntimeError('weighted_mode cannot be used with'
-                           'neighbourhood_output="percentiles"')
-
-    if (neighbourhood_output == "probabilities" and
-            percentiles != DEFAULT_PERCENTILES):
-        raise RuntimeError('percentiles cannot be DEFAULT_PERCENTILES with'
-                           'neighbourhood_output="probabilities"')
-
-    if mask_cube and neighbourhood_shape == "circular":
-        raise RuntimeError('mask_cube cannot be used with'
-                           'neighbourhood_output="circular"')
-
-    if degrees_as_complex:
-        if neighbourhood_output == "percentiles":
-            raise ValueError(
-                'Cannot generate percentiles from complex numbers')
-        if neighbourhood_shape == "circular":
+    if neighbourhood_shape == "circular":
+        if mask_cube:
+            raise RuntimeError('mask_cube cannot be used with '
+                               'neighbourhood_output="circular"')
+        if degrees_as_complex:
             raise ValueError(
                 'Cannot process complex numbers with circular neighbourhoods')
 
@@ -176,14 +171,7 @@ def process(cube: cli.inputcube,
         # convert cube data into complex numbers
         cube.data = WindDirection.deg_to_complex(cube.data)
 
-    if lead_times is None:
-        radius_or_radii = float(radii[0])
-    else:
-        if len(radii) != len(lead_times):
-            raise RuntimeError("If leadtimes are supplied, it must be a list"
-                               " of equal length to a list of radii.")
-        radius_or_radii = [float(x) for x in radii]
-        lead_times = [int(x) for x in lead_times]
+    radius_or_radii, lead_times = radius_by_lead_time(radii, lead_times)
 
     if neighbourhood_output == "probabilities":
         result = (
