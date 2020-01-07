@@ -29,7 +29,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to estimate coefficients for Ensemble Model Output
+"""CLI to estimate coefficients for Ensemble Model Output
 Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
 Regression (NGR)."""
 
@@ -41,7 +41,7 @@ from improver import cli
 def process(*cubes: cli.inputcube,
             distribution,
             truth_attribute,
-            cycletime=None,
+            cycletime,
             units=None,
             predictor_of_mean='mean',
             tolerance: float = 1,
@@ -57,17 +57,17 @@ def process(*cubes: cli.inputcube,
     Args:
         cubes (list of iris.cube.Cube):
             A list of cubes containing the historical forecasts and
-            corresponding truth used for calibration. Optionally this may also
-            contain a land-sea mask cube on the same domain as the historic
-            forecasts and truth (where land points are set to one and sea
-            points are set to zero).
+            corresponding truth used for calibration. They must have the same
+            cube name and will be separated based on the truth attribute.
+            Optionally this may also contain a single land-sea mask cube on the
+            same domain as the historic forecasts and truth (where land points
+            are set to one and sea points are set to zero).
         distribution (str):
             The distribution that will be used for calibration. This will be
             dependant upon the input phenomenon.
         truth_attribute (str):
-            A string of the form "attribute=value" which specifies which
-            attribute, value pair in the list of cubes corresponds to the
-            forecast truth.
+            An attribute and its value in the format of "attribute=value",
+            which must be present on historical truth cubes.
         cycletime (str):
             This denotes the cycle at which forecasts will be calibrated using
             the calculated EMOS coefficients. The validity time in the output
@@ -76,12 +76,10 @@ def process(*cubes: cli.inputcube,
         units (str):
             The units that calibration should be undertaken in. The historical
             forecast and truth will be converted as required.
-            Default is None.
         predictor_of_mean (str):
             String to specify the input to calculate the calibrated mean.
             Currently the ensemble mean ("mean") and the ensemble realizations
             ("realizations") are supported as the predictors.
-            Default is 'mean'.
         tolerance (float):
             The tolerance for the Continuous Ranked Probability Score (CRPS)
             calculated by the minimisation. Once multiple iterations result in
@@ -96,7 +94,6 @@ def process(*cubes: cli.inputcube,
             If the predictor_of_mean is "realizations", then the number of
             iterations may require increasing, as there will be more
             coefficients to solve.
-            Default is 1000.
 
     Returns:
         iris.cube.Cube:
@@ -110,7 +107,7 @@ def process(*cubes: cli.inputcube,
         RuntimeError:
             More than one cube was identified as a land-sea mask.
         RuntimeError:
-            Missing truth and/or historical forcast in input cubes.
+            Missing truth or historical forecast in input cubes.
 
     """
 
