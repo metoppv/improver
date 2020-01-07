@@ -54,8 +54,5 @@ def process(actual: cli.inputpath,
         None
     """
 
-    def print_reporter(message):
-        print(message)
-
     compare.compare_netcdfs(actual, desired, rtol=rtol, atol=atol,
-                            reporter=print_reporter)
+                            reporter=print)
