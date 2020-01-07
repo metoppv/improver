@@ -132,7 +132,7 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         self.expected_loc_param_mean_cube = set_up_variable_cube(
             self.expected_loc_param_mean, name="location_parameter",
             units="K", attributes=MANDATORY_ATTRIBUTE_DEFAULTS)
-        self.expected_calibrated_predictor_variance_cube = (
+        self.expected_scale_param_mean_cube = (
             set_up_variable_cube(
                 self.expected_scale_param_mean,
                 name="scale_parameter", units="Kelvin^2",
@@ -429,7 +429,7 @@ class Test__create_output_cubes(
             self.expected_loc_param_mean_cube)
         self.assertEqual(
             scale_parameter_cube,
-            self.expected_calibrated_predictor_variance_cube)
+            self.expected_scale_param_mean_cube)
 
 
 class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
