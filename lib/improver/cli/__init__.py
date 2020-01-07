@@ -180,6 +180,21 @@ def comma_separated_list(to_convert):
     return maybe_coerce_with(lambda s: s.split(','), to_convert)
 
 
+@value_converter
+def inputpath(to_convert):
+    """Converts string paths to pathlib Path objects
+
+    Args:
+        to_convert (string or pathlib.Path):
+            path represented as string
+
+    Returns:
+        (pathlib.Path): Path object
+
+    """
+    return maybe_coerce_with(pathlib.Path, to_convert)
+
+
 def create_constrained_inputcubelist_converter(*constraints):
     """Makes function that the input constraints are used in a loop.
 
