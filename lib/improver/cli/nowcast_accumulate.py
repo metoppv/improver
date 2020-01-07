@@ -95,7 +95,7 @@ def process(input_cube: cli.inputcube,
     import numpy as np
 
     from improver.nowcasting.accumulation import Accumulation
-    from improver.nowcasting.forecasting import CreateExtrapolationForecast
+    from improver.nowcasting.pysteps_advection import PystepsExtrapolate
     from improver.utilities.cube_manipulation import merge_cubes
 
     u_cube = advection_cubes.extract(
@@ -107,10 +107,9 @@ def process(input_cube: cli.inputcube,
         raise TypeError("Neither u_cube or v_cube can be None")
 
     # extrapolate input data to the maximum required lead time
-    forecast_cubes = CreateExtrapolationForecast(
-        input_cube, u_cube, v_cube, orographic_enhancement_cube=oe_cube,
-        attributes_dict=attributes_dict).process(ACCUMULATION_FIDELITY,
-                                                 max_lead_time)
+    forecast_plugin = PystepsExtrapolate(ACCUMULATION_FIDELITY, max_lead_time)
+    forecast_cubes = forecast_plugin.process(
+        input_cube, u_cube, v_cube, oe_cube, attributes_dict=attributes_dict)
 
     lead_times = (np.arange(lead_time_interval, max_lead_time + 1,
                             lead_time_interval))
