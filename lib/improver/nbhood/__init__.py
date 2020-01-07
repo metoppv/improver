@@ -50,6 +50,8 @@ def radius_by_lead_time(radii, lead_times):
                 Radii as a float or list of floats.
             **lead_times** (None or list of ints):
                 Lead times in hours as a list of ints or None.
+    Raises:
+        ValueError: If radii and lead_times lists are on unequal lengths.
     """
     if lead_times is None:
         radius_or_radii = float(radii[0])

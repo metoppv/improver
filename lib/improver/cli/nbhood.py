@@ -136,10 +136,10 @@ def process(cube: cli.inputcube,
             percentiles are used.
         RuntimeError:
             If neighbourhood_shape='circular' is used with mask cube.
-        ValueError:
+        RuntimeError:
             If degree_as_complex is used with
             neighbourhood_output='percentiles'.
-        ValueError:
+        RuntimeError:
             If degree_as_complex is used with neighbourhood_shape='circular'.
     """
     from improver.nbhood import radius_by_lead_time
@@ -156,15 +156,15 @@ def process(cube: cli.inputcube,
             raise RuntimeError('weighted_mode cannot be used with'
                                'neighbourhood_output="percentiles"')
         if degrees_as_complex:
-            raise ValueError('Cannot generate percentiles from complex '
-                             'numbers')
+            raise RuntimeError('Cannot generate percentiles from complex '
+                               'numbers')
 
     if neighbourhood_shape == "circular":
         if mask_cube:
             raise RuntimeError('mask_cube cannot be used with '
                                'neighbourhood_output="circular"')
         if degrees_as_complex:
-            raise ValueError(
+            raise RuntimeError(
                 'Cannot process complex numbers with circular neighbourhoods')
 
     if degrees_as_complex:
