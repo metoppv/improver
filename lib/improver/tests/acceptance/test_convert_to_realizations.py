@@ -83,7 +83,6 @@ def test_realizations(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_path
     output_path = tmp_path / "output.nc"
-
     args = [input_path,
             "--no-of-realizations", "12",
             "--output", output_path]
