@@ -446,7 +446,8 @@ def add_coordinate(incube, coord_points, coord_name, coord_units=None,
                      units=coord_units, attributes=attributes))
 
         # recalculate forecast period if time or frt have been updated
-        if is_datetime and "time" in coord_name:
+        if ("time" in coord_name and coord_units is not None
+                and Unit(coord_units).is_time_reference()):
             forecast_period = forecast_period_coord(
                 temp_cube, force_lead_time_calculation=True)
             try:
