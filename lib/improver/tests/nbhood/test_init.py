@@ -43,11 +43,11 @@ class Test_radius_by_lead_time(unittest.TestCase):
         returned objects are a float equal to the input radius and a NoneType
         representing the lead times."""
 
-        radii = [10000]
+        radii = ['10000']
         lead_times = None
         radii_out, lead_times_out = radius_by_lead_time(radii, lead_times)
 
-        self.assertEqual(radii_out, radii[0])
+        self.assertEqual(radii_out, float(radii[0]))
         self.assertEqual(lead_times_out, None)
         self.assertIsInstance(radii_out, float)
 
@@ -56,12 +56,12 @@ class Test_radius_by_lead_time(unittest.TestCase):
         returned objects are two lists, one of radii as floats and one of lead
         times as ints."""
 
-        radii = [10000, 20000]
-        lead_times = [0.0, 10.0]
+        radii = ['10000', '20000']
+        lead_times = ['0', '10']
         radii_out, lead_times_out = radius_by_lead_time(radii, lead_times)
 
-        self.assertEqual(radii_out, radii)
-        self.assertEqual(lead_times_out, lead_times)
+        self.assertEqual(radii_out, list(map(float, radii)))
+        self.assertEqual(lead_times_out, list(map(int, lead_times)))
         self.assertIsInstance(radii_out[0], float)
         self.assertIsInstance(lead_times_out[0], int)
 
@@ -69,8 +69,8 @@ class Test_radius_by_lead_time(unittest.TestCase):
         """Test that when multiple radii are provided with an unmatched number
         of lead times an exception is raised."""
 
-        radii = [10000, 20000]
-        lead_times = [0.0, 10.0, 20.0]
+        radii = ['10000', '20000']
+        lead_times = ['0', '10', '20']
 
         msg = "If leadtimes are supplied, it must be a list of equal length"
         with self.assertRaisesRegex(ValueError, msg):
@@ -81,11 +81,11 @@ class Test_radius_by_lead_time(unittest.TestCase):
         returned objects are a float equal to the first input radius and a
         NoneType representing the lead times"""
 
-        radii = [10000, 20000]
+        radii = ['10000', '20000']
         lead_times = None
         radii_out, lead_times_out = radius_by_lead_time(radii, lead_times)
 
-        self.assertEqual(radii_out, radii[0])
+        self.assertEqual(radii_out, float(radii[0]))
         self.assertEqual(lead_times_out, None)
         self.assertIsInstance(radii_out, float)
 

@@ -84,7 +84,7 @@ def process(cube: cli.inputcube,
         lead_times (list of int or None):
             The lead times in hours that correspond to the radii to be used.
             If lead_times is used, radius must be a list the same length as
-            lead_times.
+            lead_times. Lead times must be given as integer values.
             Default is None
         sum_or_fraction (str):
             Identifier for whether sum or fraction should be returned from
