@@ -74,3 +74,30 @@ def test_probabilities(tmp_path):
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_realizations(tmp_path):
+    """Test basic null realization to realization conversion"""
+    kgo_dir = (acc.kgo_root() /
+               "probabilities-to-realizations/12_realizations")
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_path
+
+    output_path = tmp_path / "output.nc"
+
+    args = [input_path,
+            "--no-of-realizations", "12",
+            "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, input_path)
+
+
+def test_invalid_dataset(tmp_path):
+    """Test unhandlable conversion failure."""
+    input_dir = (acc.kgo_root() /
+                 "probabilities-to-realizations/invalid/")
+    input_path = input_dir / "input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [input_path, "--output", output_path]
+    with pytest.raises(ValueError, match=".*Unable to convert.*"):
+        run_cli(args)
