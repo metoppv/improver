@@ -805,6 +805,8 @@ class GeneratePercentilesFromMeanAndVariance(BasePlugin, FromMeanAndVariance):
 
         percentile_cube = create_cube_with_percentiles(
             percentiles, template_slice, result)
+        # Remove cell methods associated with finding the ensemble mean
+        percentile_cube.cell_methods = {}
         return percentile_cube
 
     def process(self, calibrated_forecast_predictor,
