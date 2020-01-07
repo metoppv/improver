@@ -82,7 +82,6 @@ def test_realizations(tmp_path):
                "probabilities-to-realizations/12_realizations")
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_path
-
     output_path = tmp_path / "output.nc"
 
     args = [input_path,
