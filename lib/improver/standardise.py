@@ -194,10 +194,15 @@ class StandardiseGridAndMetadata(BasePlugin):
         if self.REGRID_REQUIRES_LANDMASK[self.regrid_mode]:
             cube = self._adjust_landsea(cube, target_grid)
 
-        attributes_to_inherit = (
-            {key: val for (key, val) in target_grid.attributes.items()
-             if key in MOSG_GRID_ATTRIBUTES})
-        amend_attributes(cube, attributes_to_inherit)
+        # identify grid-describing attributes on source cube that need updating
+        required_grid_attributes = [attr for attr in cube.attributes
+                                    if attr in MOSG_GRID_ATTRIBUTES]
+        # update attributes if available on target grid, otherwise remove
+        for key in required_grid_attributes:
+            if key in target_grid.attributes:
+                cube.attributes[key] = target_grid.attributes[key]
+            else:
+                cube.attributes.pop(key)
 
         cube.attributes["title"] = (
             MANDATORY_ATTRIBUTE_DEFAULTS["title"]
