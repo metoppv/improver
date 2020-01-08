@@ -36,7 +36,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(*cubelist: cli.inputcube,
+def process(*cubes: cli.inputcube,
             operation='+',
             new_name=None,
             new_metadata: cli.inputjson = None,
@@ -46,7 +46,7 @@ def process(*cubelist: cli.inputcube,
     Combine the input cubes into a single cube using the requested operation.
 
     Args:
-        cubelist (iris.cube.CubeList or list of iris.cube.Cube):
+        cubes (iris.cube.CubeList or list of iris.cube.Cube):
             An iris CubeList to be combined.
         operation (str):
             An operation to use in combining input cubes. One of:
@@ -67,11 +67,11 @@ def process(*cubelist: cli.inputcube,
     coords_to_expand = None
     if new_metadata and 'expanded_coord' in new_metadata:
         coords_to_expand = new_metadata['expanded_coord']
-    if not cubelist:
+    if not cubes:
         raise TypeError("A cube is needed to be combined.")
     if new_name is None:
-        new_name = cubelist[0].name()
+        new_name = cubes[0].name()
     result = CubeCombiner(operation, warnings_on=check_metadata).process(
-        CubeList(cubelist), new_name, coords_to_expand=coords_to_expand)
+        CubeList(cubes), new_name, coords_to_expand=coords_to_expand)
 
     return result

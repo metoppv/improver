@@ -37,7 +37,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(*cubelist: cli.inputcube,
+def process(*cubes: cli.inputcube,
             coordinate,
             weighting_method='linear',
             weighting_coord='forecast_period',
@@ -56,7 +56,7 @@ def process(*cubelist: cli.inputcube,
     of input cube data using the options specified.
 
     Args:
-        cubelist (iris.cube.CubeList):
+        cubes (iris.cube.CubeList):
             Cubelist of cubes to be blended.
         coordinate (str):
             The coordinate over which the blending will be applied.
@@ -144,7 +144,7 @@ def process(*cubelist: cli.inputcube,
         weighting_coord=weighting_coord, wts_dict=weighting_config,
         y0val=y0val, ynval=ynval, cval=cval)
     result = plugin.process(
-        cubelist, cycletime=cycletime, model_id_attr=model_id_attr,
+        cubes, cycletime=cycletime, model_id_attr=model_id_attr,
         spatial_weights=spatial_weights_from_mask, fuzzy_length=fuzzy_length,
         attributes_dict=new_metadata)
     return result
