@@ -131,20 +131,36 @@ class ContinuousRankedProbabilityScoreMinimisers:
         If the predictor_of_mean_flag is the ensemble mean, this function
         estimates values for alpha, beta, gamma and delta based on the
         equation:
-        N(alpha + beta * ensemble_mean, gamma + delta * ensemble_variance),
-        where N is a chosen distribution.
+        N(a + b * ensemble_mean, c + d * ensemble_variance),
+        where N is a chosen distribution and values of a, b, c and d are
+        solved in the format of alpha, beta, gamma and delta, see the equations
+        below, to ensure that b, c and d are positive values are therefore
+        more easily interpretable.
+
+        .. math::
+            a = \\alpha
+
+        .. math::
+            b = \\beta^2
+
+        .. math::
+            c = \\gamma^2
+
+        .. math::
+            d = \\delta^2
 
         If the predictor_of_mean_flag is the ensemble realizations, this
         function estimates values for alpha, beta, gamma and delta based on the
         equation:
 
         .. math::
-          N(alpha + beta0 * realization0 + beta1 * realization1,
+          N(a + b_0 * realization0 + b_1 * realization1,
 
-          gamma + delta * ensemble\\_variance)
+          c + d * ensemble\\_variance)
 
-        where N is a chosen distribution and the number of beta terms
-        depends on the number of realizations provided.
+        where N is a chosen distribution, the values of a, b, c and d relate
+        to alpha, beta, gamma and delta through the equations above, and the
+        number of beta terms depends on the number of realizations provided.
 
         Args:
             initial_guess (list):
@@ -1002,8 +1018,16 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         Function to calculate the location parameter when the ensemble mean at
         each grid point is the predictor.
 
+        Please see the equations below:
+
         .. math::
-            location\\_parameter = \\alpha + \\beta \\times ensemble\\_mean
+            location\\_parameter = a + b \\times ensemble\\_mean
+
+        .. math::
+            a = \\alpha
+
+        .. math::
+            b = \\beta^2
 
         Args:
             optimised_coeffs (dict):
@@ -1033,9 +1057,17 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         Function to calculate the location parameter when the ensemble
         realizations are the predictor.
 
+        Please see the equations below:
+
         .. math::
-            location\\_parameter = \\alpha + \\beta_0 \\times realization_0 +
-                ... + \\beta_n \\times realization_n
+            location\\_parameter = a + b_0 \\times realization_0 +
+                ... + b_n \\times realization_n
+
+        .. math::
+            a = \\alpha
+
+        .. math::
+            b = \\beta^2
 
         Args:
             optimised_coeffs (dict):
@@ -1195,6 +1227,9 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         if landsea_mask:
             # Assume that the ensemble mean and the ensemble variance provide
             # an estimate of the uncalibrated location and scale parameter.
+            # TODO: Improve the handling of the uncalibrated region, so that
+            # the ensemble mean and ensemble variance are not assumed to be
+            # the location and scale parameter, respectively.
             uncalibrated_location_parameter = (
                 self.current_forecast.collapsed(
                     "realization", iris.analysis.MEAN))

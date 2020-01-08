@@ -332,7 +332,8 @@ class Test__calculate_location_parameter_from_realizations(
         """Test that the expected values for the location parameter are
         calculated when using the ensemble realizations with statsmodels.
         These expected values are compared to the results when using the
-        ensemble realizations to ensure that the results are similar."""
+        ensemble mean and when statsmodels is not used to ensure that the
+        results are similar."""
         optimised_coeffs = dict(
             zip(self.coeffs_from_statsmodels_realizations.coord(
                     "coefficient_name").points,
@@ -358,7 +359,8 @@ class Test__calculate_location_parameter_from_realizations(
         """Test that the expected values for the location parameter are
         calculated when using the ensemble realizations without statsmodels.
         These expected values are compared to the results when using the
-        ensemble realizations to ensure that the results are similar."""
+        ensemble mean and when statsmodels is used to ensure that the results
+        are similar."""
         optimised_coeffs = dict(
             zip(self.coeffs_from_no_statsmodels_realizations.coord(
                     "coefficient_name").points,
