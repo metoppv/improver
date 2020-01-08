@@ -499,6 +499,7 @@ class OrographicEnhancement(BasePlugin):
             aux_coords.append((reference_cube.coord(coord), None))
 
         attributes = generate_mandatory_attributes([reference_cube])
+        attributes["title"] = "unknown"  # remove possible wrong grid info.
         for key in MOSG_GRID_ATTRIBUTES:
             try:
                 attributes[key] = self.topography.attributes[key]
