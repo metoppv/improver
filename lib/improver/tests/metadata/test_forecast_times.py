@@ -248,14 +248,11 @@ class Test_unify_cycletime(IrisTest):
             np.full((4, 4), 273.15, dtype=np.float32),
             time=self.cycletime, frt=datetime(2017, 1, 10, 3))
 
-        cube_uk_det.remove_coord("forecast_period")
         # set up forecast periods of 6, 8 and 10 hours
         time_points = [1484038800, 1484046000, 1484053200]
         cube_uk_det = add_coordinate(
             cube_uk_det, time_points, "time", dtype=np.int64,
             coord_units="seconds since 1970-01-01 00:00:00")
-        fp_coord = forecast_period_coord(cube_uk_det)
-        cube_uk_det.add_aux_coord(fp_coord, data_dims=0)
 
         self.cube_uk_det = add_coordinate(cube_uk_det, [1000], "model_id")
         self.cube_uk_det.add_aux_coord(
@@ -270,14 +267,11 @@ class Test_unify_cycletime(IrisTest):
             np.full((3, 4, 4), 273.15, dtype=np.float32),
             time=self.cycletime, frt=datetime(2017, 1, 10, 4))
 
-        cube_uk_ens.remove_coord("forecast_period")
         # set up forecast periods of 5, 7 and 9 hours
         time_points = [1484031600, 1484038800, 1484046000]
         cube_uk_ens = add_coordinate(
             cube_uk_ens, time_points, "time", dtype=np.int64,
             coord_units="seconds since 1970-01-01 00:00:00")
-        fp_coord = forecast_period_coord(cube_uk_ens)
-        cube_uk_ens.add_aux_coord(fp_coord, data_dims=0)
 
         expected_uk_det = self.cube_uk_det.copy()
         frt_units = expected_uk_det.coord('forecast_reference_time').units
