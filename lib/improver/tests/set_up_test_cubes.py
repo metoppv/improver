@@ -95,13 +95,11 @@ def construct_xy_coords(ypoints, xpoints, spatial_grid):
 
 
 def _create_time_point(time):
-    """Create a coordinate point in appropriate units from a
-    datetime.datetime instance
+    """Returns a coordinate point with appropriate units and datatype
+    from a datetime.datetime instance.
 
     Args:
         time (datetime.datetime)
-    Returns:
-        ctt.TIME_REFERENCE_DTYPE
     """
     point = date2num(time, ctt.TIME_REFERENCE_UNIT, "gregorian")
     return np.round(point).astype(ctt.TIME_REFERENCE_DTYPE)
