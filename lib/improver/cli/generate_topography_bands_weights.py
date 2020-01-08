@@ -39,7 +39,7 @@ from improver import cli
 def process(orography: cli.inputcube,
             landmask: cli.inputcube = None,
             *,
-            thresholds_dict: cli.inputjson = None):
+            bands_config: cli.inputjson = None):
     """Runs topographic weights generation.
 
     Reads the orography and landmask fields of a cube. Creates a series of
@@ -59,7 +59,7 @@ def process(orography: cli.inputcube,
             masked and set to the default fill value. If no land mask is
             provided, weights will be generated for sea points as well as land
             in the appropriate topographic band.
-        thresholds_dict (dict):
+        bands_config (dict):
             Definition of orography bands required.
             The expected format of the dictionary is e.g
             {'bounds':[[0, 50], [50, 200]], 'units': 'm'}
@@ -80,8 +80,8 @@ def process(orography: cli.inputcube,
     from improver.generate_ancillaries.generate_ancillary import (
         THRESHOLDS_DICT)
 
-    if thresholds_dict is None:
-        thresholds_dict = THRESHOLDS_DICT
+    if bands_config is None:
+        bands_config = THRESHOLDS_DICT
 
     if landmask:
         landmask = next(landmask.slices([landmask.coord(axis='y'),
@@ -91,5 +91,5 @@ def process(orography: cli.inputcube,
                                        orography.coord(axis='x')]))
 
     result = GenerateTopographicZoneWeights().process(
-        orography, thresholds_dict, landmask=landmask)
+        orography, bands_config, landmask=landmask)
     return result

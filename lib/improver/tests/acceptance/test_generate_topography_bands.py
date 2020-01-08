@@ -72,7 +72,7 @@ def test_bounds_json(tmp_path, maskweight):
     output_path = tmp_path / "output.nc"
     args = [orography_path,
             landmask_path,
-            "--thresholds-dict", bounds_path,
+            "--bands-config", bounds_path,
             "--output", output_path]
     acc.run_cli(maskweight)(args)
     acc.compare(output_path, kgo_path)
