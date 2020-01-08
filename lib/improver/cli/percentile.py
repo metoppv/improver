@@ -65,19 +65,15 @@ def process(cube: cli.inputcube,
             converting probabilities to percentiles and may be omitted. This
             coordinate(s) will be removed and replaced by a percentile
             coordinate.
-            Default is None.
         ecc_bounds_warning (bool):
             If True, where calculated percentiles are outside the ECC bounds
             range, raises a warning rather than an exception.
-            Default is False.
         percentiles (list or None):
             Optional definition of percentiles at which to calculate data.
-            Default is None.
         no_of_percentiles (int):
             Optional definition of the number of percentiles to be generated,
             these distributed regularly with the aim of dividing into blocks
             of equal probability.
-            Default is None.
 
     Returns:
         iris.cube.Cube:

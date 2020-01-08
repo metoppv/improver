@@ -64,7 +64,6 @@ def process(*cubes: cli.inputcube,
         wxtree (str):
             Weather Code tree.
             Choices are high_resolution or global.
-            Default is 'high_resolution'.
 
     Returns:
         iris.cube.Cube:

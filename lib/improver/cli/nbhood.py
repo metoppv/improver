@@ -98,7 +98,6 @@ def process(cube: cli.inputcube,
             neighbourhooding. The sum represents the sum of the neighbourhood.
             The fraction represents the sum of the neighbourhood divided by
             the neighbourhood area.
-            Default is "fraction".
         re_mask (bool):
             Include this option to apply the original un-neighbourhood
             processed mask to the neighbourhood processed cube.

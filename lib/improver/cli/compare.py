@@ -32,7 +32,6 @@
 """Script to compare netcdf files"""
 
 from improver.tests import acceptance as acc
-from improver.utilities import compare
 from improver import cli
 
 
@@ -53,6 +52,6 @@ def process(actual: cli.inputpath,
     Returns:
         None
     """
-
+    from improver.utilities import compare
     compare.compare_netcdfs(actual, desired, rtol=rtol, atol=atol,
                             reporter=print)

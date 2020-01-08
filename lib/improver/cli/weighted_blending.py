@@ -98,7 +98,6 @@ def process(*cubelist: cli.inputcube,
             The name of the cube attribute to be used to identify the source
             model for multi-model blends. Default assume Met Office model
             metadata. Must be present on all if blending over models.
-            Default is 'mosg__model_configuration'.
         spatial_weights_from_mask (bool):
             If True, this option will result in the generation of spatially
             varying weights based on the masks of the data we are blending.
@@ -107,7 +106,6 @@ def process(*cubelist: cli.inputcube,
             spatially based on where there is masked data in the data we are
             blending. The spatial weights are calculated using the
             SpatiallyVaryingWeightsFromMask plugin.
-            Default is False.
         fuzzy_length (float):
             When calculating spatially varying weights we can smooth the
             weights so that areas close to areas that are masked have lower
@@ -118,7 +116,6 @@ def process(*cubelist: cli.inputcube,
             integer. Assumes the grid spacing is the same in the x and y
             directions and raises an error if this is not true. See
             SpatiallyVaryingWeightsFromMask for more details.
-            Default is 20000.0.
 
     Returns:
         iris.cube.Cube:

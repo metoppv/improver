@@ -64,15 +64,12 @@ def process(cube: cli.inputcube,
             in the x and y directions.
         mask_cube (iris.cube.Cube):
             Cube to mask the processed cube.
-            Default is None.
         iterations (int):
             Number of times to apply the filter. (Typically < 3)
             Number of iterations should be 2 or less, higher values have been
             shown to lead to poorer conservation.
-            Default is 1 (one).
         re_mask (bool):
             Re-apply mask to recursively filtered output.
-            Default is False.
 
     Returns:
         iris.cube.Cube:

@@ -53,7 +53,6 @@ def process(orography: cli.inputcube,
             The land mask on standard grid. If provided sea points will be set
             to zero in every band. If no land mask is provided, sea points will
             be included in the appropriate topographic band.
-            Default is None.
         thresholds_dict (dict):
             Definition of orography bands required.
             The expected format of the dictionary is e.g

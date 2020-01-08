@@ -62,7 +62,6 @@ def process(cube: cli.inputcube,
         no_of_percentiles (int):
             The number of percentiles to be generated. This is also equal to
             the number of ensemble realizations that will be generated.
-            Default is None.
         sampling_method (str):
             Method to be used for generating the list of percentiles with
             forecasts generated at each percentile. The options are "quantile"
@@ -70,26 +69,21 @@ def process(cube: cli.inputcube,
             The quantile option produces equally spaced percentiles which is
             the preferred option for full ensemble couple coupling with
             reordering enabled.
-            Default is 'quantile'.
         ecc_bounds_warning (bool):
             If True where percentiles (calculated as an intermediate output
             before realization) exceed the ECC bounds range, raises a
             warning rather than an exception.
-            Default is False.
         reordering (bool):
             The option used to create ensemble realizations from percentiles
             by reordering the input percentiles based on the order of the
             raw ensemble forecast.
-            Default is False.
         rebadging (bool):
             The option used to create ensemble realizations from percentiles
             by rebadging the input percentiles.
-            Default is False.
         random_ordering (bool):
             If random_ordering is True, the post-processed forecasts are
             reordered randomly, rather than using the ordering of the
             raw ensemble.
-            Default is False.
         random_seed (int):
             Option to specify a value for the random seed for testing purposes,
             otherwise, the default random seed behaviour is utilised.
@@ -99,11 +93,9 @@ def process(cube: cli.inputcube,
             raw ensemble, or for splitting tied values within the raw ensemble
             so that the values from the input percentiles can be ordered to
             match the raw ensemble.
-            Default is None.
         realization_numbers (list of ints):
             A list of ensemble realization numbers to use when rebadging the
             percentiles into realizations.
-            Default is None.
 
     Returns:
         iris.cube.Cube:

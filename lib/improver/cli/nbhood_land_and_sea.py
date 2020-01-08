@@ -81,7 +81,6 @@ def process(cube: cli.inputcube,
             The neighbourhood output can either be in the form of a sum of the
             neighbourhood, or a fraction calculated by dividing the sum of the
             neighbourhood by the neighbourhood area.
-            Default is 'fraction'
         return_intermediate (bool):
             Include this option to return a cube with results following
             topographic masked neighbourhood processing of land points and

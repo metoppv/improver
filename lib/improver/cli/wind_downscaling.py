@@ -71,7 +71,6 @@ def process(wind_speed: cli.inputcube,
         veg_roughness_cube (iris.cube.Cube):
             Cube of vegetative roughness length.
             Units of field: m.
-            Default is None.
         model_resolution (float):
             Original resolution of model orography (before interpolation to
             standard grid)
@@ -81,13 +80,11 @@ def process(wind_speed: cli.inputcube,
             wind-downscaling, this option can be used to select the height
             level. If no units are provided with 'output_height_level_units',
             metres are assumed.
-            Default is None.
         output_height_level_units (str):
             If a single height level is selected as output using
             'output_height_level', this additional argument may be used to
             specify the units of the value entered to select the level.
             e.g hPa.
-            Default is 'm'.
 
     Returns:
         iris.cube.Cube:

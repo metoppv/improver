@@ -62,13 +62,10 @@ def process(input_cube: cli.inputcube,
             at which an extrapolation nowcast is required.
         attributes_dict (dict):
             Dictionary containing the required changes to the attributes.
-            Default is None.
         max_lead_time (int):
             Maximum lead time required (mins).
-            Default is 360.
         lead_time_interval (int):
             Interval between required lead times (mins).
-            Default is 15.
 
     Returns:
         iris.cube.CubeList:

@@ -62,16 +62,12 @@ def process(input_cube: cli.inputcube,
         oe_cube (iris.cube.Cube):
             Cube containing the orographic enhancement fields. May have data
             for multiple times in the cube.
-            Default is None.
         attributes_dict (dict):
             Dictionary containing the required changes to the attributes.
-            Default is None.
         max_lead_time (int):
             Maximum lead time required (mins).
-            Default is 360.
         lead_time_interval (int):
             Interval between required lead times (mins).
-            Default is 15.
         accumulation_period (int):
             The period over which the accumulation is calculated (mins).
             Only full accumulation periods will be computed. At lead times
@@ -80,7 +76,6 @@ def process(input_cube: cli.inputcube,
         accumulation_units (str):
             Desired units in which the accumulations should be expressed.
             e.g. 'mm'
-            Default is 'm'.
 
     Returns:
         iris.cube.CubeList:

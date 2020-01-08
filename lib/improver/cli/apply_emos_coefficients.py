@@ -85,12 +85,10 @@ def process(current_forecast: cli.inputcube,
             number of realizations. In addition, this argument is used to
             construct the requested number of realizations from the mean and
             variance output after applying the EMOS coefficients.
-            Default is None.
         random_ordering (bool):
             Option to reorder the post-processed forecasts randomly. If not
             set, the ordering of the raw ensemble is used. This option is
             only valid when the input format is realizations.
-            Default is False.
         random_seed (int):
             Option to specify a value for the random seed for testing
             purposes, otherwise the default random seen behaviour is utilised.
@@ -100,19 +98,16 @@ def process(current_forecast: cli.inputcube,
             ensemble, or for splitting tied values within the raw ensemble,
             so that the values from the input percentiles can be ordered to
             match the raw ensemble.
-            Default is None.
         ecc_bounds_warning (bool):
             If True, where the percentiles exceed the ECC bounds range,
             raises a warning rather than an exception. This occurs when the
             current forecasts is in the form of probabilities and is
             converted to percentiles, as part of converting the input
             probabilities into realizations.
-            Default is False.
         predictor_of_mean (str):
             String to specify the predictor used to calibrate the forecast
             mean. Currently the ensemble mean "mean" as the ensemble
             realization "realization" are supported as options.
-            Default is 'mean'
         shape_parameters ():
             The shape parameters required for defining the distribution
             specified by the distribution argument. The shape parameters

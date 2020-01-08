@@ -75,23 +75,19 @@ def process(orography: cli.inputcube,
             If True, this will return a cube containing the nearest grid point
             neighbours to spot sites as defined by each possible combination
             of constraints.
-            Default is False.
         land_constraint (bool):
             If True, this will return a cube containing the nearest grid point
             neighbours to spot sites that are also land points. May be used
             with the minimum_dz option.
-            Default is None.
         minimum_dz (bool):
             If True, this will return a cube containing the nearest grid point
             neighbour to each spot site that is found, within a given search
             radius, to minimise the height difference between the two. May be
             used with the land_constraint option.
-            Default is None.
         search_radius (float):
             The radius in metres about a spot site within which to search for
             a grid point neighbour that is land or which has a smaller height
             difference than the nearest.
-            Default is None.
         node_limit (int):
             When searching within the defined search_radius for suitable
             neighbours, a KDTree is constructed. This node_limit prevents the
@@ -100,25 +96,20 @@ def process(orography: cli.inputcube,
             considered. If the search radius is likely to contain more than
             36 points, this value should be increased to ensure all point
             are considered.
-            Default is None.
         site_coordinate_system (cartopy coordinate system):
             The coordinate system in which the site coordinates are provided
             within the site list. This must be provided as the name of a
             cartopy coordinate system. The Default will become PlateCarree.
-            Default is None.
         site_coordinate_options (str):
             JSON formatted string of options passed to the cartopy coordinate
             system given in site_coordinate_system. "globe" is handled as a
             special case to construct a cartopy Globe object.
-            Default is None.
         site_x_coordinate (str):
             The key that identifies site x coordinates in the provided site
             dictionary. Defaults to longitude.
-            Default is None.
         site_y_coordinate (str):
             The key that identifies site y coordinates in the provided site
             dictionary. Defaults to latitude.
-            Default is None.
 
     Returns:
         iris.cube.Cube:

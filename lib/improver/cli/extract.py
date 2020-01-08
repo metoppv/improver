@@ -69,7 +69,6 @@ def process(cube: cli.inputcube,
         ignore_failure (bool):
             Option to ignore constraint match failure and return the input
             cube.
-            Default is false.
 
     Returns:
         iris.cube.Cube:

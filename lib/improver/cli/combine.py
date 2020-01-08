@@ -31,8 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to combine netcdf data."""
 
-import warnings
-
 from improver import cli
 
 

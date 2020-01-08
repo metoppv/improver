@@ -89,7 +89,6 @@ def process(neighbour_cube: cli.inputcube,
             a warning message.
             Note that for percentiles inputs, the desired percentile(s) must
             exist in the input cube.
-            Default is None.
         ecc_bounds_warning (bool):
             Demotes exceptions where calculated percentiles are outside the ECC
             bounds range to warnings.
