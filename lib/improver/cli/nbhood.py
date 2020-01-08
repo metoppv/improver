@@ -121,15 +121,7 @@ def process(cube: cli.inputcube,
 
     Raises:
         RuntimeError:
-            If neighbourhood_shape is used with the wrong neighbourhood
-            output.
-        RuntimeError:
             If weighted_mode is used with the wrong neighbourhood_output.
-        RuntimeError:
-            If neighbourhood_output='probabilities' and the default
-            percentiles are used.
-        RuntimeError:
-            If neighbourhood_shape='circular' is used with mask cube.
         RuntimeError:
             If degree_as_complex is used with
             neighbourhood_output='percentiles'.
