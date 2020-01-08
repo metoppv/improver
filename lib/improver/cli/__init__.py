@@ -76,6 +76,7 @@ def docutilize(obj):
     doc = str(NumpyDocstring(doc))
     doc = str(GoogleDocstring(doc))
     doc = doc.replace(':exc:', '')
+    doc = doc.replace(':data:', '')
     doc = doc.replace(':keyword', ':param')
     doc = doc.replace(':kwtype', ':type')
 
