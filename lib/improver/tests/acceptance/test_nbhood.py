@@ -133,7 +133,7 @@ def test_masked_square_remask(tmp_path):
             "--neighbourhood-output", "probabilities",
             "--neighbourhood-shape", "square",
             "--radii", "20000",
-            "--re-mask",
+            "--remask",
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

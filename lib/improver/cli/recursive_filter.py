@@ -45,7 +45,7 @@ def process(cube: cli.inputcube,
             mask_cube: cli.inputcube = None,
             *,
             iterations: int = 1,
-            re_mask=False):
+            remask=False):
     """Module to apply a recursive filter to neighbourhooded data.
 
     Run a recursive filter to convert a square neighbourhood into a
@@ -68,7 +68,7 @@ def process(cube: cli.inputcube,
             Number of times to apply the filter. (Typically < 3)
             Number of iterations should be 2 or less, higher values have been
             shown to lead to poorer conservation.
-        re_mask (bool):
+        remask (bool):
             Re-apply mask to recursively filtered output.
 
     Returns:
@@ -79,6 +79,6 @@ def process(cube: cli.inputcube,
 
     alphas_x_cube, alphas_y_cube = alpha_cubelist
     return RecursiveFilter(
-        iterations=iterations, re_mask=re_mask).process(
+        iterations=iterations, re_mask=remask).process(
         cube, alphas_x=alphas_x_cube, alphas_y=alphas_y_cube,
         mask_cube=mask_cube)

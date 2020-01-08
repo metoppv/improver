@@ -46,8 +46,8 @@ def process(cube: cli.inputcube,
             lead_times: cli.comma_separated_list = None,
             degrees_as_complex=False,
             weighted_mode=False,
-            sum_or_fraction="fraction",
-            re_mask=False,
+            area_sum=False,
+            remask=False,
             percentiles: cli.comma_separated_list = DEFAULT_PERCENTILES,
             halo_radius: float = None):
     """Runs neighbourhood processing.
@@ -93,12 +93,9 @@ def process(cube: cli.inputcube,
             Otherwise a constant weighting is assumed.
             weighted_mode is only applicable for calculating "probability"
             neighbourhood output using the circular kernal.
-        sum_or_fraction (str):
-            Identifier for whether sum or fraction should be returned from
-            neighbourhooding. The sum represents the sum of the neighbourhood.
-            The fraction represents the sum of the neighbourhood divided by
-            the neighbourhood area.
-        re_mask (bool):
+        area_sum (bool):
+            Return sum rather than fraction over the neighbourhood area.
+        remask (bool):
             Include this option to apply the original un-neighbourhood
             processed mask to the neighbourhood processed cube.
             Otherwise the original un-neighbourhood processed mask
@@ -133,6 +130,8 @@ def process(cube: cli.inputcube,
     from improver.utilities.pad_spatial import remove_cube_halo
     from improver.wind_calculations.wind_direction import WindDirection
 
+    sum_or_fraction = 'sum' if area_sum else 'fraction'
+
     if neighbourhood_output == "percentiles":
         if weighted_mode:
             raise RuntimeError('weighted_mode cannot be used with'
@@ -158,7 +157,7 @@ def process(cube: cli.inputcube,
                 neighbourhood_shape, radius_or_radii,
                 lead_times=lead_times,
                 weighted_mode=weighted_mode,
-                sum_or_fraction=sum_or_fraction, re_mask=re_mask
+                sum_or_fraction=sum_or_fraction, re_mask=remask
             ).process(cube, mask_cube=mask_cube))
     elif neighbourhood_output == "percentiles":
         result = (

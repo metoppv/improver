@@ -62,10 +62,9 @@ def process(percentiles_cube: cli.inputcube,
             000m --/---\----------  0th Percentile snow fall level
             ______/     \_________ Orogaphy
 
-        The orography heights are compared against the heights that correspond
-        with percentile values to find the band in which they fall, then
-        interpolated linearly to obtain a probability of snow level at / below
-        the ground surface.
+    The orography heights are compared against the heights that correspond with
+    percentile values to find the band in which they fall, then interpolated
+    linearly to obtain a probability at / below the ground surface.
 
     Args:
         percentiles_cube (iris.cube.Cube):

@@ -44,7 +44,7 @@ def process(cube: cli.inputcube,
             *,
             radii: cli.comma_separated_list,
             lead_times: cli.comma_separated_list = None,
-            sum_or_fraction="fraction",
+            area_sum=False,
             return_intermediate=False):
     """ Module to process land and sea separately before combining them.
 
@@ -77,10 +77,8 @@ def process(cube: cli.inputcube,
             The lead times in hours that correspond to the radii to be used.
             If lead_times are set, radii must be a list the same length as
             lead_times. Lead times must be given as integer values.
-        sum_or_fraction (str):
-            The neighbourhood output can either be in the form of a sum of the
-            neighbourhood, or a fraction calculated by dividing the sum of the
-            neighbourhood by the neighbourhood area.
+        area_sum (bool):
+            Return sum rather than fraction over the neighbourhood area.
         return_intermediate (bool):
             Include this option to return a cube with results following
             topographic masked neighbourhood processing of land points and
@@ -118,6 +116,8 @@ def process(cube: cli.inputcube,
     from improver.nbhood.use_nbhood import (
         ApplyNeighbourhoodProcessingWithAMask,
         CollapseMaskedNeighbourhoodCoordinate)
+
+    sum_or_fraction = 'sum' if area_sum else 'fraction'
 
     masking_coordinate = intermediate_cube = None
     if any(['topographic_zone' in coord.name()

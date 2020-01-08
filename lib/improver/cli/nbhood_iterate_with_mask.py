@@ -44,7 +44,7 @@ def process(cube: cli.inputcube,
             coord_for_masking,
             radii: cli.comma_separated_list,
             lead_times: cli.comma_separated_list = None,
-            sum_or_fraction="fraction",
+            area_sum=False,
             remask=False,
             collapse_dimension=False):
     """Runs neighbourhooding processing iterating over a coordinate by mask.
@@ -85,12 +85,8 @@ def process(cube: cli.inputcube,
             The lead times in hours that correspond to the radii to be used.
             If lead_times are set, radii must be a list the same length as
             lead_times. Lead times must be given as integer values.
-        sum_or_fraction (str):
-            Identifier for whether sum or fraction should be returned from
-            neighbourhooding.
-            Sum represents the sum of the neighbourhood.
-            Fraction represents the sum of the neighbourhood divided by the
-            neighbourhood area.
+        area_sum (bool):
+            Return sum rather than fraction over the neighbourhood area.
         remask (bool):
             Include this option to apply the original un-neighbourhood
             processed mask to the neighbourhood processed cube.
@@ -112,6 +108,8 @@ def process(cube: cli.inputcube,
         ApplyNeighbourhoodProcessingWithAMask,
         CollapseMaskedNeighbourhoodCoordinate,
     )
+
+    sum_or_fraction = 'sum' if area_sum else 'fraction'
 
     radius_or_radii, lead_times = radius_by_lead_time(radii, lead_times)
 
