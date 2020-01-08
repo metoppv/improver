@@ -40,7 +40,7 @@ def process(*cubelist: cli.inputcube,
             operation='+',
             new_name=None,
             new_metadata: cli.inputjson = None,
-            warnings_on=False):
+            check_metadata=False):
     r"""Combine input cubes.
 
     Combine the input cubes into a single cube using the requested operation.
@@ -55,9 +55,8 @@ def process(*cubelist: cli.inputcube,
             New name for the resulting dataset.
         new_metadata (dict):
             Dictionary containing information on coordinates to expand.
-        warnings_on (bool):
-            If True, warning messages where metadata do not match will be
-            given.
+        check_metadata (bool):
+            If True, warn on metadata mismatch between inputs.
 
     Returns:
         result (iris.cube.Cube):
@@ -72,7 +71,7 @@ def process(*cubelist: cli.inputcube,
         raise TypeError("A cube is needed to be combined.")
     if new_name is None:
         new_name = cubelist[0].name()
-    result = CubeCombiner(operation, warnings_on=warnings_on).process(
+    result = CubeCombiner(operation, warnings_on=check_metadata).process(
         CubeList(cubelist), new_name, coords_to_expand=coords_to_expand)
 
     return result
