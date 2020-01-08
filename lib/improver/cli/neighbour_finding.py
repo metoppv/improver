@@ -42,7 +42,7 @@ def process(orography: cli.inputcube,
             site_list: cli.inputjson,
             all_methods=False,
             land_constraint=False,
-            minimum_dz=False,
+            similar_altitude=False,
             search_radius: float = None,
             node_limit: int = None,
             site_coordinate_system=None,
@@ -78,8 +78,8 @@ def process(orography: cli.inputcube,
         land_constraint (bool):
             If True, this will return a cube containing the nearest grid point
             neighbours to spot sites that are also land points. May be used
-            with the minimum_dz option.
-        minimum_dz (bool):
+            with the similar_altitude option.
+        similar_altitude (bool):
             If True, this will return a cube containing the nearest grid point
             neighbour to each spot site that is found, within a given search
             radius, to minimise the height difference between the two. May be
@@ -117,7 +117,7 @@ def process(orography: cli.inputcube,
 
     Raises:
         ValueError:
-            If all_methods is used with land_constraint or minimum_dz.
+            If all_methods is used with land_constraint or similar_altitude.
 
     """
     import json
@@ -141,7 +141,7 @@ def process(orography: cli.inputcube,
         'TransverseMercator', 'UTM']
 
     # Check valid options have been selected.
-    if all_methods is True and (land_constraint or minimum_dz):
+    if all_methods is True and (land_constraint or similar_altitude):
         raise ValueError(
             'Cannot use all_methods option with other constraints.')
 
@@ -149,7 +149,7 @@ def process(orography: cli.inputcube,
     # This preserves the plugin defaults for unset options.
     args = {
         'land_constraint': land_constraint,
-        'minimum_dz': minimum_dz,
+        'minimum_dz': similar_altitude,
         'search_radius': search_radius,
         'site_coordinate_system': site_coordinate_system,
         'site_coordinate_options': site_coordinate_options,

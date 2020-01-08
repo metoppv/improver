@@ -44,7 +44,7 @@ run_cli = acc.run_cli(CLI)
 @pytest.mark.parametrize(
     "extra_args,kgo_file",
     (([], "nearest_uk_temperatures.nc"),
-     (["--minimum-dz"], "mindz_uk_temperatures.nc")))
+     (["--similar-altitude"], "mindz_uk_temperatures.nc")))
 def test_nearest_uk(tmp_path, extra_args, kgo_file):
     """Test spot extraction using nearest location"""
     kgo_dir = acc.kgo_root() / "spot-extract"
@@ -88,7 +88,7 @@ def test_nearest_minimum_dz_unavailable(tmp_path):
     neighbour_path = kgo_dir / "inputs/nearest_uk.nc"
     diag_path = kgo_dir / "inputs/ukvx_temperature.nc"
     output_path = tmp_path / "output.nc"
-    args = [neighbour_path, diag_path, "--output", output_path, "--minimum-dz"]
+    args = [neighbour_path, diag_path, "--output", output_path, "--similar-altitude"]
     with pytest.raises(ValueError, match=".*neighbour_selection_method.*"):
         run_cli(args)
 
@@ -156,7 +156,7 @@ def test_multiple_constraints(tmp_path):
     kgo_path = kgo_dir / "outputs/mindz_land_constraint_uk_temperatures.nc"
     output_path = tmp_path / "output.nc"
     args = [neighbour_path, diag_path, "--output", output_path,
-            "--minimum-dz", "--land-constraint"]
+            "--similar-altitude", "--land-constraint"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 

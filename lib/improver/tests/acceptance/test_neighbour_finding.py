@@ -90,7 +90,7 @@ def test_nearest_minimum_dz(tmp_path, domain, model):
     output_path = tmp_path / "output.nc"
     args = [orography_path, landmask_path,
             "--site-list", sites_path,
-            "--minimum-dz",
+            "--similar-altitude",
             "--search-radius", "50000",
             "--output", output_path]
     run_cli(args)
@@ -111,7 +111,7 @@ def test_nearest_land_minimum_dz(tmp_path, domain, model):
     args = [orography_path, landmask_path,
             "--site-list", sites_path,
             "--land-constraint",
-            "--minimum-dz",
+            "--similar-altitude",
             "--search-radius", "50000",
             "--output", output_path]
     if domain == "uk":

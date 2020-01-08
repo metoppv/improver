@@ -42,7 +42,7 @@ def process(neighbour_cube: cli.inputcube,
             *,
             apply_lapse_rate_correction=False,
             land_constraint=False,
-            minimum_dz=False,
+            similar_altitude=False,
             extract_percentiles: cli.comma_separated_list = None,
             ignore_ecc_bounds=False,
             new_title: str = None,
@@ -73,8 +73,8 @@ def process(neighbour_cube: cli.inputcube,
             method from the neighbour_cube. This means that the grid points
             should be land points except for sites where none were found within
             the search radius when the neighbour cube was created. May be used
-            with minimum_dz.
-        minimum_dz (bool):
+            with similar_altitude.
+        similar_altitude (bool):
             Use to select the nearest-with-height-constraint
             neighbour-selection method from the neighbour_cube. These are grid
             points that were found to be the closest in altitude to the spot
@@ -148,7 +148,7 @@ def process(neighbour_cube: cli.inputcube,
 
     neighbour_selection_method = NeighbourSelection(
         land_constraint=land_constraint,
-        minimum_dz=minimum_dz).neighbour_finding_method_name()
+        minimum_dz=similar_altitude).neighbour_finding_method_name()
     plugin = SpotExtraction(
         neighbour_selection_method=neighbour_selection_method)
     result = plugin.process(neighbour_cube, diagnostic_cube,
