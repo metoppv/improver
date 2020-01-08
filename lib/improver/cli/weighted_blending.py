@@ -73,25 +73,25 @@ def process(*cubelist: cli.inputcube,
             Dictionary from which to calculate blending weights. Dictionary
             format is as specified in
             improver.blending.weights.ChoosingWeightsLinear
-        attributes_dict (dict or None):
+        attributes_dict (dict):
             Dictionary describing required changes to attributes after blending
-        cycletime (str or None):
+        cycletime (str):
             The forecast reference time to be used after blending has been
             applied, in the format YYYYMMDDTHHMMZ. If not provided, the
             blended file take the latest available forecast reference time
             from the input cubes supplied.
-        y0val (float or None):
+        y0val (float):
             The relative value of the weighting start point (lowest value of
             blend coord) for choosing default linear weights.
             If used this must be a positive float or 0.
-        ynval (float or None):
+        ynval (float):
             The relative value of the weighting end point (highest value of
             blend coord) for choosing default linear weights. This must be a
             positive float or 0.
             Note that if blending over forecast reference time, ynval >= y0val
             would normally be expected (to give greater weight to the more
             recent forecast).
-        cval (float or None):
+        cval (float):
             Factor used to determine how skewed the non-linear weights will be.
             A value of 1 implies equal weighting.
         model_id_attr (str):

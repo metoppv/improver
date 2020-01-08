@@ -73,7 +73,7 @@ def process(cube: cli.inputcube,
             If it is a list, it must be the same length as lead_times, which
             defines at which lead time to use which nbhood radius. The radius
             will be interpolated for intermediate lead times.
-        lead_times (list of int or None):
+        lead_times (list of int):
             The lead times in hours that correspond to the radii to be used.
             If lead_times are set, radii must be a list the same length as
             lead_times. Lead times must be given as integer values.
@@ -92,7 +92,7 @@ def process(cube: cli.inputcube,
         (tuple): tuple containing:
             **result** (iris.cube.Cube):
                 A cube of the processed data.
-            **intermediate_cube** (iris.cube.Cube or None):
+            **intermediate_cube** (iris.cube.Cube):
                 A cube of the intermediate data, before collapsing.
 
     Raises:

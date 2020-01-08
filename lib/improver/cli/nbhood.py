@@ -81,7 +81,7 @@ def process(cube: cli.inputcube,
             If it is a list, it must be the same length as lead_times, which
             defines at which lead time to use which nbhood radius. The radius
             will be interpolated for intermediate lead times.
-        lead_times (list of int or None):
+        lead_times (list of int):
             The lead times in hours that correspond to the radii to be used.
             If lead_times are set, radii must be a list the same length as
             lead_times.
@@ -104,11 +104,11 @@ def process(cube: cli.inputcube,
             Otherwise the original un-neighbourhood processed mask
             is not applied. Therefore, the neighbourhood processing may result
             in values being present in area that were originally masked.
-        percentiles (float or None):
+        percentiles (float):
             Calculates value at the specified percentiles from the
             neighbourhood surrounding each grid point. This argument has no
             effect if the output is probabilities.
-        halo_radius (float or None):
+        halo_radius (float):
             Set this radius in metres to define the excess halo to clip. Used
             where a larger grid was defined than the standard grid and we want
             to clip the grid back to the standard grid. Otherwise no clipping

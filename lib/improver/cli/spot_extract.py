@@ -92,7 +92,7 @@ def process(neighbour_cube: cli.inputcube,
         ecc_bounds_warning (bool):
             Demotes exceptions where calculated percentiles are outside the ECC
             bounds range to warnings.
-        new_title (str or None):
+        new_title (str):
             New title for the spot-extracted data.  If None, this attribute is
             removed from the output cube since it has no prescribed standard
             and may therefore contain grid information that is no longer

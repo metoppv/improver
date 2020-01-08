@@ -62,10 +62,10 @@ def process(current_forecast: cli.inputcube,
         current_forecast (iris.cube.Cube):
             A Cube containing the forecast to be calibrated. The input format
             could be either realizations, probabilities or percentiles.
-        coeffs (iris.cube.Cube or None):
+        coeffs (iris.cube.Cube):
             A cube containing the coefficients used for calibration or None.
             If none then then current_forecast is returned unchanged.
-        landsea_mask (iris.cube.Cube or None):
+        landsea_mask (iris.cube.Cube):
             A cube containing the land-sea mask on the same domain as the
             forecast that is to be calibrated. Land points are "
             "specified by ones and sea points are specified by zeros. "

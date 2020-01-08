@@ -68,7 +68,7 @@ def process(cube: cli.inputcube,
         ecc_bounds_warning (bool):
             If True, where calculated percentiles are outside the ECC bounds
             range, raises a warning rather than an exception.
-        percentiles (list or None):
+        percentiles (list):
             Optional definition of percentiles at which to calculate data.
         no_of_percentiles (int):
             Optional definition of the number of percentiles to be generated,

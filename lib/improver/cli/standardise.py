@@ -60,11 +60,11 @@ def process(source_data: cli.inputcube,
     Args:
         source_data (iris.cube.Cube):
             Source cube to be standardised
-        target_grid (iris.cube.Cube or None):
+        target_grid (iris.cube.Cube):
             If specified, then regridding of the source against the target
             grid is enabled. If also using landmask-aware regridding then this
             must be land_binary_mask data.
-        source_landmask (iris.cube.Cube or None):
+        source_landmask (iris.cube.Cube):
             A cube describing the land_binary_mask on the source-grid if
             coastline-aware regridding is required.
         regrid_mode (str):
@@ -89,18 +89,18 @@ def process(source_data: cli.inputcube,
             will be masked; otherwise they will be set to NaN
         landmask_vicinity (float):
             Radius of vicinity to search for a coastline, in metres.
-        regridded_title (str or None):
+        regridded_title (str):
             New "title" attribute to be set if the field is being regridded
             (since "title" may contain grid information). If None, a default
             value is used.
-        attributes_dict (dict or None):
+        attributes_dict (dict):
             Dictionary containing required changes that will be applied to
             the attributes.
-        coords_to_remove (list or None):
+        coords_to_remove (list):
             List of names of scalar coordinates to remove.
-        new_name (str or None):
+        new_name (str):
             Name of output cube.
-        new_units (str or None):
+        new_units (str):
             Units to convert to.
         fix_float64 (bool):
             If True, checks and fixes cube for float64 data. Without this
