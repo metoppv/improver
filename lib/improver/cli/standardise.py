@@ -39,11 +39,11 @@ from improver import cli
 @cli.with_output
 def process(source_data: cli.inputcube,
             target_grid: cli.inputcube = None,
-            source_landmask: cli.inputcube = None,
+            land_sea_mask: cli.inputcube = None,
             *,
             regrid_mode='bilinear',
             extrapolation_mode='nanmask',
-            landmask_vicinity: float = 25000,
+            land_sea_mask_vicinity: float = 25000,
             regridded_title: str = None,
             new_metadata: cli.inputjson = None,
             coords_to_remove: cli.comma_separated_list = None,
@@ -62,9 +62,9 @@ def process(source_data: cli.inputcube,
             Source cube to be standardised
         target_grid (iris.cube.Cube):
             If specified, then regridding of the source against the target
-            grid is enabled. If also using landmask-aware regridding then this
-            must be land_binary_mask data.
-        source_landmask (iris.cube.Cube):
+            grid is enabled. If also using land_sea_mask-aware regridding then
+            this must be land_binary_mask data.
+        land_sea_mask (iris.cube.Cube):
             A cube describing the land_binary_mask on the source-grid if
             coastline-aware regridding is required.
         regrid_mode (str):
@@ -87,7 +87,7 @@ def process(source_data: cli.inputcube,
             the source data is not a MaskedArray
             nanmask - if the source data is a MaskedArray extrapolated points
             will be masked; otherwise they will be set to NaN
-        landmask_vicinity (float):
+        land_sea_mask_vicinity (float):
             Radius of vicinity to search for a coastline, in metres.
         regridded_title (str):
             New "title" attribute to be set if the field is being regridded
@@ -113,15 +113,15 @@ def process(source_data: cli.inputcube,
 
     Raises:
         ValueError:
-            If source landmask is supplied but regrid mode is not
+            If source land_sea_mask is supplied but regrid mode is not
             "nearest-with-mask".
         ValueError:
-            If regrid_mode is "nearest-with-mask" but no source landmask is
-            provided (from plugin).
+            If regrid_mode is "nearest-with-mask" but no source land_sea_mask
+            is provided (from plugin).
     """
     from improver.standardise import StandardiseGridAndMetadata
 
-    if (source_landmask and
+    if (land_sea_mask and
             "nearest-with-mask" not in regrid_mode):
         msg = ("Land-mask file supplied without appropriate regrid-mode. "
                "Use --regrid-mode nearest-with-mask.")
@@ -129,7 +129,8 @@ def process(source_data: cli.inputcube,
 
     plugin = StandardiseGridAndMetadata(
         regrid_mode=regrid_mode, extrapolation_mode=extrapolation_mode,
-        landmask=source_landmask, landmask_vicinity=landmask_vicinity)
+        landmask=land_sea_mask,
+        landmask_vicinity=land_sea_mask_vicinity)
     output_data = plugin.process(
         source_data, target_grid, new_name=new_name, new_units=new_units,
         regridded_title=regridded_title, coords_to_remove=coords_to_remove,

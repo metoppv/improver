@@ -40,7 +40,7 @@ from improver import cli
 @cli.with_output
 def process(current_forecast: cli.inputcube,
             coeffs: cli.inputcube = None,
-            landsea_mask: cli.inputcube = None,
+            land_sea_mask: cli.inputcube = None,
             *,
             distribution,
             realizations_count: int = None,
@@ -65,7 +65,7 @@ def process(current_forecast: cli.inputcube,
         coeffs (iris.cube.Cube):
             A cube containing the coefficients used for calibration or None.
             If none then then current_forecast is returned unchanged.
-        landsea_mask (iris.cube.Cube):
+        land_sea_mask (iris.cube.Cube):
             A cube containing the land-sea mask on the same domain as the
             forecast that is to be calibrated. Land points are "
             "specified by ones and sea points are specified by zeros. "
@@ -210,7 +210,7 @@ def process(current_forecast: cli.inputcube,
     ac = ApplyCoefficientsFromEnsembleCalibration(
         predictor_of_mean_flag=predictor_of_mean)
     calibrated_predictor, calibrated_variance = ac.process(
-        current_forecast, coeffs, landsea_mask=landsea_mask)
+        current_forecast, coeffs, landsea_mask=land_sea_mask)
 
     if shape_parameters:
         shape_parameters = [np.float32(x) for x in shape_parameters]

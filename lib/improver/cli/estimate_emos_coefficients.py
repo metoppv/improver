@@ -121,23 +121,23 @@ def process(*cubes: cli.inputcube,
         grouped_cubes.setdefault(cube.name(), []).append(cube)
     if len(grouped_cubes) == 1:
         # Only one group - all forecast/truth cubes
-        landsea_mask = None
+        land_sea_mask = None
         diag_name = list(grouped_cubes.keys())[0]
     elif len(grouped_cubes) == 2:
         # Two groups - the one with exactly one cube matching a name should
-        # be the landmask, since we require >= 2 cubes in the forecast/truth
-        # group
+        # be the land_sea_mask, since we require more than 2 cubes in
+        # the forecast/truth group
         grouped_cubes = OrderedDict(sorted(grouped_cubes.items(),
                                            key=lambda kv: len(kv[1])))
         # landsea name should be the key with the lowest number of cubes (1)
         landsea_name, diag_name = list(grouped_cubes.keys())
-        landsea_mask = grouped_cubes[landsea_name][0]
+        land_sea_mask = grouped_cubes[landsea_name][0]
         if len(grouped_cubes[landsea_name]) != 1:
             raise RuntimeError('Expected one cube for land-sea mask.')
     else:
         raise RuntimeError('Must have cubes with 1 or 2 distinct names.')
 
-    # split non-landmask cubes on forecast vs truth
+    # split non-land_sea_mask cubes on forecast vs truth
     truth_key, truth_value = truth_attribute.split('=')
     input_cubes = grouped_cubes[diag_name]
     grouped_cubes = {'truth': [], 'historical forecast': []}
@@ -158,4 +158,4 @@ def process(*cubes: cli.inputcube,
         distribution, cycletime, desired_units=units,
         predictor_of_mean_flag=predictor_of_mean,
         tolerance=tolerance, max_iterations=max_iterations).process(
-            forecast, truth, landsea_mask=landsea_mask)
+            forecast, truth, landsea_mask=land_sea_mask)

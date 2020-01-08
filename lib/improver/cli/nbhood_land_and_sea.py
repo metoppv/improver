@@ -139,25 +139,25 @@ def process(cube: cli.inputcube,
                              '= True')
 
         masking_coordinate = 'topographic_zone'
-        landmask = weights[0].copy(data=weights[0].data.mask)
-        landmask.rename('land_binary_mask')
-        landmask.remove_coord(masking_coordinate)
+        land_sea_mask = weights[0].copy(data=weights[0].data.mask)
+        land_sea_mask.rename('land_binary_mask')
+        land_sea_mask.remove_coord(masking_coordinate)
         # Create land and sea masks in IMPROVER format (inverse of
         # numpy standard) 1 - include this region, 0 - exclude this region.
-        land_only = landmask.copy(
-            data=np.logical_not(landmask.data).astype(int))
-        sea_only = landmask.copy(data=landmask.data.astype(int))
+        land_only = land_sea_mask.copy(
+            data=np.logical_not(land_sea_mask.data).astype(int))
+        sea_only = land_sea_mask.copy(data=land_sea_mask.data.astype(int))
 
     else:
         if weights is not None:
             raise TypeError('A weights cube has been provided but will not be '
                             'used')
-        landmask = mask
+        land_sea_mask = mask
         # In this case the land is set to 1 and the sea is set to 0 in the
         # input mask.
-        sea_only = landmask.copy(
-            data=np.logical_not(landmask.data).astype(int))
-        land_only = landmask.copy(data=landmask.data.astype(int))
+        sea_only = land_sea_mask.copy(
+            data=np.logical_not(land_sea_mask.data).astype(int))
+        land_only = land_sea_mask.copy(data=land_sea_mask.data.astype(int))
 
     if lead_times is None:
         radius_or_radii = float(radii[0])

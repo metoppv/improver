@@ -29,28 +29,28 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to run landmask ancillary generation."""
+"""Script to run land_sea_mask ancillary generation."""
 
 from improver import cli
 
 
 @cli.clizefy
 @cli.with_output
-def process(landmask: cli.inputcube):
-    """Generate a landmask ancillary.
+def process(land_sea_mask: cli.inputcube):
+    """Generate a land_sea_mask ancillary.
 
-    Reads in the interpolated landmask and rounds
+    Reads in the interpolated land_sea_mask and rounds
     values < 0.5 to False
     values >= 0.5 to True.
 
     Args:
-        landmask (iris.cube.Cube):
+        land_sea_mask (iris.cube.Cube):
             Cube to process.
 
     Returns:
         iris.cube.Cube:
-            A landmask of boolean values.
+            A land_sea_mask of boolean values.
     """
     from improver.generate_ancillaries.generate_ancillary import (
         CorrectLandSeaMask)
-    return CorrectLandSeaMask().process(landmask)
+    return CorrectLandSeaMask().process(land_sea_mask)

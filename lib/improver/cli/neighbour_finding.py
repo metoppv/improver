@@ -65,7 +65,7 @@ def process(orography: cli.inputcube,
         orography (iris.cube.Cube):
             Cube of model orography for the model grid on which neighbours are
             being found.
-        landmask (iris.cube.Cube):
+        land_sea_mask (iris.cube.Cube):
             Cube of model land mask for the model grid on which neighbours are
             being found.
         site_list (dict):
@@ -157,7 +157,7 @@ def process(orography: cli.inputcube,
         'node_limit': node_limit,
         'site_y_coordinate': site_y_coordinate
     }
-    fargs = (site_list, orography, landmask)
+    fargs = (site_list, orography, land_sea_mask)
     kwargs = {k: v for (k, v) in args.items() if v is not None}
 
     # Deal with coordinate systems for sites other than PlateCarree.
