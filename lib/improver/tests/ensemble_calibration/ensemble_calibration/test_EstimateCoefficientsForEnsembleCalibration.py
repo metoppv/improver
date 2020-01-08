@@ -1243,6 +1243,21 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions,
                 self.historic_temperature_forecast_cube,
                 self.temperature_truth_cube)
 
+    @ManageWarnings(
+        ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_missing_cube(self):
+        """Test that an exception is raised if either of the  historic
+        forecasts or truth were missing."""
+        self.historic_temperature_forecast_cube.convert_units("Fahrenheit")
+
+        plugin = Plugin(self.distribution, self.current_cycle)
+
+        msg = ".*cubes must be provided"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.process(
+                self.historic_temperature_forecast_cube,
+                None)
+
 
 if __name__ == '__main__':
     unittest.main()
