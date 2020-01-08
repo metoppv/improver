@@ -39,9 +39,9 @@ from improver import cli
 @cli.with_output
 def process(*cubelist: cli.inputcube,
             coordinate,
-            wts_calc_method='linear',
+            weighting_method='linear',
             weighting_coord='forecast_period',
-            wts_dict: cli.inputjson = None,
+            weighting_config: cli.inputjson = None,
             attributes_dict: cli.inputjson = None,
             cycletime: str = None,
             y0val: float = None,
@@ -60,7 +60,7 @@ def process(*cubelist: cli.inputcube,
             Cubelist of cubes to be blended.
         coordinate (str):
             The coordinate over which the blending will be applied.
-        wts_calc_method (str):
+        weighting_method (str):
             Method to use to calculate weights used in blending.
             "linear" (default): calculate linearly varying blending weights.
             "nonlinear": calculate blending weights that decrease
@@ -69,7 +69,7 @@ def process(*cubelist: cli.inputcube,
         weighting_coord (str):
             Name of coordinate over which linear weights should be scaled.
             This coordinate must be available in the weights dictionary.
-        wts_dict (dict or None):
+        weighting_config (dict or None):
             Dictionary from which to calculate blending weights. Dictionary
             format is as specified in
             improver.blending.weights.ChoosingWeightsLinear
@@ -131,17 +131,17 @@ def process(*cubelist: cli.inputcube,
     """
     from improver.blending.calculate_weights_and_blend import WeightAndBlend
 
-    if (wts_calc_method == "linear") and cval:
+    if (weighting_method == "linear") and cval:
         raise RuntimeError('Method: linear does not accept arguments: cval')
-    elif (wts_calc_method == "nonlinear") and any([y0val, ynval]):
+    elif (weighting_method == "nonlinear") and any([y0val, ynval]):
         raise RuntimeError('Method: non-linear does not accept arguments:'
                            ' y0val, ynval')
-    elif (wts_calc_method == "dict") and wts_dict is None:
+    elif (weighting_method == "dict") and weighting_config is None:
         raise RuntimeError('Dictionary is required if wts_calc_method="dict"')
 
     plugin = WeightAndBlend(
-        coordinate, wts_calc_method,
-        weighting_coord=weighting_coord, wts_dict=wts_dict,
+        coordinate, weighting_method,
+        weighting_coord=weighting_coord, wts_dict=weighting_config,
         y0val=y0val, ynval=ynval, cval=cval)
     result = plugin.process(
         cubelist, cycletime=cycletime, model_id_attr=model_id_attr,

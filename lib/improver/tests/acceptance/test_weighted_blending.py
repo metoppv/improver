@@ -51,7 +51,7 @@ def test_basic_nonlin(tmp_path):
     input_paths = sorted((input_dir.glob("multiple_probabilities_rain_*H.nc")))
     output_path = tmp_path / "output.nc"
     args = ["--coordinate", "forecast_reference_time",
-            "--wts-calc-method", "nonlinear",
+            "--weighting-method", "nonlinear",
             "--cval", "0.85",
             *input_paths,
             "--output", output_path]
@@ -81,7 +81,7 @@ def test_bothoptions_fail(tmp_path):
     input_paths = sorted((kgo_dir.glob("multiple_probabilities_rain_*H.nc")))
     output_path = tmp_path / "output.nc"
     args = ["--coordinate", "time",
-            "--wts-calc-method", "linear nonlinear",
+            "--weighting-method", "linear nonlinear",
             *input_paths,
             "--output", output_path]
     with pytest.raises(ValueError):
@@ -108,7 +108,7 @@ def test_invalid_nonlin_lin(tmp_path):
     input_paths = sorted((kgo_dir.glob("multiple_probabilities_rain_*H.nc")))
     output_path = tmp_path / "output.nc"
     args = ["--coordinate", "time",
-            "--wts-calc-method", "nonlinear",
+            "--weighting-method", "nonlinear",
             "--ynval", "1",
             "--y0val", "0",
             *input_paths,
@@ -125,7 +125,7 @@ def test_percentile(tmp_path):
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
     args = ["--coordinate", "forecast_reference_time",
-            "--wts-calc-method", "nonlinear",
+            "--weighting-method", "nonlinear",
             "--cval", "1.0",
             input_path,
             "--output", output_path]
@@ -196,8 +196,8 @@ def test_weights_dict(tmp_path):
     attr_path = kgo_dir / "../attributes.json"
     output_path = tmp_path / "output.nc"
     args = ["--coordinate", "model_configuration",
-            "--wts-calc-method", "dict",
-            "--wts-dict", dict_path,
+            "--weighting-method", "dict",
+            "--weighting-config", dict_path,
             "--weighting-coord", "forecast_period",
             "--model-id-attr", "mosg__model_configuration",
             "--attributes-dict", attr_path,
@@ -217,8 +217,8 @@ def test_percentile_weights_dict(tmp_path):
     dict_path = kgo_dir / "../weights_from_dict/input_dict.json"
     output_path = tmp_path / "output.nc"
     args = ["--coordinate", "model_configuration",
-            "--wts-calc-method", "dict",
-            "--wts-dict", dict_path,
+            "--weighting-method", "dict",
+            "--weighting-config", dict_path,
             "--weighting-coord", "forecast_period",
             "--model-id-attr", "mosg__model_configuration",
             ukv_path, enuk_path,
@@ -360,12 +360,12 @@ def test_three_model_blending(tmp_path):
     output_path = tmp_path / "output.nc"
     args = ["--coordinate", "model_configuration",
             "--spatial-weights-from-mask",
-            "--wts-calc-method", "dict",
+            "--weighting-method", "dict",
             "--weighting-coord", "forecast_period",
             "--cycletime", "20190101T0300Z",
             "--model-id-attr", "mosg__model_configuration",
             "--attributes-dict", attr_path,
-            "--wts-dict", dict_path,
+            "--weighting-config", dict_path,
             *input_files,
             "--output", output_path]
     run_cli(args)
