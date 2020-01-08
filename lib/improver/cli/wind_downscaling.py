@@ -39,8 +39,8 @@ from improver import cli
 def process(wind_speed: cli.inputcube,
             silhouette_roughness: cli.inputcube,
             sigma: cli.inputcube,
-            target_orog: cli.inputcube,
-            standard_orog: cli.inputcube,
+            target_orography: cli.inputcube,
+            standard_orography: cli.inputcube,
             veg_roughness_cube: cli.inputcube = None,
             *,
             model_resolution: float,
@@ -62,10 +62,10 @@ def process(wind_speed: cli.inputcube,
         sigma (iris.cube.Cube):
             Cube of standard deviation of model orography height.
             Units of field: m.
-        target_orog (iris.cube.Cube):
+        target_orography (iris.cube.Cube):
             Cube of orography to downscale fields to.
             Units of field: m.
-        standard_orog (iris.cube.Cube):
+        standard_orography (iris.cube.Cube):
             Cube of orography on standard grid. (interpolated model orography).
             Units of field: m.
         veg_roughness_cube (iris.cube.Cube):
@@ -116,8 +116,8 @@ def process(wind_speed: cli.inputcube,
     for wind_speed_slice in wind_speed_iterator:
         result = (
             wind_downscaling.RoughnessCorrection(
-                silhouette_roughness, sigma, target_orog,
-                standard_orog, model_resolution,
+                silhouette_roughness, sigma, target_orography,
+                standard_orography, model_resolution,
                 z0_cube=veg_roughness_cube,
                 height_levels_cube=None).process(wind_speed_slice))
         wind_speed_list.append(result)
