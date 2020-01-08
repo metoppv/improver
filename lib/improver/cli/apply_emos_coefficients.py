@@ -43,10 +43,10 @@ def process(current_forecast: cli.inputcube,
             landsea_mask: cli.inputcube = None,
             *,
             distribution,
-            num_realizations: int = None,
-            random_ordering=False,
+            realizations_count: int = None,
+            randomise=False,
             random_seed: int = None,
-            ecc_bounds_warning=False,
+            ignore_ecc_bounds=False,
             predictor_of_mean='mean',
             shape_parameters: cli.comma_separated_list = None):
     """Applying coefficients for Ensemble Model Output Statistics.
@@ -78,14 +78,14 @@ def process(current_forecast: cli.inputcube,
             for minimising the Continuous Ranked Probability Score when
             estimating the EMOS coefficients. The distributions available are
             those supported by :data:`scipy.stats`.
-        num_realizations (numpy.int32):
+        realizations_count (int):
             Optional argument to specify the number of ensemble realizations
             to produce. If the current forecast is input as probabilities or
             percentiles then this argument is used to create the requested
             number of realizations. In addition, this argument is used to
             construct the requested number of realizations from the mean and
             variance output after applying the EMOS coefficients.
-        random_ordering (bool):
+        randomise (bool):
             Option to reorder the post-processed forecasts randomly. If not
             set, the ordering of the raw ensemble is used. This option is
             only valid when the input format is realizations.
@@ -93,12 +93,12 @@ def process(current_forecast: cli.inputcube,
             Option to specify a value for the random seed for testing
             purposes, otherwise the default random seen behaviour is utilised.
             The random seed is used in the generation of the random numbers
-            used for either the random_ordering option to order the input
+            used for either the randomise option to order the input
             percentiles randomly, rather than use the ordering from the raw
             ensemble, or for splitting tied values within the raw ensemble,
             so that the values from the input percentiles can be ordered to
             match the raw ensemble.
-        ecc_bounds_warning (bool):
+        ignore_ecc_bounds (bool):
             If True, where the percentiles exceed the ECC bounds range,
             raises a warning rather than an exception. This occurs when the
             current forecasts is in the form of probabilities and is
@@ -130,7 +130,7 @@ def process(current_forecast: cli.inputcube,
             "emos_coefficients".
         ValueError:
             If the forecast type is 'percentiles' or 'probabilities' while no
-            num_realizations are given.
+            realizations_count are given.
 
     """
     import warnings
@@ -175,35 +175,35 @@ def process(current_forecast: cli.inputcube,
         input_forecast_type = "probabilities"
         # If probabilities, convert to percentiles.
         conversion_plugin = GeneratePercentilesFromProbabilities(
-            ecc_bounds_warning=ecc_bounds_warning)
+            ecc_bounds_warning=ignore_ecc_bounds)
     elif input_forecast_type == "percentiles":
         # If percentiles, resample percentiles so that the percentiles are
         # evenly spaced.
         conversion_plugin = ResamplePercentiles(
-            ecc_bounds_warning=ecc_bounds_warning)
+            ecc_bounds_warning=ignore_ecc_bounds)
 
     # If percentiles, re-sample percentiles and then re-badge.
     # If probabilities, generate percentiles and then re-badge.
     if input_forecast_type in ["percentiles", "probabilities"]:
-        if not num_realizations:
+        if not realizations_count:
             raise ValueError(
                 "The current forecast has been provided as {0}. "
                 "These {0} need to be converted to realizations "
-                "for ensemble calibration. The num_realizations "
+                "for ensemble calibration. The realizations_count "
                 "argument is used to define the number of realizations "
                 "to construct from the input {0}, so if the "
                 "current forecast is provided as {0} then "
-                "num_realizations must be defined.".format(
+                "realizations_count must be defined.".format(
                     input_forecast_type))
         current_forecast = conversion_plugin.process(
-            current_forecast, no_of_percentiles=num_realizations)
+            current_forecast, no_of_percentiles=realizations_count)
         current_forecast = (
             RebadgePercentilesAsRealizations().process(current_forecast))
 
     # Default number of ensemble realizations is the number in
     # the raw forecast.
-    if not num_realizations:
-        num_realizations = len(
+    if not realizations_count:
+        realizations_count = len(
             current_forecast.coord('realization').points)
 
     # Apply coefficients as part of Ensemble Model Output Statistics (EMOS).
@@ -238,8 +238,8 @@ def process(current_forecast: cli.inputcube,
             distribution=distribution,
             shape_parameters=shape_parameters).process(
             calibrated_predictor, calibrated_variance,
-            no_of_percentiles=num_realizations)
+            no_of_percentiles=realizations_count)
         result = EnsembleReordering().process(
             percentiles, current_forecast,
-            random_ordering=random_ordering, random_seed=random_seed)
+            random_ordering=randomise, random_seed=random_seed)
     return result

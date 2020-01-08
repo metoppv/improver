@@ -37,16 +37,16 @@ from improver import cli
 @cli.with_output
 def process(cube: cli.inputcube,
             *,
-            no_of_realizations: int = None,
-            ecc_bounds_warning=False):
+            realizations_count: int = None,
+            ignore_ecc_bounds=False):
     """Converts an incoming cube into one containing realizations.
 
     Args:
         cube (iris.cube.Cube):
             A cube to be processed.
-        no_of_realizations (int):
+        realizations_count (int):
             The number of ensemble realizations in the output.
-        ecc_bounds_warning (bool):
+        ignore_ecc_bounds (bool):
             If True, where percentiles exceed the ECC bounds range, raises a
             warning rather than an exception.
 
@@ -59,12 +59,12 @@ def process(cube: cli.inputcube,
 
     if cube.coords('percentile'):
         output_cube = percentiles_to_realizations.process(
-            cube, no_of_percentiles=no_of_realizations,
-            rebadging=True, ecc_bounds_warning=ecc_bounds_warning)
+            cube, realizations_count=realizations_count,
+            rebadge=True, ignore_ecc_bounds=ignore_ecc_bounds)
     elif cube.coords(var_name='threshold'):
         output_cube = probabilities_to_realizations.process(
-            cube, no_of_realizations=no_of_realizations, rebadging=True,
-            ecc_bounds_warning=ecc_bounds_warning)
+            cube, realizations_count=realizations_count, rebadge=True,
+            ignore_ecc_bounds=ignore_ecc_bounds)
     elif cube.coords(var_name='realization'):
         output_cube = cube
     else:

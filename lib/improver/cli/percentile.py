@@ -39,9 +39,9 @@ from improver import cli
 def process(cube: cli.inputcube,
             *,
             coordinates: cli.comma_separated_list = None,
-            ecc_bounds_warning=False,
+            ignore_ecc_bounds=False,
             percentiles: cli.comma_separated_list = None,
-            no_of_percentiles: int = None):
+            percentiles_count: int = None):
     r"""Collapses cube coordinates and calculate percentiled data.
 
     Calculate percentiled data over a given coordinate by collapsing that
@@ -65,12 +65,12 @@ def process(cube: cli.inputcube,
             converting probabilities to percentiles and may be omitted. This
             coordinate(s) will be removed and replaced by a percentile
             coordinate.
-        ecc_bounds_warning (bool):
+        ignore_ecc_bounds (bool):
             If True, where calculated percentiles are outside the ECC bounds
             range, raises a warning rather than an exception.
         percentiles (list):
             Optional definition of percentiles at which to calculate data.
-        no_of_percentiles (int):
+        percentiles_count (int):
             Optional definition of the number of percentiles to be generated,
             these distributed regularly with the aim of dividing into blocks
             of equal probability.
@@ -102,13 +102,13 @@ def process(cube: cli.inputcube,
     if percentiles is not None:
         percentiles = [float(p) for p in percentiles]
 
-    if no_of_percentiles is not None:
-        percentiles = choose_set_of_percentiles(no_of_percentiles,
+    if percentiles_count is not None:
+        percentiles = choose_set_of_percentiles(percentiles_count,
                                                 sampling="quantile")
     # TODO: Correct when formal cf-standards exists
     if 'probability_of_' in cube.name():
         result = GeneratePercentilesFromProbabilities(
-            ecc_bounds_warning=ecc_bounds_warning).process(
+            ecc_bounds_warning=ignore_ecc_bounds).process(
             cube, percentiles=percentiles)
         if coordinates:
             warnings.warn("Converting probabilities to percentiles. The "

@@ -115,7 +115,7 @@ def test_probabilities(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [input_path, emos_est_path,
             "--distribution", "norm",
-            "--num-realizations", "18",
+            "--realizations-count", "18",
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path,
@@ -146,7 +146,7 @@ def test_percentiles(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [input_path, emos_est_path,
             "--distribution", "norm",
-            "--num-realizations", "18",
+            "--realizations-count", "18",
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path,
@@ -176,7 +176,7 @@ def test_rebadged_percentiles(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [kgo_dir / "../rebadged_percentiles/input.nc", emos_est_path,
             "--distribution", "norm",
-            "--num-realizations", "18",
+            "--realizations-count", "18",
             "--output", output_path]
     run_cli(args)
     # The known good output in this case is the same as when passing in

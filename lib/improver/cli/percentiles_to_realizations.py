@@ -40,14 +40,14 @@ from improver import cli
 def process(cube: cli.inputcube,
             raw_forecast: cli.inputcube = None,
             *,
-            no_of_percentiles: int = None,
+            realizations_count: int = None,
             sampling_method='quantile',
-            ecc_bounds_warning=False,
-            reordering=False,
-            rebadging=False,
-            random_ordering=False,
+            ignore_ecc_bounds=False,
+            reorder=False,
+            rebadge=False,
+            randomise=False,
             random_seed: int = None,
-            realization_numbers: cli.comma_separated_list = None):
+            realizations: cli.comma_separated_list = None):
     """Runs Ensemble Copula Coupling processing.
 
     Converts a dataset containing percentiles into one containing ensemble
@@ -58,8 +58,8 @@ def process(cube: cli.inputcube,
             Cube expected to contain a percentiles coordinate.
         raw_forecast (iris.cube.Cube):
             Cube of raw (not post processed) weather data.
-            This option is compulsory, if the reordering option is selected.
-        no_of_percentiles (int):
+            This option is compulsory, if the reorder option is selected.
+        realizations_count (int):
             The number of percentiles to be generated. This is also equal to
             the number of ensemble realizations that will be generated.
         sampling_method (str):
@@ -68,32 +68,31 @@ def process(cube: cli.inputcube,
             and "random".
             The quantile option produces equally spaced percentiles which is
             the preferred option for full ensemble couple coupling with
-            reordering enabled.
-        ecc_bounds_warning (bool):
+            reorder enabled.
+        ignore_ecc_bounds (bool):
             If True where percentiles (calculated as an intermediate output
             before realization) exceed the ECC bounds range, raises a
             warning rather than an exception.
-        reordering (bool):
+        reorder (bool):
             The option used to create ensemble realizations from percentiles
             by reordering the input percentiles based on the order of the
             raw ensemble forecast.
-        rebadging (bool):
+        rebadge (bool):
             The option used to create ensemble realizations from percentiles
             by rebadging the input percentiles.
-        random_ordering (bool):
-            If random_ordering is True, the post-processed forecasts are
-            reordered randomly, rather than using the ordering of the
-            raw ensemble.
+        randomise (bool):
+            If True, the post-processed forecasts are reordered randomly,
+            rather than using the ordering of the raw ensemble.
         random_seed (int):
             Option to specify a value for the random seed for testing purposes,
             otherwise, the default random seed behaviour is utilised.
             The random seed is used in the generation of the random numbers
-            used for either the random_ordering option to order the input
+            used for either the randomise option to order the input
             percentiles randomly, rather than use the ordering from the
             raw ensemble, or for splitting tied values within the raw ensemble
             so that the values from the input percentiles can be ordered to
             match the raw ensemble.
-        realization_numbers (list of ints):
+        realizations (list of ints):
             A list of ensemble realization numbers to use when rebadging the
             percentiles into realizations.
 
@@ -105,29 +104,29 @@ def process(cube: cli.inputcube,
         RebadgePercentilesAsRealizations, ResamplePercentiles,
         EnsembleReordering)
 
-    if reordering:
-        if realization_numbers is not None:
-            raise RuntimeError('realization_numbers cannot be used with '
-                               'reordering.')
-    if rebadging:
+    if reorder:
+        if realizations is not None:
+            raise RuntimeError('realizations cannot be used with '
+                               'reorder.')
+    if rebadge:
         if raw_forecast is not None:
-            raise RuntimeError('rebadging cannot be used with raw_forecast.')
-        if random_ordering is not False:
-            raise RuntimeError('rebadging cannot be used with '
-                               'random_ordering.')
+            raise RuntimeError('rebadge cannot be used with raw_forecast.')
+        if randomise is not False:
+            raise RuntimeError('rebadge cannot be used with '
+                               'randomise.')
 
-    if realization_numbers:
-        realization_numbers = [int(x) for x in realization_numbers]
+    if realizations:
+        realizations = [int(x) for x in realizations]
 
     result = ResamplePercentiles(
-        ecc_bounds_warning=ecc_bounds_warning).process(
-        cube, no_of_percentiles=no_of_percentiles,
+        ecc_bounds_warning=ignore_ecc_bounds).process(
+        cube, no_of_percentiles=realizations_count,
         sampling=sampling_method)
-    if reordering:
+    if reorder:
         result = EnsembleReordering().process(
-            result, raw_forecast, random_ordering=random_ordering,
+            result, raw_forecast, random_ordering=randomise,
             random_seed=random_seed)
-    elif rebadging:
+    elif rebadge:
         result = RebadgePercentilesAsRealizations().process(
-            result, ensemble_realization_numbers=realization_numbers)
+            result, ensemble_realization_numbers=realizations)
     return result

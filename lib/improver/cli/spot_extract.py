@@ -44,7 +44,7 @@ def process(neighbour_cube: cli.inputcube,
             land_constraint=False,
             minimum_dz=False,
             extract_percentiles: cli.comma_separated_list = None,
-            ecc_bounds_warning=False,
+            ignore_ecc_bounds=False,
             new_title: str = None,
             suppress_warnings=False):
     """Module to run spot data extraction.
@@ -89,7 +89,7 @@ def process(neighbour_cube: cli.inputcube,
             a warning message.
             Note that for percentiles inputs, the desired percentile(s) must
             exist in the input cube.
-        ecc_bounds_warning (bool):
+        ignore_ecc_bounds (bool):
             Demotes exceptions where calculated percentiles are outside the ECC
             bounds range to warnings.
         new_title (str):
@@ -165,7 +165,7 @@ def process(neighbour_cube: cli.inputcube,
         except CoordinateNotFoundError:
             if 'probability_of_' in result.name():
                 result = GeneratePercentilesFromProbabilities(
-                    ecc_bounds_warning=ecc_bounds_warning).process(
+                    ecc_bounds_warning=ignore_ecc_bounds).process(
                     result, percentiles=extract_percentiles)
                 result = iris.util.squeeze(result)
             elif result.coords('realization', dim_coords=True):
