@@ -44,7 +44,7 @@ run_cli = acc.run_cli(CLI)
 @pytest.mark.parametrize(
     "extra,match",
     ((["--max-lapse-rate", "-1", "--min-lapse-rate", "1"], "lapse rate"),
-     (["--max-height-diff-metres", "-1"], "height difference"),
+     (["--max-height-diff", "-1"], "height difference"),
      (["--nbhood-radius", "-1"], "radius")))
 def test_bad_params(tmp_path, extra, match):
     """Test use of incorrect parameters"""
@@ -99,7 +99,7 @@ def test_options(tmp_path):
     landmask_path = input_dir / "ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, orography_path, landmask_path,
-            "--max-height-diff-metres", "10",
+            "--max-height-diff", "10",
             "--nbhood-radius", "3",
             "--max-lapse-rate", "0.06",
             "--min-lapse-rate", "-0.01",
@@ -116,7 +116,7 @@ def test_dalr(tmp_path):
     input_path = input_dir / "temperature_at_screen_level.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path,
-            "--return-dalr",
+            "--dry-adiabatic",
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

@@ -29,12 +29,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain generally useful constants."""
-from iris.coords import AuxCoord
-
-
-def make_constant_with_units(constant, units):
-    """Make an iris.AuxCoord containing a constant with units."""
-    return AuxCoord(constant, units=units)
 
 
 # Real Missing Data Indicator
@@ -46,50 +40,47 @@ DEFAULT_PERCENTILES = (0, 5, 10, 20, 25, 30, 40, 50,
 
 # 0 Kelvin in degrees C
 ABSOLUTE_ZERO = -273.15
-U_ABSOLUTE_ZERO = make_constant_with_units(ABSOLUTE_ZERO, "celsius")
+U_ABSOLUTE_ZERO = "celsius"
 
 # Specific gas constant for dry air (J K-1 kg-1)
 R_DRY_AIR = 287.0
-U_R_DRY_AIR = make_constant_with_units(R_DRY_AIR, "J K-1 kg-1")
+U_R_DRY_AIR = "J K-1 kg-1"
 
 # Specific gas constant for dry air per mole (J K-1 mol-1)
 R_DRY_AIR_MOL = 8.314
-U_R_DRY_AIR_MOL = make_constant_with_units(R_DRY_AIR_MOL, "J K-1 mol-1")
+U_R_DRY_AIR_MOL = "J K-1 mol-1"
 
 # Specific gas constant for water vapour (J K-1 kg-1)
 R_WATER_VAPOUR = 461.6
-U_R_WATER_VAPOUR = make_constant_with_units(R_WATER_VAPOUR, "J K-1 kg-1")
+U_R_WATER_VAPOUR = "J K-1 kg-1"
 
 # Specific heat capacity of dry air (J K-1 kg-1)
 CP_DRY_AIR = 1005.0
-U_CP_DRY_AIR = make_constant_with_units(CP_DRY_AIR, "J K-1 kg-1")
+U_CP_DRY_AIR = "J K-1 kg-1"
 
 # Specific heat capacity of water vapour (J K-1 kg-1)
 CP_WATER_VAPOUR = 1850.0
-U_CP_WATER_VAPOUR = make_constant_with_units(CP_WATER_VAPOUR, "J K-1 kg-1")
+U_CP_WATER_VAPOUR = "J K-1 kg-1"
 
 # Triple Point of Water (K)
 TRIPLE_PT_WATER = 273.16
-U_TRIPLE_PT_WATER = make_constant_with_units(TRIPLE_PT_WATER, "K")
+U_TRIPLE_PT_WATER = "K"
 
 # Latent heat of condensation of water at 0C (J kg-1)
 LH_CONDENSATION_WATER = 2.501E6
-U_LH_CONDENSATION_WATER = make_constant_with_units(LH_CONDENSATION_WATER,
-                                                   "J kg-1")
+U_LH_CONDENSATION_WATER = "J kg-1"
 # Molar mass of water vapour (kg mol-1)
 WATER_VAPOUR_MOLAR_MASS = 0.01801
-U_WATER_VAPOUR_MOLAR_MASS = make_constant_with_units(WATER_VAPOUR_MOLAR_MASS,
-                                                     "kg mol-1")
+U_WATER_VAPOUR_MOLAR_MASS = "kg mol-1"
 # Latent heat temperature dependence (J K-1 kg-1); from Met Office UM.
 # Applied to temperatures in Celsius: LH = 2501 - 2.34E3 * T(celsius)
 LATENT_HEAT_T_DEPENDENCE = 2.34E3
-U_LATENT_HEAT_T_DEPENDENCE = make_constant_with_units(LATENT_HEAT_T_DEPENDENCE,
-                                                      "J K-1 kg-1")
+U_LATENT_HEAT_T_DEPENDENCE = "J K-1 kg-1"
 
 # Repsilon, ratio of molecular weights of water and dry air (Earth)
 EARTH_REPSILON = 0.62198
-U_EARTH_REPSILON = make_constant_with_units(EARTH_REPSILON, "1")
+U_EARTH_REPSILON = "1"
 
 # Dry Adiabatic Lapse Rate (DALR) in unit of K m-1
 DALR = -0.0098
-U_DALR = make_constant_with_units(DALR, "K m-1")
+U_DALR = "K m-1"
