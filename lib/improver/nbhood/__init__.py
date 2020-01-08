@@ -51,12 +51,16 @@ def radius_by_lead_time(radii, lead_times):
             **lead_times** (None or list of ints):
                 Lead times in hours as a list of ints or None.
     Raises:
+        ValueError: If multiple radii are provided without any lead times.
         ValueError: If radii and lead_times lists are on unequal lengths.
     """
     if lead_times is None:
+        if not len(radii) == 1:
+            raise ValueError("Multiple radii have been supplied but no "
+                             "associated lead times.")
         radius_or_radii = float(radii[0])
     else:
-        if len(radii) != len(lead_times):
+        if not len(radii) == len(lead_times):
             raise ValueError("If leadtimes are supplied, it must be a list"
                              " of equal length to a list of radii.")
         radius_or_radii = [float(x) for x in radii]

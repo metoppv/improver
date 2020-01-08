@@ -71,7 +71,7 @@ def process(cube: cli.inputcube,
             Cube to act as a mask.
         weights (iris.cube.Cube, Optional):
             Cube containing the weights which are used for collapsing the
-            dimension gained through masking.
+            dimension gained through masking. (Optional).
         coord_for_masking (str):
             String matching the name of the coordinate that will be used
             for masking.
@@ -83,9 +83,8 @@ def process(cube: cli.inputcube,
             will be interpolated for intermediate lead times.
         lead_times (list of int or None):
             The lead times in hours that correspond to the radii to be used.
-            If lead_times is used, radius must be a list the same length as
+            If lead_times are set, radii must be a list the same length as
             lead_times. Lead times must be given as integer values.
-            Default is None
         sum_or_fraction (str):
             Identifier for whether sum or fraction should be returned from
             neighbourhooding.
@@ -93,17 +92,16 @@ def process(cube: cli.inputcube,
             Fraction represents the sum of the neighbourhood divided by the
             neighbourhood area.
         remask (bool):
-            If True, the original un-neighbourhood processed mask
-            is applied to mask out the neighbourhood processed cube.
-            If False, the original un-neighbourhood processed mask is not
-            applied.
-            Therefore, the neighbourhood processing may result in
-            values being present in areas that were originally masked.
+            Include this option to apply the original un-neighbourhood
+            processed mask to the neighbourhood processed cube.
+            Otherwise the original un-neighbourhood processed mask
+            is not applied. Therefore, the neighbourhood processing may result
+            in values being present in area that were originally masked.
         collapse_dimension (bool):
-            Collapse the dimension from the mask, by doing a weighted mean
-            using the weights provided.  This is only suitable when the result
-            is left unmasked, so there is data to weight between the points
-            in the coordinate we are collapsing.
+            Include this option to collapse the dimension from the mask, by
+            doing a weighted mean using the weights provided. This is only
+            suitable when the result is left unmasked, so there is data to
+            weight between the points in the coordinate we are collapsing.
 
     Returns:
         iris.cube.Cube:

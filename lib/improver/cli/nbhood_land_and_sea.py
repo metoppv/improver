@@ -66,8 +66,7 @@ def process(cube: cli.inputcube,
         weights (iris.cube.Cube):
             A cube containing the weights which are used for collapsing the
             dimension gained through masking. These weights must have been
-            created using a land-sea mask.
-            Default is None.
+            created using a land-sea mask. (Optional).
         radii (list of float):
             The radius or a list of radii in metres of the neighbourhood to
             apply.
@@ -76,21 +75,19 @@ def process(cube: cli.inputcube,
             will be interpolated for intermediate lead times.
         lead_times (list of int or None):
             The lead times in hours that correspond to the radii to be used.
-            If lead_times is used, radius must be a list the same length as
-            lead_times.
-            Default is None
+            If lead_times are set, radii must be a list the same length as
+            lead_times. Lead times must be given as integer values.
         sum_or_fraction (str):
             The neighbourhood output can either be in the form of a sum of the
             neighbourhood, or a fraction calculated by dividing the sum of the
             neighbourhood by the neighbourhood area.
             Default is 'fraction'
         return_intermediate (bool):
-            If True will return a cube with results following topographic
-            masked neighbourhood processing of land points and prior to
-            collapsing the topographic_zone coordinate. If no topographic
-            masked neighbourhooding occurs, there will be no intermediate cube
-            and a warning.
-            Default is False.
+            Include this option to return a cube with results following
+            topographic masked neighbourhood processing of land points and
+            prior to collapsing the topographic_zone coordinate. If no
+            topographic masked neighbourhooding occurs, there will be no
+            intermediate cube and a warning.
 
     Returns:
         (tuple): tuple containing:

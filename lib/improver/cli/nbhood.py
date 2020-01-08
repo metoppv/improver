@@ -61,8 +61,7 @@ def process(cube: cli.inputcube,
         mask_cube (iris.cube.Cube):
             A cube to mask the input cube. The data should contain 1 for
             usable points and 0 for discarded points.
-            Only supported with square neighbourhoods.
-            Default is None.
+            Only supported with square neighbourhoods. (Optional)
         neighbourhood_output (str):
             The form of the results generated using neighbourhood processing.
             If "probabilities" is selected, the mean probability with a
@@ -84,19 +83,16 @@ def process(cube: cli.inputcube,
             will be interpolated for intermediate lead times.
         lead_times (list of int or None):
             The lead times in hours that correspond to the radii to be used.
-            If lead_times is used, radius must be a list the same length as
+            If lead_times are set, radii must be a list the same length as
             lead_times.
-            Default is None
         degrees_as_complex (bool):
-            If True processes angles as complex numbers.
+            Include this option to process angles as complex numbers.
             Not compatible with circular kernel or percentiles.
-            Default is False.
         weighted_mode (bool):
-            If True the weighting decreases with radius.
-            If False a constant weighting is assumed.
+            Include this option to set the weighting to decrease with radius.
+            Otherwise a constant weighting is assumed.
             weighted_mode is only applicable for calculating "probability"
             neighbourhood output using the circular kernal.
-            Default is False
         sum_or_fraction (str):
             Identifier for whether sum or fraction should be returned from
             neighbourhooding. The sum represents the sum of the neighbourhood.
@@ -104,22 +100,20 @@ def process(cube: cli.inputcube,
             the neighbourhood area.
             Default is "fraction".
         re_mask (bool):
-            If re_mask is True, the original un-neighbourhood processed mask
-            is applied to mask out the neighbourhood processed cube.
-            If re_mask is False, the original un-neighbourhood processed mask
+            Include this option to apply the original un-neighbourhood
+            processed mask to the neighbourhood processed cube.
+            Otherwise the original un-neighbourhood processed mask
             is not applied. Therefore, the neighbourhood processing may result
             in values being present in area that were originally masked.
-            Default is False.
         percentiles (float or None):
             Calculates value at the specified percentiles from the
             neighbourhood surrounding each grid point. This argument has no
             effect if the output is probabilities.
-            Default is improver.constants.DEFAULT_PERCENTILES.
         halo_radius (float or None):
-            Radius in metres of excess halo to clip. Used where a larger grid
-            was defined than the standard grid and we want to clip the grid
-            back to the standard grid.
-            Default is None.
+            Set this radius in metres to define the excess halo to clip. Used
+            where a larger grid was defined than the standard grid and we want
+            to clip the grid back to the standard grid. Otherwise no clipping
+            is applied.
 
     Returns:
         iris.cube.Cube:
@@ -127,15 +121,7 @@ def process(cube: cli.inputcube,
 
     Raises:
         RuntimeError:
-            If neighbourhood_shape is used with the wrong neighbourhood
-            output.
-        RuntimeError:
             If weighted_mode is used with the wrong neighbourhood_output.
-        RuntimeError:
-            If neighbourhood_output='probabilities' and the default
-            percentiles are used.
-        RuntimeError:
-            If neighbourhood_shape='circular' is used with mask cube.
         RuntimeError:
             If degree_as_complex is used with
             neighbourhood_output='percentiles'.
@@ -149,9 +135,6 @@ def process(cube: cli.inputcube,
     from improver.wind_calculations.wind_direction import WindDirection
 
     if neighbourhood_output == "percentiles":
-        if neighbourhood_shape == "square":
-            raise RuntimeError('neighbourhood_shape="square" cannot be used '
-                               'with neighbourhood_output="percentiles"')
         if weighted_mode:
             raise RuntimeError('weighted_mode cannot be used with'
                                'neighbourhood_output="percentiles"')
@@ -160,9 +143,6 @@ def process(cube: cli.inputcube,
                                'numbers')
 
     if neighbourhood_shape == "circular":
-        if mask_cube:
-            raise RuntimeError('mask_cube cannot be used with '
-                               'neighbourhood_output="circular"')
         if degrees_as_complex:
             raise RuntimeError(
                 'Cannot process complex numbers with circular neighbourhoods')

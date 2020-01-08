@@ -117,7 +117,6 @@ def test_masked_square_external(tmp_path):
             "--neighbourhood-output", "probabilities",
             "--neighbourhood-shape", "square",
             "--radii", "20000",
-            "--weighted-mode",
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

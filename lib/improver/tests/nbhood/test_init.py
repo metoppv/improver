@@ -77,17 +77,15 @@ class Test_radius_by_lead_time(unittest.TestCase):
             radius_by_lead_time(radii, lead_times)
 
     def test_multiple_radii_no_lead_times(self):
-        """Test that when multiple radii are provided with no lead times the
-        returned objects are a float equal to the first input radius and a
-        NoneType representing the lead times"""
+        """Test that when multiple radii are provided with no lead times an
+        exception is raised."""
 
         radii = ['10000', '20000']
         lead_times = None
-        radii_out, lead_times_out = radius_by_lead_time(radii, lead_times)
 
-        self.assertEqual(radii_out, float(radii[0]))
-        self.assertEqual(lead_times_out, None)
-        self.assertIsInstance(radii_out, float)
+        msg = "Multiple radii have been supplied but no associated lead times."
+        with self.assertRaisesRegex(ValueError, msg):
+            radius_by_lead_time(radii, lead_times)
 
 
 if __name__ == '__main__':
