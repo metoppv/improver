@@ -39,7 +39,7 @@ from improver import cli
 def process(*cubes: cli.inputcube,
             operation='+',
             new_name=None,
-            new_metadata: cli.inputjson = None,
+            bounds_config: cli.inputjson = None,
             check_metadata=False):
     r"""Combine input cubes.
 
@@ -53,7 +53,7 @@ def process(*cubes: cli.inputcube,
             +, -, \*, add, subtract, multiply, min, max, mean
         new_name (str):
             New name for the resulting dataset.
-        new_metadata (dict):
+        bounds_config (dict):
             Dictionary containing information on coordinates to expand.
         check_metadata (bool):
             If True, warn on metadata mismatch between inputs.
@@ -64,14 +64,11 @@ def process(*cubes: cli.inputcube,
     """
     from improver.cube_combiner import CubeCombiner
     from iris.cube import CubeList
-    coords_to_expand = None
-    if new_metadata and 'expanded_coord' in new_metadata:
-        coords_to_expand = new_metadata['expanded_coord']
     if not cubes:
         raise TypeError("A cube is needed to be combined.")
     if new_name is None:
         new_name = cubes[0].name()
     result = CubeCombiner(operation, warnings_on=check_metadata).process(
-        CubeList(cubes), new_name, coords_to_expand=coords_to_expand)
+        CubeList(cubes), new_name, coords_to_expand=bounds_config)
 
     return result

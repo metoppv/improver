@@ -65,7 +65,7 @@ def test_minmax_temperatures(tmp_path, minmax):
         kgo_dir.glob(f"*temperature_at_screen_level_{minmax}.nc"))
     output_path = tmp_path / "output.nc"
     args = ["--operation", f"{minmax}",
-            "--new-metadata", f"{meta_path}",
+            "--bounds-config", f"{meta_path}",
             *temperatures,
             "--output", f"{output_path}"]
     run_cli(args)
@@ -79,7 +79,7 @@ def test_combine_accumulation(tmp_path):
     rains = sorted(kgo_dir.glob("*rainfall_accumulation.nc"))
     meta_path = kgo_dir / "../metadata.json"
     output_path = tmp_path / "output.nc"
-    args = ["--new-metadata", f"{meta_path}",
+    args = ["--bounds-config", f"{meta_path}",
             *rains,
             "--output", f"{output_path}"]
     run_cli(args)
@@ -94,7 +94,7 @@ def test_mean_temperature(tmp_path):
     temperatures = sorted(kgo_dir.glob("*temperature_at_screen_level.nc"))
     output_path = tmp_path / "output.nc"
     args = ["--operation", "mean",
-            "--new-metadata", f"{meta_path}",
+            "--bounds-config", f"{meta_path}",
             *temperatures,
             "--output", f"{output_path}"]
     run_cli(args)
