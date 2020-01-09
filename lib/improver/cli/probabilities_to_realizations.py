@@ -40,34 +40,32 @@ def process(cube: cli.inputcube,
             raw_cube: cli.inputcube = None,
             *,
             realizations_count: int = None,
-            reorder=False,
-            rebadge=False,
             random_seed: int = None,
             ignore_ecc_bounds=False):
-    """Convert from probabilities to ensemble realizations.
+    """Convert probabilities to ensemble realizations using Ensemble Coupla
+    Coupling.
+
+    Probabilities are first converted to percentiles, which are then either
+    rebadged as realizations or reordered if the raw_cube argument is given.
 
     Args:
         cube (iris.cube.Cube):
             Cube to be processed.
         raw_cube (iris.cube.Cube):
             Cube of raw (not post processed) weather data.
-            This option is compulsory, if the reorder option is selected.
+            If this argument is given ensemble realizations will be created
+            from percentiles by reshuffling them in correspondance to the rank
+            order of the raw ensemble. Otherwise, the percentiles are rebadged
+            as realizations.
         realizations_count (int):
             Optional definition of the number of ensemble realizations to
             be generated. These are generated though an intermediate
             percentile representation. Theses percentiles will be
             distributed regularly with the aim of dividing into blocks
-            of equal probability. If the reorder option is specified
+            of equal probability. If the raw_cube is given
             and the number of realization is not given the number
             of realizations is taken from the number of realizations
-            in the raw forecast cube.
-        reorder (bool):
-            The option used to create ensemble realizations from percentiles
-            by reordering the input percentiles based on the order of the
-            raw ensemble.
-        rebadge (bool):
-            Th option used to create ensemble realizations from percentiles
-            by rebadging the input percentiles.
+            in the raw_cube.
         random_seed (int):
             Option to specify a value for the random seed for testing
             purposes, otherwise the default random seed behaviours is
@@ -83,49 +81,24 @@ def process(cube: cli.inputcube,
     Returns:
         iris.cube.Cube:
             Processed result Cube.
-
-    Raises:
-        RuntimeError:
-            If rebadge is used with raw_cube.
-        RuntimeError:
-            If rebadge is used with random_seed.
-        RuntimeError:
-            If raw_cube isn't supplied when using reorder.
     """
-    from iris.exceptions import CoordinateNotFoundError
     from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
         GeneratePercentilesFromProbabilities, RebadgePercentilesAsRealizations,
         EnsembleReordering)
 
-    if rebadge:
-        if raw_cube is not None:
-            raise RuntimeError('rebadge cannot be used with raw_cube.')
-        if random_seed is not None:
-            raise RuntimeError('rebadge cannot be used with random_seed.')
-
-    if reorder:
+    if realizations_count is None and raw_cube:
         # If realizations_count is not given, take the number from the raw
         # ensemble cube.
-        if realizations_count is None:
-            if raw_cube is None:
-                message = ("You must supply a raw forecast cube if using the "
-                           "reorder option.")
-                raise RuntimeError(message)
-            try:
-                realizations_count = len(
-                    raw_cube.coord("realization").points)
-            except CoordinateNotFoundError:
-                raise RuntimeError('The raw forecast must have a realization '
-                                   'coordinate.')
+        realizations_count = len(raw_cube.coord("realization").points)
 
-        cube = GeneratePercentilesFromProbabilities(
-            ecc_bounds_warning=ignore_ecc_bounds).process(
-            cube, no_of_percentiles=realizations_count)
+    result = GeneratePercentilesFromProbabilities(
+        ecc_bounds_warning=ignore_ecc_bounds).process(
+        cube, no_of_percentiles=realizations_count)
+
+    if raw_cube:
         result = EnsembleReordering().process(
-            cube, raw_cube, random_ordering=False, random_seed=random_seed)
-    elif rebadge:
-        cube = GeneratePercentilesFromProbabilities(
-            ecc_bounds_warning=ignore_ecc_bounds).process(
-            cube, no_of_percentiles=realizations_count)
-        result = RebadgePercentilesAsRealizations().process(cube)
+            result, raw_cube, random_ordering=False, random_seed=random_seed)
+    else:
+        result = RebadgePercentilesAsRealizations().process(result)
+
     return result

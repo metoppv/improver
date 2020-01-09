@@ -47,7 +47,7 @@ def test_basic(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = ["--rebadge", input_path, "--output", output_path]
+    args = [input_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -59,34 +59,11 @@ def test_n_realizations(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "../basic/input.nc"
     output_path = tmp_path / "output.nc"
-    args = ["--rebadge",
-            "--realizations-count=12",
+    args = ["--realizations-count=12",
             input_path,
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
-
-
-def test_reordering_requires_raw(tmp_path):
-    """Test requiring a raw ensemble for reordering"""
-    kgo_dir = acc.kgo_root() / "probabilities-to-realizations/basic"
-    input_path = kgo_dir / "input.nc"
-    output_path = tmp_path / "output.nc"
-    args = ["--reorder", input_path, "--output", output_path]
-    with pytest.raises(RuntimeError, match=".*raw forecast.*"):
-        run_cli(args)
-
-
-def test_reordering_requires_realization(tmp_path):
-    """Test requiring a realization coordinate for reordering"""
-    kgo_dir = acc.kgo_root() / "probabilities-to-realizations/basic"
-    input_path = kgo_dir / "input.nc"
-    output_path = tmp_path / "output.nc"
-    args = ["--reorder", input_path,
-            input_path,
-            "--output", output_path]
-    with pytest.raises(RuntimeError, match=".*realization coordinate.*"):
-        run_cli(args)
 
 
 @pytest.mark.slow
@@ -97,39 +74,12 @@ def test_basic_reordering(tmp_path):
     raw_path = kgo_dir / "raw_ens.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = ["--reorder",
-            "--random-seed", "0",
+    args = ["--random-seed", "0",
             input_path,
             raw_path,
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
-
-
-def test_rebadging_wrong_args_random(tmp_path):
-    """Test wrong random seed argument"""
-    kgo_dir = acc.kgo_root() / "probabilities-to-realizations/basic_reordering"
-    input_path = kgo_dir / "input.nc"
-    output_path = tmp_path / "output.nc"
-    args = ["--rebadge",
-            input_path,
-            "--random-seed", "0",
-            "--output", output_path]
-    with pytest.raises(RuntimeError):
-        run_cli(args)
-
-
-def test_rebadging_wrong_args_raw(tmp_path):
-    """Test wrong raw forecast argument"""
-    kgo_dir = acc.kgo_root() / "probabilities-to-realizations/basic_reordering"
-    input_path = kgo_dir / "input.nc"
-    output_path = tmp_path / "output.nc"
-    args = ["--rebadge",
-            input_path,
-            input_path,
-            "--output", output_path]
-    with pytest.raises(RuntimeError):
-        run_cli(args)
 
 
 @pytest.mark.slow
@@ -141,8 +91,7 @@ def test_reordering_n_realizations(tmp_path):
     raw_path = kgo_dir / "../basic_reordering/raw_ens.nc"
     input_path = kgo_dir / "../basic_reordering/input.nc"
     output_path = tmp_path / "output.nc"
-    args = ["--reorder",
-            "--random-seed", "0",
+    args = ["--random-seed", "0",
             "--realizations-count", "6",
             input_path,
             raw_path,
@@ -160,8 +109,7 @@ def test_reordering_ecc_bounds(tmp_path):
     raw_path = kgo_dir / "raw_ens.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = ["--reorder",
-            "--ignore-ecc-bounds",
+    args = ["--ignore-ecc-bounds",
             "--random-seed", "0",
             input_path,
             raw_path,

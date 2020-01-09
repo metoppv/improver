@@ -60,10 +60,10 @@ def process(cube: cli.inputcube,
     if cube.coords('percentile'):
         output_cube = percentiles_to_realizations.process(
             cube, realizations_count=realizations_count,
-            rebadge=True, ignore_ecc_bounds=ignore_ecc_bounds)
+            ignore_ecc_bounds=ignore_ecc_bounds)
     elif cube.coords(var_name='threshold'):
         output_cube = probabilities_to_realizations.process(
-            cube, realizations_count=realizations_count, rebadge=True,
+            cube, realizations_count=realizations_count,
             ignore_ecc_bounds=ignore_ecc_bounds)
     elif cube.coords(var_name='realization'):
         output_cube = cube
