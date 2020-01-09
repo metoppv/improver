@@ -69,10 +69,10 @@ def test_metadata(tmp_path):
     input_paths = [kgo_dir / f"20181103{hhmm}_{RADAR_REGRID}.nc"
                    for hhmm in ("1530", "1545", "1600")]
     oe_path = kgo_dir / OE
-    # TODO: the BATS test does not call improver with the metadata file
-    # metadata_path = kgo_dir / "../metadata/precip.json"
+    metadata_path = kgo_dir / "../metadata/precip.json"
     output_path = tmp_path / "output.nc"
     args = [oe_path, *input_paths,
+            "--attributes-dict", metadata_path,
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
