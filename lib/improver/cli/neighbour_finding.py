@@ -37,9 +37,9 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(orography: cli.inputcube,
-            landmask: cli.inputcube,
-            *,
+            land_sea_mask: cli.inputcube,
             site_list: cli.inputjson,
+            *,
             all_methods=False,
             land_constraint=False,
             similar_altitude=False,
