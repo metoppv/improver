@@ -345,7 +345,7 @@ def process(current_forecast, coeffs, landsea_mask, distribution,
             distribution=distribution,
             shape_parameters=shape_parameters).process(
             calibrated_predictor, calibrated_variance,
-            percentiles=perc_coord.points)
+            original_current_forecast, percentiles=perc_coord.points)
     elif input_forecast_type == "realizations":
         # Ensemble Copula Coupling to generate realizations
         # from the location and scale parameter.
@@ -353,7 +353,7 @@ def process(current_forecast, coeffs, landsea_mask, distribution,
             distribution=distribution,
             shape_parameters=shape_parameters).process(
             calibrated_predictor, calibrated_variance,
-            no_of_percentiles=num_realizations)
+            original_current_forecast, no_of_percentiles=num_realizations)
         result = EnsembleReordering().process(
             percentiles, current_forecast,
             random_ordering=random_ordering, random_seed=random_seed)

@@ -103,7 +103,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         percentiles = [10, 50, 90]
         plugin = Plugin()
         result = plugin._location_and_scale_parameters_to_percentiles(
-            current_forecast_predictor, current_forecast_variance,
+            current_forecast_predictor, current_forecast_variance, cube,
             percentiles)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, data)
@@ -154,7 +154,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         percentiles = [10, 50, 90]
         plugin = Plugin(distribution="truncnorm", shape_parameters=[0, np.inf])
         result = plugin._location_and_scale_parameters_to_percentiles(
-            current_forecast_predictor, current_forecast_variance,
+            current_forecast_predictor, current_forecast_variance, cube,
             percentiles)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, result_data)
@@ -197,7 +197,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         percentiles = [10, 50, 90]
         plugin = Plugin()
         result = plugin._location_and_scale_parameters_to_percentiles(
-            current_forecast_predictor, current_forecast_variance,
+            current_forecast_predictor, current_forecast_variance, cube,
             percentiles)
         self.assertArrayAlmostEqual(result.data, result_data)
 
@@ -238,7 +238,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         percentiles = [10, 50, 90]
         plugin = Plugin()
         result = plugin._location_and_scale_parameters_to_percentiles(
-            current_forecast_predictor, current_forecast_variance,
+            current_forecast_predictor, current_forecast_variance, cube,
             percentiles)
         self.assertArrayAlmostEqual(result.data, result_data)
 
@@ -283,7 +283,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         percentiles = [10, 50, 90]
         plugin = Plugin()
         result = plugin._location_and_scale_parameters_to_percentiles(
-            current_forecast_predictor, current_forecast_variance,
+            current_forecast_predictor, current_forecast_variance, cube,
             percentiles)
         self.assertArrayAlmostEqual(result.data, result_data)
 
@@ -302,7 +302,8 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         percentiles = np.linspace(1, 99, num=1000, endpoint=True)
         plugin = Plugin()
         result = plugin._location_and_scale_parameters_to_percentiles(
-            current_forecast_predictor, current_forecast_variance, percentiles)
+            current_forecast_predictor, current_forecast_variance, cube,
+            percentiles)
         self.assertIsInstance(result, Cube)
 
     @ManageWarnings(
@@ -322,7 +323,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         msg = "NaNs are present within the result for the"
         with self.assertRaisesRegex(ValueError, msg):
             plugin._location_and_scale_parameters_to_percentiles(
-                current_forecast_predictor, current_forecast_variance,
+                current_forecast_predictor, current_forecast_variance, cube,
                 percentiles)
 
     @ManageWarnings(
@@ -353,7 +354,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         percentiles = [10, 50, 90]
         plugin = Plugin()
         result = plugin._location_and_scale_parameters_to_percentiles(
-            current_forecast_predictor, current_forecast_variance,
+            current_forecast_predictor, current_forecast_variance, cube,
             percentiles)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, data)
@@ -385,7 +386,7 @@ class Test_process(IrisTest):
 
         plugin = Plugin()
         result = plugin.process(
-            current_forecast_predictor, current_forecast_variance,
+            current_forecast_predictor, current_forecast_variance, cube,
             no_of_percentiles=no_of_percentiles)
         self.assertIsInstance(result, Cube)
 
@@ -418,7 +419,7 @@ class Test_process(IrisTest):
 
         plugin = Plugin()
         result = plugin.process(
-            current_forecast_predictor, current_forecast_variance,
+            current_forecast_predictor, current_forecast_variance, cube,
             no_of_percentiles=no_of_percentiles)
 
         self.assertEqual(
@@ -454,7 +455,7 @@ class Test_process(IrisTest):
 
         plugin = Plugin()
         result = plugin.process(
-            current_forecast_predictor, current_forecast_variance,
+            current_forecast_predictor, current_forecast_variance, cube,
             percentiles=percentiles)
 
         self.assertEqual(
@@ -486,7 +487,7 @@ class Test_process(IrisTest):
         msg = "Please specify either the number of percentiles or"
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(
-                current_forecast_predictor, current_forecast_variance,
+                current_forecast_predictor, current_forecast_variance, cube,
                 no_of_percentiles=no_of_percentiles, percentiles=percentiles)
 
 

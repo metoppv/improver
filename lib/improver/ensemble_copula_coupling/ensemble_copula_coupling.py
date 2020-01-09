@@ -726,8 +726,10 @@ class ConvertLocationAndScaleParametersToPercentiles(
                   'distribution: {}; shape_parameters: {}>')
         return result.format(self.distribution.name, self.shape_parameters)
 
+
     def _location_and_scale_parameters_to_percentiles(
-            self, location_parameter, scale_parameter, percentiles):
+            self, location_parameter, scale_parameter, template_cube,
+            percentiles):
         """
         Function returning percentiles based on the supplied location and
         scale parameters. The percentiles are created by assuming a
@@ -739,6 +741,11 @@ class ConvertLocationAndScaleParametersToPercentiles(
                 Location parameter of calibrated distribution.
             scale_parameter (iris.cube.Cube):
                 Scale parameter of the calibrated distribution.
+            template_cube (iris.cube.Cube):
+                Template cube containing either a percentile or realization
+                coordinate. All coordinates apart from the percentile or
+                realization coordinate will be copied from the template cube.
+                Metadata will also be copied from this cube.
             percentiles (list):
                 Percentiles at which to calculate the value of the phenomenon
                 at.
@@ -802,22 +809,22 @@ class ConvertLocationAndScaleParametersToPercentiles(
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
-        result = (
-            restore_non_probabilistic_dimensions(
-                result, location_parameter, "realization", len(percentiles)))
+        result = result.reshape(
+            (len(percentiles),) + location_parameter.data.shape)
 
-        for template_cube in location_parameter.slices_over(
-                "realization"):
-            template_cube.remove_coord("realization")
-            break
+        for prob_coord_name in ["realization", "percentile"]:
+            if template_cube.coords(prob_coord_name, dim_coords=True):
+                prob_coord = template_cube.coord(prob_coord_name)
+                template_slice = next(template_cube.slices_over(prob_coord))
+                template_slice.remove_coord(prob_coord)
+
         percentile_cube = create_cube_with_percentiles(
-            percentiles, template_cube, result)
-        # Remove cell methods aimed at removing cell methods associated with
-        # finding the ensemble mean, which are no longer relevant.
+            percentiles, template_slice, result)
+        # Remove cell methods associated with finding the ensemble mean
         percentile_cube.cell_methods = {}
         return percentile_cube
 
-    def process(self, location_parameter, scale_parameter,
+    def process(self, location_parameter, scale_parameter, template_cube,
                 no_of_percentiles=None, percentiles=None):
         """
         Generate ensemble percentiles from the location and scale parameters.
@@ -827,6 +834,11 @@ class ConvertLocationAndScaleParametersToPercentiles(
                 Cube containing the location parameters.
             scale_parameter (iris.cube.Cube):
                 Cube containing the scale parameters.
+            template_cube (iris.cube.Cube):
+                Template cube containing either a percentile or realization
+                coordinate. All coordinates apart from the percentile or
+                realization coordinate will be copied from the template cube.
+                Metadata will also be copied from this cube.
             no_of_percentiles (int):
                 Integer defining the number of percentiles that will be
                 calculated from the location and scale parameters.
@@ -856,7 +868,8 @@ class ConvertLocationAndScaleParametersToPercentiles(
             percentiles = choose_set_of_percentiles(no_of_percentiles)
         calibrated_forecast_percentiles = (
             self._location_and_scale_parameters_to_percentiles(
-                location_parameter, scale_parameter, percentiles))
+                location_parameter, scale_parameter, template_cube,
+                percentiles))
 
         return calibrated_forecast_percentiles
 
