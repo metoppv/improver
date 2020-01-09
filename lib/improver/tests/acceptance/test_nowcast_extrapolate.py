@@ -75,7 +75,7 @@ def test_metadata(tmp_path):
     output_path = tmp_path / "output.nc"
 
     args = [input_path, uv_path, oe_path,
-            "--new-metadata", meta_path,
+            "--attributes-config", meta_path,
             "--max-lead-time", "30",
             "--output", output_path]
     run_cli(args)

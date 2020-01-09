@@ -47,7 +47,7 @@ def process(cube: cli.inputcube,
             advection_velocity: inputadvection,
             orographic_enhancement: cli.inputcube,
             *,
-            new_metadata: cli.inputjson = None,
+            attributes_config: cli.inputjson = None,
             max_lead_time=360,
             lead_time_interval=15,
             accumulation_period=15,
@@ -62,7 +62,7 @@ def process(cube: cli.inputcube,
         orographic_enhancement (iris.cube.Cube):
             Cube containing the orographic enhancement fields. May have data
             for multiple times in the cube.
-        new_metadata (dict):
+        attributes_config (dict):
             Dictionary containing the required changes to the attributes.
         max_lead_time (int):
             Maximum lead time required (mins).
@@ -101,8 +101,8 @@ def process(cube: cli.inputcube,
     # extrapolate input data to the maximum required lead time
     forecast_cubes = CreateExtrapolationForecast(
         cube, u_cube, v_cube, orographic_enhancement,
-        attributes_dict=new_metadata).process(ACCUMULATION_FIDELITY,
-                                              max_lead_time)
+        attributes_dict=attributes_config).process(ACCUMULATION_FIDELITY,
+                                                   max_lead_time)
 
     lead_times = (np.arange(lead_time_interval, max_lead_time + 1,
                             lead_time_interval))

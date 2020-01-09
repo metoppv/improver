@@ -60,6 +60,17 @@ def test_bad_params(tmp_path, extra, match):
         run_cli(args)
 
 
+def test_no_orog_or_mask(tmp_path):
+    """Test basic temperature lapse rate"""
+    kgo_dir = acc.kgo_root() / "temp-lapse-rate/basic"
+    input_path = kgo_dir / "temperature_at_screen_level.nc"
+    output_path = tmp_path / "output.nc"
+    args = [input_path,
+            "--output", output_path]
+    with pytest.raises(RuntimeError, match="orography.*land mask"):
+        run_cli(args)
+
+
 def test_basic(tmp_path):
     """Test basic temperature lapse rate"""
     kgo_dir = acc.kgo_root() / "temp-lapse-rate/basic"

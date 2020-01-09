@@ -163,7 +163,7 @@ def test_model(tmp_path):
             "--ynval", "1",
             "--y0val", "1",
             "--model-id-attr", "mosg__model_configuration",
-            "--new-metadata", attr_path,
+            "--attributes-config", attr_path,
             ukv_path, enuk_path,
             "--output", output_path]
     run_cli(args)
@@ -200,7 +200,7 @@ def test_weights_dict(tmp_path):
             "--weighting-config", dict_path,
             "--weighting-coord", "forecast_period",
             "--model-id-attr", "mosg__model_configuration",
-            "--new-metadata", attr_path,
+            "--attributes-config", attr_path,
             ukv_path, enuk_path,
             "--output", output_path]
     run_cli(args)
@@ -258,7 +258,7 @@ def test_non_mo_model(tmp_path):
             ens_path,
             "--output", output_path,
             "--model-id-attr", "non_mo_model_config",
-            "--new-metadata", attr_path]
+            "--attributes-config", attr_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -297,7 +297,7 @@ def test_spatial_model_blending(tmp_path):
             "--ynval", "1",
             "--spatial-weights-from-mask",
             "--model-id-attr", "mosg__model_configuration",
-            "--new-metadata", attr_path,
+            "--attributes-config", attr_path,
             *input_files,
             "--output", output_path]
     run_cli(args)
@@ -340,7 +340,7 @@ def test_spatial_model_no_fuzzy(tmp_path):
             "--spatial-weights-from-mask",
             "--fuzzy-length", "1",
             "--model-id-attr", "mosg__model_configuration",
-            "--new-metadata", attr_path,
+            "--attributes-config", attr_path,
             *input_files,
             "--output", output_path]
     run_cli(args)
@@ -364,7 +364,7 @@ def test_three_model_blending(tmp_path):
             "--weighting-coord", "forecast_period",
             "--cycletime", "20190101T0300Z",
             "--model-id-attr", "mosg__model_configuration",
-            "--new-metadata", attr_path,
+            "--attributes-config", attr_path,
             "--weighting-config", dict_path,
             *input_files,
             "--output", output_path]

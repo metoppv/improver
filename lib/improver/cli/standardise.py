@@ -45,7 +45,7 @@ def process(cube: cli.inputcube,
             extrapolation_mode='nanmask',
             land_sea_mask_vicinity: float = 25000,
             regridded_title: str = None,
-            new_metadata: cli.inputjson = None,
+            attributes_config: cli.inputjson = None,
             coords_to_remove: cli.comma_separated_list = None,
             new_name: str = None,
             new_units: str = None,
@@ -93,7 +93,7 @@ def process(cube: cli.inputcube,
             New "title" attribute to be set if the field is being regridded
             (since "title" may contain grid information). If None, a default
             value is used.
-        new_metadata (dict):
+        attributes_config (dict):
             Dictionary containing required changes that will be applied to
             the attributes.
         coords_to_remove (list):
@@ -134,6 +134,6 @@ def process(cube: cli.inputcube,
     output_data = plugin.process(
         cube, target_grid, new_name=new_name, new_units=new_units,
         regridded_title=regridded_title, coords_to_remove=coords_to_remove,
-        attributes_dict=new_metadata, fix_float64=fix_float64)
+        attributes_dict=attributes_config, fix_float64=fix_float64)
 
     return output_data

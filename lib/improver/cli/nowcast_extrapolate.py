@@ -45,7 +45,7 @@ def process(cube: cli.inputcube,
             advection_velocity: inputadvection,
             orographic_enhancement: cli.inputcube = None,
             *,
-            new_metadata: cli.inputjson = None,
+            attributes_config: cli.inputjson = None,
             max_lead_time: int = 360, lead_time_interval: int = 15):
     """Module  to extrapolate input cubes given advection velocity fields.
 
@@ -60,7 +60,7 @@ def process(cube: cli.inputcube,
         orographic_enhancement (iris.cube.Cube):
             Cube containing orographic enhancement forecasts for the lead times
             at which an extrapolation nowcast is required.
-        new_metadata (dict):
+        attributes_config (dict):
             Dictionary containing the required changes to the attributes.
         max_lead_time (int):
             Maximum lead time required (mins).
@@ -71,8 +71,6 @@ def process(cube: cli.inputcube,
         iris.cube.CubeList:
             New cubes with updated time and extrapolated data.
     """
-    from iris import Constraint
-
     from improver.nowcasting.forecasting import CreateExtrapolationForecast
     from improver.utilities.cube_manipulation import merge_cubes
 
@@ -81,7 +79,7 @@ def process(cube: cli.inputcube,
     # extrapolate input data to required lead times
     forecast_plugin = CreateExtrapolationForecast(
         cube, u_cube, v_cube, orographic_enhancement,
-        attributes_dict=new_metadata)
+        attributes_dict=attributes_config)
     forecast_cubes = forecast_plugin.process(lead_time_interval, max_lead_time)
 
     return merge_cubes(forecast_cubes)

@@ -89,14 +89,14 @@ def process(temperature: cli.inputcube,
     from improver.lapse_rate import LapseRate
     from improver.metadata.amend import amend_attributes
 
-    new_metadata = {"title": "remove", "source": "remove",
+    attributes_dict = {"title": "remove", "source": "remove",
                        "history": "remove", "um_version": "remove"}
 
     if dry_adiabatic:
         result = temperature.copy(data=np.full_like(temperature.data, DALR))
         result.rename('air_temperature_lapse_rate')
         result.units = U_DALR
-        amend_attributes(result, new_metadata)
+        amend_attributes(result, attributes_dict)
         return result
 
     if min_lapse_rate > max_lapse_rate:
@@ -121,5 +121,5 @@ def process(temperature: cli.inputcube,
         max_lapse_rate=max_lapse_rate,
         min_lapse_rate=min_lapse_rate).process(
             temperature, orography, land_sea_mask)
-    amend_attributes(result, new_metadata)
+    amend_attributes(result, attributes_dict)
     return result
