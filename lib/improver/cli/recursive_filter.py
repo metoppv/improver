@@ -41,8 +41,8 @@ inputalphas = cli.create_constrained_inputcubelist_converter(
 @cli.clizefy
 @cli.with_output
 def process(cube: cli.inputcube,
-            alpha_cubelist: inputalphas,
-            mask_cube: cli.inputcube = None,
+            alphas: inputalphas,
+            mask: cli.inputcube = None,
             *,
             iterations: int = 1,
             remask=False):
@@ -59,10 +59,10 @@ def process(cube: cli.inputcube,
     Args:
         cube (iris.cube.Cube):
             Cube to be processed.
-        alpha_cubelist (iris.cube.CubeList):
+        alphas (iris.cube.CubeList):
             CubeList describing the alpha factors to be used for smoothing in
             in the x and y directions.
-        mask_cube (iris.cube.Cube):
+        mask (iris.cube.Cube):
             Cube to mask the processed cube.
         iterations (int):
             Number of times to apply the filter. (Typically < 3)
@@ -77,8 +77,8 @@ def process(cube: cli.inputcube,
     """
     from improver.nbhood.recursive_filter import RecursiveFilter
 
-    alphas_x_cube, alphas_y_cube = alpha_cubelist
+    alphas_x_cube, alphas_y_cube = alphas
     return RecursiveFilter(
         iterations=iterations, re_mask=remask).process(
         cube, alphas_x=alphas_x_cube, alphas_y=alphas_y_cube,
-        mask_cube=mask_cube)
+        mask_cube=mask)

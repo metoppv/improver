@@ -41,23 +41,23 @@ inputadvection = cli.create_constrained_inputcubelist_converter(
 
 @cli.clizefy
 @cli.with_output
-def process(input_cube: cli.inputcube,
-            advection_cubes: inputadvection,
-            orographic_enhancement_cube: cli.inputcube = None,
+def process(cube: cli.inputcube,
+            advection_velocity: inputadvection,
+            orographic_enhancement: cli.inputcube = None,
             *,
             new_metadata: cli.inputjson = None,
             max_lead_time: int = 360, lead_time_interval: int = 15):
     """Module  to extrapolate input cubes given advection velocity fields.
 
     Args:
-        input_cube (iris.cube.Cube):
+        cube (iris.cube.Cube):
             The data to be advected.
-        advection_cubes (iris.cube.CubeList):
+        advection_velocity (iris.cube.CubeList):
             Advection cubes of U and V.
             These must have the names of.
             precipitation_advection_x_velocity
             precipitation_advection_y_velocity
-        orographic_enhancement_cube (iris.cube.Cube):
+        orographic_enhancement (iris.cube.Cube):
             Cube containing orographic enhancement forecasts for the lead times
             at which an extrapolation nowcast is required.
         new_metadata (dict):
@@ -76,15 +76,11 @@ def process(input_cube: cli.inputcube,
     from improver.nowcasting.forecasting import CreateExtrapolationForecast
     from improver.utilities.cube_manipulation import merge_cubes
 
-    u_cube = advection_cubes.extract(
-        Constraint("precipitation_advection_x_velocity"), True)
-    v_cube = advection_cubes.extract(
-        Constraint("precipitation_advection_y_velocity"), True)
+    u_cube, v_cube = advection_velocity
 
     # extrapolate input data to required lead times
     forecast_plugin = CreateExtrapolationForecast(
-        input_cube, u_cube, v_cube,
-        orographic_enhancement_cube=orographic_enhancement_cube,
+        cube, u_cube, v_cube, orographic_enhancement,
         attributes_dict=new_metadata)
     forecast_cubes = forecast_plugin.process(lead_time_interval, max_lead_time)
 

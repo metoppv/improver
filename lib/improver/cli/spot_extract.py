@@ -37,8 +37,8 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(neighbour_cube: cli.inputcube,
-            diagnostic_cube: cli.inputcube,
-            lapse_rate_cube: cli.inputcube = None,
+            cube: cli.inputcube,
+            lapse_rate: cli.inputcube = None,
             *,
             apply_lapse_rate_correction=False,
             land_constraint=False,
@@ -57,9 +57,9 @@ def process(neighbour_cube: cli.inputcube,
     Args:
         neighbour_cube (iris.cube.Cube):
             Cube of spot-data neighbours and the spot site information.
-        diagnostic_cube (iris.cube.Cube):
+        cube (iris.cube.Cube):
             Cube containing the diagnostic data to be extracted.
-        lapse_rate_cube (iris.cube.Cube):
+        lapse_rate (iris.cube.Cube):
             Optional cube containing temperature lapse rates. If this cube is
             provided and a screen temperature cube is being processed, the
             lapse rates will be used to adjust the temperature to better
@@ -151,7 +151,7 @@ def process(neighbour_cube: cli.inputcube,
         minimum_dz=similar_altitude).neighbour_finding_method_name()
     plugin = SpotExtraction(
         neighbour_selection_method=neighbour_selection_method)
-    result = plugin.process(neighbour_cube, diagnostic_cube,
+    result = plugin.process(neighbour_cube, cube,
                             new_title=new_title)
 
     # If a probability or percentile diagnostic cube is provided, extract
@@ -196,20 +196,20 @@ def process(neighbour_cube: cli.inputcube,
                 raise ValueError(msg)
     # Check whether a lapse rate cube has been provided and we are dealing with
     # temperature data and the lapse-rate option is enabled.
-    if apply_lapse_rate_correction and lapse_rate_cube:
+    if apply_lapse_rate_correction and lapse_rate:
         if not result.name() == "air_temperature":
             msg = ("A lapse rate cube was provided, but the diagnostic being "
                    "processed is not air temperature and cannot be adjusted.")
             raise ValueError(msg)
 
-        if not lapse_rate_cube.name() == 'air_temperature_lapse_rate':
+        if not lapse_rate.name() == 'air_temperature_lapse_rate':
             msg = ("A cube has been provided as a lapse rate cube but does "
                    "not have the expected name air_temperature_lapse_rate: "
-                   "{}".format(lapse_rate_cube.name()))
+                   "{}".format(lapse_rate.name()))
             raise ValueError(msg)
 
         try:
-            lapse_rate_height_coord = lapse_rate_cube.coord("height")
+            lapse_rate_height_coord = lapse_rate.coord("height")
         except (ValueError, CoordinateNotFoundError):
             msg = ("Lapse rate cube does not contain a single valued height "
                    "coordinate. This is required to ensure it is applied to "
@@ -219,10 +219,10 @@ def process(neighbour_cube: cli.inputcube,
         # Check the height of the temperature data matches that used to
         # calculate the lapse rates. If so, adjust temperatures using the lapse
         # rate values.
-        if diagnostic_cube.coord("height") == lapse_rate_height_coord:
+        if cube.coord("height") == lapse_rate_height_coord:
             plugin = SpotLapseRateAdjust(
                 neighbour_selection_method=neighbour_selection_method)
-            result = plugin.process(result, neighbour_cube, lapse_rate_cube)
+            result = plugin.process(result, neighbour_cube, lapse_rate)
         elif not suppress_warnings:
             warnings.warn(
                 "A lapse rate cube was provided, but the height of the "
@@ -230,7 +230,7 @@ def process(neighbour_cube: cli.inputcube,
                 "to calculate the lapse rates. As such the temperatures "
                 "were not adjusted with the lapse rates.")
 
-    elif apply_lapse_rate_correction and not lapse_rate_cube:
+    elif apply_lapse_rate_correction and not lapse_rate:
         if not suppress_warnings:
             warnings.warn(
                 "A lapse rate cube was not provided, but the option to "

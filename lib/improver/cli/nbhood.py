@@ -38,7 +38,7 @@ from improver.constants import DEFAULT_PERCENTILES
 @cli.clizefy
 @cli.with_output
 def process(cube: cli.inputcube,
-            mask_cube: cli.inputcube = None,
+            mask: cli.inputcube = None,
             *,
             neighbourhood_output,
             neighbourhood_shape,
@@ -58,7 +58,7 @@ def process(cube: cli.inputcube,
     Args:
         cube (iris.cube.Cube):
             The Cube to be processed.
-        mask_cube (iris.cube.Cube):
+        mask (iris.cube.Cube):
             A cube to mask the input cube. The data should contain 1 for
             usable points and 0 for discarded points.
             Only supported with square neighbourhoods. (Optional)
@@ -158,7 +158,7 @@ def process(cube: cli.inputcube,
                 lead_times=lead_times,
                 weighted_mode=weighted_mode,
                 sum_or_fraction=sum_or_fraction, re_mask=remask
-            ).process(cube, mask_cube=mask_cube))
+            ).process(cube, mask_cube=mask))
     elif neighbourhood_output == "percentiles":
         result = (
             GeneratePercentilesFromANeighbourhood(

@@ -37,7 +37,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(source_data: cli.inputcube,
+def process(cube: cli.inputcube,
             target_grid: cli.inputcube = None,
             land_sea_mask: cli.inputcube = None,
             *,
@@ -58,7 +58,7 @@ def process(source_data: cli.inputcube,
     float32.
 
     Args:
-        source_data (iris.cube.Cube):
+        cube (iris.cube.Cube):
             Source cube to be standardised
         target_grid (iris.cube.Cube):
             If specified, then regridding of the source against the target
@@ -75,7 +75,7 @@ def process(source_data: cli.inputcube,
             mask value (for coast-line-dependant variables like temperature).
         extrapolation_mode (str):
             Mode to use for extrapolating data into regions beyond the limits
-            of the source_data domain. Refer to online documentation for
+            of the input cube domain. Refer to online documentation for
             iris.analysis.
             Modes are -
             extrapolate - extrapolated points will take their values from the
@@ -132,7 +132,7 @@ def process(source_data: cli.inputcube,
         landmask=land_sea_mask,
         landmask_vicinity=land_sea_mask_vicinity)
     output_data = plugin.process(
-        source_data, target_grid, new_name=new_name, new_units=new_units,
+        cube, target_grid, new_name=new_name, new_units=new_units,
         regridded_title=regridded_title, coords_to_remove=coords_to_remove,
         attributes_dict=new_metadata, fix_float64=fix_float64)
 

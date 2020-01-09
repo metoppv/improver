@@ -37,7 +37,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(cube: cli.inputcube,
-            raw_forecast: cli.inputcube = None,
+            raw_cube: cli.inputcube = None,
             *,
             realizations_count: int = None,
             reorder=False,
@@ -49,7 +49,7 @@ def process(cube: cli.inputcube,
     Args:
         cube (iris.cube.Cube):
             Cube to be processed.
-        raw_forecast (iris.cube.Cube):
+        raw_cube (iris.cube.Cube):
             Cube of raw (not post processed) weather data.
             This option is compulsory, if the reorder option is selected.
         realizations_count (int):
@@ -86,11 +86,11 @@ def process(cube: cli.inputcube,
 
     Raises:
         RuntimeError:
-            If rebadge is used with raw_forecast.
+            If rebadge is used with raw_cube.
         RuntimeError:
             If rebadge is used with random_seed.
         RuntimeError:
-            If raw_forecast isn't supplied when using reorder.
+            If raw_cube isn't supplied when using reorder.
     """
     from iris.exceptions import CoordinateNotFoundError
     from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
@@ -98,8 +98,8 @@ def process(cube: cli.inputcube,
         EnsembleReordering)
 
     if rebadge:
-        if raw_forecast is not None:
-            raise RuntimeError('rebadge cannot be used with raw_forecast.')
+        if raw_cube is not None:
+            raise RuntimeError('rebadge cannot be used with raw_cube.')
         if random_seed is not None:
             raise RuntimeError('rebadge cannot be used with random_seed.')
 
@@ -107,13 +107,13 @@ def process(cube: cli.inputcube,
         # If realizations_count is not given, take the number from the raw
         # ensemble cube.
         if realizations_count is None:
-            if raw_forecast is None:
+            if raw_cube is None:
                 message = ("You must supply a raw forecast cube if using the "
                            "reorder option.")
                 raise RuntimeError(message)
             try:
                 realizations_count = len(
-                    raw_forecast.coord("realization").points)
+                    raw_cube.coord("realization").points)
             except CoordinateNotFoundError:
                 raise RuntimeError('The raw forecast must have a realization '
                                    'coordinate.')
@@ -122,7 +122,7 @@ def process(cube: cli.inputcube,
             ecc_bounds_warning=ignore_ecc_bounds).process(
             cube, no_of_percentiles=realizations_count)
         result = EnsembleReordering().process(
-            cube, raw_forecast, random_ordering=False, random_seed=random_seed)
+            cube, raw_cube, random_ordering=False, random_seed=random_seed)
     elif rebadge:
         cube = GeneratePercentilesFromProbabilities(
             ecc_bounds_warning=ignore_ecc_bounds).process(

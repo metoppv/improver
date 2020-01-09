@@ -38,8 +38,8 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(current_forecast: cli.inputcube,
-            coeffs: cli.inputcube = None,
+def process(cube: cli.inputcube,
+            coefficients: cli.inputcube = None,
             land_sea_mask: cli.inputcube = None,
             *,
             distribution,
@@ -59,12 +59,12 @@ def process(current_forecast: cli.inputcube,
     forecast is returned unchanged.
 
     Args:
-        current_forecast (iris.cube.Cube):
+        cube (iris.cube.Cube):
             A Cube containing the forecast to be calibrated. The input format
             could be either realizations, probabilities or percentiles.
-        coeffs (iris.cube.Cube):
+        coefficients (iris.cube.Cube):
             A cube containing the coefficients used for calibration or None.
-            If none then then current_forecast is returned unchanged.
+            If none then then input is returned unchanged.
         land_sea_mask (iris.cube.Cube):
             A cube containing the land-sea mask on the same domain as the
             forecast that is to be calibrated. Land points are "
@@ -149,13 +149,15 @@ def process(current_forecast: cli.inputcube,
         ResamplePercentiles)
     from improver.metadata.probabilistic import find_percentile_coordinate
 
-    if coeffs is None:
+    current_forecast = cube
+
+    if coefficients is None:
         msg = ("There are no coefficients provided for calibration. The "
                "uncalibrated forecast will be returned.")
         warnings.warn(msg)
         return current_forecast
 
-    elif coeffs.name() != 'emos_coefficients':
+    elif coefficients.name() != 'emos_coefficients':
         msg = ("The current coefficients cube does not have the "
                "name 'emos_coefficients'")
         raise ValueError(msg)
@@ -210,7 +212,7 @@ def process(current_forecast: cli.inputcube,
     ac = ApplyCoefficientsFromEnsembleCalibration(
         predictor_of_mean_flag=predictor_of_mean)
     calibrated_predictor, calibrated_variance = ac.process(
-        current_forecast, coeffs, landsea_mask=land_sea_mask)
+        current_forecast, coefficients, landsea_mask=land_sea_mask)
 
     if shape_parameters:
         shape_parameters = [np.float32(x) for x in shape_parameters]

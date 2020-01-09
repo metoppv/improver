@@ -38,7 +38,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(cube: cli.inputcube,
-            raw_forecast: cli.inputcube = None,
+            raw_cube: cli.inputcube = None,
             *,
             realizations_count: int = None,
             sampling_method='quantile',
@@ -56,7 +56,7 @@ def process(cube: cli.inputcube,
     Args:
         cube (iris.cube.Cube):
             Cube expected to contain a percentiles coordinate.
-        raw_forecast (iris.cube.Cube):
+        raw_cube (iris.cube.Cube):
             Cube of raw (not post processed) weather data.
             This option is compulsory, if the reorder option is selected.
         realizations_count (int):
@@ -109,8 +109,8 @@ def process(cube: cli.inputcube,
             raise RuntimeError('realizations cannot be used with '
                                'reorder.')
     if rebadge:
-        if raw_forecast is not None:
-            raise RuntimeError('rebadge cannot be used with raw_forecast.')
+        if raw_cube is not None:
+            raise RuntimeError('rebadge cannot be used with raw_cube.')
         if randomise is not False:
             raise RuntimeError('rebadge cannot be used with '
                                'randomise.')
@@ -124,7 +124,7 @@ def process(cube: cli.inputcube,
         sampling=sampling_method)
     if reorder:
         result = EnsembleReordering().process(
-            result, raw_forecast, random_ordering=randomise,
+            result, raw_cube, random_ordering=randomise,
             random_seed=random_seed)
     elif rebadge:
         result = RebadgePercentilesAsRealizations().process(

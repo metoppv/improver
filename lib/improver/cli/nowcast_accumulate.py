@@ -43,9 +43,9 @@ inputadvection = cli.create_constrained_inputcubelist_converter(
 
 @cli.clizefy
 @cli.with_output
-def process(input_cube: cli.inputcube,
-            advection_cubes: inputadvection,
-            oe_cube: cli.inputcube,
+def process(cube: cli.inputcube,
+            advection_velocity: inputadvection,
+            orographic_enhancement: cli.inputcube,
             *,
             new_metadata: cli.inputjson = None,
             max_lead_time=360,
@@ -55,11 +55,11 @@ def process(input_cube: cli.inputcube,
     """Module to extrapolate and accumulate the weather with 1 min fidelity.
 
     Args:
-        input_cube (iris.cube.Cube):
+        cube (iris.cube.Cube):
             The input Cube to be processed.
-        advection_cubes (iris.cube.CubeList):
+        advection_velocity (iris.cube.CubeList):
             Advection cubes of U and V.
-        oe_cube (iris.cube.Cube):
+        orographic_enhancement (iris.cube.Cube):
             Cube containing the orographic enhancement fields. May have data
             for multiple times in the cube.
         new_metadata (dict):
@@ -82,8 +82,8 @@ def process(input_cube: cli.inputcube,
             New cubes with accumulated data.
 
     Raises:
-        TypeError:
-            If advection_cubes doesn't contain an x velocity and a y velocity.
+        ValueError:
+            If advection_velocity doesn't contain x and y velocity.
     """
     from iris import Constraint
 
@@ -93,17 +93,14 @@ def process(input_cube: cli.inputcube,
     from improver.nowcasting.forecasting import CreateExtrapolationForecast
     from improver.utilities.cube_manipulation import merge_cubes
 
-    u_cube = advection_cubes.extract(
-        Constraint("precipitation_advection_x_velocity"), True)
-    v_cube = advection_cubes.extract(
-        Constraint("precipitation_advection_y_velocity"), True)
+    u_cube, v_cube = advection_velocity
 
     if not (u_cube and v_cube):
-        raise TypeError("Neither u_cube or v_cube can be None")
+        raise ValueError("Neither u_cube or v_cube can be None")
 
     # extrapolate input data to the maximum required lead time
     forecast_cubes = CreateExtrapolationForecast(
-        input_cube, u_cube, v_cube, orographic_enhancement_cube=oe_cube,
+        cube, u_cube, v_cube, orographic_enhancement,
         attributes_dict=new_metadata).process(ACCUMULATION_FIDELITY,
                                               max_lead_time)
 

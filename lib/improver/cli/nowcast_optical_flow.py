@@ -37,17 +37,17 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(orographic_enhancement_cube: cli.inputcube,
-            *radar: cli.inputcube,
+def process(orographic_enhancement: cli.inputcube,
+            *cubes: cli.inputcube,
             new_metadata: cli.inputjson = None,
             ofc_box_size: int = 30,
             smart_smoothing_iterations: int = 100):
     """Calculate optical flow components from input fields.
 
     Args:
-        orographic_enhancement_cube (iris.cube.Cube):
+        orographic_enhancement (iris.cube.Cube):
             Cube containing the orographic enhancement fields.
-        radar (iris.cube.CubeList):
+        cubes (iris.cube.CubeList):
             Cubes from which to calculate optical flow velocities.
             These three cubes will be sorted by their time coords.
         new_metadata (dict):
@@ -71,13 +71,13 @@ def process(orographic_enhancement_cube: cli.inputcube,
         generate_optical_flow_components
     from improver.nowcasting.utilities import ApplyOrographicEnhancement
 
-    original_cube_list = CubeList(radar)
+    original_cube_list = CubeList(cubes)
     # order input files by validity time
     original_cube_list.sort(key=lambda x: x.coord("time").points[0])
 
     # subtract orographic enhancement
     cube_list = ApplyOrographicEnhancement("subtract").process(
-            original_cube_list, orographic_enhancement_cube)
+            original_cube_list, orographic_enhancement)
 
     # calculate optical flow velocities from T-1 to T and T-2 to T-1, and
     # average to produce the velocities for use in advection
