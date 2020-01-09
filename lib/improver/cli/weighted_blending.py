@@ -42,7 +42,7 @@ def process(*cubelist: cli.inputcube,
             weighting_method='linear',
             weighting_coord='forecast_period',
             weighting_config: cli.inputjson = None,
-            attributes_dict: cli.inputjson = None,
+            new_metadata: cli.inputjson = None,
             cycletime: str = None,
             y0val: float = None,
             ynval: float = None,
@@ -73,7 +73,7 @@ def process(*cubelist: cli.inputcube,
             Dictionary from which to calculate blending weights. Dictionary
             format is as specified in
             improver.blending.weights.ChoosingWeightsLinear
-        attributes_dict (dict):
+        new_metadata (dict):
             Dictionary describing required changes to attributes after blending
         cycletime (str):
             The forecast reference time to be used after blending has been
@@ -146,5 +146,5 @@ def process(*cubelist: cli.inputcube,
     result = plugin.process(
         cubelist, cycletime=cycletime, model_id_attr=model_id_attr,
         spatial_weights=spatial_weights_from_mask, fuzzy_length=fuzzy_length,
-        attributes_dict=attributes_dict)
+        attributes_dict=new_metadata)
     return result

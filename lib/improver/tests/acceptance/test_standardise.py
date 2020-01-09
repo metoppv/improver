@@ -98,7 +98,7 @@ def test_regrid_json(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [input_path, target_path,
             "--output", output_path,
-            "--attributes-dict", metadata_path,
+            "--new-metadata", metadata_path,
             "--regridded-title", GLOBAL_UK_TITLE]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -115,7 +115,7 @@ def test_change_metadata(tmp_path):
             "--output", output_path,
             "--new-name", "lwe_precipitation_rate",
             "--new-units", "m s-1",
-            "--attributes-dict", metadata_path,
+            "--new-metadata", metadata_path,
             "--coords-to-remove", "height"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
