@@ -329,7 +329,7 @@ def process(current_forecast, coeffs, landsea_mask, distribution,
     ac = ApplyCoefficientsFromEnsembleCalibration(predictor=predictor)
     calibrated_predictor, calibrated_variance = ac.process(
         current_forecast, coeffs, landsea_mask=landsea_mask)
-    print("Applied coefficients")
+
     # If input forecast is probabilities, convert output into probabilities.
     # If input forecast is percentiles, convert output into percentiles.
     # If input forecast is realizations, convert output into realizations.

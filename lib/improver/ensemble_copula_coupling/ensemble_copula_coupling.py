@@ -726,7 +726,6 @@ class ConvertLocationAndScaleParametersToPercentiles(
                   'distribution: {}; shape_parameters: {}>')
         return result.format(self.distribution.name, self.shape_parameters)
 
-
     def _location_and_scale_parameters_to_percentiles(
             self, location_parameter, scale_parameter, template_cube,
             percentiles):
