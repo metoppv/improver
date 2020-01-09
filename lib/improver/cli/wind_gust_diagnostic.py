@@ -65,7 +65,6 @@ def process(wind_gust: cli.inputcube,
     from improver.wind_calculations.wind_gust_diagnostic import (
         WindGustDiagnostic)
 
-    result = (
-        WindGustDiagnostic(wind_gust_percentile,
-                           wind_speed_percentile).process(wind_gust, wind_speed))
+    result = (WindGustDiagnostic(wind_gust_percentile, wind_speed_percentile)
+              .process(wind_gust, wind_speed))
     return result

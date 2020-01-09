@@ -88,7 +88,8 @@ def test_nearest_minimum_dz_unavailable(tmp_path):
     neighbour_path = kgo_dir / "inputs/nearest_uk.nc"
     diag_path = kgo_dir / "inputs/ukvx_temperature.nc"
     output_path = tmp_path / "output.nc"
-    args = [neighbour_path, diag_path, "--output", output_path, "--similar-altitude"]
+    args = [neighbour_path, diag_path, "--output", output_path,
+            "--similar-altitude"]
     with pytest.raises(ValueError, match=".*neighbour_selection_method.*"):
         run_cli(args)
 
