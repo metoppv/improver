@@ -132,7 +132,7 @@ def process(cube: cli.inputcube,
             # set to None and subsequent bounds checks are skipped
             if threshold_config[key] == "None":
                 fuzzy_bounds = None
-                break
+                continue
             fuzzy_bounds.append(tuple(threshold_config[key]))
     else:
         thresholds = [np.float32(x) for x in threshold_values]
