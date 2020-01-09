@@ -31,6 +31,7 @@
 """init for cli and clize"""
 
 from collections import OrderedDict
+from functools import partial
 import pathlib
 import shlex
 
@@ -229,8 +230,8 @@ def create_constrained_inputcubelist_converter(*constraints):
         """
         from improver.utilities.load import load_cube
         from iris.cube import CubeList
-        return CubeList([maybe_coerce_with(
-            load_cube, to_convert, constraints=j) for j in constraints])
+        return CubeList(maybe_coerce_with(load_cube, to_convert, constraints=j)
+                        for j in constraints)
 
     return constrained_inputcubelist_converter
 
@@ -285,58 +286,17 @@ def with_intermediate_output(wrapped, *args, intermediate_output=None,
 # cli object creation
 
 
-def _clizefy(obj, **kwargs):
-    """Implementation of clizefy decorator.
+def clizefy(obj=None, helper_class=DocutilizeClizeHelp, **kwargs):
+    """Decorator for creating CLI objects.
     """
-    # Allows for legacy argparser and clize CLIs to coexist until transition
-    # to the new clize interface if completed.
-    # The legacy interface expects `<cli_name>.main` routine and the new one
-    # expects `<cli_name>.process` routine that is type annotated.
-    # If both interfaces are available, then one is picked based on the
-    # IMPROVER_USE_CLIZE environment variable, default is the legacy one.
-    # The environment setting has to be done before `import improver.cli`.
-    # TODO: simplify after all CLIs are clizefied
-    from ast import literal_eval
-    import os
-    import sys
-
+    if obj is None:
+        return partial(clizefy, helper_class=helper_class, **kwargs)
     if hasattr(obj, 'cli'):
         return obj
-
     if not callable(obj):
         kwargs.pop('helper_class', None)
         return Clize.get_cli(obj, **kwargs)
-
-    use_clize = os.environ.get('IMPROVER_USE_CLIZE', False)
-    if use_clize:
-        use_clize = literal_eval(use_clize.capitalize())
-
-    legacy_main = getattr(sys.modules[obj.__module__], 'main', None)
-
-    if legacy_main is None or use_clize and obj.__annotations__:
-        # legacy_main is None here for any function defined in this module
-        # before (and including) the main function
-        return Clize.keep(obj, **kwargs)
-
-    def _wrapper(prog: parameters.pass_name, *args):
-        sys.argv[0] = prog.split()[-1]
-        legacy_main(args)
-
-    description = obj.__doc__.split('\n')[0].strip()
-    _obj = Clize.as_is(_wrapper, description=description)
-    obj.cli = _obj.cli
-
-    return obj
-
-
-def clizefy(func=None, helper_class=DocutilizeClizeHelp, **kwargs):
-    """Decorator for creating CLI objects.
-    """
-    from functools import partial
-    if func is None:
-        return partial(clizefy, helper_class=helper_class, **kwargs)
-    func = _clizefy(func, helper_class=helper_class, **kwargs)
-    return func
+    return Clize.keep(obj, **kwargs)
 
 
 # help command
@@ -431,7 +391,7 @@ def execute_command(dispatcher, prog_name, *args,
 
     result = dispatcher(prog_name, *args)
 
-    if verbose:
+    if verbose and result is not None:
         print(ObjectAsStr.obj_to_name(result))
     return result
 
