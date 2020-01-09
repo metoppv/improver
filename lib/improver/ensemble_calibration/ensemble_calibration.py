@@ -134,14 +134,13 @@ class ContinuousRankedProbabilityScoreMinimisers:
         N(a + b * ensemble_mean, c + d * ensemble_variance),
         where N is a chosen distribution and values of a, b, c and d are
         solved in the format of alpha, beta, gamma and delta, see the equations
-        below, to ensure that b, c and d are positive values are therefore
-        more easily interpretable.
+        below.
 
         .. math::
             a = \\alpha
 
         .. math::
-            b = \\beta^2
+            b = \\beta
 
         .. math::
             c = \\gamma^2
@@ -149,18 +148,26 @@ class ContinuousRankedProbabilityScoreMinimisers:
         .. math::
             d = \\delta^2
 
+        The gamma and delta values are squared to ensure c and d are positive
+        and therefore more interpretable.
+
         If the predictor_of_mean_flag is the ensemble realizations, this
         function estimates values for alpha, beta, gamma and delta based on the
         equation:
 
         .. math::
-          N(a + b_0 * realization0 + b_1 * realization1,
+          N(a + b_0 \\times realization0 + b_1 \\times realization1,
 
-          c + d * ensemble\\_variance)
+          c + d \\times ensemble\\_variance)
 
         where N is a chosen distribution, the values of a, b, c and d relate
-        to alpha, beta, gamma and delta through the equations above, and the
-        number of beta terms depends on the number of realizations provided.
+        to alpha, beta, gamma and delta through the equations above with
+        the exception that :math:`b=\\beta^2`, and the number of beta terms
+        depends on the number of realizations provided. The beta, gamma, and
+        delta values are squared to ensure that b, c and d are positive values
+        and therefore are more easily interpretable. Specifically for the b
+        term, the squaring ensures that the the b values can be interpreted
+        as a weighting for each realization.
 
         Args:
             initial_guess (list):
@@ -1027,7 +1034,7 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
             a = \\alpha
 
         .. math::
-            b = \\beta^2
+            b = \\beta
 
         Args:
             optimised_coeffs (dict):
