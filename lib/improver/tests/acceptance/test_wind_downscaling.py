@@ -45,8 +45,8 @@ def test_basic(tmp_path):
     kgo_dir = acc.kgo_root() / "wind_downscaling/basic"
     kgo_path = kgo_dir / "kgo.nc"
     input_paths = [kgo_dir / f"{p}.nc"
-                   for p in ("input", "a_over_s", "sigma",
-                             "highres_orog", "standard_orog")]
+                   for p in ("input", "sigma", "highres_orog", "standard_orog",
+                             "a_over_s")]
     output_path = tmp_path / "output.nc"
     args = [*input_paths,
             "--model-resolution", "1500",
@@ -61,8 +61,8 @@ def test_vegetation(tmp_path):
     kgo_dir = acc.kgo_root() / "wind_downscaling/veg"
     kgo_path = kgo_dir / "kgo.nc"
     input_paths = [kgo_dir / f"{p}.nc"
-                   for p in ("input", "a_over_s", "sigma",
-                             "highres_orog", "standard_orog")]
+                   for p in ("input", "sigma", "highres_orog", "standard_orog",
+                             "a_over_s")]
     veg_path = kgo_dir / "veg.nc"
     output_path = tmp_path / "output.nc"
     args = [*input_paths, veg_path,
@@ -78,8 +78,8 @@ def test_realization(tmp_path):
     kgo_dir = acc.kgo_root() / "wind_downscaling/with_realization"
     kgo_path = kgo_dir / "kgo.nc"
     input_paths = [kgo_dir / f"{p}.nc"
-                   for p in ("input", "a_over_s", "sigma",
-                             "highres_orog", "standard_orog")]
+                   for p in ("input", "sigma", "highres_orog", "standard_orog",
+                             "a_over_s")]
     output_path = tmp_path / "output.nc"
     args = [*input_paths,
             "--model-resolution", "1500",
@@ -94,8 +94,8 @@ def test_single_level_output(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_dir = kgo_dir / "../basic"
     input_paths = [input_dir / f"{p}.nc"
-                   for p in ("input", "a_over_s", "sigma",
-                             "highres_orog", "standard_orog")]
+                   for p in ("input", "sigma", "highres_orog", "standard_orog",
+                             "a_over_s")]
     output_path = tmp_path / "output.nc"
     args = [*input_paths,
             "--model-resolution", "1500",
@@ -109,8 +109,8 @@ def test_unavailable_level(tmp_path):
     """Test attempting to downscale to unavailable height level"""
     kgo_dir = acc.kgo_root() / "wind_downscaling/basic"
     input_paths = [kgo_dir / f"{p}.nc"
-                   for p in ("input", "a_over_s", "sigma",
-                             "highres_orog", "standard_orog")]
+                   for p in ("input", "sigma", "highres_orog", "standard_orog",
+                             "a_over_s")]
     output_path = tmp_path / "output.nc"
     args = [*input_paths,
             "--model-resolution", "1500",
@@ -127,8 +127,8 @@ def test_single_level_units(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_dir = kgo_dir / "../basic"
     input_paths = [input_dir / f"{p}.nc"
-                   for p in ("input", "a_over_s", "sigma",
-                             "highres_orog", "standard_orog")]
+                   for p in ("input", "sigma", "highres_orog", "standard_orog",
+                             "a_over_s")]
     output_path = tmp_path / "output.nc"
     args = [*input_paths,
             "--model-resolution", "1500",
