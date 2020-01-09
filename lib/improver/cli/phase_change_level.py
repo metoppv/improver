@@ -42,12 +42,11 @@ def process(wet_bulb_temperature: cli.inputcube,
             land_sea_mask: cli.inputcube,
             *,
             phase_change):
-    """Calculate a continuous field of heights relative to sea level
-    at which a phase change of precipitation is expected.
+    """Height of precipitation phase change relative to sea level.
 
-    This is achieved by finding the height above sea level at which the
-    integral of wet bulb temperature matches an empirical threshold that is
-    expected to correspond with the phase change.
+    Calculated as a continuous 2D field by finding the height above sea level
+    at which the integral of wet bulb temperature matches an empirical
+    threshold that is expected to correspond with the phase change.
 
     Args:
         wet_bulb_temperature (iris.cube.Cube):
