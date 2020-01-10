@@ -61,17 +61,6 @@ class Test_Utilities(IrisTest):
             data, name='humidity_mixing_ratio', units='1')
 
 
-class Test__repr__(IrisTest):
-
-    """Test the repr method."""
-
-    def test_basic(self):
-        """Test that the __repr__ returns the expected string."""
-        result = str(Utilities())
-        msg = '<Utilities>'
-        self.assertEqual(result, msg)
-
-
 class Test_specific_heat_of_moist_air(Test_Utilities):
 
     """Test calculations of the specific heat of moist air with an input cube
