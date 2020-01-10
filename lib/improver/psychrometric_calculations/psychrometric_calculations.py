@@ -43,6 +43,8 @@ from stratify import interpolate
 
 import improver.constants as consts
 from improver import BasePlugin
+from improver.metadata.utilities import (
+    generate_mandatory_attributes, create_new_diagnostic_cube)
 from improver.psychrometric_calculations import svp_table
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.mathematical_operations import Integration
@@ -355,25 +357,28 @@ class WetBulbTemperature(BasePlugin):
 
         Args:
             temperature (iris.cube.Cube):
-                Cube of air temperatures (K).
+                Cube of air temperatures.
             relative_humidity (iris.cube.Cube):
-                Cube of relative humidities (%, converted to fractional).
+                Cube of relative humidities.
             pressure (iris.cube.Cube):
-                Cube of air pressures (Pa).
+                Cube of air pressures.
 
         Returns:
             iris.cube.Cube:
                 Cube of wet bulb temperature (K).
 
         """
+        temperature.convert_units('K')
         relative_humidity.convert_units(1)
         pressure.convert_units('Pa')
-        temperature.convert_units('K')
         wbt_data = self._calculate_wet_bulb_temperature(
             pressure.data, relative_humidity.data, temperature.data)
 
-        wbt = temperature.copy(data=wbt_data)
-        wbt.rename('wet_bulb_temperature')
+        attributes = generate_mandatory_attributes(
+            [temperature, relative_humidity, pressure])
+        wbt = create_new_diagnostic_cube(
+            'wet_bulb_temperature', 'K', temperature, attributes,
+            data=wbt_data)
         return wbt
 
     def process(self, temperature, relative_humidity, pressure):
@@ -385,11 +390,11 @@ class WetBulbTemperature(BasePlugin):
 
         Args:
             temperature (iris.cube.Cube):
-                Cube of air temperatures (K).
+                Cube of air temperatures.
             relative_humidity (iris.cube.Cube):
-                Cube of relative humidities (%, converted to fractional).
+                Cube of relative humidities.
             pressure (iris.cube.Cube):
-                Cube of air pressures (Pa).
+                Cube of air pressures.
 
         Returns:
             iris.cube.Cube:
@@ -400,7 +405,7 @@ class WetBulbTemperature(BasePlugin):
         cubelist = iris.cube.CubeList([])
         for t_slice, rh_slice, p_slice in slices:
             cubelist.append(self.create_wet_bulb_temperature_cube(
-                t_slice, rh_slice, p_slice))
+                t_slice.copy(), rh_slice.copy(), p_slice.copy()))
         wet_bulb_temperature = cubelist.merge_cube()
 
         # re-promote any scalar coordinates lost in slice / merge
