@@ -38,7 +38,6 @@ import numpy as np
 from cf_units import Unit
 from iris.tests import IrisTest
 
-from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.ancillary_creation import SaturatedVapourPressureTable
 
 
@@ -62,13 +61,10 @@ class Test_saturation_vapour_pressure_goff_gratch(IrisTest):
     def test_basic(self):
         """Basic calculation of some saturated vapour pressures."""
         data = np.array([[260., 270., 280.]], dtype=np.float32)
-        temperature = set_up_variable_cube(data)
-        result = SaturatedVapourPressureTable.saturation_vapour_pressure_goff_gratch(
-            temperature)
-        expected = [[195.6419, 469.67078, 990.9421]]
-
-        np.testing.assert_allclose(result.data, expected, rtol=1.e-5)
-        self.assertEqual(result.units, Unit('Pa'))
+        plugin = SaturatedVapourPressureTable()
+        result = plugin.saturation_vapour_pressure_goff_gratch(data)
+        expected = 0.01*np.array([[195.6419, 469.67078, 990.9421]])
+        self.assertArrayAlmostEqual(result, expected)
 
 
 class Test_process(IrisTest):

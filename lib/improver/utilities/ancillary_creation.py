@@ -227,6 +227,9 @@ class SaturatedVapourPressureTable(BasePlugin):
     """
     Plugin to create a saturated vapour pressure lookup table.
     """
+    MAX_VALID_TEMPERATURE = 373.
+    MIN_VALID_TEMPERATURE = 173.
+
 
     def __init__(self, t_min=183.15, t_max=338.25, t_increment=0.1):
         """
@@ -259,23 +262,19 @@ class SaturatedVapourPressureTable(BasePlugin):
                                             self.t_increment))
         return result
 
-    @staticmethod
-    def saturation_vapour_pressure_goff_gratch(temperature):
+    def saturation_vapour_pressure_goff_gratch(self, temperature):
         """
         Saturation Vapour pressure in a water vapour system calculated using
         the Goff-Gratch Equation (WMO standard method).
 
         Args:
-            temperature (iris.cube.Cube):
-                Cube of temperature which will be converted to Kelvin
-                prior to calculation. Valid from 173K to 373K
+            temperature (numpy.ndarray):
+                Temperature values in Kelvin. Valid from 173K to 373K
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the saturation vapour pressure of a pure
-                water vapour system. A correction must be applied to the data
-                when used to convert this to the SVP in air; see the
-                WetBulbTemperature.pressure_correct_svp function.
+            numpy.ndarray:
+                Corresponding values of saturation vapour pressure for a pure
+                water vapour system, in hPa.
 
         References:
             Numerical data and functional relationships in science and
@@ -297,13 +296,14 @@ class SaturatedVapourPressureTable(BasePlugin):
 
         # Values for which method is considered valid (see reference).
         # WetBulbTemperature.check_range(temperature.data, 173., 373.)
-        if temperature.data.max() > 373. or temperature.data.min() < 173.:
+        if (temperature.max() > self.MAX_VALID_TEMPERATURE or
+                temperature.min() < self.MIN_VALID_TEMPERATURE):
             msg = ("Temperatures out of SVP table range: min {}, max {}")
-            warnings.warn(msg.format(temperature.data.min(),
-                                     temperature.data.max()))
+            warnings.warn(msg.format(temperature.min(),
+                                     temperature.max()))
 
-        data = temperature.data.copy()
-        for cell in np.nditer(data, op_flags=['readwrite']):
+        svp = temperature.copy()
+        for cell in np.nditer(svp, op_flags=['readwrite']):
             if cell > triple_pt:
                 n0 = constants[1] * (1. - triple_pt / cell)
                 n1 = constants[2] * np.log10(cell / triple_pt)
@@ -322,11 +322,6 @@ class SaturatedVapourPressureTable(BasePlugin):
                 log_es = n0 - n1 + n2 + constants[11]
                 cell[...] = (np.power(10., log_es))
 
-        # Create SVP cube
-        svp = iris.cube.Cube(
-            data, long_name='saturated_vapour_pressure', units='hPa')
-        # Output of the Goff-Gratch is in hPa, but we want to return in Pa.
-        svp.convert_units('Pa')
         return svp
 
     def process(self):
@@ -342,15 +337,16 @@ class SaturatedVapourPressureTable(BasePlugin):
         """
         temperatures = np.arange(self.t_min, self.t_max + 0.5*self.t_increment,
                                  self.t_increment)
-        temperature = iris.cube.Cube(temperatures, 'air_temperature',
-                                     units='K')
-
-        svp = self.saturation_vapour_pressure_goff_gratch(temperature)
+        svp_data = self.saturation_vapour_pressure_goff_gratch(temperatures)
 
         temperature_coord = iris.coords.DimCoord(
-            temperature.data, 'air_temperature', units='K')
+            temperatures, 'air_temperature', units='K')
 
-        svp.add_dim_coord(temperature_coord, 0)
+        # Output of the Goff-Gratch is in hPa, but we want to return in Pa.
+        svp = iris.cube.Cube(
+            svp_data, long_name='saturated_vapour_pressure', units='hPa',
+            dim_coords_and_dims=[(temperature_coord, 0)])
+        svp.convert_units('Pa')
         svp.attributes['minimum_temperature'] = self.t_min
         svp.attributes['maximum_temperature'] = self.t_max
         svp.attributes['temperature_increment'] = self.t_increment
