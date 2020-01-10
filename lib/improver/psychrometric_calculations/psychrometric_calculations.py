@@ -51,111 +51,6 @@ from improver.utilities.spatial import (
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 
 
-class Utilities:
-
-    """
-    Utilities for psychrometric calculations.
-    """
-
-    @staticmethod
-    def specific_heat_of_moist_air(mixing_ratio):
-        """
-        Calculate the specific heat capacity for moist air by combining that of
-        dry air and water vapour in proportion given by the specific humidity.
-
-        Args:
-            mixing_ratio (numpy.ndarray):
-                Array of specific humidity (fractional).
-        Returns:
-            numpy.ndarray:
-                Specific heat capacity of moist air (J kg-1 K-1).
-        """
-        specific_heat = ((-1.*mixing_ratio + 1.) * consts.CP_DRY_AIR
-                         + mixing_ratio * consts.CP_WATER_VAPOUR)
-        return specific_heat
-
-    @staticmethod
-    def latent_heat_of_condensation(temperature_input):
-        """
-        Calculate a temperature adjusted latent heat of condensation for water
-        vapour using the relationship employed by the UM.
-
-        Args:
-            temperature_input (np.ndarray):
-                A Array of air temperatures (K).
-        Returns:
-            np.ndarray:
-                Temperature adjusted latent heat of condensation (J kg-1).
-        """
-        temp = temperature_input
-        temp = temp + consts.ABSOLUTE_ZERO
-
-        latent_heat = (-1. * consts.LATENT_HEAT_T_DEPENDENCE * temp +
-                       consts.LH_CONDENSATION_WATER)
-        return latent_heat
-
-    @staticmethod
-    def calculate_enthalpy(mixing_ratio, specific_heat, latent_heat,
-                           temperature):
-        """
-        Calculate the enthalpy (total energy per unit mass) of air (J kg-1).
-
-        Method from referenced UM documentation.
-
-        References:
-            Met Office UM Documentation Paper 080, UM Version 10.8,
-            last updated 2014-12-05.
-
-        Args:
-            mixing_ratio (numpy.ndarray):
-                Array of mixing ratios.
-            specific_heat (numpy.ndarray):
-                Array of specific heat capacities of moist air (J kg-1 K-1).
-            latent_heat (numpy.ndarray):
-                Array of latent heats of condensation of water vapour
-                (J kg-1).
-            temperature (numpy.ndarray):
-                Array of air temperatures (K).
-        Returns:
-           numpy.ndarray:
-               Array of enthalpy values calculated at the same points as the
-               input cubes (J kg-1).
-        """
-        enthalpy = latent_heat * mixing_ratio + specific_heat * temperature
-        return enthalpy
-
-    @staticmethod
-    def calculate_d_enthalpy_dt(mixing_ratio, specific_heat,
-                                latent_heat, temperature):
-        """
-        Calculate the enthalpy gradient with respect to temperature.
-
-        Method from referenced UM documentation.
-
-        References:
-            Met Office UM Documentation Paper 080, UM Version 10.8,
-            last updated 2014-12-05.
-
-        Args:
-            mixing_ratio (numpy.ndarray):
-                Array of mixing ratios.
-            specific_heat (numpy.ndarray):
-                Array of specific heat capacities of moist air (J kg-1 K-1).
-            latent_heat (numpy.ndarray):
-                Array of latent heats of condensation of water vapour
-                (J kg-1).
-            temperature (numpy.ndarray):
-                Array of temperatures (K).
-
-        Returns:
-            numpy.ndarray:
-                Array of the enthalpy gradient with respect to temperature.
-        """
-        numerator = (mixing_ratio * latent_heat ** 2)
-        denominator = consts.R_WATER_VAPOUR * temperature ** 2
-        return numerator/denominator + specific_heat
-
-
 class WetBulbTemperature(BasePlugin):
 
     """
@@ -180,6 +75,7 @@ class WetBulbTemperature(BasePlugin):
                 returning wet bulb temperatures.
         """
         self.precision = precision
+        self.maximum_iterations = 20
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -232,16 +128,16 @@ class WetBulbTemperature(BasePlugin):
                             svp_table.T_MAX - svp_table.T_INCREMENT)
 
         # interpolate between bracketing values
-        table_position = (T_clipped - svp_table.T_MIN)/svp_table.T_INCREMENT
+        table_position = (T_clipped - svp_table.T_MIN) / svp_table.T_INCREMENT
         table_index = table_position.astype(int)
         interpolation_factor = table_position - table_index
         result = ((1.0 - interpolation_factor) * svp_table.DATA[table_index] +
                   interpolation_factor * svp_table.DATA[table_index + 1])
         return result
 
-    def _svp_in_air(self, temperature, pressure):
+    def calculate_svp_in_air(self, temperature, pressure):
         """
-        Calculate the saturated vapour pressure in air.
+        Calculate the saturation vapour pressure in air.
 
         Method from referenced documentation.
 
@@ -267,6 +163,24 @@ class WetBulbTemperature(BasePlugin):
         avp = svp*correction.astype(np.float32)
         return avp
 
+    @staticmethod
+    def _calculate_latent_heat(temperature):
+        """
+        Calculate a temperature adjusted latent heat of condensation for water
+        vapour using the relationship employed by the UM.
+
+        Args:
+            temperature (np.ndarray):
+                Array of air temperatures (K).
+        Returns:
+            np.ndarray:
+                Temperature adjusted latent heat of condensation (J kg-1).
+        """
+        temp_celcius = temperature + consts.ABSOLUTE_ZERO
+        latent_heat = (-1. * consts.LATENT_HEAT_T_DEPENDENCE * temp_celcius +
+                       consts.LH_CONDENSATION_WATER)
+        return latent_heat
+
     def _calculate_mixing_ratio(self, temperature, pressure):
         """Function to compute the mixing ratio given temperature and pressure.
 
@@ -286,11 +200,89 @@ class WetBulbTemperature(BasePlugin):
         References:
             ASHRAE Fundamentals handbook (2005) Equation 22, 24, p6.8
         """
-        svp = self._svp_in_air(temperature, pressure)
+        svp = self.calculate_svp_in_air(temperature, pressure)
         numerator = (consts.EARTH_REPSILON * svp)
         denominator = (np.maximum(svp, pressure) - (
             (1. - consts.EARTH_REPSILON) * svp))
         return numerator / denominator
+
+    @staticmethod
+    def _calculate_specific_heat(mixing_ratio):
+        """
+        Calculate the specific heat capacity for moist air by combining that of
+        dry air and water vapour in proportion given by the specific humidity.
+
+        Args:
+            mixing_ratio (numpy.ndarray):
+                Array of specific humidity (fractional).
+        Returns:
+            numpy.ndarray:
+                Specific heat capacity of moist air (J kg-1 K-1).
+        """
+        specific_heat = ((-1.*mixing_ratio + 1.) * consts.CP_DRY_AIR
+                         + mixing_ratio * consts.CP_WATER_VAPOUR)
+        return specific_heat
+
+    @staticmethod
+    def _calculate_enthalpy(
+            mixing_ratio, specific_heat, latent_heat, temperature):
+        """
+        Calculate the enthalpy (total energy per unit mass) of air (J kg-1).
+
+        Method from referenced UM documentation.
+
+        References:
+            Met Office UM Documentation Paper 080, UM Version 10.8,
+            last updated 2014-12-05.
+
+        Args:
+            mixing_ratio (numpy.ndarray):
+                Array of mixing ratios.
+            specific_heat (numpy.ndarray):
+                Array of specific heat capacities of moist air (J kg-1 K-1).
+            latent_heat (numpy.ndarray):
+                Array of latent heats of condensation of water vapour
+                (J kg-1).
+            temperature (numpy.ndarray):
+                Array of air temperatures (K).
+        Returns:
+           numpy.ndarray:
+               Array of enthalpy values calculated at the same points as the
+               input cubes (J kg-1).
+        """
+        enthalpy = latent_heat * mixing_ratio + specific_heat * temperature
+        return enthalpy
+
+    @staticmethod
+    def _calculate_enthalpy_gradient(
+            mixing_ratio, specific_heat, latent_heat, temperature):
+        """
+        Calculate the enthalpy gradient with respect to temperature.
+
+        Method from referenced UM documentation.
+
+        References:
+            Met Office UM Documentation Paper 080, UM Version 10.8,
+            last updated 2014-12-05.
+
+        Args:
+            mixing_ratio (numpy.ndarray):
+                Array of mixing ratios.
+            specific_heat (numpy.ndarray):
+                Array of specific heat capacities of moist air (J kg-1 K-1).
+            latent_heat (numpy.ndarray):
+                Array of latent heats of condensation of water vapour
+                (J kg-1).
+            temperature (numpy.ndarray):
+                Array of temperatures (K).
+
+        Returns:
+            numpy.ndarray:
+                Array of the enthalpy gradient with respect to temperature.
+        """
+        numerator = (mixing_ratio * latent_heat ** 2)
+        denominator = consts.R_WATER_VAPOUR * temperature ** 2
+        return numerator/denominator + specific_heat
 
     def _calculate_wet_bulb_temperature(
             self, pressure, relative_humidity, temperature):
@@ -314,54 +306,48 @@ class WetBulbTemperature(BasePlugin):
                 Array of wet bulb temperature (K).
 
         """
-        # Use air temperature as a first guess for wet bulb temperature.
-        wbt_data = temperature.copy()
-        latent_heat = Utilities.latent_heat_of_condensation(temperature)
-        # Calculate mixing ratios.
-        saturation_mixing_ratio = self._calculate_mixing_ratio(temperature,
-                                                               pressure)
+        # Initialise psychrometric variables
+        latent_heat = self._calculate_latent_heat(temperature)
+        saturation_mixing_ratio = self._calculate_mixing_ratio(
+            temperature, pressure)
         mixing_ratio = relative_humidity * saturation_mixing_ratio
-        # Calculate specific and latent heats.
-        specific_heat = Utilities.specific_heat_of_moist_air(mixing_ratio)
+        specific_heat = self._calculate_specific_heat(mixing_ratio)
+        enthalpy = self._calculate_enthalpy(
+            mixing_ratio, specific_heat, latent_heat, temperature)
 
-        # Calculate enthalpy.
-        g_tw = Utilities.calculate_enthalpy(mixing_ratio, specific_heat,
-                                            latent_heat, temperature)
+        # Initialise wet bulb temperature increment
+        delta_wbt = 10. * np.broadcast_to(self.precision, temperature.shape)
+        delta_wbt_prev = None
 
-        precision = np.full(temperature.shape, self.precision)
-
-        delta_wbt = 10. * precision
-        delta_wbt_history = 5. * precision
-        max_iterations = 20
+        # Iterate to find the wet bulb temperature, using temperature as first
+        # guess
+        wbt_data = temperature.copy()
         iteration = 0
+        while (np.abs(delta_wbt) > self.precision).any():
 
-        # Iterate to find the wet bulb temperature
-        while (np.abs(delta_wbt) > precision).any():
-            g_tw_new = Utilities.calculate_enthalpy(
+            enthalpy_new = self._calculate_enthalpy(
                 saturation_mixing_ratio, specific_heat, latent_heat, wbt_data)
-            dg_dt = Utilities.calculate_d_enthalpy_dt(
+            enthalpy_gradient = self._calculate_enthalpy_gradient(
                 saturation_mixing_ratio, specific_heat, latent_heat, wbt_data)
-            delta_wbt = (g_tw - g_tw_new) / dg_dt
+            delta_wbt = (enthalpy - enthalpy_new) / enthalpy_gradient
 
-            # Only change values at those points yet to converge to avoid
-            # oscillating solutions (the now fixed points are still calculated
-            # unfortunately).
-            unfinished = np.where(np.abs(delta_wbt) > precision)
-            wbt_data[unfinished] = (wbt_data[unfinished]
-                                    + delta_wbt[unfinished])
+            # Increment wet bulb temperature at points which have not converged
+            to_update = np.where(np.abs(delta_wbt) > self.precision)
+            wbt_data[to_update] = (wbt_data[to_update] + delta_wbt[to_update])
 
-            # If the errors are identical between two iterations, stop.
-            if (np.array_equal(delta_wbt, delta_wbt_history) or
-                    iteration > max_iterations):
+            # If increment is identical to the previous iteration, stop
+            if (np.array_equal(delta_wbt, delta_wbt_prev) or
+                    iteration > self.maximum_iterations):
                 warnings.warn('No further refinement occurring; breaking out '
                               'of Newton iterator and returning result.')
                 break
-            delta_wbt_history = delta_wbt
-            iteration += 1
 
-            # Recalculate the saturation mixing ratio
+            # Update saturation mixing ratio and iterators
             saturation_mixing_ratio = self._calculate_mixing_ratio(
                 wbt_data, pressure)
+
+            delta_wbt_prev = delta_wbt
+            iteration += 1
 
         return wbt_data
 
@@ -423,6 +409,7 @@ class WetBulbTemperature(BasePlugin):
         # re-promote any scalar coordinates lost in slice / merge
         wet_bulb_temperature = check_cube_coordinates(
             temperature, wet_bulb_temperature)
+
         return wet_bulb_temperature
 
 

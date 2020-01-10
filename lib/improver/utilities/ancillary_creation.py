@@ -230,7 +230,6 @@ class SaturatedVapourPressureTable(BasePlugin):
     MAX_VALID_TEMPERATURE = 373.
     MIN_VALID_TEMPERATURE = 173.
 
-
     def __init__(self, t_min=183.15, t_max=338.25, t_increment=0.1):
         """
         Create a table of saturated vapour pressures that can be interpolated

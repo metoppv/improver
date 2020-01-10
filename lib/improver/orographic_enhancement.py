@@ -570,10 +570,7 @@ class OrographicEnhancement(BasePlugin):
                                   uwind, vwind, topography)
 
         # calculate saturation vapour pressure
-        wbt = WetBulbTemperature()
-
-        self.svp = wbt.pressure_correct_svp(
-            wbt.lookup_svp(self.temperature.data),
+        self.svp = WetBulbTemperature().calculate_svp_in_air(
             self.temperature.data, self.pressure.data)
 
         # calculate site-specific orographic enhancement

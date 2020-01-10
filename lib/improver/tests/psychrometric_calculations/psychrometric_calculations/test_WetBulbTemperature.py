@@ -94,33 +94,58 @@ class Test__get_svp(Test_WetBulbTemperature):
         self.assertArrayAlmostEqual(result, expected)
 
 
-class Test__svp_in_air(Test_WetBulbTemperature):
+class Test_psychrometric_variables(Test_WetBulbTemperature):
+    """Test calculations of one-line variables: svp in air, latent heat,
+    mixing ratios, etc"""
 
-    """Test the conversion of saturated vapour pressures in a pure water
-    vapour system into SVPs in air."""
-
-    def test_values(self):
-        """Basic pressure correction of water vapour SVPs to give SVPs in
-        air."""
+    def test_calculate_svp_in_air(self):
+        """Test pressure-corrected SVP values"""
         expected = np.array([[0.01362905, 208.47170252, 25187.76423485]])
-        result = WetBulbTemperature()._svp_in_air(
+        result = WetBulbTemperature().calculate_svp_in_air(
             self.temperature.data, self.pressure.data)
         self.assertArrayAlmostEqual(result, expected)
 
+    def test_calculate_latent_heat(self):
+        """Test latent heat calculation"""
+        expected = [[2707271., 2530250., 2348900.]]
+        result = WetBulbTemperature()._calculate_latent_heat(self.temperature)
+        self.assertArrayAlmostEqual(result.data, expected)
 
-class Test__calculate_mixing_ratio(Test_WetBulbTemperature):
-
-    """Test the calculation of the specific mixing ratio from temperature,
-    and pressure information using the SVP."""
-
-    def test_values(self):
-        """Basic mixing ratio calculation."""
-
+    def test_calculate_mixing_ratio(self):
+        """Test mixing ratio calculation"""
         expected = [[6.06744631e-08, 1.31079322e-03, 1.77063149e-01]]
         result = WetBulbTemperature()._calculate_mixing_ratio(
             self.temperature.data, self.pressure.data)
-
         self.assertArrayAlmostEqual(result, expected)
+
+    def test_calculate_specific_heat(self):
+        """Test specific heat calculation"""
+        expected = np.array([[1089.5, 1174., 1258.5]], dtype=np.float32)
+        result = WetBulbTemperature()._calculate_specific_heat(
+            self.mixing_ratio.data)
+        self.assertArrayAlmostEqual(result, expected)
+
+    def test_calculate_enthalpy(self):
+        """Basic calculation of some enthalpies."""
+        mixing_ratio = np.array([[0.1, 0.2, 0.3]], dtype=np.float32)
+        specific_heat = np.array([1089.5, 1174., 1258.5])
+        latent_heat = np.array([2531771., 2508371., 2484971.])
+        temperature = np.array([[260., 270., 280.]], dtype=np.float32)
+        expected = [[536447.103773,  818654.207476, 1097871.329623]]
+        result = WetBulbTemperature()._calculate_enthalpy(
+            mixing_ratio, specific_heat, latent_heat, temperature)
+        self.assertArrayAlmostEqual(result, expected)
+
+    def test_calculate_enthalpy_gradient(self):
+        """Test calculation of enthalpy gradient with temperature"""
+        mixing_ratio = np.array([[0.1, 0.2, 0.3]], dtype=np.float32)
+        specific_heat = np.array([1089.5, 1174., 1258.5])
+        latent_heat = np.array([2531771., 2508371., 2484971.])
+        temperature = np.array([[260., 270., 280.]], dtype=np.float32)
+        expected = [[21631.198581, 38569.575046, 52448.138051]]
+        result = WetBulbTemperature()._calculate_enthalpy_gradient(
+            mixing_ratio, specific_heat, latent_heat, temperature)
+        self.assertArrayAlmostEqual(result.data, expected)
 
 
 class Test_create_wet_bulb_temperature_cube(Test_WetBulbTemperature):
