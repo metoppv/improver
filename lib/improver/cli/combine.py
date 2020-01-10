@@ -31,35 +31,32 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to combine netcdf data."""
 
-import warnings
-
 from improver import cli
 
 
 @cli.clizefy
 @cli.with_output
-def process(*cubelist: cli.inputcube,
+def process(*cubes: cli.inputcube,
             operation='+',
             new_name=None,
-            new_metadata: cli.inputjson = None,
-            warnings_on=False):
+            bounds_config: cli.inputjson = None,
+            check_metadata=False):
     r"""Combine input cubes.
 
     Combine the input cubes into a single cube using the requested operation.
 
     Args:
-        cubelist (iris.cube.CubeList or list of iris.cube.Cube):
+        cubes (iris.cube.CubeList or list of iris.cube.Cube):
             An iris CubeList to be combined.
         operation (str):
             An operation to use in combining input cubes. One of:
             +, -, \*, add, subtract, multiply, min, max, mean
         new_name (str):
             New name for the resulting dataset.
-        new_metadata (dict):
+        bounds_config (dict):
             Dictionary containing information on coordinates to expand.
-        warnings_on (bool):
-            If True, warning messages where metadata do not match will be
-            given.
+        check_metadata (bool):
+            If True, warn on metadata mismatch between inputs.
 
     Returns:
         result (iris.cube.Cube):
@@ -67,14 +64,11 @@ def process(*cubelist: cli.inputcube,
     """
     from improver.cube_combiner import CubeCombiner
     from iris.cube import CubeList
-    coords_to_expand = None
-    if new_metadata and 'expanded_coord' in new_metadata:
-        coords_to_expand = new_metadata['expanded_coord']
-    if not cubelist:
+    if not cubes:
         raise TypeError("A cube is needed to be combined.")
     if new_name is None:
-        new_name = cubelist[0].name()
-    result = CubeCombiner(operation, warnings_on=warnings_on).process(
-        CubeList(cubelist), new_name, coords_to_expand=coords_to_expand)
+        new_name = cubes[0].name()
+    result = CubeCombiner(operation, warnings_on=check_metadata).process(
+        CubeList(cubes), new_name, coords_to_expand=bounds_config)
 
     return result

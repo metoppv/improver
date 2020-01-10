@@ -37,12 +37,12 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(orography: cli.inputcube,
-            landmask: cli.inputcube,
-            *,
+            land_sea_mask: cli.inputcube,
             site_list: cli.inputjson,
+            *,
             all_methods=False,
             land_constraint=False,
-            minimum_dz=False,
+            similar_altitude=False,
             search_radius: float = None,
             node_limit: int = None,
             site_coordinate_system=None,
@@ -65,7 +65,7 @@ def process(orography: cli.inputcube,
         orography (iris.cube.Cube):
             Cube of model orography for the model grid on which neighbours are
             being found.
-        landmask (iris.cube.Cube):
+        land_sea_mask (iris.cube.Cube):
             Cube of model land mask for the model grid on which neighbours are
             being found.
         site_list (dict):
@@ -75,23 +75,19 @@ def process(orography: cli.inputcube,
             If True, this will return a cube containing the nearest grid point
             neighbours to spot sites as defined by each possible combination
             of constraints.
-            Default is False.
         land_constraint (bool):
             If True, this will return a cube containing the nearest grid point
             neighbours to spot sites that are also land points. May be used
-            with the minimum_dz option.
-            Default is None.
-        minimum_dz (bool):
+            with the similar_altitude option.
+        similar_altitude (bool):
             If True, this will return a cube containing the nearest grid point
             neighbour to each spot site that is found, within a given search
             radius, to minimise the height difference between the two. May be
             used with the land_constraint option.
-            Default is None.
         search_radius (float):
             The radius in metres about a spot site within which to search for
             a grid point neighbour that is land or which has a smaller height
             difference than the nearest.
-            Default is None.
         node_limit (int):
             When searching within the defined search_radius for suitable
             neighbours, a KDTree is constructed. This node_limit prevents the
@@ -100,25 +96,20 @@ def process(orography: cli.inputcube,
             considered. If the search radius is likely to contain more than
             36 points, this value should be increased to ensure all point
             are considered.
-            Default is None.
         site_coordinate_system (cartopy coordinate system):
             The coordinate system in which the site coordinates are provided
             within the site list. This must be provided as the name of a
             cartopy coordinate system. The Default will become PlateCarree.
-            Default is None.
         site_coordinate_options (str):
             JSON formatted string of options passed to the cartopy coordinate
             system given in site_coordinate_system. "globe" is handled as a
             special case to construct a cartopy Globe object.
-            Default is None.
         site_x_coordinate (str):
             The key that identifies site x coordinates in the provided site
             dictionary. Defaults to longitude.
-            Default is None.
         site_y_coordinate (str):
             The key that identifies site y coordinates in the provided site
             dictionary. Defaults to latitude.
-            Default is None.
 
     Returns:
         iris.cube.Cube:
@@ -126,7 +117,7 @@ def process(orography: cli.inputcube,
 
     Raises:
         ValueError:
-            If all_methods is used with land_constraint or minimum_dz.
+            If all_methods is used with land_constraint or similar_altitude.
 
     """
     import json
@@ -150,7 +141,7 @@ def process(orography: cli.inputcube,
         'TransverseMercator', 'UTM']
 
     # Check valid options have been selected.
-    if all_methods is True and (land_constraint or minimum_dz):
+    if all_methods is True and (land_constraint or similar_altitude):
         raise ValueError(
             'Cannot use all_methods option with other constraints.')
 
@@ -158,7 +149,7 @@ def process(orography: cli.inputcube,
     # This preserves the plugin defaults for unset options.
     args = {
         'land_constraint': land_constraint,
-        'minimum_dz': minimum_dz,
+        'minimum_dz': similar_altitude,
         'search_radius': search_radius,
         'site_coordinate_system': site_coordinate_system,
         'site_coordinate_options': site_coordinate_options,
@@ -166,7 +157,7 @@ def process(orography: cli.inputcube,
         'node_limit': node_limit,
         'site_y_coordinate': site_y_coordinate
     }
-    fargs = (site_list, orography, landmask)
+    fargs = (site_list, orography, land_sea_mask)
     kwargs = {k: v for (k, v) in args.items() if v is not None}
 
     # Deal with coordinate systems for sites other than PlateCarree.

@@ -60,7 +60,6 @@ def process(start_cube: cli.inputcube,
             A number of minutes which does not divide up the interval equally
             will raise an exception.
             If intervals_in_mins is set then times can not be used.
-            Default is None.
         times (str):
             Specifies the times in the format {YYYYMMDD}T{HHMM}Z
             at which to interpolate between the two input cubes.
@@ -68,14 +67,12 @@ def process(start_cube: cli.inputcube,
             e.g 20180116T0100Z. More than one time can be provided separated
             by a comma.
             If times are set, interval_in_mins can not be used.
-            Default is None.
         interpolation_method (str):
             ["linear", "solar", "daynight"]
             Specifies the interpolation method;
             solar interpolates using the solar elevation,
             daynight uses linear interpolation but sets night time points to
             0.0 linear is linear interpolation.
-            Default is linear.
 
     Returns:
         iris.cube.CubeList:

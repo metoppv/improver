@@ -42,11 +42,11 @@ def process(temperature: cli.inputcube,
             orography: cli.inputcube = None,
             land_sea_mask: cli.inputcube = None,
             *,
-            max_height_diff_metres: float = 35,
+            max_height_diff: float = 35,
             nbhood_radius: int = 7,
             max_lapse_rate: float = -3*DALR,
             min_lapse_rate: float = DALR,
-            return_dalr=False):
+            dry_adiabatic=False):
     """Calculate temperature lapse rates in units of K m-1 over orography grid.
 
     Args:
@@ -57,7 +57,7 @@ def process(temperature: cli.inputcube,
             Orography data.
         land_sea_mask (iris.cube.Cube):
             Binary land-sea mask data. True for land-points, False for sea.
-        max_height_diff_metres (float):
+        max_height_diff (float):
             Maximum allowable height difference between the central point and
             points in the neighbourhood over which the lapse rate will be
             calculated.
@@ -70,7 +70,7 @@ def process(temperature: cli.inputcube,
             Maximum lapse rate allowed, in K m-1.
         min_lapse_rate (float):
             Minimum lapse rate allowed, in K m-1.
-        return_dalr (bool):
+        dry_adiabatic (bool):
             If True, returns a cube containing the dry adiabatic lapse rate
             rather than calculating the true lapse rate.
 
@@ -82,7 +82,8 @@ def process(temperature: cli.inputcube,
         ValueError: If minimum lapse rate is greater than maximum.
         ValueError: If Maximum height difference is less than zero.
         ValueError: If neighbourhood radius is less than zero.
-
+        RuntimeError: If calculating the true lapse rate and orography or
+                      land mask arguments are not given.
     """
     import numpy as np
     from improver.lapse_rate import LapseRate
@@ -91,11 +92,10 @@ def process(temperature: cli.inputcube,
     attributes_dict = {"title": "remove", "source": "remove",
                        "history": "remove", "um_version": "remove"}
 
-    if return_dalr:
-        result = temperature.copy(
-            data=np.full_like(temperature.data, U_DALR.points[0]))
+    if dry_adiabatic:
+        result = temperature.copy(data=np.full_like(temperature.data, DALR))
         result.rename('air_temperature_lapse_rate')
-        result.units = U_DALR.units
+        result.units = U_DALR
         amend_attributes(result, attributes_dict)
         return result
 
@@ -103,7 +103,7 @@ def process(temperature: cli.inputcube,
         msg = 'Minimum lapse rate specified is greater than the maximum.'
         raise ValueError(msg)
 
-    if max_height_diff_metres < 0:
+    if max_height_diff < 0:
         msg = 'Maximum height difference specified is less than zero.'
         raise ValueError(msg)
 
@@ -111,8 +111,12 @@ def process(temperature: cli.inputcube,
         msg = 'Neighbourhood radius specified is less than zero.'
         raise ValueError(msg)
 
+    if orography is None or land_sea_mask is None:
+        msg = 'Missing orography and/or land mask arguments.'
+        raise RuntimeError(msg)
+
     result = LapseRate(
-        max_height_diff=max_height_diff_metres,
+        max_height_diff=max_height_diff,
         nbhood_radius=nbhood_radius,
         max_lapse_rate=max_lapse_rate,
         min_lapse_rate=min_lapse_rate).process(

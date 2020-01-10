@@ -74,7 +74,7 @@ def test_num_percentiles(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [perc_input, "--output", output_path,
             "--coordinates", "realization",
-            "--no-of-percentiles", "3"]
+            "--percentiles-count", "3"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -102,6 +102,6 @@ def test_eccbounds(tmp_path):
     args = [perc_input, "--output", output_path,
             "--coordinates", "realization",
             "--percentiles", "25,50,75",
-            "--ecc-bounds-warning"]
+            "--ignore-ecc-bounds"]
     run_cli(args)
     acc.compare(output_path, kgo_path)

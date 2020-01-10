@@ -68,13 +68,11 @@ def process(*cubes: cli.inputcube,
             in the units of the units argument.
         calendar (str)
             Calendar for parameter_unit if required.
-            Default is 'gregorian'.
         blend_time_using_forecast_period (bool):
             If True, we are blending over time but using the forecast
             period coordinate as a proxy. Note, this should only be used when
             time and forecast_period share a dimension: i.e when all cubes
             provided are from the same forecast cycle.
-            Default is False.
 
     Returns:
         iris.cube.Cube:
@@ -107,16 +105,16 @@ def process(*cubes: cli.inputcube,
     if coordinate == 'time':
         units = Unit(units, calendar)
 
-    cubelist = CubeList(cubes)
+    cubes = CubeList(cubes)
 
     if blend_time_using_forecast_period and coordinate == 'forecast_period':
-        cube = MergeCubes().process(cubelist, check_time_bounds_ranges=True)
+        cube = MergeCubes().process(cubes, check_time_bounds_ranges=True)
     elif blend_time_using_forecast_period:
         msg = ('"--blend-time-using-forecast-period" can only be used with '
                '"forecast_period" coordinate')
         raise ValueError(msg)
     else:
-        cube = MergeCubes().process(cubelist)
+        cube = MergeCubes().process(cubes)
 
     blending_plugin = TriangularWeightedBlendAcrossAdjacentPoints(
         coordinate, central_point, units, width)

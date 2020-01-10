@@ -37,22 +37,22 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(orographic_enhancement_cube: cli.inputcube,
-            *radar: cli.inputcube,
-            attributes_dict: cli.inputjson = None,
+def process(orographic_enhancement: cli.inputcube,
+            *cubes: cli.inputcube,
+            attributes_config: cli.inputjson = None,
             ofc_box_size: int = 30,
             smart_smoothing_iterations: int = 100):
     """Calculate optical flow components from input fields.
 
     Args:
-        orographic_enhancement_cube (iris.cube.Cube):
+        orographic_enhancement (iris.cube.Cube):
             Cube containing the orographic enhancement fields.
-        radar (iris.cube.CubeList):
+        cubes (iris.cube.CubeList):
             Cubes from which to calculate optical flow velocities.
             These three cubes will be sorted by their time coords.
-        attributes_dict (dict):
+        attributes_config (dict):
             Dictionary containing required changes to the attributes.
-            Every output file will have the attributes_dict applied.
+            Every output file will have the attributes_config applied.
         ofc_box_size (int):
             Size of square 'box' (in grid spaces) within which to solve
             the optical flow equations.
@@ -71,17 +71,17 @@ def process(orographic_enhancement_cube: cli.inputcube,
         generate_optical_flow_components
     from improver.nowcasting.utilities import ApplyOrographicEnhancement
 
-    original_cube_list = CubeList(radar)
+    original_cube_list = CubeList(cubes)
     # order input files by validity time
     original_cube_list.sort(key=lambda x: x.coord("time").points[0])
 
     # subtract orographic enhancement
     cube_list = ApplyOrographicEnhancement("subtract").process(
-            original_cube_list, orographic_enhancement_cube)
+            original_cube_list, orographic_enhancement)
 
     # calculate optical flow velocities from T-1 to T and T-2 to T-1, and
     # average to produce the velocities for use in advection
     u_mean, v_mean = generate_optical_flow_components(
-        cube_list, ofc_box_size, smart_smoothing_iterations, attributes_dict)
+        cube_list, ofc_box_size, smart_smoothing_iterations, attributes_config)
 
     return CubeList([u_mean, v_mean])

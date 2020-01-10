@@ -44,7 +44,7 @@ def process(cube: cli.inputcube,
             *,
             radii: cli.comma_separated_list,
             lead_times: cli.comma_separated_list = None,
-            sum_or_fraction="fraction",
+            area_sum=False,
             return_intermediate=False):
     """ Module to process land and sea separately before combining them.
 
@@ -73,15 +73,12 @@ def process(cube: cli.inputcube,
             If it is a list, it must be the same length as lead_times, which
             defines at which lead time to use which nbhood radius. The radius
             will be interpolated for intermediate lead times.
-        lead_times (list of int or None):
+        lead_times (list of int):
             The lead times in hours that correspond to the radii to be used.
             If lead_times are set, radii must be a list the same length as
             lead_times. Lead times must be given as integer values.
-        sum_or_fraction (str):
-            The neighbourhood output can either be in the form of a sum of the
-            neighbourhood, or a fraction calculated by dividing the sum of the
-            neighbourhood by the neighbourhood area.
-            Default is 'fraction'
+        area_sum (bool):
+            Return sum rather than fraction over the neighbourhood area.
         return_intermediate (bool):
             Include this option to return a cube with results following
             topographic masked neighbourhood processing of land points and
@@ -93,7 +90,7 @@ def process(cube: cli.inputcube,
         (tuple): tuple containing:
             **result** (iris.cube.Cube):
                 A cube of the processed data.
-            **intermediate_cube** (iris.cube.Cube or None):
+            **intermediate_cube** (iris.cube.Cube):
                 A cube of the intermediate data, before collapsing.
 
     Raises:
@@ -120,6 +117,8 @@ def process(cube: cli.inputcube,
         ApplyNeighbourhoodProcessingWithAMask,
         CollapseMaskedNeighbourhoodCoordinate)
 
+    sum_or_fraction = 'sum' if area_sum else 'fraction'
+
     masking_coordinate = intermediate_cube = None
     if any(['topographic_zone' in coord.name()
             for coord in mask.coords(dim_coords=True)]):
@@ -140,25 +139,25 @@ def process(cube: cli.inputcube,
                              '= True')
 
         masking_coordinate = 'topographic_zone'
-        landmask = weights[0].copy(data=weights[0].data.mask)
-        landmask.rename('land_binary_mask')
-        landmask.remove_coord(masking_coordinate)
+        land_sea_mask = weights[0].copy(data=weights[0].data.mask)
+        land_sea_mask.rename('land_binary_mask')
+        land_sea_mask.remove_coord(masking_coordinate)
         # Create land and sea masks in IMPROVER format (inverse of
         # numpy standard) 1 - include this region, 0 - exclude this region.
-        land_only = landmask.copy(
-            data=np.logical_not(landmask.data).astype(int))
-        sea_only = landmask.copy(data=landmask.data.astype(int))
+        land_only = land_sea_mask.copy(
+            data=np.logical_not(land_sea_mask.data).astype(int))
+        sea_only = land_sea_mask.copy(data=land_sea_mask.data.astype(int))
 
     else:
         if weights is not None:
             raise TypeError('A weights cube has been provided but will not be '
                             'used')
-        landmask = mask
+        land_sea_mask = mask
         # In this case the land is set to 1 and the sea is set to 0 in the
         # input mask.
-        sea_only = landmask.copy(
-            data=np.logical_not(landmask.data).astype(int))
-        land_only = landmask.copy(data=landmask.data.astype(int))
+        sea_only = land_sea_mask.copy(
+            data=np.logical_not(land_sea_mask.data).astype(int))
+        land_only = land_sea_mask.copy(data=land_sea_mask.data.astype(int))
 
     if lead_times is None:
         radius_or_radii = float(radii[0])

@@ -61,7 +61,6 @@ def process(temperature: cli.inputcube,
         convergence_condition (float):
             The precision in Kelvin to which the Newton iterator must converge
             before returning wet-bulb temperatures.
-            Default is 0.05.
 
     Returns:
         iris.cube.Cube:

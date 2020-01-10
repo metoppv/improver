@@ -39,15 +39,14 @@ from improver import cli
 def process(wet_bulb_temperature: cli.inputcube,
             wet_bulb_integral: cli.inputcube,
             orography: cli.inputcube,
-            land_sea: cli.inputcube,
+            land_sea_mask: cli.inputcube,
             *,
             phase_change):
-    """Calculate a continuous field of heights relative to sea level
-    at which a phase change of precipitation is expected.
+    """Height of precipitation phase change relative to sea level.
 
-    This is achieved by finding the height above sea level at which the
-    integral of wet bulb temperature matches an empirical threshold that is
-    expected to correspond with the phase change.
+    Calculated as a continuous 2D field by finding the height above sea level
+    at which the integral of wet bulb temperature matches an empirical
+    threshold that is expected to correspond with the phase change.
 
     Args:
         wet_bulb_temperature (iris.cube.Cube):
@@ -57,7 +56,7 @@ def process(wet_bulb_temperature: cli.inputcube,
             downwards to height levels.
         orography (iris.cube.Cube):
             Cube of the orography height in m.
-        land_sea (iris.cube.Cube):
+        land_sea_mask (iris.cube.Cube):
             Cube containing the binary land-sea mask. Land points are set to 1,
             sea points are set to 0.
         phase_change (str):
@@ -76,5 +75,5 @@ def process(wet_bulb_temperature: cli.inputcube,
 
     result = PhaseChangeLevel(
         phase_change=phase_change).process(
-            wet_bulb_temperature, wet_bulb_integral, orography, land_sea)
+            wet_bulb_temperature, wet_bulb_integral, orography, land_sea_mask)
     return result

@@ -54,11 +54,11 @@ def process(cube: cli.inputcube,
     Args:
         cube (iris.cube.Cube):
             A cube to be processed.
-        threshold_values (list of float or None):
+        threshold_values (list of float):
             Threshold value or values about which to calculate the truth
             values; e.g. 270,300. Must be omitted if 'threshold_config'
             is used.
-        threshold_config (dict or None):
+        threshold_config (dict):
             Threshold configuration containing threshold values and
             (optionally) fuzzy bounds. Best used in combination with
             'threshold_units' It should contain a dictionary of strings that
@@ -68,7 +68,7 @@ def process(cube: cli.inputcube,
             or with structure "THRESHOLD_VALUE": "None" (no fuzzy bounds).
             Repeated thresholds with different bounds are ignored; only the
             last duplicate will be used.
-        threshold_units (str or None):
+        threshold_units (str):
             Units of the threshold values. If not provided the units are
             assumed to be the same as those of the input cube. Specifying
             the units here will allow a suitable conversion to match
@@ -88,10 +88,10 @@ def process(cube: cli.inputcube,
             indicating a narrower fuzzy factor region / sharper threshold.
             A fuzzy factor cannot be used with a zero threshold or a
             threshold_config file.
-        collapse_coord (str or None):
+        collapse_coord (str):
             An optional ability to set which coordinate we want to collapse
             over.
-        vicinity (float or None):
+        vicinity (float):
             Distance in metres used to define the vicinity within which to
             search for an occurrence
 

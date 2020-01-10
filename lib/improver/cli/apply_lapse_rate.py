@@ -38,8 +38,8 @@ from improver import cli
 @cli.with_output
 def process(temperature: cli.inputcube,
             lapse_rate: cli.inputcube,
-            source_orog: cli.inputcube,
-            target_orog: cli.inputcube):
+            source_orography: cli.inputcube,
+            target_orography: cli.inputcube):
     """Apply downscaling temperature adjustment using calculated lapse rate.
 
     Args:
@@ -47,9 +47,9 @@ def process(temperature: cli.inputcube,
             Input temperature cube.
         lapse_rate (iris.cube.Cube):
             Lapse rate cube.
-        source_orog (iris.cube.Cube):
+        source_orography (iris.cube.Cube):
             Source model orography.
-        target_orog (iris.cube.Cube):
+        target_orography (iris.cube.Cube):
             Target orography to which temperature will be downscaled.
 
     Returns:
@@ -60,5 +60,5 @@ def process(temperature: cli.inputcube,
 
     # apply lapse rate to temperature data
     result = apply_gridded_lapse_rate(
-        temperature, lapse_rate, source_orog, target_orog)
+        temperature, lapse_rate, source_orography, target_orography)
     return result

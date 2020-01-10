@@ -37,15 +37,15 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(source_data: cli.inputcube,
+def process(cube: cli.inputcube,
             target_grid: cli.inputcube = None,
-            source_landmask: cli.inputcube = None,
+            land_sea_mask: cli.inputcube = None,
             *,
             regrid_mode='bilinear',
             extrapolation_mode='nanmask',
-            landmask_vicinity: float = 25000,
+            land_sea_mask_vicinity: float = 25000,
             regridded_title: str = None,
-            attributes_dict: cli.inputjson = None,
+            attributes_config: cli.inputjson = None,
             coords_to_remove: cli.comma_separated_list = None,
             new_name: str = None,
             new_units: str = None,
@@ -58,13 +58,13 @@ def process(source_data: cli.inputcube,
     float32.
 
     Args:
-        source_data (iris.cube.Cube):
+        cube (iris.cube.Cube):
             Source cube to be standardised
-        target_grid (iris.cube.Cube or None):
+        target_grid (iris.cube.Cube):
             If specified, then regridding of the source against the target
-            grid is enabled. If also using landmask-aware regridding then this
-            must be land_binary_mask data.
-        source_landmask (iris.cube.Cube or None):
+            grid is enabled. If also using land_sea_mask-aware regridding then
+            this must be land_binary_mask data.
+        land_sea_mask (iris.cube.Cube):
             A cube describing the land_binary_mask on the source-grid if
             coastline-aware regridding is required.
         regrid_mode (str):
@@ -75,7 +75,7 @@ def process(source_data: cli.inputcube,
             mask value (for coast-line-dependant variables like temperature).
         extrapolation_mode (str):
             Mode to use for extrapolating data into regions beyond the limits
-            of the source_data domain. Refer to online documentation for
+            of the input cube domain. Refer to online documentation for
             iris.analysis.
             Modes are -
             extrapolate - extrapolated points will take their values from the
@@ -87,20 +87,20 @@ def process(source_data: cli.inputcube,
             the source data is not a MaskedArray
             nanmask - if the source data is a MaskedArray extrapolated points
             will be masked; otherwise they will be set to NaN
-        landmask_vicinity (float):
+        land_sea_mask_vicinity (float):
             Radius of vicinity to search for a coastline, in metres.
-        regridded_title (str or None):
+        regridded_title (str):
             New "title" attribute to be set if the field is being regridded
             (since "title" may contain grid information). If None, a default
             value is used.
-        attributes_dict (dict or None):
+        attributes_config (dict):
             Dictionary containing required changes that will be applied to
             the attributes.
-        coords_to_remove (list or None):
+        coords_to_remove (list):
             List of names of scalar coordinates to remove.
-        new_name (str or None):
+        new_name (str):
             Name of output cube.
-        new_units (str or None):
+        new_units (str):
             Units to convert to.
         fix_float64 (bool):
             If True, checks and fixes cube for float64 data. Without this
@@ -113,15 +113,15 @@ def process(source_data: cli.inputcube,
 
     Raises:
         ValueError:
-            If source landmask is supplied but regrid mode is not
+            If source land_sea_mask is supplied but regrid mode is not
             "nearest-with-mask".
         ValueError:
-            If regrid_mode is "nearest-with-mask" but no source landmask is
-            provided (from plugin).
+            If regrid_mode is "nearest-with-mask" but no source land_sea_mask
+            is provided (from plugin).
     """
     from improver.standardise import StandardiseGridAndMetadata
 
-    if (source_landmask and
+    if (land_sea_mask and
             "nearest-with-mask" not in regrid_mode):
         msg = ("Land-mask file supplied without appropriate regrid-mode. "
                "Use --regrid-mode nearest-with-mask.")
@@ -129,10 +129,11 @@ def process(source_data: cli.inputcube,
 
     plugin = StandardiseGridAndMetadata(
         regrid_mode=regrid_mode, extrapolation_mode=extrapolation_mode,
-        landmask=source_landmask, landmask_vicinity=landmask_vicinity)
+        landmask=land_sea_mask,
+        landmask_vicinity=land_sea_mask_vicinity)
     output_data = plugin.process(
-        source_data, target_grid, new_name=new_name, new_units=new_units,
+        cube, target_grid, new_name=new_name, new_units=new_units,
         regridded_title=regridded_title, coords_to_remove=coords_to_remove,
-        attributes_dict=attributes_dict, fix_float64=fix_float64)
+        attributes_dict=attributes_config, fix_float64=fix_float64)
 
     return output_data

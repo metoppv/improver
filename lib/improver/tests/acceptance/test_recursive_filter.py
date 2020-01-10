@@ -67,7 +67,7 @@ def test_external_mask_with_remask(tmp_path):
     args = [input_path,
             alphas_path,
             mask_path,
-            "--re-mask",
+            "--remask",
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -99,7 +99,7 @@ def test_internal_mask_with_remask(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [input_path,
             alphas_path,
-            "--re-mask",
+            "--remask",
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

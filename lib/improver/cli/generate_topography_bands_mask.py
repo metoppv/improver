@@ -37,24 +37,23 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(orography: cli.inputcube,
-            landmask: cli.inputcube = None,
+            land_sea_mask: cli.inputcube = None,
             *,
-            thresholds_dict: cli.inputjson = None):
+            bands_config: cli.inputjson = None):
     """Runs topographic bands mask generation.
 
-    Reads orography and landmask fields of a cube. Creates a series of masks,
-    where each mask excludes data below or equal to the lower threshold and
-    excludes data above the upper threshold.
+    Reads orography and land_sea_mask fields of a cube. Creates a series of
+    masks, where each mask excludes data below or equal to the lower threshold
+    and excludes data above the upper threshold.
 
     Args:
         orography (iris.cube.Cube):
             The orography on a standard grid.
-        landmask (iris.cube.Cube):
+        land_sea_mask (iris.cube.Cube):
             The land mask on standard grid. If provided sea points will be set
             to zero in every band. If no land mask is provided, sea points will
             be included in the appropriate topographic band.
-            Default is None.
-        thresholds_dict (dict):
+        bands_config (dict):
             Definition of orography bands required.
             The expected format of the dictionary is e.g
             {'bounds':[[0, 50], [50, 200]], 'units': 'm'}
@@ -73,17 +72,17 @@ def process(orography: cli.inputcube,
     from improver.generate_ancillaries.generate_ancillary import (
         GenerateOrographyBandAncils, THRESHOLDS_DICT)
 
-    if thresholds_dict is None:
-        thresholds_dict = THRESHOLDS_DICT
+    if bands_config is None:
+        bands_config = THRESHOLDS_DICT
 
-    if landmask:
-        landmask = next(landmask.slices(
-            [landmask.coord(axis='y'), landmask.coord(axis='x')]))
+    if land_sea_mask:
+        land_sea_mask = next(land_sea_mask.slices(
+            [land_sea_mask.coord(axis='y'), land_sea_mask.coord(axis='x')]))
 
     orography = next(orography.slices(
         [orography.coord(axis='y'), orography.coord(axis='x')]))
 
     result = GenerateOrographyBandAncils().process(
-        orography, thresholds_dict, landmask=landmask)
+        orography, bands_config, landmask=land_sea_mask)
     result = result.concatenate_cube()
     return result

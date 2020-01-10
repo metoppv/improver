@@ -42,9 +42,9 @@ def process(percentiles_cube: cli.inputcube,
             threshold_cube: cli.inputcube,
             *,
             output_diagnostic_name):
-    r"""
-    Calculates probability from a percentiled field at a 2D threshold level.
-    It generates probabilities at a fixed threshold (height) from a set of
+    r"""Probability from a percentiled field at a 2D threshold level.
+
+    Probabilities are generated at a fixed threshold (height) from a set of
     (height) percentiles. E.g. for 2D percentile levels at different heights,
     calculate probability that height is at ground level, where the threshold
     cube contains a 2D topography field.
@@ -62,10 +62,9 @@ def process(percentiles_cube: cli.inputcube,
             000m --/---\----------  0th Percentile snow fall level
             ______/     \_________ Orogaphy
 
-        The orography heights are compared against the heights that correspond
-        with percentile values to find the band in which they fall, then
-        interpolated linearly to obtain a probability of snow level at / below
-        the ground surface.
+    The orography heights are compared against the heights that correspond with
+    percentile values to find the band in which they fall, then interpolated
+    linearly to obtain a probability at / below the ground surface.
 
     Args:
         percentiles_cube (iris.cube.Cube):

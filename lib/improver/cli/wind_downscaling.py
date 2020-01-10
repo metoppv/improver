@@ -37,11 +37,11 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(wind_speed: cli.inputcube,
-            silhouette_roughness: cli.inputcube,
             sigma: cli.inputcube,
-            target_orog: cli.inputcube,
-            standard_orog: cli.inputcube,
-            veg_roughness_cube: cli.inputcube = None,
+            target_orography: cli.inputcube,
+            standard_orography: cli.inputcube,
+            silhouette_roughness: cli.inputcube,
+            vegetative_roughness: cli.inputcube = None,
             *,
             model_resolution: float,
             output_height_level: float = None,
@@ -56,22 +56,21 @@ def process(wind_speed: cli.inputcube,
         wind_speed (iris.cube.Cube):
             Cube of wind speed on standard grid.
             Any units can be supplied.
-        silhouette_roughness (iris.cube.Cube):
-            Cube of model silhouette roughness.
-            Units of field: dimensionless.
         sigma (iris.cube.Cube):
             Cube of standard deviation of model orography height.
             Units of field: m.
-        target_orog (iris.cube.Cube):
+        target_orography (iris.cube.Cube):
             Cube of orography to downscale fields to.
             Units of field: m.
-        standard_orog (iris.cube.Cube):
+        standard_orography (iris.cube.Cube):
             Cube of orography on standard grid. (interpolated model orography).
             Units of field: m.
-        veg_roughness_cube (iris.cube.Cube):
+        silhouette_roughness (iris.cube.Cube):
+            Cube of model silhouette roughness.
+            Units of field: dimensionless.
+        vegetative_roughness (iris.cube.Cube):
             Cube of vegetative roughness length.
             Units of field: m.
-            Default is None.
         model_resolution (float):
             Original resolution of model orography (before interpolation to
             standard grid)
@@ -81,13 +80,11 @@ def process(wind_speed: cli.inputcube,
             wind-downscaling, this option can be used to select the height
             level. If no units are provided with 'output_height_level_units',
             metres are assumed.
-            Default is None.
         output_height_level_units (str):
             If a single height level is selected as output using
             'output_height_level', this additional argument may be used to
             specify the units of the value entered to select the level.
             e.g hPa.
-            Default is 'm'.
 
     Returns:
         iris.cube.Cube:
@@ -119,9 +116,9 @@ def process(wind_speed: cli.inputcube,
     for wind_speed_slice in wind_speed_iterator:
         result = (
             wind_downscaling.RoughnessCorrection(
-                silhouette_roughness, sigma, target_orog,
-                standard_orog, model_resolution,
-                z0_cube=veg_roughness_cube,
+                silhouette_roughness, sigma, target_orography,
+                standard_orography, model_resolution,
+                z0_cube=vegetative_roughness,
                 height_levels_cube=None).process(wind_speed_slice))
         wind_speed_list.append(result)
     # TODO: Remove temporary fix for chunking problems when merging cubes
