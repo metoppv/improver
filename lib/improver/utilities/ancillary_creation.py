@@ -29,12 +29,13 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import iris
+import warnings
 import numpy as np
 
+import iris
+
 from improver import BasePlugin
-from improver.psychrometric_calculations.psychrometric_calculations import \
-    Utilities
+from improver.constants import TRIPLE_PT_WATER
 from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
 
 
@@ -240,9 +241,9 @@ class SaturatedVapourPressureTable(BasePlugin):
 
         Args:
             t_min (float):
-                The minimum temperature for the range.
+                The minimum temperature for the range, in Kelvin.
             t_max (float):
-                The maximum temperature for the range.
+                The maximum temperature for the range, in Kelvin.
             t_increment (float):
                 The temperature increment at which to create values for the
                 saturated vapour pressure between t_min and t_max.
@@ -257,6 +258,76 @@ class SaturatedVapourPressureTable(BasePlugin):
                   't_increment: {}>'.format(self.t_min, self.t_max,
                                             self.t_increment))
         return result
+
+    @staticmethod
+    def saturation_vapour_pressure_goff_gratch(temperature):
+        """
+        Saturation Vapour pressure in a water vapour system calculated using
+        the Goff-Gratch Equation (WMO standard method).
+
+        Args:
+            temperature (iris.cube.Cube):
+                Cube of temperature which will be converted to Kelvin
+                prior to calculation. Valid from 173K to 373K
+
+        Returns:
+            iris.cube.Cube:
+                Cube containing the saturation vapour pressure of a pure
+                water vapour system. A correction must be applied to the data
+                when used to convert this to the SVP in air; see the
+                WetBulbTemperature.pressure_correct_svp function.
+
+        References:
+            Numerical data and functional relationships in science and
+            technology. New series. Group V. Volume 4. Meteorology.
+            Subvolume b. Physical and chemical properties of the air, P35.
+        """
+        constants = {1: 10.79574,
+                     2: 5.028,
+                     3: 1.50475E-4,
+                     4: -8.2969,
+                     5: 0.42873E-3,
+                     6: 4.76955,
+                     7: 0.78614,
+                     8: -9.09685,
+                     9: 3.56654,
+                     10: 0.87682,
+                     11: 0.78614}
+        triple_pt = TRIPLE_PT_WATER
+
+        # Values for which method is considered valid (see reference).
+        # WetBulbTemperature.check_range(temperature.data, 173., 373.)
+        if temperature.data.max() > 373. or temperature.data.min() < 173.:
+            msg = ("Temperatures out of SVP table range: min {}, max {}")
+            warnings.warn(msg.format(temperature.data.min(),
+                                     temperature.data.max()))
+
+        data = temperature.data.copy()
+        for cell in np.nditer(data, op_flags=['readwrite']):
+            if cell > triple_pt:
+                n0 = constants[1] * (1. - triple_pt / cell)
+                n1 = constants[2] * np.log10(cell / triple_pt)
+                n2 = constants[3] * (1. - np.power(10.,
+                                                   (constants[4] *
+                                                    (cell / triple_pt - 1.))))
+                n3 = constants[5] * (np.power(10., (constants[6] *
+                                                    (1. - triple_pt / cell))) -
+                                     1.)
+                log_es = n0 - n1 + n2 + n3 + constants[7]
+                cell[...] = (np.power(10., log_es))
+            else:
+                n0 = constants[8] * ((triple_pt / cell) - 1.)
+                n1 = constants[9] * np.log10(triple_pt / cell)
+                n2 = constants[10] * (1. - (cell / triple_pt))
+                log_es = n0 - n1 + n2 + constants[11]
+                cell[...] = (np.power(10., log_es))
+
+        # Create SVP cube
+        svp = iris.cube.Cube(
+            data, long_name='saturated_vapour_pressure', units='hPa')
+        # Output of the Goff-Gratch is in hPa, but we want to return in Pa.
+        svp.convert_units('Pa')
+        return svp
 
     def process(self):
         """
@@ -274,7 +345,7 @@ class SaturatedVapourPressureTable(BasePlugin):
         temperature = iris.cube.Cube(temperatures, 'air_temperature',
                                      units='K')
 
-        svp = Utilities.saturation_vapour_pressure_goff_gratch(temperature)
+        svp = self.saturation_vapour_pressure_goff_gratch(temperature)
 
         temperature_coord = iris.coords.DimCoord(
             temperature.data, 'air_temperature', units='K')

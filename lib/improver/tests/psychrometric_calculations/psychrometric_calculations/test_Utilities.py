@@ -133,20 +133,5 @@ class Test_calculate_d_enthalpy_dt(Test_Utilities):
         self.assertArrayAlmostEqual(result.data, expected)
 
 
-class Test_saturation_vapour_pressure_goff_gratch(Test_Utilities):
-
-    """Test calculations of the saturated vapour pressure using the Goff-Gratch
-    method."""
-
-    def test_basic(self):
-        """Basic calculation of some saturated vapour pressures."""
-        result = Utilities.saturation_vapour_pressure_goff_gratch(
-            self.temperature)
-        expected = [[195.6419, 469.67078, 990.9421]]
-
-        np.testing.assert_allclose(result.data, expected, rtol=1.e-5)
-        self.assertEqual(result.units, Unit('Pa'))
-
-
 if __name__ == '__main__':
     unittest.main()
