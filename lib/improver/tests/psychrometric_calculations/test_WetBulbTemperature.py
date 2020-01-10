@@ -62,17 +62,6 @@ class Test_WetBulbTemperature(IrisTest):
             data, name='humidity_mixing_ratio', units='1')
 
 
-class Test__repr__(IrisTest):
-
-    """Test the repr method."""
-
-    def test_basic(self):
-        """Test that the __repr__ returns the expected string."""
-        result = str(WetBulbTemperature())
-        msg = '<WetBulbTemperature: precision: 0.005>'
-        self.assertEqual(result, msg)
-
-
 class Test_psychrometric_variables(Test_WetBulbTemperature):
     """Test calculations of one-line variables: svp in air, latent heat,
     mixing ratios, etc"""
