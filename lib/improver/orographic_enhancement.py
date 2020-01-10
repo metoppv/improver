@@ -42,7 +42,7 @@ from improver import BasePlugin
 from improver.constants import R_WATER_VAPOUR
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.psychrometric_calculations.psychrometric_calculations \
-    import WetBulbTemperature
+    import calculate_svp_in_air
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.cube_manipulation import (
     compare_coords, enforce_coordinate_ordering, sort_coord_in_cube)
@@ -570,7 +570,7 @@ class OrographicEnhancement(BasePlugin):
                                   uwind, vwind, topography)
 
         # calculate saturation vapour pressure
-        self.svp = WetBulbTemperature().calculate_svp_in_air(
+        self.svp = calculate_svp_in_air(
             self.temperature.data, self.pressure.data)
 
         # calculate site-specific orographic enhancement

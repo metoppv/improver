@@ -73,37 +73,9 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test__get_svp(Test_WetBulbTemperature):
-
-    """Test the look-up of saturated vapour pressures."""
-
-    def test_values(self):
-        """Basic extraction of some SVP values from the lookup table."""
-        self.temperature.data[0, 1] = 260.56833
-        expected = [[1.350531e-02, 2.06000274e+02, 2.501530e+04]]
-        result = WetBulbTemperature()._get_svp(self.temperature.data)
-        self.assertArrayAlmostEqual(result, expected)
-
-    def test_beyond_table_bounds(self):
-        """Extracting SVP values from the table with temperatures beyond
-        its valid range. Should return the nearest end of the table."""
-        self.temperature.data[0, 0] = 150.
-        self.temperature.data[0, 2] = 400.
-        expected = [[9.664590e-03, 2.075279e+02, 2.501530e+04]]
-        result = WetBulbTemperature()._get_svp(self.temperature.data)
-        self.assertArrayAlmostEqual(result, expected)
-
-
 class Test_psychrometric_variables(Test_WetBulbTemperature):
     """Test calculations of one-line variables: svp in air, latent heat,
     mixing ratios, etc"""
-
-    def test_calculate_svp_in_air(self):
-        """Test pressure-corrected SVP values"""
-        expected = np.array([[0.01362905, 208.47170252, 25187.76423485]])
-        result = WetBulbTemperature().calculate_svp_in_air(
-            self.temperature.data, self.pressure.data)
-        self.assertArrayAlmostEqual(result, expected)
 
     def test_calculate_latent_heat(self):
         """Test latent heat calculation"""

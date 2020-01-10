@@ -51,6 +51,58 @@ from improver.utilities.spatial import (
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 
 
+def _svp_from_lookup(temperature):
+    """
+    Gets value for saturation vapour pressure of water vapour from a
+    pre-calculated lookup table. Interpolates linearly between points in
+    the table to the temperatures required.
+
+    Args:
+        temperature (numpy.ndarray):
+            Array of air temperatures (K).
+    Returns:
+        numpy.ndarray:
+            Array of saturated vapour pressures (Pa).
+    """
+    # where temperatures are outside the SVP table range, clip data to
+    # within the available range
+    T_clipped = np.clip(temperature, svp_table.T_MIN,
+                        svp_table.T_MAX - svp_table.T_INCREMENT)
+
+    # interpolate between bracketing values
+    table_position = (T_clipped - svp_table.T_MIN) / svp_table.T_INCREMENT
+    table_index = table_position.astype(int)
+    interpolation_factor = table_position - table_index
+    result = ((1.0 - interpolation_factor) * svp_table.DATA[table_index] +
+              interpolation_factor * svp_table.DATA[table_index + 1])
+    return result
+
+
+def calculate_svp_in_air(temperature, pressure):
+    """
+    Calculate the saturation vapour pressure in air.
+
+    Args:
+        temperature (numpy.ndarray):
+            Array of air temperatures (K).
+        pressure (numpy.ndarray):
+            Array of pressure (Pa).
+
+    Returns:
+        numpy.ndarray:
+            Saturation vapour pressure in air (Pa).
+
+    References:
+        Atmosphere-Ocean Dynamics, Adrian E. Gill, International Geophysics
+        Series, Vol. 30; Equation A4.7.
+    """
+    svp = _svp_from_lookup(temperature)
+    temp_celcius = temperature.copy() + consts.ABSOLUTE_ZERO
+    correction = (1. + 1.0E-8 * pressure * (4.5 + 6.0E-4 * temp_celcius ** 2))
+    avp = svp*correction.astype(np.float32)
+    return avp
+
+
 class WetBulbTemperature(BasePlugin):
 
     """
@@ -109,61 +161,6 @@ class WetBulbTemperature(BasePlugin):
         return slices
 
     @staticmethod
-    def _get_svp(temperature):
-        """
-        Gets value for saturation vapour pressure of water vapour from a
-        pre-calculated lookup table. Interpolates linearly between points in
-        the table to the temperatures required.
-
-        Args:
-            temperature (numpy.ndarray):
-                Array of air temperatures (K).
-        Returns:
-            numpy.ndarray:
-                Array of saturated vapour pressures (Pa).
-        """
-        # where temperatures are outside the SVP table range, clip data to
-        # within the available range
-        T_clipped = np.clip(temperature, svp_table.T_MIN,
-                            svp_table.T_MAX - svp_table.T_INCREMENT)
-
-        # interpolate between bracketing values
-        table_position = (T_clipped - svp_table.T_MIN) / svp_table.T_INCREMENT
-        table_index = table_position.astype(int)
-        interpolation_factor = table_position - table_index
-        result = ((1.0 - interpolation_factor) * svp_table.DATA[table_index] +
-                  interpolation_factor * svp_table.DATA[table_index + 1])
-        return result
-
-    def calculate_svp_in_air(self, temperature, pressure):
-        """
-        Calculate the saturation vapour pressure in air.
-
-        Method from referenced documentation.
-
-        References:
-            Atmosphere-Ocean Dynamics, Adrian E. Gill, International Geophysics
-            Series, Vol. 30; Equation A4.7.
-
-        Args:
-            temperature (numpy.ndarray):
-                Array of air temperatures (K).
-            pressure (numpy.ndarray):
-                Array of pressure (Pa).
-
-        Returns:
-            numpy.ndarray:
-                The input Array of saturated vapour pressure of air (Pa) is
-                modified by the pressure correction.
-        """
-        svp = self._get_svp(temperature)
-        temp_celcius = temperature.copy() + consts.ABSOLUTE_ZERO
-        correction = (1. + 1.0E-8 * pressure *
-                      (4.5 + 6.0E-4 * temp_celcius ** 2))
-        avp = svp*correction.astype(np.float32)
-        return avp
-
-    @staticmethod
     def _calculate_latent_heat(temperature):
         """
         Calculate a temperature adjusted latent heat of condensation for water
@@ -200,7 +197,7 @@ class WetBulbTemperature(BasePlugin):
         References:
             ASHRAE Fundamentals handbook (2005) Equation 22, 24, p6.8
         """
-        svp = self.calculate_svp_in_air(temperature, pressure)
+        svp = calculate_svp_in_air(temperature, pressure)
         numerator = (consts.EARTH_REPSILON * svp)
         denominator = (np.maximum(svp, pressure) - (
             (1. - consts.EARTH_REPSILON) * svp))
@@ -404,8 +401,8 @@ class WetBulbTemperature(BasePlugin):
         for t_slice, rh_slice, p_slice in slices:
             cubelist.append(self.create_wet_bulb_temperature_cube(
                 t_slice, rh_slice, p_slice))
-
         wet_bulb_temperature = cubelist.merge_cube()
+
         # re-promote any scalar coordinates lost in slice / merge
         wet_bulb_temperature = check_cube_coordinates(
             temperature, wet_bulb_temperature)
