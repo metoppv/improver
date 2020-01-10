@@ -46,8 +46,8 @@ def test_basic(tmp_path):
     kgo_dir = acc.kgo_root() / "sleet_probability/basic"
     kgo_path = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"
-    half_input_path = kgo_dir / "half_prob_snow_falling_level.nc"
-    tenth_input_path = kgo_dir / "tenth_prob_snow_falling_level.nc"
+    half_input_path = acc.kgo_root() / "phase-probability/basic/snow_kgo.nc"
+    tenth_input_path = acc.kgo_root() / "phase-probability/basic/rain_kgo.nc"
     args = [half_input_path, tenth_input_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
