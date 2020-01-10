@@ -131,11 +131,6 @@ class WetBulbTemperature(BasePlugin):
         self.precision = precision
         self.maximum_iterations = 20
 
-    def __repr__(self):
-        """Represent the configured plugin instance as a string."""
-        result = ('<WetBulbTemperature: precision: {}>'.format(self.precision))
-        return result
-
     @staticmethod
     def _slice_inputs(temperature, relative_humidity, pressure):
         """Create iterable or iterator over cubes on which to calculate
@@ -418,42 +413,10 @@ class WetBulbTemperature(BasePlugin):
 class WetBulbTemperatureIntegral(BasePlugin):
     """Calculate a wet-bulb temperature integral."""
 
-    def __init__(self, coord_name_to_integrate="height",
-                 start_point=None, end_point=None,
-                 direction_of_integration="negative"):
-        """
-        Initialise class.
-
-        Args:
-            coord_name_to_integrate (str):
-                Name of the coordinate to be integrated.
-            start_point (float or None):
-                Point at which to start the integration.
-                Default is None. If start_point is None, integration starts
-                from the first available point.
-            end_point (float or None):
-                Point at which to end the integration.
-                Default is None. If end_point is None, integration will
-                continue until the last available point.
-            direction_of_integration (str):
-                Description of the direction in which to integrate.
-                Options are 'positive' or 'negative'.
-                'positive' corresponds to the values within the array
-                increasing as the array index increases.
-                'negative' corresponds to the values within the array
-                decreasing as the array index increases.
-        """
+    def __init__(self):
+        """Initialise class."""
         self.integration_plugin = Integration(
-            coord_name_to_integrate, start_point=start_point,
-            end_point=end_point,
-            direction_of_integration=direction_of_integration)
-        self.coord_name_to_integrate = coord_name_to_integrate
-
-    def __repr__(self):
-        """Represent the configured plugin instance as a string."""
-        result = ('<WetBulbTemperatureIntegral: {}>'.format(
-            self.integration_plugin))
-        return result
+            "height", direction_of_integration="negative")
 
     def process(self, wet_bulb_temperature):
         """
@@ -462,25 +425,22 @@ class WetBulbTemperatureIntegral(BasePlugin):
 
         Args:
             wet_bulb_temperature (iris.cube.Cube):
-                Cube of wet bulb temperatures of height levels.
+                Cube of wet bulb temperatures on height levels.
 
         Returns:
             wet_bulb_temperature_integral (iris.cube.Cube):
                 Cube of wet bulb temperature integral (Kelvin-metres).
         """
+        wbt = wet_bulb_temperature.copy()
+        wbt.convert_units('degC')
+        wbt.coord('height').convert_units('metres')
         # Touch the data to ensure it is not lazy
         # otherwise vertical interpolation is slow
         # pylint: disable=pointless-statement
-        wet_bulb_temperature.data
-        # Convert to Celsius
-        wet_bulb_temperature.convert_units('celsius')
-        # Integrate.
-        wet_bulb_temperature_integral = (
-            self.integration_plugin.process(wet_bulb_temperature))
+        wbt.data
+        wet_bulb_temperature_integral = self.integration_plugin.process(wbt)
         wet_bulb_temperature_integral.rename("wet_bulb_temperature_integral")
-        units_string = "K {}".format(
-            wet_bulb_temperature.coord(self.coord_name_to_integrate).units)
-        wet_bulb_temperature_integral.units = Unit(units_string)
+        wet_bulb_temperature_integral.units = Unit('K m')
         return wet_bulb_temperature_integral
 
 

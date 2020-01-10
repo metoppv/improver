@@ -43,20 +43,6 @@ from improver.tests.set_up_test_cubes import (set_up_variable_cube,
                                               add_coordinate)
 
 
-class Test__repr__(IrisTest):
-
-    """Test the repr method."""
-
-    def test_basic(self):
-        """Test that the __repr__ returns the expected string."""
-        result = str(WetBulbTemperatureIntegral())
-        msg = ('<WetBulbTemperatureIntegral: <Integration: '
-               'coord_name_to_integrate: '
-               'height, start_point: None, end_point: None, '
-               'direction_of_integration: negative>>')
-        self.assertEqual(result, msg)
-
-
 class Test_process(IrisTest):
 
     """Test the calculation of the wet bulb temperature integral from
