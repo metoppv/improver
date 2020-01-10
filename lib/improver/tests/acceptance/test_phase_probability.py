@@ -65,3 +65,16 @@ def test_rain(tmp_path):
     args = [*input_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_rain_large_radius(tmp_path):
+    """Test prob(rain) calculation"""
+    kgo_dir = acc.kgo_root() / f"{CLI}/large_radius"
+    kgo_path = kgo_dir / "rain_kgo.nc"
+    output_path = tmp_path / "output.nc"
+    input_paths = [acc.kgo_root() / x for x in
+                   ("phase-change-level/basic/orog.nc",
+                    "phase-change-level/basic/sleet_rain_kgo.nc")]
+    args = [*input_paths, "--radius", "20000", "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
