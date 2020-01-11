@@ -47,16 +47,16 @@ def process(orography: cli.inputcube,
     orography gradients.
 
     Args:
+        orography (iris.cube.Cube):
+            A 2D field of orography for the grid to generate alphas for.
         min_alpha (float):
-            The minimum value of alpha that you want to go into the
-            recursive filter.
+            The minimum value of alpha.
         max_alpha (float):
-            The maximum value of alpha that you want to go into the
-            recursive filter
+            The maximum value of alpha.
         coefficient (float):
-            The coefficient for the alpha calculation
+            The coefficient for the alpha calculation.
         power (float):
-            What power you want for your alpha equation
+            The power for the alpha equation.
         invert_alphas (bool):
             If True then the max and min alpha values will be swapped.
 
