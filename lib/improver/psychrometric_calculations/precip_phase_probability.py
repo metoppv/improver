@@ -124,7 +124,8 @@ class ProbPhase(BasePlugin):
             raise ValueError(f'Could not extract {orography_name} cube from '
                              f'{cubes}')
 
-        if str(self.falling_level_cube.units) != str(self.orography_cube.units):
+        if str(self.falling_level_cube.units) != str(
+                self.orography_cube.units):
             self.falling_level_cube = self.falling_level_cube.copy()
             self.falling_level_cube.convert_units(self.orography_cube.units)
 
