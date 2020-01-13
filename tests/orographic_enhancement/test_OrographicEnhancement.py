@@ -37,7 +37,7 @@ import iris
 import numpy as np
 from cf_units import Unit
 from iris.coord_systems import GeogCS, TransverseMercator
-from iris.coords import AuxCoord, DimCoord
+from iris.coords import DimCoord
 from iris.tests import IrisTest
 
 from improver.orographic_enhancement import OrographicEnhancement
