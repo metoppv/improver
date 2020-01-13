@@ -34,6 +34,8 @@ import iris
 import numpy as np
 
 from improver import BasePlugin
+from improver.metadata.utilities import (
+    generate_mandatory_attributes, create_new_diagnostic_cube)
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 
 
@@ -108,14 +110,12 @@ class Integration(BasePlugin):
         direction = self.direction_of_integration
         increasing_order = np.all(np.diff(cube.coord(coord_name).points) > 0)
 
-        if increasing_order and direction == "positive":
-            pass
-        elif increasing_order and direction == "negative":
+        if increasing_order and direction == "negative":
             cube = sort_coord_in_cube(cube, coord_name, order="descending")
-        elif not increasing_order and direction == "positive":
+
+        if not increasing_order and direction == "positive":
             cube = sort_coord_in_cube(cube, coord_name)
-        elif not increasing_order and direction == "negative":
-            pass
+
         return cube
 
     def prepare_for_integration(self, cube):
@@ -161,24 +161,9 @@ class Integration(BasePlugin):
                     coord_values={self.coord_name_to_integrate:
                                   lower_bounds})))
 
-        # Determine which cube to copy in order to have the most appropriate
-        # points within the coordinate that is being integrated.
-        # TODO: Update metadata convention for bounds to better represent
-        # integrated quantities.
-        if self.direction_of_integration == "positive":
-            integrated_cube = upper_bounds_cube.copy()
-            integrated_cube.coord(self.coord_name_to_integrate).bounds = (
-                list(zip(lower_bounds, upper_bounds)))
-        elif self.direction_of_integration == "negative":
-            integrated_cube = lower_bounds_cube.copy()
-            integrated_cube.coord(self.coord_name_to_integrate).bounds = (
-                list(zip(lower_bounds, upper_bounds)))
+        return upper_bounds_cube, lower_bounds_cube
 
-        integrated_cube.data = np.zeros(lower_bounds_cube.shape)
-        return upper_bounds_cube, lower_bounds_cube, integrated_cube
-
-    def perform_integration(
-            self, upper_bounds_cube, lower_bounds_cube, integrated_cube):
+    def perform_integration(self, upper_bounds_cube, lower_bounds_cube):
         """Perform the integration.
 
         Integration is performed by firstly defining the stride as the
@@ -200,26 +185,23 @@ class Integration(BasePlugin):
             lower_bounds_cube (iris.cube.Cube):
                 Cube containing the lower bounds to be used during the
                 integration.
-            integrated_cube (iris.cube.Cube):
-                Cube that will be used for storing the output of the
-                integration containing the most appropriate coordinates.
 
         Returns:
             iris.cube.Cube:
                 Cube containing the output from the integration.
 
         """
-        # Create a zip for looping over.
-        levels_tuple = list(zip(
-            upper_bounds_cube.slices_over(self.coord_name_to_integrate),
-            lower_bounds_cube.slices_over(self.coord_name_to_integrate),
-            integrated_cube.slices_over(self.coord_name_to_integrate)))
+        attributes = generate_mandatory_attributes([upper_bounds_cube])
+        coord_dtype = upper_bounds_cube.coord(
+            self.coord_name_to_integrate).dtype
 
         # Perform the integration
         stride_sum = 0
         integrated_cubelist = iris.cube.CubeList([])
-        for (upper_bounds_slice, lower_bounds_slice,
-             integrated_slice) in levels_tuple:
+        levels_tuple = zip(
+            upper_bounds_cube.slices_over(self.coord_name_to_integrate),
+            lower_bounds_cube.slices_over(self.coord_name_to_integrate))
+        for (upper_bounds_slice, lower_bounds_slice) in levels_tuple:
             upper_bound = (
                 upper_bounds_slice.coord(
                     self.coord_name_to_integrate).points.item())
@@ -258,8 +240,17 @@ class Integration(BasePlugin):
             lower_half_of_stride[lindex] = (lower_bounds_slice.data[lindex] *
                                             0.5 * stride)
             stride_sum += lower_half_of_stride + upper_half_of_stride
-            integrated_slice.data = stride_sum
-            integrated_cubelist.append(integrated_slice.copy())
+
+            # Create new cube
+            template = (upper_bounds_slice
+                        if self.direction_of_integration == "positive"
+                        else lower_bounds_slice)
+            integrated_slice = create_new_diagnostic_cube(
+                template.name, template.units, template,
+                attributes, data=stride_sum.copy())
+            integrated_slice.coord(self.coord_name_to_integrate).bounds = (
+                np.array([lower_bound, upper_bound]).astype(coord_dtype))
+            integrated_cubelist.append(integrated_slice)
 
         if len(integrated_cubelist) == 0:
             msg = ("No integration could be performed for "
@@ -303,11 +294,11 @@ class Integration(BasePlugin):
         # Make coordinate monotonic in the direction desired for integration.
         cube = self.ensure_monotonic_increase_in_chosen_direction(cube)
 
-        upper_bounds_cube, lower_bounds_cube, integrated_cube = (
+        upper_bounds_cube, lower_bounds_cube = (
             self.prepare_for_integration(cube))
 
         integrated_cube = self.perform_integration(
-            upper_bounds_cube, lower_bounds_cube, integrated_cube)
+            upper_bounds_cube, lower_bounds_cube)
 
         # Make sure that the coordinate that has been integrated is a
         # dimension coordinate.
@@ -318,7 +309,6 @@ class Integration(BasePlugin):
         # Make sure that the order of the coordinate that has been integrated
         # within the integrated_cube corresponds the direction in which the
         # cube has been integrated.
-        integrated_cube = (
-            self.ensure_monotonic_increase_in_chosen_direction(
-                integrated_cube))
+        integrated_cube = self.ensure_monotonic_increase_in_chosen_direction(
+            integrated_cube)
         return integrated_cube
