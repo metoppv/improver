@@ -575,7 +575,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         else:
             aux_coords_and_dims.append((fp_coord, None))
             if historic_forecast.coords("time"):
-                frt_point = cycletime_to_datetime(self.current_cycle)
                 # Ensure that the fp_point is determined with units of seconds.
                 copy_of_fp_coord = (
                     historic_forecast.coord("forecast_period").copy())
@@ -847,10 +846,16 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 and a coefficient_name auxiliary coordinate.
 
         Raises:
+            ValueError: If either the historic_forecast or truth cubes were not
+                passed in.
             ValueError: If the units of the historic and truth cubes do not
                 match.
 
         """
+        if not (historic_forecast and truth):
+            raise ValueError("historic_forecast and truth cubes must be "
+                             "provided.")
+
         # Ensure predictor_of_mean_flag is valid.
         check_predictor_of_mean_flag(self.predictor_of_mean_flag)
 

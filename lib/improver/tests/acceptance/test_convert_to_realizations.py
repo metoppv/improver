@@ -52,7 +52,7 @@ def test_percentiles(tmp_path):
     output_path = tmp_path / "output.nc"
 
     args = [input_path,
-            "--no-of-realizations", "12",
+            "--realizations-count", "12",
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -70,7 +70,7 @@ def test_probabilities(tmp_path):
     output_path = tmp_path / "output.nc"
 
     args = [input_path,
-            "--no-of-realizations", "12",
+            "--realizations-count", "12",
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -84,7 +84,7 @@ def test_realizations(tmp_path):
     input_path = kgo_path
     output_path = tmp_path / "output.nc"
     args = [input_path,
-            "--no-of-realizations", "12",
+            "--realizations-count", "12",
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, input_path)

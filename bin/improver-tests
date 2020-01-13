@@ -207,6 +207,15 @@ Arguments:
 __USAGE__
 }
 
+export IMPROVER_DIR="$(cd $(dirname $0)/../ && pwd -P)"
+
+# Apply site-specific setup if necessary.
+if [[ -f "${IMPROVER_SITE_INIT:=$IMPROVER_DIR/etc/site-init}" ]]; then
+    . "$IMPROVER_SITE_INIT"
+fi
+
+export PYTHONPATH="$IMPROVER_DIR/lib:${PYTHONPATH:-}"
+
 TEST_INPUT_PWD=$(cd $PWD && pwd -P)
 cd $IMPROVER_DIR/lib
 #cd $IMPROVER_DIR

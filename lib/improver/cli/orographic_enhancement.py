@@ -74,7 +74,7 @@ def process(temperature: cli.inputcube,
             humidity: cli.inputcube,
             pressure: cli.inputcube,
             wind_speed: cli.inputcube,
-            wind_dir: cli.inputcube,
+            wind_direction: cli.inputcube,
             orography: cli.inputcube,
             *,
             boundary_height: float = 1000.0, boundary_height_units='m'):
@@ -92,7 +92,7 @@ def process(temperature: cli.inputcube,
             Cube containing pressure at top of boundary layer.
         wind_speed (iris.cube.Cube):
             Cube containing wind speed values.
-        wind_dir (iris.cube.Cube):
+        wind_direction (iris.cube.Cube):
             Cube containing wind direction values relative to true north.
         orography (iris.cube.Cube):
             Cube containing height of orography above sea level on high
@@ -118,10 +118,11 @@ def process(temperature: cli.inputcube,
     humidity = extract_and_check(humidity, *constraint_info)
     pressure = extract_and_check(pressure, *constraint_info)
     wind_speed = extract_and_check(wind_speed, *constraint_info)
-    wind_dir = extract_and_check(wind_dir, *constraint_info)
+    wind_direction = extract_and_check(wind_direction, *constraint_info)
 
     # resolve u and v wind components
-    u_wind, v_wind = ResolveWindComponents().process(wind_speed, wind_dir)
+    u_wind, v_wind = ResolveWindComponents().process(wind_speed,
+                                                     wind_direction)
     # calculate orographic enhancement
     return OrographicEnhancement().process(temperature, humidity, pressure,
                                            u_wind, v_wind, orography)

@@ -74,7 +74,7 @@ class BasicThreshold(BasePlugin):
 
         ::
 
-            Data value | Probability
+            Data value  | Probability
             ------------|-------------
                 4.5     |   0
                 5.0     |   0.167

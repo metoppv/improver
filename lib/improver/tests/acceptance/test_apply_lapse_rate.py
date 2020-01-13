@@ -48,7 +48,7 @@ def test_basic(tmp_path):
             kgo_dir / "ukvx_lapse_rate.nc",
             kgo_dir / "ukvx_orography.nc",
             kgo_dir / "../highres_orog.nc",
-            output_path]
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -62,6 +62,6 @@ def test_realizations(tmp_path):
             kgo_dir / "enukx_lapse_rate.nc",
             kgo_dir / "enukx_orography.nc",
             kgo_dir / "../highres_orog.nc",
-            output_path]
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

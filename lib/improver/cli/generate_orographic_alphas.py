@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
@@ -28,37 +29,41 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the between-thresholds CLI"""
+"""CLI for generating orographic alphas."""
 
-import pytest
-
-from improver.tests.acceptance import acceptance as acc
-
-pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-CLI = acc.cli_name_with_dashes(__file__)
-run_cli = acc.run_cli(CLI)
+from improver import cli
 
 
-def test_basic(tmp_path):
-    """Test basic between-thresholds usage"""
-    kgo_dir = acc.kgo_root() / "between-thresholds"
-    kgo_path = kgo_dir / "kgo.nc"
-    output_path = tmp_path / "output.nc"
-    args = [kgo_dir / "input.nc",
-            "--threshold-ranges", kgo_dir / "threshold_ranges_m.json",
-            "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+@cli.clizefy
+@cli.with_output
+def process(orography: cli.inputcube,
+            *,
+            min_alpha: float = 0.0,
+            max_alpha: float = 1.0,
+            coefficient: float = 1.0,
+            power: float = 1.0,
+            invert_alphas=True):
+    """Generate alpha smoothing parameters for recursive filtering based on
+    orography gradients.
 
+    Args:
+        orography (iris.cube.Cube):
+            A 2D field of orography for the grid to generate alphas for.
+        min_alpha (float):
+            The minimum value of alpha.
+        max_alpha (float):
+            The maximum value of alpha.
+        coefficient (float):
+            The coefficient for the alpha calculation.
+        power (float):
+            The power for the alpha equation.
+        invert_alphas (bool):
+            If True then the max and min alpha values will be swapped.
 
-def test_units(tmp_path):
-    """Test between-thresholds with different units"""
-    kgo_dir = acc.kgo_root() / "between-thresholds"
-    kgo_path = kgo_dir / "kgo.nc"
-    output_path = tmp_path / "output.nc"
-    args = [kgo_dir / "input.nc",
-            "--threshold-ranges", kgo_dir / "threshold_ranges_km.json",
-            "--threshold-units", "km",
-            "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+    Returns:
+        iris.cube.CubeList:
+            Processed CubeList containing alpha_x and alpha_y cubes.
+    """
+    from improver.utilities.ancillary_creation import OrographicAlphas
+    return OrographicAlphas(min_alpha, max_alpha, coefficient, power,
+                            invert_alphas).process(orography)

@@ -50,7 +50,7 @@ def test_basic(tmp_path):
     input_paths = [kgo_dir / f"20180924T1300Z-PT{l:04}H00M-{T2M}.nc"
                    for l in range(5, 11)]
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, output_path]
+    args = [*input_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -61,7 +61,7 @@ def test_validity_error(tmp_path):
     input_paths = [kgo_dir / f"20180924T1300Z-PT0001H00M-{T2M}.nc",
                    kgo_dir / f"20180924T1900Z-PT0006H00M-{T2M}.nc"]
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, output_path]
+    args = [*input_paths, "--output", output_path]
     with pytest.raises(ValueError, match=".*validity times.*"):
         run_cli(args)
 
@@ -72,7 +72,7 @@ def test_single_cube(tmp_path):
     kgo_path = kgo_dir / "kgo_single_cube.nc"
     input_paths = [kgo_dir / f"20180924T1300Z-PT0005H00M-{T2M}.nc"]
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, output_path]
+    args = [*input_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -85,6 +85,6 @@ def test_renumbered_realizations(tmp_path):
     input_paths = [input_dir / f"20180924T1300Z-PT0005H00M-{T2M}.nc",
                    input_dir / f"20180924T1300Z-PT0005H00M-{T2M}.nc"]
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, output_path]
+    args = [*input_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

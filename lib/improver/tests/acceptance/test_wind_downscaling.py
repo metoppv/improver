@@ -45,10 +45,12 @@ def test_basic(tmp_path):
     kgo_dir = acc.kgo_root() / "wind_downscaling/basic"
     kgo_path = kgo_dir / "kgo.nc"
     input_paths = [kgo_dir / f"{p}.nc"
-                   for p in ("input", "a_over_s", "sigma",
-                             "highres_orog", "standard_orog")]
+                   for p in ("input", "sigma", "highres_orog", "standard_orog",
+                             "a_over_s")]
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, "1500", output_path]
+    args = [*input_paths,
+            "--model-resolution", "1500",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -59,12 +61,13 @@ def test_vegetation(tmp_path):
     kgo_dir = acc.kgo_root() / "wind_downscaling/veg"
     kgo_path = kgo_dir / "kgo.nc"
     input_paths = [kgo_dir / f"{p}.nc"
-                   for p in ("input", "a_over_s", "sigma",
-                             "highres_orog", "standard_orog")]
+                   for p in ("input", "sigma", "highres_orog", "standard_orog",
+                             "a_over_s")]
     veg_path = kgo_dir / "veg.nc"
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, "1500", output_path,
-            "--veg_roughness_filepath", veg_path]
+    args = [*input_paths, veg_path,
+            "--model-resolution", "1500",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -75,10 +78,12 @@ def test_realization(tmp_path):
     kgo_dir = acc.kgo_root() / "wind_downscaling/with_realization"
     kgo_path = kgo_dir / "kgo.nc"
     input_paths = [kgo_dir / f"{p}.nc"
-                   for p in ("input", "a_over_s", "sigma",
-                             "highres_orog", "standard_orog")]
+                   for p in ("input", "sigma", "highres_orog", "standard_orog",
+                             "a_over_s")]
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, "1500", output_path]
+    args = [*input_paths,
+            "--model-resolution", "1500",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -89,11 +94,13 @@ def test_single_level_output(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_dir = kgo_dir / "../basic"
     input_paths = [input_dir / f"{p}.nc"
-                   for p in ("input", "a_over_s", "sigma",
-                             "highres_orog", "standard_orog")]
+                   for p in ("input", "sigma", "highres_orog", "standard_orog",
+                             "a_over_s")]
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, "1500", output_path,
-            "--output_height_level", "10"]
+    args = [*input_paths,
+            "--model-resolution", "1500",
+            "--output-height-level", "10",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -102,12 +109,14 @@ def test_unavailable_level(tmp_path):
     """Test attempting to downscale to unavailable height level"""
     kgo_dir = acc.kgo_root() / "wind_downscaling/basic"
     input_paths = [kgo_dir / f"{p}.nc"
-                   for p in ("input", "a_over_s", "sigma",
-                             "highres_orog", "standard_orog")]
+                   for p in ("input", "sigma", "highres_orog", "standard_orog",
+                             "a_over_s")]
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, "1500", output_path,
-            "--output_height_level", "9",
-            "--output_height_level_units", "m"]
+    args = [*input_paths,
+            "--model-resolution", "1500",
+            "--output-height-level", "9",
+            "--output-height-level-units", "m",
+            "--output", output_path]
     with pytest.raises(ValueError, match=".*height level.*"):
         run_cli(args)
 
@@ -118,11 +127,13 @@ def test_single_level_units(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_dir = kgo_dir / "../basic"
     input_paths = [input_dir / f"{p}.nc"
-                   for p in ("input", "a_over_s", "sigma",
-                             "highres_orog", "standard_orog")]
+                   for p in ("input", "sigma", "highres_orog", "standard_orog",
+                             "a_over_s")]
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, "1500", output_path,
-            "--output_height_level", "1000",
-            "--output_height_level_units", "cm"]
+    args = [*input_paths,
+            "--model-resolution", "1500",
+            "--output-height-level", "1000",
+            "--output-height-level-units", "cm",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

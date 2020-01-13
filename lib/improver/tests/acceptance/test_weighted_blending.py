@@ -50,11 +50,11 @@ def test_basic_nonlin(tmp_path):
     input_dir = kgo_dir / "../basic_lin"
     input_paths = sorted((input_dir.glob("multiple_probabilities_rain_*H.nc")))
     output_path = tmp_path / "output.nc"
-    args = ["--wts_calc_method", "nonlinear",
-            "forecast_reference_time",
+    args = ["--coordinate", "forecast_reference_time",
+            "--weighting-method", "nonlinear",
             "--cval", "0.85",
             *input_paths,
-            output_path]
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -66,11 +66,11 @@ def test_basic_lin(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_paths = sorted((kgo_dir.glob("multiple_probabilities_rain_*H.nc")))
     output_path = tmp_path / "output.nc"
-    args = ["forecast_reference_time",
+    args = ["--coordinate", "forecast_reference_time",
             "--y0val", "20.0",
             "--ynval", "2.0",
             *input_paths,
-            output_path]
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -80,11 +80,11 @@ def test_bothoptions_fail(tmp_path):
     kgo_dir = acc.kgo_root() / "weighted_blending/basic_lin"
     input_paths = sorted((kgo_dir.glob("multiple_probabilities_rain_*H.nc")))
     output_path = tmp_path / "output.nc"
-    args = ["--wts_calc_method", "linear nonlinear",
-            "time",
+    args = ["--coordinate", "time",
+            "--weighting-method", "linear nonlinear",
             *input_paths,
-            output_path]
-    with pytest.raises(SystemExit):
+            "--output", output_path]
+    with pytest.raises(ValueError):
         run_cli(args)
 
 
@@ -93,12 +93,12 @@ def test_invalid_lin_nonlin(tmp_path):
     kgo_dir = acc.kgo_root() / "weighted_blending/basic_lin"
     input_paths = sorted((kgo_dir.glob("multiple_probabilities_rain_*H.nc")))
     output_path = tmp_path / "output.nc"
-    args = ["time",
+    args = ["--coordinate", "time",
             "--ynval", "1",
             "--cval", "0.5",
             *input_paths,
-            output_path]
-    with pytest.raises(SystemExit):
+            "--output", output_path]
+    with pytest.raises(RuntimeError):
         run_cli(args)
 
 
@@ -107,13 +107,13 @@ def test_invalid_nonlin_lin(tmp_path):
     kgo_dir = acc.kgo_root() / "weighted_blending/basic_lin"
     input_paths = sorted((kgo_dir.glob("multiple_probabilities_rain_*H.nc")))
     output_path = tmp_path / "output.nc"
-    args = ["--wts_calc_method", "nonlinear",
-            "time",
+    args = ["--coordinate", "time",
+            "--weighting-method", "nonlinear",
             "--ynval", "1",
             "--y0val", "0",
             *input_paths,
-            output_path]
-    with pytest.raises(SystemExit):
+            "--output", output_path]
+    with pytest.raises(RuntimeError):
         run_cli(args)
 
 
@@ -124,11 +124,11 @@ def test_percentile(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = ["--wts_calc_method", "nonlinear",
-            "forecast_reference_time",
+    args = ["--coordinate", "forecast_reference_time",
+            "--weighting-method", "nonlinear",
             "--cval", "1.0",
             input_path,
-            output_path]
+            "--output", output_path]
     pytest.fail()
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -141,12 +141,12 @@ def test_cycletime(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = ["forecast_reference_time",
+    args = ["--coordinate", "forecast_reference_time",
             "--y0val", "1.0",
             "--ynval", "4.0",
             "--cycletime", "20171129T0900Z",
             input_path,
-            output_path]
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -159,13 +159,13 @@ def test_model(tmp_path):
     ukv_path = kgo_dir / "ukv_input.nc"
     enuk_path = kgo_dir / "enuk_input.nc"
     output_path = tmp_path / "output.nc"
-    args = ["model_configuration",
+    args = ["--coordinate", "model_configuration",
             "--ynval", "1",
             "--y0val", "1",
-            "--model_id_attr", "mosg__model_configuration",
-            "--attributes_dict", attr_path,
+            "--model-id-attr", "mosg__model_configuration",
+            "--attributes-config", attr_path,
             ukv_path, enuk_path,
-            output_path]
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -177,11 +177,11 @@ def test_realization_collapse(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = ["realization",
+    args = ["--coordinate", "realization",
             "--ynval=1",
             "--y0val=1",
             input_path,
-            output_path]
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -195,14 +195,14 @@ def test_weights_dict(tmp_path):
     dict_path = kgo_dir / "input_dict.json"
     attr_path = kgo_dir / "../attributes.json"
     output_path = tmp_path / "output.nc"
-    args = ["--wts_calc_method", "dict",
-            "--wts_dict", dict_path,
-            "--weighting_coord", "forecast_period",
-            "model_configuration",
-            "--model_id_attr", "mosg__model_configuration",
-            "--attributes_dict", attr_path,
+    args = ["--coordinate", "model_configuration",
+            "--weighting-method", "dict",
+            "--weighting-config", dict_path,
+            "--weighting-coord", "forecast_period",
+            "--model-id-attr", "mosg__model_configuration",
+            "--attributes-config", attr_path,
             ukv_path, enuk_path,
-            output_path]
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -216,13 +216,13 @@ def test_percentile_weights_dict(tmp_path):
     enuk_path = kgo_dir / "enuk_input.nc"
     dict_path = kgo_dir / "../weights_from_dict/input_dict.json"
     output_path = tmp_path / "output.nc"
-    args = ["--wts_calc_method", "dict",
-            "--wts_dict", dict_path,
-            "--weighting_coord", "forecast_period",
-            "model_configuration",
-            "--model_id_attr", "mosg__model_configuration",
+    args = ["--coordinate", "model_configuration",
+            "--weighting-method", "dict",
+            "--weighting-config", dict_path,
+            "--weighting-coord", "forecast_period",
+            "--model-id-attr", "mosg__model_configuration",
             ukv_path, enuk_path,
-            output_path]
+            "--output", output_path]
     pytest.fail()
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -234,11 +234,11 @@ def test_accum_cycle_blend(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_paths = sorted(kgo_dir.glob("ukv_prob_accum_PT?H.nc"))
     output_path = tmp_path / "output.nc"
-    args = ["forecast_reference_time",
+    args = ["--coordinate", "forecast_reference_time",
             "--y0val=1",
             "--ynval=1",
             *input_paths,
-            output_path]
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path, rtol=0.0)
 
@@ -251,14 +251,14 @@ def test_non_mo_model(tmp_path):
     ens_path = kgo_dir / "non_mo_ens.nc"
     attr_path = kgo_dir / "../non_mo_attributes.json"
     output_path = tmp_path / "output.nc"
-    args = ["model_configuration",
+    args = ["--coordinate", "model_configuration",
             "--y0val", "1",
             "--ynval", "1",
             det_path,
             ens_path,
-            output_path,
-            "--model_id_attr", "non_mo_model_config",
-            "--attributes_dict", attr_path]
+            "--output", output_path,
+            "--model-id-attr", "non_mo_model_config",
+            "--attributes-config", attr_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -272,12 +272,12 @@ def test_nowcast_cycle_blending(tmp_path):
                    f"nowcast_data/20181129T1000Z-PT{l:04}H00M-{PRECIP}.nc"
                    for l in range(2, 5)]
     output_path = tmp_path / "output.nc"
-    args = ["forecast_reference_time",
+    args = ["--coordinate", "forecast_reference_time",
             "--y0val", "1",
             "--ynval", "1",
-            "--spatial_weights_from_mask",
+            "--spatial-weights-from-mask",
             *input_files,
-            output_path]
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -292,14 +292,14 @@ def test_spatial_model_blending(tmp_path):
                    for t in ("nowcast", "ukvx")]
     attr_path = kgo_dir / "../attributes.json"
     output_path = tmp_path / "output.nc"
-    args = ["model_configuration",
+    args = ["--coordinate", "model_configuration",
             "--y0val", "1",
             "--ynval", "1",
-            "--spatial_weights_from_mask",
-            "--model_id_attr", "mosg__model_configuration",
-            "--attributes_dict", attr_path,
+            "--spatial-weights-from-mask",
+            "--model-id-attr", "mosg__model_configuration",
+            "--attributes-config", attr_path,
             *input_files,
-            output_path]
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -313,13 +313,13 @@ def test_nowcast_cycle_no_fuzzy(tmp_path):
                    f"nowcast_data/20181129T1000Z-PT{l:04}H00M-{PRECIP}.nc"
                    for l in range(2, 5)]
     output_path = tmp_path / "output.nc"
-    args = ["forecast_reference_time",
+    args = ["--coordinate", "forecast_reference_time",
             "--y0val", "1",
             "--ynval", "1",
-            "--spatial_weights_from_mask",
-            "--fuzzy_length", "1",
+            "--spatial-weights-from-mask",
+            "--fuzzy-length", "1",
             *input_files,
-            output_path]
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -334,15 +334,15 @@ def test_spatial_model_no_fuzzy(tmp_path):
                    for t in ("nowcast", "ukvx")]
     attr_path = kgo_dir / "../attributes.json"
     output_path = tmp_path / "output.nc"
-    args = ["model_configuration",
+    args = ["--coordinate", "model_configuration",
             "--y0val", "1",
             "--ynval", "1",
-            "--spatial_weights_from_mask",
-            "--fuzzy_length", "1",
-            "--model_id_attr", "mosg__model_configuration",
-            "--attributes_dict", attr_path,
+            "--spatial-weights-from-mask",
+            "--fuzzy-length", "1",
+            "--model-id-attr", "mosg__model_configuration",
+            "--attributes-config", attr_path,
             *input_files,
-            output_path]
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -358,15 +358,15 @@ def test_three_model_blending(tmp_path):
     attr_path = kgo_dir / "../attributes.json"
     dict_path = kgo_dir / "blending-weights-preciprate.json"
     output_path = tmp_path / "output.nc"
-    args = ["model_configuration",
-            "--spatial_weights_from_mask",
-            "--wts_calc_method", "dict",
-            "--weighting_coord", "forecast_period",
+    args = ["--coordinate", "model_configuration",
+            "--spatial-weights-from-mask",
+            "--weighting-method", "dict",
+            "--weighting-coord", "forecast_period",
             "--cycletime", "20190101T0300Z",
-            "--model_id_attr", "mosg__model_configuration",
-            "--attributes_dict", attr_path,
-            "--wts_dict", dict_path,
+            "--model-id-attr", "mosg__model_configuration",
+            "--attributes-config", attr_path,
+            "--weighting-config", dict_path,
             *input_files,
-            output_path]
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

@@ -42,4 +42,4 @@ install:
 
 script:
   - python -c "import iris"
-  - bin/improver tests
+  - bin/improver-tests

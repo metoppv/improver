@@ -54,8 +54,7 @@ def test_percentiles_reordering(tmp_path):
     percentiles_path = kgo_dir / "multiple_percentiles_wind_cube.nc"
     output_path = tmp_path / "output.nc"
     args = ["--sampling-method", "quantile",
-            "--no-of-percentiles", "12",
-            "--reordering",
+            "--realizations-count", "12",
             "--random-seed", "0",
             percentiles_path,
             forecast_path,
@@ -76,8 +75,7 @@ def test_percentiles_rebadging(tmp_path):
     percentiles_path = kgo_dir / "multiple_percentiles_wind_cube.nc"
     output_path = tmp_path / "output.nc"
     args = ["--sampling-method", "quantile",
-            "--no-of-percentiles", "12",
-            "--rebadging",
+            "--realizations-count", "12",
             percentiles_path,
             "--output", output_path]
     run_cli(args)
@@ -96,55 +94,10 @@ def test_percentiles_rebadging_numbers(tmp_path):
     args = [percentiles_path,
             "--output", output_path,
             "--sampling-method", "quantile",
-            "--no-of-percentiles", "12",
-            "--rebadging",
-            "--realization-numbers", ",".join(str(n) for n in range(100, 112))]
+            "--realizations-count", "12",
+            "--realizations", ",".join(str(n) for n in range(100, 112))]
     run_cli(args)
     acc.compare(output_path, kgo_path)
-
-
-def test_reordering_wrong_options(tmp_path):
-    """Test conflicting reordering and realizations options"""
-    kgo_dir = acc.kgo_root() / \
-        "percentiles-to-realizations/percentiles_rebadging"
-    percentiles_path = kgo_dir / "multiple_percentiles_wind_cube.nc"
-    output_path = tmp_path / "output.nc"
-    args = [percentiles_path,
-            "--output", output_path,
-            "--sampling-method", "quantile",
-            "--no-of-percentiles", "12",
-            "--reordering",
-            "--realization-numbers", ",".join(str(n) for n in range(100, 112))]
-    with pytest.raises(RuntimeError, match=".*realization_numbers.*"):
-        run_cli(args)
-
-
-def test_rebadging_wrong_random(tmp_path):
-    """Test conflicting rebadging and random ordering options"""
-    kgo_dir = acc.kgo_root() / \
-        "percentiles-to-realizations/percentiles_rebadging"
-    percentiles_path = kgo_dir / "multiple_percentiles_wind_cube.nc"
-    output_path = tmp_path / "output.nc"
-    args = ["--rebadging",
-            "--random-ordering",
-            percentiles_path,
-            "--output", output_path]
-    with pytest.raises(RuntimeError, match=".*random.*"):
-        run_cli(args)
-
-
-def test_rebadging_wrong_raw_forecast(tmp_path):
-    """Test conflicting rebadging and raw forecast options"""
-    kgo_dir = acc.kgo_root() / \
-        "percentiles-to-realizations/percentiles_rebadging"
-    percentiles_path = kgo_dir / "multiple_percentiles_wind_cube.nc"
-    output_path = tmp_path / "output.nc"
-    args = ["--rebadging",
-            percentiles_path,
-            percentiles_path,
-            "--output", output_path]
-    with pytest.raises(RuntimeError, match=".*raw_forecast.*"):
-        run_cli(args)
 
 
 @pytest.mark.slow
@@ -162,8 +115,8 @@ def test_ecc_bounds_warning(tmp_path):
         "multiple_percentiles_wind_cube_out_of_bounds.nc"
     output_path = tmp_path / "output.nc"
     args = ["--sampling-method", "quantile",
-            "--no-of-percentiles", "5",
-            "--rebadging", "--ecc-bounds-warning",
+            "--realizations-count", "5",
+            "--ignore-ecc-bounds",
             percentiles_path,
             "--output", output_path]
     run_cli(args)

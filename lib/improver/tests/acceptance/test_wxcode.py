@@ -55,7 +55,8 @@ def test_basic(tmp_path):
     param_paths = [kgo_dir / f"probability_of_{p}_threshold.nc"
                    for p in params]
     output_path = tmp_path / "output.nc"
-    args = [*param_paths, output_path]
+    args = [*param_paths,
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -77,7 +78,8 @@ def test_native_units(tmp_path):
     param_paths = [input_dir / f"probability_of_{p}_threshold.nc"
                    for p in params]
     output_path = tmp_path / "output.nc"
-    args = [*param_paths, output_path]
+    args = [*param_paths,
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -94,7 +96,9 @@ def test_global(tmp_path):
     param_paths = [kgo_dir / f"probability_of_{p}_threshold.nc"
                    for p in params]
     output_path = tmp_path / "output.nc"
-    args = ["--wxtree=global", *param_paths, output_path]
+    args = [*param_paths,
+            "--wxtree", "global",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -109,7 +113,9 @@ def test_insufficent_files(tmp_path):
     param_paths = [kgo_dir / f"probability_of_{p}_threshold.nc"
                    for p in params]
     output_path = tmp_path / "output.nc"
-    args = ["--wxtree=global", *param_paths, output_path]
+    args = [*param_paths,
+            "--wxtree", "global",
+            "--output", output_path]
     with pytest.raises(OSError):
         run_cli(args)
 
@@ -129,6 +135,7 @@ def test_no_lightning(tmp_path):
     param_paths = [kgo_dir / f"probability_of_{p}_threshold.nc"
                    for p in params]
     output_path = tmp_path / "output.nc"
-    args = [*param_paths, output_path]
+    args = [*param_paths,
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
