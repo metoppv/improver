@@ -95,7 +95,7 @@ def process(cube: cli.inputcube,
 
     from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
         GeneratePercentilesFromProbabilities
-    from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
+    from improver.ensemble_copula_coupling.utilities \
         import choose_set_of_percentiles
     from improver.percentile import PercentileConverter
 
