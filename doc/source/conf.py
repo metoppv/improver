@@ -52,7 +52,7 @@ import sys
 
 SOURCE_DIR = os.path.abspath(os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
-    '..', '..', 'lib'
+    '..', '..'
     ))
 
 sys.path.insert(0, SOURCE_DIR)
@@ -416,7 +416,7 @@ def run_apidoc(_):
     from sphinx.ext.apidoc import main
 
     output_dir = os.path.dirname(os.path.abspath(__file__))
-    exclude_dir = os.path.join(SOURCE_DIR, 'improver', 'tests')
+    exclude_dir = os.path.join(SOURCE_DIR, 'tests')
     main(['-e', '-P', '-f', '-o', output_dir, SOURCE_DIR, exclude_dir])
 
 
