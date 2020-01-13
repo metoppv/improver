@@ -38,7 +38,7 @@ from iris.tests import IrisTest
 
 from improver.nbhood.nbhood import (
     GeneratePercentilesFromANeighbourhood as NBHood)
-from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
+from tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube)
 
 

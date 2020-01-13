@@ -38,7 +38,7 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.cube_combiner import CubeCombiner
-from improver.tests.set_up_test_cubes import set_up_probability_cube
+from tests.set_up_test_cubes import set_up_probability_cube
 
 TIME_UNIT = 'seconds since 1970-01-01 00:00:00'
 CALENDAR = 'gregorian'

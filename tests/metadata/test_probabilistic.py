@@ -40,9 +40,9 @@ from iris.exceptions import CoordinateNotFoundError
 from improver.metadata.probabilistic import (
     in_vicinity_name_format, extract_diagnostic_name,
     find_threshold_coordinate, find_percentile_coordinate)
-from improver.tests.metadata.test_amend import create_cube_with_threshold
-from improver.tests.set_up_test_cubes import set_up_probability_cube
-from improver.tests.wind_calculations.wind_gust_diagnostic. \
+from tests.metadata.test_amend import create_cube_with_threshold
+from tests.set_up_test_cubes import set_up_probability_cube
+from tests.wind_calculations.wind_gust_diagnostic. \
     test_WindGustDiagnostic import create_cube_with_percentile_coord
 
 

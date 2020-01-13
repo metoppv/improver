@@ -38,7 +38,7 @@ from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.utilities import (
     create_new_diagnostic_cube, generate_mandatory_attributes, generate_hash,
     create_coordinate_hash)
-from improver.tests.set_up_test_cubes import set_up_variable_cube
+from tests.set_up_test_cubes import set_up_variable_cube
 
 
 class Test_create_new_diagnostic_cube(unittest.TestCase):

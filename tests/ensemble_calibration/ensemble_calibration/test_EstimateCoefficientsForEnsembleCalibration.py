@@ -46,10 +46,10 @@ from improver.ensemble_calibration.ensemble_calibration import (
     ContinuousRankedProbabilityScoreMinimisers)
 from improver.ensemble_calibration.ensemble_calibration import (
     EstimateCoefficientsForEnsembleCalibration as Plugin)
-from improver.tests.ensemble_calibration.ensemble_calibration. \
+from tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import (_create_historic_forecasts, SetupCubes,
                              EnsembleCalibrationAssertions)
-from improver.tests.set_up_test_cubes import set_up_variable_cube
+from tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
 try:

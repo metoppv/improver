@@ -40,7 +40,7 @@ from iris.exceptions import InvalidCubeError
 from iris.tests import IrisTest
 
 from improver.nowcasting.forecasting import AdvectField
-from improver.tests.set_up_test_cubes import set_up_variable_cube
+from tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
 

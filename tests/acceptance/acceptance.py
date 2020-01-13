@@ -38,7 +38,7 @@ import shutil
 import pytest
 
 from improver import cli
-from improver.tests.acceptance import DEFAULT_TOLERANCE
+from tests.acceptance import DEFAULT_TOLERANCE
 from improver.utilities.compare import compare_netcdfs
 
 

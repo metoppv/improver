@@ -37,7 +37,7 @@ import iris
 import numpy as np
 from iris.tests import IrisTest
 
-from improver.tests.set_up_test_cubes import set_up_variable_cube
+from tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.time_lagging import GenerateTimeLaggedEnsemble
 
 

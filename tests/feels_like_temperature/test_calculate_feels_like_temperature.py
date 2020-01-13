@@ -36,7 +36,7 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.feels_like_temperature import calculate_feels_like_temperature
-from improver.tests.set_up_test_cubes import set_up_variable_cube
+from tests.set_up_test_cubes import set_up_variable_cube
 
 
 class Test_calculate_feels_like_temperature(IrisTest):

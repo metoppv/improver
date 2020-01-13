@@ -37,7 +37,7 @@ import iris
 import numpy as np
 from iris.tests import IrisTest
 
-from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
+from tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube, set_up_cube_lat_long)
 from improver.utilities.solar import DayNightMask
 

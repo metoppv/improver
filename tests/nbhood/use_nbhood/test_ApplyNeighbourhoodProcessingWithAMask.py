@@ -39,7 +39,7 @@ from iris.coords import DimCoord
 from iris.tests import IrisTest
 
 from improver.nbhood.use_nbhood import ApplyNeighbourhoodProcessingWithAMask
-from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
+from tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube)
 
 

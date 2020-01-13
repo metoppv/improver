@@ -40,7 +40,7 @@ from iris.tests import IrisTest
 import numpy as np
 from netCDF4 import Dataset
 
-from improver.tests.set_up_test_cubes import set_up_variable_cube
+from tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.load import load_cube
 from improver.utilities.save import (
     save_netcdf, _append_metadata_cube, _order_cell_methods)

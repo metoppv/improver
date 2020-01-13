@@ -34,7 +34,7 @@ Tests for the standardise CLI
 
 import pytest
 
-from improver.tests.acceptance import acceptance as acc
+from tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 GLOBAL_UK_TITLE = "Global Model Forecast on UK 2 km Standard Grid"

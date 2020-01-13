@@ -37,7 +37,7 @@ import iris
 import numpy as np
 from iris.tests import IrisTest
 
-from improver.tests.ensemble_calibration.ensemble_calibration. \
+from tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_temperature_cube
 from improver.utilities.mathematical_operations import Integration
 

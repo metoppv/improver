@@ -40,9 +40,9 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.nbhood.use_nbhood import CollapseMaskedNeighbourhoodCoordinate
-from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
+from tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube)
-from improver.tests.nbhood.use_nbhood. \
+from tests.nbhood.use_nbhood. \
     test_ApplyNeighbourhoodProcessingWithAMask \
     import set_up_topographic_zone_cube, add_dimensions_to_cube
 

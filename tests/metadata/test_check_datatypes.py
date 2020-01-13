@@ -39,7 +39,7 @@ from iris.tests import IrisTest
 from improver.metadata.check_datatypes import (
     check_cube_not_float64, _construct_object_list, check_datatypes,
     _check_units_and_dtype, check_time_coordinate_metadata)
-from improver.tests.set_up_test_cubes import (
+from tests.set_up_test_cubes import (
     set_up_variable_cube, set_up_probability_cube, set_up_percentile_cube)
 
 

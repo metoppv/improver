@@ -41,7 +41,7 @@ from iris.tests import IrisTest
 
 from improver.blending.weights import ChooseDefaultWeightsLinear \
     as LinearWeights
-from improver.tests.set_up_test_cubes import (
+from tests.set_up_test_cubes import (
     set_up_variable_cube, add_coordinate)
 
 

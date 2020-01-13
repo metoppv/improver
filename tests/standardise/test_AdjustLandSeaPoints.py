@@ -41,7 +41,7 @@ from iris.util import squeeze
 
 from improver.grids import ELLIPSOID
 from improver.standardise import AdjustLandSeaPoints
-from improver.tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
+from tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube)
 from improver.utilities.spatial import OccurrenceWithinVicinity
 from improver.utilities.warnings_handler import ManageWarnings

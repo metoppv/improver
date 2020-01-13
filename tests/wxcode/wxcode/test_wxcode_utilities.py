@@ -45,7 +45,7 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.grids import STANDARD_GRID_CCRS, ELLIPSOID
-from improver.tests.ensemble_calibration.ensemble_calibration. \
+from tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_cube
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf

@@ -44,11 +44,11 @@ from iris.tests import IrisTest
 
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
-from improver.tests.blending.weighted_blend.test_PercentileBlendingAggregator \
+from tests.blending.weighted_blend.test_PercentileBlendingAggregator \
     import (PERCENTILE_DATA, BLENDED_PERCENTILE_DATA,
             BLENDED_PERCENTILE_DATA_EQUAL_WEIGHTS,
             BLENDED_PERCENTILE_DATA_SPATIAL_WEIGHTS)
-from improver.tests.set_up_test_cubes import (
+from tests.set_up_test_cubes import (
     set_up_variable_cube, set_up_probability_cube,
     set_up_percentile_cube, add_coordinate)
 from improver.utilities.cube_manipulation import merge_cubes

@@ -41,7 +41,7 @@ from iris.cube import Cube
 from iris.exceptions import DuplicateDataError
 from iris.tests import IrisTest
 
-from improver.tests.set_up_test_cubes import (
+from tests.set_up_test_cubes import (
     set_up_variable_cube)
 from improver.utilities.cube_manipulation import merge_cubes
 

@@ -40,7 +40,7 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 from iris.time import PartialDateTime
 
-from improver.tests.set_up_test_cubes import (
+from tests.set_up_test_cubes import (
     set_up_variable_cube, add_coordinate)
 from improver.utilities.temporal import (
     cycletime_to_datetime, cycletime_to_number, datetime_to_cycletime,

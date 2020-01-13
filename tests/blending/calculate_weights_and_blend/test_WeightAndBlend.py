@@ -40,7 +40,7 @@ from iris.tests import IrisTest
 from improver.blending.calculate_weights_and_blend import WeightAndBlend
 from improver.blending.weighted_blend import MergeCubesForWeightedBlending
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
-from improver.tests.set_up_test_cubes import (
+from tests.set_up_test_cubes import (
     set_up_probability_cube, set_up_variable_cube)
 from improver.utilities.warnings_handler import ManageWarnings
 

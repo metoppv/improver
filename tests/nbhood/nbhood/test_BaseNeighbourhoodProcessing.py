@@ -44,7 +44,7 @@ from improver.grids import STANDARD_GRID_CCRS, ELLIPSOID
 from improver.nbhood.circular_kernel import CircularNeighbourhood
 from improver.nbhood.nbhood import BaseNeighbourhoodProcessing as NBHood
 from improver.nbhood.nbhood import SquareNeighbourhood
-from improver.tests.ensemble_calibration.ensemble_calibration.\
+from tests.ensemble_calibration.ensemble_calibration.\
     helper_functions import add_forecast_reference_time_and_forecast_period
 
 SINGLE_POINT_RANGE_3_CENTROID = np.array([

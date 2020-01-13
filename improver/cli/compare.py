@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to compare netcdf files"""
 
-from improver.tests import acceptance as acc
+from tests import acceptance as acc
 from improver import cli
 
 

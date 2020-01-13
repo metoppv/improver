@@ -39,7 +39,7 @@ from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
 from improver.metadata.probabilistic import find_threshold_coordinate
-from improver.tests.ensemble_calibration.ensemble_calibration. \
+from tests.ensemble_calibration.ensemble_calibration. \
     helper_functions import set_up_probability_threshold_cube
 from improver.wxcode.weather_symbols import WeatherSymbols
 from improver.wxcode.wxcode_utilities import WX_DICT

@@ -40,7 +40,7 @@ import numpy as np
 from iris.exceptions import DuplicateDataError
 from iris.tests import IrisTest
 
-from improver.tests.set_up_test_cubes import (
+from tests.set_up_test_cubes import (
     set_up_variable_cube, set_up_probability_cube)
 from improver.utilities.cube_manipulation import MergeCubes
 
