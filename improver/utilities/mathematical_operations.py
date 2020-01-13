@@ -175,8 +175,7 @@ class Integration(BasePlugin):
         uppermost half of the stride and the bottom half of the stride is
         summed.
 
-        As the coordinate is progressively integrated, the contribution of
-        each stride is cumulatively summed.
+        Integration is performed ONLY over positive values.
 
         Args:
             upper_bounds_cube (iris.cube.Cube):
@@ -195,51 +194,47 @@ class Integration(BasePlugin):
         coord_dtype = upper_bounds_cube.coord(
             self.coord_name_to_integrate).dtype
 
-        # Perform the integration
+        def skip_slice(upper_bound, lower_bound, direction,
+                       start_point, end_point):
+            """Conditions under which a slice should not be included in
+            the integrated total"""
+            if start_point:
+                if direction == "positive" and lower_bound < start_point:
+                    return True
+                if direction == "negative" and upper_bound > start_point:
+                    return True
+            if end_point:
+                if direction == "positive" and upper_bound > end_point:
+                    return True
+                if direction == "negative" and lower_bound < end_point:
+                    return True
+            return False          
+
         stride_sum = 0
         integrated_cubelist = iris.cube.CubeList([])
         levels_tuple = zip(
             upper_bounds_cube.slices_over(self.coord_name_to_integrate),
             lower_bounds_cube.slices_over(self.coord_name_to_integrate))
+
         for (upper_bounds_slice, lower_bounds_slice) in levels_tuple:
-            upper_bound = (
-                upper_bounds_slice.coord(
-                    self.coord_name_to_integrate).points.item())
-            lower_bound = (
-                lower_bounds_slice.coord(
-                    self.coord_name_to_integrate).points.item())
-            if not self.start_point and not self.end_point:
-                pass
-            elif self.start_point:
-                if self.direction_of_integration == "positive":
-                    if lower_bound < self.start_point:
-                        continue
-                elif self.direction_of_integration == "negative":
-                    if upper_bound > self.start_point:
-                        continue
-            elif self.end_point:
-                if self.direction_of_integration == "positive":
-                    if upper_bound > self.end_point:
-                        continue
-                elif self.direction_of_integration == "negative":
-                    if lower_bound < self.end_point:
-                        continue
+            upper_bound, = upper_bounds_slice.coord(
+                self.coord_name_to_integrate).points
+            lower_bound, = lower_bounds_slice.coord(
+                self.coord_name_to_integrate).points
+
+            if skip_slice(upper_bound, lower_bound,
+                          self.direction_of_integration,
+                          self.start_point, self.end_point):
+                continue
+
             stride = np.abs(upper_bound - lower_bound)
-            upper_half_of_stride = upper_bounds_slice.data * 0.0
-            # Restrict the integration to only consider positive values.
-            # This condition is specific for the computation of the wet-bulb
-            # temperature integral.
-            uindex = np.where(upper_bounds_slice.data > 0)
-            upper_half_of_stride[uindex] = (upper_bounds_slice.data[uindex] *
-                                            0.5 * stride)
-            # Restrict the integration to only consider positive values.
-            # This condition is specific for the computation of the wet-bulb
-            # temperature integral.
-            lindex = np.where(lower_bounds_slice.data > 0)
-            lower_half_of_stride = lower_bounds_slice.data * 0.0
-            lower_half_of_stride[lindex] = (lower_bounds_slice.data[lindex] *
-                                            0.5 * stride)
-            stride_sum += lower_half_of_stride + upper_half_of_stride
+            upper_half_data = np.where(
+                upper_bounds_slice.data > 0,
+                upper_bounds_slice.data * 0.5 * stride, 0.0)
+            lower_half_data = np.where(
+                lower_bounds_slice.data > 0,
+                lower_bounds_slice.data * 0.5 * stride, 0.0)
+            stride_sum += upper_half_data + lower_half_data
 
             # Create new cube
             template = (upper_bounds_slice
