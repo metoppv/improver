@@ -141,7 +141,7 @@ def set_up_cube(num_time_points=1, num_grid_points=1, num_height_levels=7,
     return cube
 
 
-class TestMultiPoint(object):
+class TestMultiPoint:
 
     """Test (typically) 3 x 1 or 3x3 point tests.
 
@@ -269,7 +269,7 @@ class TestMultiPoint(object):
         return plugin.process(self.w_cube)
 
 
-class TestSinglePoint(object):
+class TestSinglePoint:
     """Test a single 1x1 grid.
 
     A cube is a single 1x x 1y grid, however, the z dimension is not 1.

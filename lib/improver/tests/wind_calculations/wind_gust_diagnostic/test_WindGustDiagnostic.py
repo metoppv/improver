@@ -323,16 +323,6 @@ class Test_process(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(cube_wg, self.cube_ws)
 
-    def test_raises_error_points_mismatch_and_invalid_bounds(self):
-        """Test raises Value Error if points mismatch and bounds are invalid"""
-        cube_wg = self.cube_wg
-        cube_wg.coord('time').points = [402192.0, 402193.0]
-        cube_wg.coord('time').bounds = [[402191.5], [402193.5]]
-        plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
-        msg = ('Could not match time coordinate')
-        with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(cube_wg, self.cube_ws)
-
     def test_no_raises_error_if_ws_point_in_bounds(self):
         """Test raises no Value Error if wind-speed point in bounds """
         cube_wg = self.cube_wg

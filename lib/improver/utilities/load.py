@@ -84,7 +84,8 @@ def load_cube(filepath, constraints=None, no_lazy_load=False,
     if not cubes:
         message = "No cubes found using contraints {}".format(constraints)
         raise ValueError(message)
-    elif len(cubes) == 1:
+
+    if len(cubes) == 1:
         cube = cubes[0]
     else:
         cube = merge_cubes(cubes)
@@ -100,7 +101,8 @@ def load_cube(filepath, constraints=None, no_lazy_load=False,
     # Ensure the y and x dimensions are the last dimensions within the cube.
     y_name = cube.coord(axis="y").name()
     x_name = cube.coord(axis="x").name()
-    cube = enforce_coordinate_ordering(cube, [y_name, x_name], anchor="end")
+    cube = enforce_coordinate_ordering(
+        cube, [y_name, x_name], anchor_start=False)
     if no_lazy_load:
         # Force the cube's data into memory by touching the .data attribute.
         cube.data

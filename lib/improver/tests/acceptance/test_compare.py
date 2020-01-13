@@ -28,63 +28,40 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""
-Tests for the time-lagged-ensembles CLI
-"""
+"""Tests for the compare CLI"""
+
+import shutil
 
 import pytest
 
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-T2M = "temperature_at_surface"
 CLI = acc.cli_name_with_dashes(__file__)
-run_cli = acc.run_cli(CLI)
+run_cli = acc.run_cli(CLI, verbose=False)
 
 
-@pytest.mark.slow
-def test_basic(tmp_path):
-    """Test basic time lagging"""
-    kgo_dir = acc.kgo_root() / "time-lagged-ens/same_validity"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_paths = [kgo_dir / f"20180924T1300Z-PT{l:04}H00M-{T2M}.nc"
-                   for l in range(5, 11)]
-    output_path = tmp_path / "output.nc"
-    args = [*input_paths, output_path]
+def test_same(tmp_path, capsys):
+    """Compare identical files, should not produce any output"""
+    kgo_dir = acc.kgo_root()
+    input_file = kgo_dir / "percentile/basic/input.nc"
+    copied_file = tmp_path / "copied.nc"
+    shutil.copy(input_file, copied_file)
+    args = [input_file, copied_file]
     run_cli(args)
-    acc.compare(output_path, kgo_path)
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
 
 
-def test_validity_error(tmp_path):
-    """Test validity times mismatched"""
-    kgo_dir = acc.kgo_root() / "time-lagged-ens/mixed_validity"
-    input_paths = [kgo_dir / f"20180924T1300Z-PT0001H00M-{T2M}.nc",
-                   kgo_dir / f"20180924T1900Z-PT0006H00M-{T2M}.nc"]
-    output_path = tmp_path / "output.nc"
-    args = [*input_paths, output_path]
-    with pytest.raises(ValueError, match=".*validity times.*"):
-        run_cli(args)
-
-
-def test_single_cube(tmp_path):
-    """Test time lagging a single input cube"""
-    kgo_dir = acc.kgo_root() / "time-lagged-ens/same_validity"
-    kgo_path = kgo_dir / "kgo_single_cube.nc"
-    input_paths = [kgo_dir / f"20180924T1300Z-PT0005H00M-{T2M}.nc"]
-    output_path = tmp_path / "output.nc"
-    args = [*input_paths, output_path]
+def test_different(capsys):
+    """Compare different files, should report differences to stdout"""
+    kgo_dir = acc.kgo_root()
+    a_file = kgo_dir / "percentile/basic/input.nc"
+    b_file = kgo_dir / "threshold/basic/input.nc"
+    args = [a_file, b_file]
     run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_renumbered_realizations(tmp_path):
-    """Test renumbering non-unique realization numbers"""
-    kgo_dir = acc.kgo_root() / "time-lagged-ens/renumbered_realizations"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_dir = kgo_dir / "../same_validity"
-    input_paths = [input_dir / f"20180924T1300Z-PT0005H00M-{T2M}.nc",
-                   input_dir / f"20180924T1300Z-PT0005H00M-{T2M}.nc"]
-    output_path = tmp_path / "output.nc"
-    args = [*input_paths, output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+    captured = capsys.readouterr()
+    assert "different dimension size" in captured.out
+    assert "different variables" in captured.out
+    assert "different data" in captured.out

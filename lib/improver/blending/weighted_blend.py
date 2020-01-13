@@ -222,12 +222,6 @@ class PercentileBlendingAggregator:
             Combining_Probabilities.pdf
     """
 
-    def __init__(self):
-        """
-        Initialise class.
-        """
-        pass
-
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = ('<PercentileBlendingAggregator>')

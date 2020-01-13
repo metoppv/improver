@@ -126,7 +126,6 @@ def test_all_methods(tmp_path, domain, model):
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.xfail(reason="BATS had no check for nccmp return value or output")
 def test_alternative_coordinate_system(tmp_path):
     """Test use of an alternative coordinate system"""
     kgo_dir = acc.kgo_root() / "neighbour-finding"
@@ -149,11 +148,7 @@ def test_alternative_coordinate_system(tmp_path):
             "--site_x_coordinate", "projection_x_coordinate",
             "--site_y_coordinate", "projection_y_coordinate"]
     run_cli(args)
-    # Note this is a special case. The site coordinates are different, but the
-    # data (neighbour indices and vertical displacements) should be identical
-    # to the test_nearest on global domain in which sites were defined with
-    # latitudes and longitudes.
-    acc.compare(output_path, kgo_path, options="-dm")
+    acc.compare(output_path, kgo_path)
 
 
 def test_incompatible_constraints(tmp_path):
@@ -193,7 +188,7 @@ def test_coord_beyond_bounds(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [sites_path, orography_path, landmask_path, output_path]
     run_cli(args)
-    acc.compare(output_path, kgo_path, exclude_dims=["longitude"])
+    acc.compare(output_path, kgo_path, exclude_vars=["longitude"])
 
 
 def test_unset_wmo_ids(tmp_path):

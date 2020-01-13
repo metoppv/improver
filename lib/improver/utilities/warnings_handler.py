@@ -34,7 +34,7 @@ import sys
 import warnings
 
 
-class ManageWarnings(object):
+class ManageWarnings:
     """
     A decorator used to manage the warnings that are raised by a function.
     Ignore a selection of warnings, and either raise any remaining warnings

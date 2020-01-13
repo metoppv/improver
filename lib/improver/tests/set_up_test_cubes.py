@@ -42,13 +42,11 @@ from cf_units import Unit, date2num
 from iris.coords import DimCoord
 from iris.exceptions import CoordinateNotFoundError
 
+import improver.metadata.constants.time_types as ctt
 from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
 from improver.metadata.constants.mo_attributes import MOSG_GRID_DEFINITION
 from improver.metadata.check_datatypes import check_cube_not_float64
 from improver.metadata.forecast_times import forecast_period_coord
-
-TIME_UNIT = "seconds since 1970-01-01 00:00:00"
-CALENDAR = "gregorian"
 
 
 def construct_xy_coords(ypoints, xpoints, spatial_grid):
@@ -96,6 +94,17 @@ def construct_xy_coords(ypoints, xpoints, spatial_grid):
     return y_coord, x_coord
 
 
+def _create_time_point(time):
+    """Returns a coordinate point with appropriate units and datatype
+    from a datetime.datetime instance.
+
+    Args:
+        time (datetime.datetime)
+    """
+    point = date2num(time, ctt.TIME_REFERENCE_UNIT, "gregorian")
+    return np.round(point).astype(ctt.TIME_REFERENCE_DTYPE)
+
+
 def construct_scalar_time_coords(time, time_bounds, frt):
     """
     Construct scalar time coordinates as aux_coord list
@@ -114,22 +123,18 @@ def construct_scalar_time_coords(time, time_bounds, frt):
             dimension (format required by iris.cube.Cube initialisation).
     """
     # generate time coordinate points
-    time_point_seconds = np.round(
-        date2num(time, TIME_UNIT, CALENDAR)).astype(np.int64)
-    frt_point_seconds = np.round(
-        date2num(frt, TIME_UNIT, CALENDAR)).astype(np.int64)
+    time_point_seconds = _create_time_point(time)
+    frt_point_seconds = _create_time_point(frt)
 
     if time_point_seconds < frt_point_seconds:
         raise ValueError('Cannot set up cube with negative forecast period')
     fp_point_seconds = (
-        time_point_seconds - frt_point_seconds).astype(np.int32)
+        time_point_seconds - frt_point_seconds).astype(ctt.TIME_INTERVAL_DTYPE)
 
     # parse bounds if required
     if time_bounds is not None:
-        lower_bound = np.round(
-            date2num(time_bounds[0], TIME_UNIT, CALENDAR)).astype(np.int64)
-        upper_bound = np.round(
-            date2num(time_bounds[1], TIME_UNIT, CALENDAR)).astype(np.int64)
+        lower_bound = _create_time_point(time_bounds[0])
+        upper_bound = _create_time_point(time_bounds[1])
         bounds = (min(lower_bound, upper_bound),
                   max(lower_bound, upper_bound))
         if time_point_seconds < bounds[0] or time_point_seconds > bounds[1]:
@@ -138,18 +143,18 @@ def construct_scalar_time_coords(time, time_bounds, frt):
                     time, time_bounds[0], time_bounds[1]))
         fp_bounds = np.array([
             [bounds[0] - frt_point_seconds,
-             bounds[1] - frt_point_seconds]]).astype(np.int32)
+             bounds[1] - frt_point_seconds]]).astype(ctt.TIME_INTERVAL_DTYPE)
     else:
         bounds = None
         fp_bounds = None
 
     # create coordinates
-    time_coord = DimCoord(
-        time_point_seconds, "time", units=TIME_UNIT, bounds=bounds)
-    frt_coord = DimCoord(
-        frt_point_seconds, "forecast_reference_time", units=TIME_UNIT)
-    fp_coord = DimCoord(
-        fp_point_seconds, "forecast_period", units="seconds", bounds=fp_bounds)
+    time_coord = DimCoord(time_point_seconds, "time", bounds=bounds,
+                          units=ctt.TIME_REFERENCE_UNIT)
+    frt_coord = DimCoord(frt_point_seconds, "forecast_reference_time",
+                         units=ctt.TIME_REFERENCE_UNIT)
+    fp_coord = DimCoord(fp_point_seconds, "forecast_period", bounds=fp_bounds,
+                        units=ctt.TIME_INTERVAL_UNIT)
 
     coord_dims = [(time_coord, None), (frt_coord, None), (fp_coord, None)]
     return coord_dims
@@ -429,13 +434,9 @@ def add_coordinate(incube, coord_points, coord_name, coord_units=None,
 
     # if new coordinate points are provided as datetimes, convert to seconds
     if is_datetime:
-        coord_units = TIME_UNIT
-        dtype = np.int64
-        new_coord_points = []
-        for val in coord_points:
-            time_point_seconds = np.round(
-                date2num(val, TIME_UNIT, CALENDAR)).astype(np.int64)
-            new_coord_points.append(time_point_seconds)
+        coord_units = ctt.TIME_REFERENCE_UNIT
+        dtype = ctt.TIME_REFERENCE_DTYPE
+        new_coord_points = [_create_time_point(val) for val in coord_points]
         coord_points = new_coord_points
 
     cubes = iris.cube.CubeList([])
@@ -446,7 +447,8 @@ def add_coordinate(incube, coord_points, coord_name, coord_units=None,
                      units=coord_units, attributes=attributes))
 
         # recalculate forecast period if time or frt have been updated
-        if is_datetime and "time" in coord_name:
+        if ("time" in coord_name and coord_units is not None
+                and Unit(coord_units).is_time_reference()):
             forecast_period = forecast_period_coord(
                 temp_cube, force_lead_time_calculation=True)
             try:

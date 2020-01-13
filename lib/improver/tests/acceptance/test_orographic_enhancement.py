@@ -34,6 +34,7 @@ Tests for the orographic-enhancement CLI
 
 import pytest
 
+from improver.tests.acceptance import LOOSE_TOLERANCE
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
@@ -51,10 +52,13 @@ def test_basic(tmp_path):
                   ("temperature", "humidity", "pressure",
                    "wind_speed", "wind_direction",
                    "orography_uk-standard_1km")]
-    args = [*input_args, tmp_path]
+
+    output_path = tmp_path / "output.nc"
+
+    args = [*input_args,
+            "--output", output_path]
     run_cli(args)
-    output_path = tmp_path / f"20180810T1200Z-PT0006H00M-{OE}.nc"
-    acc.compare(output_path, kgo_path, rtol=acc.LOOSE_TOLERANCE)
+    acc.compare(output_path, kgo_path, rtol=LOOSE_TOLERANCE)
 
 
 @pytest.mark.slow
@@ -67,11 +71,15 @@ def test_boundary_height(tmp_path):
                   ("temperature", "humidity", "pressure",
                    "wind_speed", "wind_direction",
                    "orography_uk-standard_1km")]
-    args = [*input_args, tmp_path,
-            "--boundary_height=500.", "--boundary_height_units=m"]
+
+    output_path = tmp_path / "output.nc"
+
+    args = [*input_args,
+            "--boundary-height=500.",
+            "--boundary-height-units=m",
+            "--output", output_path]
     run_cli(args)
-    output_path = tmp_path / f"20180810T1200Z-PT0006H00M-{OE}.nc"
-    acc.compare(output_path, kgo_path, rtol=acc.LOOSE_TOLERANCE)
+    acc.compare(output_path, kgo_path, rtol=LOOSE_TOLERANCE)
 
 
 @pytest.mark.slow
@@ -84,11 +92,15 @@ def test_boundary_height_units(tmp_path):
                   ("temperature", "humidity", "pressure",
                    "wind_speed", "wind_direction",
                    "orography_uk-standard_1km")]
-    args = [*input_args, tmp_path,
-            "--boundary_height=1640.41994751", "--boundary_height_units=ft"]
+
+    output_path = tmp_path / "output.nc"
+
+    args = [*input_args,
+            "--boundary-height=1640.41994751",
+            "--boundary-height-units=ft",
+            "--output", output_path]
     run_cli(args)
-    output_path = tmp_path / f"20180810T1200Z-PT0006H00M-{OE}.nc"
-    acc.compare(output_path, kgo_path, rtol=acc.LOOSE_TOLERANCE)
+    acc.compare(output_path, kgo_path, rtol=LOOSE_TOLERANCE)
 
 
 def test_invalid_boundary_height(tmp_path):
@@ -99,7 +111,12 @@ def test_invalid_boundary_height(tmp_path):
                   ("temperature", "humidity", "pressure",
                    "wind_speed", "wind_direction",
                    "orography_uk-standard_1km")]
-    args = [*input_args, tmp_path,
-            "--boundary_height=500000.", "--boundary_height_units=m"]
+
+    output_path = tmp_path / "output.nc"
+
+    args = [*input_args,
+            "--boundary-height=500000.",
+            "--boundary-height-units=m",
+            "--output", output_path]
     with pytest.raises(ValueError, match=".*height.*"):
         run_cli(args)

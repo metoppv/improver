@@ -36,10 +36,8 @@ import iris
 import numpy as np
 from cf_units import Unit
 
-from improver.utilities.cube_checker import (
-    check_for_x_and_y_axes)
-from improver.utilities.cube_manipulation import (
-    enforce_coordinate_ordering)
+from improver.utilities.cube_checker import check_for_x_and_y_axes
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.spatial import (
     convert_distance_into_number_of_grid_cells)
 
@@ -278,11 +276,16 @@ def remove_cube_halo(cube, halo_radius):
         result_slices.append(cube_halo)
     result = result_slices.merge_cube()
 
-    req_coords = []
-    for coord in cube.coords(dim_coords=True):
-        req_coords.append(coord.name())
-    result = enforce_coordinate_ordering(
-        result, req_coords, promote_scalar=True)
+    # re-promote any scalar dimensions lost in slice / merge
+    req_dims = [coord.name() for coord in cube.coords(dim_coords=True)]
+    present_dims = [coord.name() for coord in result.coords(dim_coords=True)]
+    for coord in req_dims:
+        if coord not in present_dims:
+            result = iris.util.new_axis(result, coord)
+
+    # re-order (needed if scalar dimensions have been re-added)
+    result = enforce_coordinate_ordering(result, req_dims)
+
     return result
 
 
