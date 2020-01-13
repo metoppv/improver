@@ -34,7 +34,7 @@ Tests for the percentiles-to-realizations CLI
 
 import pytest
 
-from tests.acceptance import acceptance as acc
+from . import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 run_cli = acc.run_cli("percentiles-to-realizations")

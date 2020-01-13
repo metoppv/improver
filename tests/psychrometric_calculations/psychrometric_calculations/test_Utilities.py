@@ -38,7 +38,7 @@ from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
     Utilities)
-from tests.set_up_test_cubes import set_up_variable_cube
+from ...set_up_test_cubes import set_up_variable_cube
 
 
 class Test_Utilities(IrisTest):

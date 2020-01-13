@@ -38,7 +38,7 @@ from iris.tests import IrisTest
 from improver.metadata.utilities import create_coordinate_hash
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.spotdata.spot_extraction import check_grid_match
-from tests.set_up_test_cubes import set_up_variable_cube
+from ...set_up_test_cubes import set_up_variable_cube
 
 
 class Test_check_grid_match(IrisTest):

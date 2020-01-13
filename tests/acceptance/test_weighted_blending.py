@@ -34,7 +34,7 @@ Tests for the weighted-blending CLI
 
 import pytest
 
-from tests.acceptance import acceptance as acc
+from . import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 PRECIP = "lwe_precipitation_rate"

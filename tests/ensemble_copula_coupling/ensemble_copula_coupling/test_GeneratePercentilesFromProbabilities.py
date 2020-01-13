@@ -44,8 +44,7 @@ from iris.tests import IrisTest
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     GeneratePercentilesFromProbabilities as Plugin)
 from improver.metadata.probabilistic import find_threshold_coordinate
-from tests.ensemble_calibration.ensemble_calibration.\
-    helper_functions import (
+from ...ensemble_calibration.ensemble_calibration.helper_functions import (
         add_forecast_reference_time_and_forecast_period,
         set_up_probability_threshold_cube,
         set_up_probability_above_threshold_temperature_cube,

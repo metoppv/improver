@@ -39,9 +39,9 @@ from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
-from tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
+from ..nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
     set_up_cube)
-from tests.set_up_test_cubes import set_up_variable_cube
+from ..set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_checker import (
     check_for_x_and_y_axes,
     check_cube_coordinates,

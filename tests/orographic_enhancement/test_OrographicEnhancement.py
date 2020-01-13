@@ -43,7 +43,7 @@ from iris.tests import IrisTest
 
 from improver.orographic_enhancement import OrographicEnhancement
 from improver.utilities.cube_manipulation import sort_coord_in_cube
-from tests.set_up_test_cubes import construct_scalar_time_coords
+from ..set_up_test_cubes import construct_scalar_time_coords
 
 # UKPP projection
 TMercCS = TransverseMercator(

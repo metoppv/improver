@@ -36,7 +36,7 @@ import numpy as np
 from cf_units import Unit
 from iris.tests import IrisTest
 
-from tests.set_up_test_cubes import set_up_variable_cube
+from ..set_up_test_cubes import set_up_variable_cube
 from improver.uv_index import calculate_uv_index
 
 

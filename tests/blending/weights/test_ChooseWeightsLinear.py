@@ -41,7 +41,7 @@ from iris.tests import IrisTest
 
 from improver.blending.weights import ChooseWeightsLinear
 from improver.metadata.forecast_times import forecast_period_coord
-from tests.set_up_test_cubes import (
+from ...set_up_test_cubes import (
     set_up_variable_cube, set_up_probability_cube, add_coordinate)
 
 CONFIG_DICT_UKV = {"uk_det": {"forecast_period": [7, 12, 48, 54],

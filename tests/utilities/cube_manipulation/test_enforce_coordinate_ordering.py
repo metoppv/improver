@@ -41,7 +41,7 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.metadata.constants.time_types import TIME_REFERENCE_UNIT
-from tests.set_up_test_cubes import (
+from ...set_up_test_cubes import (
     set_up_variable_cube, set_up_probability_cube, add_coordinate)
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 

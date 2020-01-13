@@ -36,8 +36,7 @@ import numpy as np
 import iris
 from iris.tests import IrisTest
 
-from tests.set_up_test_cubes import (
-    set_up_probability_cube, set_up_percentile_cube)
+from ..set_up_test_cubes import set_up_probability_cube, set_up_percentile_cube
 from improver.between_thresholds import OccurrenceBetweenThresholds
 
 

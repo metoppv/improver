@@ -39,8 +39,7 @@ from cf_units import Unit
 from iris.tests import IrisTest
 
 from improver.blending.weights import ChooseDefaultWeightsTriangular
-from tests.set_up_test_cubes import (
-    set_up_variable_cube, add_coordinate)
+from ...set_up_test_cubes import set_up_variable_cube, add_coordinate
 
 
 class Test___repr__(IrisTest):

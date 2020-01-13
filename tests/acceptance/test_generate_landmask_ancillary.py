@@ -34,7 +34,7 @@ Tests for the generate-landmask-ancillary CLI
 
 import pytest
 
-from tests.acceptance import acceptance as acc
+from . import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)

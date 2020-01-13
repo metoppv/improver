@@ -38,8 +38,7 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.nbhood.nbhood import NeighbourhoodProcessing as NBHood
-from tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
-    set_up_cube)
+from .test_BaseNeighbourhoodProcessing import (set_up_cube)
 
 
 class Test__init__(IrisTest):

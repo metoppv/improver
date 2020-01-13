@@ -35,7 +35,7 @@ generate-topography-bands-weights CLIs.
 
 import pytest
 
-from tests.acceptance import acceptance as acc
+from . import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 

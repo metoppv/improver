@@ -40,7 +40,7 @@ from improver.constants import DALR
 from improver.metadata.utilities import create_coordinate_hash
 from improver.spotdata.apply_lapse_rate import SpotLapseRateAdjust
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
-from tests.set_up_test_cubes import (set_up_variable_cube,
+from ...set_up_test_cubes import (set_up_variable_cube,
                                               construct_xy_coords,
                                               construct_scalar_time_coords)
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering

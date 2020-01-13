@@ -45,10 +45,8 @@ from improver.ensemble_calibration.ensemble_calibration import (
     ApplyCoefficientsFromEnsembleCalibration as Plugin)
 from improver.ensemble_calibration.ensemble_calibration import (
     EstimateCoefficientsForEnsembleCalibration)
-from tests.ensemble_calibration.ensemble_calibration. \
-    helper_functions import SetupCubes, EnsembleCalibrationAssertions
-from tests.ensemble_calibration.ensemble_calibration.\
-    test_EstimateCoefficientsForEnsembleCalibration import (
+from .helper_functions import SetupCubes, EnsembleCalibrationAssertions
+from .test_EstimateCoefficientsForEnsembleCalibration import (
         SetupExpectedCoefficients)
 from improver.utilities.warnings_handler import ManageWarnings
 

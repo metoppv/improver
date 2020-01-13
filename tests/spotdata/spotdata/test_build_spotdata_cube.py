@@ -40,7 +40,7 @@ from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
-from tests.set_up_test_cubes import construct_scalar_time_coords
+from ...set_up_test_cubes import construct_scalar_time_coords
 
 
 class Test_build_spotdata_cube(IrisTest):

@@ -36,8 +36,7 @@ import iris
 from iris.tests import IrisTest
 
 from improver.metadata.probabilistic import find_threshold_coordinate
-from tests.utilities.test_cube_extraction import (
-    set_up_precip_probability_cube)
+from ..utilities.test_cube_extraction import (set_up_precip_probability_cube)
 from improver.utilities.cube_constraints import create_sorted_lambda_constraint
 
 
