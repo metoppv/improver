@@ -47,7 +47,7 @@ from iris.tests import IrisTest
 from improver.grids import ELLIPSOID, STANDARD_GRID_CCRS
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
-from improver.wxcode.wxcode_utilities import (
+from improver.wxcode.utilities import (
     WX_DICT, add_wxcode_metadata, expand_nested_lists,
     interrogate_decision_tree, update_daynight)
 

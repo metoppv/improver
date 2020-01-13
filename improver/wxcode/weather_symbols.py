@@ -39,12 +39,12 @@ import numpy as np
 from improver import BasePlugin
 from improver.metadata.probabilistic import (
     extract_diagnostic_name, find_threshold_coordinate)
+from improver.wxcode.utilities import (
+    add_wxcode_metadata, expand_nested_lists, update_daynight)
 from improver.wxcode.wxcode_decision_tree import (
     START_NODE, wxcode_decision_tree)
 from improver.wxcode.wxcode_decision_tree_global import (
     START_NODE_GLOBAL, wxcode_decision_tree_global)
-from improver.wxcode.wxcode_utilities import (
-    add_wxcode_metadata, expand_nested_lists, update_daynight)
 
 
 class WeatherSymbols(BasePlugin):

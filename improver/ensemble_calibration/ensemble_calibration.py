@@ -43,7 +43,7 @@ from scipy.optimize import minimize
 from scipy.stats import norm
 
 from improver import BasePlugin
-from improver.ensemble_calibration.ensemble_calibration_utilities import (
+from improver.ensemble_calibration.utilities import (
     check_predictor_of_mean_flag, convert_cube_data_to_2d,
     flatten_ignoring_masked_data)
 from improver.utilities.cube_checker import time_coords_match

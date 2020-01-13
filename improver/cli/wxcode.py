@@ -37,7 +37,7 @@ from improver import cli
 def _extend_help(fn):
     # TODO: speed up help - pulling in decision tree imports iris
     # (and gets executed at import time)
-    from improver.wxcode.wxcode_utilities import interrogate_decision_tree
+    from improver.wxcode.utilities import interrogate_decision_tree
     for wxtree in ('high_resolution', 'global'):
         title = wxtree.title().replace('_', ' ') + ' tree inputs'
         inputs = interrogate_decision_tree(wxtree).replace('\n', '\n    ')
