@@ -208,7 +208,7 @@ class Integration(BasePlugin):
                     return True
                 if direction == "negative" and lower_bound < end_point:
                     return True
-            return False          
+            return False
 
         stride_sum = 0
         integrated_cubelist = iris.cube.CubeList([])
