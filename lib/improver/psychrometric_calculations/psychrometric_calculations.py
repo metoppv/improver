@@ -872,6 +872,57 @@ class PhaseChangeLevel(BasePlugin):
             radius_in_metres).process(orography_cube)
         return max_in_nbhood_orog
 
+    def _calculate_phase_change_level(
+            self, wet_bulb_temp, wb_integral, orography, max_nbhood_orog,
+            land_sea_data, heights, height_points, highest_height):
+        """
+        Calculate phase change level and fill in missing points
+
+        Args:
+            wet_bulb_temp (numpy.ndarray):
+                Wet bulb temperature data
+            wb_integral (numpy.ndarray):
+                Wet bulb temperature integral
+            orography (numpy.ndarray):
+                Orography heights
+            max_nbhood_orog (numpy.ndarray):
+                Maximum orography height in neighbourhood
+            land_sea_data (numpy.ndarray):
+                Mask of binary land / sea data
+            heights (np.ndarray):
+                All heights of wet bulb temperature input
+            height_points (numpy.ndarray):
+                Heights on wet bulb temperature integral slice
+            highest_height (float):
+                Height of the highest level to which the wet bulb
+                temperature has been integrated
+
+        Returns:
+            np.ndarray:
+                Level at which phase changes
+
+        """
+        phase_change_data = self.find_falling_level(
+            wb_integral, orography, height_points)
+
+        # Fill in missing data
+        self.fill_in_high_phase_change_falling_levels(
+            phase_change_data, orography,
+            wb_integral.max(axis=0), highest_height)
+        self.fill_in_sea_points(
+            phase_change_data, land_sea_data,
+            wb_integral.max(axis=0), wet_bulb_temp, heights)
+        updated_phase_cl = self.fill_in_by_horizontal_interpolation(
+            phase_change_data, max_nbhood_orog, orography)
+        points = np.where(~np.isfinite(phase_change_data))
+        phase_change_data[points] = updated_phase_cl[points]
+
+        # Fill in any remaining points with "missing data" value
+        remaining_points = np.where(np.isnan(phase_change_data))
+        phase_change_data[remaining_points] = self.missing_data
+
+        return phase_change_data
+
     def process(self, wet_bulb_temperature, wet_bulb_integral, orog,
                 land_sea_mask):
         """
@@ -905,50 +956,38 @@ class PhaseChangeLevel(BasePlugin):
                                                order='descending')
 
         # Find highest height from height bounds.
-        height_bounds = wet_bulb_integral.coord('height').bounds
-        heights = wet_bulb_temperature.coord('height').points
-        if height_bounds is None:
-            highest_height = heights[-1]
+        wbt_height_points = wet_bulb_temperature.coord('height').points
+        if wet_bulb_integral.coord('height').bounds is None:
+            highest_height = wbt_height_points[-1]
         else:
-            highest_height = height_bounds[0][-1]
+            highest_height = wet_bulb_integral.coord('height').bounds[0][-1]
 
         # Firstly we need to slice over height, x and y
         x_coord = wet_bulb_integral.coord(axis='x').name()
         y_coord = wet_bulb_integral.coord(axis='y').name()
         orography = next(orog.slices([y_coord, x_coord]))
-        orog_data = orography.data
         land_sea_data = next(land_sea_mask.slices([y_coord, x_coord])).data
+        max_nbhood_orog = self.find_max_in_nbhood_orography(orography)
+
+        output_cube_name = 'altitude_of_{}_level'.format(
+            self.phase_change_name)
+        output_attributes = generate_mandatory_attributes(
+            [wet_bulb_temperature])
 
         phase_change = iris.cube.CubeList([])
         slice_list = ['height', y_coord, x_coord]
         for wb_integral, wet_bulb_temp in zip(
                 wet_bulb_integral.slices(slice_list),
                 wet_bulb_temperature.slices(slice_list)):
-            height_points = wb_integral.coord('height').points
-            # Calculate phase change level above sea level.
-            phase_change_cube = wb_integral[0]
-            phase_change_cube.rename(
-                'altitude_of_{}_level'.format(self.phase_change_name))
-            phase_change_cube.units = 'm'
-            phase_change_cube.remove_coord('height')
 
-            phase_change_cube.data = self.find_falling_level(
-                wb_integral.data, orog_data, height_points)
-            # Fill in missing data
-            self.fill_in_high_phase_change_falling_levels(
-                phase_change_cube.data, orog_data,
-                wb_integral.data.max(axis=0), highest_height)
-            self.fill_in_sea_points(
-                phase_change_cube.data, land_sea_data,
-                wb_integral.data.max(axis=0), wet_bulb_temp.data, heights)
-            max_nbhood_orog = self.find_max_in_nbhood_orography(orography)
-            updated_phase_cl = self.fill_in_by_horizontal_interpolation(
-                phase_change_cube.data, max_nbhood_orog.data, orog_data)
-            points = np.where(~np.isfinite(phase_change_cube.data))
-            phase_change_cube.data[points] = updated_phase_cl[points]
-            # Fill in any remaining points with missing data:
-            remaining_points = np.where(np.isnan(phase_change_cube.data))
-            phase_change_cube.data[remaining_points] = self.missing_data
+            phase_change_data = self._calculate_phase_change_level(
+                wet_bulb_temp.data, wb_integral.data, orography.data,
+                max_nbhood_orog.data, land_sea_data, wbt_height_points,
+                wb_integral.coord('height').points, highest_height)
+
+            phase_change_cube = create_new_diagnostic_cube(
+                output_cube_name, 'm', wb_integral[0], output_attributes,
+                data=phase_change_data)
             phase_change.append(phase_change_cube)
 
         phase_change_level = phase_change.merge_cube()
