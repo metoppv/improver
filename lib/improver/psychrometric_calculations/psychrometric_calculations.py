@@ -140,6 +140,8 @@ class WetBulbTemperature(BasePlugin):
             vertical_coords = [cube.coord(axis='z').name() for cube in
                                [temperature, relative_humidity, pressure]
                                if cube.coord_dims(cube.coord(axis='z')) != ()]
+            if not vertical_coords:
+                slices = [(temperature, relative_humidity, pressure)]
         except iris.exceptions.CoordinateNotFoundError:
             slices = [(temperature, relative_humidity, pressure)]
 
@@ -433,7 +435,7 @@ class WetBulbTemperatureIntegral(BasePlugin):
         """
         wbt = wet_bulb_temperature.copy()
         wbt.convert_units('degC')
-        wbt.coord('height').convert_units('metres')
+        wbt.coord('height').convert_units('m')
         # Touch the data to ensure it is not lazy
         # otherwise vertical interpolation is slow
         # pylint: disable=pointless-statement
