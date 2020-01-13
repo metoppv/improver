@@ -35,11 +35,11 @@ Unit tests for FromMeanAndVariance
 import unittest
 
 import numpy as np
-from scipy import stats
 from iris.tests import IrisTest
+from scipy import stats
 
-from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-    FromMeanAndVariance as Plugin)
+from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
+    FromMeanAndVariance as Plugin
 
 
 class Test__init__(IrisTest):

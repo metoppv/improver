@@ -35,7 +35,7 @@ import unittest
 from iris.tests import IrisTest
 
 from improver.wxcode.wxcode_decision_tree import (
-    wxcode_decision_tree, START_NODE)
+    START_NODE, wxcode_decision_tree)
 from improver.wxcode.wxcode_utilities import expand_nested_lists
 
 REQUIRED_KEY_WORDS = ['succeed',

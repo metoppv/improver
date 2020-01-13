@@ -33,7 +33,6 @@
 
 from improver import cli
 
-
 inputalphas = cli.create_constrained_inputcubelist_converter(
     'alpha_x', 'alpha_y')
 

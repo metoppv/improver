@@ -31,18 +31,20 @@
 """Tests for the improver.metadata.probabilistic module"""
 
 import unittest
-import numpy as np
 
 import iris
-from iris.tests import IrisTest
+import numpy as np
 from iris.exceptions import CoordinateNotFoundError
+from iris.tests import IrisTest
 
 from improver.metadata.probabilistic import (
-    in_vicinity_name_format, extract_diagnostic_name,
-    find_threshold_coordinate, find_percentile_coordinate)
+    extract_diagnostic_name, find_percentile_coordinate,
+    find_threshold_coordinate, in_vicinity_name_format)
+
 from ..metadata.test_amend import create_cube_with_threshold
 from ..set_up_test_cubes import set_up_probability_cube
-from ..wind_calculations.wind_gust_diagnostic.test_WindGustDiagnostic import create_cube_with_percentile_coord
+from ..wind_calculations.wind_gust_diagnostic.test_WindGustDiagnostic import (
+    create_cube_with_percentile_coord)
 
 
 class Test_in_vicinity_name_format(unittest.TestCase):

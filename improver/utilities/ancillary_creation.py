@@ -33,8 +33,8 @@ import iris
 import numpy as np
 
 from improver import BasePlugin
-from improver.psychrometric_calculations.psychrometric_calculations import \
-    Utilities
+from improver.psychrometric_calculations.psychrometric_calculations import (
+    Utilities)
 from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
 
 

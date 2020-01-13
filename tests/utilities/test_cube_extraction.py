@@ -30,8 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """ Unit tests for cube extraction utilities """
 
-import unittest
 import collections
+import unittest
 
 import iris
 import numpy as np
@@ -40,8 +40,9 @@ from iris.tests import IrisTest
 
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.cube_extraction import (
-    create_range_constraint, apply_extraction, extract_subcube,
-    is_complex_parsing_required, create_constraint, parse_constraint_list)
+    apply_extraction, create_constraint, create_range_constraint,
+    extract_subcube, is_complex_parsing_required, parse_constraint_list)
+
 from ..set_up_test_cubes import set_up_probability_cube
 
 

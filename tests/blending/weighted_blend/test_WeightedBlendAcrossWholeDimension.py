@@ -44,15 +44,15 @@ from iris.tests import IrisTest
 
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
-from .test_PercentileBlendingAggregator import (PERCENTILE_DATA,
-            BLENDED_PERCENTILE_DATA,
-            BLENDED_PERCENTILE_DATA_EQUAL_WEIGHTS,
-            BLENDED_PERCENTILE_DATA_SPATIAL_WEIGHTS)
-from ...set_up_test_cubes import (
-    set_up_variable_cube, set_up_probability_cube,
-    set_up_percentile_cube, add_coordinate)
 from improver.utilities.cube_manipulation import merge_cubes
 from improver.utilities.warnings_handler import ManageWarnings
+
+from ...set_up_test_cubes import (
+    add_coordinate, set_up_percentile_cube, set_up_probability_cube,
+    set_up_variable_cube)
+from .test_PercentileBlendingAggregator import (
+    BLENDED_PERCENTILE_DATA, BLENDED_PERCENTILE_DATA_EQUAL_WEIGHTS,
+    BLENDED_PERCENTILE_DATA_SPATIAL_WEIGHTS, PERCENTILE_DATA)
 
 COORD_COLLAPSE_WARNING = "Collapsing a non-contiguous coordinate"
 

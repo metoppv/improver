@@ -36,6 +36,7 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.feels_like_temperature import calculate_apparent_temperature
+
 from ..set_up_test_cubes import set_up_variable_cube
 
 

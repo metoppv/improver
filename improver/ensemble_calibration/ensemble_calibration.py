@@ -36,18 +36,18 @@ import datetime
 import warnings
 
 import iris
-from iris.exceptions import CoordinateNotFoundError
 import numpy as np
+from iris.exceptions import CoordinateNotFoundError
 from scipy import stats
 from scipy.optimize import minimize
 from scipy.stats import norm
 
 from improver import BasePlugin
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
-    convert_cube_data_to_2d, check_predictor_of_mean_flag,
+    check_predictor_of_mean_flag, convert_cube_data_to_2d,
     flatten_ignoring_masked_data)
-from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.cube_checker import time_coords_match
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.temporal import (
     cycletime_to_datetime, datetime_to_iris_time, iris_time_to_datetime)
 

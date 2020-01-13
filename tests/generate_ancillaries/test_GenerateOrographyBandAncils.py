@@ -37,8 +37,8 @@ from cf_units import Unit
 from iris.cube import Cube
 from iris.tests import IrisTest
 
-from improver.generate_ancillaries.generate_ancillary import (
-    GenerateOrographyBandAncils as GenOrogMasks)
+from improver.generate_ancillaries.generate_ancillary import \
+    GenerateOrographyBandAncils as GenOrogMasks
 
 
 def set_up_landmask_cube(landmask_data=None):

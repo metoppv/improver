@@ -35,6 +35,7 @@
 from improver import cli
 from improver.utilities.compare import DEFAULT_TOLERANCE
 
+
 @cli.clizefy
 def process(actual: cli.inputpath,
             desired: cli.inputpath,

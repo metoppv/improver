@@ -40,8 +40,7 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 from numpy import ma
 
-from improver.utilities.spatial import (
-    DifferenceBetweenAdjacentGridSquares)
+from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
 
 
 def set_up_cube(data, phenomenon_standard_name, phenomenon_units,

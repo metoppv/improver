@@ -31,13 +31,15 @@
 """Tests for the improver.metadata.utilities module"""
 
 import unittest
+
 import iris
 import numpy as np
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.utilities import (
-    create_new_diagnostic_cube, generate_mandatory_attributes, generate_hash,
-    create_coordinate_hash)
+    create_coordinate_hash, create_new_diagnostic_cube, generate_hash,
+    generate_mandatory_attributes)
+
 from ..set_up_test_cubes import set_up_variable_cube
 
 

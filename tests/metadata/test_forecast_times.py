@@ -39,11 +39,11 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.metadata.forecast_times import (
-    forecast_period_coord, _calculate_forecast_period,
-    rebadge_forecasts_as_latest_cycle, unify_cycletime, find_latest_cycletime)
-from ..set_up_test_cubes import (
-    set_up_variable_cube, add_coordinate)
+    _calculate_forecast_period, find_latest_cycletime, forecast_period_coord,
+    rebadge_forecasts_as_latest_cycle, unify_cycletime)
 from improver.utilities.warnings_handler import ManageWarnings
+
+from ..set_up_test_cubes import add_coordinate, set_up_variable_cube
 
 
 class Test_forecast_period_coord(IrisTest):

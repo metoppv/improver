@@ -38,7 +38,8 @@ from iris.tests import IrisTest
 
 from improver.constants import DALR
 from improver.lapse_rate import apply_gridded_lapse_rate
-from ..set_up_test_cubes import set_up_variable_cube, add_coordinate
+
+from ..set_up_test_cubes import add_coordinate, set_up_variable_cube
 
 
 class Test_apply_gridded_lapse_rate(IrisTest):

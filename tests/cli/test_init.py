@@ -35,9 +35,9 @@ from unittest.mock import patch
 
 import improver
 from improver.cli import (
-    docutilize, unbracket,
-    maybe_coerce_with, inputcube, inputjson, with_output,
-    with_intermediate_output, create_constrained_inputcubelist_converter)
+    create_constrained_inputcubelist_converter, docutilize, inputcube,
+    inputjson, maybe_coerce_with, unbracket, with_intermediate_output,
+    with_output)
 from improver.utilities.load import load_cube
 
 

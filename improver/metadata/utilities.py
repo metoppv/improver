@@ -33,12 +33,12 @@
 import hashlib
 import pprint
 
-import iris
 import dask.array as da
+import iris
 import numpy as np
 
 from improver.metadata.constants.attributes import (
-    MANDATORY_ATTRIBUTES, MANDATORY_ATTRIBUTE_DEFAULTS)
+    MANDATORY_ATTRIBUTE_DEFAULTS, MANDATORY_ATTRIBUTES)
 
 
 def create_new_diagnostic_cube(

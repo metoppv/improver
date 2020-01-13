@@ -31,8 +31,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to extract a subset of input file data, given constraints."""
 
-from improver.cli import parameters
 from improver import cli
+from improver.cli import parameters
 
 
 @cli.clizefy

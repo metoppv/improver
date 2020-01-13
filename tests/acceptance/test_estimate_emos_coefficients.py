@@ -39,6 +39,7 @@ which expand directory names in addition to filenames.
 import pytest
 
 from improver.utilities.compare import LOOSE_TOLERANCE
+
 from . import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]

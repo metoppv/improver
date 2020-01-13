@@ -40,8 +40,9 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
-    convert_cube_data_to_2d, flatten_ignoring_masked_data,
-    check_predictor_of_mean_flag)
+    check_predictor_of_mean_flag, convert_cube_data_to_2d,
+    flatten_ignoring_masked_data)
+
 from ..ensemble_calibration.helper_functions import set_up_temperature_cube
 
 

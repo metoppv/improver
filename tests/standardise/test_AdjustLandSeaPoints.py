@@ -41,10 +41,10 @@ from iris.util import squeeze
 
 from improver.grids import ELLIPSOID
 from improver.standardise import AdjustLandSeaPoints
-from ..nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
-    set_up_cube)
 from improver.utilities.spatial import OccurrenceWithinVicinity
 from improver.utilities.warnings_handler import ManageWarnings
+
+from ..nbhood.nbhood.test_BaseNeighbourhoodProcessing import set_up_cube
 
 # The warning messages are internal to the iris.analysis module v2.2.0
 IGNORED_MESSAGES = ["Using a non-tuple sequence for multidimensional indexing"]

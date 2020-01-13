@@ -33,8 +33,8 @@
 import numpy as np
 from cf_units import Unit
 
-from improver.psychrometric_calculations.psychrometric_calculations \
-    import WetBulbTemperature
+from improver.psychrometric_calculations.psychrometric_calculations import (
+    WetBulbTemperature)
 
 
 def calculate_wind_chill(temperature, wind_speed):

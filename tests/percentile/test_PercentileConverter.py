@@ -39,8 +39,9 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.percentile import PercentileConverter
-from ..set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
+
+from ..set_up_test_cubes import set_up_variable_cube
 
 
 class Test_process(IrisTest):

@@ -42,13 +42,13 @@ from iris.exceptions import CoordinateNotFoundError
 from improver import BasePlugin
 from improver.metadata.amend import amend_attributes
 from improver.metadata.constants.attributes import (
-    MANDATORY_ATTRIBUTES, MANDATORY_ATTRIBUTE_DEFAULTS)
-from improver.metadata.probabilistic import find_percentile_coordinate
+    MANDATORY_ATTRIBUTE_DEFAULTS, MANDATORY_ATTRIBUTES)
 from improver.metadata.forecast_times import (
     forecast_period_coord, rebadge_forecasts_as_latest_cycle)
+from improver.metadata.probabilistic import find_percentile_coordinate
 from improver.utilities.cube_manipulation import (
-    enforce_coordinate_ordering, sort_coord_in_cube, build_coordinate,
-    MergeCubes)
+    MergeCubes, build_coordinate, enforce_coordinate_ordering,
+    sort_coord_in_cube)
 from improver.utilities.temporal import cycletime_to_number
 
 

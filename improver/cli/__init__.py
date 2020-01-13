@@ -30,16 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """init for cli and clize"""
 
-from collections import OrderedDict
-from functools import partial
 import pathlib
 import shlex
+from collections import OrderedDict
+from functools import partial
 
 import clize
 from clize import parameters
-from clize.help import (
-    HelpForAutodetectedDocstring,
-    ClizeHelp)
+from clize.help import ClizeHelp, HelpForAutodetectedDocstring
 from clize.parser import value_converter
 from clize.runner import Clize
 from sigtools.wrappers import decorator

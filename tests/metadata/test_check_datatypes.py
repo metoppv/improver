@@ -37,10 +37,11 @@ from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
 from improver.metadata.check_datatypes import (
-    check_cube_not_float64, _construct_object_list, check_datatypes,
-    _check_units_and_dtype, check_time_coordinate_metadata)
+    _check_units_and_dtype, _construct_object_list, check_cube_not_float64,
+    check_datatypes, check_time_coordinate_metadata)
+
 from ..set_up_test_cubes import (
-    set_up_variable_cube, set_up_probability_cube, set_up_percentile_cube)
+    set_up_percentile_cube, set_up_probability_cube, set_up_variable_cube)
 
 
 class Test_check_cube_not_float64(IrisTest):

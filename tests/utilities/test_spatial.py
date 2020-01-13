@@ -37,21 +37,21 @@ from datetime import datetime as dt
 import cartopy.crs as ccrs
 import cf_units
 import numpy as np
-from iris import Constraint
-from iris import coord_systems
+from iris import Constraint, coord_systems
 from iris.coord_systems import GeogCS
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 from iris.time import PartialDateTime
 
-from ..nbhood.nbhood.test_BaseNeighbourhoodProcessing import (set_up_cube)
-from ..set_up_test_cubes import set_up_variable_cube
 from improver.utilities.spatial import (
-    check_if_grid_is_equal_area, calculate_grid_spacing,
+    calculate_grid_spacing, check_if_grid_is_equal_area,
     convert_distance_into_number_of_grid_cells,
-    convert_number_of_grid_cells_into_distance,
-    lat_lon_determine, transform_grid_to_lat_lon)
+    convert_number_of_grid_cells_into_distance, lat_lon_determine,
+    transform_grid_to_lat_lon)
+
+from ..nbhood.nbhood.test_BaseNeighbourhoodProcessing import set_up_cube
+from ..set_up_test_cubes import set_up_variable_cube
 
 
 class Test_common_functions(IrisTest):

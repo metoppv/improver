@@ -38,10 +38,11 @@ from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
 
-from ...ensemble_calibration.ensemble_calibration.helper_functions import set_up_temperature_cube
-from ...nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
-    set_up_cube)
 from improver.wind_calculations.wind_direction import WindDirection
+
+from ...ensemble_calibration.ensemble_calibration.helper_functions import (
+    set_up_temperature_cube)
+from ...nbhood.nbhood.test_BaseNeighbourhoodProcessing import set_up_cube
 
 # Data to test complex/degree handling functions.
 # Complex angles equivalent to np.arange(0., 360, 10) degrees.

@@ -31,6 +31,7 @@
 """Unit tests for nbhood.__init__"""
 
 import unittest
+
 from improver.nbhood import radius_by_lead_time
 
 

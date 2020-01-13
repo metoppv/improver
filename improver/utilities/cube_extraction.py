@@ -32,8 +32,8 @@
 
 from ast import literal_eval
 
-import numpy as np
 import iris
+import numpy as np
 
 from improver.utilities.cube_constraints import create_sorted_lambda_constraint
 

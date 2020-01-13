@@ -34,7 +34,7 @@ import iris
 import numpy as np
 
 from improver.utilities.cube_checker import (
-    check_for_x_and_y_axes, check_cube_coordinates)
+    check_cube_coordinates, check_for_x_and_y_axes)
 from improver.utilities.cube_manipulation import clip_cube_data
 from improver.utilities.pad_spatial import (
     pad_cube_with_halo, remove_halo_from_cube)

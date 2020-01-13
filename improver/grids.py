@@ -30,8 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain standard grid projection definitions."""
 
-from iris.coord_systems import (LambertAzimuthalEqualArea,
-                                GeogCS)
+from iris.coord_systems import GeogCS, LambertAzimuthalEqualArea
 
 # Global grid coordinate reference system
 GLOBAL_GRID_CCRS = GeogCS(6371229.0)

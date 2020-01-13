@@ -36,15 +36,16 @@ Unit tests for the
 import unittest
 
 import numpy as np
-from iris.coords import DimCoord, AuxCoord
+from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 from iris.exceptions import InvalidCubeError
 from iris.tests import IrisTest
 
-from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-    RebadgePercentilesAsRealizations as Plugin)
-from ...ensemble_calibration.ensemble_calibration.helper_functions import (set_up_temperature_cube,
-                             add_forecast_reference_time_and_forecast_period)
+from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
+    RebadgePercentilesAsRealizations as Plugin
+
+from ...ensemble_calibration.ensemble_calibration.helper_functions import (
+    add_forecast_reference_time_and_forecast_period, set_up_temperature_cube)
 
 
 class Test_process(IrisTest):

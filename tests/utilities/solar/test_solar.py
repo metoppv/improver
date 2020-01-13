@@ -36,7 +36,7 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.utilities.solar import (
-    calc_solar_declination, calc_solar_hour_angle, calc_solar_elevation,
+    calc_solar_declination, calc_solar_elevation, calc_solar_hour_angle,
     daynight_terminator)
 
 

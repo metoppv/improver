@@ -40,8 +40,9 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.nbhood.square_kernel import SquareNeighbourhood
-from ..nbhood.test_NeighbourhoodProcessing import (set_up_cube)
 from improver.wind_calculations.wind_direction import WindDirection
+
+from ..nbhood.test_NeighbourhoodProcessing import set_up_cube
 
 
 class Test__init__(IrisTest):

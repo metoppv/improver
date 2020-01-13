@@ -31,13 +31,12 @@
 """Plugin to calculate blend weights and blend data across a dimension"""
 
 from improver import BasePlugin
-from improver.blending.spatial_weights import (
-    SpatiallyVaryingWeightsFromMask)
+from improver.blending.spatial_weights import SpatiallyVaryingWeightsFromMask
 from improver.blending.weighted_blend import (
     MergeCubesForWeightedBlending, WeightedBlendAcrossWholeDimension)
 from improver.blending.weights import (
-    ChooseWeightsLinear, ChooseDefaultWeightsLinear,
-    ChooseDefaultWeightsNonLinear)
+    ChooseDefaultWeightsLinear, ChooseDefaultWeightsNonLinear,
+    ChooseWeightsLinear)
 from improver.metadata.amend import amend_attributes
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells)

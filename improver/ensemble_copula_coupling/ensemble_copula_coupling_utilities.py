@@ -41,8 +41,8 @@ import iris
 import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.ensemble_copula_coupling.ensemble_copula_coupling_constants \
-    import BOUNDS_FOR_ECDF
+from improver.ensemble_copula_coupling.ensemble_copula_coupling_constants import (
+    BOUNDS_FOR_ECDF)
 
 
 def concatenate_2d_array_with_2d_array_endpoints(

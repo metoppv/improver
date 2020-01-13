@@ -36,8 +36,8 @@ import iris
 import numpy as np
 from iris.tests import IrisTest
 
-from improver.metadata.utilities import create_coordinate_hash
 from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
+from improver.metadata.utilities import create_coordinate_hash
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.spotdata.spot_extraction import SpotExtraction
 

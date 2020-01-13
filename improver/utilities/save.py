@@ -37,7 +37,7 @@ import cf_units
 import iris
 
 from improver.metadata.check_datatypes import (
-    check_time_coordinate_metadata, check_datatypes)
+    check_datatypes, check_time_coordinate_metadata)
 
 
 def _append_metadata_cube(cubelist, global_keys):

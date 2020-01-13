@@ -31,6 +31,7 @@
 """A plugin to calculate probability of sleet"""
 
 import numpy as np
+
 from improver.metadata.utilities import (
     create_new_diagnostic_cube, generate_mandatory_attributes)
 

@@ -42,16 +42,15 @@ from scipy import stats
 from improver import BasePlugin
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     convert_cube_data_to_2d)
-from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities \
-    import (concatenate_2d_array_with_2d_array_endpoints,
-            create_cube_with_percentiles, choose_set_of_percentiles,
-            get_bounds_of_distribution,
-            insert_lower_and_upper_endpoint_to_1d_array,
-            restore_non_probabilistic_dimensions)
+from improver.ensemble_copula_coupling.ensemble_copula_coupling_utilities import (
+    choose_set_of_percentiles, concatenate_2d_array_with_2d_array_endpoints,
+    create_cube_with_percentiles, get_bounds_of_distribution,
+    insert_lower_and_upper_endpoint_to_1d_array,
+    restore_non_probabilistic_dimensions)
 from improver.metadata.probabilistic import (
     find_percentile_coordinate, find_threshold_coordinate)
 from improver.utilities.cube_checker import (
-    check_for_x_and_y_axes, check_cube_coordinates)
+    check_cube_coordinates, check_for_x_and_y_axes)
 from improver.utilities.cube_manipulation import (
     concatenate_cubes, enforce_coordinate_ordering)
 from improver.utilities.indexing_operations import choose

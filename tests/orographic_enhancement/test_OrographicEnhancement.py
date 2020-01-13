@@ -31,18 +31,18 @@
 """Unit tests for the OrographicEnhancement plugin."""
 
 import unittest
+from datetime import datetime
 
 import iris
 import numpy as np
 from cf_units import Unit
-from datetime import datetime
-
 from iris.coord_systems import GeogCS, TransverseMercator
-from iris.coords import DimCoord, AuxCoord
+from iris.coords import AuxCoord, DimCoord
 from iris.tests import IrisTest
 
 from improver.orographic_enhancement import OrographicEnhancement
 from improver.utilities.cube_manipulation import sort_coord_in_cube
+
 from ..set_up_test_cubes import construct_scalar_time_coords
 
 # UKPP projection

@@ -36,10 +36,10 @@ import iris
 import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 
+import improver.utilities.solar as solar
 from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
 from improver.wxcode.wxcode_decision_tree_global import (
     wxcode_decision_tree_global)
-import improver.utilities.solar as solar
 
 _WX_DICT_IN = {0: 'Clear_Night',
                1: 'Sunny_Day',

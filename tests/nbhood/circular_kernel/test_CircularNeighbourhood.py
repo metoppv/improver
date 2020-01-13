@@ -38,6 +38,7 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.nbhood.circular_kernel import CircularNeighbourhood
+
 from ..nbhood.test_BaseNeighbourhoodProcessing import (
     SINGLE_POINT_RANGE_2_CENTROID_FLAT, SINGLE_POINT_RANGE_3_CENTROID,
     SINGLE_POINT_RANGE_5_CENTROID, set_up_cube)

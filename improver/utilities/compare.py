@@ -44,8 +44,8 @@ For example, the action to take could be to print the message, log the message,
 or raise an appropriate exception.
 """
 
-import numpy as np
 import netCDF4
+import numpy as np
 
 TIGHT_TOLERANCE = 1e-5
 DEFAULT_TOLERANCE = 1e-4

@@ -43,9 +43,10 @@ from improver.metadata.amend import (
     add_coord, amend_attributes, set_history_attribute,
     update_stage_v110_metadata)
 from improver.metadata.probabilistic import find_threshold_coordinate
-from ..set_up_test_cubes import (
-    set_up_variable_cube, set_up_probability_cube, add_coordinate)
 from improver.utilities.warnings_handler import ManageWarnings
+
+from ..set_up_test_cubes import (
+    add_coordinate, set_up_probability_cube, set_up_variable_cube)
 
 
 def create_cube_with_threshold(data=None, threshold_values=None):

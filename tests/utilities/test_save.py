@@ -35,15 +35,16 @@ import unittest
 from tempfile import mkdtemp
 
 import iris
+import numpy as np
 from iris.coords import CellMethod
 from iris.tests import IrisTest
-import numpy as np
 from netCDF4 import Dataset
 
-from ..set_up_test_cubes import set_up_variable_cube
 from improver.utilities.load import load_cube
 from improver.utilities.save import (
-    save_netcdf, _append_metadata_cube, _order_cell_methods)
+    _append_metadata_cube, _order_cell_methods, save_netcdf)
+
+from ..set_up_test_cubes import set_up_variable_cube
 
 
 def set_up_test_cube():

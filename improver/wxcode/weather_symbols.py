@@ -40,12 +40,11 @@ from improver import BasePlugin
 from improver.metadata.probabilistic import (
     extract_diagnostic_name, find_threshold_coordinate)
 from improver.wxcode.wxcode_decision_tree import (
-    wxcode_decision_tree, START_NODE)
+    START_NODE, wxcode_decision_tree)
 from improver.wxcode.wxcode_decision_tree_global import (
-    wxcode_decision_tree_global, START_NODE_GLOBAL)
-from improver.wxcode.wxcode_utilities import (add_wxcode_metadata,
-                                              expand_nested_lists,
-                                              update_daynight)
+    START_NODE_GLOBAL, wxcode_decision_tree_global)
+from improver.wxcode.wxcode_utilities import (
+    add_wxcode_metadata, expand_nested_lists, update_daynight)
 
 
 class WeatherSymbols(BasePlugin):

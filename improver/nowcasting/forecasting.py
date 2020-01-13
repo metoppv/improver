@@ -40,7 +40,7 @@ from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 
 from improver import BasePlugin
-from improver.metadata.amend import (amend_attributes, set_history_attribute)
+from improver.metadata.amend import amend_attributes, set_history_attribute
 from improver.nowcasting.optical_flow import check_input_coords
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
 

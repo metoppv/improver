@@ -31,8 +31,8 @@
 """Unit tests for weather code utilities."""
 
 import datetime
-import pathlib
 import os
+import pathlib
 import unittest
 from tempfile import mkdtemp
 
@@ -44,15 +44,15 @@ from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
-from improver.grids import STANDARD_GRID_CCRS, ELLIPSOID
-from ...ensemble_calibration.ensemble_calibration.helper_functions import set_up_cube
+from improver.grids import ELLIPSOID, STANDARD_GRID_CCRS
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
-from improver.wxcode.wxcode_utilities import (WX_DICT,
-                                              add_wxcode_metadata,
-                                              expand_nested_lists,
-                                              update_daynight,
-                                              interrogate_decision_tree)
+from improver.wxcode.wxcode_utilities import (
+    WX_DICT, add_wxcode_metadata, expand_nested_lists,
+    interrogate_decision_tree, update_daynight)
+
+from ...ensemble_calibration.ensemble_calibration.helper_functions import (
+    set_up_cube)
 
 
 def datetime_to_numdateval(year=2018, month=9, day=12, hour=5, minutes=43):

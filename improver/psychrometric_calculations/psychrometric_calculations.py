@@ -44,10 +44,10 @@ import improver.constants as consts
 from improver import BasePlugin
 from improver.psychrometric_calculations import svp_table
 from improver.utilities.cube_checker import check_cube_coordinates
+from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.utilities.mathematical_operations import Integration
 from improver.utilities.spatial import (
     OccurrenceWithinVicinity, convert_number_of_grid_cells_into_distance)
-from improver.utilities.cube_manipulation import sort_coord_in_cube
 
 
 class Utilities:

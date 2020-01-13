@@ -39,9 +39,10 @@ import numpy as np
 from cf_units import Unit
 from iris.coords import AuxCoord, DimCoord
 
-from ...set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import compare_coords
 from improver.utilities.warnings_handler import ManageWarnings
+
+from ...set_up_test_cubes import set_up_variable_cube
 
 
 class Test_compare_coords(unittest.TestCase):

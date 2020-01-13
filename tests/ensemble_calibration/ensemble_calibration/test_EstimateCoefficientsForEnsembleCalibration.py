@@ -39,17 +39,18 @@ import imp
 import unittest
 
 import iris
-from iris.tests import IrisTest
 import numpy as np
+from iris.tests import IrisTest
 
 from improver.ensemble_calibration.ensemble_calibration import (
     ContinuousRankedProbabilityScoreMinimisers)
-from improver.ensemble_calibration.ensemble_calibration import (
-    EstimateCoefficientsForEnsembleCalibration as Plugin)
-from .helper_functions import (_create_historic_forecasts, SetupCubes,
-                             EnsembleCalibrationAssertions)
-from ...set_up_test_cubes import set_up_variable_cube
+from improver.ensemble_calibration.ensemble_calibration import \
+    EstimateCoefficientsForEnsembleCalibration as Plugin
 from improver.utilities.warnings_handler import ManageWarnings
+
+from ...set_up_test_cubes import set_up_variable_cube
+from .helper_functions import (
+    EnsembleCalibrationAssertions, SetupCubes, _create_historic_forecasts)
 
 try:
     imp.find_module('statsmodels')

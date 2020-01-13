@@ -33,7 +33,6 @@
 
 import iris
 import numpy as np
-
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin

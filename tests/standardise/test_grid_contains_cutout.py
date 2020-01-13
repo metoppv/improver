@@ -31,11 +31,13 @@
 """Unit tests for grid_contains_cutout"""
 
 import unittest
+
 import numpy as np
 
 from improver.standardise import grid_contains_cutout
-from ..set_up_test_cubes import set_up_variable_cube
 from improver.utilities.spatial import calculate_grid_spacing
+
+from ..set_up_test_cubes import set_up_variable_cube
 
 
 class Test_grid_contains_cutout(unittest.TestCase):

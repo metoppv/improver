@@ -31,7 +31,7 @@
 """Unit tests for utilities.cli_utilities."""
 
 import unittest
-from unittest.mock import patch, mock_open
+from unittest.mock import mock_open, patch
 
 from improver.utilities.cli_utilities import load_json_or_none
 

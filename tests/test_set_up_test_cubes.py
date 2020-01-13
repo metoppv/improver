@@ -43,10 +43,11 @@ from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
 from improver.metadata.constants.time_types import (
     TIME_REFERENCE_DTYPE, TIME_REFERENCE_UNIT)
 from improver.metadata.probabilistic import find_threshold_coordinate
-from .set_up_test_cubes import (
-    construct_xy_coords, construct_scalar_time_coords, set_up_variable_cube,
-    set_up_percentile_cube, set_up_probability_cube, add_coordinate)
 from improver.utilities.temporal import iris_time_to_datetime
+
+from .set_up_test_cubes import (
+    add_coordinate, construct_scalar_time_coords, construct_xy_coords,
+    set_up_percentile_cube, set_up_probability_cube, set_up_variable_cube)
 
 
 class test_construct_xy_coords(IrisTest):

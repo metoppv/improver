@@ -39,9 +39,10 @@ import numpy as np
 from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
-from improver.blending.weights import ChooseDefaultWeightsNonLinear \
-    as NonLinearWeights
-from ...set_up_test_cubes import set_up_variable_cube, add_coordinate
+from improver.blending.weights import \
+    ChooseDefaultWeightsNonLinear as NonLinearWeights
+
+from ...set_up_test_cubes import add_coordinate, set_up_variable_cube
 
 
 class Test__init__(IrisTest):

@@ -32,7 +32,7 @@
 
 import iris
 import numpy as np
-from iris.coords import DimCoord, AuxCoord
+from iris.coords import AuxCoord, DimCoord
 
 
 def build_spotdata_cube(data, name, units,

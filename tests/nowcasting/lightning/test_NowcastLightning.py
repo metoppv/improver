@@ -37,14 +37,15 @@ from datetime import datetime as dt
 import numpy as np
 from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
-from iris.exceptions import CoordinateNotFoundError, ConstraintMismatchError
+from iris.exceptions import ConstraintMismatchError, CoordinateNotFoundError
 from iris.tests import IrisTest
 from iris.util import squeeze
 
-from improver.nowcasting.lightning import NowcastLightning as Plugin
 from improver.metadata.probabilistic import find_threshold_coordinate
-from ...set_up_test_cubes import (set_up_variable_cube, set_up_probability_cube)
+from improver.nowcasting.lightning import NowcastLightning as Plugin
 from improver.utilities.cube_checker import find_dimension_coordinate_mismatch
+
+from ...set_up_test_cubes import set_up_probability_cube, set_up_variable_cube
 
 
 def set_up_lightning_test_cubes(validity_time=dt(2015, 11, 23, 7),

@@ -40,12 +40,13 @@ import iris
 import numpy as np
 from iris.tests import IrisTest
 
-from improver.ensemble_calibration.ensemble_calibration import (
-    ContinuousRankedProbabilityScoreMinimisers as Plugin)
+from improver.ensemble_calibration.ensemble_calibration import \
+    ContinuousRankedProbabilityScoreMinimisers as Plugin
 from improver.ensemble_calibration.ensemble_calibration_utilities import (
     convert_cube_data_to_2d)
-from .helper_functions import EnsembleCalibrationAssertions, SetupCubes
 from improver.utilities.warnings_handler import ManageWarnings
+
+from .helper_functions import EnsembleCalibrationAssertions, SetupCubes
 
 
 class Test__repr__(IrisTest):

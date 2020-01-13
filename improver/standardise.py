@@ -32,10 +32,10 @@
 """Plugin to regrid cube data and standardise metadata"""
 
 import warnings
-import numpy as np
 
 import iris
-from iris.analysis import Nearest, Linear
+import numpy as np
+from iris.analysis import Linear, Nearest
 from iris.exceptions import CoordinateNotFoundError
 from scipy.interpolate import griddata
 
@@ -46,8 +46,8 @@ from improver.metadata.check_datatypes import (
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
 from improver.metadata.constants.time_types import (
-    TIME_COORD_NAMES, TIME_REFERENCE_DTYPE, TIME_REFERENCE_UNIT,
-    TIME_INTERVAL_DTYPE, TIME_INTERVAL_UNIT)
+    TIME_COORD_NAMES, TIME_INTERVAL_DTYPE, TIME_INTERVAL_UNIT,
+    TIME_REFERENCE_DTYPE, TIME_REFERENCE_UNIT)
 from improver.threshold import BasicThreshold
 from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.spatial import OccurrenceWithinVicinity

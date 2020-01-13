@@ -33,8 +33,8 @@
 import pytest
 
 from improver.utilities.compare import LOOSE_TOLERANCE
-from . import acceptance as acc
 
+from . import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
