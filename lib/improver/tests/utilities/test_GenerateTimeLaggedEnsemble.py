@@ -41,17 +41,6 @@ from improver.tests.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.time_lagging import GenerateTimeLaggedEnsemble
 
 
-class Test__repr__(IrisTest):
-
-    """Test the repr method."""
-
-    def test_basic(self):
-        """Test that the __repr__ returns the expected string."""
-        result = str(GenerateTimeLaggedEnsemble(cycletime="20180501T0300Z"))
-        msg = '<GenerateTimeLaggedEnsemble: cycletime: 20180501T0300Z>'
-        self.assertEqual(result, msg)
-
-
 class Test_process(IrisTest):
 
     """Test interpolation of cubes to intermediate times using the plugin."""
@@ -94,24 +83,6 @@ class Test_process(IrisTest):
             result.coord("forecast_period").points, self.expected_fp)
         self.assertArrayAlmostEqual(
             result.coord("forecast_reference_time").points, self.expected_frt)
-        self.assertArrayAlmostEqual(
-            result.coord("realization").points, expected_realizations)
-        self.assertEqual(
-            result.coord("realization").dtype, np.int32)
-
-    def test_cycletime(self):
-        """Test that the expected metadata is correct with a different
-           cycletime (2 hours later)"""
-        result = GenerateTimeLaggedEnsemble("20151123T0600Z").process(
-            self.input_cubelist)
-        expected_forecast_period = self.expected_fp - 2*3600
-        expected_forecast_ref_time = self.expected_frt + 2*3600
-        expected_realizations = [0, 1, 2, 3, 4, 5]
-        self.assertArrayAlmostEqual(
-            result.coord("forecast_period").points, expected_forecast_period)
-        self.assertArrayAlmostEqual(
-            result.coord("forecast_reference_time").points,
-            expected_forecast_ref_time)
         self.assertArrayAlmostEqual(
             result.coord("realization").points, expected_realizations)
         self.assertEqual(

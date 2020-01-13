@@ -49,7 +49,8 @@ def test_basic(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, output_path]
+    args = [input_path,
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -59,36 +60,7 @@ def test_no_change(tmp_path):
     kgo_dir = acc.kgo_root() / "update-grid-metadata/basic"
     kgo_path = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"
-    args = [kgo_path, output_path]
+    args = [kgo_path,
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
-
-
-def test_file_not_updated(tmp_path):
-    """Test no change situation not writing to file"""
-    # TODO: this test is based on modification time reported by the filesystem
-    # resolution will vary on different filesystems and may cause test to fail
-    kgo_dir = acc.kgo_root() / "update-grid-metadata/basic"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_path = tmp_path / "input.nc"
-    shutil.copy(kgo_path, input_path)
-    before_mtime = input_path.stat().st_mtime
-    args = [input_path, input_path]
-    run_cli(args)
-    after_mtime = input_path.stat().st_mtime
-    assert after_mtime == before_mtime
-
-
-def test_basic_file_updated(tmp_path):
-    """Test basic updating causes new file modification time"""
-    # TODO: this test is based on modification time reported by the filesystem
-    # resolution will vary on different filesystems and may cause test to fail
-    kgo_dir = acc.kgo_root() / "update-grid-metadata/basic"
-    orig_input_path = kgo_dir / "input.nc"
-    input_path = tmp_path / "input.nc"
-    shutil.copy(orig_input_path, input_path)
-    before_mtime = input_path.stat().st_mtime
-    args = [input_path, input_path]
-    run_cli(args)
-    after_mtime = input_path.stat().st_mtime
-    assert after_mtime > before_mtime

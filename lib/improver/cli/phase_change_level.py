@@ -31,100 +31,49 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to calculate continuous phase change level."""
 
-from improver.argparser import ArgParser
-
-from improver.psychrometric_calculations.psychrometric_calculations import (
-    PhaseChangeLevel)
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
+from improver import cli
 
 
-def main(argv=None):
-    """Load in arguments and get going."""
-    parser = ArgParser(
-        description="Calculate a continuous phase change level. This is an "
-        "altitude at which precipitation is expected to change phase, "
-        "e.g. snow to sleet.")
-    parser.add_argument("phase_change",
-                        metavar="PHASE_CHANGE", type=str,
-                        help="The desired phase change for which the altitude"
-                        "should be returned. Options are: 'snow-sleet', the "
-                        "melting of snow to sleet; sleet-rain - the melting of"
-                        " sleet to rain.")
-    parser.add_argument("wet_bulb_temperature", metavar="WBT",
-                        help="Path to a NetCDF file of wet bulb temperatures "
-                        "on height levels.")
-    parser.add_argument("wet_bulb_integral", metavar="WBTI",
-                        help="Path to a NetCDF file of wet bulb temperature "
-                        "integrals calculated vertically downwards to height "
-                        "levels.")
-    parser.add_argument("orography", metavar="OROGRAPHY",
-                        help="Path to a NetCDF file containing "
-                        "the orography height in m of the terrain "
-                        "over which the continuous phase change level is "
-                        "being calculated.")
-    parser.add_argument("land_sea_mask", metavar="LAND_SEA_MASK",
-                        help="Path to a NetCDF file containing "
-                        "the binary land-sea mask for the points "
-                        "for which the continuous phase change level is "
-                        "being calculated. Land points are set to 1, sea "
-                        "points are set to 0.")
-    parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
-                        help="The output path for the processed NetCDF")
+@cli.clizefy
+@cli.with_output
+def process(wet_bulb_temperature: cli.inputcube,
+            wet_bulb_integral: cli.inputcube,
+            orography: cli.inputcube,
+            land_sea_mask: cli.inputcube,
+            *,
+            phase_change):
+    """Height of precipitation phase change relative to sea level.
 
-    args = parser.parse_args(args=argv)
-
-    # Load Cubes
-    wet_bulb_temperature = load_cube(args.wet_bulb_temperature,
-                                     no_lazy_load=True)
-    wet_bulb_integral = load_cube(args.wet_bulb_integral, no_lazy_load=True)
-    orog = load_cube(args.orography, no_lazy_load=True)
-    land_sea = load_cube(args.land_sea_mask, no_lazy_load=True)
-
-    # Process Cube
-    result = process(args.phase_change, wet_bulb_temperature,
-                     wet_bulb_integral, orog, land_sea)
-
-    # Save Cube
-    save_netcdf(result, args.output_filepath)
-
-
-def process(phase_change, wet_bulb_temperature, wet_bulb_integral, orog,
-            land_sea):
-    """Calculate a continuous field of heights relative to sea level
-    at which a phase change of precipitation is expected.
-
-    This is achieved by finding the height above sea level at which the
-    integral of wet bulb temperature matches an empirical threshold that is
-    expected to correspond with the phase change.
+    Calculated as a continuous 2D field by finding the height above sea level
+    at which the integral of wet bulb temperature matches an empirical
+    threshold that is expected to correspond with the phase change.
 
     Args:
+        wet_bulb_temperature (iris.cube.Cube):
+            Cube of wet bulb temperatures on height levels.
+        wet_bulb_integral (iris.cube.Cube):
+            Cube of wet bulb temperature integrals calculated vertically
+            downwards to height levels.
+        orography (iris.cube.Cube):
+            Cube of the orography height in m.
+        land_sea_mask (iris.cube.Cube):
+            Cube containing the binary land-sea mask. Land points are set to 1,
+            sea points are set to 0.
         phase_change (str):
             The desired phase change for which the altitude should be
             returned. Options are:
 
                 snow-sleet - the melting of snow to sleet.
                 sleet-rain - the melting of sleet to rain.
-        wet_bulb_temperature (iris.cube.Cube):
-            Cube of wet bulb temperatures on height levels.
-        wet_bulb_integral (iris.cube.Cube):
-            Cube of wet bulb temperature integrals calculated vertically
-            downwards to height levels.
-        orog (iris.cube.Cube):
-            Cube of the orography height in m.
-        land_sea (iris.cube.Cube):
-            Cube containing the binary land-sea mask. Land points are set to 1,
-            sea points are set to 0.
 
     Returns:
         iris.cube.Cube:
             Processed Cube of phase change altitude relative to sea level.
     """
+    from improver.psychrometric_calculations.psychrometric_calculations \
+        import PhaseChangeLevel
+
     result = PhaseChangeLevel(
         phase_change=phase_change).process(
-            wet_bulb_temperature, wet_bulb_integral, orog, land_sea)
+            wet_bulb_temperature, wet_bulb_integral, orography, land_sea_mask)
     return result
-
-
-if __name__ == "__main__":
-    main()

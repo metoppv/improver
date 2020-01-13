@@ -31,67 +31,34 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to apply lapse rates to temperature data."""
 
-from improver.argparser import ArgParser
-from improver.lapse_rate import apply_gridded_lapse_rate
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
+from improver import cli
 
 
-def main(argv=None):
-    """Apply lapse rates to temperature data."""
-    parser = ArgParser(description='Apply downscaling temperature adjustment '
-                       'using calculated lapse rate.')
-
-    parser.add_argument('temperature_filepath', metavar='TEMPERATURE_FILEPATH',
-                        help='Full path to input temperature NetCDF file')
-    parser.add_argument('lapse_rate_filepath', metavar='LAPSE_RATE_FILEPATH',
-                        help='Full path to input lapse rate NetCDF file')
-    parser.add_argument('source_orography', metavar='SOURCE_OROG_FILE',
-                        help='Full path to NetCDF file containing the source '
-                        'model orography')
-    parser.add_argument('target_orography', metavar='TARGET_OROG_FILE',
-                        help='Full path to target orography NetCDF file '
-                        '(to which temperature will be downscaled)')
-    parser.add_argument('output_file', metavar='OUTPUT_FILE', help='File name '
-                        'to write lapse rate adjusted temperature data')
-
-    args = parser.parse_args(args=argv)
-
-    # Load cubes
-    temperature = load_cube(args.temperature_filepath)
-    lapse_rate = load_cube(args.lapse_rate_filepath)
-    source_orog = load_cube(args.source_orography)
-    target_orog = load_cube(args.target_orography)
-
-    # Process Cubes
-    adjusted_temperature = process(temperature, lapse_rate, source_orog,
-                                   target_orog)
-    # Save to Cube
-    save_netcdf(adjusted_temperature, args.output_file)
-
-
-def process(temperature, lapse_rate, source_orog, target_orog):
-    """ Apply downscaling temperature adjustment using calculated lapse rate.
+@cli.clizefy
+@cli.with_output
+def process(temperature: cli.inputcube,
+            lapse_rate: cli.inputcube,
+            source_orography: cli.inputcube,
+            target_orography: cli.inputcube):
+    """Apply downscaling temperature adjustment using calculated lapse rate.
 
     Args:
         temperature (iris.cube.Cube):
-            Input temperature Cube.
+            Input temperature cube.
         lapse_rate (iris.cube.Cube):
-            Lapse rate Cube.
-        source_orog (iris.cube.Cube):
+            Lapse rate cube.
+        source_orography (iris.cube.Cube):
             Source model orography.
-        target_orog (iris.cube.Cube):
+        target_orography (iris.cube.Cube):
             Target orography to which temperature will be downscaled.
 
     Returns:
         iris.cube.Cube:
-            Cube after lapse rate has been applied to temperature data.
+            Temperature cube after lapse rate adjustment has been applied.
     """
+    from improver.lapse_rate import apply_gridded_lapse_rate
+
     # apply lapse rate to temperature data
     result = apply_gridded_lapse_rate(
-        temperature, lapse_rate, source_orog, target_orog)
+        temperature, lapse_rate, source_orography, target_orography)
     return result
-
-
-if __name__ == "__main__":
-    main()
