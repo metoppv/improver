@@ -34,7 +34,7 @@ Tests for the orographic-enhancement CLI
 
 import pytest
 
-from tests.acceptance import LOOSE_TOLERANCE
+from improver.utilities.compare import LOOSE_TOLERANCE
 from tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]

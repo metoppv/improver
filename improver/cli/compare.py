@@ -31,15 +31,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to compare netcdf files"""
 
-from tests import acceptance as acc
-from improver import cli
 
+from improver import cli
+from improver.utilities.compare import DEFAULT_TOLERANCE
 
 @cli.clizefy
 def process(actual: cli.inputpath,
             desired: cli.inputpath,
-            rtol: float = acc.DEFAULT_TOLERANCE,
-            atol: float = acc.DEFAULT_TOLERANCE) -> None:
+            rtol: float = DEFAULT_TOLERANCE,
+            atol: float = DEFAULT_TOLERANCE) -> None:
     """
     Compare two netcdf files
 

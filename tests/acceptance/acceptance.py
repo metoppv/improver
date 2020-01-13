@@ -38,8 +38,7 @@ import shutil
 import pytest
 
 from improver import cli
-from tests.acceptance import DEFAULT_TOLERANCE
-from improver.utilities.compare import compare_netcdfs
+from improver.utilities.compare import compare_netcdfs, DEFAULT_TOLERANCE
 
 
 def run_cli(cli_name, verbose=True):

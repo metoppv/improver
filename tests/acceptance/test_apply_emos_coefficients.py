@@ -32,7 +32,7 @@
 
 import pytest
 
-from tests.acceptance import LOOSE_TOLERANCE
+from improver.utilities.compare import LOOSE_TOLERANCE
 from tests.acceptance import acceptance as acc
 
 
