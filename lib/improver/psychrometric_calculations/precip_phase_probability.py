@@ -30,9 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for calculating the probability of specific precipitation phases."""
 
+import operator
 import iris
 import numpy as np
-import operator
 from cf_units import Unit
 
 from improver import BasePlugin
