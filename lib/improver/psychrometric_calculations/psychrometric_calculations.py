@@ -35,7 +35,6 @@ import warnings
 import iris
 import numpy as np
 from cf_units import Unit
-from iris.exceptions import CoordinateNotFoundError
 from scipy.interpolate import griddata
 from scipy.spatial.qhull import QhullError
 from scipy.stats import linregress
@@ -177,7 +176,8 @@ class WetBulbTemperature(BasePlugin):
                        consts.LH_CONDENSATION_WATER)
         return latent_heat
 
-    def _calculate_mixing_ratio(self, temperature, pressure):
+    @staticmethod
+    def _calculate_mixing_ratio(temperature, pressure):
         """Function to compute the mixing ratio given temperature and pressure.
 
         Args:

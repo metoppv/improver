@@ -37,10 +37,10 @@ from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
     _svp_from_lookup, calculate_svp_in_air)
-from improver.tests.set_up_test_cubes import set_up_variable_cube
 
 
 class Test_calculate_svp_in_air(IrisTest):
+    """Test the calculate_svp_in_air function"""
 
     def setUp(self):
         """Set up test data"""
