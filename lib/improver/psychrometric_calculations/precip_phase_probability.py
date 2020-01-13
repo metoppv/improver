@@ -37,7 +37,8 @@ from cf_units import Unit
 
 from improver import BasePlugin
 from improver.nbhood.nbhood import GeneratePercentilesFromANeighbourhood
-from improver.metadata.utilities import create_new_diagnostic_cube
+from improver.metadata.utilities import (
+    create_new_diagnostic_cube, generate_mandatory_attributes)
 from improver.utilities.cube_checker import spatial_coords_match
 
 
@@ -166,8 +167,8 @@ class ProbPhase(BasePlugin):
                 self.orography_cube.data,
                 processed_falling_level.data),
             1, 0).astype('float32')
-        mandatory_attributes = {key: self.falling_level_cube.attributes[key]
-                                for key in ['title', 'institution', 'source']}
+        mandatory_attributes = generate_mandatory_attributes(
+            [self.falling_level_cube])
 
         cube = create_new_diagnostic_cube(
             f'probability_of_{self.param}_at_surface',
