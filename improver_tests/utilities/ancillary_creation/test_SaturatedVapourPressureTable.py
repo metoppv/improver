@@ -53,6 +53,20 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
+class Test_saturation_vapour_pressure_goff_gratch(IrisTest):
+
+    """Test calculations of the saturated vapour pressure using the Goff-Gratch
+    method."""
+
+    def test_basic(self):
+        """Basic calculation of some saturated vapour pressures."""
+        data = np.array([[260., 270., 280.]], dtype=np.float32)
+        plugin = SaturatedVapourPressureTable()
+        result = plugin.saturation_vapour_pressure_goff_gratch(data)
+        expected = 0.01*np.array([[195.6419, 469.67078, 990.9421]])
+        self.assertArrayAlmostEqual(result, expected)
+
+
 class Test_process(IrisTest):
 
     """Test that the plugin functions as expected."""
