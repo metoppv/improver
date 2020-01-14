@@ -43,7 +43,7 @@ from improver.utilities.cube_checker import check_cube_coordinates
 
 
 def collapsed(cube, *args, **kwargs):
-    """
+    """Collapses the cube with given arguments but doesn't keep the cell method
 
     Args:
         cube (iris.cube.Cube):
@@ -53,7 +53,7 @@ def collapsed(cube, *args, **kwargs):
 
     Returns:
         (iris.cube.Cube)
-
+            A collapsed cube without the new cell_method.
     """
     original_methods = cube.cell_methods
     new_cube = cube.collapsed(*args, **kwargs)
