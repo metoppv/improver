@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """ Provides support utilities for cube manipulation."""
 
-import operator
 import warnings
 
 import iris
@@ -42,6 +41,24 @@ from improver import BasePlugin
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.cube_checker import check_cube_coordinates
 
+
+def collapsed(cube, *args, **kwargs):
+    """
+
+    Args:
+        cube (iris.cube.Cube):
+            A Cube to be collapsed.
+        *args:
+        **kwargs:
+
+    Returns:
+        (iris.cube.Cube)
+
+    """
+    original_methods = cube.cell_methods
+    new_cube = cube.collapsed(*args, **kwargs)
+    new_cube.cell_methods = original_methods
+    return new_cube
 
 def equalise_cube_attributes(cubes, silent=None):
     """
