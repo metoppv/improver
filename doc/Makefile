@@ -32,7 +32,7 @@ clean:
 
 .PHONY: apidoc
 apidoc:
-	sphinx-apidoc -e -P -f -o source ../improver ../tests
+	sphinx-apidoc -e -P -f -o source ../improver ../improver_tests
 
 .PHONY: html
 html:

@@ -16,7 +16,7 @@ jobs:
         $CONDA/bin/conda list --export
 
     - name: Pycodestyle (PEP8 conventions)
-      run:  $CONDA/bin/pycodestyle -v improver tests
+      run:  $CONDA/bin/pycodestyle -v improver improver_tests
 
     - name: Sphinx-build (Doc test)
       run: cd doc; make SPHINXBUILD=$CONDA/bin/sphinx-build html
@@ -25,4 +25,4 @@ jobs:
       run:  $CONDA/bin/pytest -m "not acc"
 
     - name: Pylint (More linting goodness)
-      run: $CONDA/bin/pylint -j 0 -E --rcfile=etc/pylintrc improver tests
+      run: $CONDA/bin/pylint -j 0 -E --rcfile=etc/pylintrc improver improver_tests

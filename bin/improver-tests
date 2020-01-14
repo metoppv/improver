@@ -267,7 +267,7 @@ fi
 
 # If cli sub test is not specified by user, do all cli tests.
 # Otherwise set CLISUBTEST to the sub test to run.
-CLISUBTEST="$IMPROVER_DIR/tests/"
+CLISUBTEST="$IMPROVER_DIR/improver_tests/"
 STRIPPED_TEST="$(echo -e "${TESTS}" | tr -d '[:space:]')"
 if [[ $STRIPPED_TEST == "cli" ]]; then
     if [[ -n "$SUBCLI" ]]; then
