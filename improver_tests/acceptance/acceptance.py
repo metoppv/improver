@@ -55,10 +55,7 @@ def run_cli(cli_name, verbose=True):
         Callable([Iterable[str], None]): function to run the specified CLI
     """
     def run_function(args):
-        cli_args = ["improver", cli_name, *args]
-        if verbose:
-            cli_args.insert(1, "--verbose")
-        cli.run_main(cli_args)
+        cli.main("improver", cli_name, *args, verbose=verbose)
     return run_function
 
 
