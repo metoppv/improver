@@ -126,12 +126,12 @@ function improver_test_pycodestyle {
 
 function improver_test_pylint {
     # Pylint score generation.
-    ${PYLINT:-pylint} --rcfile=../etc/pylintrc $FILES_TO_TEST
+    ${PYLINT:-pylint} --rcfile=etc/pylintrc $FILES_TO_TEST
 }
 
 function improver_test_pylintE {
     # Pylint obvious-errors-only testing.
-    ${PYLINT:-pylint} -E --rcfile=../etc/pylintrc $FILES_TO_TEST
+    ${PYLINT:-pylint} -E --rcfile=etc/pylintrc $FILES_TO_TEST
     echo_ok "pylint -E"
 }
 
@@ -214,11 +214,10 @@ if [[ -f "${IMPROVER_SITE_INIT:=$IMPROVER_DIR/etc/site-init}" ]]; then
     . "$IMPROVER_SITE_INIT"
 fi
 
-export PYTHONPATH="$IMPROVER_DIR/lib:${PYTHONPATH:-}"
+export PYTHONPATH="$IMPROVER_DIR/:${PYTHONPATH:-}"
 
 TEST_INPUT_PWD=$(cd $PWD && pwd -P)
-cd $IMPROVER_DIR/lib
-#cd $IMPROVER_DIR
+cd $IMPROVER_DIR/
 
 # Find cli test options and format to work with case statement
 shopt -s extglob
@@ -268,7 +267,7 @@ fi
 
 # If cli sub test is not specified by user, do all cli tests.
 # Otherwise set CLISUBTEST to the sub test to run.
-CLISUBTEST="$IMPROVER_DIR/tests/"
+CLISUBTEST="$IMPROVER_DIR/improver_tests/"
 STRIPPED_TEST="$(echo -e "${TESTS}" | tr -d '[:space:]')"
 if [[ $STRIPPED_TEST == "cli" ]]; then
     if [[ -n "$SUBCLI" ]]; then
