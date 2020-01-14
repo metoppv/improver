@@ -39,6 +39,7 @@ from improver.blending.weights import WeightsUtilities
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.cube_checker import (
     check_cube_coordinates, find_dimension_coordinate_mismatch)
+from improver.utilities.cube_manipulation import collapsed
 
 
 class ApplyNeighbourhoodProcessingWithAMask(BasePlugin):
@@ -402,8 +403,10 @@ class CollapseMaskedNeighbourhoodCoordinate(BasePlugin):
         # Loop over any extra dimensions
         cubelist = iris.cube.CubeList([])
         for slice_3d in cube.slices([self.coord_masked, yname, xname]):
-            collapsed_slice = slice_3d.collapsed(
-                self.coord_masked, iris.analysis.MEAN, weights=weights)
+
+            collapsed_slice = collapsed(slice_3d, self.coord_masked,
+                                        iris.analysis.MEAN, weights=weights)
+
             cubelist.append(collapsed_slice)
         result = cubelist.merge_cube()
         # Promote any scalar coordinates with one point back to dimension

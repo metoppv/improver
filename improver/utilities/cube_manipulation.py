@@ -60,6 +60,7 @@ def collapsed(cube, *args, **kwargs):
     new_cube.cell_methods = original_methods
     return new_cube
 
+
 def equalise_cube_attributes(cubes, silent=None):
     """
     Function to remove attributes that do not match between all cubes in the
