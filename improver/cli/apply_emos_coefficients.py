@@ -210,7 +210,7 @@ def process(cube: cli.inputcube,
 
     # Apply coefficients as part of Ensemble Model Output Statistics (EMOS).
     ac = ApplyCoefficientsFromEnsembleCalibration(
-        predictor_of_mean_flag=predictor_of_mean)
+        predictor=predictor_of_mean)
     calibrated_predictor, calibrated_variance = ac.process(
         current_forecast, coefficients, landsea_mask=land_sea_mask)
 
@@ -232,7 +232,7 @@ def process(cube: cli.inputcube,
             distribution=distribution,
             shape_parameters=shape_parameters).process(
             calibrated_predictor, calibrated_variance,
-            percentiles=perc_coord.points)
+            original_current_forecast, percentiles=perc_coord.points)
     elif input_forecast_type == "realizations":
         # Ensemble Copula Coupling to generate realizations
         # from mean and variance.
@@ -240,7 +240,7 @@ def process(cube: cli.inputcube,
             distribution=distribution,
             shape_parameters=shape_parameters).process(
             calibrated_predictor, calibrated_variance,
-            no_of_percentiles=realizations_count)
+            original_current_forecast, no_of_percentiles=realizations_count)
         result = EnsembleReordering().process(
             percentiles, current_forecast,
             random_ordering=randomise, random_seed=random_seed)
