@@ -61,11 +61,6 @@ class Test_enforce_coordinate_ordering(IrisTest):
             cube, time_points, "time", coord_units=TIME_REFERENCE_UNIT,
             dtype=np.int64, order=[1, 0, 2, 3])
 
-    def test_basic(self):
-        """Test that the function returns an iris.cube.Cube."""
-        enforce_coordinate_ordering(self.cube, "realization")
-        self.assertIsInstance(self.cube, Cube)
-
     def test_move_coordinate_to_start_when_already_at_start(self):
         """Test that a cube with the expected data contents is returned when
         the coordinate to be reordered is already in the desired position."""
