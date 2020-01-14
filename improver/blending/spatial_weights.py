@@ -241,7 +241,8 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 output cube.
         """
         summed_weights = collapsed(weights_cube,
-            blend_coord, iris.analysis.SUM)
+                                   blend_coord,
+                                   iris.analysis.SUM)
 
         result = iris.cube.CubeList()
         # Slice over blend_coord so the dimensions match.

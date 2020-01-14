@@ -41,7 +41,7 @@ def process(cube: cli.inputcube,
             *,
             constraints: parameters.multi(min=1),
             units: cli.comma_separated_list = None,
-            ignore_failure=False):
+            ignore_failure = False):
     """ Extract a subset of a single cube.
 
     Extracts subset of data from a single cube, subject to equality-based

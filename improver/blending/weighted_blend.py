@@ -667,11 +667,10 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
             'mean',  # Use CF-compliant cell method.
             PercentileBlendingAggregator.aggregate))
 
-        cube_new = collapsed(cube, self.blend_coord,
-                                  PERCENTILE_BLEND,
-                                  arr_percent=percentiles,
-                                  arr_weights=weights_array,
-                                  perc_dim=perc_dim)
+        cube_new = collapsed(cube, self.blend_coord, PERCENTILE_BLEND,
+                             arr_percent=percentiles,
+                             arr_weights=weights_array,
+                             perc_dim=perc_dim)
 
         cube_new.data = cube_new.data.astype(np.float32)
         # Ensure collapsed coordinates do not promote themselves
