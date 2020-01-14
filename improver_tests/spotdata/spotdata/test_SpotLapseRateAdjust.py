@@ -219,13 +219,13 @@ class Test_process(Test_SpotLapseRateAdjust):
         plugin = SpotLapseRateAdjust()
         expected = np.array(
             [280 + (2 * DALR), 270, 280 - DALR]).astype(np.float32)
-        lapse_rate_cube = enforce_coordinate_ordering(
+        enforce_coordinate_ordering(
             self.lapse_rate_cube, ['projection_x_coordinate',
                                    'projection_y_coordinate'])
 
         result = plugin.process(self.spot_temperature_nearest,
                                 self.neighbour_cube,
-                                lapse_rate_cube)
+                                self.lapse_rate_cube)
         self.assertArrayEqual(result.data, expected)
 
 
