@@ -31,7 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to convert from probabilities to ensemble realization data."""
 
-
 from improver import cli
 
 

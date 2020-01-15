@@ -129,7 +129,7 @@ def flatten_ignoring_masked_data(data_array, preserve_leading_dimension=False):
 
 def check_predictor(predictor):
     """
-    Check the predictor_flag at the start of the process methods in relevant
+    Check the predictor at the start of the process methods in relevant
     ensemble calibration plugins, to avoid having to check and raise an error
     later.
 
