@@ -43,7 +43,7 @@ from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.utilities.mathematical_operations import Integration
 
 
-def set_up_height_cube(height_points, ascending=True):
+def _set_up_height_cube(height_points, ascending=True):
     """Create cube of temperatures decreasing with height"""
     data = 280*np.ones((3, 3, 3), dtype=np.float32)
     data[1, :] = 278
@@ -53,10 +53,12 @@ def set_up_height_cube(height_points, ascending=True):
     height_points = np.sort(height_points)
     cube = add_coordinate(
         cube, height_points, "height", coord_units="m")
+    cube.coord("height").attributes["positive"] = "up"
     cube.data = data.astype(np.float32)
 
     if not ascending:
         cube = sort_coord_in_cube(cube, "height", order="descending")
+        cube.coord("height").attributes["positive"] = "down"
 
     return cube
 
@@ -96,10 +98,10 @@ class Test_ensure_monotonic_increase_in_chosen_direction(IrisTest):
     def setUp(self):
         """Set up the cube."""
         self.ascending_height_points = np.array([5., 10., 20.])
-        self.ascending_cube = set_up_height_cube(
+        self.ascending_cube = _set_up_height_cube(
             self.ascending_height_points)
         self.descending_height_points = np.array([20., 10., 5.])
-        self.descending_cube = set_up_height_cube(
+        self.descending_cube = _set_up_height_cube(
             self.descending_height_points, ascending=False)
 
     def test_ascending_coordinate_positive(self):
@@ -170,7 +172,7 @@ class Test_prepare_for_integration(IrisTest):
     def setUp(self):
         """Set up the cube."""
         self.height_points = np.array([5., 10., 20.])
-        self.cube = set_up_height_cube(self.height_points)
+        self.cube = _set_up_height_cube(self.height_points)
 
     def test_basic(self):
         """Test that the type of the returned value is as expected and the
@@ -225,7 +227,7 @@ class Test_perform_integration(IrisTest):
         direction and another set of cubes for integrating in the negative
         direction."""
         self.height_points = np.array([5., 10., 20.])
-        cube = set_up_height_cube(self.height_points)
+        cube = _set_up_height_cube(self.height_points)
 
         data = np.zeros(cube.shape)
         data[0] = np.ones(cube[0].shape, dtype=np.int32)
@@ -523,7 +525,7 @@ class Test_process(IrisTest):
     def setUp(self):
         """Set up the cube."""
         self.height_points = np.array([5., 10., 20.])
-        cube = set_up_height_cube(self.height_points)
+        cube = _set_up_height_cube(self.height_points)
         data = np.zeros(cube.shape)
         data[0] = np.ones(cube[0].shape, dtype=np.int32)
         data[1] = np.full(cube[1].shape, 2, dtype=np.int32)
