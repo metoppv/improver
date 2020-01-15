@@ -40,6 +40,9 @@ import pytest
 from improver import cli
 from improver.utilities.compare import DEFAULT_TOLERANCE, compare_netcdfs
 
+RECREATE_DIR = "RECREATE_KGO"
+ACC_TEST_DIR = "IMPROVER_ACC_TEST_DIR"
+
 
 def run_cli(cli_name, verbose=True):
     """
@@ -78,13 +81,13 @@ def cli_name_with_dashes(dunder_file):
 
 def kgo_recreate():
     """True if KGO should be re-created"""
-    return "RECREATE_KGO" in os.environ
+    return RECREATE_DIR in os.environ
 
 
 def kgo_root():
     """Path to the root of the KGO directories"""
     try:
-        test_dir = os.environ["IMPROVER_ACC_TEST_DIR"]
+        test_dir = os.environ[ACC_TEST_DIR]
     except KeyError:
         pytest.skip()
         return pathlib.Path("/")
@@ -93,7 +96,7 @@ def kgo_root():
 
 def kgo_exists():
     """True if KGO files exist"""
-    return "IMPROVER_ACC_TEST_DIR" in os.environ
+    return ACC_TEST_DIR in os.environ
 
 
 def recreate_if_needed(output_path, kgo_path):
@@ -102,20 +105,28 @@ def recreate_if_needed(output_path, kgo_path):
 
     Args:
         output_path (pathlib.Path): Path to output produced by test
-        kgo_path (pathlib.Path): Path to KGO file
+        kgo_path (pathlib.Path): Path to expected/original KGO file
 
     Returns:
-        None
+        pathlib.Path: Path to re-created KGO file
     """
     if not kgo_recreate():
         return
     if not kgo_path.is_absolute():
         raise IOError("KGO path is not absolute")
-    if kgo_root() not in kgo_path.parents:
+    kgo_root_dir = kgo_root()
+    recreate_dir = os.environ[RECREATE_DIR]
+    if kgo_root_dir not in kgo_path.parents:
         raise IOError("Provided KGO path is not within KGO root directory")
+    kgo_relative = kgo_path.relative_to(kgo_root_dir)
+    recreate_path = recreate_dir / kgo_relative
+    print(f"Recreating KGO originally at {kgo_path}")
     kgo_path.parent.mkdir(exist_ok=True)
-    shutil.copyfile(str(output_path), str(kgo_path))
-    return
+    if recreate_path.exists():
+        recreate_path.unlink()
+    shutil.copyfile(str(output_path), str(recreate_path))
+    print(f"Updated KGO file is {recreate_path}")
+    return recreate_path
 
 
 def statsmodels_available():
@@ -146,8 +157,6 @@ def compare(output_path, kgo_path, recreate=True,
     __tracebackhide__ = True  # pylint: disable=unused-variable
     assert output_path.is_absolute()
     assert kgo_path.is_absolute()
-    if recreate:
-        recreate_if_needed(output_path, kgo_path)
     if not isinstance(atol, (int, float)):
         raise ValueError("atol")
     if not isinstance(rtol, (int, float)):
@@ -165,6 +174,8 @@ def compare(output_path, kgo_path, recreate=True,
     compare_netcdfs(output_path, kgo_path, atol=atol, rtol=rtol,
                     exclude_vars=exclude_vars, reporter=message_recorder)
     if difference_found:
+        if recreate:
+            recreate_if_needed(output_path, kgo_path)
         raise AssertionError(message)
 
 
