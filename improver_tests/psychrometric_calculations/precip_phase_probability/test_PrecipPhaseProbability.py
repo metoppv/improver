@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for psychrometric_calculations ProbPrase plugin."""
+"""Unit tests for psychrometric_calculations PrecipPhaseProbability plugin."""
 
 import unittest
 
@@ -38,7 +38,7 @@ import iris
 from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.precip_phase_probability import (
-    ProbPhase)
+    PrecipPhaseProbability)
 from improver.nbhood.nbhood import GeneratePercentilesFromANeighbourhood
 
 from improver_tests.set_up_test_cubes import set_up_variable_cube
@@ -51,7 +51,7 @@ class Test__init__(IrisTest):
     def test_basic(self):
         """Test that the __init__ method configures the plugin as expected."""
 
-        plugin = ProbPhase()
+        plugin = PrecipPhaseProbability()
         self.assertTrue(plugin.percentile_plugin is
                         GeneratePercentilesFromANeighbourhood)
         self.assertEqual(plugin._nbhood_shape, 'circular')
@@ -69,7 +69,7 @@ class Test_process(IrisTest):
         20th percentile is <= zero and the 80th percentile is >= zero."""
 
         # cubes for testing have a grid-length of 333333m.
-        self.plugin = ProbPhase(radius=350000.)
+        self.plugin = PrecipPhaseProbability(radius=350000.)
         self.mandatory_attributes = {
             'title': 'mandatory title',
             'source': 'mandatory_source',
@@ -115,7 +115,6 @@ class Test_process(IrisTest):
     def test_prob_rain(self):
         """Test that process returns a cube with the right name, units and
         values. In this instance the phase change is from sleet to rain."""
-        self.cubes[1].units = Unit('feet')
         self.cubes[0].rename('altitude_of_rain_falling_level')
         result = self.plugin.process(self.cubes)
         expected = np.zeros((3, 3, 3), dtype=np.float32)
@@ -128,6 +127,20 @@ class Test_process(IrisTest):
     def test_unit_conversion(self):
         """Test that process returns the same as test_prob_rain when the
         orography cube units are in feet."""
+        self.cubes[1].units = Unit('feet')
+        self.cubes[0].rename('altitude_of_rain_falling_level')
+        result = self.plugin.process(self.cubes)
+        expected = np.zeros((3, 3, 3), dtype=np.float32)
+        expected[2] = 1.
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertEqual(result.name(), "probability_of_rain_at_surface")
+        self.assertEqual(result.units, Unit('1'))
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_unit_synonyms(self):
+        """Test that process returns the same as test_prob_rain when the
+        orography cube units are "metres" (a synonym of "m")."""
+        self.cubes[1].units = Unit('metres')
         self.cubes[0].rename('altitude_of_rain_falling_level')
         result = self.plugin.process(self.cubes)
         expected = np.zeros((3, 3, 3), dtype=np.float32)

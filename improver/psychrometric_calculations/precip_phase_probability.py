@@ -42,7 +42,7 @@ from improver.metadata.utilities import (
 from improver.utilities.cube_checker import spatial_coords_match
 
 
-class ProbPhase(BasePlugin):
+class PrecipPhaseProbability(BasePlugin):
     """
     This plugin converts a falling-phase-change-level cube into the
     probability of a specific precipitation phase being found at the surface.
@@ -51,8 +51,8 @@ class ProbPhase(BasePlugin):
     each point and is compared with the orography. Where the orography is
     higher, the returned probability-of-snow is 1, else 0.
     For rain, the above method is modified to get the 20th percentile
-    and the returned probability-of-rain is 1 where this results in a value
-    lower than the orography, else 0.
+    and where the orography is lower than the percentile value, the returned 
+    probability-of-rain is 1, else 0.
     """
     def __init__(self, radius=10000.):
         """
@@ -88,19 +88,27 @@ class ProbPhase(BasePlugin):
 
         Raises:
             ValueError: If cubes with the expected names cannot be extracted.
+            ValueError: If cubes does not have the expected length of 2.
             ValueError: If the extracted cubes do not have matching spatial
             coordinates.
 
         """
         if isinstance(cubes, list):
             cubes = iris.cube.CubeList(cubes)
+        if len(cubes) != 2:
+            raise ValueError(f'Expected 2 cubes, found {len(cubes)}')
+
+        if not spatial_coords_match(cubes[0], cubes[1]):
+            raise ValueError('Spatial coords mismatch between '
+                             f'{cubes[0]} and '
+                             f'{cubes[1]}')
 
         extracted_cube = cubes.extract('altitude_of_snow_falling_level')
         if extracted_cube:
             self.falling_level_cube, = extracted_cube
             self.param = 'snow'
             self.comparator = operator.gt
-            self.get_80th_percentile = self.percentile_plugin(
+            self.get_discriminating_percentile = self.percentile_plugin(
                 self._nbhood_shape, self.radius, percentiles=[80.]).process
         else:
             extracted_cube = cubes.extract('altitude_of_rain_falling_level')
@@ -113,7 +121,7 @@ class ProbPhase(BasePlugin):
             self.comparator = operator.lt
             # We want rain at or below the surface, so inverse of 80th
             # centile is the 20th centile.
-            self.get_80th_percentile = self.percentile_plugin(
+            self.get_discriminating_percentile = self.percentile_plugin(
                 self._nbhood_shape, self.radius, percentiles=[20.]).process
 
         orography_name = 'surface_altitude'
@@ -124,16 +132,9 @@ class ProbPhase(BasePlugin):
             raise ValueError(f'Could not extract {orography_name} cube from '
                              f'{cubes}')
 
-        if str(self.falling_level_cube.units) != str(
-                self.orography_cube.units):
+        if self.falling_level_cube.units != self.orography_cube.units:
             self.falling_level_cube = self.falling_level_cube.copy()
             self.falling_level_cube.convert_units(self.orography_cube.units)
-
-        if not spatial_coords_match(self.falling_level_cube,
-                                    self.orography_cube):
-            raise ValueError('Spatial coords mismatch between '
-                             f'{self.falling_level_cube} and '
-                             f'{self.orography_cube}')
 
     def process(self, cubes):
         """
@@ -160,8 +161,9 @@ class ProbPhase(BasePlugin):
                 rain phases.
         """
         self._extract_input_cubes(cubes)
-        processed_falling_level = iris.util.squeeze(self.get_80th_percentile(
-            self.falling_level_cube))
+        processed_falling_level = iris.util.squeeze(
+            self.get_discriminating_percentile(
+                self.falling_level_cube))
 
         result_data = np.where(
             self.comparator(
