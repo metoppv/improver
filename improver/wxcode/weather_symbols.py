@@ -521,7 +521,7 @@ class WeatherSymbols(BasePlugin):
 
         # Construct graph nodes dictionary
         graph = {key: [self.queries[key]['succeed'], self.queries[key]['fail']]
-                 for key in self.queries.keys()}
+                 for key in self.queries}
 
         # Search through tree for all leaves (weather code end points)
         defined_symbols = []
