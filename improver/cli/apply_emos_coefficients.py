@@ -157,7 +157,7 @@ def process(cube: cli.inputcube,
         warnings.warn(msg)
         return current_forecast
 
-    elif coefficients.name() != 'emos_coefficients':
+    if coefficients.name() != 'emos_coefficients':
         msg = ("The current coefficients cube does not have the "
                "name 'emos_coefficients'")
         raise ValueError(msg)
