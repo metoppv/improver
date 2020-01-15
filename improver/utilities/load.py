@@ -105,6 +105,7 @@ def load_cube(filepath, constraints=None, no_lazy_load=False,
         cube, [y_name, x_name], anchor_start=False)
     if no_lazy_load:
         # Force the cube's data into memory by touching the .data attribute.
+        # pylint: disable=pointless-statement
         cube.data
     return cube
 
@@ -152,6 +153,7 @@ def load_cubelist(filepath, constraints=None, no_lazy_load=False):
             continue
         if no_lazy_load:
             # Force the cube's data into memory by touching the .data.
+            # pylint: disable=pointless-statement
             cube.data
         cubelist.append(cube)
     return cubelist
