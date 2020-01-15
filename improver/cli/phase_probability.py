@@ -42,18 +42,18 @@ def process(*cubes: cli.inputcube,
     probability of a specific precipitation phase being found at the surface.
 
     Args:
-        cubes: iris.cube.CubeList or list
+        cubes (iris.cube.CubeList or list):
             Contains cubes of the altitude of the phase-change level (this
             can be snow->sleet, or sleet->rain) and the altitude of the
             orography. The name of the phase-change level cube must be
             either "altitude_of_snow_falling_level" or
             "altitude_of_rain_falling_level". The name of the orography
             cube must be "surface_altitude".
-        radius: float
+        radius (float):
             Neighbourhood radius from which 80th percentile is found (m)
 
     """
     from improver.psychrometric_calculations.precip_phase_probability import (
-        ProbPhase)
+        PrecipPhaseProbability)
     from iris.cube import CubeList
-    return ProbPhase(radius=radius).process(CubeList(cubes))
+    return PrecipPhaseProbability(radius=radius).process(CubeList(cubes))

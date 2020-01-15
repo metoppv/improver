@@ -51,14 +51,14 @@ class PrecipPhaseProbability(BasePlugin):
     each point and is compared with the orography. Where the orography is
     higher, the returned probability-of-snow is 1, else 0.
     For rain, the above method is modified to get the 20th percentile
-    and where the orography is lower than the percentile value, the returned 
+    and where the orography is lower than the percentile value, the returned
     probability-of-rain is 1, else 0.
     """
     def __init__(self, radius=10000.):
         """
         Initialise plugin
         Args:
-            radius: float
+            radius (float):
                 Neighbourhood radius from which 80th percentile is found (m)
         """
         self.percentile_plugin = GeneratePercentilesFromANeighbourhood
@@ -78,7 +78,7 @@ class PrecipPhaseProbability(BasePlugin):
         falling_level_cube.
 
         Args:
-            cubes: iris.cube.CubeList or list:
+            cubes (iris.cube.CubeList or list):
                 Contains cubes of the altitude of the phase-change level (this
                 can be snow->sleet, or sleet->rain) and the altitude of the
                 orography. The name of the phase-change level cube must be
@@ -90,7 +90,7 @@ class PrecipPhaseProbability(BasePlugin):
             ValueError: If cubes with the expected names cannot be extracted.
             ValueError: If cubes does not have the expected length of 2.
             ValueError: If the extracted cubes do not have matching spatial
-            coordinates.
+                        coordinates.
 
         """
         if isinstance(cubes, list):
@@ -144,7 +144,7 @@ class PrecipPhaseProbability(BasePlugin):
         supplied, this is the probability of rain at or above the surface.
 
         Args:
-            cubes: iris.cube.CubeList or list:
+            cubes (iris.cube.CubeList or list):
                 Contains cubes of the altitude of the phase-change level (this
                 can be snow->sleet, or sleet->rain) and the altitude of the
                 orography.
