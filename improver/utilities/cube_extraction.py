@@ -72,11 +72,7 @@ def is_complex_parsing_required(value):
         bool:
             Flag value to indicate whether the string requires complex parsing.
     """
-    if ":" in value:
-        complex_constraint = True
-    else:
-        complex_constraint = False
-    return complex_constraint
+    return ":" in value
 
 
 def create_constraint(value):
