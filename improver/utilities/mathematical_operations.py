@@ -163,6 +163,42 @@ class Integration(BasePlugin):
 
         return upper_bounds_cube, lower_bounds_cube
 
+    def _create_output_cube(self, upper_bounds_cube, lower_bounds_cube,
+                            data, points, bounds):
+
+        attributes = generate_mandatory_attributes([upper_bounds_cube])
+        coord_dtype = upper_bounds_cube.coord(
+            self.coord_name_to_integrate).dtype
+        template = (upper_bounds_cube
+                    if self.direction_of_integration == "positive"
+                    else lower_bounds_cube)
+
+        # HACK cut length of leading coordinate to match data shape
+        # TODO make this better...
+        try:
+            template = template[:len(points)]
+        except IndexError:
+            msg = ("No integration could be performed for "
+                   "coord_to_integrate: {}, start_point: {}, end_point: {}, "
+                   "direction_of_integration: {}. "
+                   "The resulting cubelist was empty.".format(
+                       self.coord_name_to_integrate, self.start_point,
+                       self.end_point, self.direction_of_integration))
+            raise ValueError(msg)
+
+        integrated_cube = create_new_diagnostic_cube(
+            template.name, template.units, template, attributes,
+            data=np.array(data))
+
+        print(integrated_cube)
+
+        integrated_cube.coord(self.coord_name_to_integrate).points = (
+            np.array(points).astype(coord_dtype))
+        integrated_cube.coord(self.coord_name_to_integrate).bounds = (
+            np.array(bounds).astype(coord_dtype))
+
+        return integrated_cube
+
     def perform_integration(self, upper_bounds_cube, lower_bounds_cube):
         """Perform the integration.
 
@@ -190,10 +226,6 @@ class Integration(BasePlugin):
                 Cube containing the output from the integration.
 
         """
-        attributes = generate_mandatory_attributes([upper_bounds_cube])
-        coord_dtype = upper_bounds_cube.coord(
-            self.coord_name_to_integrate).dtype
-
         def skip_slice(upper_bound, lower_bound, direction,
                        start_point, end_point):
             """Conditions under which a slice should not be included in
@@ -210,13 +242,16 @@ class Integration(BasePlugin):
                     return True
             return False
 
+        data = []
+        coord_points = []
+        coord_bounds = []
         stride_sum = 0
         integrated_cubelist = iris.cube.CubeList([])
         levels_tuple = zip(
             upper_bounds_cube.slices_over(self.coord_name_to_integrate),
             lower_bounds_cube.slices_over(self.coord_name_to_integrate))
 
-        for (upper_bounds_slice, lower_bounds_slice) in levels_tuple:
+        for i, (upper_bounds_slice, lower_bounds_slice) in enumerate(levels_tuple):
             upper_bound, = upper_bounds_slice.coord(
                 self.coord_name_to_integrate).points
             lower_bound, = lower_bounds_slice.coord(
@@ -236,28 +271,16 @@ class Integration(BasePlugin):
                 lower_bounds_slice.data * 0.5 * stride, 0.0)
             stride_sum += upper_half_data + lower_half_data
 
-            # Create new cube
-            template = (upper_bounds_slice
-                        if self.direction_of_integration == "positive"
-                        else lower_bounds_slice)
-            integrated_slice = create_new_diagnostic_cube(
-                template.name, template.units, template,
-                attributes, data=stride_sum.copy())
-            integrated_slice.coord(self.coord_name_to_integrate).bounds = (
-                np.array([lower_bound, upper_bound]).astype(coord_dtype))
-            integrated_cubelist.append(integrated_slice)
+            data.append(stride_sum.copy())
+            coord_points.append(
+                upper_bound if self.direction_of_integration == "positive"
+                else lower_bound)
+            coord_bounds.append([lower_bound, upper_bound])
 
-        if len(integrated_cubelist) == 0:
-            msg = ("No integration could be performed for "
-                   "coord_to_integrate: {}, start_point: {}, end_point: {}, "
-                   "direction_of_integration: {}. "
-                   "The resulting cubelist was empty.".format(
-                       self.coord_name_to_integrate, self.start_point,
-                       self.end_point, self.direction_of_integration))
-            raise ValueError(msg)
+        integrated_cube = self._create_output_cube(
+            upper_bounds_cube, lower_bounds_cube, data, coord_points,
+            coord_bounds)
 
-        # Merge resulting cubes back together
-        integrated_cube = integrated_cubelist.merge_cube()
         return integrated_cube
 
     def process(self, cube):
@@ -301,9 +324,5 @@ class Integration(BasePlugin):
             if coord.name() == self.coord_name_to_integrate:
                 integrated_cube = iris.util.new_axis(
                     integrated_cube, self.coord_name_to_integrate)
-        # Make sure that the order of the coordinate that has been integrated
-        # within the integrated_cube corresponds the direction in which the
-        # cube has been integrated.
-        integrated_cube = self.ensure_monotonic_increase_in_chosen_direction(
-            integrated_cube)
+
         return integrated_cube

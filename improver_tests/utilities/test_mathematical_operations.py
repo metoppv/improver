@@ -252,12 +252,12 @@ class Test_perform_integration(IrisTest):
         self.negative_lower_bounds_cube = new_cube[1:, ...]
 
         self.expected_data_zero_or_negative = np.array(
-            [[[30.00, 32.50, 32.50],
-              [32.50, 32.50, 32.50],
-              [32.50, 32.50, 32.50]],
-             [[10.00, 25.00, 25.00],
+            [[[10.00, 25.00, 25.00],
               [25.00, 25.00, 25.00],
-              [25.00, 25.00, 25.00]]])
+              [25.00, 25.00, 25.00]],
+             [[30.00, 32.50, 32.50],
+              [32.50, 32.50, 32.50],
+              [32.50, 32.50, 32.50]]])
 
     def test_basic(self):
         """Test that a cube is returned by the perform_integration method with
@@ -271,19 +271,22 @@ class Test_perform_integration(IrisTest):
                     self.negative_upper_bounds_cube,
                     self.negative_lower_bounds_cube))
         self.assertIsInstance(result, iris.cube.Cube)
+
         self.assertArrayAlmostEqual(
-            result.coord("height").points, np.array([5., 10.]))
+            result.coord("height").points, np.array([10., 5.]))
+        self.assertArrayAlmostEqual(
+            result.coord("height").bounds, np.array([[10.,20.], [5., 10.]]))
 
     def test_positive_values_in_data(self):
         """Test that the resulting cube contains the expected data following
         vertical integration."""
         expected = np.array(
-            [[[45.00, 32.50, 32.50],
-              [32.50, 32.50, 32.50],
-              [32.50, 32.50, 32.50]],
-             [[25.00, 25.00, 25.00],
+            [[[25.00, 25.00, 25.00],
               [25.00, 25.00, 25.00],
-              [25.00, 25.00, 25.00]]])
+              [25.00, 25.00, 25.00]],
+             [[45.00, 32.50, 32.50],
+              [32.50, 32.50, 32.50],
+              [32.50, 32.50, 32.50]]])
         coord_name = "height"
         direction = "negative"
         result = (
@@ -293,7 +296,7 @@ class Test_perform_integration(IrisTest):
                     self.negative_upper_bounds_cube,
                     self.negative_lower_bounds_cube))
         self.assertArrayAlmostEqual(
-            result.coord("height").points, np.array([5., 10.]))
+            result.coord("height").points, np.array([10., 5.]))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_zero_values_in_data(self):
@@ -312,7 +315,7 @@ class Test_perform_integration(IrisTest):
                     self.negative_upper_bounds_cube,
                     self.negative_lower_bounds_cube))
         self.assertArrayAlmostEqual(
-            result.coord("height").points, np.array([5., 10.]))
+            result.coord("height").points, np.array([10., 5.]))
         self.assertArrayAlmostEqual(
             result.data, self.expected_data_zero_or_negative)
 
@@ -333,7 +336,7 @@ class Test_perform_integration(IrisTest):
                     self.negative_upper_bounds_cube,
                     self.negative_lower_bounds_cube))
         self.assertArrayAlmostEqual(
-            result.coord("height").points, np.array([5., 10.]))
+            result.coord("height").points, np.array([10., 5.]))
         self.assertArrayAlmostEqual(
             result.data, self.expected_data_zero_or_negative)
 
@@ -345,9 +348,9 @@ class Test_perform_integration(IrisTest):
         the presence of a start_point indicates that the integration may start
         above the lowest height within the column to be integrated."""
         expected = np.array(
-            [[25.00, 25.00, 25.00],
-             [25.00, 25.00, 25.00],
-             [25.00, 25.00, 25.00]])
+            [[[25.00, 25.00, 25.00],
+              [25.00, 25.00, 25.00],
+              [25.00, 25.00, 25.00]]])
         coord_name = "height"
         start_point = 8.
         direction = "positive"
@@ -370,9 +373,9 @@ class Test_perform_integration(IrisTest):
         the presence of a start_point indicates that the integration may start
         below the highest height within the column to be integrated."""
         expected = np.array(
-            [[20.00, 7.50, 7.50],
-             [7.50, 7.50, 7.50],
-             [7.50, 7.50, 7.50]])
+            [[[20.00, 7.50, 7.50],
+              [7.50, 7.50, 7.50],
+              [7.50, 7.50, 7.50]]])
         coord_name = "height"
         start_point = 18.
         direction = "negative"
@@ -395,9 +398,9 @@ class Test_perform_integration(IrisTest):
         the presence of an end_point indicates that the integration may end
         below the highest height within the column to be integrated."""
         expected = np.array(
-            [[20.00, 7.50, 7.50],
-             [7.50, 7.50, 7.50],
-             [7.50, 7.50, 7.50]])
+            [[[20.00, 7.50, 7.50],
+              [7.50, 7.50, 7.50],
+              [7.50, 7.50, 7.50]]])
         coord_name = "height"
         end_point = 18.
         direction = "positive"
@@ -420,9 +423,9 @@ class Test_perform_integration(IrisTest):
         the presence of an end_point indicates that the integration may end
         above the lowest height within the column to be integrated."""
         expected = np.array(
-            [[25.00, 25.00, 25.00],
-             [25.00, 25.00, 25.00],
-             [25.00, 25.00, 25.00]])
+            [[[25.00, 25.00, 25.00],
+              [25.00, 25.00, 25.00],
+              [25.00, 25.00, 25.00]]])
         coord_name = "height"
         end_point = 8.
         direction = "negative"
@@ -452,9 +455,9 @@ class Test_perform_integration(IrisTest):
         the presence of a start_point indicates that the integration may start
         above the lowest height within the column to be integrated."""
         expected = np.array(
-            [[25.00, 25.00, 25.00],
-             [25.00, 25.00, 25.00],
-             [25.00, 25.00, 25.00]])
+            [[[25.00, 25.00, 25.00],
+              [25.00, 25.00, 25.00],
+              [25.00, 25.00, 25.00]]])
         coord_name = "height"
         start_point = 10.
         direction = "positive"
@@ -483,9 +486,9 @@ class Test_perform_integration(IrisTest):
         the presence of an end_point indicates that the integration may end
         above the lowest height within the column to be integrated."""
         expected = np.array(
-            [[25.00, 25.00, 25.00],
-             [25.00, 25.00, 25.00],
-             [25.00, 25.00, 25.00]])
+            [[[25.00, 25.00, 25.00],
+              [25.00, 25.00, 25.00],
+              [25.00, 25.00, 25.00]]])
         coord_name = "height"
         end_point = 10.
         direction = "negative"
