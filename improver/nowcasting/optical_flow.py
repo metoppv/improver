@@ -89,7 +89,6 @@ def generate_optical_flow_components(
         """Average input cubelist over time"""
         cube = wind_cubes.merge_cube()
         try:
-
             mean = collapsed(cube, "time", iris.analysis.MEAN)
         except CoordinateCollapseError:
             # collapse will fail if there is only one time point

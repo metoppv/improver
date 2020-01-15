@@ -125,7 +125,6 @@ class PercentileConverter(BasePlugin):
         # Rename the percentile coordinate to "percentile" and also
         # makes sure that the associated unit is %.
         if n_valid_coords == n_collapse_coords:
-
             result = collapsed(
                 cube, self.collapse_coord,
                 iris.analysis.PERCENTILE,

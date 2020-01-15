@@ -48,7 +48,7 @@ from improver.ensemble_calibration.utilities import (
     flatten_ignoring_masked_data)
 from improver.utilities.cube_checker import time_coords_match
 from improver.utilities.cube_manipulation import (enforce_coordinate_ordering,
-    collapsed)
+                                                  collapsed)
 from improver.utilities.temporal import (
     cycletime_to_datetime, datetime_to_iris_time, iris_time_to_datetime)
 

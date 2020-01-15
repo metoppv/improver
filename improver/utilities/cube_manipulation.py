@@ -48,11 +48,9 @@ def collapsed(cube, *args, **kwargs):
     Args:
         cube (iris.cube.Cube):
             A Cube to be collapsed.
-        *args:
-        **kwargs:
 
     Returns:
-        (iris.cube.Cube)
+        iris.cube.Cube:
             A collapsed cube without the new cell_method.
     """
     original_methods = cube.cell_methods

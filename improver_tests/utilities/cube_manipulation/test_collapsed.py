@@ -41,7 +41,7 @@ from improver.utilities.cube_manipulation import collapsed
 from ...set_up_test_cubes import set_up_variable_cube
 
 
-class Test_strip_var_names(unittest.TestCase):
+class Test_collapsed(unittest.TestCase):
 
     """Test the collapsed utility."""
 

@@ -403,11 +403,10 @@ class CollapseMaskedNeighbourhoodCoordinate(BasePlugin):
         # Loop over any extra dimensions
         cubelist = iris.cube.CubeList([])
         for slice_3d in cube.slices([self.coord_masked, yname, xname]):
-
             collapsed_slice = collapsed(slice_3d, self.coord_masked,
                                         iris.analysis.MEAN, weights=weights)
-
             cubelist.append(collapsed_slice)
+
         result = cubelist.merge_cube()
         # Promote any scalar coordinates with one point back to dimension
         # coordinates if they were dimensions in the input cube.
