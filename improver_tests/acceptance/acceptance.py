@@ -33,6 +33,7 @@
 import importlib
 import os
 import pathlib
+import shlex
 import shutil
 
 import pytest
@@ -108,25 +109,36 @@ def recreate_if_needed(output_path, kgo_path):
         kgo_path (pathlib.Path): Path to expected/original KGO file
 
     Returns:
-        pathlib.Path: Path to re-created KGO file
+        bool: True if KGO was recreated
     """
     if not kgo_recreate():
-        return
+        return False
     if not kgo_path.is_absolute():
         raise IOError("KGO path is not absolute")
     kgo_root_dir = kgo_root()
-    recreate_dir = os.environ[RECREATE_DIR]
+    recreate_dir = pathlib.Path(os.environ[RECREATE_DIR])
     if kgo_root_dir not in kgo_path.parents:
-        raise IOError("Provided KGO path is not within KGO root directory")
+        raise IOError("KGO path for test is not within KGO root directory")
+    if not recreate_dir.is_absolute():
+        raise IOError("Recreate KGO path is not absolute")
+    print("Comparison found differences - recreating KGO for this test")
+    print(f"Original KGO file is at {kgo_path}")
     kgo_relative = kgo_path.relative_to(kgo_root_dir)
     recreate_path = recreate_dir / kgo_relative
-    print(f"Recreating KGO originally at {kgo_path}")
-    kgo_path.parent.mkdir(exist_ok=True)
+    recreate_path.parent.mkdir(exist_ok=True, parents=True)
     if recreate_path.exists():
         recreate_path.unlink()
     shutil.copyfile(str(output_path), str(recreate_path))
-    print(f"Updated KGO file is {recreate_path}")
-    return recreate_path
+    print(f"Updated KGO file is at {recreate_path}")
+    if recreate_path.resolve() == kgo_path.resolve():
+        print("KGO updated in place, rerunning this test should now pass")
+    else:
+        print(f"Put the updated KGO file in {ACC_TEST_DIR} to make this"
+              f" test pass. For example:")
+        quoted_kgo = shlex.quote(str(kgo_path))
+        quoted_recreate = shlex.quote(str(recreate_path))
+        print(f"cp {quoted_recreate} {quoted_kgo}")
+    return True
 
 
 def statsmodels_available():
