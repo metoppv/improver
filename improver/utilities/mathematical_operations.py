@@ -163,37 +163,47 @@ class Integration(BasePlugin):
 
         return upper_bounds_cube, lower_bounds_cube
 
-    def _create_output_cube(self, upper_bounds_cube, lower_bounds_cube,
-                            data, points, bounds):
+    def _create_output_cube(self, template, data, points, bounds):
+        """
+        Populates a template cube with data from the integration
 
-        attributes = generate_mandatory_attributes([upper_bounds_cube])
-        coord_dtype = upper_bounds_cube.coord(
-            self.coord_name_to_integrate).dtype
-        template = (upper_bounds_cube
-                    if self.direction_of_integration == "positive"
-                    else lower_bounds_cube)
+        Args:
+            template (iris.cube.Cube):
+                Copy of upper or lower bounds cube, based on direction of
+                integration
+            data (numpy.ndarray):
+                Array of integrated data
+            points (numpy.ndarray):
+                Points values for the integrated coordinate. These will not
+                match the template cube if any slices were skipped in the
+                integration, and therefore are used to slice the template cube
+                to match the data array.
+            bounds (numpy.ndarray):
+                Bounds values for the integrated coordinate
 
-        # HACK cut length of leading coordinate to match data shape
-        # TODO make this better...
-        try:
-            template = template[:len(points)]
-        except IndexError:
-            msg = ("No integration could be performed for "
-                   "coord_to_integrate: {}, start_point: {}, end_point: {}, "
-                   "direction_of_integration: {}. "
-                   "The resulting cubelist was empty.".format(
-                       self.coord_name_to_integrate, self.start_point,
-                       self.end_point, self.direction_of_integration))
-            raise ValueError(msg)
+        Returns:
+            iris.cube.Cube
+        """
+        # extract required slices from template cube
+        template = template.extract(
+            iris.Constraint(
+                coord_values={self.coord_name_to_integrate:
+                              lambda x: x in points}))
+
+        # re-promote integrated coord to dimension coord if need be
+        for coord in template.aux_coords[::-1]:
+            if coord.name() == self.coord_name_to_integrate:
+                template = iris.util.new_axis(
+                    template, self.coord_name_to_integrate)
+
+        # create new cube from template
+        attributes = generate_mandatory_attributes([template])
+        coord_dtype = template.coord(self.coord_name_to_integrate).dtype
 
         integrated_cube = create_new_diagnostic_cube(
             template.name, template.units, template, attributes,
             data=np.array(data))
 
-        print(integrated_cube)
-
-        integrated_cube.coord(self.coord_name_to_integrate).points = (
-            np.array(points).astype(coord_dtype))
         integrated_cube.coord(self.coord_name_to_integrate).bounds = (
             np.array(bounds).astype(coord_dtype))
 
@@ -246,12 +256,12 @@ class Integration(BasePlugin):
         coord_points = []
         coord_bounds = []
         stride_sum = 0
-        integrated_cubelist = iris.cube.CubeList([])
+        template = iris.cube.CubeList([])
         levels_tuple = zip(
             upper_bounds_cube.slices_over(self.coord_name_to_integrate),
             lower_bounds_cube.slices_over(self.coord_name_to_integrate))
 
-        for i, (upper_bounds_slice, lower_bounds_slice) in enumerate(levels_tuple):
+        for (upper_bounds_slice, lower_bounds_slice) in (levels_tuple):
             upper_bound, = upper_bounds_slice.coord(
                 self.coord_name_to_integrate).points
             lower_bound, = lower_bounds_slice.coord(
@@ -273,14 +283,24 @@ class Integration(BasePlugin):
 
             data.append(stride_sum.copy())
             coord_points.append(
-                upper_bound if self.direction_of_integration == "positive"
-                else lower_bound)
+                upper_bound if self.direction_of_integration == "positive" else
+                lower_bound)
             coord_bounds.append([lower_bound, upper_bound])
 
-        integrated_cube = self._create_output_cube(
-            upper_bounds_cube, lower_bounds_cube, data, coord_points,
-            coord_bounds)
+        if len(data) == 0:
+            msg = ("No integration could be performed for "
+                   "coord_to_integrate: {}, start_point: {}, end_point: {}, "
+                   "direction_of_integration: {}. "
+                   "The resulting cubelist was empty.".format(
+                       self.coord_name_to_integrate, self.start_point,
+                       self.end_point, self.direction_of_integration))
+            raise ValueError(msg)
 
+        template = (upper_bounds_cube.copy()
+                    if self.direction_of_integration == "positive" else
+                    lower_bounds_cube.copy())
+        integrated_cube = self._create_output_cube(
+            template, data, coord_points, coord_bounds)
         return integrated_cube
 
     def process(self, cube):
@@ -317,12 +337,5 @@ class Integration(BasePlugin):
 
         integrated_cube = self.perform_integration(
             upper_bounds_cube, lower_bounds_cube)
-
-        # Make sure that the coordinate that has been integrated is a
-        # dimension coordinate.
-        for coord in integrated_cube.aux_coords[::-1]:
-            if coord.name() == self.coord_name_to_integrate:
-                integrated_cube = iris.util.new_axis(
-                    integrated_cube, self.coord_name_to_integrate)
 
         return integrated_cube

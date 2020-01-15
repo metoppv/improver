@@ -275,7 +275,7 @@ class Test_perform_integration(IrisTest):
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([10., 5.]))
         self.assertArrayAlmostEqual(
-            result.coord("height").bounds, np.array([[10.,20.], [5., 10.]]))
+            result.coord("height").bounds, np.array([[10., 20.], [5., 10.]]))
 
     def test_positive_values_in_data(self):
         """Test that the resulting cube contains the expected data following
