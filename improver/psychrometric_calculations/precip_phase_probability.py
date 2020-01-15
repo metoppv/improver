@@ -119,7 +119,7 @@ class PrecipPhaseProbability(BasePlugin):
             self.falling_level_cube, = extracted_cube
             self.param = 'rain'
             self.comparator = operator.lt
-            # We want rain at or below the surface, so inverse of 80th
+            # We want rain at or above the surface, so inverse of 80th
             # centile is the 20th centile.
             self.get_discriminating_percentile = self.percentile_plugin(
                 self._nbhood_shape, self.radius, percentiles=[20.]).process
