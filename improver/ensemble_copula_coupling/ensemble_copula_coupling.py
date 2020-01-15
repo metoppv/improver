@@ -642,8 +642,8 @@ class ConvertLocationAndScaleParameters():
                 require the specification of shape parameters to be able to
                 define the shape of the distribution. For the truncated normal
                 distribution, the shape parameters should be appropriate for
-                distribution constructed from the location and shape parameters
-                provided.
+                the distribution constructed from the location and scale
+                parameters provided.
                 Please note that for use with
                 :meth:`~improver.ensemble_calibration.ensemble_calibration.\
 ContinuousRankedProbabilityScoreMinimisers.calculate_truncated_normal_crps`,
@@ -729,9 +729,7 @@ class ConvertLocationAndScaleParametersToPercentiles(
             percentiles):
         """
         Function returning percentiles based on the supplied location and
-        scale parameters. The percentiles are created by assuming a
-        Gaussian distribution and calculating the value of the phenomenon at
-        specific points within the distribution.
+        scale parameters.
 
         Args:
             location_parameter (iris.cube.Cube):
@@ -754,7 +752,8 @@ class ConvertLocationAndScaleParametersToPercentiles(
 
         Raises:
             ValueError: If any of the resulting percentile values are
-                nans and these nans are not caused by a zero variance.
+                nans and these nans are not caused by a scale parameter of
+                zero.
         """
         location_parameter_data = location_parameter.data.flatten()
         scale_parameter_data = scale_parameter.data.flatten()
@@ -775,9 +774,9 @@ class ConvertLocationAndScaleParametersToPercentiles(
             loc=location_parameter_data,
             scale=np.sqrt(scale_parameter_data))
 
-        # Loop over percentiles, and use the specified distribution with the
-        # location and scale parameter to calculate the values at each
-        # percentile.
+        # Loop over percentiles, and use the distribution as the
+        # "percentile_method" with the location and scale parameter to
+        # calculate the values at each percentile.
         for index, percentile in enumerate(percentiles):
             percentile_list = np.repeat(
                 percentile, len(location_parameter_data))

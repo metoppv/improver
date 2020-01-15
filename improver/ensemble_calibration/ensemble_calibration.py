@@ -178,7 +178,7 @@ class ContinuousRankedProbabilityScoreMinimisers:
             truth (iris.cube.Cube):
                 Cube containing the field, which will be used as truth.
             forecast_var (iris.cube.Cube):
-                Cube containg the field containing the ensemble variance.
+                Cube containing the field containing the ensemble variance.
             predictor (str):
                 String to specify the form of the predictor used to calculate
                 the location parameter when estimating the EMOS coefficients.
@@ -990,8 +990,8 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
                 The uncalibrated predictor or variance that will populate
                 regions in which the mask=0.
             calibrated_data (numpy.ndarray):
-                The calibrated predictor or variance data array that will be
-                modified in situ. Those regions of the array that correspond
+                The location parameter or scale parameter data array that will
+                be modified in situ. Those regions of the array that correspond
                 with indices at which the mask=0 will be replaced with data
                 from the original_data array.
             mask (numpy.ndarray):

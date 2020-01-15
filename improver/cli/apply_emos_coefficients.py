@@ -83,8 +83,9 @@ def process(cube: cli.inputcube,
             to produce. If the current forecast is input as probabilities or
             percentiles then this argument is used to create the requested
             number of realizations. In addition, this argument is used to
-            construct the requested number of realizations from the mean and
-            variance output after applying the EMOS coefficients.
+            construct the requested number of realizations from the location
+            parameter and scale parameter output after applying the EMOS
+            coefficients.
         randomise (bool):
             Option to reorder the post-processed forecasts randomly. If not
             set, the ordering of the raw ensemble is used. This option is
@@ -211,7 +212,7 @@ def process(cube: cli.inputcube,
 
     # Apply coefficients as part of Ensemble Model Output Statistics (EMOS).
     ac = ApplyCoefficientsFromEnsembleCalibration(predictor=predictor)
-    calibrated_predictor, calibrated_variance = ac.process(
+    location_parameter, scale_parameter = ac.process(
         current_forecast, coefficients, landsea_mask=land_sea_mask)
 
     if shape_parameters:
@@ -224,23 +225,22 @@ def process(cube: cli.inputcube,
         result = ConvertLocationAndScaleParametersToProbabilities(
             distribution=distribution,
             shape_parameters=shape_parameters).process(
-            calibrated_predictor, calibrated_variance,
-            original_current_forecast)
+            location_parameter, scale_parameter, original_current_forecast)
     elif input_forecast_type == "percentiles":
         perc_coord = find_percentile_coordinate(original_current_forecast)
         result = ConvertLocationAndScaleParametersToPercentiles(
             distribution=distribution,
             shape_parameters=shape_parameters).process(
-            calibrated_predictor, calibrated_variance,
-            original_current_forecast, percentiles=perc_coord.points)
+            location_parameter, scale_parameter, original_current_forecast,
+            percentiles=perc_coord.points)
     elif input_forecast_type == "realizations":
         # Ensemble Copula Coupling to generate realizations
         # from the location and scale parameter.
         percentiles = ConvertLocationAndScaleParametersToPercentiles(
             distribution=distribution,
             shape_parameters=shape_parameters).process(
-            calibrated_predictor, calibrated_variance,
-            original_current_forecast, no_of_percentiles=realizations_count)
+            location_parameter, scale_parameter, original_current_forecast,
+            no_of_percentiles=realizations_count)
         result = EnsembleReordering().process(
             percentiles, current_forecast,
             random_ordering=randomise, random_seed=random_seed)
