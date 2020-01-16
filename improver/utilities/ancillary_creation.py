@@ -326,9 +326,8 @@ class SaturatedVapourPressureTable(BasePlugin):
 
     def process(self):
         """
-        Create a saturated vapour pressure lookup table by calling the
-        Utilities.saturation_vapour_pressure_goff_gratch function in
-        psychrometric_calculations.Utilities.
+        Create a lookup table of saturation vapour pressure in a pure water
+        vapour system for the range of required temperatures.
 
         Returns:
             iris.cube.Cube:

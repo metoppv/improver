@@ -54,8 +54,8 @@ from improver.utilities.spatial import (
 
 def _svp_from_lookup(temperature):
     """
-    Gets value for saturation vapour pressure of water vapour from a
-    pre-calculated lookup table. Interpolates linearly between points in
+    Gets value for saturation vapour pressure in a pure water vapour system
+    from a pre-calculated lookup table. Interpolates linearly between points in
     the table to the temperatures required.
 
     Args:
@@ -74,14 +74,15 @@ def _svp_from_lookup(temperature):
     table_position = (T_clipped - svp_table.T_MIN) / svp_table.T_INCREMENT
     table_index = table_position.astype(int)
     interpolation_factor = table_position - table_index
-    result = ((1.0 - interpolation_factor) * svp_table.DATA[table_index] +
-              interpolation_factor * svp_table.DATA[table_index + 1])
-    return result
+    return ((1.0 - interpolation_factor) * svp_table.DATA[table_index] +
+            interpolation_factor * svp_table.DATA[table_index + 1])
 
 
 def calculate_svp_in_air(temperature, pressure):
     """
-    Calculate the saturation vapour pressure in air.
+    Calculates the saturation vapour pressure in air.  Looks up the saturation
+    vapour pressure in a pure water vapour system, and pressure-corrects the
+    result to obtain the saturation vapour pressure in air.
 
     Args:
         temperature (numpy.ndarray):
@@ -100,8 +101,7 @@ def calculate_svp_in_air(temperature, pressure):
     svp = _svp_from_lookup(temperature)
     temp_celcius = temperature.copy() + consts.ABSOLUTE_ZERO
     correction = (1. + 1.0E-8 * pressure * (4.5 + 6.0E-4 * temp_celcius ** 2))
-    avp = svp*correction.astype(np.float32)
-    return avp
+    return svp * correction.astype(np.float32)
 
 
 class WetBulbTemperature(BasePlugin):
