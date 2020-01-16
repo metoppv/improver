@@ -201,7 +201,7 @@ class Integration(BasePlugin):
         coord_dtype = template.coord(self.coord_name_to_integrate).dtype
 
         integrated_cube = create_new_diagnostic_cube(
-            template.name, template.units, template, attributes,
+            template.name(), template.units, template, attributes,
             data=np.array(data))
 
         integrated_cube.coord(self.coord_name_to_integrate).bounds = (

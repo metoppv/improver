@@ -39,6 +39,7 @@ from iris.tests import IrisTest
 
 from improver.tests.set_up_test_cubes import (
     set_up_variable_cube, add_coordinate)
+from improver.metadata.utilities import generate_mandatory_attributes
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.utilities.mathematical_operations import Integration
 
@@ -551,6 +552,19 @@ class Test_process(IrisTest):
             result.coord("height").points, np.array([10., 5.]))
         self.assertArrayAlmostEqual(
             result.coord("height").bounds, np.array([[10., 20.], [5., 10.]]))
+
+    def test_metadata(self):
+        """Test that the metadata on the resulting cube is as expected"""
+        coord_name = "height"
+        direction = "negative"
+        expected_attributes = generate_mandatory_attributes([self.cube])
+        result = (
+            Integration(
+                coord_name, direction_of_integration=direction
+                ).process(self.cube))
+        self.assertEqual(result.name(), self.cube.name())
+        self.assertEqual(result.units, self.cube.units)
+        self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_data(self):
         """Test that the resulting cube contains the expected data following
