@@ -36,6 +36,7 @@ rather than by shell glob expansion. There are also a some directory globs
 which expand directory names in addition to filenames.
 """
 
+import os
 import pytest
 
 from . import acceptance as acc
@@ -185,8 +186,8 @@ def test_missing_dataset(tmp_path):
             "--cycletime", "20170605T0300Z",
             "--truth-attribute", "mosg__model_configuration=uk_det",
             "--output", output_path]
-    with pytest.raises(RuntimeError, match="Missing historical forecast"):
-        run_cli(args)
+    run_cli(args)
+    assert not os.path.isfile(output_path)
 
 
 def test_too_many_masks(tmp_path):
