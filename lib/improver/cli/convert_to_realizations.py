@@ -61,11 +61,11 @@ def process(cube: cli.inputcube,
         output_cube = percentiles_to_realizations.process(
             cube, no_of_percentiles=no_of_realizations,
             rebadging=True, ecc_bounds_warning=ecc_bounds_warning)
-    elif cube.coord(var_name='threshold'):
+    elif cube.coords(var_name='threshold'):
         output_cube = probabilities_to_realizations.process(
             cube, no_of_realizations=no_of_realizations, rebadging=True,
             ecc_bounds_warning=ecc_bounds_warning)
-    elif cube.coord(var_name='realization'):
+    elif cube.coords(var_name='realization'):
         output_cube = cube
     else:
         raise ValueError("Unable to convert to realizations:\n" + str(cube))

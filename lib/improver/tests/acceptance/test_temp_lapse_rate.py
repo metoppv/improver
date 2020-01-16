@@ -92,7 +92,7 @@ def test_realizations(tmp_path):
             "--land_sea_mask_filepath", landmask_path,
             output_path]
     run_cli(args)
-    acc.compare(output_path, kgo_path, atol=acc.DEFAULT_TOLERANCE, rtol=None)
+    acc.compare(output_path, kgo_path, rtol=0.0)
 
 
 def test_options(tmp_path):

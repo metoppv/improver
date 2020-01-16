@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
@@ -28,31 +29,30 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""
-Tests for the resolve-wind-components CLI
-"""
+"""Script to compare netcdf files"""
 
-import pytest
-
-from improver.tests.acceptance import acceptance as acc
-
-pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-run_cli = acc.run_cli("resolve-wind-components")
-
-WSPD = "wind_speed_on_pressure_levels"
-WDIR = "wind_direction_on_pressure_levels"
+from improver.tests import acceptance as acc
+from improver.utilities import compare
+from improver import cli
 
 
-@pytest.mark.slow
-def test_basic(tmp_path):
-    """Test basic wind speed/direction to u/v vector conversion"""
-    kgo_dir = acc.kgo_root() / "resolve-wind-components/basic"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_dir = acc.kgo_root() / "nowcast-extrapolate/model_winds"
-    wspd_path = input_dir / f"20181103T1600Z-PT0001H00M-{WSPD}.nc"
-    wdir_path = input_dir / f"20181103T1600Z-PT0001H00M-{WDIR}.nc"
-    output_path = tmp_path / "output.nc"
-    args = [wspd_path, wdir_path,
-            "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path, rtol=0.0)
+@cli.clizefy
+def process(actual: cli.inputpath,
+            desired: cli.inputpath,
+            rtol: float = acc.DEFAULT_TOLERANCE,
+            atol: float = acc.DEFAULT_TOLERANCE) -> None:
+    """
+    Compare two netcdf files
+
+    Args:
+        actual: path to output data netcdf file
+        desired: path to desired/known good data netcdf file
+        rtol: relative tolerance for data in variables
+        atol: absolute tolerance for data in variables
+
+    Returns:
+        None
+    """
+
+    compare.compare_netcdfs(actual, desired, rtol=rtol, atol=atol,
+                            reporter=print)

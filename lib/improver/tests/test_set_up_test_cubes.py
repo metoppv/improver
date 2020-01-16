@@ -40,6 +40,8 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
+from improver.metadata.constants.time_types import (
+    TIME_REFERENCE_DTYPE, TIME_REFERENCE_UNIT)
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.tests.set_up_test_cubes import (
     construct_xy_coords, construct_scalar_time_coords, set_up_variable_cube,
@@ -455,6 +457,20 @@ class test_add_coordinate(IrisTest):
         # check a forecast period coordinate has been added
         expected_fp_points = 3600*np.array([6, 7], dtype=np.int64)
         self.assertArrayAlmostEqual(
+            result.coord("forecast_period").points, expected_fp_points)
+
+    def test_time_points(self):
+        """Test a time coordinate can be added using integer points rather
+        than datetimes, and that forecast period is correctly re-calculated"""
+        time_val = self.input_cube.coord("time").points[0]
+        time_points = np.array([time_val + 3600, time_val + 7200])
+        fp_val = self.input_cube.coord("forecast_period").points[0]
+        expected_fp_points = np.array([fp_val + 3600, fp_val + 7200])
+        result = add_coordinate(
+            self.input_cube, time_points, "time",
+            coord_units=TIME_REFERENCE_UNIT, dtype=TIME_REFERENCE_DTYPE)
+        self.assertArrayEqual(result.coord("time").points, time_points)
+        self.assertArrayEqual(
             result.coord("forecast_period").points, expected_fp_points)
 
 

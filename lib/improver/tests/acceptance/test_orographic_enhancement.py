@@ -34,6 +34,7 @@ Tests for the orographic-enhancement CLI
 
 import pytest
 
+from improver.tests.acceptance import LOOSE_TOLERANCE
 from improver.tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
@@ -57,7 +58,7 @@ def test_basic(tmp_path):
     args = [*input_args,
             "--output", output_path]
     run_cli(args)
-    acc.compare(output_path, kgo_path, rtol=acc.LOOSE_TOLERANCE)
+    acc.compare(output_path, kgo_path, rtol=LOOSE_TOLERANCE)
 
 
 @pytest.mark.slow
@@ -78,7 +79,7 @@ def test_boundary_height(tmp_path):
             "--boundary-height-units=m",
             "--output", output_path]
     run_cli(args)
-    acc.compare(output_path, kgo_path, rtol=acc.LOOSE_TOLERANCE)
+    acc.compare(output_path, kgo_path, rtol=LOOSE_TOLERANCE)
 
 
 @pytest.mark.slow
@@ -99,7 +100,7 @@ def test_boundary_height_units(tmp_path):
             "--boundary-height-units=ft",
             "--output", output_path]
     run_cli(args)
-    acc.compare(output_path, kgo_path, rtol=acc.LOOSE_TOLERANCE)
+    acc.compare(output_path, kgo_path, rtol=LOOSE_TOLERANCE)
 
 
 def test_invalid_boundary_height(tmp_path):
