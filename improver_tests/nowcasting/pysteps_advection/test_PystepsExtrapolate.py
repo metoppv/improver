@@ -38,7 +38,7 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.nowcasting.pysteps_advection import PystepsExtrapolate
-from improver.tests.set_up_test_cubes import (
+from ...set_up_test_cubes import (
     set_up_variable_cube, add_coordinate)
 
 

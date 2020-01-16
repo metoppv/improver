@@ -82,7 +82,7 @@ def process(cube: cli.inputcube,
     # extrapolate input data to required lead times
     forecast_plugin = PystepsExtrapolate(lead_time_interval, max_lead_time)
     forecast_cubes = forecast_plugin.process(cube, u_cube, v_cube,
-                                             orographic_enhancement_cube,
+                                             orographic_enhancement,
                                              attributes_dict=attributes_config)
 
     return merge_cubes(forecast_cubes)
