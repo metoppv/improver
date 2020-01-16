@@ -45,7 +45,7 @@ from improver.utilities.spatial import (
 MAX_RADIUS_IN_GRID_CELLS = 500
 
 
-class SquareNeighbourhood(object):
+class SquareNeighbourhood:
 
     """
     Methods for use in application of a square neighbourhood.
