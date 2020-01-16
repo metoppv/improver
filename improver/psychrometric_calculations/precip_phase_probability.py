@@ -109,7 +109,7 @@ class PrecipPhaseProbability(BasePlugin):
             self.param = 'snow'
             self.comparator = operator.gt
             self.get_discriminating_percentile = self.percentile_plugin(
-                self._nbhood_shape, self.radius, percentiles=[80.]).process
+                self._nbhood_shape, self.radius, percentiles=[80.])
         else:
             extracted_cube = cubes.extract('altitude_of_rain_falling_level')
             if not extracted_cube:
@@ -122,7 +122,7 @@ class PrecipPhaseProbability(BasePlugin):
             # We want rain at or above the surface, so inverse of 80th
             # centile is the 20th centile.
             self.get_discriminating_percentile = self.percentile_plugin(
-                self._nbhood_shape, self.radius, percentiles=[20.]).process
+                self._nbhood_shape, self.radius, percentiles=[20.])
 
         orography_name = 'surface_altitude'
         extracted_cube = cubes.extract(orography_name)
@@ -140,8 +140,8 @@ class PrecipPhaseProbability(BasePlugin):
         """
         Derives the probability of a precipitation phase at the surface. If
         the snow-sleet falling-level is supplied, this is the probability of
-        snow at or below the surface. If the sleet-rain falling-level is
-        supplied, this is the probability of rain at or above the surface.
+        snow at (or below) the surface. If the sleet-rain falling-level is
+        supplied, this is the probability of rain at (or above) the surface.
 
         Args:
             cubes (iris.cube.CubeList or list):
