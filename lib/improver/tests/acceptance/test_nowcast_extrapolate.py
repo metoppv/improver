@@ -52,6 +52,7 @@ def test_basic(tmp_path):
     input_path = input_dir / RAINRATE_NC
     oe_dir = acc.kgo_root() / "nowcast-extrapolate/extrapolate"
     oe_path = oe_dir / "orographic_enhancement.nc"
+
     uv_path = input_dir / "kgo.nc"
 
     output_path = tmp_path / "output.nc"

@@ -37,6 +37,10 @@ from improver import cli
 inputadvection = cli.create_constrained_inputcubelist_converter(
     'precipitation_advection_x_velocity', 'precipitation_advection_y_velocity')
 
+# Creates the value_converter that clize needs.
+inputadvection = cli.create_constrained_inputcubelist_converter(
+    'precipitation_advection_x_velocity', 'precipitation_advection_y_velocity')
+
 
 @cli.clizefy
 @cli.with_output
