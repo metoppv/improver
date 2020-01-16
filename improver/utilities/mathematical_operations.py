@@ -121,8 +121,7 @@ class Integration(BasePlugin):
     def prepare_for_integration(self, cube):
         """Prepare for integration by creating the cubes needed for the
         integration. These are separate cubes for representing the upper
-        limit of the integration and the lower limit of the integration,
-        as well as setting up the output cube for the integrated output.
+        and lower limits of the integration.
 
         Args:
             cube (iris.cube.Cube):
@@ -136,10 +135,6 @@ class Integration(BasePlugin):
                 **lower_bounds_cube** (iris.cube.Cube):
                     Cube containing the lower bounds to be used during the
                     integration.
-                **integrated_cube** (iris.cube.Cube):
-                    Cube that will be used for storing the output of the
-                    integration containing the most appropriate coordinates.
-
         """
 
         # Define upper and lower level cubes for the integration.
@@ -171,14 +166,14 @@ class Integration(BasePlugin):
             template (iris.cube.Cube):
                 Copy of upper or lower bounds cube, based on direction of
                 integration
-            data (numpy.ndarray):
-                Array of integrated data
-            points (numpy.ndarray):
+            data (list or numpy.ndarray):
+                Integrated data
+            points (list or numpy.ndarray):
                 Points values for the integrated coordinate. These will not
                 match the template cube if any slices were skipped in the
                 integration, and therefore are used to slice the template cube
                 to match the data array.
-            bounds (numpy.ndarray):
+            bounds (list or numpy.ndarray):
                 Bounds values for the integrated coordinate
 
         Returns:
@@ -239,7 +234,8 @@ class Integration(BasePlugin):
         def skip_slice(upper_bound, lower_bound, direction,
                        start_point, end_point):
             """Conditions under which a slice should not be included in
-            the integrated total"""
+            the integrated total.  All inputs (except the string "direction")
+            are floats."""
             if start_point:
                 if direction == "positive" and lower_bound < start_point:
                     return True
@@ -255,8 +251,7 @@ class Integration(BasePlugin):
         data = []
         coord_points = []
         coord_bounds = []
-        stride_sum = 0
-        template = iris.cube.CubeList([])
+        integral = 0
         levels_tuple = zip(
             upper_bounds_cube.slices_over(self.coord_name_to_integrate),
             lower_bounds_cube.slices_over(self.coord_name_to_integrate))
@@ -279,9 +274,9 @@ class Integration(BasePlugin):
             lower_half_data = np.where(
                 lower_bounds_slice.data > 0,
                 lower_bounds_slice.data * 0.5 * stride, 0.0)
-            stride_sum += upper_half_data + lower_half_data
+            integral += upper_half_data + lower_half_data
 
-            data.append(stride_sum.copy())
+            data.append(integral.copy())
             coord_points.append(
                 upper_bound if self.direction_of_integration == "positive" else
                 lower_bound)
@@ -291,33 +286,22 @@ class Integration(BasePlugin):
             msg = ("No integration could be performed for "
                    "coord_to_integrate: {}, start_point: {}, end_point: {}, "
                    "direction_of_integration: {}. "
-                   "The resulting cubelist was empty.".format(
+                   "No usable data was found.".format(
                        self.coord_name_to_integrate, self.start_point,
                        self.end_point, self.direction_of_integration))
             raise ValueError(msg)
 
-        template = (upper_bounds_cube.copy()
+        template = (upper_bounds_cube
                     if self.direction_of_integration == "positive" else
-                    lower_bounds_cube.copy())
+                    lower_bounds_cube)
         integrated_cube = self._create_output_cube(
-            template, data, coord_points, coord_bounds)
+            template.copy(), data, coord_points, coord_bounds)
         return integrated_cube
 
     def process(self, cube):
-        """Integrate a specified coordinate. This is calculated by defining the
-        upper and lower bounds for the steps along a chosen coordinate
-        within the cube.
-
-        Functions utilised are:
-            1. Ensure the cube is sorted in the direction desired for
-               integration.
-            2. Prepare for integration by creating cubes that represent the
-               upper and lower limits of the integration, as well as as a
-               template cube to put the integrated output.
-            3. Perform the integration using the trapezoidal rule.
-            4. Ensure that the integrated coordinate is a dimension coordinate
-               and ensure that the integrated coordinate is sorted in the
-               desired direction.
+        """Integrate data along a specified coordinate.  Only positive values
+        are integrated; zero and negative values are not included in the sum or
+        as levels on the integrated cube.
 
         Args:
             cube (iris.cube.Cube):
@@ -326,10 +310,9 @@ class Integration(BasePlugin):
         Returns:
             iris.cube.Cube:
                 The cube containing the result of the integration.
-                This will contain the same metadata as the input cube.
-
+                This will have the same name and units as the input cube (TODO
+                same name and units are incorrect - fix this).
         """
-        # Make coordinate monotonic in the direction desired for integration.
         cube = self.ensure_monotonic_increase_in_chosen_direction(cube)
 
         upper_bounds_cube, lower_bounds_cube = (
