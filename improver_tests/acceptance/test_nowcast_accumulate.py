@@ -46,7 +46,7 @@ def test_basic(tmp_path):
     percentiles, and then reorder the ensemble using the raw ensemble
     realizations
     """
-    kgo_dir = acc.kgo_root() / "nowcast-accumulate/basic"
+    kgo_dir = acc.kgo_root() / "nowcast-feature-branch/nowcast-accumulate"
     kgo_path = kgo_dir / "kgo.nc"
     input_dir = acc.kgo_root() / "nowcast-optical-flow/basic"
     input_path = (input_dir /
