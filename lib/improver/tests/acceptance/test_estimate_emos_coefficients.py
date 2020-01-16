@@ -57,9 +57,11 @@ def test_gaussian(tmp_path):
     history_path = kgo_dir / "history/*.nc"
     truth_path = kgo_dir / "truth/*.nc"
     output_path = tmp_path / "output.nc"
-    args = ["gaussian", "20170605T0300Z", output_path,
-            "--historic_filepath", history_path,
-            "--truth_filepath", truth_path]
+    args = [history_path, truth_path,
+            "--distribution", "gaussian",
+            "--cycletime", "20170605T0300Z",
+            "--truth-attribute", "mosg__model_configuration=uk_det",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path,
                 atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
@@ -79,9 +81,11 @@ def test_trunc_gaussian(tmp_path):
     history_path = kgo_dir / "history/*.nc"
     truth_path = kgo_dir / "truth/*.nc"
     output_path = tmp_path / "output.nc"
-    args = ["truncated_gaussian", "20170605T0300Z", output_path,
-            "--historic_filepath", history_path,
-            "--truth_filepath", truth_path]
+    args = [history_path, truth_path,
+            "--distribution", "truncated_gaussian",
+            "--cycletime", "20170605T0300Z",
+            "--truth-attribute", "mosg__model_configuration=uk_det",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path,
                 atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
@@ -95,10 +99,13 @@ def test_units(tmp_path):
     history_path = kgo_dir / "history/*.nc"
     truth_path = kgo_dir / "truth/*.nc"
     output_path = tmp_path / "output.nc"
-    args = ["gaussian", "20170605T0300Z", output_path,
-            "--historic_filepath", history_path,
-            "--truth_filepath", truth_path,
-            "--units", "K", "--max_iterations", "600"]
+    args = [history_path, truth_path,
+            "--distribution", "gaussian",
+            "--cycletime", "20170605T0300Z",
+            "--truth-attribute", "mosg__model_configuration=uk_det",
+            "--units", "K",
+            "--max-iterations", "600",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path,
                 atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
@@ -116,11 +123,13 @@ def test_predictor_of_mean_no_sm(tmp_path):
     history_path = kgo_dir / "gaussian/history/*.nc"
     truth_path = kgo_dir / "gaussian/truth/*.nc"
     output_path = tmp_path / "output.nc"
-    args = ["gaussian", "20170605T0300Z", output_path,
-            "--predictor_of_mean", "realizations",
-            "--historic_filepath", history_path,
-            "--truth_filepath", truth_path,
-            "--max_iterations", "150"]
+    args = [history_path, truth_path,
+            "--distribution", "gaussian",
+            "--cycletime", "20170605T0300Z",
+            "--truth-attribute", "mosg__model_configuration=uk_det",
+            "--predictor-of-mean", "realizations",
+            "--max-iterations", "150",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path,
                 atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
@@ -134,90 +143,54 @@ def test_predictor_of_mean_sm(tmp_path):
     history_path = kgo_dir / "gaussian/history/*.nc"
     truth_path = kgo_dir / "gaussian/truth/*.nc"
     output_path = tmp_path / "output.nc"
-    args = ["gaussian", "20170605T0300Z", output_path,
-            "--predictor_of_mean", "realizations",
-            "--historic_filepath", history_path,
-            "--truth_filepath", truth_path,
-            "--max_iterations", "150"]
+    args = [history_path, truth_path,
+            "--distribution", "gaussian",
+            "--cycletime", "20170605T0300Z",
+            "--truth-attribute", "mosg__model_configuration=uk_det",
+            "--predictor-of-mean", "realizations",
+            "--max-iterations", "150",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path,
                 atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
 
 
-@pytest.mark.slow
-def test_combined_inputs(tmp_path):
-    """Test combined historic forecasts and truths"""
-    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
-    kgo_path = kgo_dir / "gaussian/kgo.nc"
-    combined_path = kgo_dir / "gaussian/*/*.nc"
-    historic_path = kgo_dir / "combined_input/historic_forecast.json"
-    truth_path = kgo_dir / "combined_input/truth.json"
-    output_path = tmp_path / "output.nc"
-    args = ["gaussian", "20170605T0300Z", output_path,
-            "--combined_filepath", combined_path,
-            "--historic_forecast_identifier", historic_path,
-            "--truth_identifier", truth_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path,
-                atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
+def test_no_inputs():
+    """Test no inputs passed to CLI"""
+    args = ["--distribution", "gaussian",
+            "--cycletime", "20170605T0300Z",
+            "--truth-attribute", "mosg__model_configuration=uk_det"]
+    with pytest.raises(RuntimeError, match="Must have cubes"):
+        run_cli(args)
 
 
-def test_only_truth_dataset(tmp_path):
+def test_missing_dataset(tmp_path):
     """Test error when only the truth dataset is provided"""
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
     truth_path = kgo_dir / "gaussian/truth/*.nc"
     output_path = tmp_path / "output.nc"
-    args = ["gaussian", "20170605T0300Z", output_path,
-            "--truth_filepath", truth_path]
-    with pytest.raises(ValueError,
-                       match=".*historic_filepath.*truth_filepath.*"):
+    args = [truth_path,
+            "--distribution", "gaussian",
+            "--cycletime", "20170605T0300Z",
+            "--truth-attribute", "mosg__model_configuration=uk_det",
+            "--output", output_path]
+    with pytest.raises(RuntimeError, match="Missing historical forecast"):
         run_cli(args)
 
 
-def test_too_many_inputs(tmp_path):
-    """Test error when too many inputs are provided"""
+def test_too_many_masks(tmp_path):
+    """Test too many land-sea masks arguments"""
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
-    historic_path = kgo_dir / "gaussian/history/*.nc"
+    lsmask_path = kgo_dir / "landmask.nc"
+    history_path = kgo_dir / "gaussian/history/*.nc"
     truth_path = kgo_dir / "gaussian/truth/*.nc"
-    combined_path = kgo_dir / "gaussian/*/*.nc"
     output_path = tmp_path / "output.nc"
-    args = ["gaussian", "20170605T0300Z", output_path,
-            "--historic_filepath", historic_path,
-            "--truth_filepath", truth_path,
-            "--combined_filepath", combined_path]
-    with pytest.raises(ValueError,
-                       match=".*historic_filepath.*truth_filepath.*"):
-        run_cli(args)
-
-
-def test_too_few_combined(tmp_path):
-    """
-    Test error when too few arguments to identify historic
-    forecasts and truths
-    """
-    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
-    gaussian_all_path = kgo_dir / "gaussian/*/*.nc"
-    output_path = tmp_path / "output.nc"
-    args = ["gaussian", "20170605T0300Z", output_path,
-            "--combined_filepath", gaussian_all_path]
-    with pytest.raises(ValueError, match=".*combined.*"):
-        run_cli(args)
-
-
-def test_mismatching_validity_times(tmp_path):
-    """
-    Test warning when unable to identify both historic forecasts and truths
-    """
-    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
-    combined_path = kgo_dir / "gaussian/truth/*.nc"
-    historic_path = kgo_dir / "combined_input/historic_forecast.json"
-    truth_path = kgo_dir / "combined_input/truth.json"
-    output_path = tmp_path / "output.nc"
-    args = ["gaussian", "20170605T0300Z", output_path,
-            "--combined_filepath", combined_path,
-            "--historic_forecast_identifier", historic_path,
-            "--truth_identifier", truth_path]
-    with pytest.warns(UserWarning, match=".*metadata to identify.*"):
+    args = [history_path, truth_path, lsmask_path, lsmask_path,
+            "--distribution", "gaussian",
+            "--cycletime", "20170605T0300Z",
+            "--truth-attribute", "mosg__model_configuration=uk_det",
+            "--output", output_path]
+    with pytest.raises(RuntimeError, match="one cube for land-sea mask"):
         run_cli(args)
 
 
@@ -227,14 +200,15 @@ def test_land_points_only(tmp_path):
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
     kgo_path = kgo_dir / "gaussian/land_only_kgo.nc"
     lsmask_path = kgo_dir / "landmask.nc"
-    historic_path = kgo_dir / "gaussian/history/*.nc"
+    history_path = kgo_dir / "gaussian/history/*.nc"
     truth_path = kgo_dir / "gaussian/truth/*.nc"
     output_path = tmp_path / "output.nc"
-    args = ["gaussian", "20170605T0300Z", output_path,
-            "--historic_filepath", historic_path,
-            "--truth_filepath", truth_path,
-            "--landsea_mask", lsmask_path,
-            "--tolerance", "1e-4"]
+    args = [history_path, truth_path, lsmask_path,
+            "--distribution", "gaussian",
+            "--cycletime", "20170605T0300Z",
+            "--truth-attribute", "mosg__model_configuration=uk_det",
+            "--tolerance", "1e-4",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path,
                 atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)

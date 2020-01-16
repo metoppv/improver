@@ -43,11 +43,11 @@ inputadvection = cli.create_constrained_inputcubelist_converter(
 
 @cli.clizefy
 @cli.with_output
-def process(input_cube: cli.inputcube,
-            advection_cubes: inputadvection,
-            oe_cube: cli.inputcube,
+def process(cube: cli.inputcube,
+            advection_velocity: inputadvection,
+            orographic_enhancement: cli.inputcube,
             *,
-            attributes_dict: cli.inputjson = None,
+            attributes_config: cli.inputjson = None,
             max_lead_time=360,
             lead_time_interval=15,
             accumulation_period=15,
@@ -55,23 +55,19 @@ def process(input_cube: cli.inputcube,
     """Module to extrapolate and accumulate the weather with 1 min fidelity.
 
     Args:
-        input_cube (iris.cube.Cube):
+        cube (iris.cube.Cube):
             The input Cube to be processed.
-        advection_cubes (iris.cube.CubeList):
+        advection_velocity (iris.cube.CubeList):
             Advection cubes of U and V.
-        oe_cube (iris.cube.Cube):
+        orographic_enhancement (iris.cube.Cube):
             Cube containing the orographic enhancement fields. May have data
             for multiple times in the cube.
-            Default is None.
-        attributes_dict (dict):
+        attributes_config (dict):
             Dictionary containing the required changes to the attributes.
-            Default is None.
         max_lead_time (int):
             Maximum lead time required (mins).
-            Default is 360.
         lead_time_interval (int):
             Interval between required lead times (mins).
-            Default is 15.
         accumulation_period (int):
             The period over which the accumulation is calculated (mins).
             Only full accumulation periods will be computed. At lead times
@@ -80,15 +76,14 @@ def process(input_cube: cli.inputcube,
         accumulation_units (str):
             Desired units in which the accumulations should be expressed.
             e.g. 'mm'
-            Default is 'm'.
 
     Returns:
         iris.cube.CubeList:
             New cubes with accumulated data.
 
     Raises:
-        TypeError:
-            If advection_cubes doesn't contain an x velocity and a y velocity.
+        ValueError:
+            If advection_velocity doesn't contain x and y velocity.
     """
     from iris import Constraint
 
@@ -98,18 +93,16 @@ def process(input_cube: cli.inputcube,
     from improver.nowcasting.pysteps_advection import PystepsExtrapolate
     from improver.utilities.cube_manipulation import merge_cubes
 
-    u_cube = advection_cubes.extract(
-        Constraint("precipitation_advection_x_velocity"), True)
-    v_cube = advection_cubes.extract(
-        Constraint("precipitation_advection_y_velocity"), True)
+    u_cube, v_cube = advection_velocity
 
     if not (u_cube and v_cube):
-        raise TypeError("Neither u_cube or v_cube can be None")
+        raise ValueError("Neither u_cube or v_cube can be None")
 
     # extrapolate input data to the maximum required lead time
     forecast_plugin = PystepsExtrapolate(ACCUMULATION_FIDELITY, max_lead_time)
     forecast_cubes = forecast_plugin.process(
-        input_cube, u_cube, v_cube, oe_cube, attributes_dict=attributes_dict)
+        cube, u_cube, v_cube, orographic_enhancement,
+        attributes_dict=attributes_config)
 
     lead_times = (np.arange(lead_time_interval, max_lead_time + 1,
                             lead_time_interval))

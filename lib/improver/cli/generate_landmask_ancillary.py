@@ -29,65 +29,28 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to run landmask ancillary generation."""
+"""Script to run land_sea_mask ancillary generation."""
 
-import os
-
-from improver.argparser import ArgParser
-from improver.generate_ancillaries.generate_ancillary import (
-    CorrectLandSeaMask)
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
+from improver import cli
 
 
-def main(argv=None):
-    """Load in arguments and get going."""
-    parser = ArgParser(
-        description=('Read the input landmask, and correct '
-                     'to boolean values.'))
-    parser.add_argument('--force', dest='force', default=False,
-                        action='store_true',
-                        help=('If True, ancillaries will be generated '
-                              'even if doing so will overwrite existing '
-                              'files.'))
-    parser.add_argument('input_filepath_standard',
-                        metavar='INPUT_FILE_STANDARD',
-                        help='A path to an input NetCDF file to be processed')
-    parser.add_argument('output_filepath', metavar='OUTPUT_FILE',
-                        help='The output path for the processed NetCDF')
-    args = parser.parse_args(args=argv)
+@cli.clizefy
+@cli.with_output
+def process(land_sea_mask: cli.inputcube):
+    """Generate a land_sea_mask ancillary.
 
-    # Check if improver ancillary already exists.
-    if not os.path.exists(args.output_filepath) or args.force:
-        # Load Cube
-        landmask = load_cube(args.input_filepath_standard)
-
-        # Process Cube
-        land_binary_mask = process(landmask)
-
-        # Save Cube
-        save_netcdf(land_binary_mask, args.output_filepath)
-    else:
-        print('File already exists here: ', args.output_filepath)
-
-
-def process(landmask):
-    """Runs landmask ancillary generation.
-
-    Read in the interpolated landmask and round
+    Reads in the interpolated land_sea_mask and rounds
     values < 0.5 to False
     values >= 0.5 to True.
 
     Args:
-        landmask (iris.cube.Cube):
-            Cube to process
+        land_sea_mask (iris.cube.Cube):
+            Cube to process.
 
     Returns:
         iris.cube.Cube:
-            A cube landmask of boolean values.
+            A land_sea_mask of boolean values.
     """
-    return CorrectLandSeaMask().process(landmask)
-
-
-if __name__ == "__main__":
-    main()
+    from improver.generate_ancillaries.generate_ancillary import (
+        CorrectLandSeaMask)
+    return CorrectLandSeaMask().process(land_sea_mask)

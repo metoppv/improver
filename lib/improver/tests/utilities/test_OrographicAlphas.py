@@ -159,7 +159,7 @@ class Test_gradient_to_alpha(IrisTest):
 
         result = self.plugin.gradient_to_alpha(self.gradient_x,
                                                self.gradient_y)
-        self.assertEqual(result[0].name(), 'alphas')
+        self.assertEqual(result[0].name(), 'alpha_x')
         self.assertArrayAlmostEqual(result[0].data, expected)
         self.assertNotIn('forecast_period', [coord.name()
                          for coord in result[0].coords()])

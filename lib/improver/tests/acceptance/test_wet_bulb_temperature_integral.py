@@ -47,6 +47,6 @@ def test_basic(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"
     input_path = acc.kgo_root() / "wet-bulb-temperature/multi_level/kgo.nc"
-    args = [input_path, output_path]
+    args = [input_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

@@ -29,186 +29,24 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to estimate coefficients for Ensemble Model Output
+"""CLI to estimate coefficients for Ensemble Model Output
 Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
 Regression (NGR)."""
 
-import warnings
-
-import numpy as np
-
-from improver.argparser import ArgParser
-from improver.ensemble_calibration.ensemble_calibration import (
-    EstimateCoefficientsForEnsembleCalibration)
-from improver.ensemble_calibration.ensemble_calibration_utilities import (
-    SplitHistoricForecastAndTruth)
-from improver.utilities.load import load_cube, load_cubelist
-from improver.utilities.cli_utilities import (
-    load_json_or_none)
-from improver.utilities.save import save_netcdf
+from improver import cli
 
 
-def main(argv=None):
-    """Load in arguments for estimating coefficients for Ensemble Model Output
-       Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
-       Regression (NGR). 2 sources of input data must be provided: historical
-       forecasts and historical truth data (to use in calibration). The
-       estimated coefficients are written to a netCDF file.
-    """
-    parser = ArgParser(
-        description='Estimate coefficients for Ensemble Model Output '
-                    'Statistics (EMOS), otherwise known as Non-homogeneous '
-                    'Gaussian Regression (NGR). There are two methods for '
-                    'inputting data into this CLI, either by providing the '
-                    'historic forecasts and truth separately, or by providing '
-                    'a combined list of historic forecasts and truths along '
-                    'with historic_forecast_identifier and truth_identifier '
-                    'arguments to provide metadata that distinguishes between '
-                    'them.')
-    parser.add_argument('distribution', metavar='DISTRIBUTION',
-                        choices=['gaussian', 'truncated_gaussian'],
-                        help='The distribution that will be used for '
-                             'calibration. This will be dependent upon the '
-                             'input phenomenon. This has to be supported by '
-                             'the minimisation functions in '
-                             'ContinuousRankedProbabilityScoreMinimisers.')
-    parser.add_argument('cycletime', metavar='CYCLETIME', type=str,
-                        help='This denotes the cycle at which forecasts '
-                             'will be calibrated using the calculated '
-                             'EMOS coefficients. The validity time in the '
-                             'output coefficients cube will be calculated '
-                             'relative to this cycletime. '
-                             'This cycletime is in the format '
-                             'YYYYMMDDTHHMMZ.')
-
-    # Historic forecast and truth filepaths
-    parser.add_argument(
-        '--historic_filepath', metavar='HISTORIC_FILEPATH', nargs='+',
-        help='Paths to the input NetCDF files containing the '
-             'historic forecast(s) used for calibration. '
-             'This must be supplied with an associated truth filepath. '
-             'Specification of either the combined_filepath, '
-             'historic_forecast_identifier or the truth_identifier is '
-             'invalid with this argument.')
-    parser.add_argument(
-        '--truth_filepath', metavar='TRUTH_FILEPATH', nargs='+',
-        help='Paths to the input NetCDF files containing the '
-             'historic truth analyses used for calibration. '
-             'This must be supplied with an associated historic filepath. '
-             'Specification of either the combined_filepath, '
-             'historic_forecast_identifier or the truth_identifier is '
-             'invalid with this argument.')
-
-    # Input filepaths
-    parser.add_argument(
-        '--combined_filepath', metavar='COMBINED_FILEPATH', nargs='+',
-        help='Paths to the input NetCDF files containing '
-             'both the historic forecast(s) and truth '
-             'analyses used for calibration. '
-             'This must be supplied with both the '
-             'historic_forecast_identifier and the truth_identifier. '
-             'Specification of either the historic_filepath or the '
-             'truth_filepath is invalid with this argument.')
-    parser.add_argument(
-        "--historic_forecast_identifier",
-        metavar='HISTORIC_FORECAST_IDENTIFIER',
-        help='The path to a json file containing metadata '
-             'information that defines the historic forecast. '
-             'This must be supplied with both the combined_filepath and the '
-             'truth_identifier. Specification of either the historic_filepath'
-             'or the truth_filepath is invalid with this argument. '
-             'The intended contents is described in improver.'
-             'ensemble_calibration.ensemble_calibration_utilities.'
-             'SplitHistoricForecastAndTruth.')
-    parser.add_argument(
-        "--truth_identifier", metavar='TRUTH_IDENTIFIER',
-        help='The path to a json file containing metadata '
-             'information that defines the truth.'
-             'This must be supplied with both the combined_filepath and the '
-             'historic_forecast_identifier. Specification of either the '
-             'historic_filepath or the truth_filepath is invalid with this '
-             'argument. The intended contents is described in improver.'
-             'ensemble_calibration.ensemble_calibration_utilities.'
-             'SplitHistoricForecastAndTruth.')
-
-    # Output filepath
-    parser.add_argument('output_filepath', metavar='OUTPUT_FILEPATH',
-                        help='The output path for the processed NetCDF')
-    # Optional arguments.
-    parser.add_argument('--units', metavar='UNITS',
-                        help='The units that calibration should be undertaken '
-                             'in. The historical forecast and truth will be '
-                             'converted as required.')
-    parser.add_argument('--predictor_of_mean', metavar='PREDICTOR_OF_MEAN',
-                        choices=['mean', 'realizations'], default='mean',
-                        help='String to specify the predictor used to '
-                             'calibrate the forecast mean. Currently the '
-                             'ensemble mean ("mean") and the ensemble '
-                             'realizations ("realizations") are supported as '
-                             'options. Default: "mean".')
-    parser.add_argument('--max_iterations', metavar='MAX_ITERATIONS',
-                        type=np.int32, default=1000,
-                        help='The maximum number of iterations allowed '
-                             'until the minimisation has converged to a '
-                             'stable solution. If the maximum number '
-                             'of iterations is reached, but the '
-                             'minimisation has not yet converged to a '
-                             'stable solution, then the available solution '
-                             'is used anyway, and a warning is raised.'
-                             'This may be modified for testing purposes '
-                             'but otherwise kept fixed. If the '
-                             'predictor_of_mean is "realizations", '
-                             'then the number of iterations may require '
-                             'increasing, as there will be more coefficients '
-                             'to solve for.')
-    parser.add_argument('--tolerance', metavar='TOLERANCE',
-                        type=np.float32, default=0.01,
-                        help='The tolerance for the Continuous Ranked '
-                             'Probability Score (CRPS) calculated by the '
-                             'minimisation. The CRPS is in the units of the '
-                             'variable being calibrated. The tolerance is '
-                             'therefore representative of how close to the '
-                             'actual value are we aiming to forecast for a '
-                             'particular variable. Once multiple iterations '
-                             'result in a CRPS equal to the same value '
-                             'within the specified tolerance, the '
-                             'minimisation will terminate.')
-    parser.add_argument('--landsea_mask', metavar="LANDSEA_MASK", default=None,
-                        help="The netCDF file containing a land-sea mask on "
-                             "the same domain as the historic forecast and "
-                             "truth data. Land points are specified by ones "
-                             "and sea points are specified by zeros.")
-    args = parser.parse_args(args=argv)
-
-    # Load Cubes
-    historic_forecast = load_cube(args.historic_filepath, allow_none=True)
-    truth = load_cube(args.truth_filepath, allow_none=True)
-    landsea_mask = load_cube(args.landsea_mask, allow_none=True)
-
-    combined = (load_cubelist(args.combined_filepath)
-                if args.combined_filepath else None)
-    historic_forecast_dict = (
-        load_json_or_none(args.historic_forecast_identifier))
-    truth_dict = load_json_or_none(args.truth_identifier)
-
-    # Process Cube
-    coefficients = process(historic_forecast, truth, combined,
-                           historic_forecast_dict, truth_dict,
-                           args.distribution, args.cycletime, landsea_mask,
-                           args.units, args.predictor_of_mean,
-                           args.tolerance, args.max_iterations)
-    # Save Cube
-    # Check whether a coefficients cube has been created. If the historic
-    # forecasts and truths provided did not match in validity time, then
-    # no coefficients would have been calculated.
-    if coefficients:
-        save_netcdf(coefficients, args.output_filepath)
-
-
-def process(historic_forecast, truth, combined, historic_forecast_dict,
-            truth_dict, distribution, cycletime, landsea_mask, units=None,
-            predictor_of_mean='mean', tolerance=1, max_iterations=1000):
-    """Module for estimate coefficients for Ensemble Model Output Statistics.
+@cli.clizefy
+@cli.with_output
+def process(*cubes: cli.inputcube,
+            distribution,
+            truth_attribute,
+            cycletime,
+            units=None,
+            predictor_of_mean='mean',
+            tolerance: float = 0.01,
+            max_iterations: int = 1000):
+    """Estimate coefficients for Ensemble Model Output Statistics.
 
     Loads in arguments for estimating coefficients for Ensemble Model
     Output Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
@@ -217,54 +55,31 @@ def process(historic_forecast, truth, combined, historic_forecast_dict,
     The estimated coefficients are output as a cube.
 
     Args:
-        historic_forecast (iris.cube.Cube):
-            The cube containing the historical forecasts used for calibration.
-        truth (iris.cube.Cube):
-            The cube containing the truth used for calibration.
-        combined (iris.cube.CubeList):
-            A cubelist containing a combination of historic forecasts and
-            associated truths.
-        historic_forecast_dict (dict):
-            Dictionary specifying the metadata that defines the historic
-            forecast. For example:
-            ::
-
-                {
-                    "attributes": {
-                        "mosg__model_configuration": "uk_ens"
-                    }
-                }
-        truth_dict (dict):
-            Dictionary specifying the metadata that defines the truth.
-            For example:
-            ::
-
-                {
-                    "attributes": {
-                        "mosg__model_configuration": "uk_det"
-                    }
-                }
+        cubes (list of iris.cube.Cube):
+            A list of cubes containing the historical forecasts and
+            corresponding truth used for calibration. They must have the same
+            cube name and will be separated based on the truth attribute.
+            Optionally this may also contain a single land-sea mask cube on the
+            same domain as the historic forecasts and truth (where land points
+            are set to one and sea points are set to zero).
         distribution (str):
             The distribution that will be used for calibration. This will be
             dependant upon the input phenomenon.
+        truth_attribute (str):
+            An attribute and its value in the format of "attribute=value",
+            which must be present on historical truth cubes.
         cycletime (str):
             This denotes the cycle at which forecasts will be calibrated using
             the calculated EMOS coefficients. The validity time in the output
             coefficients cube will be calculated relative to this cycletime.
             This cycletime is in the format YYYYMMDDTHHMMZ.
-        landsea_mask (iris.cube.Cube):
-            A cube containing the land-sea mask on the same domain as the
-            historic forecasts and truth. Land points are set to one and sea
-            points are set to one.
         units (str):
             The units that calibration should be undertaken in. The historical
             forecast and truth will be converted as required.
-            Default is None.
         predictor_of_mean (str):
             String to specify the input to calculate the calibrated mean.
             Currently the ensemble mean ("mean") and the ensemble realizations
             ("realizations") are supported as the predictors.
-            Default is 'mean'.
         tolerance (float):
             The tolerance for the Continuous Ranked Probability Score (CRPS)
             calculated by the minimisation. Once multiple iterations result in
@@ -279,87 +94,68 @@ def process(historic_forecast, truth, combined, historic_forecast_dict,
             If the predictor_of_mean is "realizations", then the number of
             iterations may require increasing, as there will be more
             coefficients to solve.
-            Default is 1000.
 
     Returns:
-        iris.cube.Cube or None:
+        iris.cube.Cube:
             Cube containing the coefficients estimated using EMOS. The cube
             contains a coefficient_index dimension coordinate and a
-            coefficient_name auxiliary coordinate. If no historic forecasts or
-            truths are found then None is returned.
+            coefficient_name auxiliary coordinate.
 
     Raises:
-        ValueError: If the historic forecast and truth inputs are specified,
-            then the combined input, historic forecast dictionary and truth
-            dictionary should not be specified.
-        ValueError: If one of the historic forecast or truth inputs are
-            specified, then they should both be specified.
-        ValueError: All of the combined_filepath, historic_forecast_identifier
-            and truth_identifier arguments should be specified if one of the
-            arguments are specified.
-
-    Warns:
-        UserWarning: The metadata to identify the desired historic forecast or
-            truth has found nothing matching the metadata information supplied.
+        RuntimeError:
+            An unexpected number of distinct cube names were passed in.
+        RuntimeError:
+            More than one cube was identified as a land-sea mask.
+        RuntimeError:
+            Missing truth or historical forecast in input cubes.
 
     """
-    # The logic for the if statements below is:
-    # 1. Check whether either the historic_forecast or the truth exists.
-    # 2. Check that both the historic forecast and the truth exists, otherwise,
-    #    raise an error.
-    # 3. Check that none of the combined, historic forecast dictionary or
-    #    truth dictionary inputs have been provided, as these arguments are
-    #    invalid, if the historic forecast and truth inputs have been provided.
-    if any([historic_forecast, truth]):
-        if all([historic_forecast, truth]):
-            if any([combined, historic_forecast_dict, truth_dict]):
-                msg = ("If the historic_filepath and truth_filepath arguments "
-                       "are specified then none of the the combined_filepath, "
-                       "historic_forecast_identifier and truth_identifier "
-                       "arguments should be specified.")
-                raise ValueError(msg)
-        else:
-            msg = ("Both the historic_filepath and truth_filepath arguments "
-                   "should be specified if one of these arguments are "
-                   "specified.")
-            raise ValueError(msg)
 
-    # This if block follows the logic:
-    # 1. Check whether any of the combined, historic forecast dictionary or
-    #    truth dictionary inputs have been provided.
-    # 2. If not all of these inputs have been provided then raise an error,
-    #    as all of these inputs are required to separate the combined input
-    #    into the historic forecasts and truths.
-    if any([combined, historic_forecast_dict, truth_dict]):
-        if not all([combined, historic_forecast_dict, truth_dict]):
-            msg = ("All of the combined_filepath, "
-                   "historic_forecast_identifier and truth_identifier "
-                   "arguments should be specified if one of the arguments are "
-                   "specified.")
-            raise ValueError(msg)
+    from collections import OrderedDict
+    from improver.utilities.cube_manipulation import MergeCubes
+    from improver.ensemble_calibration.ensemble_calibration import (
+        EstimateCoefficientsForEnsembleCalibration)
 
-    try:
-        if combined is not None:
-            historic_forecast, truth = SplitHistoricForecastAndTruth(
-                historic_forecast_dict, truth_dict).process(combined)
-    except ValueError as err:
-        # This error arises if the metadata to identify the desired historic
-        # forecast or truth has found nothing matching the metadata
-        # information supplied.
-        if str(err).startswith("The metadata to identify the desired"):
-            warnings.warn(str(err))
-            result = None
-        else:
-            raise
+    grouped_cubes = {}
+    for cube in cubes:
+        grouped_cubes.setdefault(cube.name(), []).append(cube)
+    if len(grouped_cubes) == 1:
+        # Only one group - all forecast/truth cubes
+        land_sea_mask = None
+        diag_name = list(grouped_cubes.keys())[0]
+    elif len(grouped_cubes) == 2:
+        # Two groups - the one with exactly one cube matching a name should
+        # be the land_sea_mask, since we require more than 2 cubes in
+        # the forecast/truth group
+        grouped_cubes = OrderedDict(sorted(grouped_cubes.items(),
+                                           key=lambda kv: len(kv[1])))
+        # landsea name should be the key with the lowest number of cubes (1)
+        landsea_name, diag_name = list(grouped_cubes.keys())
+        land_sea_mask = grouped_cubes[landsea_name][0]
+        if len(grouped_cubes[landsea_name]) != 1:
+            raise RuntimeError('Expected one cube for land-sea mask.')
     else:
-        result = EstimateCoefficientsForEnsembleCalibration(
-            distribution, cycletime, desired_units=units,
-            predictor_of_mean_flag=predictor_of_mean,
-            tolerance=tolerance, max_iterations=max_iterations).process(
-                historic_forecast, truth, landsea_mask=landsea_mask)
+        raise RuntimeError('Must have cubes with 1 or 2 distinct names.')
 
-    return result
+    # split non-land_sea_mask cubes on forecast vs truth
+    truth_key, truth_value = truth_attribute.split('=')
+    input_cubes = grouped_cubes[diag_name]
+    grouped_cubes = {'truth': [], 'historical forecast': []}
+    for cube in input_cubes:
+        if cube.attributes.get(truth_key) == truth_value:
+            grouped_cubes['truth'].append(cube)
+        else:
+            grouped_cubes['historical forecast'].append(cube)
 
+    missing_inputs = ' and '.join(k for k, v in grouped_cubes.items() if not v)
+    if missing_inputs:
+        raise RuntimeError('Missing ' + missing_inputs + ' input.')
 
-if __name__ == "__main__":
-    main()
+    truth = MergeCubes()(grouped_cubes['truth'])
+    forecast = MergeCubes()(grouped_cubes['historical forecast'])
+
+    return EstimateCoefficientsForEnsembleCalibration(
+        distribution, cycletime, desired_units=units,
+        predictor_of_mean_flag=predictor_of_mean,
+        tolerance=tolerance, max_iterations=max_iterations).process(
+            forecast, truth, landsea_mask=land_sea_mask)

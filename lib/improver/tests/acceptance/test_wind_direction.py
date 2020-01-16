@@ -45,8 +45,7 @@ def test_basic(tmp_path):
     kgo_dir = acc.kgo_root() / "wind_direction/basic"
     kgo_path = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"
-    args = [kgo_dir / "input.nc",
-            output_path]
+    args = [kgo_dir / "input.nc", "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -56,8 +55,7 @@ def test_global(tmp_path):
     kgo_dir = acc.kgo_root() / "wind_direction/global"
     kgo_path = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"
-    args = ["--backup_method=first_realization",
-            kgo_dir / "input.nc",
-            output_path]
+    args = [kgo_dir / "input.nc", "--backup-method=first_realization",
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

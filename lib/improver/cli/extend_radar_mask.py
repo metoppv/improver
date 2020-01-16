@@ -35,17 +35,17 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(coverage: cli.inputcube,
-            radar_data: cli.inputcube):
+def process(cube: cli.inputcube,
+            coverage: cli.inputcube):
     """ Extend radar mask based on coverage data.
 
     Extends the mask on radar data based on the radar coverage composite.
     Update the mask on the input cube to reflect where coverage is valid.
 
     Args:
+        cube (iris.cube.Cube):
+            Cube containing the radar data to remask.
         coverage (iris.cube.Cube):
-            Cube containing the radar data to remask
-        radar_data (iris.cube.Cube):
             Cube containing the radar coverage data.
 
     Returns:
@@ -55,5 +55,5 @@ def process(coverage: cli.inputcube,
     from improver.nowcasting.utilities import ExtendRadarMask
 
     # extend mask
-    result = ExtendRadarMask().process(radar_data, coverage)
+    result = ExtendRadarMask().process(cube, coverage)
     return result

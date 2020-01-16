@@ -28,22 +28,27 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests command to execute tests."""
+"""
+Tests for the generate-orographic-alphas CLI
+"""
+
+import pytest
+
+from improver.tests.acceptance import acceptance as acc
+
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
-def main(argv):
-    """Run pycodestyle, pylint, documentation, unit and CLI acceptance tests.
-    """
-    # Temporary shim routine
-    import os
-    import sys
-    import subprocess
-    prog = os.path.join(os.environ['IMPROVER_DIR'], 'bin', 'improver-tests')
-    sys.exit(subprocess.call([prog, *argv]))
-
-
-def process():
-    """Run pycodestyle, pylint, documentation unit and CLI acceptance tests.
-    """
-    # TODO: port bin/improver-tests shell script to python
-    raise NotImplementedError
+def test_basic(tmp_path):
+    """Test basic generate orographic alphas processing"""
+    kgo_dir = acc.kgo_root() / "generate-orographic-alphas"
+    input_path = kgo_dir / "orography.nc"
+    kgo_path = kgo_dir / "kgo.nc"
+    output_path = tmp_path / "output.nc"
+    args = [input_path,
+            "--max-alpha", "0.5",
+            "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

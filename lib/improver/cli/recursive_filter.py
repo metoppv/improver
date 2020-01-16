@@ -31,75 +31,21 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to apply a recursive filter to neighbourhooded data."""
 
-from improver.argparser import ArgParser
-
-from improver.nbhood.recursive_filter import RecursiveFilter
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
+from improver import cli
 
 
-def main(argv=None):
-    """Load in arguments and get going."""
-    parser = ArgParser(
-        description="Run a recursive filter to convert a square neighbourhood "
-        "into a Gaussian-like kernel or smooth over short "
-        "distances. The filter uses an alpha parameter (0 < alpha < 1) to "
-        "control what proportion of the probability is passed onto the next "
-        "grid-square in the x and y directions. The alpha parameter can be "
-        "set on a grid-square by grid-square basis for the x and y directions "
-        "separately (using two arrays of alpha parameters of the same "
-        "dimensionality as the domain). Alternatively a single alpha value "
-        "can be set for each of the x and y directions. These methods can be "
-        "mixed, e.g. an array for the x direction and a float for the y "
-        "direction and vice versa.")
-    parser.add_argument("input_filepath", metavar="INPUT_FILE",
-                        help="A path to an input NetCDF file to be processed")
-    parser.add_argument("output_filepath", metavar="OUTPUT_FILE",
-                        help="The output path for the processed NetCDF")
-    parser.add_argument("--input_filepath_alphas_x", metavar="ALPHAS_X_FILE",
-                        help="A path to a NetCDF file describing the alpha "
-                        "factors to be used for smoothing in the x "
-                        "direction")
-    parser.add_argument("--input_filepath_alphas_y", metavar="ALPHAS_Y_FILE",
-                        help="A path to a NetCDF file describing the alpha "
-                        "factors to be used for smoothing in the y "
-                        "direction")
-    parser.add_argument("--alpha_x", metavar="ALPHA_X",
-                        default=None, type=float,
-                        help="A single alpha factor (0 < alpha_x < 1) to be "
-                        "applied to every grid square in the x "
-                        "direction.")
-    parser.add_argument("--alpha_y", metavar="ALPHA_Y",
-                        default=None, type=float,
-                        help="A single alpha factor (0 < alpha_y < 1) to be "
-                        "applied to every grid square in the y "
-                        "direction.")
-    parser.add_argument("--iterations", metavar="ITERATIONS",
-                        default=1, type=int,
-                        help="Number of times to apply the filter, default=1 "
-                        "(typically < 5)")
-    parser.add_argument('--input_mask_filepath', metavar='INPUT_MASK_FILE',
-                        help='A path to an input mask NetCDF file to be '
-                        'used to mask the input file.')
-    parser.add_argument("--re_mask", action='store_true', default=False,
-                        help="Re-apply mask to recursively filtered output.")
-
-    args = parser.parse_args(args=argv)
-
-    # Load Cubes.
-    cube = load_cube(args.input_filepath)
-    mask_cube = load_cube(args.input_mask_filepath, allow_none=True)
-    alphas_x_cube = load_cube(args.input_filepath_alphas_x, allow_none=True)
-    alphas_y_cube = load_cube(args.input_filepath_alphas_y, allow_none=True)
-    # Process Cube
-    result = process(cube, mask_cube, alphas_x_cube, alphas_y_cube,
-                     args.alpha_x, args.alpha_y, args.iterations, args.re_mask)
-    # Save Cube
-    save_netcdf(result, args.output_filepath)
+inputalphas = cli.create_constrained_inputcubelist_converter(
+    'alpha_x', 'alpha_y')
 
 
-def process(cube, mask_cube=None, alphas_x_cube=None, alphas_y_cube=None,
-            alpha_x=None, alpha_y=None, iterations=1, re_mask=False):
+@cli.clizefy
+@cli.with_output
+def process(cube: cli.inputcube,
+            alphas: inputalphas,
+            mask: cli.inputcube = None,
+            *,
+            iterations: int = 1,
+            remask=False):
     """Module to apply a recursive filter to neighbourhooded data.
 
     Run a recursive filter to convert a square neighbourhood into a
@@ -109,51 +55,30 @@ def process(cube, mask_cube=None, alphas_x_cube=None, alphas_y_cube=None,
     The alpha parameter can be set on a grid square by grid-square basis for
     the x and y directions separately (using two arrays of alpha parameters
     of the same dimensionality as the domain).
-    Alternatively a single alpha value can be set for each of the x and y
-    direction and a float for the y direction and vice versa.
 
     Args:
         cube (iris.cube.Cube):
             Cube to be processed.
-        mask_cube (iris.cube.Cube):
+        alphas (iris.cube.CubeList):
+            CubeList describing the alpha factors to be used for smoothing in
+            in the x and y directions.
+        mask (iris.cube.Cube):
             Cube to mask the processed cube.
-            Default is None.
-        alphas_x_cube (iris.cube.Cube):
-            Cube describing the alpha factors to be used for smoothing in the
-            x direction.
-            Default is None.
-        alphas_y_cube (iris.cube.Cube):
-            Cube describing the alpha factors to be used for smoothing in the
-            y direction.
-            Default is None.
-        alpha_x (float):
-            A single alpha factor (0 < alpha_x < 1) to be applied to every
-            grid square in the x direction.
-            Default is None.
-        alpha_y (float):
-            A single alpha factor (0 < alpha_y < 1) to be applied to every grid
-            square in the y direction.
-            Default is None.
         iterations (int):
             Number of times to apply the filter. (Typically < 3)
             Number of iterations should be 2 or less, higher values have been
             shown to lead to poorer conservation.
-            Default is 1 (one).
-        re_mask (bool):
+        remask (bool):
             Re-apply mask to recursively filtered output.
-            Default is False.
 
     Returns:
         iris.cube.Cube:
             The processed Cube.
     """
-    result = RecursiveFilter(
-        alpha_x=alpha_x, alpha_y=alpha_y,
-        iterations=iterations, re_mask=re_mask).process(
+    from improver.nbhood.recursive_filter import RecursiveFilter
+
+    alphas_x_cube, alphas_y_cube = alphas
+    return RecursiveFilter(
+        iterations=iterations, re_mask=remask).process(
         cube, alphas_x=alphas_x_cube, alphas_y=alphas_y_cube,
-        mask_cube=mask_cube)
-    return result
-
-
-if __name__ == "__main__":
-    main()
+        mask_cube=mask)
