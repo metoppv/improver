@@ -185,8 +185,8 @@ def test_missing_dataset(tmp_path):
             "--cycletime", "20170605T0300Z",
             "--truth-attribute", "mosg__model_configuration=uk_det",
             "--output", output_path]
-    with pytest.raises(RuntimeError, match="Missing historical forecast"):
-        run_cli(args)
+    run_cli(args)
+    assert not output_path.is_file()
 
 
 def test_too_many_masks(tmp_path):

@@ -256,7 +256,7 @@ def with_output(wrapped, *args, output=None, **kwargs):
     """
     from improver.utilities.save import save_netcdf
     result = wrapped(*args, **kwargs)
-    if output:
+    if result and output:
         save_netcdf(result, output)
         return
     return result
