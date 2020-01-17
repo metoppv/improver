@@ -346,25 +346,6 @@ class CollapseMaskedNeighbourhoodCoordinate(BasePlugin):
         self.weights.data = WeightsUtilities.normalise_weights(
             self.weights.data, axis=axis)
 
-    def remove_collapsed_coord_refs(self, result_cube):
-        """
-        Remove references to the collapsed coordinate after processing.
-
-        Removes the collapsed coordinate and the cell method relating to it
-        on the provided cube, in place.
-
-        Args:
-            result_cube (iris.cube.Cube):
-                The collapsed cube whose metadata we want to change.
-        """
-        # Remove coordinate.
-        result_cube.remove_coord(self.coord_masked)
-        # Remove any cell methods associated with self.coord_masked.
-        new_cell_methods = [cell_method for
-                            cell_method in result_cube.cell_methods
-                            if cell_method.coord_names != (self.coord_masked,)]
-        result_cube.cell_methods = tuple(new_cell_methods)
-
     def process(self, cube):
         """
         Collapse the chosen coordinates with the available weights. The result
@@ -414,6 +395,6 @@ class CollapseMaskedNeighbourhoodCoordinate(BasePlugin):
         # expect this in the output cube.
         first_slice = next(cube.slices_over([self.coord_masked]))
         result = check_cube_coordinates(first_slice, result)
+        result.remove_coord(self.coord_masked)
         # Remove references to self.coord_masked in the result cube.
-        self.remove_collapsed_coord_refs(result)
         return result
