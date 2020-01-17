@@ -35,7 +35,6 @@ from datetime import datetime
 
 import iris
 import numpy as np
-from cf_units import Unit
 from iris.coord_systems import GeogCS, TransverseMercator
 from iris.coords import DimCoord
 from iris.tests import IrisTest

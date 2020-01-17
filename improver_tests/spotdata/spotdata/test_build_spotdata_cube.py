@@ -35,8 +35,6 @@ from datetime import datetime
 
 import iris
 import numpy as np
-from cf_units import Unit
-from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube

@@ -33,11 +33,7 @@ This module defines all the utilities used by the "plugins"
 specific for ensemble calibration.
 
 """
-import iris
 import numpy as np
-
-from improver import BasePlugin
-from improver.utilities.cube_manipulation import merge_cubes
 
 
 def convert_cube_data_to_2d(
