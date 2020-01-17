@@ -252,6 +252,7 @@ class Test_renormalize_weights(IrisTest):
         plugin.renormalize_weights(nbhooded_cube)
         self.assertArrayAlmostEqual(expected_weights, weights_cube.data)
 
+
 class Test_process(IrisTest):
 
     """Test the process method of CollapseMaskedNeighbourhoodCoordinate"""
