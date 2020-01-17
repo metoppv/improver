@@ -124,7 +124,10 @@ def recreate_if_needed(output_path, kgo_path):
     if not recreate_dir.is_absolute():
         raise IOError("Recreate KGO path is not absolute")
     print("Comparison found differences - recreating KGO for this test")
-    print(f"Original KGO file is at {kgo_path}")
+    if kgo_path.exists():
+        print(f"Original KGO file is at {kgo_path}")
+    else:
+        print("Original KGO file does not exist")
     kgo_relative = kgo_path.relative_to(kgo_root_dir)
     recreate_path = recreate_dir / kgo_relative
     recreate_path.parent.mkdir(exist_ok=True, parents=True)
