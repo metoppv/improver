@@ -76,10 +76,18 @@ def compare_netcdfs(actual_path, desired_path, rtol, atol,
     if reporter is None:
         reporter = raise_reporter
 
-    actual_ds = netCDF4.Dataset(str(actual_path), mode='r')
-    actual_ds.set_auto_maskandscale(False)
-    desired_ds = netCDF4.Dataset(str(desired_path), mode='r')
-    desired_ds.set_auto_maskandscale(False)
+    try:
+        actual_ds = netCDF4.Dataset(str(actual_path), mode='r')
+        actual_ds.set_auto_maskandscale(False)
+    except OSError as e:
+        reporter(str(e))
+        return
+    try:
+        desired_ds = netCDF4.Dataset(str(desired_path), mode='r')
+        desired_ds.set_auto_maskandscale(False)
+    except OSError as e:
+        reporter(str(e))
+        return
 
     compare_datasets("", actual_ds, desired_ds, rtol, atol,
                      exclude_vars, reporter)

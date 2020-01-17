@@ -115,6 +115,8 @@ def recreate_if_needed(output_path, kgo_path):
         return False
     if not kgo_path.is_absolute():
         raise IOError("KGO path is not absolute")
+    if not output_path.is_file():
+        raise IOError("Expected output file not created by running test")
     kgo_root_dir = kgo_root()
     recreate_dir = pathlib.Path(os.environ[RECREATE_DIR])
     if kgo_root_dir not in kgo_path.parents:
