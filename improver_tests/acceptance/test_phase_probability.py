@@ -29,25 +29,52 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Tests for the sleet-probability CLI
+Tests for the phase-probability CLI
 """
 
 import pytest
 
-from . import acceptance as acc
+from improver_tests.acceptance import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_basic(tmp_path):
-    """Test basic snow falling level calculation"""
-    kgo_dir = acc.kgo_root() / "sleet_probability/basic"
-    kgo_path = kgo_dir / "kgo.nc"
+def test_snow(tmp_path):
+    """Test prob(snow) calculation"""
+    kgo_dir = acc.kgo_root() / f"{CLI}/basic"
+    kgo_path = kgo_dir / "snow_kgo.nc"
     output_path = tmp_path / "output.nc"
-    half_input_path = acc.kgo_root() / "phase-probability/basic/snow_kgo.nc"
-    tenth_input_path = acc.kgo_root() / "phase-probability/basic/rain_kgo.nc"
-    args = [half_input_path, tenth_input_path, "--output", output_path]
+    input_paths = [acc.kgo_root() / x for x in
+                   ("phase-change-level/basic/orog.nc",
+                    "phase-change-level/basic/snow_sleet_kgo.nc")]
+    args = [*input_paths, "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_rain(tmp_path):
+    """Test prob(rain) calculation"""
+    kgo_dir = acc.kgo_root() / f"{CLI}/basic"
+    kgo_path = kgo_dir / "rain_kgo.nc"
+    output_path = tmp_path / "output.nc"
+    input_paths = [acc.kgo_root() / x for x in
+                   ("phase-change-level/basic/orog.nc",
+                    "phase-change-level/basic/sleet_rain_kgo.nc")]
+    args = [*input_paths, "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_rain_large_radius(tmp_path):
+    """Test prob(rain) calculation"""
+    kgo_dir = acc.kgo_root() / f"{CLI}/large_radius"
+    kgo_path = kgo_dir / "rain_kgo.nc"
+    output_path = tmp_path / "output.nc"
+    input_paths = [acc.kgo_root() / x for x in
+                   ("phase-change-level/basic/orog.nc",
+                    "phase-change-level/basic/sleet_rain_kgo.nc")]
+    args = [*input_paths, "--radius", "20000", "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

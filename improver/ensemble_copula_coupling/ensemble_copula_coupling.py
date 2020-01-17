@@ -713,7 +713,7 @@ class GeneratePercentilesFromMeanAndVariance(BasePlugin, FromMeanAndVariance):
 
     def _mean_and_variance_to_percentiles(
             self, calibrated_forecast_predictor, calibrated_forecast_variance,
-            percentiles):
+            template_cube, percentiles):
         """
         Function returning percentiles based on the supplied
         mean and variance. The percentiles are created by assuming a
@@ -725,6 +725,11 @@ class GeneratePercentilesFromMeanAndVariance(BasePlugin, FromMeanAndVariance):
                 Predictor for the calibrated forecast i.e. the mean.
             calibrated_forecast_variance (iris.cube.Cube):
                 Variance for the calibrated forecast.
+            template_cube (iris.cube.Cube):
+                Template cube containing either a percentile or realization
+                coordinate. All coordinates apart from the percentile or
+                realization coordinate will be copied from the template cube.
+                Metadata will also be copied from this cube.
             percentiles (list):
                 Percentiles at which to calculate the value of the phenomenon
                 at.
@@ -738,11 +743,6 @@ class GeneratePercentilesFromMeanAndVariance(BasePlugin, FromMeanAndVariance):
             ValueError: If any of the resulting percentile values are
                 nans and these nans are not caused by a zero variance.
         """
-        enforce_coordinate_ordering(
-            calibrated_forecast_predictor, "realization")
-        enforce_coordinate_ordering(
-            calibrated_forecast_variance, "realization")
-
         calibrated_forecast_predictor_data = (
             calibrated_forecast_predictor.data.flatten())
         calibrated_forecast_variance_data = (
@@ -790,25 +790,24 @@ class GeneratePercentilesFromMeanAndVariance(BasePlugin, FromMeanAndVariance):
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
-        result = (
-            restore_non_probabilistic_dimensions(
-                result, calibrated_forecast_predictor,
-                "realization", len(percentiles)))
+        result = result.reshape(
+            (len(percentiles),) + calibrated_forecast_predictor.data.shape)
 
-        for template_cube in calibrated_forecast_predictor.slices_over(
-                "realization"):
-            template_cube.remove_coord("realization")
-            break
+        for prob_coord_name in ["realization", "percentile"]:
+            if template_cube.coords(prob_coord_name, dim_coords=True):
+                prob_coord = template_cube.coord(prob_coord_name)
+                template_slice = next(template_cube.slices_over(prob_coord))
+                template_slice.remove_coord(prob_coord)
+
         percentile_cube = create_cube_with_percentiles(
-            percentiles, template_cube, result)
-        # Remove cell methods aimed at removing cell methods associated with
-        # finding the ensemble mean, which are no longer relevant.
+            percentiles, template_slice, result)
+        # Remove cell methods associated with finding the ensemble mean
         percentile_cube.cell_methods = {}
         return percentile_cube
 
     def process(self, calibrated_forecast_predictor,
-                calibrated_forecast_variance, no_of_percentiles=None,
-                percentiles=None):
+                calibrated_forecast_variance, template_cube,
+                no_of_percentiles=None, percentiles=None):
         """
         Generate ensemble percentiles from the mean and variance.
 
@@ -817,6 +816,11 @@ class GeneratePercentilesFromMeanAndVariance(BasePlugin, FromMeanAndVariance):
                 Cube containing the calibrated forecast predictor.
             calibrated_forecast_variance (iris.cube.Cube):
                 Cube containing the calibrated forecast variance.
+            template_cube (iris.cube.Cube):
+                Template cube containing either a percentile or realization
+                coordinate. All coordinates apart from the percentile or
+                realization coordinate will be copied from the template cube.
+                Metadata will also be copied from this cube.
             no_of_percentiles (int):
                 Integer defining the number of percentiles that will be
                 calculated from the mean and variance.
@@ -847,7 +851,7 @@ class GeneratePercentilesFromMeanAndVariance(BasePlugin, FromMeanAndVariance):
         calibrated_forecast_percentiles = (
             self._mean_and_variance_to_percentiles(
                 calibrated_forecast_predictor,
-                calibrated_forecast_variance,
+                calibrated_forecast_variance, template_cube,
                 percentiles))
 
         return calibrated_forecast_percentiles
