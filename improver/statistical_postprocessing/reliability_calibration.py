@@ -33,11 +33,12 @@
 import iris
 import numpy as np
 
+from improver import BasePlugin
 from improver.utilities.cube_manipulation import merge_cubes
 from improver.metadata.utilities import generate_mandatory_attributes
 
 
-class ConstructRealizationCalibrationTables:
+class ConstructRealizationCalibrationTables(BasePlugin):
 
     """A plugin for creating and populating reliability calibration tables."""
 
@@ -60,9 +61,12 @@ class ConstructRealizationCalibrationTables:
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
+        bin_values = ', '.join(
+            ['[{:1.2f} --> {:1.2f}]'.format(*item)
+             for item in self.probability_bins])
         result = ('<ConstructRealizationCalibrationTables: '
-                  'n_probability_bins: {}; single_value_limits: {}>')
-        return result.format(self.n_probability_bins, self.single_value_limits)
+                  'probability_bins: {}>')
+        return result.format(bin_values)
 
     @staticmethod
     def _define_probability_bins(n_probability_bins, single_value_limits):
@@ -87,8 +91,15 @@ class ConstructRealizationCalibrationTables:
             numpy.ndarray:
                 An array of 2-element arrays that contain the bounds of the
                 probability bins.
+        Raises:
+            ValueError: If trying to use single_value_limits with 2 or fewer
+                        probability bins.
         """
         if single_value_limits:
+            if n_probability_bins <= 2:
+                msg = ("Cannot use single_value_limits with 2 or fewer "
+                       "probability bins.")
+                raise ValueError(msg)
             n_probability_bins = n_probability_bins - 2
 
         bin_lower = np.linspace(0, 1, n_probability_bins + 1, dtype=np.float32)
@@ -132,7 +143,7 @@ class ConstructRealizationCalibrationTables:
         are observation_count, sum_of_forecast_probabilities, and
         forecast_count. The order used here is the order in which the table
         data is populated, so these must remain consistent with the
-        populate_reliability_bins function.
+        _populate_reliability_bins function.
 
         Returns:
             (tuple): tuple containing:
@@ -261,7 +272,7 @@ class ConstructRealizationCalibrationTables:
 
         return reliability_cube
 
-    def populate_reliability_bins(self, forecast, truth, threshold):
+    def _populate_reliability_bins(self, forecast, truth, threshold):
         """
         For an x-y slice at a single validity time and threshold, populate
         a reliability table using the provided truth.
@@ -338,7 +349,7 @@ class ConstructRealizationCalibrationTables:
                     iris.Constraint(time=next(time.cells()).point))
 
                 reliability_table = (
-                    self.populate_reliability_bins(
+                    self._populate_reliability_bins(
                         time_slice.data, truth.data, threshold))
 
                 threshold_reliability.append(reliability_table)
