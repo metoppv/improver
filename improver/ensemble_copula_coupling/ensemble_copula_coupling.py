@@ -261,10 +261,9 @@ class ResamplePercentiles(BasePlugin):
                 forecast_at_interpolated_percentiles, forecast_at_percentiles,
                 percentile_coord_name, len(desired_percentiles)))
 
-        for template_cube in forecast_at_percentiles.slices_over(
-                percentile_coord_name):
-            template_cube.remove_coord(percentile_coord_name)
-            break
+        template_cube = next(forecast_at_percentiles.slices_over(
+            percentile_coord_name))
+        template_cube.remove_coord(percentile_coord_name)
         percentile_cube = create_cube_with_percentiles(
             desired_percentiles, template_cube, forecast_at_percentiles_data,)
         return percentile_cube
@@ -510,16 +509,15 @@ class GeneratePercentilesFromProbabilities(BasePlugin):
                 forecast_at_percentiles, forecast_probabilities,
                 threshold_coord.name(), len(percentiles)))
 
-        for template_cube in forecast_probabilities.slices_over(
-                threshold_coord.name()):
-            template_cube.rename(
-                template_cube.name().replace("probability_of_", ""))
-            template_cube.rename(
-                template_cube.name().replace(
-                    "_above_threshold", "").replace("_below_threshold", ""))
+        template_cube = next(forecast_probabilities.slices_over(
+            threshold_coord.name()))
+        template_cube.rename(
+            template_cube.name().replace("probability_of_", ""))
+        template_cube.rename(
+            template_cube.name().replace(
+                "_above_threshold", "").replace("_below_threshold", ""))
+        template_cube.remove_coord(threshold_coord.name())
 
-            template_cube.remove_coord(threshold_coord.name())
-            break
         percentile_cube = create_cube_with_percentiles(
             percentiles, template_cube, forecast_at_percentiles,
             cube_unit=threshold_unit)
