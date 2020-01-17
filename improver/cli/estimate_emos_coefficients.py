@@ -106,6 +106,8 @@ def process(*cubes: cli.inputcube,
             An unexpected number of distinct cube names were passed in.
         RuntimeError:
             More than one cube was identified as a land-sea mask.
+        RuntimeError:
+            Missing truth or historical forecast in input cubes.
 
     """
 
@@ -147,9 +149,7 @@ def process(*cubes: cli.inputcube,
 
     missing_inputs = ' and '.join(k for k, v in grouped_cubes.items() if not v)
     if missing_inputs:
-        # If either historic forecasts or truths are missing do not estimate
-        # emos coefficients.
-        return
+        raise RuntimeError('Missing ' + missing_inputs + ' input.')
 
     truth = MergeCubes()(grouped_cubes['truth'])
     forecast = MergeCubes()(grouped_cubes['historical forecast'])
