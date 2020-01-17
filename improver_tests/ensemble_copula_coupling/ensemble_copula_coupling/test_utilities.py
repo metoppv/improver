@@ -47,10 +47,10 @@ from improver.ensemble_copula_coupling.utilities import (
     insert_lower_and_upper_endpoint_to_1d_array,
     restore_non_probabilistic_dimensions)
 
-from ...ensemble_calibration.ensemble_calibration.helper_functions import (
-    add_forecast_reference_time_and_forecast_period, set_up_cube,
-    set_up_probability_above_threshold_temperature_cube,
-    set_up_spot_temperature_cube, set_up_temperature_cube)
+from ...statistical_postprocessing.ensemble_calibration.helper_functions \
+    import (add_forecast_reference_time_and_forecast_period, set_up_cube,
+            set_up_probability_above_threshold_temperature_cube,
+            set_up_spot_temperature_cube, set_up_temperature_cube)
 
 
 class Test_concatenate_2d_array_with_2d_array_endpoints(IrisTest):

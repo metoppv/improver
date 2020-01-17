@@ -43,8 +43,8 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
-from ...ensemble_calibration.ensemble_calibration.helper_functions import (
-    set_up_probability_above_threshold_temperature_cube)
+from ...statistical_postprocessing.ensemble_calibration.helper_functions \
+    import set_up_probability_above_threshold_temperature_cube
 
 
 class Test__repr__(IrisTest):

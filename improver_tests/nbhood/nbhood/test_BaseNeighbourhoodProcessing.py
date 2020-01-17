@@ -45,8 +45,8 @@ from improver.nbhood.circular_kernel import CircularNeighbourhood
 from improver.nbhood.nbhood import BaseNeighbourhoodProcessing as NBHood
 from improver.nbhood.nbhood import SquareNeighbourhood
 
-from ...ensemble_calibration.ensemble_calibration.helper_functions import (
-    add_forecast_reference_time_and_forecast_period)
+from ...statistical_postprocessing.ensemble_calibration.helper_functions \
+    import add_forecast_reference_time_and_forecast_period
 
 SINGLE_POINT_RANGE_3_CENTROID = np.array([
     [0.992, 0.968, 0.96, 0.968, 0.992],
