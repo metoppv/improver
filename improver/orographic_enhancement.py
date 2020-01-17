@@ -174,7 +174,7 @@ class OrographicEnhancement(BasePlugin):
             var_cube = sort_coord_in_cube(
                 var_cube, var_cube.coord(axis=axis))
 
-        var_cube = enforce_coordinate_ordering(
+        enforce_coordinate_ordering(
             var_cube, [var_cube.coord(axis='y').name(),
                        var_cube.coord(axis='x').name()])
 
@@ -212,7 +212,7 @@ class OrographicEnhancement(BasePlugin):
         for axis in ['x', 'y']:
             topography = sort_coord_in_cube(
                 topography, topography.coord(axis=axis))
-        topography = enforce_coordinate_ordering(
+        enforce_coordinate_ordering(
             topography, [topography.coord(axis='y').name(),
                          topography.coord(axis='x').name()])
         self.topography = topography.copy(

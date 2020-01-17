@@ -249,9 +249,7 @@ class ContinuousRankedProbabilityScoreMinimisers:
             forecast_predictor_data = flatten_ignoring_masked_data(
                 forecast_predictor.data)
         elif predictor_of_mean_flag.lower() == "realizations":
-            forecast_predictor = (
-                enforce_coordinate_ordering(
-                    forecast_predictor, "realization"))
+            enforce_coordinate_ordering(forecast_predictor, "realization")
             # Need to transpose this array so there are columns for each
             # ensemble member rather than rows.
             forecast_predictor_data = flatten_ignoring_masked_data(
@@ -722,7 +720,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 initial_guess = [0, 1, intercept, gradient]
             elif predictor_of_mean_flag.lower() == "realizations":
                 if self.statsmodels_found:
-                    forecast_predictor = enforce_coordinate_ordering(
+                    enforce_coordinate_ordering(
                         forecast_predictor, "realization")
                     forecast_predictor_flattened = (
                         flatten_ignoring_masked_data(

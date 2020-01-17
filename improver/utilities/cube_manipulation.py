@@ -732,10 +732,6 @@ def enforce_coordinate_ordering(cube, coord_names, anchor_start=True):
             end. For example, if the specified coordinate names are
             ["time", "realization"] then "realization" will be the last
             coordinate within the cube, whilst "time" will be the last but one.
-
-    Returns:
-        iris.cube.Cube:
-            Cube with reordered dimensions.
     """
     if isinstance(coord_names, str):
         coord_names = [coord_names]
@@ -774,8 +770,6 @@ def enforce_coordinate_ordering(cube, coord_names, anchor_start=True):
 
     # transpose cube using new coordinate order
     cube.transpose(new_dims)
-
-    return cube
 
 
 def clip_cube_data(cube, minimum_value, maximum_value):

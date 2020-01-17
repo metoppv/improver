@@ -232,9 +232,8 @@ class ResamplePercentiles(BasePlugin):
 
         # Ensure that the percentile dimension is first, so that the
         # conversion to a 2d array produces data in the desired order.
-        forecast_at_percentiles = (
-            enforce_coordinate_ordering(
-                forecast_at_percentiles, percentile_coord_name))
+        enforce_coordinate_ordering(
+            forecast_at_percentiles, percentile_coord_name)
         forecast_at_reshaped_percentiles = convert_cube_data_to_2d(
             forecast_at_percentiles, coord=percentile_coord_name)
 
@@ -456,9 +455,8 @@ class GeneratePercentilesFromProbabilities(BasePlugin):
 
         # Ensure that the percentile dimension is first, so that the
         # conversion to a 2d array produces data in the desired order.
-        forecast_probabilities = (
-            enforce_coordinate_ordering(
-                forecast_probabilities, threshold_coord.name()))
+        enforce_coordinate_ordering(
+            forecast_probabilities, threshold_coord.name())
         prob_slices = convert_cube_data_to_2d(
             forecast_probabilities, coord=threshold_coord.name())
 
@@ -1206,24 +1204,21 @@ class EnsembleReordering(BasePlugin):
         percentile_coord_name = (
             find_percentile_coordinate(post_processed_forecast).name())
 
-        post_processed_forecast_percentiles = (
-            enforce_coordinate_ordering(
-                post_processed_forecast, percentile_coord_name))
-        raw_forecast_realizations = enforce_coordinate_ordering(
-            raw_forecast, "realization")
-        raw_forecast_realizations = (
+        enforce_coordinate_ordering(
+            post_processed_forecast, percentile_coord_name)
+        enforce_coordinate_ordering(raw_forecast, "realization")
+        raw_forecast = (
             self._recycle_raw_ensemble_realizations(
-                post_processed_forecast_percentiles, raw_forecast_realizations,
+                post_processed_forecast, raw_forecast,
                 percentile_coord_name))
         post_processed_forecast_realizations = self.rank_ecc(
-            post_processed_forecast_percentiles, raw_forecast_realizations,
+            post_processed_forecast, raw_forecast,
             random_ordering=random_ordering,
             random_seed=random_seed)
         post_processed_forecast_realizations = (
             RebadgePercentilesAsRealizations.process(
                 post_processed_forecast_realizations))
 
-        post_processed_forecast_realizations = (
-            enforce_coordinate_ordering(
-                post_processed_forecast_realizations, "realization"))
+        enforce_coordinate_ordering(
+            post_processed_forecast_realizations, "realization")
         return post_processed_forecast_realizations
