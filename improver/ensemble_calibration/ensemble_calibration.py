@@ -46,6 +46,7 @@ from improver import BasePlugin
 from improver.ensemble_calibration.utilities import (
     check_predictor_of_mean_flag, convert_cube_data_to_2d,
     flatten_ignoring_masked_data)
+from improver.metadata.utilities import create_new_diagnostic_cube
 from improver.utilities.cube_checker import time_coords_match
 from improver.utilities.cube_manipulation import (enforce_coordinate_ordering,
                                                   collapsed)
