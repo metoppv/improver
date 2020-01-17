@@ -49,23 +49,31 @@ class Test_Setup(unittest.TestCase):
     setting up cubes to use as inputs."""
 
     def setUp(self):
-        """Create input cubes."""
+        """Create forecast and truth cubes for use in testing the reliability
+        calibration plugin. Two forecast and two truth cubes are created, each
+        pair containing the same data but given different forecast reference
+        times and validity times. These times maintain the same forecast period
+        for each forecast cube.
+
+        Each forecast cube in conjunction with the contemporaneous truth cube
+        will be used to produce a reliability calibration table. When testing
+        the process method here we expect the final reliability calibration
+        table for a given threshold (we are only using 283K in the value
+        comparisons) to be the sum of two of these identical tables."""
 
         thresholds = [283, 288]
         forecast_data = np.arange(9, dtype=np.float32).reshape(3, 3) / 8.
         forecast_data = np.stack([forecast_data, forecast_data])
-
-        truth_1_data = np.linspace(281, 285, 9, dtype=np.float32).reshape(3, 3)
-        truth_2_data = np.linspace(282, 286, 9, dtype=np.float32).reshape(3, 3)
+        truth_data = np.linspace(281, 285, 9, dtype=np.float32).reshape(3, 3)
 
         self.forecast_1 = set_up_probability_cube(forecast_data, thresholds)
         self.forecast_2 = set_up_probability_cube(
             forecast_data, thresholds, time=datetime(2017, 11, 11, 4, 0),
             frt=datetime(2017, 11, 11, 0, 0))
         self.forecasts = [self.forecast_1, self.forecast_2]
-        self.truth_1 = set_up_variable_cube(truth_1_data)
+        self.truth_1 = set_up_variable_cube(truth_data)
         self.truth_2 = set_up_variable_cube(
-            truth_2_data, time=datetime(2017, 11, 11, 4, 0),
+            truth_data, time=datetime(2017, 11, 11, 4, 0),
             frt=datetime(2017, 11, 11, 0, 0))
         self.truths = [self.truth_1, self.truth_2]
         self.expected_table_shape = (3, 5, 3, 3)
@@ -77,97 +85,51 @@ class Test_Setup(unittest.TestCase):
 
         # Note the structure of the expected_table is non-trivial to interpret
         # due to the dimension ordering.
-        self.expected_table_1 = np.array([[[[0., 0., 0.],
-                                            [0., 0., 0.],
-                                            [0., 0., 0.]],
-                                           [[0., 0., 0.],
-                                            [0., 0., 0.],
-                                            [0., 0., 0.]],
-                                           [[0., 0., 0.],
-                                            [0., 0., 1.],
-                                            [0., 0., 0.]],
-                                           [[0., 0., 0.],
-                                            [0., 0., 0.],
-                                            [1., 1., 0.]],
-                                           [[0., 0., 0.],
-                                            [0., 0., 0.],
-                                            [0., 0., 1.]]],
-                                          [[[0., 0., 0.],
-                                            [0., 0., 0.],
-                                            [0., 0., 0.]],
-                                           [[0., 0.125, 0.25],
-                                            [0., 0., 0.],
-                                            [0., 0., 0.]],
-                                           [[0., 0., 0.],
-                                            [0.375, 0.5, 0.625],
-                                            [0., 0., 0.]],
-                                           [[0., 0., 0.],
-                                            [0., 0., 0.],
-                                            [0.75, 0.875, 0.]],
-                                           [[0., 0., 0.],
-                                            [0., 0., 0.],
-                                            [0., 0., 1.]]],
-                                          [[[1., 0., 0.],
-                                            [0., 0., 0.],
-                                            [0., 0., 0.]],
-                                           [[0., 1., 1.],
-                                            [0., 0., 0.],
-                                            [0., 0., 0.]],
-                                           [[0., 0., 0.],
-                                            [1., 1., 1.],
-                                            [0., 0., 0.]],
-                                           [[0., 0., 0.],
-                                            [0., 0., 0.],
-                                            [1., 1., 0.]],
-                                           [[0., 0., 0.],
-                                            [0., 0., 0.],
-                                            [0., 0., 1.]]]], dtype=np.float32)
-
-        self.expected_table_2 = np.array([[[[0., 0., 0.],
-                                            [0., 0., 0.],
-                                            [0., 0., 0.]],
-                                           [[0., 0., 0.],
-                                            [0., 0., 0.],
-                                            [0., 0., 0.]],
-                                           [[0., 0., 0.],
-                                            [1., 1., 1.],
-                                            [0., 0., 0.]],
-                                           [[0., 0., 0.],
-                                            [0., 0., 0.],
-                                            [1., 1., 0.]],
-                                           [[0., 0., 0.],
-                                            [0., 0., 0.],
-                                            [0., 0., 1.]]],
-                                          [[[0., 0., 0.],
-                                            [0., 0., 0.],
-                                            [0., 0., 0.]],
-                                           [[0., 0.125, 0.25],
-                                            [0., 0., 0.],
-                                            [0., 0., 0.]],
-                                           [[0., 0., 0.],
-                                            [0.375, 0.5, 0.625],
-                                            [0., 0., 0.]],
-                                           [[0., 0., 0.],
-                                            [0., 0., 0.],
-                                            [0.75, 0.875, 0.]],
-                                           [[0., 0., 0.],
-                                            [0., 0., 0.],
-                                            [0., 0., 1.]]],
-                                          [[[1., 0., 0.],
-                                            [0., 0., 0.],
-                                            [0., 0., 0.]],
-                                           [[0., 1., 1.],
-                                            [0., 0., 0.],
-                                            [0., 0., 0.]],
-                                           [[0., 0., 0.],
-                                            [1., 1., 1.],
-                                            [0., 0., 0.]],
-                                           [[0., 0., 0.],
-                                            [0., 0., 0.],
-                                            [1., 1., 0.]],
-                                           [[0., 0., 0.],
-                                            [0., 0., 0.],
-                                            [0., 0., 1.]]]], dtype=np.float32)
+        self.expected_table = np.array([[[[0., 0., 0.],
+                                          [0., 0., 0.],
+                                          [0., 0., 0.]],
+                                         [[0., 0., 0.],
+                                          [0., 0., 0.],
+                                          [0., 0., 0.]],
+                                         [[0., 0., 0.],
+                                          [0., 0., 1.],
+                                          [0., 0., 0.]],
+                                         [[0., 0., 0.],
+                                          [0., 0., 0.],
+                                          [1., 1., 0.]],
+                                         [[0., 0., 0.],
+                                          [0., 0., 0.],
+                                          [0., 0., 1.]]],
+                                        [[[0., 0., 0.],
+                                          [0., 0., 0.],
+                                          [0., 0., 0.]],
+                                         [[0., 0.125, 0.25],
+                                          [0., 0., 0.],
+                                          [0., 0., 0.]],
+                                         [[0., 0., 0.],
+                                          [0.375, 0.5, 0.625],
+                                          [0., 0., 0.]],
+                                         [[0., 0., 0.],
+                                          [0., 0., 0.],
+                                          [0.75, 0.875, 0.]],
+                                         [[0., 0., 0.],
+                                          [0., 0., 0.],
+                                          [0., 0., 1.]]],
+                                        [[[1., 0., 0.],
+                                          [0., 0., 0.],
+                                          [0., 0., 0.]],
+                                         [[0., 1., 1.],
+                                          [0., 0., 0.],
+                                          [0., 0., 0.]],
+                                         [[0., 0., 0.],
+                                          [1., 1., 1.],
+                                          [0., 0., 0.]],
+                                         [[0., 0., 0.],
+                                          [0., 0., 0.],
+                                          [1., 1., 0.]],
+                                         [[0., 0., 0.],
+                                          [0., 0., 0.],
+                                          [0., 0., 1.]]]], dtype=np.float32)
 
 
 class Test__init__(unittest.TestCase):
@@ -364,7 +326,7 @@ class Test__populate_reliability_bins(Test_Setup):
             forecast_slice.data, self.truth_1.data, threshold)
 
         self.assertSequenceEqual(result.shape, self.expected_table_shape)
-        assert_array_equal(result, self.expected_table_1)
+        assert_array_equal(result, self.expected_table)
 
 
 class Test_process(Test_Setup):
@@ -388,7 +350,7 @@ class Test_process(Test_Setup):
         threshold (283K), but contains contributions from two forecast/truth
         pairs."""
 
-        expected = np.sum([self.expected_table_1, self.expected_table_2],
+        expected = np.sum([self.expected_table, self.expected_table],
                           axis=0)
         result = Plugin().process(self.forecasts, self.truths)
 
