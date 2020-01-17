@@ -113,7 +113,7 @@ def process(*cubes: cli.inputcube,
 
     from collections import OrderedDict
     from improver.utilities.cube_manipulation import MergeCubes
-    from improver.ensemble_calibration.ensemble_calibration import (
+    from improver.statistical_postprocessing.ensemble_calibration import (
         EstimateCoefficientsForEnsembleCalibration)
 
     grouped_cubes = {}
