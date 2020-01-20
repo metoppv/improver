@@ -41,9 +41,9 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
     ResamplePercentiles as Plugin
 from improver.utilities.warnings_handler import ManageWarnings
 
-from ...calibration.ensemble_calibration.helper_functions \
-    import (add_forecast_reference_time_and_forecast_period, set_up_cube,
-            set_up_spot_temperature_cube)
+from ...calibration.ensemble_calibration.helper_functions import (
+    add_forecast_reference_time_and_forecast_period, set_up_cube,
+    set_up_spot_temperature_cube)
 
 
 class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
