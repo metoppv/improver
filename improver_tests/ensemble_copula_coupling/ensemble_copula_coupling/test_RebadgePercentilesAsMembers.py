@@ -44,7 +44,7 @@ from iris.tests import IrisTest
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
     RebadgePercentilesAsRealizations as Plugin
 
-from ...statistical_postprocessing.ensemble_calibration.helper_functions \
+from ...calibration.ensemble_calibration.helper_functions \
     import (add_forecast_reference_time_and_forecast_period,
             set_up_temperature_cube)
 

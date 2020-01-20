@@ -42,8 +42,8 @@ from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.wxcode.utilities import WX_DICT
 from improver.wxcode.weather_symbols import WeatherSymbols
 
-from ...statistical_postprocessing.ensemble_calibration.helper_functions \
-    import set_up_probability_threshold_cube
+from ...calibration.ensemble_calibration.helper_functions import (
+    set_up_probability_threshold_cube)
 
 
 def set_up_wxcubes():

@@ -138,7 +138,7 @@ def process(cube: cli.inputcube,
     import numpy as np
     from iris.exceptions import CoordinateNotFoundError
 
-    from improver.statistical_postprocessing.ensemble_calibration import (
+    from improver.calibration.ensemble_calibration import (
         ApplyCoefficientsFromEnsembleCalibration)
     from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
         EnsembleReordering,

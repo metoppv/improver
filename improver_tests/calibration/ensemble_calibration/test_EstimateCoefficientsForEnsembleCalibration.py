@@ -42,9 +42,9 @@ import iris
 import numpy as np
 from iris.tests import IrisTest
 
-from improver.statistical_postprocessing.ensemble_calibration import (
+from improver.calibration.ensemble_calibration import (
     ContinuousRankedProbabilityScoreMinimisers)
-from improver.statistical_postprocessing.ensemble_calibration import (
+from improver.calibration.ensemble_calibration import (
     EstimateCoefficientsForEnsembleCalibration as Plugin)
 from improver.utilities.warnings_handler import ManageWarnings
 
@@ -283,8 +283,7 @@ class Test__repr__(IrisTest):
                "current_cycle: 20171110T0000Z; "
                "desired_units: None; "
                "predictor_of_mean_flag: mean; "
-               "minimiser: <class 'improver.statistical_postprocessing."
-               "ensemble_calibration."
+               "minimiser: <class 'improver.calibration.ensemble_calibration."
                "ContinuousRankedProbabilityScoreMinimisers'>; "
                "coeff_names: ['gamma', 'delta', 'alpha', 'beta']; "
                "tolerance: 0.01; "
@@ -304,8 +303,7 @@ class Test__repr__(IrisTest):
                "current_cycle: 20171110T0000Z; "
                "desired_units: Kelvin; "
                "predictor_of_mean_flag: realizations; "
-               "minimiser: <class 'improver.statistical_postprocessing."
-               "ensemble_calibration."
+               "minimiser: <class 'improver.calibration.ensemble_calibration."
                "ContinuousRankedProbabilityScoreMinimisers'>; "
                "coeff_names: ['gamma', 'delta', 'alpha', 'beta']; "
                "tolerance: 10; "

@@ -51,8 +51,7 @@ from improver.wxcode.utilities import (
     WX_DICT, add_wxcode_metadata, expand_nested_lists,
     interrogate_decision_tree, update_daynight)
 
-from ...statistical_postprocessing.ensemble_calibration.helper_functions \
-    import set_up_cube
+from ...calibration.ensemble_calibration.helper_functions import set_up_cube
 
 
 def datetime_to_numdateval(year=2018, month=9, day=12, hour=5, minutes=43):

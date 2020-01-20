@@ -47,7 +47,7 @@ from improver.ensemble_copula_coupling.utilities import (
     insert_lower_and_upper_endpoint_to_1d_array,
     restore_non_probabilistic_dimensions)
 
-from ...statistical_postprocessing.ensemble_calibration.helper_functions \
+from ...calibration.ensemble_calibration.helper_functions \
     import (add_forecast_reference_time_and_forecast_period, set_up_cube,
             set_up_probability_above_threshold_temperature_cube,
             set_up_spot_temperature_cube, set_up_temperature_cube)

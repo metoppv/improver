@@ -40,7 +40,7 @@ from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 from scipy import stats
 
 from improver import BasePlugin
-from improver.statistical_postprocessing.utilities import (
+from improver.calibration.utilities import (
     convert_cube_data_to_2d)
 from improver.ensemble_copula_coupling.utilities import (
     choose_set_of_percentiles, concatenate_2d_array_with_2d_array_endpoints,
@@ -635,7 +635,7 @@ class FromMeanAndVariance():
                 distribution constructed from the mean and standard deviation
                 provided.
                 Please note that for use with
-                :meth:`~improver.statistical_postprocessing.\
+                :meth:`~improver.calibration.\
 ensemble_calibration.ContinuousRankedProbabilityScoreMinimisers.\
 calculate_truncated_normal_crps`,
                 the shape parameters for a truncated normal distribution with
