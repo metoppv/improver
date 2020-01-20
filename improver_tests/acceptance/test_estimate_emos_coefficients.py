@@ -171,7 +171,7 @@ def test_no_inputs():
     args = ["--distribution", "gaussian",
             "--cycletime", "20170605T0300Z",
             "--truth-attribute", "mosg__model_configuration=uk_det"]
-    with pytest.raises(RuntimeError, match="Must have cubes"):
+    with pytest.raises(ValueError, match="Must have cubes"):
         run_cli(args)
 
 
@@ -185,7 +185,7 @@ def test_missing_dataset(tmp_path):
             "--cycletime", "20170605T0300Z",
             "--truth-attribute", "mosg__model_configuration=uk_det",
             "--output", output_path]
-    with pytest.raises(RuntimeError, match="Missing historical forecast"):
+    with pytest.raises(IOError, match="Missing historical forecast"):
         run_cli(args)
 
 
@@ -201,7 +201,7 @@ def test_too_many_masks(tmp_path):
             "--cycletime", "20170605T0300Z",
             "--truth-attribute", "mosg__model_configuration=uk_det",
             "--output", output_path]
-    with pytest.raises(RuntimeError, match="one cube for land-sea mask"):
+    with pytest.raises(IOError, match="one cube for land-sea mask"):
         run_cli(args)
 
 
