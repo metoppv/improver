@@ -322,7 +322,6 @@ class Integration(BasePlugin):
         """
         self.input_cube = (
             self.ensure_monotonic_increase_in_chosen_direction(cube))
-        print(self.input_cube)
         upper_bounds_cube, lower_bounds_cube = self.prepare_for_integration()
 
         integrated_cube = self.perform_integration(
