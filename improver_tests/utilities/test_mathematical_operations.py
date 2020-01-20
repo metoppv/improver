@@ -104,66 +104,54 @@ class Test_ensure_monotonic_increase_in_chosen_direction(IrisTest):
         self.descending_height_points = np.array([20., 10., 5.])
         self.descending_cube = _set_up_height_cube(
             self.descending_height_points, ascending=False)
+        self.plugin_positive = Integration(
+            "height", direction_of_integration="positive")
+        self.plugin_negative = Integration(
+            "height", direction_of_integration="negative")
 
     def test_ascending_coordinate_positive(self):
         """Test that for a monotonically ascending coordinate, where the
         chosen direction is positive, the resulting coordinate still
         increases monotonically in the positive direction."""
-        coord_name = "height"
-        direction = "positive"
         cube = (
-            Integration(
-                coord_name, direction_of_integration=direction
-                ).ensure_monotonic_increase_in_chosen_direction(
-                    self.ascending_cube))
+            self.plugin_positive.ensure_monotonic_increase_in_chosen_direction(
+                self.ascending_cube))
         self.assertIsInstance(cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(
-            cube.coord(coord_name).points, self.ascending_height_points)
+            cube.coord("height").points, self.ascending_height_points)
 
     def test_ascending_coordinate_negative(self):
         """Test that for a monotonically ascending coordinate, where the
         chosen direction is negative, the resulting coordinate now decreases
         monotonically in the positive direction."""
-        coord_name = "height"
-        direction = "negative"
         cube = (
-            Integration(
-                coord_name, direction_of_integration=direction
-                ).ensure_monotonic_increase_in_chosen_direction(
-                    self.ascending_cube))
+            self.plugin_negative.ensure_monotonic_increase_in_chosen_direction(
+                self.ascending_cube))
         self.assertIsInstance(cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(
-            cube.coord(coord_name).points, self.descending_height_points)
+            cube.coord("height").points, self.descending_height_points)
 
     def test_descending_coordinate_positive(self):
         """Test that for a monotonically ascending coordinate, where the
         chosen direction is positive, the resulting coordinate still
         increases monotonically in the positive direction."""
-        coord_name = "height"
-        direction = "positive"
         cube = (
-            Integration(
-                coord_name, direction_of_integration=direction
-                ).ensure_monotonic_increase_in_chosen_direction(
+            self.plugin_positive.ensure_monotonic_increase_in_chosen_direction(
                     self.descending_cube))
         self.assertIsInstance(cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(
-            cube.coord(coord_name).points, self.ascending_height_points)
+            cube.coord("height").points, self.ascending_height_points)
 
     def test_descending_coordinate_negative(self):
         """Test that for a monotonically ascending coordinate, where the
         chosen direction is negative, the resulting coordinate still decreases
         monotonically in the positive direction."""
-        coord_name = "height"
-        direction = "negative"
         cube = (
-            Integration(
-                coord_name, direction_of_integration=direction
-                ).ensure_monotonic_increase_in_chosen_direction(
+            self.plugin_negative.ensure_monotonic_increase_in_chosen_direction(
                     self.descending_cube))
         self.assertIsInstance(cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(
-            cube.coord(coord_name).points, self.descending_height_points)
+            cube.coord("height").points, self.descending_height_points)
 
 
 class Test_prepare_for_integration(IrisTest):
@@ -172,18 +160,19 @@ class Test_prepare_for_integration(IrisTest):
 
     def setUp(self):
         """Set up the cube."""
-        self.height_points = np.array([5., 10., 20.])
-        self.cube = _set_up_height_cube(self.height_points)
+        height_points = np.array([5., 10., 20.])
+        cube = _set_up_height_cube(height_points)
+        self.plugin_positive = Integration(
+            "height", direction_of_integration="positive")
+        self.plugin_positive.input_cube = cube.copy()
+        self.plugin_negative = Integration(
+            "height", direction_of_integration="negative")
+        self.plugin_negative.input_cube = cube.copy()
 
     def test_basic(self):
         """Test that the type of the returned value is as expected and the
         expected number of items are returned."""
-        coord_name = "height"
-        direction = "negative"
-        result = (
-            Integration(
-                coord_name, direction_of_integration=direction
-                ).prepare_for_integration(self.cube))
+        result = self.plugin_negative.prepare_for_integration()
         self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 2)
         self.assertIsInstance(result[0], iris.cube.Cube)
@@ -192,12 +181,7 @@ class Test_prepare_for_integration(IrisTest):
     def test_positive_points(self):
         """Test that the expected coordinate points are returned for each
         cube when the direction of integration is positive."""
-        coord_name = "height"
-        direction = "positive"
-        result = (
-            Integration(
-                coord_name, direction_of_integration=direction
-                ).prepare_for_integration(self.cube))
+        result = self.plugin_positive.prepare_for_integration()
         self.assertArrayAlmostEqual(
             result[0].coord("height").points, np.array([10., 20.]))
         self.assertArrayAlmostEqual(
@@ -206,13 +190,10 @@ class Test_prepare_for_integration(IrisTest):
     def test_negative_points(self):
         """Test that the expected coordinate points are returned for each
         cube when the direction of integration is negative."""
-        coord_name = "height"
         direction = "negative"
-        self.cube.coord("height").points = np.array([20., 10., 5.])
-        result = (
-            Integration(
-                coord_name, direction_of_integration=direction
-                ).prepare_for_integration(self.cube))
+        self.plugin_negative.input_cube.coord("height").points = (
+            np.array([20., 10., 5.]))
+        result = self.plugin_negative.prepare_for_integration()
         self.assertArrayAlmostEqual(
             result[0].coord("height").points, np.array([20., 10.]))
         self.assertArrayAlmostEqual(
@@ -227,8 +208,7 @@ class Test_perform_integration(IrisTest):
         """Set up the cubes. One set of cubes for integrating in the positive
         direction and another set of cubes for integrating in the negative
         direction."""
-        self.height_points = np.array([5., 10., 20.])
-        cube = _set_up_height_cube(self.height_points)
+        cube = _set_up_height_cube(np.array([5., 10., 20.]))
 
         data = np.zeros(cube.shape)
         data[0] = np.ones(cube[0].shape, dtype=np.int32)
@@ -260,19 +240,19 @@ class Test_perform_integration(IrisTest):
               [32.50, 32.50, 32.50],
               [32.50, 32.50, 32.50]]])
 
+        self.plugin_positive = Integration(
+            "height", direction_of_integration="positive")
+        self.plugin_positive.input_cube = cube.copy()
+        self.plugin_negative = Integration(
+            "height", direction_of_integration="negative")
+        self.plugin_negative.input_cube = cube.copy()
+
     def test_basic(self):
         """Test that a cube is returned by the perform_integration method with
         the expected coordinate points."""
-        coord_name = "height"
-        direction = "negative"
-        result = (
-            Integration(
-                coord_name, direction_of_integration=direction
-                ).perform_integration(
-                    self.negative_upper_bounds_cube,
-                    self.negative_lower_bounds_cube))
+        result = self.plugin_negative.perform_integration(
+            self.negative_upper_bounds_cube, self.negative_lower_bounds_cube)
         self.assertIsInstance(result, iris.cube.Cube)
-
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([10., 5.]))
         self.assertArrayAlmostEqual(
@@ -288,14 +268,8 @@ class Test_perform_integration(IrisTest):
              [[45.00, 32.50, 32.50],
               [32.50, 32.50, 32.50],
               [32.50, 32.50, 32.50]]])
-        coord_name = "height"
-        direction = "negative"
-        result = (
-            Integration(
-                coord_name, direction_of_integration=direction
-                ).perform_integration(
-                    self.negative_upper_bounds_cube,
-                    self.negative_lower_bounds_cube))
+        result = self.plugin_negative.perform_integration(
+            self.negative_upper_bounds_cube, self.negative_lower_bounds_cube)
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([10., 5.]))
         self.assertArrayAlmostEqual(result.data, expected)
@@ -307,14 +281,8 @@ class Test_perform_integration(IrisTest):
         currently restricted so that only positive values contribute towards
         the integral."""
         self.negative_upper_bounds_cube.data[0, 0, 0] = 0
-        coord_name = "height"
-        direction = "negative"
-        result = (
-            Integration(
-                coord_name, direction_of_integration=direction
-                ).perform_integration(
-                    self.negative_upper_bounds_cube,
-                    self.negative_lower_bounds_cube))
+        result = self.plugin_negative.perform_integration(
+            self.negative_upper_bounds_cube, self.negative_lower_bounds_cube)
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([10., 5.]))
         self.assertArrayAlmostEqual(
@@ -328,14 +296,8 @@ class Test_perform_integration(IrisTest):
         restricted so that only positive values contribute towards the
         integral."""
         self.negative_upper_bounds_cube.data[0, 0, 0] = -1
-        coord_name = "height"
-        direction = "negative"
-        result = (
-            Integration(
-                coord_name, direction_of_integration=direction
-                ).perform_integration(
-                    self.negative_upper_bounds_cube,
-                    self.negative_lower_bounds_cube))
+        result = self.plugin_negative.perform_integration(
+            self.negative_upper_bounds_cube, self.negative_lower_bounds_cube)
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([10., 5.]))
         self.assertArrayAlmostEqual(
@@ -352,16 +314,9 @@ class Test_perform_integration(IrisTest):
             [[[25.00, 25.00, 25.00],
               [25.00, 25.00, 25.00],
               [25.00, 25.00, 25.00]]])
-        coord_name = "height"
-        start_point = 8.
-        direction = "positive"
-        result = (
-            Integration(
-                coord_name, start_point=start_point,
-                direction_of_integration=direction
-                ).perform_integration(
-                    self.positive_upper_bounds_cube,
-                    self.positive_lower_bounds_cube))
+        self.plugin_positive.start_point = 8.
+        result = self.plugin_positive.perform_integration(
+            self.positive_upper_bounds_cube, self.positive_lower_bounds_cube)
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([20.]))
         self.assertArrayAlmostEqual(result.data, expected)
@@ -377,16 +332,9 @@ class Test_perform_integration(IrisTest):
             [[[20.00, 7.50, 7.50],
               [7.50, 7.50, 7.50],
               [7.50, 7.50, 7.50]]])
-        coord_name = "height"
-        start_point = 18.
-        direction = "negative"
-        result = (
-            Integration(
-                coord_name, start_point=start_point,
-                direction_of_integration=direction
-                ).perform_integration(
-                    self.negative_upper_bounds_cube,
-                    self.negative_lower_bounds_cube))
+        self.plugin_negative.start_point = 18.
+        result = self.plugin_negative.perform_integration(
+            self.negative_upper_bounds_cube, self.negative_lower_bounds_cube)
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([5.]))
         self.assertArrayAlmostEqual(result.data, expected)
@@ -402,16 +350,9 @@ class Test_perform_integration(IrisTest):
             [[[20.00, 7.50, 7.50],
               [7.50, 7.50, 7.50],
               [7.50, 7.50, 7.50]]])
-        coord_name = "height"
-        end_point = 18.
-        direction = "positive"
-        result = (
-            Integration(
-                coord_name, end_point=end_point,
-                direction_of_integration=direction
-                ).perform_integration(
-                    self.positive_upper_bounds_cube,
-                    self.positive_lower_bounds_cube))
+        self.plugin_positive.end_point = 18.
+        result = self.plugin_positive.perform_integration(
+            self.positive_upper_bounds_cube, self.positive_lower_bounds_cube)
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([10.]))
         self.assertArrayAlmostEqual(result.data, expected)
@@ -427,16 +368,9 @@ class Test_perform_integration(IrisTest):
             [[[25.00, 25.00, 25.00],
               [25.00, 25.00, 25.00],
               [25.00, 25.00, 25.00]]])
-        coord_name = "height"
-        end_point = 8.
-        direction = "negative"
-        result = (
-            Integration(
-                coord_name, end_point=end_point,
-                direction_of_integration=direction
-                ).perform_integration(
-                    self.negative_upper_bounds_cube,
-                    self.negative_lower_bounds_cube))
+        self.plugin_negative.end_point = 8.
+        result = self.plugin_negative.perform_integration(
+            self.negative_upper_bounds_cube, self.negative_lower_bounds_cube)
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([10.]))
         self.assertArrayAlmostEqual(result.data, expected)
@@ -459,16 +393,9 @@ class Test_perform_integration(IrisTest):
             [[[25.00, 25.00, 25.00],
               [25.00, 25.00, 25.00],
               [25.00, 25.00, 25.00]]])
-        coord_name = "height"
-        start_point = 10.
-        direction = "positive"
-        result = (
-            Integration(
-                coord_name, start_point=start_point,
-                direction_of_integration=direction
-                ).perform_integration(
-                    self.positive_upper_bounds_cube,
-                    self.positive_lower_bounds_cube))
+        self.plugin_positive.start_point = 10.
+        result = self.plugin_positive.perform_integration(
+            self.positive_upper_bounds_cube, self.positive_lower_bounds_cube)
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([20.]))
         self.assertArrayAlmostEqual(result.data, expected)
@@ -490,36 +417,23 @@ class Test_perform_integration(IrisTest):
             [[[25.00, 25.00, 25.00],
               [25.00, 25.00, 25.00],
               [25.00, 25.00, 25.00]]])
-        coord_name = "height"
-        end_point = 10.
-        direction = "negative"
-        result = (
-            Integration(
-                coord_name, end_point=end_point,
-                direction_of_integration=direction
-                ).perform_integration(
-                    self.negative_upper_bounds_cube,
-                    self.negative_lower_bounds_cube))
+        self.plugin_negative.end_point = 10.
+        result = self.plugin_negative.perform_integration(
+            self.negative_upper_bounds_cube, self.negative_lower_bounds_cube)
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([10.]))
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_integration_not_performed(self):
         """Test that the expected exception is raise if no integration
-        can be performed, as a result of the options selected, for example,
-        if the start_point is above the height of any of the levels within
-        the cube."""
-        coord_name = "height"
-        start_point = 25.
-        direction = "positive"
+        can be performed, for example if the selected levels are out of
+        the dataset range."""
+        self.plugin_positive.start_point = 25.
         msg = "No integration could be performed for"
         with self.assertRaisesRegex(ValueError, msg):
-            Integration(
-                coord_name, start_point=start_point,
-                direction_of_integration=direction
-                ).perform_integration(
-                    self.positive_upper_bounds_cube,
-                    self.positive_lower_bounds_cube)
+            self.plugin_positive.perform_integration(
+                self.positive_upper_bounds_cube,
+                self.positive_lower_bounds_cube)
 
 
 class Test_process(IrisTest):
@@ -528,8 +442,8 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up the cube."""
-        self.height_points = np.array([5., 10., 20.])
-        cube = _set_up_height_cube(self.height_points)
+        cube = _set_up_height_cube(np.array([5., 10., 20.]))
+        self.coord_name = "height"
         data = np.zeros(cube.shape)
         data[0] = np.ones(cube[0].shape, dtype=np.int32)
         data[1] = np.full(cube[1].shape, 2, dtype=np.int32)
@@ -537,16 +451,13 @@ class Test_process(IrisTest):
         data[0, 0, 0] = 6
         cube.data = data
         self.cube = cube
+        self.plugin = Integration(
+            "height", direction_of_integration="negative")
 
     def test_basic(self):
         """Test that a cube with the points on the chosen coordinate are
         in the expected order."""
-        coord_name = "height"
-        direction = "negative"
-        result = (
-            Integration(
-                coord_name, direction_of_integration=direction
-                ).process(self.cube))
+        result = self.plugin.process(self.cube)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([10., 5.]))
@@ -555,15 +466,10 @@ class Test_process(IrisTest):
 
     def test_metadata(self):
         """Test that the metadata on the resulting cube is as expected"""
-        coord_name = "height"
-        direction = "negative"
         expected_attributes = generate_mandatory_attributes([self.cube])
-        result = (
-            Integration(
-                coord_name, direction_of_integration=direction
-                ).process(self.cube))
-        self.assertEqual(result.name(), self.cube.name())
-        self.assertEqual(result.units, self.cube.units)
+        result = self.plugin.process(self.cube)
+        self.assertEqual(result.name(), self.cube.name()+'_integral')
+        self.assertEqual(result.units, '{} m'.format(self.cube.units))
         self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_data(self):
@@ -576,12 +482,7 @@ class Test_process(IrisTest):
              [[45.00, 32.50, 32.50],
               [32.50, 32.50, 32.50],
               [32.50, 32.50, 32.50]]])
-        coord_name = "height"
-        direction = "negative"
-        result = (
-            Integration(
-                coord_name, direction_of_integration=direction
-                ).process(self.cube))
+        result = self.plugin.process(self.cube)
         self.assertArrayAlmostEqual(
             result.coord("height").points, np.array([10., 5.]))
         self.assertArrayAlmostEqual(result.data, expected)

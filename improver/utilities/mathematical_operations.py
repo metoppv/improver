@@ -81,6 +81,7 @@ class Integration(BasePlugin):
                    "'positive' or 'negative'. {} was specified.".format(
                        self.direction_of_integration))
             raise ValueError(msg)
+        self.input_cube = None
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -118,14 +119,10 @@ class Integration(BasePlugin):
 
         return cube
 
-    def prepare_for_integration(self, cube):
+    def prepare_for_integration(self):
         """Prepare for integration by creating the cubes needed for the
         integration. These are separate cubes for representing the upper
         and lower limits of the integration.
-
-        Args:
-            cube (iris.cube.Cube):
-                Cube containing the data to be integrated.
 
         Returns:
             (tuple): tuple containing:
@@ -136,27 +133,36 @@ class Integration(BasePlugin):
                     Cube containing the lower bounds to be used during the
                     integration.
         """
-
-        # Define upper and lower level cubes for the integration.
         if self.direction_of_integration == "positive":
-            upper_bounds = cube.coord(self.coord_name_to_integrate).points[1:]
-            lower_bounds = cube.coord(self.coord_name_to_integrate).points[:-1]
+            upper_bounds = self.input_cube.coord(
+                self.coord_name_to_integrate).points[1:]
+            lower_bounds = self.input_cube.coord(
+                self.coord_name_to_integrate).points[:-1]
         elif self.direction_of_integration == "negative":
-            upper_bounds = cube.coord(self.coord_name_to_integrate).points[:-1]
-            lower_bounds = cube.coord(self.coord_name_to_integrate).points[1:]
+            upper_bounds = self.input_cube.coord(
+                self.coord_name_to_integrate).points[:-1]
+            lower_bounds = self.input_cube.coord(
+                self.coord_name_to_integrate).points[1:]
 
-        upper_bounds_cube = (
-            cube.extract(
-                iris.Constraint(
-                    coord_values={self.coord_name_to_integrate:
-                                  upper_bounds})))
-        lower_bounds_cube = (
-            cube.extract(
-                iris.Constraint(
-                    coord_values={self.coord_name_to_integrate:
-                                  lower_bounds})))
+        upper_bounds_cube = self.input_cube.extract(
+            iris.Constraint(
+                coord_values={self.coord_name_to_integrate:
+                              upper_bounds}))
+        lower_bounds_cube = self.input_cube.extract(
+            iris.Constraint(
+                coord_values={self.coord_name_to_integrate:
+                              lower_bounds}))
 
         return upper_bounds_cube, lower_bounds_cube
+
+    def _generate_output_name_and_units(self):
+        """Gets suitable output name and units from input cube metadata"""
+        new_name = self.input_cube.name() + '_integral'
+        original_units = self.input_cube.units
+        integrated_units = self.input_cube.coord(
+            self.coord_name_to_integrate).units
+        new_units = '{} {}'.format(original_units, integrated_units)
+        return new_name, new_units
 
     def _create_output_cube(self, template, data, points, bounds):
         """
@@ -191,13 +197,14 @@ class Integration(BasePlugin):
                 template = iris.util.new_axis(
                     template, self.coord_name_to_integrate)
 
-        # create new cube from template
+        # generate appropriate metadata for new cube
         attributes = generate_mandatory_attributes([template])
         coord_dtype = template.coord(self.coord_name_to_integrate).dtype
+        name, units = self._generate_output_name_and_units()
 
+        # create new cube from template
         integrated_cube = create_new_diagnostic_cube(
-            template.name(), template.units, template, attributes,
-            data=np.array(data))
+            name, units, template, attributes, data=np.array(data))
 
         integrated_cube.coord(self.coord_name_to_integrate).bounds = (
             np.array(bounds).astype(coord_dtype))
@@ -313,10 +320,10 @@ class Integration(BasePlugin):
                 This will have the same name and units as the input cube (TODO
                 same name and units are incorrect - fix this).
         """
-        cube = self.ensure_monotonic_increase_in_chosen_direction(cube)
-
-        upper_bounds_cube, lower_bounds_cube = (
-            self.prepare_for_integration(cube))
+        self.input_cube = (
+            self.ensure_monotonic_increase_in_chosen_direction(cube))
+        print(self.input_cube)
+        upper_bounds_cube, lower_bounds_cube = self.prepare_for_integration()
 
         integrated_cube = self.perform_integration(
             upper_bounds_cube, lower_bounds_cube)
