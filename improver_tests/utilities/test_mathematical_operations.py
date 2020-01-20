@@ -39,8 +39,8 @@ from iris.tests import IrisTest
 
 from improver.utilities.mathematical_operations import Integration
 
-from ..calibration.ensemble_calibration.helper_functions \
-    import set_up_temperature_cube
+from ..calibration.ensemble_calibration.helper_functions import (
+    set_up_temperature_cube)
 
 
 def set_up_height_cube(height_points, cube=set_up_temperature_cube()):

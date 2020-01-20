@@ -100,59 +100,14 @@ def process(*cubes: cli.inputcube,
             Cube containing the coefficients estimated using EMOS. The cube
             contains a coefficient_index dimension coordinate and a
             coefficient_name auxiliary coordinate.
-
-    Raises:
-        RuntimeError:
-            An unexpected number of distinct cube names were passed in.
-        RuntimeError:
-            More than one cube was identified as a land-sea mask.
-        RuntimeError:
-            Missing truth or historical forecast in input cubes.
-
     """
 
-    from collections import OrderedDict
-    from improver.utilities.cube_manipulation import MergeCubes
+    from improver.calibration import split_forecasts_and_truth
     from improver.calibration.ensemble_calibration import (
         EstimateCoefficientsForEnsembleCalibration)
 
-    grouped_cubes = {}
-    for cube in cubes:
-        grouped_cubes.setdefault(cube.name(), []).append(cube)
-    if len(grouped_cubes) == 1:
-        # Only one group - all forecast/truth cubes
-        land_sea_mask = None
-        diag_name = list(grouped_cubes.keys())[0]
-    elif len(grouped_cubes) == 2:
-        # Two groups - the one with exactly one cube matching a name should
-        # be the land_sea_mask, since we require more than 2 cubes in
-        # the forecast/truth group
-        grouped_cubes = OrderedDict(sorted(grouped_cubes.items(),
-                                           key=lambda kv: len(kv[1])))
-        # landsea name should be the key with the lowest number of cubes (1)
-        landsea_name, diag_name = list(grouped_cubes.keys())
-        land_sea_mask = grouped_cubes[landsea_name][0]
-        if len(grouped_cubes[landsea_name]) != 1:
-            raise RuntimeError('Expected one cube for land-sea mask.')
-    else:
-        raise RuntimeError('Must have cubes with 1 or 2 distinct names.')
-
-    # split non-land_sea_mask cubes on forecast vs truth
-    truth_key, truth_value = truth_attribute.split('=')
-    input_cubes = grouped_cubes[diag_name]
-    grouped_cubes = {'truth': [], 'historical forecast': []}
-    for cube in input_cubes:
-        if cube.attributes.get(truth_key) == truth_value:
-            grouped_cubes['truth'].append(cube)
-        else:
-            grouped_cubes['historical forecast'].append(cube)
-
-    missing_inputs = ' and '.join(k for k, v in grouped_cubes.items() if not v)
-    if missing_inputs:
-        raise RuntimeError('Missing ' + missing_inputs + ' input.')
-
-    truth = MergeCubes()(grouped_cubes['truth'])
-    forecast = MergeCubes()(grouped_cubes['historical forecast'])
+    forecast, truth, land_sea_mask = split_forecasts_and_truth(
+        cubes, truth_attribute)
 
     return EstimateCoefficientsForEnsembleCalibration(
         distribution, cycletime, desired_units=units,

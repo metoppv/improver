@@ -166,45 +166,6 @@ def test_predictor_of_mean_sm(tmp_path):
                 atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE)
 
 
-def test_no_inputs():
-    """Test no inputs passed to CLI"""
-    args = ["--distribution", "gaussian",
-            "--cycletime", "20170605T0300Z",
-            "--truth-attribute", "mosg__model_configuration=uk_det"]
-    with pytest.raises(RuntimeError, match="Must have cubes"):
-        run_cli(args)
-
-
-def test_missing_dataset(tmp_path):
-    """Test error when only the truth dataset is provided"""
-    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
-    truth_path = kgo_dir / "gaussian/truth/*.nc"
-    output_path = tmp_path / "output.nc"
-    args = [truth_path,
-            "--distribution", "gaussian",
-            "--cycletime", "20170605T0300Z",
-            "--truth-attribute", "mosg__model_configuration=uk_det",
-            "--output", output_path]
-    with pytest.raises(RuntimeError, match="Missing historical forecast"):
-        run_cli(args)
-
-
-def test_too_many_masks(tmp_path):
-    """Test too many land-sea masks arguments"""
-    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
-    lsmask_path = kgo_dir / "landmask.nc"
-    history_path = kgo_dir / "gaussian/history/*.nc"
-    truth_path = kgo_dir / "gaussian/truth/*.nc"
-    output_path = tmp_path / "output.nc"
-    args = [history_path, truth_path, lsmask_path, lsmask_path,
-            "--distribution", "gaussian",
-            "--cycletime", "20170605T0300Z",
-            "--truth-attribute", "mosg__model_configuration=uk_det",
-            "--output", output_path]
-    with pytest.raises(RuntimeError, match="one cube for land-sea mask"):
-        run_cli(args)
-
-
 @pytest.mark.slow
 def test_land_points_only(tmp_path):
     """Test use of land-sea mask"""
