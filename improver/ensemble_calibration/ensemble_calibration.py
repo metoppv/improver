@@ -31,6 +31,10 @@
 """
 This module defines all the "plugins" specific for ensemble calibration.
 
+.. Further information is available in:
+.. include:: extended_documentation/ensemble_calibration/
+   ensemble_calibration/ensemble_calibration.rst
+
 """
 import datetime
 import warnings
@@ -128,45 +132,8 @@ class ContinuousRankedProbabilityScoreMinimisers:
         Function to pass a given function to the scipy minimize
         function to estimate optimised values for the coefficients.
 
-        If the predictor is the ensemble mean, this function
-        estimates values for alpha, beta, gamma and delta based on the
-        equation:
-        N(a + b * ensemble_mean, c + d * ensemble_variance),
-        where N is a chosen distribution and values of a, b, c and d are
-        solved in the format of alpha, beta, gamma and delta, see the equations
-        below.
-
-        .. math::
-            a = \\alpha
-
-        .. math::
-            b = \\beta
-
-        .. math::
-            c = \\gamma^2
-
-        .. math::
-            d = \\delta^2
-
-        The gamma and delta values are squared to ensure c and d are positive
-        and therefore more interpretable.
-
-        If the predictor is the ensemble realizations, this function estimates
-        values for alpha, beta, gamma and delta based on the equation:
-
-        .. math::
-          N(a + b_0 \\times realization0 + b_1 \\times realization1,
-
-          c + d \\times ensemble\\_variance)
-
-        where N is a chosen distribution, the values of a, b, c and d relate
-        to alpha, beta, gamma and delta through the equations above with
-        the exception that :math:`b=\\beta^2`, and the number of beta terms
-        depends on the number of realizations provided. The beta, gamma, and
-        delta values are squared to ensure that b, c and d are positive values
-        and therefore are more easily interpretable. Specifically for the b
-        term, the squaring ensures that the the b values can be interpreted
-        as a weighting for each realization.
+        Further information is available in the :mod:`module level docstring \
+<improver.ensemble_calibration.ensemble_calibration>`.
 
         Args:
             initial_guess (list):
@@ -428,9 +395,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         Regression, calculates coefficients based on historical forecasts and
         applies the coefficients to the current forecast.
 
-        .. Further information is available in:
-        .. include:: extended_documentation/ensemble_calibration/
-           ensemble_calibration/EstimateCoefficientsForEnsembleCalibration.rst
+        Further information is available in the :mod:`module level docstring \
+<improver.ensemble_calibration.ensemble_calibration>`.
 
         Args:
             distribution (str):
@@ -655,20 +621,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         variables will correspond to the number of realizations. In this
         example initial guess with three beta variables, there will
         correspondingly be three realizations.
-
-        The coefficients relate to adjustments to the ensemble mean or the
-        ensemble realizations, and adjustments to the ensemble variance:
-
-        .. math::
-            alpha + beta * ensemble\\_mean
-
-        or
-
-        .. math::
-            alpha + beta0 * realization0 + beta1 * realization1
-
-        .. math::
-            gamma + delta * ensemble\\_variance
 
         The default values for the initial guesses are in
         [gamma, delta, alpha, beta] ordering:
@@ -1038,27 +990,8 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         Function to calculate the location parameter when the ensemble mean at
         each grid point is the predictor.
 
-        Please see the equations below:
-
-        .. math::
-            location\\_parameter = a + b \\times ensemble\\_mean
-
-        .. math::
-            a = \\alpha
-
-        .. math::
-            b = \\beta
-
-        Formally, the result of applying the calibration coefficients is
-        interpreted as a location parameter. If a Gaussian distribution, the
-        location parameter and the mean of the distribution are the same.
-        However, for other distributions, the result of applying the EMOS
-        coefficients should only be interpreted as a location parameter.
-
-        .. Further information is available in:
-        .. include:: extended_documentation/ensemble_calibration/
-           ensemble_calibration/_get_calibrated_forecast_predictors_mean.rst
-
+        Further information is available in the :mod:`module level docstring \
+<improver.ensemble_calibration.ensemble_calibration>`.
 
         Args:
             optimised_coeffs (dict):
@@ -1089,17 +1022,8 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         Function to calculate the location parameter when the ensemble
         realizations are the predictor.
 
-        Please see the equations below:
-
-        .. math::
-            location\\_parameter = a + b_0 \\times realization_0 +
-                ... + b_n \\times realization_n
-
-        .. math::
-            a = \\alpha
-
-        .. math::
-            b = \\beta^2
+        Further information is available in the :mod:`module level docstring \
+<improver.ensemble_calibration.ensemble_calibration>`.
 
         Args:
             optimised_coeffs (dict):
@@ -1136,17 +1060,9 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         """
         Calculation of the scale parameter using the ensemble variance
         adjusted using the gamma and delta coefficients calculated by EMOS.
-        This follows the equations below, where :math:`S^2` is the ensemble
-        variance and :math:`\\sigma^2` is the scale parameter:
 
-        .. math::
-            \\sigma^2 = c + d \\times S^2
-
-        .. math::
-            c = \\gamma^2
-
-        .. math::
-            d = \\delta^2
+        Further information is available in the :mod:`module level docstring \
+<improver.ensemble_calibration.ensemble_calibration>`.
 
         Args:
             optimised_coeffs (dict):

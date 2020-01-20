@@ -43,10 +43,10 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ConvertLocationAndScaleParametersToPercentiles as Plugin)
 from improver.utilities.warnings_handler import ManageWarnings
 
-from ...ensemble_calibration.ensemble_calibration. \
-    helper_functions import (set_up_spot_temperature_cube,
-                             set_up_temperature_cube,
-                             add_forecast_reference_time_and_forecast_period)
+from ...ensemble_calibration.ensemble_calibration.helper_functions import (
+    add_forecast_reference_time_and_forecast_period,
+    set_up_spot_temperature_cube,
+    set_up_temperature_cube)
 
 
 class Test__repr__(IrisTest):
