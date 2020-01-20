@@ -43,7 +43,7 @@ from scipy.optimize import minimize
 from scipy.stats import norm
 
 from improver import BasePlugin
-from improver.statistical_postprocessing.utilities import (
+from improver.calibration.utilities import (
     check_predictor_of_mean_flag, convert_cube_data_to_2d,
     flatten_ignoring_masked_data)
 from improver.metadata.utilities import create_new_diagnostic_cube
@@ -530,7 +530,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         """Create a cube for storing the coefficients computed using EMOS.
 
         .. See the documentation for examples of these cubes.
-        .. include:: extended_documentation/statistical_postprocessing/
+        .. include:: extended_documentation/calibration/
            ensemble_calibration/create_coefficients_cube.rst
 
         Args:

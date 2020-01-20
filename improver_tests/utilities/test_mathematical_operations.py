@@ -39,7 +39,7 @@ from iris.tests import IrisTest
 
 from improver.utilities.mathematical_operations import Integration
 
-from ..statistical_postprocessing.ensemble_calibration.helper_functions \
+from ..calibration.ensemble_calibration.helper_functions \
     import set_up_temperature_cube
 
 

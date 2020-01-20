@@ -40,8 +40,8 @@ from iris.tests import IrisTest
 
 from improver.wind_calculations.wind_direction import WindDirection
 
-from ...statistical_postprocessing.ensemble_calibration.helper_functions \
-    import set_up_temperature_cube
+from ...calibration.ensemble_calibration.helper_functions import (
+    set_up_temperature_cube)
 from ...nbhood.nbhood.test_BaseNeighbourhoodProcessing import set_up_cube
 
 # Data to test complex/degree handling functions.
