@@ -37,7 +37,7 @@ import numpy as np
 from numpy.testing import assert_almost_equal, assert_array_equal
 from datetime import datetime
 
-from improver.statistical_postprocessing.reliability_calibration import (
+from improver.calibration.reliability_calibration import (
     ConstructRealizationCalibrationTables as Plugin)
 from improver_tests.set_up_test_cubes import (set_up_variable_cube,
                                               set_up_probability_cube)
