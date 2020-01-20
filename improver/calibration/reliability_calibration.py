@@ -34,7 +34,6 @@ import iris
 import numpy as np
 
 from improver import BasePlugin
-from improver.utilities.cube_manipulation import merge_cubes
 from improver.metadata.utilities import generate_mandatory_attributes
 
 
@@ -317,22 +316,20 @@ class ConstructRealizationCalibrationTables(BasePlugin):
         """
         Slice data over threshold and time coordinates to construct reliability
         tables. These are summed over time to give a single table for each
-        threshold constructed from all the provided historic forecasts and
+        threshold, constructed from all the provided historic forecasts and
         truths.
 
         Args:
-            historic_forecasts (iris.cube.CubeList):
-                A cube list of historic forecast data.
+            historic_forecasts (iris.cube.Cube):
+                The cube containing the historical forecasts used
+                for calibration.
             truths (iris.cube.Cube):
-                A cube list of historic analyses that act as truth.
+                The cube containing the truths used for calibration.
         Returns:
             iris.cube.CubeList:
                 A cubelist of reliability table cubes, one for each threshold
                 in the historic forecast cubes.
         """
-        historic_forecasts = merge_cubes(historic_forecasts)
-        truths = merge_cubes(truths)
-
         threshold_coord = historic_forecasts.coord(var_name='threshold')
         time_coord = historic_forecasts.coord('time')
 

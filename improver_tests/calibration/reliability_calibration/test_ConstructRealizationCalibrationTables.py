@@ -37,6 +37,7 @@ import numpy as np
 from numpy.testing import assert_almost_equal, assert_array_equal
 from datetime import datetime
 
+from improver.utilities.cube_manipulation import merge_cubes
 from improver.calibration.reliability_calibration import (
     ConstructRealizationCalibrationTables as Plugin)
 from improver_tests.set_up_test_cubes import (set_up_variable_cube,
@@ -70,12 +71,12 @@ class Test_Setup(unittest.TestCase):
         self.forecast_2 = set_up_probability_cube(
             forecast_data, thresholds, time=datetime(2017, 11, 11, 4, 0),
             frt=datetime(2017, 11, 11, 0, 0))
-        self.forecasts = [self.forecast_1, self.forecast_2]
+        self.forecasts = merge_cubes([self.forecast_1, self.forecast_2])
         self.truth_1 = set_up_variable_cube(truth_data)
         self.truth_2 = set_up_variable_cube(
             truth_data, time=datetime(2017, 11, 11, 4, 0),
             frt=datetime(2017, 11, 11, 0, 0))
-        self.truths = [self.truth_1, self.truth_2]
+        self.truths = merge_cubes([self.truth_1, self.truth_2])
         self.expected_table_shape = (3, 5, 3, 3)
         self.expected_attributes = (
             {'title': 'Reliability calibration data table',
