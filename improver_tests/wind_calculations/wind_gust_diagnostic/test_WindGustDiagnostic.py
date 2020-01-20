@@ -138,42 +138,6 @@ class Test_add_metadata(IrisTest):
         self.assertEqual(result.attributes['wind_gust_diagnostic'], msg)
 
 
-class Test_update_metadata_after_max(IrisTest):
-
-    """Test the update_metadata_after_max method."""
-
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def setUp(self):
-        """Create a cube."""
-        data = np.zeros((2, 2, 2, 2))
-        percentile_values = [50.0, 90.0]
-        gust = "wind_speed_of_gust"
-        cube = (
-            create_cube_with_percentile_coord(data=data,
-                                              perc_values=percentile_values,
-                                              standard_name=gust))
-        self.perc_coord = DimCoord(percentile_values,
-                                   long_name="percentile",
-                                   units="%")
-        self.cube = cube.collapsed(self.perc_coord, iris.analysis.MAX)
-
-    def test_basic(self):
-        """Test that the function returns a Cube. """
-        plugin = WindGustDiagnostic(50.0, 95.0)
-        result = plugin.update_metadata_after_max(self.cube,
-                                                  self.perc_coord)
-        self.assertIsInstance(result, Cube)
-
-    def test_updated_metadata(self):
-        """Test that the metadata is set as expected """
-        plugin = WindGustDiagnostic(50.0, 80.0)
-        result = plugin.update_metadata_after_max(self.cube, self.perc_coord)
-        msg = 'Expected to find exactly 1 .* coordinate, but found none.'
-        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            result.coord(self.perc_coord)
-
-
 class Test_extract_percentile_data(IrisTest):
 
     """Test the extract_percentile_data method."""

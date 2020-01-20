@@ -253,47 +253,6 @@ class Test_renormalize_weights(IrisTest):
         self.assertArrayAlmostEqual(expected_weights, weights_cube.data)
 
 
-class Test_remove_collapsed_coord_refs(IrisTest):
-
-    """Test the remove_collapsed_coord_refs method of
-       CollapseMaskedNeighbourhoodCoordinate"""
-
-    def setUp(self):
-        """Set up a basic cube and plugin instance to test with."""
-        self.cube = set_up_cube()
-        topographic_zone_coord = AuxCoord([1], long_name="topographic_zone")
-        self.cube.add_aux_coord(topographic_zone_coord)
-        self.unrelated_cell_method = iris.coords.CellMethod(
-            "mean", coords="realization")
-        self.topographic_zone_cell_method = iris.coords.CellMethod(
-            "mean", coords="topographic_zone")
-        self.plugin = CollapseMaskedNeighbourhoodCoordinate("topographic_zone",
-                                                            self.cube.copy())
-
-    def test_basic(self):
-        """Test the input is still a cube."""
-        self.plugin.remove_collapsed_coord_refs(self.cube)
-        self.assertIsInstance(self.cube, iris.cube.Cube)
-
-    def test_remove_topographic_zone_coord(self):
-        """Test that the topographic_zone cube is removed"""
-        self.plugin.remove_collapsed_coord_refs(self.cube)
-        self.assertEqual(self.cube.coords("topographic_zone"), [])
-
-    def test_remove_cell_methods(self):
-        """Test it removes the correct cell method."""
-        self.cube.cell_methods = (self.unrelated_cell_method,
-                                  self.topographic_zone_cell_method)
-        self.plugin.remove_collapsed_coord_refs(self.cube)
-        self.assertEqual((self.unrelated_cell_method,), self.cube.cell_methods)
-
-    def test_does_not_remove_cell_method(self):
-        """Test it doesn't change cell_methods if not necessary."""
-        self.cube.cell_methods = (self.unrelated_cell_method,)
-        self.plugin.remove_collapsed_coord_refs(self.cube)
-        self.assertEqual((self.unrelated_cell_method,), self.cube.cell_methods)
-
-
 class Test_process(IrisTest):
 
     """Test the process method of CollapseMaskedNeighbourhoodCoordinate"""
