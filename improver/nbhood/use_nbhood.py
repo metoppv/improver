@@ -395,6 +395,6 @@ class CollapseMaskedNeighbourhoodCoordinate(BasePlugin):
         # expect this in the output cube.
         first_slice = next(cube.slices_over([self.coord_masked]))
         result = check_cube_coordinates(first_slice, result)
-        result.remove_coord(self.coord_masked)
         # Remove references to self.coord_masked in the result cube.
+        result.remove_coord(self.coord_masked)
         return result
