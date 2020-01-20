@@ -38,6 +38,7 @@ from iris.exceptions import CoordinateNotFoundError
 from improver import BasePlugin
 from improver.constants import DEFAULT_PERCENTILES
 from improver.metadata.probabilistic import find_percentile_coordinate
+from improver.utilities.cube_manipulation import collapsed
 
 
 class PercentileConverter(BasePlugin):
@@ -124,10 +125,12 @@ class PercentileConverter(BasePlugin):
         # Rename the percentile coordinate to "percentile" and also
         # makes sure that the associated unit is %.
         if n_valid_coords == n_collapse_coords:
-            result = cube.collapsed(
-                self.collapse_coord, iris.analysis.PERCENTILE,
+            result = collapsed(
+                cube, self.collapse_coord,
+                iris.analysis.PERCENTILE,
                 percent=self.percentiles,
                 fast_percentile_method=self.fast_percentile_method)
+
             result.data = result.data.astype(data_type)
             for coord in self.collapse_coord:
                 result.remove_coord(coord)

@@ -48,7 +48,8 @@ from improver.ensemble_calibration.utilities import (
     flatten_ignoring_masked_data)
 from improver.metadata.utilities import create_new_diagnostic_cube
 from improver.utilities.cube_checker import time_coords_match
-from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+from improver.utilities.cube_manipulation import (enforce_coordinate_ordering,
+                                                  collapsed)
 from improver.utilities.temporal import (
     cycletime_to_datetime, datetime_to_iris_time, iris_time_to_datetime)
 
@@ -897,15 +898,15 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         if self.predictor_of_mean_flag.lower() == "mean":
             no_of_realizations = None
-            forecast_predictor = historic_forecast.collapsed(
-                "realization", iris.analysis.MEAN)
+            forecast_predictor = collapsed(
+                historic_forecast, "realization", iris.analysis.MEAN)
         elif self.predictor_of_mean_flag.lower() == "realizations":
             no_of_realizations = len(
                 historic_forecast.coord("realization").points)
             forecast_predictor = historic_forecast
 
-        forecast_var = historic_forecast.collapsed(
-            "realization", iris.analysis.VARIANCE)
+        forecast_var = collapsed(
+            historic_forecast, "realization", iris.analysis.VARIANCE)
 
         # If a landsea_mask is provided mask out the sea points
         if landsea_mask:
@@ -1049,8 +1050,9 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
                 Location parameter calculated using the ensemble mean as the
                 predictor.
         """
-        forecast_predictor = self.current_forecast.collapsed(
-            "realization", iris.analysis.MEAN)
+        forecast_predictor = collapsed(self.current_forecast,
+                                       "realization",
+                                       iris.analysis.MEAN)
 
         # Calculate location parameter = a + b*X, where X is the
         # raw ensemble mean. In this case, b = beta.

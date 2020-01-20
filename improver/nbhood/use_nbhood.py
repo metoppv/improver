@@ -39,6 +39,7 @@ from improver.blending.weights import WeightsUtilities
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.cube_checker import (
     check_cube_coordinates, find_dimension_coordinate_mismatch)
+from improver.utilities.cube_manipulation import collapsed
 
 
 class ApplyNeighbourhoodProcessingWithAMask(BasePlugin):
@@ -345,25 +346,6 @@ class CollapseMaskedNeighbourhoodCoordinate(BasePlugin):
         self.weights.data = WeightsUtilities.normalise_weights(
             self.weights.data, axis=axis)
 
-    def remove_collapsed_coord_refs(self, result_cube):
-        """
-        Remove references to the collapsed coordinate after processing.
-
-        Removes the collapsed coordinate and the cell method relating to it
-        on the provided cube, in place.
-
-        Args:
-            result_cube (iris.cube.Cube):
-                The collapsed cube whose metadata we want to change.
-        """
-        # Remove coordinate.
-        result_cube.remove_coord(self.coord_masked)
-        # Remove any cell methods associated with self.coord_masked.
-        new_cell_methods = [cell_method for
-                            cell_method in result_cube.cell_methods
-                            if cell_method.coord_names != (self.coord_masked,)]
-        result_cube.cell_methods = tuple(new_cell_methods)
-
     def process(self, cube):
         """
         Collapse the chosen coordinates with the available weights. The result
@@ -402,9 +384,10 @@ class CollapseMaskedNeighbourhoodCoordinate(BasePlugin):
         # Loop over any extra dimensions
         cubelist = iris.cube.CubeList([])
         for slice_3d in cube.slices([self.coord_masked, yname, xname]):
-            collapsed_slice = slice_3d.collapsed(
-                self.coord_masked, iris.analysis.MEAN, weights=weights)
+            collapsed_slice = collapsed(slice_3d, self.coord_masked,
+                                        iris.analysis.MEAN, weights=weights)
             cubelist.append(collapsed_slice)
+
         result = cubelist.merge_cube()
         # Promote any scalar coordinates with one point back to dimension
         # coordinates if they were dimensions in the input cube.
@@ -413,5 +396,5 @@ class CollapseMaskedNeighbourhoodCoordinate(BasePlugin):
         first_slice = next(cube.slices_over([self.coord_masked]))
         result = check_cube_coordinates(first_slice, result)
         # Remove references to self.coord_masked in the result cube.
-        self.remove_collapsed_coord_refs(result)
+        result.remove_coord(self.coord_masked)
         return result

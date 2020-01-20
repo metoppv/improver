@@ -109,26 +109,6 @@ class WindGustDiagnostic(BasePlugin):
         return result
 
     @staticmethod
-    def update_metadata_after_max(cube, perc_coord):
-        """Update metadata after MAX found through merged_cube.collapsed
-
-        Args:
-            cube (iris.cube.Cube):
-                Cube containing the wind-gust diagnostic data.
-            perc_coord (iris.coords.Coord):
-                Percentile coordinate
-
-        Returns:
-            iris.cube.Cube:
-                Cube containing the wind-gust diagnostic data with
-                corrected Metadata.
-
-        """
-        result = cube
-        result.remove_coord(perc_coord)
-        return result
-
-    @staticmethod
     def extract_percentile_data(cube, req_percentile, standard_name):
         """Extract percentile data from cube.
 
@@ -226,7 +206,6 @@ class WindGustDiagnostic(BasePlugin):
             data=np.maximum(req_cube_gust.data, req_cube_ws.data))
 
         # Update metadata
-        result = self.update_metadata_after_max(result,
-                                                perc_coord_gust.name())
+        result.remove_coord(perc_coord_gust.name())
 
         return result
