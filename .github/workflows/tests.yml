@@ -3,7 +3,9 @@ name: Tests
 on: [push, pull_request]
 
 jobs:
+
   singularity:
+    name: Singularity container build
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -21,9 +23,12 @@ jobs:
       run: singularity exec impr.sif python -c 'import iris; print(iris.__version__)'
     - name: Container image split
       run: mkdir imprsif; split --bytes=100M impr.sif imprsif/sifpart; rm impr.sif
+
   pytest:
+    name: Pytest
     needs: singularity
     runs-on: ubuntu-latest
+    steps:
     - name: Checkout
       uses: actions/checkout@v1
     - name: Container image cache
