@@ -11,6 +11,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v1
     - name: Container image cache
+      id: sif-cache
       uses: actions/cache@v1
       with:
         path: imprsif
@@ -18,10 +19,13 @@ jobs:
     - name: Package installation
       run: sudo apt-get install singularity-container
     - name: Container build
+      if: steps.sif-cache.outputs.cache-hit != 'true'
       run: sudo singularity build impr.sif singularity.def
     - name: Container check
+      if: steps.sif-cache.outputs.cache-hit != 'true'
       run: singularity exec impr.sif python -c 'import iris; print(iris.__version__)'
     - name: Container image split
+      if: steps.sif-cache.outputs.cache-hit != 'true'
       run: mkdir imprsif; split --bytes=100M impr.sif imprsif/sifpart; rm impr.sif
 
   pytest:
