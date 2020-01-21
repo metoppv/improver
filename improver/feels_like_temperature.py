@@ -188,8 +188,8 @@ def calculate_apparent_temperature(temperature, wind_speed,
     return apparent_temperature
 
 
-def calculate_feels_like_temperature(temperature, wind_speed,
-                                     relative_humidity, pressure):
+def calculate_feels_like_temperature(
+    temperature, wind_speed, relative_humidity, pressure, model_id_attr=None):
     """
     Calculates the feels like temperature using a combination of
     the wind chill index and Steadman's apparent temperature equation with
@@ -205,23 +205,27 @@ def calculate_feels_like_temperature(temperature, wind_speed,
     in order to blend between the wind chill and the apparent temperature.
 
     Args:
-      temperature (iris.cube.Cube):
-        Cube of air temperatures
+        temperature (iris.cube.Cube):
+            Cube of air temperatures
 
-      wind_speed (iris.cube.Cube):
-        Cube of 10m wind speeds
+        wind_speed (iris.cube.Cube):
+            Cube of 10m wind speeds
 
-      relative_humidity (iris.cube.Cube):
-        Cube of relative humidities
+        relative_humidity (iris.cube.Cube):
+            Cube of relative humidities
 
-      pressure (iris.cube.Cube):
-        Cube of air pressure
+        pressure (iris.cube.Cube):
+            Cube of air pressure
+
+        model_id_attr (str):
+            Name of the attribute used to label the source model on the output
+            file. This is inherited from the input temperature cube.
 
     Returns:
-      iris.cube.Cube:
-        Cube of feels like temperatures. The units of feels like temperature
-        will be the same as the units of the temperature cube when it is input
-        into the function.
+        iris.cube.Cube:
+            Cube of feels like temperatures. The units of feels like
+            temperature will be the same as the units of the input temperature
+            cube.
     """
     # get wind chill and apparent temperatures in units of the input
     # temperature cube
@@ -251,9 +255,13 @@ def calculate_feels_like_temperature(temperature, wind_speed,
         apparent_temperature.data[t_data > 20])
 
     attributes = generate_mandatory_attributes([temperature])
+    optional_attributes = None
+    if model_id_attr:
+        optional_attributes = {
+            model_id_attr: temperature.attributes[model_id_attr]}
     feels_like_temperature = create_new_diagnostic_cube(
         "feels_like_temperature", apparent_temperature.units, temperature,
-        attributes, optional_attributes=temperature.attributes,
+        attributes, optional_attributes=optional_attributes,
         data=feels_like_temperature_data)
 
     return feels_like_temperature
