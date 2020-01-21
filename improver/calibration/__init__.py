@@ -47,6 +47,9 @@ def split_forecasts_and_truth(cubes, truth_attribute):
             A list of input cubes which will be split into relevant groups.
             These include the historical forecasts, either as realization or
             probability cubes, and the truth cubes.
+        truth_attribute (str):
+            An attribute and its value in the format of "attribute=value",
+            which must be present on truth cubes.
     Returns:
         (tuple): tuple containing:
             **forecast** (iris.cube.Cube):
@@ -57,11 +60,11 @@ def split_forecasts_and_truth(cubes, truth_attribute):
                 If found within the input cubes list a land-sea mask will be
                 returned, else None is returned.
     Raises:
-        RuntimeError:
+        ValueError:
             An unexpected number of distinct cube names were passed in.
-        RuntimeError:
+        IOError:
             More than one cube was identified as a land-sea mask.
-        RuntimeError:
+        IOError:
             Missing truth or historical forecast in input cubes.
     """
     grouped_cubes = {}
