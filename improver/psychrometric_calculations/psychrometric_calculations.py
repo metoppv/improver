@@ -341,6 +341,8 @@ class WetBulbTemperature(BasePlugin):
             # Update saturation mixing ratio and iterators
             saturation_mixing_ratio = self._calculate_mixing_ratio(
                 wbt_data, pressure)
+            mixing_ratio = relative_humidity * saturation_mixing_ratio
+            specific_heat = self._calculate_specific_heat(mixing_ratio)
 
             delta_wbt_prev = delta_wbt
             iteration += 1
