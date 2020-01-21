@@ -31,9 +31,9 @@
 """Unit tests for calibration.__init__"""
 
 import unittest
-import iris
-import numpy as np
 from datetime import datetime
+import numpy as np
+import iris
 
 from improver.calibration import split_forecasts_and_truth
 from improver_tests.set_up_test_cubes import (set_up_variable_cube,
