@@ -72,10 +72,11 @@ class Test_Setup(unittest.TestCase):
             forecast_data, thresholds, time=datetime(2017, 11, 11, 4, 0),
             frt=datetime(2017, 11, 11, 0, 0))
         self.forecasts = merge_cubes([self.forecast_1, self.forecast_2])
-        self.truth_1 = set_up_variable_cube(truth_data)
+        self.truth_1 = set_up_variable_cube(truth_data,
+                                            frt=datetime(2017, 11, 10, 4, 0))
         self.truth_2 = set_up_variable_cube(
             truth_data, time=datetime(2017, 11, 11, 4, 0),
-            frt=datetime(2017, 11, 11, 0, 0))
+            frt=datetime(2017, 11, 11, 4, 0))
         self.truths = merge_cubes([self.truth_1, self.truth_2])
         self.expected_table_shape = (3, 5, 3, 3)
         self.expected_attributes = (
