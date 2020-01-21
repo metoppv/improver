@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing plugin for CubeCombiner."""
 
-import iris
 import numpy as np
 
 from improver import BasePlugin

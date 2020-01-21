@@ -137,10 +137,10 @@ class WeatherSymbols(BasePlugin):
                     else:
                         missing_data.append([diagnostic, threshold, condition])
                     continue
-                else:
-                    cube_threshold_units = (
-                        find_threshold_coordinate(matched_cube[0]).units)
-                    threshold.convert_units(cube_threshold_units)
+
+                cube_threshold_units = (
+                    find_threshold_coordinate(matched_cube[0]).units)
+                threshold.convert_units(cube_threshold_units)
 
                 # Then we check if the required threshold is present in the
                 # cube, and that the thresholding is relative to it correctly.
@@ -521,7 +521,7 @@ class WeatherSymbols(BasePlugin):
 
         # Construct graph nodes dictionary
         graph = {key: [self.queries[key]['succeed'], self.queries[key]['fail']]
-                 for key in self.queries.keys()}
+                 for key in self.queries}
 
         # Search through tree for all leaves (weather code end points)
         defined_symbols = []

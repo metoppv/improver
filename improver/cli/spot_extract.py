@@ -169,8 +169,7 @@ def process(neighbour_cube: cli.inputcube,
                     result, percentiles=extract_percentiles)
                 result = iris.util.squeeze(result)
             elif result.coords('realization', dim_coords=True):
-                fast_percentile_method = (
-                    False if np.ma.isMaskedArray(result.data) else True)
+                fast_percentile_method = not np.ma.isMaskedArray(result.data)
                 result = PercentileConverter(
                     'realization', percentiles=extract_percentiles,
                     fast_percentile_method=fast_percentile_method).process(

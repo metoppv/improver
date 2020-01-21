@@ -195,7 +195,7 @@ class GenerateTopographicZoneWeights(BasePlugin):
         mask_data = np.zeros(orography.shape, dtype=np.float32)
         topographic_zone_cubes = iris.cube.CubeList([])
         for band in bands:
-            sea_points_included = False if landmask else True
+            sea_points_included = not landmask
             topographic_zone_cube = (
                 _make_mask_cube(
                     mask_data, orography.coords(), band,
