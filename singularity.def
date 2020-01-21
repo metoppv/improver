@@ -9,7 +9,7 @@ environment.yml /opt
 
 apt update -y
 apt upgrade -y
-apt install -y git make bzip2 curl
+apt install -y bash git make bzip2 curl
 
 cd /opt
 CONDA_BASE=https://repo.continuum.io/miniconda/Miniconda
@@ -18,20 +18,21 @@ bash miniconda.sh -b -p /opt/conda
 rm miniconda.sh
 
 eval "$(/opt/conda/bin/conda shell.bash hook)"
-conda update -n base -c defaults conda
-conda env update --name base --file /opt/environment.yml
+conda env create --name impr --file /opt/environment.yml
+conda activate impr
 pip install codacy-coverage codecov clize sigtools
 conda clean -afy
 
 %test
 
 eval "$(/opt/conda/bin/conda shell.bash hook)"
+conda activate impr
 python -c 'import iris; print(iris.__version__)'
 
 %environment
 
-export PATH="/opt/conda/bin:$PATH"
 eval "$(/opt/conda/bin/conda shell.bash hook)"
+conda activate impr
 
 %help
 

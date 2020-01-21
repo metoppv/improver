@@ -6,9 +6,35 @@ jobs:
   singularity:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
-    - run: |
-        sudo apt install singularity-container
-        sudo singularity build impr.sif singularity.def
-    - run: |
-        singularity exec impr.sif python -c 'import iris; print(iris.__version__)' 
+    - name: Checkout
+      uses: actions/checkout@v1
+    - name: Container image cache
+      uses: actions/cache@v1
+      with:
+        path: imprsif
+        key: ${{ runner.os }}-${{ hashFiles('singularity.def') }}-${{ hashfiles('environment.yml') }}
+    - name: Package installation
+      run: sudo apt-get install singularity-container
+    - name: Container build
+      run: sudo singularity build impr.sif singularity.def
+    - name: Container check
+      run: singularity exec impr.sif python -c 'import iris; print(iris.__version__)'
+    - name: Container image split
+      run: mkdir imprsif; split --bytes=100M impr.sif imprsif/sifpart; rm impr.sif
+  pytest:
+    needs: singularity
+    runs-on: ubuntu-latest
+    - name: Checkout
+      uses: actions/checkout@v1
+    - name: Container image cache
+      uses: actions/cache@v1
+      with:
+        path: imprsif
+        key: ${{ runner.os }}-${{ hashFiles('singularity.def') }}-${{ hashfiles('environment.yml') }}
+    - name: Container image setup
+      run: cat imprsif/sifpart* > impr.sif; rm -r imprsif
+    - name: Package installation
+      run: sudo apt-get install singularity-container
+    - name: Pytest
+      run: singularity exec impr.sif pytest
+
