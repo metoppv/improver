@@ -138,7 +138,7 @@ def process(neighbour_cube: cli.inputcube,
     from iris.exceptions import CoordinateNotFoundError
 
     from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
-        GeneratePercentilesFromProbabilities
+        ConvertProbabilitiesToPercentiles
     from improver.metadata.probabilistic import find_percentile_coordinate
     from improver.percentile import PercentileConverter
     from improver.spotdata.apply_lapse_rate import SpotLapseRateAdjust
@@ -164,7 +164,7 @@ def process(neighbour_cube: cli.inputcube,
             perc_coordinate = find_percentile_coordinate(result)
         except CoordinateNotFoundError:
             if 'probability_of_' in result.name():
-                result = GeneratePercentilesFromProbabilities(
+                result = ConvertProbabilitiesToPercentiles(
                     ecc_bounds_warning=ignore_ecc_bounds).process(
                     result, percentiles=extract_percentiles)
                 result = iris.util.squeeze(result)

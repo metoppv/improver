@@ -127,24 +127,24 @@ def flatten_ignoring_masked_data(data_array, preserve_leading_dimension=False):
     return result
 
 
-def check_predictor_of_mean_flag(predictor_of_mean_flag):
+def check_predictor(predictor):
     """
-    Check the predictor_of_mean_flag at the start of the
-    process methods in relevant ensemble calibration plugins,
-    to avoid having to check and raise an error later.
+    Check the predictor at the start of the process methods in relevant
+    ensemble calibration plugins, to avoid having to check and raise an error
+    later.
 
     Args:
-        predictor_of_mean_flag (str):
-            String to specify the input to calculate the calibrated mean.
-            Currently the ensemble mean ("mean") and the ensemble realizations
-            ("realizations") are supported as the predictors.
+        predictor (str):
+            String to specify the form of the predictor used to calculate
+            the location parameter when estimating the EMOS coefficients.
+            Currently the ensemble mean ("mean") and the ensemble
+            realizations ("realizations") are supported as the predictors.
 
     Raises:
-        ValueError: If the predictor_of_mean_flag is not valid.
+        ValueError: If the predictor is not valid.
     """
-    if predictor_of_mean_flag.lower() not in ["mean", "realizations"]:
-        msg = ("The requested value for the predictor_of_mean_flag {} "
-               "is not an accepted value."
-               "Accepted values are 'mean' or 'realizations'").format(
-                   predictor_of_mean_flag.lower())
+    if predictor.lower() not in ["mean", "realizations"]:
+        msg = ("The requested value for the predictor {} is not an accepted "
+               "value. Accepted values are 'mean' or 'realizations'").format(
+                   predictor.lower())
         raise ValueError(msg)

@@ -125,7 +125,7 @@ def test_units(tmp_path):
 
 @pytest.mark.slow
 @acc.skip_if_statsmodels
-def test_predictor_of_mean_no_sm(tmp_path):
+def test_using_realizations_as_predictor_no_sm(tmp_path):
     """Test using non-default predictor realizations"""
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
     kgo_path = kgo_dir / "realizations/without_statsmodels_kgo.nc"
@@ -136,7 +136,7 @@ def test_predictor_of_mean_no_sm(tmp_path):
             "--distribution", "gaussian",
             "--cycletime", "20170605T0300Z",
             "--truth-attribute", "mosg__model_configuration=uk_det",
-            "--predictor-of-mean", "realizations",
+            "--predictor", "realizations",
             "--max-iterations", "150",
             "--tolerance", EST_EMOS_TOL,
             "--output", output_path]
@@ -146,7 +146,7 @@ def test_predictor_of_mean_no_sm(tmp_path):
 
 
 @acc.skip_if_no_statsmodels
-def test_predictor_of_mean_sm(tmp_path):
+def test_using_realizations_as_predictor_sm(tmp_path):
     """Test using non-default predictor realizations"""
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
     kgo_path = kgo_dir / "realizations/with_statsmodels_kgo.nc"
@@ -157,7 +157,7 @@ def test_predictor_of_mean_sm(tmp_path):
             "--distribution", "gaussian",
             "--cycletime", "20170605T0300Z",
             "--truth-attribute", "mosg__model_configuration=uk_det",
-            "--predictor-of-mean", "realizations",
+            "--predictor", "realizations",
             "--max-iterations", "150",
             "--tolerance", EST_EMOS_TOL,
             "--output", output_path]

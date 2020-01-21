@@ -29,17 +29,16 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Unit tests for FromMeanAndVariance
-
+Unit tests for ConvertLocationAndScaleParameters
 """
 import unittest
 
 import numpy as np
-from iris.tests import IrisTest
 from scipy import stats
+from iris.tests import IrisTest
 
-from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
-    FromMeanAndVariance as Plugin
+from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+    ConvertLocationAndScaleParameters as Plugin)
 
 
 class Test__init__(IrisTest):
@@ -71,7 +70,7 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test string representation"""
-        expected_string = ("<FromMeanAndVariance: "
+        expected_string = ("<ConvertLocationAndScaleParameters: "
                            "distribution: norm; shape_parameters: []>")
         result = str(Plugin())
         self.assertEqual(result, expected_string)
@@ -83,8 +82,8 @@ class Test__rescale_shape_parameters(IrisTest):
 
     def setUp(self):
         """Set up values for testing."""
-        self.mean = np.array([-1, 0, 1])
-        self.std = np.array([1, 1.5, 2])
+        self.location_parameter = np.array([-1, 0, 1])
+        self.scale_parameter = np.array([1, 1.5, 2])
 
     def test_truncated_at_zero(self):
         """Test scaling shape parameters implying a truncation at zero."""
@@ -93,7 +92,8 @@ class Test__rescale_shape_parameters(IrisTest):
         shape_parameters = [0, np.inf]
         plugin = Plugin(distribution="truncnorm",
                         shape_parameters=shape_parameters)
-        plugin._rescale_shape_parameters(self.mean, self.std)
+        plugin._rescale_shape_parameters(
+            self.location_parameter, self.scale_parameter)
         self.assertArrayAlmostEqual(plugin.shape_parameters, expected)
 
     def test_discrete_shape_parameters(self):
@@ -102,7 +102,8 @@ class Test__rescale_shape_parameters(IrisTest):
         shape_parameters = [-4, 6]
         plugin = Plugin(distribution="truncnorm",
                         shape_parameters=shape_parameters)
-        plugin._rescale_shape_parameters(self.mean, self.std)
+        plugin._rescale_shape_parameters(
+            self.location_parameter, self.scale_parameter)
         self.assertArrayAlmostEqual(plugin.shape_parameters, expected)
 
     def test_alternative_distribution(self):
@@ -111,7 +112,8 @@ class Test__rescale_shape_parameters(IrisTest):
         shape_parameters = [0, np.inf]
         plugin = Plugin(distribution="norm",
                         shape_parameters=shape_parameters)
-        plugin._rescale_shape_parameters(self.mean, self.std)
+        plugin._rescale_shape_parameters(
+            self.location_parameter, self.scale_parameter)
         self.assertArrayEqual(plugin.shape_parameters, shape_parameters)
 
     def test_no_shape_parameters_exception(self):
@@ -120,7 +122,8 @@ class Test__rescale_shape_parameters(IrisTest):
         plugin = Plugin(distribution="truncnorm")
         msg = "For the truncated normal distribution"
         with self.assertRaisesRegex(ValueError, msg):
-            plugin._rescale_shape_parameters(self.mean, self.std)
+            plugin._rescale_shape_parameters(
+                self.location_parameter, self.scale_parameter)
 
 
 if __name__ == '__main__':
