@@ -5,7 +5,7 @@ on: [push, pull_request]
 jobs:
 
   singularity:
-    name: Singularity container build
+    name: Singularity container
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -17,6 +17,7 @@ jobs:
         path: imprsif
         key: ${{ runner.os }}-${{ hashFiles('singularity.def') }}-${{ hashfiles('environment.yml') }}
     - name: Package installation
+      if: steps.sif-cache.outputs.cache-hit != 'true'
       run: sudo apt-get install singularity-container
     - name: Container build
       if: steps.sif-cache.outputs.cache-hit != 'true'
@@ -63,5 +64,5 @@ jobs:
       run: cat imprsif/sifpart* > impr.sif; rm -r imprsif
     - name: Package installation
       run: sudo apt-get install singularity-container
-    - name: Pytest
+    - name: Pycodestyle
       run: singularity exec impr.sif pycodestyle improver improver_tests
