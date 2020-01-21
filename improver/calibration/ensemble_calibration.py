@@ -29,11 +29,12 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-This module defines all the "plugins" specific for ensemble calibration.
+This module defines all the "plugins" specific for Ensemble Model Output
+Statistics (EMOS).
 
 .. Further information is available in:
-.. include:: extended_documentation/ensemble_calibration/
-   ensemble_calibration/ensemble_calibration.rst
+.. include:: extended_documentation/calibration/ensemble_calibration/
+   ensemble_calibration.rst
 
 """
 import datetime
@@ -134,7 +135,7 @@ class ContinuousRankedProbabilityScoreMinimisers:
         function to estimate optimised values for the coefficients.
 
         Further information is available in the :mod:`module level docstring \
-<improver.ensemble_calibration.ensemble_calibration>`.
+<improver.calibration.ensemble_calibration>`.
 
         Args:
             initial_guess (list):
@@ -395,7 +396,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         applies the coefficients to the current forecast.
 
         Further information is available in the :mod:`module level docstring \
-<improver.ensemble_calibration.ensemble_calibration>`.
+<improver.calibration.ensemble_calibration>`.
 
         Args:
             distribution (str):
@@ -623,12 +624,14 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         The default values for the initial guesses are in
         [gamma, delta, alpha, beta] ordering:
+
         * For the ensemble mean, the default initial guess: [0, 1, 0, 1]
-        assumes that the raw forecast is skilful and the expected adjustments
-        are small.
+          assumes that the raw forecast is skilful and the expected adjustments
+          are small.
+
         * For the ensemble realizations, the default initial guess is
-        effectively: [0, 1, 0, 1/3., 1/3., 1/3.], such that
-        each realization is assumed to have equal weight.
+          effectively: [0, 1, 0, 1/3., 1/3., 1/3.], such that
+          each realization is assumed to have equal weight.
 
         If linear regression is enabled, the alpha and beta coefficients
         associated with the ensemble mean or ensemble realizations are
@@ -990,7 +993,7 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         each grid point is the predictor.
 
         Further information is available in the :mod:`module level docstring \
-<improver.ensemble_calibration.ensemble_calibration>`.
+<improver.calibration.ensemble_calibration>`.
 
         Args:
             optimised_coeffs (dict):
@@ -1023,7 +1026,7 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         realizations are the predictor.
 
         Further information is available in the :mod:`module level docstring \
-<improver.ensemble_calibration.ensemble_calibration>`.
+<improver.calibration.ensemble_calibration>`.
 
         Args:
             optimised_coeffs (dict):
@@ -1062,7 +1065,7 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         adjusted using the gamma and delta coefficients calculated by EMOS.
 
         Further information is available in the :mod:`module level docstring \
-<improver.ensemble_calibration.ensemble_calibration>`.
+<improver.calibration.ensemble_calibration>`.
 
         Args:
             optimised_coeffs (dict):

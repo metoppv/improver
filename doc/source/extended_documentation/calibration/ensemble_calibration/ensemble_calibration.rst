@@ -25,7 +25,7 @@ bias-corrected ensemble mean:
 
 .. math::
 
-    \mathcal{N}(a + \bar{X}, c + dS^{2})
+    \mathcal{N}(a + b\bar{X}, c + dS^{2})
 
 If a different distribution is required, for example, using a truncated
 normal distribution for wind speed, then the equations remain the same, apart
@@ -72,8 +72,7 @@ What is the location parameter?
 ===============================
 
 The location parameter indicates the shift in the distribution from the
-"centre" of the standard normal. Examples of the location parameter include
-the mean (as for a normal distribution), median or mode.
+"centre" of the standard normal.
 
 ============================
 What is the scale parameter?
