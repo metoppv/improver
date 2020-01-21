@@ -47,12 +47,13 @@ from scipy.optimize import minimize
 from scipy.stats import norm
 
 from improver import BasePlugin
-from improver.ensemble_calibration.utilities import (
+from improver.calibration.utilities import (
     check_predictor, convert_cube_data_to_2d,
     flatten_ignoring_masked_data)
 from improver.metadata.utilities import create_new_diagnostic_cube
 from improver.utilities.cube_checker import time_coords_match
-from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+from improver.utilities.cube_manipulation import (enforce_coordinate_ordering,
+                                                  collapsed)
 from improver.utilities.temporal import (
     cycletime_to_datetime, datetime_to_iris_time, iris_time_to_datetime)
 
@@ -216,9 +217,7 @@ class ContinuousRankedProbabilityScoreMinimisers:
             forecast_predictor_data = flatten_ignoring_masked_data(
                 forecast_predictor.data)
         elif predictor.lower() == "realizations":
-            forecast_predictor = (
-                enforce_coordinate_ordering(
-                    forecast_predictor, "realization"))
+            enforce_coordinate_ordering(forecast_predictor, "realization")
             # Need to transpose this array so there are columns for each
             # ensemble member rather than rows.
             forecast_predictor_data = flatten_ignoring_masked_data(
@@ -503,7 +502,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         """Create a cube for storing the coefficients computed using EMOS.
 
         .. See the documentation for examples of these cubes.
-        .. include:: extended_documentation/ensemble_calibration/
+        .. include:: extended_documentation/calibration/
            ensemble_calibration/create_coefficients_cube.rst
 
         Args:
@@ -681,7 +680,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 initial_guess = [0, 1, intercept, gradient]
             elif predictor.lower() == "realizations":
                 if self.statsmodels_found:
-                    forecast_predictor = enforce_coordinate_ordering(
+                    enforce_coordinate_ordering(
                         forecast_predictor, "realization")
                     forecast_predictor_flattened = (
                         flatten_ignoring_masked_data(
@@ -858,15 +857,15 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         if self.predictor.lower() == "mean":
             no_of_realizations = None
-            forecast_predictor = historic_forecast.collapsed(
-                "realization", iris.analysis.MEAN)
+            forecast_predictor = collapsed(
+                historic_forecast, "realization", iris.analysis.MEAN)
         elif self.predictor.lower() == "realizations":
             no_of_realizations = len(
                 historic_forecast.coord("realization").points)
             forecast_predictor = historic_forecast
 
-        forecast_var = historic_forecast.collapsed(
-            "realization", iris.analysis.VARIANCE)
+        forecast_var = collapsed(
+            historic_forecast, "realization", iris.analysis.VARIANCE)
 
         # If a landsea_mask is provided mask out the sea points
         if landsea_mask:
@@ -1004,8 +1003,9 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
                 predictor.
 
         """
-        forecast_predictor = self.current_forecast.collapsed(
-            "realization", iris.analysis.MEAN)
+        forecast_predictor = collapsed(self.current_forecast,
+                                       "realization",
+                                       iris.analysis.MEAN)
 
         # Calculate location parameter = a + b*X, where X is the
         # raw ensemble mean. In this case, b = beta.

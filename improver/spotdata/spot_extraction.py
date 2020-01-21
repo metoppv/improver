@@ -120,7 +120,7 @@ class SpotExtraction(BasePlugin):
                 An array of diagnostic values at the grid coordinates found
                 within the coordinate cube.
         """
-        diagnostic_cube = enforce_coordinate_ordering(
+        enforce_coordinate_ordering(
             diagnostic_cube, [diagnostic_cube.coord(axis='x').name(),
                               diagnostic_cube.coord(axis='y').name()])
         spot_values = diagnostic_cube.data[tuple(coordinate_cube.data.T)]

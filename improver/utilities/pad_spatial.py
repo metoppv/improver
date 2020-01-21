@@ -284,7 +284,7 @@ def remove_cube_halo(cube, halo_radius):
             result = iris.util.new_axis(result, coord)
 
     # re-order (needed if scalar dimensions have been re-added)
-    result = enforce_coordinate_ordering(result, req_dims)
+    enforce_coordinate_ordering(result, req_dims)
 
     return result
 

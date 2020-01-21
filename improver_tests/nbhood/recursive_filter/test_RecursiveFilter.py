@@ -398,11 +398,11 @@ class Test_process(Test_RecursiveFilter):
         """Test that x and y alphas still apply to the right coordinate when
         the input cube spatial dimensions are (x, y) not (y, x)"""
         alpha_y = 0.5*self.alpha_x
-        cube = enforce_coordinate_ordering(
+        enforce_coordinate_ordering(
             self.cube, ["realization", "longitude", "latitude"])
         plugin = RecursiveFilter(alpha_x=self.alpha_x, alpha_y=alpha_y,
                                  iterations=self.iterations)
-        result = plugin.process(cube)
+        result = plugin.process(self.cube)
 
         expected_result = np.array(
             [[0.01620921, 0.03978802, 0.10592333, 0.03978982, 0.01621686],

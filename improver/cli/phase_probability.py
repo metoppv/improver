@@ -28,26 +28,32 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""
-Tests for the sleet-probability CLI
-"""
+"""Interface to precip_phase_probability."""
 
-import pytest
-
-from . import acceptance as acc
-
-pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-CLI = acc.cli_name_with_dashes(__file__)
-run_cli = acc.run_cli(CLI)
+from improver import cli
 
 
-def test_basic(tmp_path):
-    """Test basic snow falling level calculation"""
-    kgo_dir = acc.kgo_root() / "sleet_probability/basic"
-    kgo_path = kgo_dir / "kgo.nc"
-    output_path = tmp_path / "output.nc"
-    half_input_path = acc.kgo_root() / "phase-probability/basic/snow_kgo.nc"
-    tenth_input_path = acc.kgo_root() / "phase-probability/basic/rain_kgo.nc"
-    args = [half_input_path, tenth_input_path, "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+@cli.clizefy
+@cli.with_output
+def process(*cubes: cli.inputcube,
+            radius: float = 10000.):
+    """
+    Converts a phase-change-level cube into the
+    probability of a specific precipitation phase being found at the surface.
+
+    Args:
+        cubes (iris.cube.CubeList or list):
+            Contains cubes of the altitude of the phase-change level (this
+            can be snow->sleet, or sleet->rain) and the altitude of the
+            orography. The name of the phase-change level cube must be
+            either "altitude_of_snow_falling_level" or
+            "altitude_of_rain_falling_level". The name of the orography
+            cube must be "surface_altitude".
+        radius (float):
+            Neighbourhood radius from which 80th percentile is found (m)
+
+    """
+    from improver.psychrometric_calculations.precip_phase_probability import (
+        PrecipPhaseProbability)
+    from iris.cube import CubeList
+    return PrecipPhaseProbability(radius=radius).process(CubeList(cubes))

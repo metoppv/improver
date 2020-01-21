@@ -349,7 +349,7 @@ class BasicThreshold(BasePlugin):
                 self.comparison_operator['spp_string']))
         cube.units = Unit(1)
 
-        cube = enforce_coordinate_ordering(
+        enforce_coordinate_ordering(
             cube, ["realization", "percentile"])
 
         return cube

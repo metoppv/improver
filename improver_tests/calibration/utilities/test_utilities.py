@@ -39,7 +39,7 @@ import iris
 import numpy as np
 from iris.tests import IrisTest
 
-from improver.ensemble_calibration.utilities import (
+from improver.calibration.utilities import (
     check_predictor, convert_cube_data_to_2d,
     flatten_ignoring_masked_data)
 

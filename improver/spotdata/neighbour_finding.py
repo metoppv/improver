@@ -446,10 +446,10 @@ class NeighbourSelection(BasePlugin):
             raise ValueError(msg)
 
         # Enforce x-y coordinate order for input cubes.
-        orography = enforce_coordinate_ordering(
+        enforce_coordinate_ordering(
             orography, [orography.coord(axis='x').name(),
                         orography.coord(axis='y').name()])
-        land_mask = enforce_coordinate_ordering(
+        enforce_coordinate_ordering(
             land_mask, [land_mask.coord(axis='x').name(),
                         land_mask.coord(axis='y').name()])
 

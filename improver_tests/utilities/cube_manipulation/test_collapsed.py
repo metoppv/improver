@@ -29,25 +29,46 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Tests for the sleet-probability CLI
+Unit tests for the function collapsed.
 """
 
-import pytest
+import unittest
 
-from . import acceptance as acc
+import iris
+import numpy as np
 
-pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-CLI = acc.cli_name_with_dashes(__file__)
-run_cli = acc.run_cli(CLI)
+from improver.utilities.cube_manipulation import collapsed
+from ...set_up_test_cubes import set_up_variable_cube
 
 
-def test_basic(tmp_path):
-    """Test basic snow falling level calculation"""
-    kgo_dir = acc.kgo_root() / "sleet_probability/basic"
-    kgo_path = kgo_dir / "kgo.nc"
-    output_path = tmp_path / "output.nc"
-    half_input_path = acc.kgo_root() / "phase-probability/basic/snow_kgo.nc"
-    tenth_input_path = acc.kgo_root() / "phase-probability/basic/rain_kgo.nc"
-    args = [half_input_path, tenth_input_path, "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+class Test_collapsed(unittest.TestCase):
+
+    """Test the collapsed utility."""
+
+    def setUp(self):
+        """Use temperature cube to test with."""
+        data = 281*np.ones((3, 3, 3), dtype=np.float32)
+        self.cube = set_up_variable_cube(data, realizations=[0, 1, 2])
+
+    def test_single_method(self):
+        """Test that a collapsed cube is returned with no cell method added"""
+        result = collapsed(self.cube, 'realization', iris.analysis.MEAN)
+        self.assertTupleEqual(result.cell_methods, ())
+        self.assertTrue((result.data == self.cube.collapsed(
+            'realization', iris.analysis.MEAN).data).all())
+
+    def test_two_methods(self):
+        """Test that a cube keeps its original cell method but another
+        isn't added.
+        """
+        cube = self.cube
+        method = iris.coords.CellMethod('test')
+        cube.add_cell_method(method)
+        result = collapsed(cube, 'realization', iris.analysis.MEAN)
+        self.assertTupleEqual(result.cell_methods, (method,))
+        self.assertTrue((result.data == cube.collapsed(
+            'realization', iris.analysis.MEAN).data).all())
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -40,7 +40,7 @@ from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 from scipy import stats
 
 from improver import BasePlugin
-from improver.ensemble_calibration.utilities import convert_cube_data_to_2d
+from improver.calibration.utilities import convert_cube_data_to_2d
 from improver.ensemble_copula_coupling.utilities import (
     choose_set_of_percentiles, concatenate_2d_array_with_2d_array_endpoints,
     create_cube_with_percentiles, get_bounds_of_distribution,
@@ -232,9 +232,8 @@ class ResamplePercentiles(BasePlugin):
 
         # Ensure that the percentile dimension is first, so that the
         # conversion to a 2d array produces data in the desired order.
-        forecast_at_percentiles = (
-            enforce_coordinate_ordering(
-                forecast_at_percentiles, percentile_coord_name))
+        enforce_coordinate_ordering(
+            forecast_at_percentiles, percentile_coord_name)
         forecast_at_reshaped_percentiles = convert_cube_data_to_2d(
             forecast_at_percentiles, coord=percentile_coord_name)
 
@@ -456,9 +455,8 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
 
         # Ensure that the percentile dimension is first, so that the
         # conversion to a 2d array produces data in the desired order.
-        forecast_probabilities = (
-            enforce_coordinate_ordering(
-                forecast_probabilities, threshold_coord.name()))
+        enforce_coordinate_ordering(
+            forecast_probabilities, threshold_coord.name())
         prob_slices = convert_cube_data_to_2d(
             forecast_probabilities, coord=threshold_coord.name())
 
@@ -645,8 +643,9 @@ class ConvertLocationAndScaleParameters():
                 the distribution constructed from the location and scale
                 parameters provided.
                 Please note that for use with
-                :meth:`~improver.ensemble_calibration.ensemble_calibration.\
-ContinuousRankedProbabilityScoreMinimisers.calculate_truncated_normal_crps`,
+                :meth:`~improver.calibration.\
+ensemble_calibration.ContinuousRankedProbabilityScoreMinimisers.\
+calculate_truncated_normal_crps`,
                 the shape parameters for a truncated normal distribution with
                 a lower bound of zero should be [0, np.inf].
 
@@ -1218,24 +1217,21 @@ class EnsembleReordering(BasePlugin):
         percentile_coord_name = (
             find_percentile_coordinate(post_processed_forecast).name())
 
-        post_processed_forecast_percentiles = (
-            enforce_coordinate_ordering(
-                post_processed_forecast, percentile_coord_name))
-        raw_forecast_realizations = enforce_coordinate_ordering(
-            raw_forecast, "realization")
-        raw_forecast_realizations = (
+        enforce_coordinate_ordering(
+            post_processed_forecast, percentile_coord_name)
+        enforce_coordinate_ordering(raw_forecast, "realization")
+        raw_forecast = (
             self._recycle_raw_ensemble_realizations(
-                post_processed_forecast_percentiles, raw_forecast_realizations,
+                post_processed_forecast, raw_forecast,
                 percentile_coord_name))
         post_processed_forecast_realizations = self.rank_ecc(
-            post_processed_forecast_percentiles, raw_forecast_realizations,
+            post_processed_forecast, raw_forecast,
             random_ordering=random_ordering,
             random_seed=random_seed)
         post_processed_forecast_realizations = (
             RebadgePercentilesAsRealizations.process(
                 post_processed_forecast_realizations))
 
-        post_processed_forecast_realizations = (
-            enforce_coordinate_ordering(
-                post_processed_forecast_realizations, "realization"))
+        enforce_coordinate_ordering(
+            post_processed_forecast_realizations, "realization")
         return post_processed_forecast_realizations

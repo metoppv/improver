@@ -196,7 +196,7 @@ def process(orography: cli.inputcube,
     else:
         result = NeighbourSelection(**kwargs).process(*fargs)
 
-    result = enforce_coordinate_ordering(
+    enforce_coordinate_ordering(
         result,
         ['spot_index', 'neighbour_selection_method', 'grid_attributes'])
 
