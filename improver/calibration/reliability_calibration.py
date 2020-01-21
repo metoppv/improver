@@ -34,6 +34,7 @@ import iris
 import numpy as np
 
 from improver import BasePlugin
+from improver.utilities.cube_manipulation import MergeCubes
 from improver.metadata.utilities import generate_mandatory_attributes
 
 
@@ -359,4 +360,4 @@ class ConstructRealizationCalibrationTables(BasePlugin):
                 table_values, time_slice)
             reliability_tables.append(reliability_cube)
 
-        return reliability_tables
+        return MergeCubes()(reliability_tables)

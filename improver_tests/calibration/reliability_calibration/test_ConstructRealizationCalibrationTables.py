@@ -335,13 +335,11 @@ class Test_process(Test_Setup):
     """Test the process method."""
 
     def test_return_type(self):
-        """Test the process method returns a list of reliability table
-        cubes."""
+        """Test the process method returns a reliability table cube."""
 
         result = Plugin().process(self.forecasts, self.truths)
 
-        self.assertIsInstance(result, iris.cube.CubeList)
-        self.assertIsInstance(result[0], iris.cube.Cube)
+        self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result[0].name(), "reliability_calibration_table")
 
     def test_table_values(self):
@@ -351,8 +349,7 @@ class Test_process(Test_Setup):
         threshold (283K), but contains contributions from two forecast/truth
         pairs."""
 
-        expected = np.sum([self.expected_table, self.expected_table],
-                          axis=0)
+        expected = np.sum([self.expected_table, self.expected_table], axis=0)
         result = Plugin().process(self.forecasts, self.truths)
 
         assert_array_equal(result[0].data, expected)
