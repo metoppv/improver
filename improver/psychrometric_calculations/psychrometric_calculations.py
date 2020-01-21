@@ -117,6 +117,10 @@ class WetBulbTemperature(BasePlugin):
     The import also brings in attributes that describe the range of
     temperatures covered by the table and the increments in the table.
 
+    References:
+        Met Office UM Documentation Paper 080, UM Version 10.8,
+        last updated 2014-12-05.
+
     """
     def __init__(self, precision=0.005):
         """
@@ -257,10 +261,6 @@ class WetBulbTemperature(BasePlugin):
 
         Method from referenced UM documentation.
 
-        References:
-            Met Office UM Documentation Paper 080, UM Version 10.8,
-            last updated 2014-12-05.
-
         Args:
             mixing_ratio (numpy.ndarray):
                 Array of mixing ratios.
@@ -287,7 +287,8 @@ class WetBulbTemperature(BasePlugin):
         the correct units.
 
         A Newton iterator is used to minimise the gradient of enthalpy
-        against temperature.
+        against temperature. Assumes that the variation of latent heat with
+        temperature can be ignored.
 
         Args:
             pressure (numpy.ndarray):
@@ -341,8 +342,6 @@ class WetBulbTemperature(BasePlugin):
             # Update saturation mixing ratio and iterators
             saturation_mixing_ratio = self._calculate_mixing_ratio(
                 wbt_data, pressure)
-            mixing_ratio = relative_humidity * saturation_mixing_ratio
-            specific_heat = self._calculate_specific_heat(mixing_ratio)
 
             delta_wbt_prev = delta_wbt
             iteration += 1
