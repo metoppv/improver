@@ -37,11 +37,11 @@ import iris
 import numpy as np
 from iris.tests import IrisTest
 
-from improver.tests.set_up_test_cubes import (
-    set_up_variable_cube, add_coordinate)
 from improver.metadata.utilities import generate_mandatory_attributes
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.utilities.mathematical_operations import Integration
+
+from ..set_up_test_cubes import set_up_variable_cube, add_coordinate
 
 
 def _set_up_height_cube(height_points, ascending=True):
