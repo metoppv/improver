@@ -191,7 +191,7 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
             Lower and upper bound on time point, if required
         frt (datetime.datetime):
             Single cube forecast reference time
-        realizations (list):
+        realizations (list or numpy.ndarray):
             List of forecast realizations.  If not present, taken from the
             leading dimension of the input data array (if 3D).
         include_scalar_coords (list):
@@ -275,7 +275,7 @@ def set_up_percentile_cube(data, percentiles, name='air_temperature',
     Args:
         data (numpy.ndarray):
             3D (percentile-y-x ordered) array of data to put into the cube
-        percentiles (list):
+        percentiles (list or numpy.ndarray):
             List of int / float percentile values whose length must match the
             first dimension on the input data cube
         name (str):
@@ -333,7 +333,7 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
     Args:
         data (numpy.ndarray):
             3D (threshold-y-x ordered) array of data to put into the cube
-        thresholds (list):
+        thresholds (list or numpy.ndarray):
             List of int / float threshold values whose length must match the
             first dimension on the input data cube
         variable_name (str):
@@ -399,7 +399,7 @@ def add_coordinate(incube, coord_points, coord_name, coord_units=None,
     Args:
         incube (iris.cube.Cube):
             Cube to be duplicated.
-        coord_points (list):
+        coord_points (list or numpy.ndarray):
             Values for the coordinate.
         coord_name (str):
             Long name of the coordinate to be added.
