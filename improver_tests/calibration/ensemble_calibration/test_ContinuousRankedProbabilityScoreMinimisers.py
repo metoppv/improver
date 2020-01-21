@@ -40,9 +40,9 @@ import iris
 import numpy as np
 from iris.tests import IrisTest
 
-from improver.ensemble_calibration.ensemble_calibration import \
+from improver.calibration.ensemble_calibration import \
     ContinuousRankedProbabilityScoreMinimisers as Plugin
-from improver.ensemble_calibration.utilities import convert_cube_data_to_2d
+from improver.calibration.utilities import convert_cube_data_to_2d
 from improver.utilities.warnings_handler import ManageWarnings
 
 from .helper_functions import EnsembleCalibrationAssertions, SetupCubes
