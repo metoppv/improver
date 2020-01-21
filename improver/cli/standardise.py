@@ -49,7 +49,7 @@ def process(cube: cli.inputcube,
             coords_to_remove: cli.comma_separated_list = None,
             new_name: str = None,
             new_units: str = None,
-            fix_float64=False):
+            fix_float_dtypes=False):
     """Standardises a cube by one or more of regridding, updating meta-data etc
 
     Standardise a source cube. Available options are regridding (bi-linear or
@@ -102,10 +102,10 @@ def process(cube: cli.inputcube,
             Name of output cube.
         new_units (str):
             Units to convert to.
-        fix_float64 (bool):
-            If True, checks and fixes cube for float64 data. Without this
-            option an exception will be raised if float64 data is found but no
-            fix applied.
+        fix_float_dtypes (bool):
+            If True, checks and fixes cube floating point data to float32.
+            Without this option an exception will be raised if any floating
+            point data are found not to be float32 (and no fix is applied).
 
     Returns:
         iris.cube.Cube:
@@ -134,6 +134,6 @@ def process(cube: cli.inputcube,
     output_data = plugin.process(
         cube, target_grid, new_name=new_name, new_units=new_units,
         regridded_title=regridded_title, coords_to_remove=coords_to_remove,
-        attributes_dict=attributes_config, fix_float64=fix_float64)
+        attributes_dict=attributes_config, fix_float_dtypes=fix_float_dtypes)
 
     return output_data

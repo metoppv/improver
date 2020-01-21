@@ -121,13 +121,13 @@ def test_change_metadata(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_fix_float64(tmp_path):
+def test_fix_float_dtypes(tmp_path):
     """Test conversion of float64 data to float32"""
     kgo_dir = acc.kgo_root() / "standardise/float64"
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "float64_data.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, "--output", output_path, "--fix-float64"]
+    args = [input_path, "--output", output_path, "--fix-float-dtypes"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 

@@ -42,7 +42,7 @@ from scipy.interpolate import griddata
 from improver import BasePlugin
 from improver.metadata.amend import amend_attributes
 from improver.metadata.check_datatypes import (
-    check_cube_not_float64, check_time_coordinate_metadata)
+    ensure_cube_floats_are_float32, check_time_coordinate_metadata)
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
 from improver.metadata.constants.time_types import (
@@ -269,7 +269,7 @@ class StandardiseGridAndMetadata(BasePlugin):
 
     def process(self, cube, target_grid=None, new_name=None, new_units=None,
                 regridded_title=None, coords_to_remove=None,
-                attributes_dict=None, fix_float64=False):
+                attributes_dict=None, fix_float_dtypes=False):
         """
         Perform regridding and metadata adjustments
 
@@ -294,8 +294,9 @@ class StandardiseGridAndMetadata(BasePlugin):
             attributes_dict (dict or None):
                 Optional dictionary of required attribute updates. Keys are
                 attribute names, and values are the required value or "remove".
-            fix_float64 (bool):
-                Flag to de-escalate float64 precision
+            fix_float_dtypes (bool):
+                Flag to ensure floating point dtypes are float32
+                (casting as necessary).
 
         Returns:
             iris.cube.Cube
@@ -324,7 +325,7 @@ class StandardiseGridAndMetadata(BasePlugin):
         if attributes_dict:
             amend_attributes(cube, attributes_dict)
 
-        check_cube_not_float64(cube, fix=fix_float64)
+        ensure_cube_floats_are_float32(cube, fix=fix_float_dtypes)
 
         return cube
 

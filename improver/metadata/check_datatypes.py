@@ -38,46 +38,46 @@ from improver.metadata.constants.time_types import (
     TIME_COORD_NAMES, TIME_INTERVAL_DTYPE, TIME_INTERVAL_UNIT,
     TIME_REFERENCE_DTYPE, TIME_REFERENCE_UNIT)
 
+DESIRED_FLOAT_DTYPE = np.float32
 
-def check_cube_not_float64(cube, fix=False):
-    """Check a cube does not contain any float64 data, excepting time
-    coordinates. The cube can be modified in place, if the fix keyword is
-    specified to be True.
+
+def ensure_cube_floats_are_float32(cube, fix=False):
+    """Ensure that any floating point data are of dtype float32.
+    The cube can be modified in place, if the fix keyword is specified to be
+    True.
 
     Args:
         cube (iris.cube.Cube):
-            The input cube that will be checked for float64 inclusion.
+            The input cube that will be checked for float32 non-conformance of
+            floating point data.
         fix (bool):
-            If fix is True, then the cube is amended to not include float64
-            data, otherwise, an error will be raised if float64 data is found.
+            If fix is True, the cube is amended to cast floating point data to
+            float32, otherwise, an error will be raised if non-float32 floating
+            point data is found.
 
     Raises:
-        TypeError : Raised if 64 bit values are found in the cube.
+        TypeError : Raised if non 32-bit dtypes are found in the cube.
     """
-    if cube.dtype == np.float64:
-        if fix:
-            cube.data = cube.data.astype(np.float32)
-        else:
-            raise TypeError("64 bit cube not allowed: {!r}".format(cube))
 
+    def dtype_invalid(obj):
+        return (np.issubdtype(obj.dtype, np.floating) and
+                obj.dtype != DESIRED_FLOAT_DTYPE)
+
+    def check_or_fix(obj, obj_desc):
+        if obj is not None and dtype_invalid(obj):
+            if fix:
+                return obj.astype(DESIRED_FLOAT_DTYPE)
+            else:
+                raise TypeError(f"{obj_desc} in {repr(cube)} "
+                                f"must be {DESIRED_FLOAT_DTYPE}")
+        return obj
+
+    cube.data = check_or_fix(cube.data, "cube data")
     for coord in cube.coords():
-        if coord.units.is_time_reference():
-            continue
-
-        if coord.points.dtype == np.float64:
-            if fix:
-                coord.points = coord.points.astype(np.float32)
-            else:
-                raise TypeError(
-                    "64 bit coord points not allowed: {} in {!r}".format(
-                        coord, cube))
-        if coord.bounds is not None and coord.bounds.dtype == np.float64:
-            if fix:
-                coord.bounds = coord.bounds.astype(np.float32)
-            else:
-                raise TypeError(
-                    "64 bit coord bounds not allowed: {} in {!r}".format(
-                        coord, cube))
+        coord.points = check_or_fix(coord.points,
+                                    f"{coord.name()} coord points")
+        coord.bounds = check_or_fix(coord.bounds,
+                                    f"{coord.name()} coord bounds")
 
 
 def _construct_object_list(cube, coord_names):

@@ -40,7 +40,7 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
 from improver.constants import RMDI
-from improver.metadata.check_datatypes import check_cube_not_float64
+from improver.metadata.check_datatypes import ensure_cube_floats_are_float32
 
 # Scale parameter to determine reference height
 ABSOLUTE_CORRECTION_TOL = 0.04
@@ -674,7 +674,7 @@ class RoughnessCorrection(BasePlugin):
         for cube in [a_over_s_cube, sigma_cube, pporo_cube, modoro_cube,
                      z0_cube, height_levels_cube]:
             if cube is not None:
-                check_cube_not_float64(cube, fix=True)
+                ensure_cube_floats_are_float32(cube, fix=True)
 
         # Standard Python 'float' type is either single or double depending on
         # system and there is no reliable method of finding which from the
@@ -952,7 +952,7 @@ class RoughnessCorrection(BasePlugin):
         if not isinstance(input_cube, iris.cube.Cube):
             msg = "wind input is not a cube, but {}"
             raise TypeError(msg.format(type(input_cube)))
-        check_cube_not_float64(input_cube, fix=True)
+        ensure_cube_floats_are_float32(input_cube, fix=True)
         (self.x_name, self.y_name, self.z_name,
          self.t_name) = self.find_coord_names(input_cube)
         xwp, ywp, zwp, twp = self.find_coord_order(input_cube)

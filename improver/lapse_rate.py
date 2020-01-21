@@ -39,7 +39,7 @@ from scipy.ndimage import generic_filter
 
 from improver import BasePlugin
 from improver.constants import DALR
-from improver.metadata.check_datatypes import check_cube_not_float64
+from improver.metadata.check_datatypes import ensure_cube_floats_are_float32
 from improver.utilities.cube_checker import spatial_coords_match
 
 
@@ -370,7 +370,7 @@ class LapseRate(BasePlugin):
         temperature_cube.convert_units('K')
         orography_cube.convert_units('metres')
 
-        check_cube_not_float64(temperature_cube, fix=True)
+        ensure_cube_floats_are_float32(temperature_cube, fix=True)
 
         # Extract x/y co-ordinates.
         x_coord = temperature_cube.coord(axis='x').name()
