@@ -8,7 +8,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - run: |
-        apt install singularity-container
-        singularity build impr.sif singularity.def
+        sudo apt install singularity-container
+        sudo singularity build impr.sif singularity.def
     - run: |
         singularity exec impr.sif python -c 'import iris; print(iris.__version__)' 
