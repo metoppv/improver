@@ -7,9 +7,9 @@ environment.yml /opt
 
 %post
 
-apt update -y
-apt upgrade -y
-apt install -y bash git make bzip2 curl
+apt-get update -y
+apt-get upgrade -y
+apt-get install -y bash git make bzip2 curl
 
 cd /opt
 CONDA_BASE=https://repo.continuum.io/miniconda/Miniconda
