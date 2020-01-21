@@ -43,3 +43,21 @@ jobs:
     - name: Pytest
       run: singularity exec impr.sif pytest
 
+  pycodestyle:
+    name: Pycodestyle
+    needs: singularity
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+    - name: Container image cache
+      uses: actions/cache@v1
+      with:
+        path: imprsif
+        key: ${{ runner.os }}-${{ hashFiles('singularity.def') }}-${{ hashfiles('environment.yml') }}
+    - name: Container image setup
+      run: cat imprsif/sifpart* > impr.sif; rm -r imprsif
+    - name: Package installation
+      run: sudo apt-get install singularity-container
+    - name: Pytest
+      run: singularity exec impr.sif pycodestyle improver improver_tests
