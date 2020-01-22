@@ -79,7 +79,7 @@ class Test_process(IrisTest):
             self.wet_bulb_temperature)
         self.assertIsInstance(wb_temp_int, iris.cube.Cube)
         self.assertEqual(wb_temp_int.name(), "wet_bulb_temperature_integral")
-        self.assertEqual(wb_temp_int.units, Unit('K m'))
+        self.assertEqual(str(wb_temp_int.units), 'K m')
 
     def test_data(self):
         """Test that the wet bulb temperature integral returns a cube

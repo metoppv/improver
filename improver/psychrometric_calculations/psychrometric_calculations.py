@@ -441,7 +441,8 @@ class WetBulbTemperatureIntegral(BasePlugin):
         # pylint: disable=pointless-statement
         wbt.data
         wet_bulb_temperature_integral = self.integration_plugin.process(wbt)
-        wet_bulb_temperature_integral.rename("wet_bulb_temperature_integral")
+        # although the integral is computed over degC the standard unit is
+        # 'K m', and these are equivalent
         wet_bulb_temperature_integral.units = Unit('K m')
         return wet_bulb_temperature_integral
 
