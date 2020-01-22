@@ -40,8 +40,7 @@ from datetime import datetime
 from improver.utilities.cube_manipulation import merge_cubes
 from improver.calibration.reliability_calibration import (
     ConstructRealizationCalibrationTables as Plugin)
-from improver_tests.set_up_test_cubes import (set_up_variable_cube,
-                                              set_up_probability_cube)
+from improver_tests.set_up_test_cubes import set_up_probability_cube
 
 
 class Test_Setup(unittest.TestCase):
@@ -56,6 +55,9 @@ class Test_Setup(unittest.TestCase):
         times and validity times. These times maintain the same forecast period
         for each forecast cube.
 
+        The truth data for reliability calibration is thresholded data, giving
+        fields of zeroes and ones.
+
         Each forecast cube in conjunction with the contemporaneous truth cube
         will be used to produce a reliability calibration table. When testing
         the process method here we expect the final reliability calibration
@@ -66,16 +68,20 @@ class Test_Setup(unittest.TestCase):
         forecast_data = np.arange(9, dtype=np.float32).reshape(3, 3) / 8.
         forecast_data = np.stack([forecast_data, forecast_data])
         truth_data = np.linspace(281, 285, 9, dtype=np.float32).reshape(3, 3)
+        # Threshold the truths, giving fields of zeroes and ones.
+        truth_data_a = (truth_data > thresholds[0]).astype(int)
+        truth_data_b = (truth_data > thresholds[1]).astype(int)
+        truth_data = np.stack([truth_data_a, truth_data_b])
 
         self.forecast_1 = set_up_probability_cube(forecast_data, thresholds)
         self.forecast_2 = set_up_probability_cube(
             forecast_data, thresholds, time=datetime(2017, 11, 11, 4, 0),
             frt=datetime(2017, 11, 11, 0, 0))
         self.forecasts = merge_cubes([self.forecast_1, self.forecast_2])
-        self.truth_1 = set_up_variable_cube(truth_data,
-                                            frt=datetime(2017, 11, 10, 4, 0))
-        self.truth_2 = set_up_variable_cube(
-            truth_data, time=datetime(2017, 11, 11, 4, 0),
+        self.truth_1 = set_up_probability_cube(
+            truth_data, thresholds, frt=datetime(2017, 11, 10, 4, 0))
+        self.truth_2 = set_up_probability_cube(
+            truth_data, thresholds, time=datetime(2017, 11, 11, 4, 0),
             frt=datetime(2017, 11, 11, 4, 0))
         self.truths = merge_cubes([self.truth_1, self.truth_2])
         self.expected_table_shape = (3, 5, 3, 3)
@@ -323,9 +329,9 @@ class Test__populate_reliability_bins(Test_Setup):
         given inputs."""
 
         forecast_slice = next(self.forecast_1.slices_over('air_temperature'))
-        threshold, = forecast_slice.coord(var_name='threshold').points
+        truth_slice = next(self.truth_1.slices_over('air_temperature'))
         result = Plugin()._populate_reliability_bins(
-            forecast_slice.data, self.truth_1.data, threshold)
+            forecast_slice.data, truth_slice.data)
 
         self.assertSequenceEqual(result.shape, self.expected_table_shape)
         assert_array_equal(result, self.expected_table)

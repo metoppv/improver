@@ -36,6 +36,7 @@ import numpy as np
 from improver import BasePlugin
 from improver.utilities.cube_manipulation import MergeCubes
 from improver.metadata.utilities import generate_mandatory_attributes
+from improver.metadata.probabilistic import find_threshold_coordinate
 
 
 class ConstructRealizationCalibrationTables(BasePlugin):
@@ -81,7 +82,7 @@ class ConstructRealizationCalibrationTables(BasePlugin):
             n_probability_bins (int):
                 The total number of probability bins required in the
                 reliability tables. If single value limits are turned on, these
-                are included in this total.
+                are included in this total and the minimum number of bins is 3.
             single_value_limits (bool):
                 Mandates that the extrema bins (0 and 1) should be single
                 valued, with a small precision tolerance of 1.0E-6, e.g. 0 to
@@ -123,7 +124,7 @@ class ConstructRealizationCalibrationTables(BasePlugin):
 
     def _create_probability_bins_coord(self):
         """
-        Construct a dimensions coordinate describing the probability bins
+        Construct a dimension coordinate describing the probability bins
         of the reliability table.
 
         Returns:
@@ -150,7 +151,7 @@ class ConstructRealizationCalibrationTables(BasePlugin):
                 **index_coord** (iris.coord.DimCoord):
                     A numerical index coordinate.
                 **name_coord** (iris.coord.AuxCoord):
-                    An auxiliary coordinate that assigns namea to the index
+                    An auxiliary coordinate that assigns names to the index
                     coordinates, where these names correspond to the
                     reliability table rows.
         """
@@ -272,7 +273,7 @@ class ConstructRealizationCalibrationTables(BasePlugin):
 
         return reliability_cube
 
-    def _populate_reliability_bins(self, forecast, truth, threshold):
+    def _populate_reliability_bins(self, forecast, truth):
         """
         For an x-y slice at a single validity time and threshold, populate
         a reliability table using the provided truth.
@@ -282,10 +283,8 @@ class ConstructRealizationCalibrationTables(BasePlugin):
                 An array containing data over an xy slice for a single validity
                 time and threshold.
             truth (numpy.ndarray):
-                An array containing a gridded truth at an equivalent validity
-                time to the forecast array.
-            threshold (float):
-                The threshold value against which the truth should be compared.
+                An array containing a thresholded gridded truth at an
+                equivalent validity time to the forecast array.
         Returns:
             numpy.ndarray:
                 An array containing reliability table data for a single time
@@ -298,7 +297,7 @@ class ConstructRealizationCalibrationTables(BasePlugin):
         for bin_min, bin_max in self.probability_bins:
 
             observation_mask = (((forecast >= bin_min) & (forecast <= bin_max))
-                                & (truth > threshold)).astype(int)
+                                & (np.isclose(truth, 1))).astype(int)
             forecast_mask = ((forecast >= bin_min) &
                              (forecast <= bin_max)).astype(int)
             forecasts_probability_values = forecast * forecast_mask
@@ -313,6 +312,33 @@ class ConstructRealizationCalibrationTables(BasePlugin):
                                 np.stack(forecast_counts)])
         return reliability_table.astype(np.float32)
 
+    @staticmethod
+    def _extract_truth(truths, forecast_slice, threshold_coord):
+        """
+        Extract a truth field that matches the threshold and time of the
+        forecast field.
+
+        Args:
+            truths (iris.cube.Cube):
+                The cube containing the thresholded truths used in calibration.
+            forecast_slice (iris.cube.Cube):
+                A slice over threshold and time of the forecast data.
+            threshold_coord (iris.coords.DimCoord):
+                The threshold coordinate that should be present on both input
+                cubes.
+        Returns:
+            iris.cube.Cube or None:
+                A truth cube that matches the time and threshold values of the
+                forecast slice, or None if no match is found.
+        """
+        threshold, = forecast_slice.coord(threshold_coord).points
+        threshold_name = threshold_coord.name()
+        threshold_constraint = {threshold_name: threshold}
+        time = forecast_slice.coord('time')
+
+        return truths.extract(iris.Constraint(
+            time=next(time.cells()).point, coord_values=threshold_constraint))
+
     def process(self, historic_forecasts, truths):
         """
         Slice data over threshold and time coordinates to construct reliability
@@ -322,33 +348,32 @@ class ConstructRealizationCalibrationTables(BasePlugin):
 
         Args:
             historic_forecasts (iris.cube.Cube):
-                The cube containing the historical forecasts used
-                for calibration.
+                A cube containing the historical forecasts used in calibration.
             truths (iris.cube.Cube):
-                The cube containing the truths used for calibration.
+                A cube containing the thresholded gridded truths used in
+                calibration.
         Returns:
             iris.cube.CubeList:
                 A cubelist of reliability table cubes, one for each threshold
                 in the historic forecast cubes.
         """
-        threshold_coord = historic_forecasts.coord(var_name='threshold')
+        threshold_coord = find_threshold_coordinate(historic_forecasts)
         time_coord = historic_forecasts.coord('time')
 
         reliability_tables = iris.cube.CubeList()
         for threshold_slice in historic_forecasts.slices_over(threshold_coord):
 
-            threshold, = threshold_slice.coord(threshold_coord).points
-
             threshold_reliability = []
             for time_slice in threshold_slice.slices_over(time_coord):
 
-                time = time_slice.coord('time')
-                truth = truths.extract(
-                    iris.Constraint(time=next(time.cells()).point))
+                truth = self._extract_truth(truths, time_slice,
+                                            threshold_coord)
+                if not truth:
+                    continue
 
                 reliability_table = (
                     self._populate_reliability_bins(
-                        time_slice.data, truth.data, threshold))
+                        time_slice.data, truth.data))
 
                 threshold_reliability.append(reliability_table)
 
