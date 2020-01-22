@@ -41,8 +41,8 @@ import pytest
 from improver import cli
 from improver.utilities.compare import DEFAULT_TOLERANCE, compare_netcdfs
 
-RECREATE_DIR = "RECREATE_KGO"
-ACC_TEST_DIR = "IMPROVER_ACC_TEST_DIR"
+RECREATE_DIR_ENVVAR = "RECREATE_KGO"
+ACC_TEST_DIR_ENVVAR = "IMPROVER_ACC_TEST_DIR"
 
 
 def run_cli(cli_name, verbose=True):
@@ -82,13 +82,13 @@ def cli_name_with_dashes(dunder_file):
 
 def kgo_recreate():
     """True if KGO should be re-created"""
-    return RECREATE_DIR in os.environ
+    return RECREATE_DIR_ENVVAR in os.environ
 
 
 def kgo_root():
     """Path to the root of the KGO directories"""
     try:
-        test_dir = os.environ[ACC_TEST_DIR]
+        test_dir = os.environ[ACC_TEST_DIR_ENVVAR]
     except KeyError:
         pytest.skip()
         return pathlib.Path("/")
@@ -97,7 +97,7 @@ def kgo_root():
 
 def kgo_exists():
     """True if KGO files exist"""
-    return ACC_TEST_DIR in os.environ
+    return ACC_TEST_DIR_ENVVAR in os.environ
 
 
 def recreate_if_needed(output_path, kgo_path):
@@ -118,7 +118,7 @@ def recreate_if_needed(output_path, kgo_path):
     if not output_path.is_file():
         raise IOError("Expected output file not created by running test")
     kgo_root_dir = kgo_root()
-    recreate_dir = pathlib.Path(os.environ[RECREATE_DIR])
+    recreate_dir = pathlib.Path(os.environ[RECREATE_DIR_ENVVAR])
     if kgo_root_dir not in kgo_path.parents:
         raise IOError("KGO path for test is not within KGO root directory")
     if not recreate_dir.is_absolute():
@@ -138,7 +138,7 @@ def recreate_if_needed(output_path, kgo_path):
     if recreate_path.resolve() == kgo_path.resolve():
         print("KGO updated in place, rerunning this test should now pass")
     else:
-        print(f"Put the updated KGO file in {ACC_TEST_DIR} to make this"
+        print(f"Put the updated KGO file in {ACC_TEST_DIR_ENVVAR} to make this"
               f" test pass. For example:")
         quoted_kgo = shlex.quote(str(kgo_path))
         quoted_recreate = shlex.quote(str(recreate_path))
