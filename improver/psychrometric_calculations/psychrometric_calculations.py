@@ -926,6 +926,26 @@ class PhaseChangeLevel(BasePlugin):
 
         return phase_change_data
 
+    def create_phase_change_level_cube(self, wbt, phase_change_level):
+        """
+        Populate output cube with phase change data
+
+        Args:
+            wbt (iris.cube.Cube):
+                Wet bulb temperature cube on height levels
+            phase_change_level (numpy.ndarray):
+                Calculated phase change level in metres
+
+        Returns:
+            iris.cube.Cube
+        """
+        name = 'altitude_of_{}_level'.format(self.phase_change_name)
+        attributes = generate_mandatory_attributes([wbt])
+        template = next(wbt.slices_over(['height'])).copy()
+        template.remove_coord('height')
+        return create_new_diagnostic_cube(name, 'm', template, attributes,
+                                          data=phase_change_level)
+
     def process(self, wet_bulb_temperature, wet_bulb_integral, orog,
                 land_sea_mask):
         """
@@ -972,26 +992,24 @@ class PhaseChangeLevel(BasePlugin):
         land_sea_data = next(land_sea_mask.slices([y_coord, x_coord])).data
         max_nbhood_orog = self.find_max_in_nbhood_orography(orography)
 
-        output_cube_name = 'altitude_of_{}_level'.format(
-            self.phase_change_name)
-        output_attributes = generate_mandatory_attributes(
-            [wet_bulb_temperature])
-
-        phase_change = iris.cube.CubeList([])
+        phase_change = None
         slice_list = ['height', y_coord, x_coord]
         for wb_integral, wet_bulb_temp in zip(
                 wet_bulb_integral.slices(slice_list),
                 wet_bulb_temperature.slices(slice_list)):
-
             phase_change_data = self._calculate_phase_change_level(
                 wet_bulb_temp.data, wb_integral.data, orography.data,
                 max_nbhood_orog.data, land_sea_data, wbt_height_points,
                 wb_integral.coord('height').points, highest_height)
 
-            phase_change_cube = create_new_diagnostic_cube(
-                output_cube_name, 'm', wb_integral[0], output_attributes,
-                data=phase_change_data)
-            phase_change.append(phase_change_cube)
+            # preserve dimensionality of input cube (in case of scalar or
+            # length 1 dimensions)
+            if phase_change:
+                phase_change.concatenate(phase_change_data)
+            else:
+                phase_change = phase_change_data
 
-        phase_change_level = phase_change.merge_cube()
+        phase_change_level = self.create_phase_change_level_cube(
+            wet_bulb_temperature, np.array(phase_change, dtype=np.float32))
+
         return phase_change_level
