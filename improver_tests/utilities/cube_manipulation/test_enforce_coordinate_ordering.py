@@ -38,7 +38,7 @@ import numpy as np
 from iris.cube import Cube
 from iris.tests import IrisTest
 
-from improver.metadata.constants.time_types import TIME_REFERENCE_UNIT
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 from ...set_up_test_cubes import (
@@ -56,7 +56,7 @@ class Test_enforce_coordinate_ordering(IrisTest):
         time_points = [cube.coord("time").points[0],
                        cube.coord("time").points[0] + 3600]
         self.cube = add_coordinate(
-            cube, time_points, "time", coord_units=TIME_REFERENCE_UNIT,
+            cube, time_points, "time", coord_units=TIME_COORDS["time"].units,
             dtype=np.int64, order=[1, 0, 2, 3])
 
     def test_move_coordinate_to_start_when_already_at_start(self):

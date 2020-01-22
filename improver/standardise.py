@@ -42,12 +42,10 @@ from scipy.interpolate import griddata
 from improver import BasePlugin
 from improver.metadata.amend import amend_attributes
 from improver.metadata.check_datatypes import (
-    check_cube_not_float64, check_time_coordinate_metadata)
+    check_units, get_required_dtype, get_required_units)
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
-from improver.metadata.constants.time_types import (
-    TIME_COORD_NAMES, TIME_INTERVAL_DTYPE, TIME_INTERVAL_UNIT,
-    TIME_REFERENCE_DTYPE, TIME_REFERENCE_UNIT)
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.threshold import BasicThreshold
 from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.spatial import OccurrenceWithinVicinity
@@ -211,37 +209,6 @@ class StandardiseGridAndMetadata(BasePlugin):
         return cube
 
     @staticmethod
-    def _standardise_time_coordinates(cube):
-        """
-        If cube time-type coordinates do not conform to expected standards,
-        update units and datatypes in place.
-        """
-        def _update_time_coordinate(coord):
-            """Update a non-conforming time coordinate"""
-            if coord.units.is_time_reference():
-                coord.convert_units(TIME_REFERENCE_UNIT)
-                coord.points = coord.points.astype(TIME_REFERENCE_DTYPE)
-                if coord.bounds is not None:
-                    coord.bounds = coord.bounds.astype(TIME_REFERENCE_DTYPE)
-            else:
-                coord.convert_units(TIME_INTERVAL_UNIT)
-                coord.points = coord.points.astype(TIME_INTERVAL_DTYPE)
-                if coord.bounds is not None:
-                    coord.bounds = coord.bounds.astype(TIME_INTERVAL_DTYPE)
-
-        # check all time coordinates; if check fails, update them all
-        try:
-            check_time_coordinate_metadata(cube)
-        except ValueError:
-            for time_coord in TIME_COORD_NAMES:
-                try:
-                    coord = cube.coord(time_coord)
-                except CoordinateNotFoundError:
-                    pass
-                else:
-                    _update_time_coordinate(coord)
-
-    @staticmethod
     def _collapse_scalar_dimensions(cube):
         """
         Demote any scalar dimensions (excluding "realization") on the input
@@ -267,9 +234,26 @@ class StandardiseGridAndMetadata(BasePlugin):
             except CoordinateNotFoundError:
                 continue
 
+    @staticmethod
+    def _standardise_dtypes(cube):
+        def as_correct_dtype(obj, required_dtype):
+            if obj.dtype != required_dtype:
+                return obj.astype(required_dtype)
+            return obj
+
+        cube.data = as_correct_dtype(cube.data, get_required_dtype(cube.data))
+        for coord in cube.coords():
+            if coord.name() in TIME_COORDS and not check_units(coord):
+                coord.convert_units(get_required_units(coord))
+            req_dtype = get_required_dtype(coord)
+            # ensure points and bounds have the same dtype
+            coord.points = as_correct_dtype(coord.points, req_dtype)
+            if coord.has_bounds():
+                coord.bounds = as_correct_dtype(coord.bounds, req_dtype)
+
     def process(self, cube, target_grid=None, new_name=None, new_units=None,
                 regridded_title=None, coords_to_remove=None,
-                attributes_dict=None, fix_float64=False):
+                attributes_dict=None, standardise_dtypes=False):
         """
         Perform regridding and metadata adjustments
 
@@ -294,8 +278,6 @@ class StandardiseGridAndMetadata(BasePlugin):
             attributes_dict (dict or None):
                 Optional dictionary of required attribute updates. Keys are
                 attribute names, and values are the required value or "remove".
-            fix_float64 (bool):
-                Flag to de-escalate float64 precision
 
         Returns:
             iris.cube.Cube
@@ -312,7 +294,6 @@ class StandardiseGridAndMetadata(BasePlugin):
 
         # standard metadata updates
         cube = self._collapse_scalar_dimensions(cube)
-        self._standardise_time_coordinates(cube)
 
         # optional metadata updates
         if new_name:
@@ -324,7 +305,8 @@ class StandardiseGridAndMetadata(BasePlugin):
         if attributes_dict:
             amend_attributes(cube, attributes_dict)
 
-        check_cube_not_float64(cube, fix=fix_float64)
+        # ensure dtypes follow IMPROVER conventions
+        self._standardise_dtypes(cube)
 
         return cube
 

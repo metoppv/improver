@@ -30,13 +30,22 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Expected datatypes and units for time-type coordinates"""
 
+from collections import namedtuple
+
 import numpy as np
 
-TIME_COORD_NAMES = ["time", "forecast_reference_time", "forecast_period"]
+TimeSpec = namedtuple("TimeSpec", ("calendar", "dtype", "units"))
 
-TIME_REFERENCE_CALENDAR = "gregorian"
-TIME_REFERENCE_DTYPE = np.int64
-TIME_REFERENCE_UNIT = "seconds since 1970-01-01 00:00:00"
+_TIME_REFERENCE_SPEC = TimeSpec(calendar="gregorian",
+                                dtype=np.int64,
+                                units="seconds since 1970-01-01 00:00:00")
 
-TIME_INTERVAL_DTYPE = np.int32
-TIME_INTERVAL_UNIT = "seconds"
+_TIME_INTERVAL_SPEC = TimeSpec(calendar=None,
+                               dtype=np.int32,
+                               units="seconds")
+
+TIME_COORDS = {
+    "time": _TIME_REFERENCE_SPEC,
+    "forecast_reference_time": _TIME_REFERENCE_SPEC,
+    "forecast_period": _TIME_INTERVAL_SPEC,
+}

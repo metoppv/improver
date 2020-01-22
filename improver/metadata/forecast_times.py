@@ -37,8 +37,7 @@ import numpy as np
 from cf_units import Unit
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.metadata.constants.time_types import (
-    TIME_INTERVAL_DTYPE, TIME_INTERVAL_UNIT, TIME_REFERENCE_UNIT)
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.utilities.cube_manipulation import build_coordinate
 from improver.utilities.temporal import cycletime_to_datetime
 
@@ -131,16 +130,17 @@ def _calculate_forecast_period(time_coord, frt_coord, dim_coord=False):
         required_lead_time_bounds = None
 
     coord_type = iris.coords.DimCoord if dim_coord else iris.coords.AuxCoord
+    coord_typespec = TIME_COORDS['forecast_period']
     result_coord = coord_type(
         required_lead_times,
         standard_name='forecast_period',
         bounds=required_lead_time_bounds,
         units="seconds")
-    result_coord.convert_units(TIME_INTERVAL_UNIT)
+    result_coord.convert_units(coord_typespec.units)
 
-    result_coord.points = result_coord.points.astype(TIME_INTERVAL_DTYPE)
+    result_coord.points = result_coord.points.astype(coord_typespec.dtype)
     if result_coord.bounds is not None:
-        result_coord.bounds = result_coord.bounds.astype(TIME_INTERVAL_DTYPE)
+        result_coord.bounds = result_coord.bounds.astype(coord_typespec.dtype)
 
     if np.any(result_coord.points < 0):
         msg = ("The values for the time {} and "
@@ -208,7 +208,7 @@ def unify_cycletime(cubes, cycletime):
         cube = cube.copy()
         frt_units = cube.coord('forecast_reference_time').units
         frt_type = cube.coord('forecast_reference_time').dtype
-        new_frt_units = Unit(TIME_REFERENCE_UNIT)
+        new_frt_units = Unit(TIME_COORDS['forecast_reference_time'].units)
         frt_points = np.round(
             [new_frt_units.date2num(cycletime)]).astype(frt_type)
         frt_coord = build_coordinate(

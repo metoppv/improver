@@ -35,8 +35,8 @@ import numpy as np
 from iris.coords import CellMethod
 
 from improver import BasePlugin
-from improver.metadata.check_datatypes import check_cube_not_float64
 from improver.nbhood.nbhood import NeighbourhoodProcessing
+from improver.standardise import StandardiseGridAndMetadata
 from improver.utilities.cube_checker import check_cube_coordinates
 
 
@@ -427,7 +427,8 @@ class WindDirection(BasePlugin):
             raise ValueError(msg)
 
         # Demote input cube data and coords to float32 if float64
-        check_cube_not_float64(cube_ens_wdir, fix=True)
+        cube_ens_wdir = StandardiseGridAndMetadata().process(
+            cube_ens_wdir)
 
         self.n_realizations = len(cube_ens_wdir.coord('realization').points)
         y_coord_name = cube_ens_wdir.coord(axis="y").name()
