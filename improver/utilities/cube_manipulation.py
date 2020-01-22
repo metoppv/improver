@@ -689,7 +689,7 @@ def build_coordinate(data, long_name=None,
     return crd_out
 
 
-def sort_coord_in_cube(cube, coord, order="ascending"):
+def sort_coord_in_cube(cube, coord, descending=False):
     """Sort a cube based on the ordering within the chosen coordinate.
     Sorting can either be in ascending or descending order.
     This code is based upon https://gist.github.com/pelson/9763057.
@@ -699,9 +699,8 @@ def sort_coord_in_cube(cube, coord, order="ascending"):
             The input cube to be sorted.
         coord (str):
             Name of the coordinate to be sorted.
-        order (str):
-            Choice of how to order the sorted coordinate.
-            Options are either "ascending" or "descending".
+        descending (bool):
+            If True it will be sorted in descending order.
 
     Returns:
         iris.cube.Cube:
@@ -722,7 +721,7 @@ def sort_coord_in_cube(cube, coord, order="ascending"):
     dim, = cube.coord_dims(coord_to_sort)
     index = [slice(None)] * cube.ndim
     index[dim] = np.argsort(coord_to_sort.points)
-    if order == "descending":
+    if descending:
         index[dim] = index[dim][::-1]
     return cube[tuple(index)]
 

@@ -573,7 +573,7 @@ class Test_process(IrisTest):
             coord_units='m', attributes=height_attribute)
         self.wet_bulb_integral_cube_inverted.data = wbti_data
         self.wet_bulb_integral_cube = sort_coord_in_cube(
-            self.wet_bulb_integral_cube_inverted, 'height', order='descending')
+            self.wet_bulb_integral_cube_inverted, 'height', True)
 
     def test_snow_sleet_phase_change(self):
         """Test that process returns a cube with the right name, units and
