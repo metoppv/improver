@@ -32,7 +32,6 @@
 
 import datetime
 import unittest
-from datetime import timedelta
 
 import iris
 import numpy as np

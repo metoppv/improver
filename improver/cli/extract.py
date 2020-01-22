@@ -65,7 +65,7 @@ def process(cube: cli.inputcube,
             List of units as strings corresponding to each coordinate in the
             list of constraints. One or more "units" may be None and units may
             only be associated with coordinate constraints. The list should be
-            entered as a comman separated list without spaces, e.g. mm/hr,K.
+            entered as a comma separated list without spaces, e.g. mm/hr,K.
         ignore_failure (bool):
             Option to ignore constraint match failure and return the input
             cube.
@@ -81,7 +81,7 @@ def process(cube: cli.inputcube,
 
     if result is None and ignore_failure:
         return cube
-    elif result is None:
+    if result is None:
         msg = "Constraint(s) could not be matched in input cube"
         raise ValueError(msg)
     return result

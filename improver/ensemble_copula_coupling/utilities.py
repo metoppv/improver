@@ -34,7 +34,6 @@ plugins.
 
 """
 import copy
-import random
 
 import cf_units as unit
 import iris

@@ -166,10 +166,9 @@ class Test_create_cube_with_percentiles(IrisTest):
         self.cube_spot_data = (
             current_temperature_spot_forecast_cube.data)
 
-        for cube in current_temperature_forecast_cube.slices_over(
-                "realization"):
-            cube.remove_coord("realization")
-            break
+        cube = next(current_temperature_forecast_cube.slices_over(
+            "realization"))
+        cube.remove_coord("realization")
         self.current_temperature_forecast_cube = cube
 
         for cube in current_temperature_spot_forecast_cube.slices_over(
@@ -484,8 +483,7 @@ class Test_restore_non_probabilistic_dimensions(IrisTest):
                                [293.65, 304.9, 316.15]]]], dtype=np.float32)
 
         cube = self.current_temperature_forecast_cube
-        for cube_slice in cube.slices_over("percentile"):
-            break
+        cube_slice = next(cube.slices_over("percentile"))
         plen = len(cube_slice.coord("percentile").points)
         reshaped_array = (
             restore_non_probabilistic_dimensions(

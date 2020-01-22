@@ -192,12 +192,12 @@ class Test__init__(SetupCubes):
         """Test that the plugin instance defines the expected
         coefficient names."""
         expected = ["gamma", "delta", "alpha", "beta"]
-        predictor_of_mean_flag = "mean"
+        predictor = "mean"
         tolerance = 10
         max_iterations = 10
         plugin = Plugin(self.distribution, self.desired_units,
-                        predictor_of_mean_flag=predictor_of_mean_flag,
-                        tolerance=tolerance, max_iterations=max_iterations)
+                        predictor=predictor, tolerance=tolerance,
+                        max_iterations=max_iterations)
         self.assertEqual(plugin.coeff_names, expected)
 
     def test_invalid_distribution(self):
@@ -217,11 +217,10 @@ class Test__init__(SetupCubes):
         Test that the plugin raises no warnings if the statsmodels module
         is not found for when the predictor is the ensemble mean.
         """
-        predictor_of_mean_flag = "mean"
+        predictor = "mean"
         statsmodels_warning = "The statsmodels can not be imported"
 
-        Plugin(self.distribution, self.desired_units,
-               predictor_of_mean_flag=predictor_of_mean_flag)
+        Plugin(self.distribution, self.desired_units, predictor=predictor)
         self.assertNotIn(statsmodels_warning, warning_list)
 
     @unittest.skipIf(
@@ -249,10 +248,9 @@ class Test__init__(SetupCubes):
         module is not found for when the predictor is the ensemble
         realizations.
         """
-        predictor_of_mean_flag = "realizations"
+        predictor = "realizations"
 
-        Plugin(self.distribution, self.desired_units,
-               predictor_of_mean_flag=predictor_of_mean_flag)
+        Plugin(self.distribution, self.desired_units, predictor=predictor)
         warning_msg = "The statsmodels can not be imported"
         self.assertTrue(any(item.category == ImportWarning
                             for item in warning_list))
@@ -282,7 +280,7 @@ class Test__repr__(IrisTest):
                "distribution: gaussian; "
                "current_cycle: 20171110T0000Z; "
                "desired_units: None; "
-               "predictor_of_mean_flag: mean; "
+               "predictor: mean; "
                "minimiser: <class 'improver.calibration.ensemble_calibration."
                "ContinuousRankedProbabilityScoreMinimisers'>; "
                "coeff_names: ['gamma', 'delta', 'alpha', 'beta']; "
@@ -296,13 +294,13 @@ class Test__repr__(IrisTest):
         """Test when keyword arguments are specified."""
         result = str(Plugin(
             self.distribution, self.current_cycle,
-            desired_units="Kelvin", predictor_of_mean_flag="realizations",
+            desired_units="Kelvin", predictor="realizations",
             tolerance=10, max_iterations=10))
         msg = ("<EstimateCoefficientsForEnsembleCalibration: "
                "distribution: gaussian; "
                "current_cycle: 20171110T0000Z; "
                "desired_units: Kelvin; "
-               "predictor_of_mean_flag: realizations; "
+               "predictor: realizations; "
                "minimiser: <class 'improver.calibration.ensemble_calibration."
                "ContinuousRankedProbabilityScoreMinimisers'>; "
                "coeff_names: ['gamma', 'delta', 'alpha', 'beta']; "
@@ -341,12 +339,12 @@ class Test_create_coefficients_cube(IrisTest):
         self.distribution = "gaussian"
         self.current_cycle = "20171110T0000Z"
         self.desired_units = "degreesC"
-        self.predictor_of_mean_flag = "mean"
+        self.predictor = "mean"
         self.plugin = (
             Plugin(distribution=self.distribution,
                    current_cycle=self.current_cycle,
                    desired_units=self.desired_units,
-                   predictor_of_mean_flag=self.predictor_of_mean_flag))
+                   predictor=self.predictor))
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -367,7 +365,7 @@ class Test_create_coefficients_cube(IrisTest):
         ensemble realizations are used as the predictor."""
         expected_coeff_names = (
             ["gamma", "delta", "alpha", "beta0", "beta1", "beta2"])
-        predictor_of_mean_flag = "realizations"
+        predictor = "realizations"
         optimised_coeffs = [0, 1, 2, 3, 4, 5]
 
         # Set up an expected cube.
@@ -404,7 +402,7 @@ class Test_create_coefficients_cube(IrisTest):
         plugin = Plugin(distribution=self.distribution,
                         current_cycle=self.current_cycle,
                         desired_units=self.desired_units,
-                        predictor_of_mean_flag=predictor_of_mean_flag)
+                        predictor=predictor)
         result = plugin.create_coefficients_cube(
             optimised_coeffs, self.historic_forecast_with_realizations)
         self.assertEqual(result, expected)
@@ -456,12 +454,12 @@ class Test_create_coefficients_cube(IrisTest):
         number of coefficient names."""
         distribution = "truncated_gaussian"
         desired_units = "Fahrenheit"
-        predictor_of_mean_flag = "realizations"
+        predictor = "realizations"
         optimised_coeffs = [1, 2, 3, 4, 5]
         plugin = Plugin(distribution=distribution,
                         current_cycle=self.current_cycle,
                         desired_units=desired_units,
-                        predictor_of_mean_flag=predictor_of_mean_flag)
+                        predictor=predictor)
         msg = "The number of coefficients in"
         with self.assertRaisesRegex(ValueError, msg):
             plugin.create_coefficients_cube(
@@ -482,7 +480,7 @@ class Test_compute_initial_guess(IrisTest):
         """
         self.distribution = "gaussian"
         self.desired_units = "degreesC"
-        self.predictor_of_mean_flag = "mean"
+        self.predictor = "mean"
         self.no_of_realizations = 3
         data = np.array([[[0., 1., 2.],
                           [3., 4., 5.],
@@ -568,8 +566,7 @@ class Test_compute_initial_guess(IrisTest):
         plugin = Plugin(self.distribution, self.desired_units)
         result = plugin.compute_initial_guess(
             self.truth, self.current_forecast_predictor_mean,
-            self.predictor_of_mean_flag,
-            estimate_coefficients_from_linear_model_flag)
+            self.predictor, estimate_coefficients_from_linear_model_flag)
         self.assertIsInstance(result, np.ndarray)
 
     @ManageWarnings(
@@ -580,14 +577,13 @@ class Test_compute_initial_guess(IrisTest):
         for the calibration coefficients, when the individual ensemble
         realizations are used as predictors.
         """
-        predictor_of_mean_flag = "realizations"
+        predictor = "realizations"
         estimate_coefficients_from_linear_model_flag = False
 
         plugin = Plugin(self.distribution, self.desired_units)
         result = plugin.compute_initial_guess(
             self.truth, self.current_forecast_predictor_realizations,
-            predictor_of_mean_flag,
-            estimate_coefficients_from_linear_model_flag,
+            predictor, estimate_coefficients_from_linear_model_flag,
             no_of_realizations=self.no_of_realizations)
         self.assertIsInstance(result, np.ndarray)
 
@@ -605,8 +601,7 @@ class Test_compute_initial_guess(IrisTest):
         plugin = Plugin(self.distribution, self.desired_units)
         result = plugin.compute_initial_guess(
             self.truth, self.current_forecast_predictor_mean,
-            self.predictor_of_mean_flag,
-            estimate_coefficients_from_linear_model_flag)
+            self.predictor, estimate_coefficients_from_linear_model_flag)
         self.assertArrayAlmostEqual(
             result, self.expected_mean_predictor_no_linear_model)
 
@@ -622,14 +617,13 @@ class Test_compute_initial_guess(IrisTest):
         using a linear model, the default values for the initial guess
         are used.
         """
-        predictor_of_mean_flag = "realizations"
+        predictor = "realizations"
         estimate_coefficients_from_linear_model_flag = False
 
         plugin = Plugin(self.distribution, self.desired_units)
         result = plugin.compute_initial_guess(
             self.truth, self.current_forecast_predictor_realizations,
-            predictor_of_mean_flag,
-            estimate_coefficients_from_linear_model_flag,
+            predictor, estimate_coefficients_from_linear_model_flag,
             no_of_realizations=self.no_of_realizations)
         self.assertArrayAlmostEqual(
             result, self.expected_realizations_predictor_no_linear_model)
@@ -650,8 +644,7 @@ class Test_compute_initial_guess(IrisTest):
         plugin = Plugin(self.distribution, self.desired_units)
         result = plugin.compute_initial_guess(
             self.truth, self.current_forecast_predictor_mean,
-            self.predictor_of_mean_flag,
-            estimate_coefficients_from_linear_model_flag)
+            self.predictor, estimate_coefficients_from_linear_model_flag)
 
         self.assertArrayAlmostEqual(
             self.expected_mean_predictor_with_linear_model, result)
@@ -669,14 +662,13 @@ class Test_compute_initial_guess(IrisTest):
         of 0.333333 with different weights for the realizations because
         some of the realizations are closer to the truth, in this instance.
         """
-        predictor_of_mean_flag = "realizations"
+        predictor = "realizations"
         estimate_coefficients_from_linear_model_flag = True
 
         plugin = Plugin(self.distribution, self.desired_units)
         result = plugin.compute_initial_guess(
             self.truth, self.current_forecast_predictor_realizations,
-            predictor_of_mean_flag,
-            estimate_coefficients_from_linear_model_flag,
+            predictor, estimate_coefficients_from_linear_model_flag,
             no_of_realizations=self.no_of_realizations)
         self.assertArrayAlmostEqual(
             self.expected_realizations_predictor_with_linear_model, result)
@@ -700,8 +692,7 @@ class Test_compute_initial_guess(IrisTest):
         result = plugin.compute_initial_guess(
             self.truth_masked_halo,
             self.current_forecast_predictor_mean_masked_halo,
-            self.predictor_of_mean_flag,
-            estimate_coefficients_from_linear_model_flag)
+            self.predictor, estimate_coefficients_from_linear_model_flag)
 
         self.assertArrayAlmostEqual(
             self.expected_mean_predictor_with_linear_model, result)
@@ -721,15 +712,14 @@ class Test_compute_initial_guess(IrisTest):
         this case the original data has been surrounded by a halo of masked
         nans, which gives the same coefficients as the original data.
         """
-        predictor_of_mean_flag = "realizations"
+        predictor = "realizations"
         estimate_coefficients_from_linear_model_flag = True
 
         plugin = Plugin(self.distribution, self.desired_units)
         result = plugin.compute_initial_guess(
             self.truth_masked_halo,
             self.current_forecast_predictor_realizations_masked_halo,
-            predictor_of_mean_flag,
-            estimate_coefficients_from_linear_model_flag,
+            predictor, estimate_coefficients_from_linear_model_flag,
             no_of_realizations=self.no_of_realizations)
         self.assertArrayAlmostEqual(
             self.expected_realizations_predictor_with_linear_model, result)
@@ -1104,11 +1094,11 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions,
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
         expected values for a Gaussian distribution where the
-        realizations are used as the predictor of the mean."""
-        predictor_of_mean_flag = "realizations"
+        realizations are used as the predictor."""
+        predictor = "realizations"
 
         plugin = Plugin(self.distribution, self.current_cycle,
-                        predictor_of_mean_flag=predictor_of_mean_flag)
+                        predictor=predictor)
         result = plugin.process(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
@@ -1127,12 +1117,12 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions,
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
         expected values for a Gaussian distribution where the
-        realizations are used as the predictor of the mean.
+        realizations are used as the predictor.
         """
-        predictor_of_mean_flag = "realizations"
+        predictor = "realizations"
 
         plugin = Plugin(self.distribution, self.current_cycle,
-                        predictor_of_mean_flag=predictor_of_mean_flag)
+                        predictor=predictor)
         result = plugin.process(
             self.historic_temperature_forecast_cube,
             self.temperature_truth_cube)
@@ -1151,12 +1141,12 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions,
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
         expected values for a truncated Gaussian distribution where the
-        realizations are used as the predictor of the mean."""
+        realizations are used as the predictor."""
         distribution = "truncated_gaussian"
-        predictor_of_mean_flag = "realizations"
+        predictor = "realizations"
 
         plugin = Plugin(distribution, self.current_cycle,
-                        predictor_of_mean_flag=predictor_of_mean_flag)
+                        predictor=predictor)
         result = plugin.process(
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)
@@ -1175,12 +1165,11 @@ class Test_process(SetupCubes, EnsembleCalibrationAssertions,
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
         expected values for a truncated Gaussian distribution where the
-        realizations are used as the predictor of the mean."""
+        realizations are used as the predictor."""
         distribution = "truncated_gaussian"
-        predictor_of_mean_flag = "realizations"
+        predictor = "realizations"
 
-        plugin = Plugin(distribution, self.current_cycle,
-                        predictor_of_mean_flag=predictor_of_mean_flag)
+        plugin = Plugin(distribution, self.current_cycle, predictor=predictor)
         result = plugin.process(
             self.historic_wind_speed_forecast_cube,
             self.wind_speed_truth_cube)

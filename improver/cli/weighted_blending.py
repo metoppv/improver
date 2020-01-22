@@ -133,10 +133,10 @@ def process(*cubes: cli.inputcube,
 
     if (weighting_method == "linear") and cval:
         raise RuntimeError('Method: linear does not accept arguments: cval')
-    elif (weighting_method == "nonlinear") and any([y0val, ynval]):
+    if (weighting_method == "nonlinear") and any([y0val, ynval]):
         raise RuntimeError('Method: non-linear does not accept arguments:'
                            ' y0val, ynval')
-    elif (weighting_method == "dict") and weighting_config is None:
+    if (weighting_method == "dict") and weighting_config is None:
         raise RuntimeError('Dictionary is required if wts_calc_method="dict"')
 
     plugin = WeightAndBlend(

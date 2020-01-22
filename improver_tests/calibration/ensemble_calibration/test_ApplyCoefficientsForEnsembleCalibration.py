@@ -91,7 +91,7 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         estimator = (
             EstimateCoefficientsForEnsembleCalibration(
                 "gaussian", current_cycle, desired_units="Celsius",
-                predictor_of_mean_flag="realizations"))
+                predictor="realizations"))
         self.coeffs_from_statsmodels_realizations = (
             estimator.create_coefficients_cube(
                 self.expected_realizations_gaussian_statsmodels,
@@ -103,7 +103,7 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         estimator = (
             EstimateCoefficientsForEnsembleCalibration(
                 "gaussian", current_cycle, desired_units="Celsius",
-                predictor_of_mean_flag="realizations"))
+                predictor="realizations"))
         self.coeffs_from_no_statsmodels_realizations = (
             estimator.create_coefficients_cube(
                 self.expected_realizations_gaussian_no_statsmodels,
@@ -143,12 +143,12 @@ class Test__init__(IrisTest):
     """Test the __init__ method."""
 
     def test_basic(self):
-        """Test without specifying a predictor_of_mean_flag."""
+        """Test without specifying a predictor."""
         plugin = Plugin()
         self.assertEqual(plugin.predictor, "mean")
 
-    def test_with_predictor_of_mean_flag(self):
-        """Test specifying the predictor_of_mean_flag."""
+    def test_with_predictor(self):
+        """Test specifying the predictor."""
         plugin = Plugin(predictor="realizations")
         self.assertEqual(plugin.predictor, "realizations")
 
@@ -158,14 +158,14 @@ class Test__repr__(IrisTest):
     """Test the __repr__ method."""
 
     def test_basic(self):
-        """Test without the predictor_of_mean_flag."""
+        """Test without the predictor."""
         result = str(Plugin())
         msg = ("<ApplyCoefficientsFromEnsembleCalibration: "
                "predictor: mean>")
         self.assertEqual(result, msg)
 
-    def test_with_predictor_of_mean_flag(self):
-        """Test specifying the predictor_of_mean_flag."""
+    def test_with_predictor(self):
+        """Test specifying the predictor."""
         result = str(Plugin(predictor="realizations"))
         msg = ("<ApplyCoefficientsFromEnsembleCalibration: "
                "predictor: realizations>")

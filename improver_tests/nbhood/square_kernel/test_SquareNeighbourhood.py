@@ -338,9 +338,8 @@ class Test__pad_and_calculate_neighbourhood(IrisTest):
         self.cube = set_up_cube(
             zero_point_indices=((0, 0, 1, 1),), num_time_points=1,
             num_grid_points=3)
-        for sliced_cube in self.cube.slices(["projection_y_coordinate",
-                                             "projection_x_coordinate"]):
-            break
+        sliced_cube = next(self.cube.slices(["projection_y_coordinate",
+                                             "projection_x_coordinate"]))
         sliced_cube.remove_coord("realization")
         sliced_cube.remove_coord("time")
         self.cube = sliced_cube

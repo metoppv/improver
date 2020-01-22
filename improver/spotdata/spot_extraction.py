@@ -247,6 +247,6 @@ def check_grid_match(cubes):
 
     for cube in cubes:
         cube_hash = _get_grid_hash(cube)
-        if not cube_hash == reference_hash:
+        if cube_hash != reference_hash:
             raise ValueError('Cubes do not share or originate from the same '
                              'grid, so cannot be used together.')

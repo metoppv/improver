@@ -155,7 +155,7 @@ def save_netcdf(cubelist, filename):
     # If all xy slices are the same shape, use this to determine
     # the chunksize for the netCDF (eg. 1, 1, 970, 1042)
     chunksizes = None
-    if len(set([cube.shape[:2] for cube in cubelist])) == 1:
+    if len({cube.shape[:2] for cube in cubelist}) == 1:
         cube = cubelist[0]
         if cube.ndim >= 2:
             xy_chunksizes = [cube.shape[-2], cube.shape[-1]]

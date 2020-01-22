@@ -36,7 +36,6 @@ import unittest
 
 import iris
 import numpy as np
-from cf_units import Unit
 from iris.coords import AuxCoord, DimCoord
 
 from improver.utilities.cube_manipulation import compare_coords

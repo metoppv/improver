@@ -315,7 +315,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         coords_to_slice_over = [blend_coord, y_coord, x_coord]
         slices = cube_to_collapse.slices(coords_to_slice_over)
         # Check they all have the same mask
-        first_slice = slices.next()
+        first_slice = next(slices)
         if np.ma.is_masked(first_slice.data):
             first_mask = first_slice.data.mask
             for cube_slice in slices:

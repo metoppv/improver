@@ -74,7 +74,7 @@ def test_truncated_gaussian(tmp_path):
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
 
-def predictor_of_mean(tmp_path, status):
+def realizations_as_predictor(tmp_path, status):
     """Implementation of test using non-default predictor realizations"""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/realizations"
     kgo_path = kgo_dir / f"{status}_statsmodels_kgo.nc"
@@ -84,7 +84,7 @@ def predictor_of_mean(tmp_path, status):
     output_path = tmp_path / "output.nc"
     args = [input_path, emos_est_path,
             "--distribution", "norm",
-            "--predictor-of-mean", "realizations",
+            "--predictor", "realizations",
             "--random-seed", "0",
             "--output", output_path]
     run_cli(args)
@@ -92,17 +92,17 @@ def predictor_of_mean(tmp_path, status):
 
 
 @acc.skip_if_statsmodels
-def test_predictor_of_mean_no_sm(tmp_path):
+def test_realizations_as_predictor_no_sm(tmp_path):
     """Test using non-default predictor realizations"""
     sm_status = "without"
-    predictor_of_mean(tmp_path, sm_status)
+    realizations_as_predictor(tmp_path, sm_status)
 
 
 @acc.skip_if_no_statsmodels
-def test_predictor_of_mean_sm(tmp_path):
+def test_realizations_as_predictor_sm(tmp_path):
     """Test using non-default predictor realizations"""
     sm_status = "with"
-    predictor_of_mean(tmp_path, sm_status)
+    realizations_as_predictor(tmp_path, sm_status)
 
 
 def test_probabilities(tmp_path):

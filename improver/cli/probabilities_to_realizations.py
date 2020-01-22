@@ -83,7 +83,7 @@ def process(cube: cli.inputcube,
             Processed result Cube.
     """
     from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-        GeneratePercentilesFromProbabilities, RebadgePercentilesAsRealizations,
+        ConvertProbabilitiesToPercentiles, RebadgePercentilesAsRealizations,
         EnsembleReordering)
 
     if realizations_count is None and raw_cube:
@@ -91,7 +91,7 @@ def process(cube: cli.inputcube,
         # ensemble cube.
         realizations_count = len(raw_cube.coord("realization").points)
 
-    result = GeneratePercentilesFromProbabilities(
+    result = ConvertProbabilitiesToPercentiles(
         ecc_bounds_warning=ignore_ecc_bounds).process(
         cube, no_of_percentiles=realizations_count)
 
