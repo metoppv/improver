@@ -112,7 +112,7 @@ class Integration(BasePlugin):
         increasing_order = np.all(np.diff(cube.coord(coord_name).points) > 0)
 
         if increasing_order and direction == "negative":
-            cube = sort_coord_in_cube(cube, coord_name, True)
+            cube = sort_coord_in_cube(cube, coord_name, descending=True)
 
         if not increasing_order and direction == "positive":
             cube = sort_coord_in_cube(cube, coord_name)

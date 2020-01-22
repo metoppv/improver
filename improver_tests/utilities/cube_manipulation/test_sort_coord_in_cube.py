@@ -107,7 +107,7 @@ class Test_sort_coord_in_cube(IrisTest):
         expected_data = np.flip(self.data)
         coord_name = "height"
         result = sort_coord_in_cube(
-            self.ascending_cube, coord_name, True)
+            self.ascending_cube, coord_name, descending=True)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(self.descending_cube.coord_dims(coord_name),
                          result.coord_dims(coord_name))
@@ -136,7 +136,7 @@ class Test_sort_coord_in_cube(IrisTest):
         expected_data = self.data
         coord_name = "height"
         result = sort_coord_in_cube(
-            self.descending_cube, coord_name, True)
+            self.descending_cube, coord_name, descending=True)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(self.descending_cube.coord_dims(coord_name),
                          result.coord_dims(coord_name))
@@ -162,7 +162,7 @@ class Test_sort_coord_in_cube(IrisTest):
         expected_points = np.flip(self.ascending_cube.coord("latitude").points)
         coord_name = "latitude"
         result = sort_coord_in_cube(
-            self.ascending_cube, coord_name, True)
+            self.ascending_cube, coord_name, descending=True)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(
             self.ascending_cube.coord_dims(coord_name),
@@ -179,7 +179,7 @@ class Test_sort_coord_in_cube(IrisTest):
         coord_name = "latitude"
         self.ascending_cube.coord(coord_name).circular = True
         result = sort_coord_in_cube(
-            self.ascending_cube, coord_name, True)
+            self.ascending_cube, coord_name, descending=True)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         warning_msg = "The latitude coordinate is circular."

@@ -1057,7 +1057,7 @@ class PhaseChangeLevel(BasePlugin):
         # Ensure the wet bulb integral cube's height coordinate is in
         # descending order
         wet_bulb_integral = sort_coord_in_cube(wet_bulb_integral, 'height',
-                                               True)
+                                               descending=True)
 
         # Find highest height from height bounds.
         height_bounds = wet_bulb_integral.coord('height').bounds

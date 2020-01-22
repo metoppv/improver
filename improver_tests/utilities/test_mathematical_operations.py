@@ -58,7 +58,7 @@ def _set_up_height_cube(height_points, ascending=True):
     cube.data = data.astype(np.float32)
 
     if not ascending:
-        cube = sort_coord_in_cube(cube, "height", True)
+        cube = sort_coord_in_cube(cube, "height", descending=True)
         cube.coord("height").attributes["positive"] = "down"
 
     return cube
