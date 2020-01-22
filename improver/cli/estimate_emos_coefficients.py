@@ -43,7 +43,7 @@ def process(*cubes: cli.inputcube,
             truth_attribute,
             cycletime,
             units=None,
-            predictor_of_mean='mean',
+            predictor='mean',
             tolerance: float = 0.01,
             max_iterations: int = 1000):
     """Estimate coefficients for Ensemble Model Output Statistics.
@@ -76,10 +76,11 @@ def process(*cubes: cli.inputcube,
         units (str):
             The units that calibration should be undertaken in. The historical
             forecast and truth will be converted as required.
-        predictor_of_mean (str):
-            String to specify the input to calculate the calibrated mean.
+        predictor (str):
+            String to specify the form of the predictor used to calculate the
+            location parameter when estimating the EMOS coefficients.
             Currently the ensemble mean ("mean") and the ensemble realizations
-            ("realizations") are supported as the predictors.
+            ("realizations") are supported as options.
         tolerance (float):
             The tolerance for the Continuous Ranked Probability Score (CRPS)
             calculated by the minimisation. Once multiple iterations result in
@@ -90,8 +91,7 @@ def process(*cubes: cli.inputcube,
             converged to a stable solution. If the maximum number of iterations
             is reached but the minimisation has not yet converged to a stable
             solution, then the available solution is used anyway, and a warning
-            is raised.
-            If the predictor_of_mean is "realizations", then the number of
+            is raised. If the predictor is "realizations", then the number of
             iterations may require increasing, as there will be more
             coefficients to solve.
 
@@ -111,6 +111,6 @@ def process(*cubes: cli.inputcube,
 
     return EstimateCoefficientsForEnsembleCalibration(
         distribution, cycletime, desired_units=units,
-        predictor_of_mean_flag=predictor_of_mean,
-        tolerance=tolerance, max_iterations=max_iterations).process(
+        predictor=predictor, tolerance=tolerance,
+        max_iterations=max_iterations).process(
             forecast, truth, landsea_mask=land_sea_mask)

@@ -722,8 +722,7 @@ class RoughnessCorrection(BasePlugin):
                     name of the axis name in t-direction
 
         """
-        clist = set([cube.coords()[iii].name() for iii in
-                     range(len(cube.coords()))])
+        clist = {cube.coords()[i].name() for i in range(len(cube.coords()))}
         try:
             xname = cube.coord(axis="x").name()
         except CoordinateNotFoundError as exc:

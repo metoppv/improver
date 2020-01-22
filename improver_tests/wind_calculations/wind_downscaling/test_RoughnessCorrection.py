@@ -117,8 +117,7 @@ def set_up_cube(num_time_points=1, num_grid_points=1, num_height_levels=7,
                 msg = ("supplied data does not fit the cube."
                        "cube dimensions: {} vs. supplied data {}")
                 raise ValueError(msg.format(cube.shape, data.shape))
-            else:
-                raise ValueError(err)
+            raise ValueError(err)
 
     if name is not None:
         try:

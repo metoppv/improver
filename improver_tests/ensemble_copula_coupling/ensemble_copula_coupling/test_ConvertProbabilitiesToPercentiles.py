@@ -30,8 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """
 Unit tests for the
-`ensemble_copula_coupling.GeneratePercentilesFromProbabilities` class.
-
+`ensemble_copula_coupling.ConvertProbabilitiesToPercentiles` class.
 """
 import unittest
 
@@ -41,8 +40,8 @@ from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
 
-from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
-    GeneratePercentilesFromProbabilities as Plugin
+from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+    ConvertProbabilitiesToPercentiles as Plugin)
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.warnings_handler import ManageWarnings
 
@@ -57,7 +56,7 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
 
     """
     Test the _add_bounds_to_thresholds_and_probabilities method of the
-    GeneratePercentilesFromProbabilities.
+    ConvertProbabilitiesToPercentiles.
     """
 
     def setUp(self):
@@ -163,7 +162,7 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
 class Test__probabilities_to_percentiles(IrisTest):
 
     """Test the _probabilities_to_percentiles method of the
-    GeneratePercentilesFromProbabilities plugin."""
+    ConvertProbabilitiesToPercentiles plugin."""
 
     def setUp(self):
         """Set up temperature cube."""
@@ -254,7 +253,6 @@ class Test__probabilities_to_percentiles(IrisTest):
         Test that the plugin returns an Iris.cube.Cube with the expected
         data values for the percentiles when input probabilities are given
         for being above a threshold.
-
         The input cube contains probabilities that values are above a given
         threshold.
         """
@@ -283,7 +281,6 @@ class Test__probabilities_to_percentiles(IrisTest):
         Test that the plugin returns an Iris.cube.Cube with the expected
         data values for the percentiles when input probabilities are given
         for being below a threshold.
-
         The input cube contains probabilities that values are below a given
         threshold.
         """
@@ -555,8 +552,7 @@ class Test__probabilities_to_percentiles(IrisTest):
 class Test_process(IrisTest):
 
     """
-    Test the process method of the GeneratePercentilesFromProbabilities
-    plugin.
+    Test the process method of the ConvertProbabilitiesToPercentiles plugin.
     """
 
     def setUp(self):

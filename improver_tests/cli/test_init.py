@@ -180,7 +180,7 @@ class Test_with_intermediate_output(unittest.TestCase):
 
         """
         # pylint disable is needed as it can't see the wrappers output kwarg.
-        # pylint: disable=E1123
+        # pylint: disable=unexpected-keyword-arg
         result = wrapped_with_intermediate_output(2, intermediate_output="foo")
         m.assert_called_with(True, 'foo')
         self.assertEqual(result, 4)
