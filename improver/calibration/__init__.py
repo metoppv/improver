@@ -45,8 +45,8 @@ def split_forecasts_and_truth(cubes, truth_attribute):
     Args:
         cubes (list):
             A list of input cubes which will be split into relevant groups.
-            These include the historical forecasts, either as realization or
-            probability cubes, and the truth cubes.
+            These include the historical forecasts, in the format supported by
+            the calibration CLIs, and the truth cubes,
         truth_attribute (str):
             An attribute and its value in the format of "attribute=value",
             which must be present on truth cubes.
