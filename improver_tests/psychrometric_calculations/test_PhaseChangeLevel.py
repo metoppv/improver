@@ -564,7 +564,8 @@ class Test_process(IrisTest):
         self.wet_bulb_integral_cube = sort_coord_in_cube(
             self.wet_bulb_integral_cube_inverted, 'height', descending=True)
 
-        self.expected_snow_sleet = np.ones((3, 3, 3), dtype=np.float32) * 66.88566
+        self.expected_snow_sleet = (
+            np.ones((3, 3, 3), dtype=np.float32) * 66.88566)
 
     def test_snow_sleet_phase_change(self):
         """Test that process returns a cube with the right name, units and
