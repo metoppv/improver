@@ -724,10 +724,6 @@ def sort_coord_in_cube(cube, coord, order="ascending"):
     index[dim] = np.argsort(coord_to_sort.points)
     if order == "descending":
         index[dim] = index[dim][::-1]
-    if coord in ["height"] and order == "ascending":
-        cube.coord(coord).attributes["positive"] = "up"
-    elif coord in ["height"] and order == "descending":
-        cube.coord(coord).attributes["positive"] = "down"
     return cube[tuple(index)]
 
 

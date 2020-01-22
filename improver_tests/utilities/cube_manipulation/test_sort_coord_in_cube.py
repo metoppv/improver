@@ -80,9 +80,6 @@ class Test_sort_coord_in_cube(IrisTest):
         self.assertArrayAlmostEqual(
             self.ascending_height_points,
             result.coord(coord_name).points)
-        self.assertDictEqual(
-            self.ascending_cube.coord(coord_name).attributes,
-            {"positive": "up"})
         self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_auxcoord(self):
@@ -116,8 +113,6 @@ class Test_sort_coord_in_cube(IrisTest):
                          result.coord_dims(coord_name))
         self.assertArrayAlmostEqual(
             self.descending_height_points, result.coord(coord_name).points)
-        self.assertDictEqual(
-            result.coord(coord_name).attributes, {"positive": "down"})
         self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_descending_then_ascending(self):
@@ -132,8 +127,6 @@ class Test_sort_coord_in_cube(IrisTest):
                          result.coord_dims(coord_name))
         self.assertArrayAlmostEqual(
             self.ascending_height_points, result.coord(coord_name).points)
-        self.assertDictEqual(
-            result.coord(coord_name).attributes, {"positive": "up"})
         self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_descending_then_descending(self):
@@ -149,8 +142,6 @@ class Test_sort_coord_in_cube(IrisTest):
                          result.coord_dims(coord_name))
         self.assertArrayAlmostEqual(
             self.descending_height_points, result.coord(coord_name).points)
-        self.assertDictEqual(
-            result.coord(coord_name).attributes, {"positive": "down"})
         self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_latitude(self):
