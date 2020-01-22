@@ -428,18 +428,21 @@ class Test_process(IrisTest):
         self.cube = make_wdir_cube_534()
 
         self.expected_wind_mean = (
-            np.array([[[176.63627625, 46.00244522, 90.0, 90.0],
-                       [170.0, 170.0, 47.0, 36.54423141],
-                       [333.41320801, 320.03521729, 10.0, 10.0]]]))
+            np.array([[176.63627625, 46.00244522, 90.0, 90.0],
+                      [170.0, 170.0, 47.0, 36.54423141],
+                      [333.41320801, 320.03521729, 10.0, 10.0]],
+                     dtype=np.float32))
 
         self.expected_r_vals = np.array([[0.5919044, 0.99634719, 0.2, 0.6],
                                          [1.0, 1.0, 1.0, 0.92427504],
-                                         [0.87177974, 0.91385943, 1.0, 1.0]])
+                                         [0.87177974, 0.91385943, 1.0, 1.0]],
+                                        dtype=np.float32)
 
         self.expected_confidence_measure = (
             np.array([[0.73166388, 0.95813018, 0.6, 0.8],
                       [1.0, 1.0, 1.0, 0.84808648],
-                      [0.75270665, 0.83861077, 1.0, 1.0]]))
+                      [0.75270665, 0.83861077, 1.0, 1.0]],
+                     dtype=np.float32))
 
     def test_basic(self):
         """Test that the plugin returns expected data types. """
@@ -499,7 +502,7 @@ class Test_process(IrisTest):
         a low-confidence point."""
 
         self.cube.data[:, 0, 1, 1] = [0., 72., 144., 216., 288.]
-        self.expected_wind_mean[0, 1, 1] = 30.77989074
+        self.expected_wind_mean[1, 1] = 30.77989074
         self.expected_r_vals[1, 1] = 2.384186e-08
         self.expected_confidence_measure[1, 1] = 0.0
 

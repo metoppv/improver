@@ -42,9 +42,9 @@ from cf_units import Unit, date2num
 from iris.coords import DimCoord
 from iris.exceptions import CoordinateNotFoundError
 
-import improver.metadata.constants.time_types as ctt
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
-from improver.metadata.check_datatypes import check_cube_not_float64
+from improver.metadata.check_datatypes import check_datatypes
 from improver.metadata.constants.mo_attributes import MOSG_GRID_DEFINITION
 from improver.metadata.forecast_times import forecast_period_coord
 
@@ -101,8 +101,9 @@ def _create_time_point(time):
     Args:
         time (datetime.datetime)
     """
-    point = date2num(time, ctt.TIME_REFERENCE_UNIT, "gregorian")
-    return np.round(point).astype(ctt.TIME_REFERENCE_DTYPE)
+    coord_spec = TIME_COORDS["time"]
+    point = date2num(time, coord_spec.units, coord_spec.calendar)
+    return np.round(point).astype(coord_spec.dtype)
 
 
 def construct_scalar_time_coords(time, time_bounds, frt):
@@ -126,10 +127,11 @@ def construct_scalar_time_coords(time, time_bounds, frt):
     time_point_seconds = _create_time_point(time)
     frt_point_seconds = _create_time_point(frt)
 
+    fp_coord_spec = TIME_COORDS["forecast_period"]
     if time_point_seconds < frt_point_seconds:
         raise ValueError('Cannot set up cube with negative forecast period')
     fp_point_seconds = (
-        time_point_seconds - frt_point_seconds).astype(ctt.TIME_INTERVAL_DTYPE)
+        time_point_seconds - frt_point_seconds).astype(fp_coord_spec.dtype)
 
     # parse bounds if required
     if time_bounds is not None:
@@ -143,18 +145,18 @@ def construct_scalar_time_coords(time, time_bounds, frt):
                     time, time_bounds[0], time_bounds[1]))
         fp_bounds = np.array([
             [bounds[0] - frt_point_seconds,
-             bounds[1] - frt_point_seconds]]).astype(ctt.TIME_INTERVAL_DTYPE)
+             bounds[1] - frt_point_seconds]]).astype(fp_coord_spec.dtype)
     else:
         bounds = None
         fp_bounds = None
 
     # create coordinates
     time_coord = DimCoord(time_point_seconds, "time", bounds=bounds,
-                          units=ctt.TIME_REFERENCE_UNIT)
+                          units=TIME_COORDS["time"].units)
     frt_coord = DimCoord(frt_point_seconds, "forecast_reference_time",
-                         units=ctt.TIME_REFERENCE_UNIT)
+                         units=TIME_COORDS["forecast_reference_time"].units)
     fp_coord = DimCoord(fp_point_seconds, "forecast_period", bounds=fp_bounds,
-                        units=ctt.TIME_INTERVAL_UNIT)
+                        units=fp_coord_spec.units)
 
     coord_dims = [(time_coord, None), (frt_coord, None), (fp_coord, None)]
     return coord_dims
@@ -253,7 +255,7 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
     cube.rename(name)
 
     # don't allow unit tests to set up invalid cubes
-    check_cube_not_float64(cube)
+    check_datatypes(cube)
 
     return cube
 
@@ -434,8 +436,8 @@ def add_coordinate(incube, coord_points, coord_name, coord_units=None,
 
     # if new coordinate points are provided as datetimes, convert to seconds
     if is_datetime:
-        coord_units = ctt.TIME_REFERENCE_UNIT
-        dtype = ctt.TIME_REFERENCE_DTYPE
+        coord_units = TIME_COORDS["time"].units
+        dtype = TIME_COORDS["time"].dtype
         new_coord_points = [_create_time_point(val) for val in coord_points]
         coord_points = new_coord_points
 

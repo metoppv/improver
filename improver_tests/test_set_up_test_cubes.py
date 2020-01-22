@@ -40,8 +40,7 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
-from improver.metadata.constants.time_types import (
-    TIME_REFERENCE_DTYPE, TIME_REFERENCE_UNIT)
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.temporal import iris_time_to_datetime
 
@@ -469,7 +468,8 @@ class test_add_coordinate(IrisTest):
         expected_fp_points = np.array([fp_val + 3600, fp_val + 7200])
         result = add_coordinate(
             self.input_cube, time_points, "time",
-            coord_units=TIME_REFERENCE_UNIT, dtype=TIME_REFERENCE_DTYPE)
+            coord_units=TIME_COORDS["time"].units,
+            dtype=TIME_COORDS["time"].dtype)
         self.assertArrayEqual(result.coord("time").points, time_points)
         self.assertArrayEqual(
             result.coord("forecast_period").points, expected_fp_points)
