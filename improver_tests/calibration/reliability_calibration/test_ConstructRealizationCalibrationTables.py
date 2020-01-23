@@ -182,8 +182,8 @@ class Test__define_probability_bins(unittest.TestCase):
              [0.25, 0.49999997],
              [0.5, 0.74999994],
              [0.75, 1.]])
-        result = Plugin._define_probability_bins(n_probability_bins=4,
-                                                 single_value_limits=False)
+        result = Plugin()._define_probability_bins(n_probability_bins=4,
+                                                   single_value_limits=False)
         assert_almost_equal(result, expected)
 
     def test_with_single_value_limits(self):
@@ -195,8 +195,8 @@ class Test__define_probability_bins(unittest.TestCase):
              [1.0000001e-06, 4.9999997e-01],
              [5.0000000e-01, 9.9999893e-01],
              [9.9999899e-01, 1.0000000e+00]])
-        result = Plugin._define_probability_bins(n_probability_bins=4,
-                                                 single_value_limits=True)
+        result = Plugin()._define_probability_bins(n_probability_bins=4,
+                                                   single_value_limits=True)
         assert_almost_equal(result, expected)
 
     def test_with_single_value_limits_too_few_bins(self):
@@ -206,8 +206,8 @@ class Test__define_probability_bins(unittest.TestCase):
 
         msg = 'Cannot use single_value_limits with 2 or fewer probability bins'
         with self.assertRaisesRegex(ValueError, msg):
-            Plugin._define_probability_bins(n_probability_bins=2,
-                                            single_value_limits=True)
+            Plugin()._define_probability_bins(n_probability_bins=2,
+                                              single_value_limits=True)
 
 
 class Test__create_probability_bins_coord(unittest.TestCase):
@@ -238,7 +238,7 @@ class Test__create_realiability_table_coords(unittest.TestCase):
         expected_names = np.array(
             ['observation_count', 'sum_of_forecast_probabilities',
              'forecast_count'])
-        index_coord, name_coord = Plugin._create_realiability_table_coords()
+        index_coord, name_coord = Plugin()._create_realiability_table_coords()
 
         self.assertIsInstance(index_coord, iris.coords.DimCoord)
         self.assertIsInstance(name_coord, iris.coords.AuxCoord)

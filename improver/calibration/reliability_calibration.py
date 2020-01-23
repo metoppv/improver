@@ -45,7 +45,9 @@ class ConstructRealizationCalibrationTables(BasePlugin):
 
     def __init__(self, n_probability_bins=5, single_value_limits=True):
         """
-        Initialise class for creating realization calibration tables.
+        Initialise class for creating realization calibration tables. These
+        tables include data columns entitled observation_count,
+        sum_of_forecast_probabilities, and forecast_count, defined below.
 
         n_probability_bins (int):
             The total number of probability bins required in the reliability
@@ -53,12 +55,17 @@ class ConstructRealizationCalibrationTables(BasePlugin):
             this total.
         single_value_limits (bool):
             Mandates that the extrema bins (0 and 1) should be single valued,
-            with a small precision tolerance of 1.0E-6, e.g. 0 to 1.0E-6 for
-            the lowest bin, and 1 - 1.0E-6 to 1 for the highest bin.
+            with a small precision tolerance, defined below as
+            single_value_tolerance. This gives bins of 0 to
+            single_value_tolerance and (1 - single-value_tolerance) to 1.
         """
+        self.single_value_tolerance = 1.0E-6
         self.probability_bins = self._define_probability_bins(
             n_probability_bins, single_value_limits)
         self.expected_table_shape = (3, n_probability_bins)
+        self.table_columns = np.array(
+            ['observation_count', 'sum_of_forecast_probabilities',
+             'forecast_count'])
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -69,25 +76,25 @@ class ConstructRealizationCalibrationTables(BasePlugin):
                   'probability_bins: {}>')
         return result.format(bin_values)
 
-    @staticmethod
-    def _define_probability_bins(n_probability_bins, single_value_limits):
+    def _define_probability_bins(self, n_probability_bins, single_value_limits):
         """
-        Define equally spaced probability bins for use in a reliability table.
+        Define equally sized probability bins for use in a reliability table.
         The range 0 to 1 is divided into ranges to give n_probability bins.
         Note that if single_value_limits is True then two bins will be created
-        with values of 0 and 1 and a width of 1.0E-6. The remaining range will
-        be split into n_probability_bins - 2 ranges.
+        with values of 0 and 1, each with a width defined by
+        self.single_value_tolerance.
 
         Args:
             n_probability_bins (int):
-                The total number of probability bins required in the
-                reliability tables. If single value limits are turned on, these
-                are included in this total and the minimum number of bins is 3.
+                The total number of probability bins desired in the
+                reliability tables. This number includes the extrema bins
+                (equals 0 and equals 1) if single value limits are turned on,
+                in which case the minimum number of bins is 3.
             single_value_limits (bool):
                 Mandates that the extrema bins (0 and 1) should be single
-                valued, with a small precision tolerance of 1.0E-6, e.g. 0 to
-                1.0E-6 for the lowest bin, and 1 - 1.0E-6 to 1 for the highest
-                bin.
+                valued with a width of single_value_tolerance. This gives
+                bins of 0 to single_value_tolerance and
+                (1 - single-value_tolerance) to 1.
         Returns:
             numpy.ndarray:
                 An array of 2-element arrays that contain the bounds of the
@@ -109,7 +116,7 @@ class ConstructRealizationCalibrationTables(BasePlugin):
         bins = np.stack([bin_lower[:-1], bin_upper[1:]], 1).astype(np.float32)
 
         if single_value_limits:
-            fixed_bin_width = 1.0E-6
+            fixed_bin_width = self.single_value_tolerance
             bins[0, 0] = np.nextafter(
                 fixed_bin_width, 1, dtype=np.float32)
             bins[-1, 1] = np.nextafter(
@@ -129,7 +136,7 @@ class ConstructRealizationCalibrationTables(BasePlugin):
 
         Returns:
             iris.coord.DimCoord:
-                A dimcoord describing probability bins.
+                A dimension coordinate describing probability bins.
         """
         values = np.mean(self.probability_bins, axis=1, dtype=np.float32)
         probability_bins_coord = iris.coords.DimCoord(
@@ -137,8 +144,7 @@ class ConstructRealizationCalibrationTables(BasePlugin):
             bounds=self.probability_bins)
         return probability_bins_coord
 
-    @staticmethod
-    def _create_realiability_table_coords():
+    def _create_realiability_table_coords(self):
         """
         Construct coordinates that describe the reliability table rows. These
         are observation_count, sum_of_forecast_probabilities, and
@@ -149,19 +155,17 @@ class ConstructRealizationCalibrationTables(BasePlugin):
         Returns:
             (tuple): tuple containing:
                 **index_coord** (iris.coord.DimCoord):
-                    A numerical index coordinate.
+                    A numerical index dimension coordinate.
                 **name_coord** (iris.coord.AuxCoord):
                     An auxiliary coordinate that assigns names to the index
                     coordinates, where these names correspond to the
                     reliability table rows.
         """
         index_coord = iris.coords.DimCoord(
-            np.arange((3), dtype=np.int32), long_name='reliability_index',
-            units=1)
+            np.arange(len(self.table_columns), dtype=np.int32),
+            long_name='reliability_index', units=1)
         name_coord = iris.coords.AuxCoord(
-            np.array(
-                ['observation_count', 'sum_of_forecast_probabilities',
-                 'forecast_count']), long_name='reliability_name', units=1)
+            self.table_columns, long_name='reliability_name', units=1)
         return index_coord, name_coord
 
     @staticmethod
@@ -174,8 +178,8 @@ class ConstructRealizationCalibrationTables(BasePlugin):
             forecast_reference_time (iris.coord.DimCoord):
         Returns:
             iris.coord.DimCoord:
-                A coord containing an integer unitless representation of the
-                cycle hour.
+                A dimension coordinate containing an integer unitless
+                representation of the cycle hour.
         """
         dt_object = next(forecast_reference_time.cells()).point
         cycle_hour = np.int32(dt_object.hour)
@@ -229,10 +233,11 @@ class ConstructRealizationCalibrationTables(BasePlugin):
         """
         def _get_coords_and_dims(coord_names):
             coords_and_dims = []
+            leading_coords = [probability_bins_coord, reliability_index_coord]
             for coord_name in coord_names:
                 crd = forecast_slice.coord(coord_name)
                 crd_dim = forecast_slice.coord_dims(crd)
-                crd_dim = crd_dim[0] + 2 if crd_dim else ()
+                crd_dim = crd_dim[0] + len(leading_coords) if crd_dim else ()
                 coords_and_dims.append((crd, crd_dim))
             return coords_and_dims
 
