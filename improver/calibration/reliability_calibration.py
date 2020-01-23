@@ -37,6 +37,7 @@ from improver import BasePlugin
 from improver.utilities.cube_manipulation import MergeCubes
 from improver.metadata.utilities import generate_mandatory_attributes
 from improver.metadata.probabilistic import find_threshold_coordinate
+from improver.calibration.utilities import filter_non_matching_cubes
 
 
 class ConstructRealizationCalibrationTables(BasePlugin):
@@ -76,7 +77,8 @@ class ConstructRealizationCalibrationTables(BasePlugin):
                   'probability_bins: {}>')
         return result.format(bin_values)
 
-    def _define_probability_bins(self, n_probability_bins, single_value_limits):
+    def _define_probability_bins(self, n_probability_bins,
+                                 single_value_limits):
         """
         Define equally sized probability bins for use in a reliability table.
         The range 0 to 1 is divided into ranges to give n_probability bins.
@@ -317,33 +319,6 @@ class ConstructRealizationCalibrationTables(BasePlugin):
                                 np.stack(forecast_counts)])
         return reliability_table.astype(np.float32)
 
-    @staticmethod
-    def _extract_truth(truths, forecast_slice, threshold_coord):
-        """
-        Extract a truth field that matches the threshold and time of the
-        forecast field.
-
-        Args:
-            truths (iris.cube.Cube):
-                The cube containing the thresholded truths used in calibration.
-            forecast_slice (iris.cube.Cube):
-                A slice over threshold and time of the forecast data.
-            threshold_coord (iris.coords.DimCoord):
-                The threshold coordinate that should be present on both input
-                cubes.
-        Returns:
-            iris.cube.Cube or None:
-                A truth cube that matches the time and threshold values of the
-                forecast slice, or None if no match is found.
-        """
-        threshold, = forecast_slice.coord(threshold_coord).points
-        threshold_name = threshold_coord.name()
-        threshold_constraint = {threshold_name: threshold}
-        time = forecast_slice.coord('time')
-
-        return truths.extract(iris.Constraint(
-            time=next(time.cells()).point, coord_values=threshold_constraint))
-
     def process(self, historic_forecasts, truths):
         """
         Slice data over threshold and time coordinates to construct reliability
@@ -362,23 +337,26 @@ class ConstructRealizationCalibrationTables(BasePlugin):
                 A cubelist of reliability table cubes, one for each threshold
                 in the historic forecast cubes.
         """
+
+        historic_forecasts, truths = filter_non_matching_cubes(
+            historic_forecasts, truths)
+
         threshold_coord = find_threshold_coordinate(historic_forecasts)
         time_coord = historic_forecasts.coord('time')
 
         reliability_tables = iris.cube.CubeList()
-        for threshold_slice in historic_forecasts.slices_over(threshold_coord):
+        threshold_slices = zip(historic_forecasts.slices_over(threshold_coord),
+                               truths.slices_over(threshold_coord))
+        for forecast_slice, truth_slice in threshold_slices:
 
             threshold_reliability = []
-            for time_slice in threshold_slice.slices_over(time_coord):
-
-                truth = self._extract_truth(truths, time_slice,
-                                            threshold_coord)
-                if not truth:
-                    continue
+            time_slices = zip(forecast_slice.slices_over(time_coord),
+                              truth_slice.slices_over(time_coord))
+            for forecast, truth in time_slices:
 
                 reliability_table = (
                     self._populate_reliability_bins(
-                        time_slice.data, truth.data))
+                        forecast.data, truth.data))
 
                 threshold_reliability.append(reliability_table)
 
@@ -387,7 +365,7 @@ class ConstructRealizationCalibrationTables(BasePlugin):
             table_values = np.sum(table_values, axis=0, dtype=np.float32)
 
             reliability_cube = self._create_reliability_table_cube(
-                table_values, time_slice)
+                table_values, forecast)
             reliability_tables.append(reliability_cube)
 
         return MergeCubes()(reliability_tables)
