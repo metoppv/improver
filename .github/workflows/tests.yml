@@ -80,7 +80,7 @@ jobs:
     - name: Package installation
       run: sudo apt-get install singularity-container
     - name: Sphinx
-      run: cd doc; singularity exec ../impr.sif sphinx-build html
+      run: cd doc; singularity exec ../impr.sif make html
 
   pylint:
     needs: singularity
