@@ -189,7 +189,8 @@ def calculate_apparent_temperature(temperature, wind_speed,
 
 
 def calculate_feels_like_temperature(
-    temperature, wind_speed, relative_humidity, pressure, model_id_attr=None):
+        temperature, wind_speed, relative_humidity, pressure,
+        model_id_attr=None):
     """
     Calculates the feels like temperature using a combination of
     the wind chill index and Steadman's apparent temperature equation with
@@ -207,19 +208,15 @@ def calculate_feels_like_temperature(
     Args:
         temperature (iris.cube.Cube):
             Cube of air temperatures
-
         wind_speed (iris.cube.Cube):
             Cube of 10m wind speeds
-
         relative_humidity (iris.cube.Cube):
             Cube of relative humidities
-
         pressure (iris.cube.Cube):
             Cube of air pressure
-
         model_id_attr (str):
-            Name of the attribute used to label the source model on the output
-            file. This is inherited from the input temperature cube.
+            Name of the attribute used to identify the source model for
+            blending. This is inherited from the input temperature cube.
 
     Returns:
         iris.cube.Cube:

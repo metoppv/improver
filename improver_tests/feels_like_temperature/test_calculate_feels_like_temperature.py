@@ -36,7 +36,6 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.feels_like_temperature import calculate_feels_like_temperature
-
 from ..set_up_test_cubes import set_up_variable_cube
 
 
@@ -45,6 +44,10 @@ class Test_calculate_feels_like_temperature(IrisTest):
 
     def setUp(self):
         """Create cubes to input."""
+        mandatory_attributes = {
+            "source": "Met Office Unified Model",
+            "institution": "Met Office",
+            "title": "UKV Model Forecast on UK 2 km Standard Grid"}
 
         temperature = np.array([[[226.15, 237.4, 248.65],
                                  [259.9, 271.15, 282.4],
@@ -55,7 +58,9 @@ class Test_calculate_feels_like_temperature(IrisTest):
                                 [[232.15, 243.4, 254.65],
                                  [265.9, 277.15, 288.4],
                                  [299.65, 310.9, 322.15]]], dtype=np.float32)
-        self.temperature_cube = set_up_variable_cube(temperature)
+        self.temperature_cube = set_up_variable_cube(
+            temperature, standard_grid_metadata="uk_det",
+            attributes=mandatory_attributes)
 
         wind_speed = np.array([[[0., 7.5, 15.],
                                 [22.5, 30., 37.5],
@@ -67,7 +72,8 @@ class Test_calculate_feels_like_temperature(IrisTest):
                                 [26.5, 34., 41.5],
                                 [49., 56.5, 64.]]], dtype=np.float32)
         self.wind_speed_cube = set_up_variable_cube(
-            wind_speed, name="wind_speed", units="m s-1")
+            wind_speed, name="wind_speed", units="m s-1",
+            standard_grid_metadata="uk_det", attributes=mandatory_attributes)
 
         # create cube with metadata and values suitable for pressure.
         pressure_data = (
@@ -76,7 +82,8 @@ class Test_calculate_feels_like_temperature(IrisTest):
         pressure_data[1] += 2
         pressure_data[2] += 4
         self.pressure_cube = set_up_variable_cube(
-            pressure_data.astype(np.float32), name="air_pressure", units="Pa")
+            pressure_data.astype(np.float32), name="air_pressure", units="Pa",
+            standard_grid_metadata="uk_det", attributes=mandatory_attributes)
 
         # create cube with metadata and values suitable for relative humidity.
         relative_humidity_data = (
@@ -86,7 +93,8 @@ class Test_calculate_feels_like_temperature(IrisTest):
         relative_humidity_data[2] += 0.4
         self.relative_humidity_cube = set_up_variable_cube(
             relative_humidity_data.astype(np.float32),
-            name="relative_humidity", units="1")
+            name="relative_humidity", units="1",
+            standard_grid_metadata="uk_det", attributes=mandatory_attributes)
 
     def test_temperature_less_than_10(self):
         """Test values of feels like temperature when temperature < 10
@@ -174,28 +182,17 @@ class Test_calculate_feels_like_temperature(IrisTest):
             self.relative_humidity_cube[0], self.pressure_cube[0])
         self.assertArrayAlmostEqual(result.data, expected_result, decimal=4)
 
-    def test_unit_conversion(self):
-        """Test that input cubes have the same units at the end of the function
-        as they do at input"""
-
-        self.temperature_cube.convert_units('fahrenheit')
-        self.wind_speed_cube.convert_units('knots')
-        self.relative_humidity_cube.convert_units('%')
-        self.pressure_cube.convert_units('hPa')
-
-        calculate_feels_like_temperature(
+    def test_model_id_attr(self):
+        """Test model id attribute can be selectively inherited"""
+        model_id_attr = "mosg__model_configuration"
+        attrs = ["title", "source", "institution", model_id_attr]
+        expected_attrs = {attr: self.temperature_cube.attributes[attr]
+                          for attr in attrs}
+        result = calculate_feels_like_temperature(
             self.temperature_cube, self.wind_speed_cube,
-            self.relative_humidity_cube, self.pressure_cube)
-
-        temp_units = self.temperature_cube.units
-        wind_speed_units = self.wind_speed_cube.units
-        relative_humidity_units = self.relative_humidity_cube.units
-        pressure_units = self.pressure_cube.units
-
-        self.assertEqual(temp_units, 'fahrenheit')
-        self.assertEqual(wind_speed_units, 'knots')
-        self.assertEqual(relative_humidity_units, '%')
-        self.assertEqual(pressure_units, 'hPa')
+            self.relative_humidity_cube, self.pressure_cube,
+            model_id_attr=model_id_attr)
+        self.assertDictEqual(result.attributes, expected_attrs)
 
 
 if __name__ == '__main__':
