@@ -47,26 +47,24 @@ def calculate_wind_chill(temperature, wind_speed):
     Bluestein, 2005, table 2.
 
     Args:
-      temperature (iris.cube.Cube):
-        Cube of air temperatures
-
-      wind_speed (iris.cube.Cube):
-        Cube of 10m wind speeds
+        temperature (iris.cube.Cube):
+            Cube of air temperatures
+        wind_speed (iris.cube.Cube):
+            Cube of 10m wind speeds
 
     Returns:
-      iris.cube.Cube:
-        Cube of wind chill temperatures. The units of wind chill will be the
-        same as the units of the temperature cube when it is input into the
-        function.
+        iris.cube.Cube:
+            Cube of wind chill temperatures. The units of wind chill will be
+            the same as the units of the input temperature cube.
 
     References:
-    Osczevski, R. and Bluestein, M. (2005). THE NEW WIND CHILL EQUIVALENT
-    TEMPERATURE CHART. Bulletin of the American Meteorological Society,
-    86(10), pp.1453-1458.
+        Osczevski, R. and Bluestein, M. (2005). THE NEW WIND CHILL EQUIVALENT
+        TEMPERATURE CHART. Bulletin of the American Meteorological Society,
+        86(10), pp.1453-1458.
 
-    Osczevski, R. and Bluestein, M. (2008). Comments on Inconsistencies in
-    the New Windchill Chart at Low Wind Speeds. Journal of Applied
-    Meteorology and Climatology, 47(10), pp.2737-2738.
+        Osczevski, R. and Bluestein, M. (2008). Comments on Inconsistencies in
+        the New Windchill Chart at Low Wind Speeds. Journal of Applied
+        Meteorology and Climatology, 47(10), pp.2737-2738.
 
     Science background:
     The 2005 Osczevski and Bluestein paper outlines the research and the
@@ -135,27 +133,23 @@ def calculate_apparent_temperature(temperature, wind_speed,
     the WetBulbTemperature plugin which makes use of the Goff-Gratch method.
 
     Args:
-      temperature (iris.cube.Cube):
-        Cube of air temperatures
-
-      wind_speed (iris.cube.Cube):
-        Cube of 10m wind speeds
-
-      relative_humidity (iris.cube.Cube):
-        Cube of relative humidities
-
-      pressure (iris.cube.Cube):
-        Cube of air pressure
+        temperature (iris.cube.Cube):
+            Cube of air temperatures
+        wind_speed (iris.cube.Cube):
+            Cube of 10m wind speeds
+        relative_humidity (iris.cube.Cube):
+            Cube of relative humidities
+        pressure (iris.cube.Cube):
+            Cube of air pressure
 
     Returns:
-      iris.cube.Cube:
-        Cube of apparent temperatures. The units of apparent temperature
-        will be the same as the units of the temperature cube when it is input
-        into the function.
+        iris.cube.Cube:
+            Cube of apparent temperatures. The units of apparent temperature
+            will be the same as the units of the input temperature cube.
 
     References:
-      Steadman, R. (1984). A Universal Scale of Apparent Temperature.
-      Journal of Climate and Applied Meteorology, 23(12), pp.1674-1687
+        Steadman, R. (1984). A Universal Scale of Apparent Temperature.
+        Journal of Climate and Applied Meteorology, 23(12), pp.1674-1687
     """
     t_cube = temperature.copy()
     w_cube = wind_speed.copy()
