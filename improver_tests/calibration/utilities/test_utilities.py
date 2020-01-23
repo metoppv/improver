@@ -41,9 +41,10 @@ from iris.tests import IrisTest
 
 from improver.calibration.utilities import (
     check_predictor, convert_cube_data_to_2d,
-    flatten_ignoring_masked_data)
+    flatten_ignoring_masked_data, filter_non_matching_cubes)
 
-from ..ensemble_calibration.helper_functions import set_up_temperature_cube
+from ..ensemble_calibration.helper_functions import (set_up_temperature_cube,
+                                                     SetupCubes)
 
 
 class Test_convert_cube_data_to_2d(IrisTest):
@@ -190,8 +191,8 @@ class Test_flatten_ignoring_masked_data(IrisTest):
                               [[True, False, True, True],
                                [True, False, True, True]]])
         self.expected_result_preserve_leading_dim = np.array(
-            [[0.,  1.,  2.,  3.,  4.,  5.,  6.,  7.],
-             [8.,  9., 10., 11., 12., 13., 14., 15.],
+            [[0., 1., 2., 3., 4., 5., 6., 7.],
+             [8., 9., 10., 11., 12., 13., 14., 15.],
              [16., 17., 18., 19., 20., 21., 22., 23.]],
             dtype=np.float32)
 
@@ -303,6 +304,88 @@ class Test_check_predictor(IrisTest):
         msg = "The requested value for the predictor"
         with self.assertRaisesRegex(ValueError, msg):
             check_predictor("foo")
+
+
+class Test__filter_non_matching_cubes(SetupCubes):
+    """Test the _filter_non_matching_cubes method."""
+
+    def setUp(self):
+        super().setUp()
+        # Create historical forecasts and truth cubes where some items
+        # are missing.
+        self.partial_historic_forecasts = (
+            self.historic_forecasts[:2] +
+            self.historic_forecasts[3:]).merge_cube()
+        self.partial_truth = (self.truth[:2] + self.truth[3:]).merge_cube()
+
+    def test_all_matching(self):
+        """Test for when the historic forecast and truth cubes all match."""
+        hf_result, truth_result = filter_non_matching_cubes(
+            self.historic_temperature_forecast_cube,
+            self.temperature_truth_cube)
+        self.assertEqual(hf_result, self.historic_temperature_forecast_cube)
+        self.assertEqual(truth_result, self.temperature_truth_cube)
+
+    def test_bounded_variables(self):
+        """Test for when the historic forecast and truth cubes all match
+        inclusive of both the points and bounds on the time coordinate."""
+        # Define bounds so that the lower bound is one hour preceding the point
+        # whilst the upper bound is equal to the point.
+        points = self.historic_temperature_forecast_cube.coord("time").points
+        bounds = []
+        for point in points:
+            bounds.append([point - 1*60*60, point])
+
+        self.historic_temperature_forecast_cube.coord("time").bounds = bounds
+        self.temperature_truth_cube.coord("time").bounds = bounds
+
+        hf_result, truth_result = filter_non_matching_cubes(
+            self.historic_temperature_forecast_cube,
+            self.temperature_truth_cube)
+        self.assertEqual(hf_result, self.historic_temperature_forecast_cube)
+        self.assertEqual(truth_result, self.temperature_truth_cube)
+
+    def test_fewer_historic_forecasts(self):
+        """Test for when there are fewer historic forecasts than truths,
+        for example, if there is a missing forecast cycle."""
+        hf_result, truth_result = filter_non_matching_cubes(
+            self.partial_historic_forecasts, self.temperature_truth_cube)
+        self.assertEqual(hf_result, self.partial_historic_forecasts)
+        self.assertEqual(truth_result, self.partial_truth)
+
+    def test_fewer_truths(self):
+        """Test for when there are fewer truths than historic forecasts,
+        for example, if there is a missing analysis."""
+        hf_result, truth_result = filter_non_matching_cubes(
+            self.historic_temperature_forecast_cube, self.partial_truth)
+        self.assertEqual(hf_result, self.partial_historic_forecasts)
+        self.assertEqual(truth_result, self.partial_truth)
+
+    def test_mismatching(self):
+        """Test for when there is both a missing historic forecasts and a
+        missing truth at different validity times. This results in the
+        expected historic forecasts and the expected truths containing cubes
+        at three matching validity times."""
+        partial_truth = self.truth[1:].merge_cube()
+        expected_historical_forecasts = iris.cube.CubeList(
+            [self.historic_forecasts[index]
+             for index in (1, 3, 4)]).merge_cube()
+        expected_truth = iris.cube.CubeList(
+            [self.truth[index] for index in (1, 3, 4)]).merge_cube()
+        hf_result, truth_result = filter_non_matching_cubes(
+            self.partial_historic_forecasts, partial_truth)
+        self.assertEqual(hf_result, expected_historical_forecasts)
+        self.assertEqual(truth_result, expected_truth)
+
+    def test_no_matches_exception(self):
+        """Test for when no matches in validity time are found between the
+        historic forecasts and the truths. In this case, an exception is
+        raised."""
+        partial_truth = self.truth[2]
+        msg = "The filtering has found no matches in validity time "
+        with self.assertRaisesRegex(ValueError, msg):
+            filter_non_matching_cubes(
+                self.partial_historic_forecasts, partial_truth)
 
 
 if __name__ == '__main__':
