@@ -847,13 +847,12 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
 
         # Ensure input cube and weights cube are ordered equivalently along
         # blending coordinate.
-        cube = sort_coord_in_cube(cube, self.blend_coord, order="ascending")
+        cube = sort_coord_in_cube(cube, self.blend_coord)
         if weights is not None:
             if not weights.coords(self.blend_coord):
                 msg = 'Coordinate to be collapsed not found in weights cube.'
                 raise CoordinateNotFoundError(msg)
-            weights = sort_coord_in_cube(weights, self.blend_coord,
-                                         order="ascending")
+            weights = sort_coord_in_cube(weights, self.blend_coord)
 
         # Check that the time coordinate is single valued if required.
         self.check_compatible_time_points(cube)
