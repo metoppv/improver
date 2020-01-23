@@ -5,7 +5,6 @@ on: [push, pull_request]
 jobs:
 
   singularity:
-    name: Singularity container
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -30,7 +29,6 @@ jobs:
       run: mkdir imprsif; split --bytes=100M impr.sif imprsif/sifpart; rm impr.sif
 
   pytest:
-    name: Pytest
     needs: singularity
     runs-on: ubuntu-latest
     steps:
@@ -49,7 +47,6 @@ jobs:
       run: singularity exec impr.sif pytest
 
   pycodestyle:
-    name: Pycodestyle
     needs: singularity
     runs-on: ubuntu-latest
     steps:
@@ -66,3 +63,39 @@ jobs:
       run: sudo apt-get install singularity-container
     - name: Pycodestyle
       run: singularity exec impr.sif pycodestyle improver improver_tests
+
+  sphinx:
+    needs: singularity
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+    - name: Container image cache
+      uses: actions/cache@v1
+      with:
+        path: imprsif
+        key: ${{ runner.os }}-${{ hashFiles('singularity.def') }}-${{ hashfiles('environment.yml') }}
+    - name: Container image setup
+      run: cat imprsif/sifpart* > impr.sif; rm -r imprsif
+    - name: Package installation
+      run: sudo apt-get install singularity-container
+    - name: Sphinx
+      run: cd doc; singularity exec ../impr.sif sphinx-build html
+
+  pylint:
+    needs: singularity
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+    - name: Container image cache
+      uses: actions/cache@v1
+      with:
+        path: imprsif
+        key: ${{ runner.os }}-${{ hashFiles('singularity.def') }}-${{ hashfiles('environment.yml') }}
+    - name: Container image setup
+      run: cat imprsif/sifpart* > impr.sif; rm -r imprsif
+    - name: Package installation
+      run: sudo apt-get install singularity-container
+    - name: Pylint
+      run: singularity exec impr.sif pylint -j 0 -E --rcfile=etc/pylintrc improver improver_tests
