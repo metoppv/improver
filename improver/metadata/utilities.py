@@ -95,7 +95,7 @@ def create_new_diagnostic_cube(
         data = da.zeros_like(template_cube.core_data(), dtype=dtype)
 
     aux_coords_and_dims, dim_coords_and_dims = [
-        [(coord, template_cube.coord_dims(coord))
+        [(coord.copy(), template_cube.coord_dims(coord))
          for coord in getattr(template_cube, coord_type)]
         for coord_type in ('aux_coords', 'dim_coords')]
 

@@ -208,7 +208,7 @@ class Test_extrapolate(SetUpCubes):
             result.coord("forecast_period").points, expected_forecast_period)
         self.assertEqual(result.coord("forecast_period").units, "seconds")
         self.assertEqual(result.coord("forecast_reference_time").points,
-                         input_cube.coord("forecast_reference_time").points)
+                         input_cube.coord("time").points)
         self.assertEqual(result.coord("time").points,
                          input_cube.coord("time").points+600)
 
@@ -240,7 +240,7 @@ class Test_extrapolate(SetUpCubes):
         self.assertEqual(result.coord("forecast_period").units, "seconds")
         self.assertEqual(
             result.coord("forecast_reference_time").points,
-            self.precip_cube.coord("forecast_reference_time").points)
+            self.precip_cube.coord("time").points)
         self.assertEqual(result.coord("time").points,
                          self.precip_cube.coord("time").points+600)
 
