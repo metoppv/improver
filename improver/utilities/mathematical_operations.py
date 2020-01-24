@@ -36,7 +36,8 @@ import numpy as np
 from improver import BasePlugin
 from improver.metadata.utilities import (
     generate_mandatory_attributes, create_new_diagnostic_cube)
-from improver.utilities.cube_manipulation import sort_coord_in_cube
+from improver.utilities.cube_manipulation import (
+    enforce_coordinate_ordering, sort_coord_in_cube)
 
 
 class Integration(BasePlugin):
@@ -192,10 +193,15 @@ class Integration(BasePlugin):
                               lambda x: x in points}))
 
         # re-promote integrated coord to dimension coord if need be
-        for coord in template.aux_coords[::-1]:
-            if coord.name() == self.coord_name_to_integrate:
-                template = iris.util.new_axis(
-                    template, self.coord_name_to_integrate)
+        aux_coord_names = [coord.name() for coord in template.aux_coords]
+        if self.coord_name_to_integrate in aux_coord_names:
+            template = iris.util.new_axis(
+                template, self.coord_name_to_integrate)
+
+        # order dimensions on the template cube so that the integrated
+        # coordinate is first (as this is the leading dimension on the
+        # data array)
+        enforce_coordinate_ordering(template, self.coord_name_to_integrate)
 
         # generate appropriate metadata for new cube
         attributes = generate_mandatory_attributes([template])
@@ -209,6 +215,10 @@ class Integration(BasePlugin):
         integrated_cube.coord(self.coord_name_to_integrate).bounds = (
             np.array(bounds).astype(coord_dtype))
 
+        # re-order cube to match dimensions of input cube
+        ordered_dimensions = [coord.name() for coord in
+                              self.input_cube.coords(dim_coords=True)]
+        enforce_coordinate_ordering(integrated_cube, ordered_dimensions)
         return integrated_cube
 
     def perform_integration(self, upper_bounds_cube, lower_bounds_cube):
