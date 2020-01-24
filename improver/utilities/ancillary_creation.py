@@ -298,7 +298,7 @@ class SaturatedVapourPressureTable(BasePlugin):
         # WetBulbTemperature.check_range(temperature.data, 173., 373.)
         if (temperature.max() > self.MAX_VALID_TEMPERATURE or
                 temperature.min() < self.MIN_VALID_TEMPERATURE):
-            msg = ("Temperatures out of SVP table range: min {}, max {}")
+            msg = "Temperatures out of SVP table range: min {}, max {}"
             warnings.warn(msg.format(temperature.min(),
                                      temperature.max()))
 

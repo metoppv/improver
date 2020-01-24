@@ -134,17 +134,17 @@ class WetBulbTemperature(BasePlugin):
     def _slice_inputs(temperature, relative_humidity, pressure):
         """Create iterable or iterator over cubes on which to calculate
         wet bulb temperature"""
-        slices = None
+        vertical_coords = None
         try:
             vertical_coords = [cube.coord(axis='z').name() for cube in
                                [temperature, relative_humidity, pressure]
                                if cube.coord_dims(cube.coord(axis='z')) != ()]
-            if not vertical_coords:
-                slices = [(temperature, relative_humidity, pressure)]
         except iris.exceptions.CoordinateNotFoundError:
-            slices = [(temperature, relative_humidity, pressure)]
+            pass
 
-        if slices is None:
+        if not vertical_coords:
+            slices = [(temperature, relative_humidity, pressure)]
+        else:
             if len(set(vertical_coords)) > 1 or len(vertical_coords) != 3:
                 raise ValueError('WetBulbTemperature: Cubes have differing '
                                  'vertical coordinates.')
