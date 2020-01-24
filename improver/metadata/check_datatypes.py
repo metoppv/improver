@@ -77,7 +77,10 @@ def check_units(obj):
     if hasattr(obj, 'units'):
         req_units = get_required_units(obj)
         if req_units is not None:
-            return Unit(obj.units) == Unit(req_units)
+            # check object and string representation to get consistent output
+            # (e.g Unit('second') == Unit('seconds'))
+            return (Unit(obj.units) == Unit(req_units) and
+                    str(obj.units) == str(req_units))
     return True
 
 
