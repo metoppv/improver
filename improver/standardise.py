@@ -253,7 +253,7 @@ class StandardiseGridAndMetadata(BasePlugin):
 
     def process(self, cube, target_grid=None, new_name=None, new_units=None,
                 regridded_title=None, coords_to_remove=None,
-                attributes_dict=None, standardise_dtypes=False):
+                attributes_dict=None):
         """
         Perform regridding and metadata adjustments
 
