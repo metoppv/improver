@@ -73,7 +73,7 @@ WX_DICT = OrderedDict(sorted(_WX_DICT_IN.items(), key=lambda t: t[0]))
 DAYNIGHT_CODES = [1, 3, 10, 14, 17, 20, 23, 26, 29]
 
 
-def add_wxcode_metadata(cube):
+def add_weather_code_attribute(cube):
     """ Add weather code metadata to a cube
     Args:
         cube (iris.cube.Cube):
@@ -83,19 +83,10 @@ def add_wxcode_metadata(cube):
             Cube with weather code metadata added.
     """
     import numpy as np
-    cube.long_name = "weather_code"
-    cube.standard_name = None
-    cube.var_name = None
-    cube.units = "1"
     wx_keys = np.array(list(WX_DICT.keys()))
     cube.attributes.update({'weather_code': wx_keys})
     wxstring = " ".join(WX_DICT.values())
     cube.attributes.update({'weather_code_meaning': wxstring})
-    # If forecast_period or time have bounds remove them
-    # as the weather code cube is not considered to be over a period.
-    for crd in cube.coords():
-        if crd.name() in ['forecast_period', 'time']:
-            crd.bounds = None
     return cube
 
 

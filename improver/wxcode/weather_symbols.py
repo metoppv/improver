@@ -39,8 +39,10 @@ import numpy as np
 from improver import BasePlugin
 from improver.metadata.probabilistic import (
     extract_diagnostic_name, find_threshold_coordinate)
+from improver.metadata.utilities import (
+    create_new_diagnostic_cube, generate_mandatory_attributes)
 from improver.wxcode.utilities import (
-    add_wxcode_metadata, expand_nested_lists, update_daynight)
+    add_weather_code_attribute, expand_nested_lists, update_daynight)
 from improver.wxcode.wxcode_decision_tree import (
     START_NODE, wxcode_decision_tree)
 from improver.wxcode.wxcode_decision_tree_global import (
@@ -481,29 +483,30 @@ class WeatherSymbols(BasePlugin):
         return routes
 
     @staticmethod
-    def create_symbol_cube(cube):
+    def create_symbol_cube(cubes):
         """
-        Create an empty weather_symbol cube initialised with -1 across the
-        grid.
+        Create an empty weather_symbol cube
 
         Args:
-            cube (iris.cube.Cube):
-                An x-y slice of one of the input cubes, used to define the
-                size of the weather symbol grid.
+            cubes (list or iris.cube.CubeList):
+                List of input cubes used to generate weather symbols
         Returns:
             iris.cube.Cube:
-                A cube full of -1 values, with suitable metadata to describe
-                the weather symbols that will fill it.
+                A cube with suitable metadata to describe the weather symbols
+                that will fill it
         """
-        threshold_coord = find_threshold_coordinate(cube)
-        cube_format = next(cube.slices_over([threshold_coord]))
-        symbols = cube_format.copy(data=np.full(cube_format.data.shape, -1,
-                                                dtype=np.int32))
+        threshold_coord = find_threshold_coordinate(cubes[0])
+        template_cube = next(cubes[0].slices_over([threshold_coord])).copy()
+        # remove coordinates and bounds that do not apply to weather symbols
+        template_cube.remove_coord(threshold_coord)
+        for coord in template_cube.coords():
+            if coord.name() in ['forecast_period', 'time']:
+                coord.bounds = None
 
-        symbols.remove_coord(threshold_coord)
-        symbols = add_wxcode_metadata(symbols)
-
-        return symbols
+        attributes = generate_mandatory_attributes(cubes)
+        symbols = create_new_diagnostic_cube(
+            "weather_code", "1", template_cube, attributes)
+        return add_weather_code_attribute(symbols)
 
     def process(self, cubes):
         """Apply the decision tree to the input cubes to produce weather
@@ -533,7 +536,7 @@ class WeatherSymbols(BasePlugin):
                     defined_symbols.append(value)
 
         # Create symbol cube
-        symbols = self.create_symbol_cube(cubes[0])
+        symbols = self.create_symbol_cube(cubes)
 
         # Loop over possible symbols
         for symbol_code in defined_symbols:

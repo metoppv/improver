@@ -677,7 +677,7 @@ class Test_create_symbol_cube(IrisTest):
             or list of iris.Constraint"""
         plugin = WeatherSymbols()
 
-        result = plugin.create_symbol_cube(self.cube[0])
+        result = plugin.create_symbol_cube([self.cube])
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
         self.assertEqual(result.attributes['weather_code_meaning'],

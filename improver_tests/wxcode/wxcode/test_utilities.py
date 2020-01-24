@@ -48,7 +48,7 @@ from improver.grids import ELLIPSOID, STANDARD_GRID_CCRS
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.wxcode.utilities import (
-    WX_DICT, add_wxcode_metadata, expand_nested_lists,
+    WX_DICT, add_weather_code_attribute, expand_nested_lists,
     interrogate_decision_tree, update_daynight)
 
 from ...calibration.ensemble_calibration.helper_functions import set_up_cube
@@ -110,7 +110,7 @@ def set_up_wxcube(time_points=None):
 
     cube = Cube(data, long_name="weather_code",
                 units="1")
-    cube = add_wxcode_metadata(cube)
+    cube = add_weather_code_attribute(cube)
 
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
@@ -165,8 +165,8 @@ def set_up_wxcube_lat_lon(time_points=None):
         time_points = np.array([datetime_to_numdateval()])
 
     data = np.ones((len(time_points), 16, 16))
-    cube = Cube(data, long_name="weather_code", units="1")
-    cube = add_wxcode_metadata(cube)
+    cube = Cube(data,  long_name="weather_code", units="1")
+    cube = add_weather_code_attribute(cube)
 
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
@@ -233,8 +233,8 @@ class Test_wx_dict(IrisTest):
         self.assertEqual(WX_DICT[30], 'Thunder')
 
 
-class Test_add_wxcode_metadata(IrisTest):
-    """ Test add_wxcode_metadata is working correctly """
+class Test_add_weather_code_attribute(IrisTest):
+    """ Test add_weather_code_attribute is working correctly """
 
     def setUp(self):
         """Set up cube """
@@ -242,7 +242,7 @@ class Test_add_wxcode_metadata(IrisTest):
             [0, 1, 5, 11, 20, 5, 9, 10, 4, 2, 0, 1, 29, 30, 1, 5, 6, 6],
             dtype=np.int32
         ).reshape((2, 1, 3, 3))
-        self.cube = set_up_cube(data, 'air_temperature', 'K',
+        self.cube = set_up_cube(data, 'weather_code', '1',
                                 realizations=np.array([0, 1], dtype=np.int32))
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
@@ -257,35 +257,21 @@ class Test_add_wxcode_metadata(IrisTest):
 
     def test_basic(self):
         """Test that the function returns a cube."""
-        result = add_wxcode_metadata(self.cube)
+        result = add_weather_code_attribute(self.cube)
         self.assertIsInstance(result, Cube)
 
-    def test_metadata_set(self):
-        """Test that the metadata is set correctly."""
-        result = add_wxcode_metadata(self.cube)
-        self.assertEqual(result.name(), 'weather_code')
-        self.assertEqual(result.units, Unit("1"))
+    def test_attributes_set(self):
+        """Test that the weather code describing attribute is set correctly."""
+        result = add_weather_code_attribute(self.cube)
         self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
         self.assertEqual(result.attributes['weather_code_meaning'],
                          self.wxmeaning)
 
-    def test_metadata_removes_bounds(self):
-        """Test that the metadata removes bounds from cube."""
-        cube = self.cube.copy()
-        upper_bound = cube.coord('time').points[0]
-        lower_bound = upper_bound - 60*60
-        cube.coord('time').bounds = [lower_bound, upper_bound]
-        result = add_wxcode_metadata(cube)
-        self.assertEqual(result.name(), 'weather_code')
-        self.assertIsNone(result.coord('time').bounds)
-
     def test_metadata_saves(self):
         """Test that the metadata saves as NetCDF correctly."""
-        cube = add_wxcode_metadata(self.cube)
+        cube = add_weather_code_attribute(self.cube)
         save_netcdf(cube, self.nc_file)
         result = load_cube(self.nc_file)
-        self.assertEqual(result.name(), 'weather_code')
-        self.assertEqual(result.units, Unit("1"))
         self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
         self.assertEqual(result.attributes['weather_code_meaning'],
                          self.wxmeaning)
