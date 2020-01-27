@@ -35,9 +35,16 @@ from unittest.mock import patch
 
 import improver
 from improver.cli import (
-    create_constrained_inputcubelist_converter, docutilize, inputcube,
-    inputjson, maybe_coerce_with, unbracket, with_intermediate_output,
-    with_output)
+    clizefy,
+    create_constrained_inputcubelist_converter,
+    docutilize,
+    inputcube,
+    inputjson,
+    maybe_coerce_with,
+    unbracket,
+    with_intermediate_output,
+    with_output,
+)
 from improver.utilities.load import load_cube
 
 
@@ -198,6 +205,26 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         m.assert_any_call(load_cube, "foo", constraints='wind_speed')
         m.assert_any_call(load_cube, "foo", constraints='wind_from_direction')
         self.assertEqual(m.call_count, 2)
+
+
+class Test_clizefy(unittest.TestCase):
+    """Test the clizefy decorator function"""
+
+    @patch('improver.cli.docutilize', return_value=None)
+    def test_basic(self, m):
+        """Tests basic behaviour"""
+
+        def func():
+            """Dummy"""
+
+        clizefied = clizefy(func)
+        self.assertIs(func, clizefied)
+        self.assertTrue(hasattr(clizefied, 'cli'))
+        clizefied_cli = clizefied.cli
+        clizefied_again = clizefy()(clizefied)
+        self.assertIs(clizefied_cli, clizefied_again.cli)
+        clizefied_cli('argv[0]', '--help')
+        m.assert_called_with(func.__doc__)
 
 
 class Test_unbracket(unittest.TestCase):
