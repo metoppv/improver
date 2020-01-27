@@ -33,7 +33,7 @@
 
 
 from improver import cli
-from improver.utilities.compare import DEFAULT_TOLERANCE
+from improver.constants import DEFAULT_TOLERANCE
 
 
 @cli.clizefy

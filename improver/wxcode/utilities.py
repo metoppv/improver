@@ -32,11 +32,6 @@
 
 from collections import OrderedDict
 
-import iris
-import numpy as np
-from iris.exceptions import CoordinateNotFoundError
-
-import improver.utilities.solar as solar
 from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
 from improver.wxcode.wxcode_decision_tree_global import (
     wxcode_decision_tree_global)
@@ -87,6 +82,7 @@ def add_wxcode_metadata(cube):
         iris.cube.Cube:
             Cube with weather code metadata added.
     """
+    import numpy as np
     cube.long_name = "weather_code"
     cube.standard_name = None
     cube.var_name = None
@@ -97,12 +93,9 @@ def add_wxcode_metadata(cube):
     cube.attributes.update({'weather_code_meaning': wxstring})
     # If forecast_period or time have bounds remove them
     # as the weather code cube is not considered to be over a period.
-    for coord_name in ['forecast_period', 'time']:
-        try:
-            if cube.coord(coord_name).bounds is not None:
-                cube.coord(coord_name).bounds = None
-        except iris.exceptions.CoordinateNotFoundError:
-            continue
+    for crd in cube.coords():
+        if crd.name() in ['forecast_period', 'time']:
+            crd.bounds = None
     return cube
 
 
@@ -144,6 +137,11 @@ def update_daynight(cubewx):
         CoordinateNotFoundError : cube must have time coordinate.
 
     """
+    import iris
+    import numpy as np
+    from iris.exceptions import CoordinateNotFoundError
+    import improver.utilities.solar as solar
+
     if not cubewx.coords("time"):
         msg = ("cube must have time coordinate ")
         raise CoordinateNotFoundError(msg)
@@ -200,35 +198,22 @@ def interrogate_decision_tree(wxtree):
 
     # Diagnostic names and threshold values.
     requirements = {}
-    # How the data has been thresholded relative to these thresholds.
-    relative = {}
 
     for query in queries.values():
         diagnostics = expand_nested_lists(query, 'diagnostic_fields')
-        for index, diagnostic in enumerate(diagnostics):
-            if diagnostic not in requirements:
-                requirements[diagnostic] = []
-                relative[diagnostic] = []
-            requirements[diagnostic].extend(
-                expand_nested_lists(query, 'diagnostic_thresholds')[index])
-            relative[diagnostic].append(
-                expand_nested_lists(query, 'diagnostic_conditions')[index])
+        thresholds = expand_nested_lists(query, 'diagnostic_thresholds')
+        for diagnostic, threshold in zip(diagnostics, thresholds):
+            unique_thresholds = requirements.setdefault(diagnostic, [])
+            if threshold not in unique_thresholds:
+                unique_thresholds.append(threshold)
 
     # Create a list of formatted strings that will be printed as part of the
     # CLI help.
     output = []
-    for requirement in requirements:
-        entries = np.array([entry for entry in requirements[requirement]])
-        relations = np.array([entry for entry in relative[requirement]])
-        _, thresholds = np.unique(np.array([item.points.item()
-                                            for item in entries]),
-                                  return_index=True)
-        output.append('{}; thresholds: {}'.format(
-            requirement, ', '.join([
-                '{} ({})'.format(str(threshold.points.item()),
-                                 str(threshold.units))
-                for threshold, relation in
-                zip(entries[thresholds], relations[thresholds])])))
+    for requirement, unique_thresholds in sorted(requirements.items()):
+        units, = set(u for (_, u) in unique_thresholds)  # enforces same units
+        thresh_str = ', '.join(str(v) for (v, _) in unique_thresholds)
+        output.append('{} ({}) at: {}'.format(requirement, units, thresh_str))
 
     n_files = len(output)
     formatted_string = ('{}\n'*n_files)
