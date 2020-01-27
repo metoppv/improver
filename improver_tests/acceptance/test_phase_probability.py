@@ -48,7 +48,7 @@ def test_snow(tmp_path):
     output_path = tmp_path / "output.nc"
     input_paths = [acc.kgo_root() / x for x in
                    ("phase-change-level/basic/orog.nc",
-                    "phase-change-level/basic/snow_sleet_kgo.nc")]
+                    "phase-probability/basic/snow_sleet_input.nc")]
     args = [*input_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -61,7 +61,7 @@ def test_rain(tmp_path):
     output_path = tmp_path / "output.nc"
     input_paths = [acc.kgo_root() / x for x in
                    ("phase-change-level/basic/orog.nc",
-                    "phase-change-level/basic/sleet_rain_kgo.nc")]
+                    "phase-probability/basic/sleet_rain_input.nc")]
     args = [*input_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -74,7 +74,7 @@ def test_rain_large_radius(tmp_path):
     output_path = tmp_path / "output.nc"
     input_paths = [acc.kgo_root() / x for x in
                    ("phase-change-level/basic/orog.nc",
-                    "phase-change-level/basic/sleet_rain_kgo.nc")]
+                    "phase-probability/basic/sleet_rain_input.nc")]
     args = [*input_paths, "--radius", "20000", "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
