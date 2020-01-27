@@ -39,7 +39,7 @@ from improver import cli
 def process(snow: cli.inputcube,
             rain: cli.inputcube,
             *,
-            ignore_mismatch: bool = False):
+            ignore_mismatch=False):
     """Calculate sleet probability.
 
     Calculates the sleet probability using the
